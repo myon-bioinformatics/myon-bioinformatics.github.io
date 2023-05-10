@@ -5,5 +5,5 @@ github.io
 
 the followings are already implemented.
 > - git clone https://github.com/asdf-vm/asdf.git ~/.asdf
-> source $HOME/.asdf/asdf.sh
-> asdf plugin add python
+> - source $HOME/.asdf/asdf.sh
+> - asdf plugin add python
