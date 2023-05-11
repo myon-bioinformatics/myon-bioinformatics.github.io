@@ -12,8 +12,8 @@
 
 # All the followings will be complemeted.
 - [x] index.html
-- [] style.css
-- [] index.js
+- [ ] style.css
+- [ ] index.js
 
 # Environment(Prepared)
 >- git clone https://github.com/asdf-vm/asdf.git ~/.asdf
