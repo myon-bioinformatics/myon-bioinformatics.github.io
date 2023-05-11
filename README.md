@@ -15,5 +15,10 @@
 - [] style.css
 - [] index.js
 
+# Environment(Prepared)
+>- git clone https://github.com/asdf-vm/asdf.git ~/.asdf
+>- source $HOME/.asdf/asdf.sh
+>- asdf plugin add python
+
 # About me
 [myon-bioinformatics](https://github.com/myon-bioinformatics/myon-bioinformatics)
