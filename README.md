@@ -1,7 +1,6 @@
 # myon-bioinformatics.github.io
 [https://myon-bioinformatics.github.io/](https://myon-bioinformatics.github.io/)
 
-![GitHub license](https://img.shields.io/github/license/myon-bioinformatics/myon-bioinformatics.github.io)
 ![GitHub last commit](https://img.shields.io/github/last-commit/myon-bioinformatics/myon-bioinformatics.github.io)
 
 [![GitHub followers](https://img.shields.io/github/followers/myon-bioinformatics?style=social)](https://github.com/myon-bioinformatics)
