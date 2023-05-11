@@ -1,5 +1,5 @@
 # myon-bioinformatics.github.io
-github.io
+https://myon-bioinformatics.github.io/
 
 >__Note__ Now preparing
 
