@@ -10,7 +10,10 @@
 
 >__Note__ Now preparing
 
-the followings are already implemented.
-> - git clone https://github.com/asdf-vm/asdf.git ~/.asdf
-> - source $HOME/.asdf/asdf.sh
-> - asdf plugin add python
+# All the followings will be complemeted.
+- [x] index.html
+- [] style.css
+- [] index.js
+
+# About me
+[myon-bioinformatics](https://github.com/myon-bioinformatics/myon-bioinformatics)
