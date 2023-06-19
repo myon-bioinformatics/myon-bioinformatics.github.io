@@ -13,7 +13,9 @@ Thus, for begginers or recruiter or.., it may not be friendly😅
 
 If it is, instead of this please check the following introduction🫡
 
-**About me: [myon-bioinformatics](https://github.com/myon-bioinformatics/myon-bioinformatics)**
+_**About me: [myon-bioinformatics](https://github.com/myon-bioinformatics/myon-bioinformatics)**_
+
+_**SNS landing page: http://lit.link/myon123**_
 
 
 # 🤧All the followings will be complemeted.
