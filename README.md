@@ -8,7 +8,7 @@
 >__Note__ Now preparing
 
 # 🤠Notice🤠
-I create for showing you engineer this page.
+I create for showing you guys about me in detail.
 
 Thus, for begginers or recruiter or.., it may not be friendly😅
 
