@@ -20,8 +20,8 @@ _**SNS landing page: http://lit.link/myon123**_
 
 # 🤧All the followings will be complemeted.
 - [x] index.html
-- [ ] style.css
-- [ ] index.js
+- [x] style.css
+- [x] index.js
 
 # 😏About me in detail
 >__Note__ Now preparing
