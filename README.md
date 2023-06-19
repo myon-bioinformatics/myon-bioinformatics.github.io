@@ -10,7 +10,7 @@
 # 🤠Notice🤠
 I create for showing you guys about me in detail.
 
-Thus, for begginers or recruiter or.., it may not be friendly😅
+Thus, for begginers or recruiters or.., it may not be friendly😅
 
 If it is, instead of this please check the following introduction🫡
 
