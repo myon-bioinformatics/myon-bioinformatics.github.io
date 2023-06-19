@@ -22,6 +22,7 @@ If it is, instead of this please check the following introduction🫡
 - [ ] index.js
 
 # 😏About me in detail
+>__Note__ Now preparing
 
 [Skill at length → https://myon-bioinformatics.github.io](https://myon-bioinformatics.github.io/)
 
