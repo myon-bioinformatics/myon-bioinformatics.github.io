@@ -6,41 +6,40 @@
     font-family: 'Poppins', sans-serif;
 }
 
-
-/* ダークモードのスタイルの定義 */
+/* Dark mode styles */
 body {
     background-color: #1f1f1f;
     color: #ffffff;
 }
 
+/* Skill Set section */
 #skill-set {
     font-family: Arial, sans-serif;
     margin: 20px;
 }
 
+/* Heading 2 */
 h2 {
-    color: rgb(189, 89, 89);
+    color: rgb(189, 89, 89); /* Reddish color */
     margin-bottom: 20px;
     text-indent: 50px;
 }
 
+/* Heading 3 */
 h3 {
-    color: #a5a5a5;
+    color: #a5a5a5; /* Light gray color */
     margin-bottom: 10px;
     text-indent: 100px;
 }
 
+/* Heading 4 */
 h4 {
-    color: #a5a5a5;
+    color: #a5a5a5; /* Light gray color */
     margin-bottom: 5px;
     text-indent: 150px;
 }
 
+/* Highlighted text */
 .highlight {
-    color: rgb(0, 195, 255);
+    color: rgb(0, 195, 255); /* Light blue color */
 }
-
-
-
-
-
