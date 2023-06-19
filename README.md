@@ -26,5 +26,5 @@ _**SNS landing page: http://lit.link/myon123**_
 # 😏About me in detail
 >__Note__ Now preparing
 
-[Skill at length → https://myon-bioinformatics.github.io](https://myon-bioinformatics.github.io/)
+**Skill at length → [https://myon-bioinformatics.github.io](https://myon-bioinformatics.github.io/)**
 
