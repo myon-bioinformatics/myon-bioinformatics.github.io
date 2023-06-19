@@ -6,10 +6,13 @@
 
 >__Note__ Now preparing
 
-# ✅Notice
+# 🤠Notice
 This page is I show you engineer.
-Thus, for begginers or recruiter　or.., it may not be friendly😅
-if it is, instead of this please check the following introduction🫡
+
+Thus, for begginers or recruiter or.., it may not be friendly😅
+
+If it is, instead of this please check the following introduction🫡
+
 About me: [myon-bioinformatics](https://github.com/myon-bioinformatics/myon-bioinformatics)
 
 
