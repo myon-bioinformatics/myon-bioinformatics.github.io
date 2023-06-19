@@ -1,27 +1,46 @@
-textarea {
-    font-family: monospace;
-    resize: vertical;
+@import url("https://fonts.googleapis.com/css?family=Roboto");
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
 }
-.CodeMirror {
-    border: 1px solid #ddd;
-    height: 30vh !important;
+
+
+/* ダークモードのスタイルの定義 */
+body {
+    background-color: #1f1f1f;
+    color: #ffffff;
 }
-#code {
-    height: 30vh;
-    width: calc(100% - 3px);
+
+#skill-set {
+    font-family: Arial, sans-serif;
+    margin: 20px;
 }
-#console {
-    height: 30vh;
-    width: calc(100% - 3px);
+
+h2 {
+    color: rgb(189, 89, 89);
+    margin-bottom: 20px;
+    text-indent: 50px;
 }
-#run-btn {
-    width: 6em;
-    height: 2em;
-    font-size: 24px;
+
+h3 {
+    color: #a5a5a5;
+    margin-bottom: 10px;
+    text-indent: 100px;
 }
-#error {
-    color: blue;
-    margin-top: 10px;
-    font-family: monospace;
-    white-space: pre;
+
+h4 {
+    color: #a5a5a5;
+    margin-bottom: 5px;
+    text-indent: 150px;
 }
+
+.highlight {
+    color: rgb(0, 195, 255);
+}
+
+
+
+
+
