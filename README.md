@@ -6,7 +6,7 @@
 
 >__Note__ Now preparing
 
-# 🤠Notice
+# 🤠Notice🤠
 I create for showing you engineer this page.
 
 Thus, for begginers or recruiter or.., it may not be friendly😅
@@ -18,7 +18,7 @@ _**About me: [github.com/myon-bioinformatics](https://github.com/myon-bioinforma
 _**SNS landing page: http://lit.link/myon123**_
 
 
-# 🤧All the followings will be complemeted.
+# 🤧All the followings will be complemeted.　→🆗
 - [x] index.html
 - [x] style.css
 - [x] index.js
