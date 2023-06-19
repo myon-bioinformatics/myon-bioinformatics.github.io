@@ -21,7 +21,7 @@ If it is, instead of this please check the following introduction🫡
 - [ ] style.css
 - [ ] index.js
 
-# 🫣About me in detail
+# 😏About me in detail
 
 [Skill at length → https://myon-bioinformatics.github.io](https://myon-bioinformatics.github.io/)
 
