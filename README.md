@@ -26,6 +26,12 @@ _**SNS landing page: http://lit.link/myon123**_
 # 😏About me in detail
 Hi, I'm myon🐍🎸
 
+> I started learning programming when I study for Bioinformatics.
+>
+> Python is the first Programming Language for me.
+>
+> After that, Python still helps me now😊
+
 Basically, I work as Pythoner or Composer...
 
 - _**Skill at length as Engineer → https://myon-bioinformatics.github.io**_
