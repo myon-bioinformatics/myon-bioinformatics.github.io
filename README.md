@@ -28,8 +28,10 @@ Hi, I'm myon🐍🎸
 
 Basically, I work as Pythoner or Composer...
 
-But, I sometimes work as other activities as far as I can.
-
 - _**Skill at length as Engineer → https://myon-bioinformatics.github.io**_
 - _**Skill at length as Composer → https://www.youtube.com/@freez-myon/videos**_
+
+But, I sometimes work as other activities as far as I can.
+
+
 
