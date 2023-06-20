@@ -35,14 +35,12 @@ Hi, I'm myon🐍🎸
 
 Basically, I work as Pythoner or Composer...
 
-- _**Skill at length as Engineer → https://myon-bioinformatics.github.io**_
-- _**Tips(: Japanese) → https://qiita.com/myon-bioinformatics**_
-- _**Career(: Japanese) → https://job-draft.jp/users/58541**_
+- _**Skill at length as Engineer ➡️ https://myon-bioinformatics.github.io**_
+- _**Tips(: Japanese) ➡️ https://qiita.com/myon-bioinformatics**_
+- _**Career(: Japanese) ➡️ https://job-draft.jp/users/58541**_
 
 But, I sometimes work as other activities as far as I can.
 
-- _**Portfolio as Composer → https://www.youtube.com/@freez-myon**_
-- _**Reddit account　→ https://www.reddit.com/user/myon_reddit/**_
-
-
+- _**Portfolio as Composer ➡️ https://www.youtube.com/@freez-myon**_
+- _**Wantedly　➡️ https://www.wantedly.com/id/myon123**_
 
