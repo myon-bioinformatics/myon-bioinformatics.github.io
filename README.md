@@ -41,7 +41,7 @@ Basically, I work as Pythoner or Composer...
 
 But, I sometimes work as other activities as far as I can.
 
-- _**Portfolio as Engineer → https://www.youtube.com/@freez-myon**_
+- _**Portfolio as Composer → https://www.youtube.com/@freez-myon**_
 
 
 
