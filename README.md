@@ -21,7 +21,7 @@ If it is, instead of this please check the following introduction🫡
 - https://linktr.ee/myon123
 
 
-# 🤧All the followings will be complemeted.　→🆗
+# 🤧All the followings will be complemeted　→🆗
 - [x] index.html
 - [x] style.css
 - [x] index.js
