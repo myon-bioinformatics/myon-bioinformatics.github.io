@@ -14,9 +14,11 @@ Thus, for begginers or recruiters or.., it may not be friendly😅
 
 If it is, instead of this please check the following introduction🫡
 
-_**Introduction: [github.com/myon-bioinformatics](https://github.com/myon-bioinformatics/myon-bioinformatics)**_
+**Introduction: [github.com/myon-bioinformatics](https://github.com/myon-bioinformatics/myon-bioinformatics)**
 
-_**SNS landing page: http://lit.link/myon123**_
+**SNS landing page:**
+- http://lit.link/myon123
+- https://linktr.ee/myon123
 
 
 # 🤧All the followings will be complemeted.　→🆗
