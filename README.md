@@ -1,48 +1,56 @@
-![GitHub last commit](https://img.shields.io/github/last-commit/myon-bioinformatics/myon-bioinformatics.github.io)
-![GitHub license](https://img.shields.io/github/license/myon-bioinformatics/HelpYouBuildServer)
+<h1 align="center">🎨 Myon’s Portfolio 🎶</h1>
+<p align="center">
+  🐍 Python ｜ 🎸 Composer ｜ 🌱 Bioinformatics ｜ 🚀 Creator
+</p>
 
-[![GitHub followers](https://img.shields.io/github/followers/myon-bioinformatics?style=social)](https://github.com/myon-bioinformatics)
-[![Reddit User Karma](https://img.shields.io/reddit/user-karma/combined/myon_reddit?style=social)](https://www.reddit.com/user/myon_reddit/)
-[![Twitter Follow](https://img.shields.io/twitter/follow/myonitbusiness?style=social)](https://twitter.com/myonitbusiness)
+<p align="center">
+  <!-- Skill badges -->
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/Bioinformatics-009688?style=for-the-badge&logo=dna&logoColor=white" />
+  <img src="https://img.shields.io/badge/Music-FF69B4?style=for-the-badge&logo=spotify&logoColor=white" />
+  <img src="https://img.shields.io/badge/WebDev-00BCD4?style=for-the-badge&logo=html5&logoColor=white" />
+</p>
 
->__Note__ Now preparing
+---
 
-# 🤠Notice🤠
-I create for showing you guys about me in detail.
+## 🚀 Featured Projects
+| Project | Description | Link |
+|---------|-------------|------|
+| 🧬 **Bioinformatics Tools** | Python-based scripts & notebooks for bioinformatics study | [🔗 Repo](https://github.com/myon-bioinformatics) |
+| 🎨 **Myon Website** | Personal portfolio & blog with HTML/CSS/JS | [🌍 Live Site](https://myon-bioinformatics.github.io) |
+| 🎶 **Composer Works** | Original music compositions on YouTube | [▶️ Channel](https://www.youtube.com/@freez-myon) |
+| 📘 **Tips in Japanese** | Tech tips and Python tricks on Qiita | [📖 Qiita](https://qiita.com/myon-bioinformatics) |
 
-Thus, for begginers or recruiters or.., it may not be friendly😅
+---
 
-If it is, instead of this please check the following introduction🫡
+## 🖼️ Gallery
 
-**Introduction: [github.com/myon-bioinformatics](https://github.com/myon-bioinformatics/myon-bioinformatics)**
+---
 
-**SNS landing page:**
-- http://lit.link/myon123
-- https://linktr.ee/myon123
+## 📌 Links
+<p align="center">
+  <a href="https://github.com/myon-bioinformatics">
+    <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white" />
+  </a>
+  <a href="https://qiita.com/myon-bioinformatics">
+    <img src="https://img.shields.io/badge/Qiita-55C500?style=for-the-badge&logo=qiita&logoColor=white" />
+  </a>
+  <a href="https://www.wantedly.com/id/myon123">
+    <img src="https://img.shields.io/badge/Wantedly-00A4DE?style=for-the-badge&logo=wantedly&logoColor=white" />
+  </a>
+  <a href="https://linktr.ee/myon123">
+    <img src="https://img.shields.io/badge/Linktree-39E09B?style=for-the-badge&logo=linktree&logoColor=white" />
+  </a>
+  <a href="https://www.youtube.com/@freez-myon">
+    <img src="https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" />
+  </a>
+</p>
 
+---
 
-# 🤧All the followings will be complemeted　→🆗
-- [x] index.html
-- [x] style.css
-- [x] index.js
-
-# 😏About me in detail
-Hi, I'm myon🐍🎸
-
-> I started learning programming when I study for Bioinformatics.
->
-> Python is the first Programming Language for me.
->
-> After that, Python still helps me now😊
-
-Basically, I work as Pythoner or Composer...
-
-- _**Skill at length as Engineer ➡️ https://myon-bioinformatics.github.io**_
-- _**Tips(:Japanese) ➡️ https://qiita.com/myon-bioinformatics**_
-- _**Career(:Japanese) ➡️ https://job-draft.jp/users/58541**_
-
-But, I sometimes work as other activities as far as I can.
-
-- _**Portfolio as Composer ➡️ https://www.youtube.com/@freez-myon**_
-- _**Wantedly ➡️ https://www.wantedly.com/id/myon123**_
+## 🎆 Thanks for Visiting!
+<p align="center">
+  🌟 Please check out my works & star if you like! 🌟  
+  🌈 Coding x Music = Fun! 🌈
+</p>
 
