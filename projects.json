@@ -1,0 +1,45 @@
+[
+  {
+    "name": "python3nmap_GUI_for_Beginners",
+    "desc": "Beginner-friendly Nmap GUI wrapper (Python + PySimpleGUI).",
+    "url": "https://github.com/myon-bioinformatics/python3nmap_GUI_for_Beginners",
+    "topics": [
+      "python",
+      "security",
+      "gui",
+      "nmap"
+    ]
+  },
+  {
+    "name": "scapy_GUI_for_Beginners",
+    "desc": "Packet crafting/inspection via GUI for newcomers.",
+    "url": "https://github.com/myon-bioinformatics/scapy_GUI_for_Beginners",
+    "topics": [
+      "python",
+      "scapy",
+      "networking",
+      "gui"
+    ]
+  },
+  {
+    "name": "convert_img_fmt_to_webp-GUI-",
+    "desc": "Batch image conversion to WebP with a friendly UI (FFmpeg wrapper).",
+    "url": "https://github.com/myon-bioinformatics/convert_img_fmt_to_webp-GUI-",
+    "topics": [
+      "python",
+      "ffmpeg",
+      "image",
+      "gui"
+    ]
+  },
+  {
+    "name": "niconicoSearchAPI_Template",
+    "desc": "Template to kickstart API-based search clients.",
+    "url": "https://github.com/myon-bioinformatics/niconicoSearchAPI_Template",
+    "topics": [
+      "template",
+      "api",
+      "starter"
+    ]
+  }
+]

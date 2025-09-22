@@ -1,48 +1,65 @@
-![GitHub last commit](https://img.shields.io/github/last-commit/myon-bioinformatics/myon-bioinformatics.github.io)
-![GitHub license](https://img.shields.io/github/license/myon-bioinformatics/HelpYouBuildServer)
+<h1 align="center">🧭 myon-bioinformatics.github.io</h1>
+<p align="center">Personal site & portfolio — built and maintained by <a href="https://github.com/myon-bioinformatics">myon</a></p>
 
-[![GitHub followers](https://img.shields.io/github/followers/myon-bioinformatics?style=social)](https://github.com/myon-bioinformatics)
-[![Reddit User Karma](https://img.shields.io/reddit/user-karma/combined/myon_reddit?style=social)](https://www.reddit.com/user/myon_reddit/)
-[![Twitter Follow](https://img.shields.io/twitter/follow/myonitbusiness?style=social)](https://twitter.com/myonitbusiness)
+<p align="center">
+  <img alt="Last commit" src="https://img.shields.io/github/last-commit/myon-bioinformatics/myon-bioinformatics.github.io">
+  <img alt="License" src="https://img.shields.io/github/license/myon-bioinformatics/HelpYouBuildServer">
+  <a href="https://github.com/myon-bioinformatics"><img alt="GitHub followers" src="https://img.shields.io/github/followers/myon-bioinformatics?style=social"></a>
+  <a href="https://twitter.com/myonitbusiness"><img alt="Twitter Follow" src="https://img.shields.io/twitter/follow/myonitbusiness?style=social"></a>
+</p>
 
->__Note__ Now preparing
+---
 
-# 🤠Notice🤠
-I create for showing you guys about me in detail.
+## 📍 Live
+- **Site:** https://myon-bioinformatics.github.io
+- **Intro/Profile:** https://github.com/myon-bioinformatics
+- **Links:** <a href="https://lit.link/myon123">lit.link</a> / <a href="https://linktr.ee/myon123">Linktree</a>
 
-Thus, for begginers or recruiters or.., it may not be friendly😅
+> If you’re a beginner or recruiter and want a quick overview of me, the **Intro/Profile** link above is the fastest route.
 
-If it is, instead of this please check the following introduction🫡
+---
 
-**Introduction: [github.com/myon-bioinformatics](https://github.com/myon-bioinformatics/myon-bioinformatics)**
+## 🚀 Projects (JSON-driven cards)
+This site renders “Projects” cards from a simple `projects.json`.  
+Edit `projects.json` to reorder/update your cards.
 
-**SNS landing page:**
-- http://lit.link/myon123
-- https://linktr.ee/myon123
+---
 
+## 🚀 Quick start (Local)
+```bash
+git clone https://github.com/myon-bioinformatics/myon-bioinformatics.github.io
+cd myon-bioinformatics.github.io
+python -m http.server 8080
+# → http://localhost:8080
+```
 
-# 🤧All the followings will be complemeted　→🆗
-- [x] index.html
-- [x] style.css
-- [x] index.js
+---
 
-# 😏About me in detail
-Hi, I'm myon🐍🎸
+## 🧑‍🎤 About me (short)
+I started coding through **Bioinformatics**. Main tools: **Python**, plus **Go/TypeScript**.  
+I like building **GUI/CLI tools** for security & backend.
 
-> I started learning programming when I study for Bioinformatics.
->
-> Python is the first Programming Language for me.
->
-> After that, Python still helps me now😊
+- Skills (JP): https://myon-bioinformatics.github.io  
+- Tips (JP): https://qiita.com/myon-bioinformatics  
+- Career (JP): https://job-draft.jp/users/58541  
+- Composer Portfolio: https://www.youtube.com/@freez-myon  
+- Wantedly: https://www.wantedly.com/id/myon123
 
-Basically, I work as Pythoner or Composer...
+---
 
-- _**Skill at length as Engineer ➡️ https://myon-bioinformatics.github.io**_
-- _**Tips(:Japanese) ➡️ https://qiita.com/myon-bioinformatics**_
-- _**Career(:Japanese) ➡️ https://job-draft.jp/users/58541**_
+## 🔄 Automation: projects.json from pinned repos
+- Manual run: **Actions → Update Projects JSON → Run workflow**
+- Schedule: every Monday 03:17 UTC
 
-But, I sometimes work as other activities as far as I can.
+Files:
+- `.github/workflows/update-projects.yml`
+- `scripts/generate_projects_from_pinned.py`
 
-- _**Portfolio as Composer ➡️ https://www.youtube.com/@freez-myon**_
-- _**Wantedly ➡️ https://www.wantedly.com/id/myon123**_
+---
 
+<details>
+<summary>🇯🇵 日本語版 (クリックで展開)</summary>
+
+このリポジトリは**GitHub Pagesサイト**です。`projects.json` を編集するだけでトップのプロジェクトカードが更新されます。  
+ローカル確認は `python -m http.server` でOK。自動更新は Actions が `projects.json` をピン留めから生成します。
+</details>

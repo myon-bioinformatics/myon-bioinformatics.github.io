@@ -1,45 +1,40 @@
-@import url("https://fonts.googleapis.com/css?family=Roboto");
-*{
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Poppins', sans-serif;
+:root { --fg:#0b0b0c; --bg:#ffffff; --muted:#444; --border:#e5e7eb; }
+@media (prefers-color-scheme: dark) {
+  :root { --fg:#e6e6e6; --bg:#0b0b0c; --muted:#c9c9c9; --border:#222; }
 }
+*{box-sizing:border-box} body{margin:0;color:var(--fg);background:var(--bg);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial}
+a{color:inherit}
+.container{max-width:960px;margin:0 auto;padding:1.5rem}
+.site-header,.site-footer{border-bottom:1px solid var(--border)}
+.site-footer{border-top:1px solid var(--border);border-bottom:none}
+.site-header h1{margin:0;font-size:1.25rem}
+.nav a{margin-left:12px;text-decoration:none;border-bottom:1px solid transparent}
+.nav a:hover{border-bottom-color:currentColor}
+h2{margin:0 0 .75rem}
+.intro,.outro{padding-top:.5rem}
 
-/* Dark mode styles */
-body {
-    background-color: #1f1f1f;
-    color: #ffffff;
+#projects h2 { margin-bottom: 0.75rem; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(260px,1fr));
+  gap: 12px;
 }
-
-/* Skill Set section */
-#skill-set {
-    font-family: Arial, sans-serif;
-    margin: 20px;
+.card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  transition: transform .08s ease, box-shadow .12s ease;
+  background: var(--bg);
 }
-
-/* Heading 2 */
-h2 {
-    color: rgb(189, 89, 89); /* Reddish color */
-    margin-bottom: 20px;
-    text-indent: 50px;
+.card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+.card h3 { margin: 0 0 6px; font-size: 1.05rem; }
+.card p { margin: 0 0 10px; color: var(--muted); line-height: 1.4; }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.badges .tag {
+  font-size: .75rem; background: #f3f4f6; border: 1px solid var(--border);
+  padding: 2px 8px; border-radius: 999px; color: #333;
 }
-
-/* Heading 3 */
-h3 {
-    color: #a5a5a5; /* Light gray color */
-    margin-bottom: 10px;
-    text-indent: 100px;
+@media (prefers-color-scheme: dark) {
+  .badges .tag { background: #141417; color: #ddd; }
 }
-
-/* Heading 4 */
-h4 {
-    color: #a5a5a5; /* Light gray color */
-    margin-bottom: 5px;
-    text-indent: 150px;
-}
-
-/* Highlighted text */
-.highlight {
-    color: rgb(0, 195, 255); /* Light blue color */
-}
+.more { margin-top: 8px; font-size: .95rem; }
