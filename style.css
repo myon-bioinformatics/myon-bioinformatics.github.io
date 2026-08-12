@@ -128,3 +128,76 @@ body[data-view-mode="xml-like"] .timeline-item,
 body[data-view-mode="xml-like"] .skill-group {
   border-radius: 0;
 }
+
+/* ── JSON mode ───────────────────────────────────────────────────────────── */
+body[data-view-mode="json"] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+body[data-view-mode="json"] h2[data-tag]::before {
+  content: '"' attr(data-tag) '": ';
+  color: var(--muted);
+}
+body[data-view-mode="json"] h2[data-tag]::after {
+  content: ",";
+  color: var(--muted);
+}
+body[data-view-mode="json"] .container {
+  border-left: 3px solid var(--border);
+  padding-left: 1rem;
+}
+body[data-view-mode="json"] .card,
+body[data-view-mode="json"] .tab-panel {
+  border-radius: 4px;
+}
+
+/* ── Markdown mode ───────────────────────────────────────────────────────── */
+body[data-view-mode="markdown"] h2::before {
+  content: "## ";
+  color: var(--muted);
+}
+body[data-view-mode="markdown"] .card h3::before {
+  content: "### ";
+  color: var(--muted);
+}
+body[data-view-mode="markdown"] a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+body[data-view-mode="markdown"] .card,
+body[data-view-mode="markdown"] .tab-panel {
+  border-radius: 6px;
+  border-style: dashed;
+}
+
+/* ── GitHub-like mode ────────────────────────────────────────────────────── */
+body[data-view-mode="github-like"] {
+  background: #f6f8fa;
+  color: #24292f;
+}
+body[data-view-mode="github-like"] .site-header,
+body[data-view-mode="github-like"] .site-footer,
+body[data-view-mode="github-like"] .card,
+body[data-view-mode="github-like"] .tab-panel,
+body[data-view-mode="github-like"] .view-mode-switch select {
+  background: #ffffff;
+}
+body[data-view-mode="github-like"] .site-header,
+body[data-view-mode="github-like"] .site-footer,
+body[data-view-mode="github-like"] .card,
+body[data-view-mode="github-like"] .tab-panel,
+body[data-view-mode="github-like"] .view-mode-switch select,
+body[data-view-mode="github-like"] .tabs {
+  border-color: #d0d7de;
+}
+body[data-view-mode="github-like"] .card {
+  border-radius: 6px;
+  box-shadow: none;
+}
+body[data-view-mode="github-like"] .card:hover {
+  transform: none;
+  box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
+}
+body[data-view-mode="github-like"] .badges .tag {
+  background: #f6f8fa;
+  color: #57606a;
+}

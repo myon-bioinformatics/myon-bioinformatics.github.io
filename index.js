@@ -1,6 +1,6 @@
 const DEFAULT_VIEW_MODE = 'modern';
 const VIEW_MODE_KEY = 'site:view-mode';
-const VALID_VIEW_MODES = new Set(['modern', 'xml-like']);
+const VALID_VIEW_MODES = new Set(['modern', 'xml-like', 'json', 'markdown', 'github-like']);
 
 function normalizeViewMode(mode) {
   return VALID_VIEW_MODES.has(mode) ? mode : DEFAULT_VIEW_MODE;
