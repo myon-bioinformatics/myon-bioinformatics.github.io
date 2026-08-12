@@ -10,22 +10,34 @@
   <header class="site-header">
     <div class="container">
       <h1>myon-bioinformatics</h1>
-      <nav class="nav">
-        <a href="https://github.com/myon-bioinformatics" target="_blank" rel="noopener noreferrer">GitHub</a>
-        <a href="https://lit.link/myon123" target="_blank" rel="noopener noreferrer">lit.link</a>
-        <a href="https://linktr.ee/myon123" target="_blank" rel="noopener noreferrer">Linktree</a>
-      </nav>
+      <div class="header-actions">
+        <nav class="nav">
+          <a href="https://github.com/myon-bioinformatics" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="https://lit.link/myon123" target="_blank" rel="noopener noreferrer">lit.link</a>
+          <a href="https://linktr.ee/myon123" target="_blank" rel="noopener noreferrer">Linktree</a>
+        </nav>
+        <div class="view-mode-switch">
+          <label for="view-mode-select">Mode</label>
+          <select id="view-mode-select" aria-label="Display mode">
+            <option value="modern">Modern</option>
+            <option value="xml-like">XML-like</option>
+            <option value="json">JSON</option>
+            <option value="markdown">Markdown</option>
+            <option value="github-like">GitHub-like</option>
+          </select>
+        </div>
+      </div>
     </div>
   </header>
 
   <main>
     <section class="container intro">
-      <h2>👋 Hello</h2>
+      <h2 data-tag="hello">👋 Hello</h2>
       <p>Bioinformatics → Security/Backend engineer. I build practical GUI/CLI tools in Python, plus Go/TypeScript.</p>
     </section>
 
     <section id="profile" class="container">
-      <h2>🧑‍💻 Profile</h2>
+      <h2 data-tag="profile">🧑‍💻 Profile</h2>
       <div class="tabs" role="tablist" aria-label="Profile sections">
         <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="panel-about"  id="tab-about">About</button>
         <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="panel-skills" id="tab-skills">Skills</button>
@@ -37,7 +49,7 @@
     </section>
 
     <section id="projects" class="container">
-      <h2>🚀 Projects</h2>
+      <h2 data-tag="projects">🚀 Projects</h2>
       <div id="project-grid" class="grid"></div>
       <p class="more">
         More on <a href="https://github.com/myon-bioinformatics" target="_blank" rel="noopener noreferrer">GitHub</a>
@@ -45,7 +57,7 @@
     </section>
 
     <section class="container outro">
-      <h2>📬 Contact</h2>
+      <h2 data-tag="contact">📬 Contact</h2>
       <p>Twitter: <a href="https://twitter.com/myonitbusiness" target="_blank" rel="noopener noreferrer">@myonitbusiness</a></p>
     </section>
   </main>
