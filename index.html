@@ -24,6 +24,18 @@
       <p>Bioinformatics → Security/Backend engineer. I build practical GUI/CLI tools in Python, plus Go/TypeScript.</p>
     </section>
 
+    <section id="profile" class="container">
+      <h2>🧑‍💻 Profile</h2>
+      <div class="tabs" role="tablist" aria-label="Profile sections">
+        <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="panel-about"  id="tab-about">About</button>
+        <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="panel-skills" id="tab-skills">Skills</button>
+        <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="panel-career" id="tab-career">Career</button>
+      </div>
+      <div id="panel-about"  class="tab-panel active" role="tabpanel" aria-labelledby="tab-about"></div>
+      <div id="panel-skills" class="tab-panel"        role="tabpanel" aria-labelledby="tab-skills" hidden></div>
+      <div id="panel-career" class="tab-panel"        role="tabpanel" aria-labelledby="tab-career" hidden></div>
+    </section>
+
     <section id="projects" class="container">
       <h2>🚀 Projects</h2>
       <div id="project-grid" class="grid"></div>
