@@ -4,8 +4,13 @@
 }
 
 .xml-renderer,
-.json-renderer {
+.json-renderer,
+.markdown-renderer {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.xml-renderer,
+.json-renderer {
   font-size: .92rem;
   line-height: 1.65;
   overflow-wrap: anywhere;
@@ -18,7 +23,7 @@
 }
 
 .xml-tag {
-  color: var(--muted);
+  color: var(--syntax-xml);
 }
 
 .xml-renderer a,
@@ -27,19 +32,34 @@
   text-underline-offset: 2px;
 }
 
+.json-line {
+  color: var(--syntax-json-punctuation);
+}
+
 .json-key {
+  color: var(--syntax-json-key);
   font-weight: 600;
 }
 
-.json-string,
-.json-number,
+.json-string {
+  color: var(--syntax-json-string);
+}
+
+.json-number {
+  color: var(--syntax-json-number);
+}
+
 .json-punctuation {
-  color: var(--muted);
+  color: var(--syntax-json-punctuation);
+}
+
+.json-renderer a {
+  color: var(--syntax-json-string);
 }
 
 .markdown-renderer .md-heading {
   margin: 1rem 0 .4rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  color: var(--syntax-markdown-marker);
 }
 
 .markdown-renderer .md-heading:first-child {
@@ -48,9 +68,20 @@
 
 .markdown-renderer .md-list {
   margin-top: .35rem;
+  list-style-type: "-  ";
+}
+
+.markdown-renderer .md-list ::marker {
+  color: var(--syntax-markdown-marker);
+}
+
+.markdown-renderer .md-list li,
+.markdown-renderer p {
+  color: var(--fg);
 }
 
 .markdown-renderer a {
+  color: var(--syntax-markdown-link);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
