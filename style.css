@@ -7,9 +7,21 @@ a{color:inherit}
 .container{max-width:960px;margin:0 auto;padding:1.5rem}
 .site-header,.site-footer{border-bottom:1px solid var(--border)}
 .site-footer{border-top:1px solid var(--border);border-bottom:none}
+.site-header .container{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
 .site-header h1{margin:0;font-size:1.25rem}
+.header-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .nav a{margin-left:12px;text-decoration:none;border-bottom:1px solid transparent}
 .nav a:hover{border-bottom-color:currentColor}
+.view-mode-switch{display:flex;align-items:center;gap:8px}
+.view-mode-switch label{font-size:.85rem;color:var(--muted)}
+.view-mode-switch select{
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--bg);
+  color:var(--fg);
+  padding:4px 8px;
+  font:inherit;
+}
 h2{margin:0 0 .75rem}
 .intro,.outro{padding-top:.5rem}
 
@@ -94,3 +106,25 @@ h2{margin:0 0 .75rem}
 .tl-body strong { display: block; margin-bottom: 2px; }
 .tl-body p { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.5; }
 
+/* ── XML-like mode ───────────────────────────────────────────────────────── */
+body[data-view-mode="xml-like"] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+body[data-view-mode="xml-like"] h2[data-tag]::before {
+  content: "<" attr(data-tag) ">";
+  margin-right: .4rem;
+  color: var(--muted);
+  font-size: .9em;
+}
+body[data-view-mode="xml-like"] h2[data-tag]::after {
+  content: "</" attr(data-tag) ">";
+  margin-left: .4rem;
+  color: var(--muted);
+  font-size: .9em;
+}
+body[data-view-mode="xml-like"] .card,
+body[data-view-mode="xml-like"] .tab-panel,
+body[data-view-mode="xml-like"] .timeline-item,
+body[data-view-mode="xml-like"] .skill-group {
+  border-radius: 0;
+}

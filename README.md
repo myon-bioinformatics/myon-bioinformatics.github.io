@@ -23,6 +23,12 @@
 This site renders “Projects” cards from a simple `projects.json`.  
 Edit `projects.json` to reorder/update your cards.
 
+## 🎛️ Display mode (modern / xml-like)
+- Default mode is **modern**
+- Repository default can be changed via `site.config.json`:
+  - `defaultViewMode`: `modern` or `xml-like`
+- Users can switch mode from the page header, and their choice is saved in browser local storage.
+
 ---
 
 ## 🚀 Quick start (Local)

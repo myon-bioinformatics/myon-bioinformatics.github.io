@@ -1,7 +1,60 @@
-// ── Profile (About / Skills / Career) ──────────────────────────────────────
-(async () => {
+const DEFAULT_VIEW_MODE = 'modern';
+const VIEW_MODE_KEY = 'site:view-mode';
+const VALID_VIEW_MODES = new Set(['modern', 'xml-like']);
+
+function normalizeViewMode(mode) {
+  return VALID_VIEW_MODES.has(mode) ? mode : DEFAULT_VIEW_MODE;
+}
+
+function readStoredViewMode() {
+  try {
+    return localStorage.getItem(VIEW_MODE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveViewMode(mode) {
+  try {
+    localStorage.setItem(VIEW_MODE_KEY, mode);
+  } catch {
+    // ignore storage failures
+  }
+}
+
+function applyViewMode(mode) {
+  const normalized = normalizeViewMode(mode);
+  document.body.dataset.viewMode = normalized;
+  const selector = document.getElementById('view-mode-select');
+  if (selector && selector.value !== normalized) selector.value = normalized;
+}
+
+async function readConfiguredViewMode() {
+  try {
+    const res = await fetch('./site.config.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const config = await res.json();
+    return normalizeViewMode(config?.defaultViewMode);
+  } catch {
+    return DEFAULT_VIEW_MODE;
+  }
+}
+
+function initViewModeSelector(initialMode) {
+  const selector = document.getElementById('view-mode-select');
+  applyViewMode(initialMode);
+  if (!selector) return;
+
+  selector.addEventListener('change', () => {
+    const nextMode = normalizeViewMode(selector.value);
+    applyViewMode(nextMode);
+    saveViewMode(nextMode);
+  });
+}
+
+async function renderProfile() {
   const panels = {
-    about:  document.getElementById('panel-about'),
+    about: document.getElementById('panel-about'),
     skills: document.getElementById('panel-skills'),
     career: document.getElementById('panel-career'),
   };
@@ -11,10 +64,10 @@
   let skillsAnimated = false;
 
   function activateTab(key) {
-    buttons.forEach(b => {
+    buttons.forEach((b) => {
       const active = b.id === `tab-${key}`;
       b.classList.toggle('active', active);
-      b.setAttribute('aria-selected', active);
+      b.setAttribute('aria-selected', String(active));
     });
     Object.entries(panels).forEach(([k, el]) => {
       const show = k === key;
@@ -24,16 +77,15 @@
 
     if (key === 'skills' && !skillsAnimated) {
       skillsAnimated = true;
-      // trigger CSS animation by setting actual width after a tick
       requestAnimationFrame(() => {
-        panels.skills.querySelectorAll('.skill-bar-fill').forEach(bar => {
-          bar.style.width = bar.dataset.level + '%';
+        panels.skills.querySelectorAll('.skill-bar-fill').forEach((bar) => {
+          bar.style.width = `${bar.dataset.level}%`;
         });
       });
     }
   }
 
-  buttons.forEach(btn => {
+  buttons.forEach((btn) => {
     btn.addEventListener('click', () => {
       const key = btn.id.replace('tab-', '');
       activateTab(key);
@@ -45,13 +97,11 @@
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const { about, skills, career } = await res.json();
 
-    // About
     const aboutEl = document.createElement('p');
     aboutEl.className = 'about-text';
     aboutEl.textContent = about;
     panels.about.appendChild(aboutEl);
 
-    // Skills
     skills.forEach(({ category, items }) => {
       const group = document.createElement('div');
       group.className = 'skill-group';
@@ -75,7 +125,7 @@
         const fill = document.createElement('div');
         fill.className = 'skill-bar-fill';
         fill.dataset.level = level;
-        fill.style.width = '0%'; // start collapsed; animates when tab opens
+        fill.style.width = '0%';
 
         track.appendChild(fill);
         row.appendChild(label);
@@ -86,29 +136,40 @@
       panels.skills.appendChild(group);
     });
 
-    // Career
     const timeline = document.createElement('ol');
     timeline.className = 'timeline';
     career.forEach(({ year, title, desc }) => {
       const item = document.createElement('li');
       item.className = 'timeline-item';
-      item.innerHTML = `<span class="tl-year">${year}</span>
-        <div class="tl-body">
-          <strong>${title}</strong>
-          <p>${desc}</p>
-        </div>`;
+
+      const yearEl = document.createElement('span');
+      yearEl.className = 'tl-year';
+      yearEl.textContent = year;
+
+      const body = document.createElement('div');
+      body.className = 'tl-body';
+
+      const strong = document.createElement('strong');
+      strong.textContent = title;
+
+      const p = document.createElement('p');
+      p.textContent = desc;
+
+      body.appendChild(strong);
+      body.appendChild(p);
+      item.appendChild(yearEl);
+      item.appendChild(body);
       timeline.appendChild(item);
     });
     panels.career.appendChild(timeline);
-
-  } catch (e) {
-    panels.about.innerHTML = '<p>Failed to load profile.</p>';
-    console.error(e);
+  } catch (error) {
+    panels.about.textContent = 'Failed to load profile.';
+    console.error(error);
   }
-})();
+}
 
-// ── Projects ────────────────────────────────────────────────────────────────
-
+async function renderProjects() {
+  const grid = document.getElementById('project-grid');
   if (!grid) return;
 
   try {
@@ -135,10 +196,10 @@
 
       const badges = document.createElement('div');
       badges.className = 'badges';
-      topics.slice(0, 6).forEach(t => {
+      topics.slice(0, 6).forEach((topic) => {
         const span = document.createElement('span');
         span.className = 'tag';
-        span.textContent = t;
+        span.textContent = topic;
         badges.appendChild(span);
       });
 
@@ -155,10 +216,17 @@
       frag.appendChild(card);
     });
 
-    grid.innerHTML = '';
+    grid.textContent = '';
     grid.appendChild(frag);
-  } catch (e) {
-    grid.innerHTML = `<p>Failed to load projects. Please refresh.</p>`;
-    console.error(e);
+  } catch (error) {
+    grid.textContent = 'Failed to load projects. Please refresh.';
+    console.error(error);
   }
+}
+
+(async () => {
+  const configuredMode = await readConfiguredViewMode();
+  const selectedMode = normalizeViewMode(readStoredViewMode() || configuredMode);
+  initViewModeSelector(selectedMode);
+  await Promise.all([renderProfile(), renderProjects()]);
 })();
