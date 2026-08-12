@@ -10,7 +10,8 @@ a{color:inherit}
 .site-header .container{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
 .site-header h1{margin:0;font-size:1.25rem}
 .header-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.nav a{margin-left:12px;text-decoration:none;border-bottom:1px solid transparent}
+.nav{display:flex;flex-wrap:wrap;gap:8px 12px}
+.nav a{text-decoration:none;border-bottom:1px solid transparent}
 .nav a:hover{border-bottom-color:currentColor}
 .view-mode-switch{display:flex;align-items:center;gap:8px}
 .view-mode-switch label{font-size:.85rem;color:var(--muted)}
@@ -200,4 +201,63 @@ body[data-view-mode="github-like"] .card:hover {
 body[data-view-mode="github-like"] .badges .tag {
   background: #f6f8fa;
   color: #57606a;
+}
+
+@media (max-width: 720px) {
+  .container { padding: 1.25rem; }
+  body[data-view-mode="json"] .container { padding-left: 1rem; }
+  .site-header .container,
+  .header-actions { align-items: flex-start; }
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .nav { width: 100%; }
+  .view-mode-switch {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .view-mode-switch select {
+    width: min(100%, 220px);
+    min-width: 0;
+  }
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+  .tabs { flex-wrap: wrap; }
+  .tab-btn { padding: 10px 14px; }
+  .skill-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .timeline::before {
+    left: 12px;
+    top: 8px;
+    bottom: 8px;
+  }
+  .timeline-item {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding-left: 32px;
+  }
+  .timeline-item::before { left: 8px; }
+  .tl-year {
+    text-align: left;
+    padding-top: 0;
+    font-weight: 600;
+  }
+  .card { padding: 14px; }
+}
+
+@media (max-width: 520px) {
+  .container { padding: 1rem; }
+  .site-header h1 { font-size: 1.1rem; }
+  .view-mode-switch {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .view-mode-switch select { width: 100%; }
+  .grid { grid-template-columns: 1fr; }
 }
