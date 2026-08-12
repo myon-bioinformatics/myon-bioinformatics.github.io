@@ -1,22 +1,33 @@
 const DEFAULT_VIEW_MODE = 'modern';
 const VIEW_MODE_KEY = 'site:view-mode';
+// Tracks which config value was in effect when the user last picked a mode.
+// If site.config.json changes, the stored user choice is treated as stale and
+// discarded so the new config value takes effect for all visitors.
+const VIEW_MODE_BASE_KEY = 'site:view-mode-base';
 const VALID_VIEW_MODES = new Set(['modern', 'xml-like', 'json', 'markdown', 'github-like']);
 
 function normalizeViewMode(mode) {
   return VALID_VIEW_MODES.has(mode) ? mode : DEFAULT_VIEW_MODE;
 }
 
-function readStoredViewMode() {
+/**
+ * Returns the user's stored mode only when it was saved against the same
+ * configuredMode that is currently active.  Returns null when stale.
+ */
+function readStoredViewMode(configuredMode) {
   try {
+    const base = localStorage.getItem(VIEW_MODE_BASE_KEY);
+    if (base !== configuredMode) return null; // config changed → ignore stale choice
     return localStorage.getItem(VIEW_MODE_KEY);
   } catch {
     return null;
   }
 }
 
-function saveViewMode(mode) {
+function saveViewMode(mode, configuredMode) {
   try {
     localStorage.setItem(VIEW_MODE_KEY, mode);
+    localStorage.setItem(VIEW_MODE_BASE_KEY, configuredMode);
   } catch {
     // ignore storage failures
   }
@@ -40,7 +51,7 @@ async function readConfiguredViewMode() {
   }
 }
 
-function initViewModeSelector(initialMode) {
+function initViewModeSelector(initialMode, configuredMode) {
   const selector = document.getElementById('view-mode-select');
   applyViewMode(initialMode);
   if (!selector) return;
@@ -48,7 +59,7 @@ function initViewModeSelector(initialMode) {
   selector.addEventListener('change', () => {
     const nextMode = normalizeViewMode(selector.value);
     applyViewMode(nextMode);
-    saveViewMode(nextMode);
+    saveViewMode(nextMode, configuredMode);
   });
 }
 
@@ -226,7 +237,10 @@ async function renderProjects() {
 
 (async () => {
   const configuredMode = await readConfiguredViewMode();
-  const selectedMode = normalizeViewMode(readStoredViewMode() || configuredMode);
-  initViewModeSelector(selectedMode);
+  // readStoredViewMode returns the user's choice only when it was saved while
+  // the same configuredMode was active; if site.config.json has changed since
+  // then, it returns null so the new config value takes effect for all visitors.
+  const selectedMode = normalizeViewMode(readStoredViewMode(configuredMode) || configuredMode);
+  initViewModeSelector(selectedMode, configuredMode);
   await Promise.all([renderProfile(), renderProjects()]);
 })();
