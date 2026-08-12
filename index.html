@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>myon-bioinformatics — Portfolio</title>
   <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./renderer.css">
 </head>
 <body>
   <header class="site-header">
@@ -32,32 +33,25 @@
 
   <main>
     <section class="container intro">
-      <h2 data-tag="hello">👋 Hello</h2>
+      <h2>👋 Hello</h2>
       <p>Bioinformatics → Security/Backend engineer. I build practical GUI/CLI tools in Python, plus Go/TypeScript.</p>
     </section>
 
     <section id="profile" class="container">
-      <h2 data-tag="profile">🧑‍💻 Profile</h2>
-      <div class="tabs" role="tablist" aria-label="Profile sections">
-        <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="panel-about"  id="tab-about">About</button>
-        <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="panel-skills" id="tab-skills">Skills</button>
-        <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="panel-career" id="tab-career">Career</button>
-      </div>
-      <div id="panel-about"  class="tab-panel active" role="tabpanel" aria-labelledby="tab-about"></div>
-      <div id="panel-skills" class="tab-panel"        role="tabpanel" aria-labelledby="tab-skills" hidden></div>
-      <div id="panel-career" class="tab-panel"        role="tabpanel" aria-labelledby="tab-career" hidden></div>
+      <h2>🧑‍💻 Profile</h2>
+      <div id="profile-render-root"></div>
     </section>
 
     <section id="projects" class="container">
-      <h2 data-tag="projects">🚀 Projects</h2>
-      <div id="project-grid" class="grid"></div>
+      <h2>🚀 Projects</h2>
+      <div id="projects-render-root"></div>
       <p class="more">
         More on <a href="https://github.com/myon-bioinformatics" target="_blank" rel="noopener noreferrer">GitHub</a>
       </p>
     </section>
 
     <section class="container outro">
-      <h2 data-tag="contact">📬 Contact</h2>
+      <h2>📬 Contact</h2>
       <p>Twitter: <a href="https://twitter.com/myonitbusiness" target="_blank" rel="noopener noreferrer">@myonitbusiness</a></p>
     </section>
   </main>

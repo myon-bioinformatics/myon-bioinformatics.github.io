@@ -1,0 +1,63 @@
+/* Dedicated notation renderers. Layout lives here; content still comes from profile.json/projects.json. */
+.notation-root {
+  margin: .5rem 0 1rem;
+}
+
+.xml-renderer,
+.json-renderer {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: .92rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.xml-line,
+.json-line {
+  padding-left: calc(var(--indent, 0) * 1.25rem);
+  white-space: pre-wrap;
+}
+
+.xml-tag {
+  color: var(--muted);
+}
+
+.xml-renderer a,
+.json-renderer a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.json-key {
+  font-weight: 600;
+}
+
+.json-string,
+.json-number,
+.json-punctuation {
+  color: var(--muted);
+}
+
+.markdown-renderer .md-heading {
+  margin: 1rem 0 .4rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.markdown-renderer .md-heading:first-child {
+  margin-top: 0;
+}
+
+.markdown-renderer .md-list {
+  margin-top: .35rem;
+}
+
+.markdown-renderer a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (max-width: 520px) {
+  .xml-line,
+  .json-line {
+    padding-left: calc(var(--indent, 0) * .75rem);
+  }
+}

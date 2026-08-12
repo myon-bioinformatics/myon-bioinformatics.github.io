@@ -13,29 +13,27 @@ function resetConfig() {
   writeConfig('modern');
 }
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-/** Load the page with a clean localStorage and return the body dataset value */
 async function loadFresh(page, configMode = 'modern') {
   writeConfig(configMode);
   await page.context().clearCookies();
-  // Clear localStorage via CDP / evaluate before navigation
   await page.goto('/');
   await page.evaluate(() => localStorage.clear());
-  // Reload so the JS runs with an empty store
   writeConfig(configMode);
   await page.reload();
   await page.waitForLoadState('networkidle');
   return page.locator('body').getAttribute('data-view-mode');
 }
 
-// ── Test 1: default mode (modern) applied when localStorage is empty ──────────
+async function selectMode(page, mode) {
+  await page.locator('#view-mode-select').selectOption(mode);
+  await expect(page.locator('body')).toHaveAttribute('data-view-mode', mode);
+}
+
 test('applies default modern mode on first visit', async ({ page }) => {
   const mode = await loadFresh(page, 'modern');
   expect(mode).toBe('modern');
 });
 
-// ── Test 2: site.config.json value is respected when no localStorage ──────────
 test.describe('site.config.json is respected when localStorage is empty', () => {
   for (const configMode of ['xml-like', 'json', 'markdown', 'github-like']) {
     test(`config defaultViewMode="${configMode}" is applied`, async ({ page }) => {
@@ -45,77 +43,51 @@ test.describe('site.config.json is respected when localStorage is empty', () => 
   }
 });
 
-// ── Test 3: dropdown changes the view mode immediately ────────────────────────
-test('dropdown change updates body data-view-mode immediately', async ({ page }) => {
+test('dropdown change updates mode and renderer immediately', async ({ page }) => {
   await loadFresh(page, 'modern');
+  await expect(page.locator('#profile-render-root')).toHaveAttribute('data-renderer', 'web');
 
-  const select = page.locator('#view-mode-select');
-  await select.selectOption('markdown');
+  await selectMode(page, 'markdown');
+  await expect(page.locator('#profile-render-root')).toHaveAttribute('data-renderer', 'markdown');
 
-  const mode = await page.locator('body').getAttribute('data-view-mode');
-  expect(mode).toBe('markdown');
+  await selectMode(page, 'json');
+  await expect(page.locator('#projects-render-root')).toHaveAttribute('data-renderer', 'json');
 });
 
-// ── Test 4: selection is persisted to localStorage ────────────────────────────
 test('selected mode is saved to localStorage', async ({ page }) => {
   await loadFresh(page, 'modern');
-
   await page.locator('#view-mode-select').selectOption('json');
 
-  const stored = await page.evaluate(() => localStorage.getItem('site:view-mode'));
-  expect(stored).toBe('json');
-  // base key must be set to the current config value so stale detection works
-  const base = await page.evaluate(() => localStorage.getItem('site:view-mode-base'));
-  expect(base).toBe('modern');
+  expect(await page.evaluate(() => localStorage.getItem('site:view-mode'))).toBe('json');
+  expect(await page.evaluate(() => localStorage.getItem('site:view-mode-base'))).toBe('modern');
 });
 
-// ── Test 5: localStorage value survives reload ────────────────────────────────
 test('localStorage value is restored on reload', async ({ page }) => {
   await loadFresh(page, 'modern');
-
   await page.locator('#view-mode-select').selectOption('github-like');
   await page.reload();
   await page.waitForLoadState('networkidle');
-
-  const mode = await page.locator('body').getAttribute('data-view-mode');
-  expect(mode).toBe('github-like');
+  await expect(page.locator('body')).toHaveAttribute('data-view-mode', 'github-like');
 });
 
-// ── Test 6 (FIXED): site.config.json change overrides stale localStorage ──────
-// When site.config.json changes its defaultViewMode, the user's previously
-// stored choice is treated as stale and the new config value takes effect.
 test('site.config.json change overrides stale localStorage on next load', async ({ page }) => {
-  // Step 1 – user visits with config=modern, picks xml-like, stored in localStorage
   await loadFresh(page, 'modern');
   await page.locator('#view-mode-select').selectOption('xml-like');
-
-  // Step 2 – admin changes site.config.json to "json"
   writeConfig('json');
-
-  // Step 3 – user reloads; the new config value should be active
   await page.reload();
   await page.waitForLoadState('networkidle');
-
-  const mode = await page.locator('body').getAttribute('data-view-mode');
-  expect(mode).toBe('json');
+  await expect(page.locator('body')).toHaveAttribute('data-view-mode', 'json');
 });
 
-// ── Test 7: user choice persists across reloads when config is unchanged ──────
 test('user choice persists on reload when config has not changed', async ({ page }) => {
   await loadFresh(page, 'modern');
   await page.locator('#view-mode-select').selectOption('markdown');
-
-  // Config stays "modern" — user's choice should survive reload
   await page.reload();
   await page.waitForLoadState('networkidle');
-
-  const mode = await page.locator('body').getAttribute('data-view-mode');
-  expect(mode).toBe('markdown');
+  await expect(page.locator('body')).toHaveAttribute('data-view-mode', 'markdown');
 });
 
-// ── Test 7: unknown config value falls back to modern ─────────────────────────
 test('invalid config defaultViewMode falls back to modern', async ({ page }) => {
-  // Write an invalid value
   fs.writeFileSync(CONFIG_PATH, JSON.stringify({ defaultViewMode: 'totally-invalid' }));
   await page.goto('/');
   await page.evaluate(() => localStorage.clear());
@@ -123,12 +95,68 @@ test('invalid config defaultViewMode falls back to modern', async ({ page }) => 
   await page.reload();
   await page.waitForLoadState('networkidle');
   resetConfig();
-
-  const mode = await page.locator('body').getAttribute('data-view-mode');
-  expect(mode).toBe('modern');
+  await expect(page.locator('body')).toHaveAttribute('data-view-mode', 'modern');
 });
 
-// ── Cleanup ───────────────────────────────────────────────────────────────────
+test('modern keeps tabs, skill bars, career timeline, and project cards', async ({ page }) => {
+  await loadFresh(page, 'modern');
+  await expect(page.locator('#profile-render-root[data-renderer="web"] .tabs')).toBeVisible();
+  await expect(page.locator('.skill-bar-fill')).toHaveCount(11);
+  await expect(page.locator('.timeline-item')).toHaveCount(4);
+  await expect(page.locator('#projects-render-root[data-renderer="web"] .card')).toHaveCount(4);
+});
+
+test('github-like keeps the web-oriented renderer', async ({ page }) => {
+  await loadFresh(page, 'github-like');
+  await expect(page.locator('#profile-render-root')).toHaveAttribute('data-renderer', 'web');
+  await expect(page.locator('#projects-render-root .card')).toHaveCount(4);
+});
+
+test('xml-like renders nested tag-style profile and project structures', async ({ page }) => {
+  await loadFresh(page, 'xml-like');
+  const profile = page.locator('#profile-render-root');
+  const projects = page.locator('#projects-render-root');
+  await expect(profile).toHaveAttribute('data-renderer', 'xml');
+  await expect(profile).toContainText('<Profile>');
+  await expect(profile).toContainText('<About>');
+  await expect(profile).toContainText('<Skills>');
+  await expect(profile).toContainText('<Career>');
+  await expect(projects).toContainText('<Projects>');
+  await expect(projects.locator('a').first()).toHaveAttribute('href', /github\.com\/myon-bioinformatics/);
+});
+
+test('json mode renders object and array syntax with clickable URLs', async ({ page }) => {
+  await loadFresh(page, 'json');
+  const profile = page.locator('#profile-render-root');
+  const projects = page.locator('#projects-render-root');
+  await expect(profile).toHaveAttribute('data-renderer', 'json');
+  await expect(profile).toContainText('"about":');
+  await expect(profile).toContainText('"skills":');
+  await expect(projects).toContainText('"name":');
+  await expect(projects.locator('a').first()).toHaveAttribute('href', /github\.com\/myon-bioinformatics/);
+});
+
+test('markdown mode renders document headings, lists, and links', async ({ page }) => {
+  await loadFresh(page, 'markdown');
+  const profile = page.locator('#profile-render-root');
+  const projects = page.locator('#projects-render-root');
+  await expect(profile).toHaveAttribute('data-renderer', 'markdown');
+  await expect(profile).toContainText('### About');
+  await expect(profile).toContainText('### Skills');
+  await expect(profile.locator('ul').first()).toBeVisible();
+  await expect(projects.locator('h3 a').first()).toHaveAttribute('href', /github\.com\/myon-bioinformatics/);
+});
+
+test('all modes render the same shared profile and project data', async ({ page }) => {
+  await loadFresh(page, 'modern');
+
+  for (const mode of ['modern', 'xml-like', 'json', 'markdown', 'github-like']) {
+    await selectMode(page, mode);
+    await expect(page.locator('#profile-render-root')).toContainText('Bioinformatics');
+    await expect(page.locator('#projects-render-root')).toContainText('python3nmap_GUI_for_Beginners');
+  }
+});
+
 test.afterAll(() => {
   resetConfig();
 });
