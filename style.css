@@ -205,6 +205,7 @@ body[data-view-mode="github-like"] .badges .tag {
 
 @media (max-width: 720px) {
   .container { padding: 1.25rem; }
+  body[data-view-mode="json"] .container { padding-left: 1rem; }
   .site-header .container,
   .header-actions { align-items: flex-start; }
   .header-actions {
