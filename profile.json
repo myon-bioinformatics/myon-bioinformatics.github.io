@@ -1,0 +1,53 @@
+{
+  "about": "Bioinformatics → Security / Backend engineer.\nI design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
+  "skills": [
+    {
+      "category": "Languages",
+      "items": [
+        { "name": "Python",     "level": 90 },
+        { "name": "Go",         "level": 65 },
+        { "name": "TypeScript", "level": 60 },
+        { "name": "Bash",       "level": 70 }
+      ]
+    },
+    {
+      "category": "Domain",
+      "items": [
+        { "name": "Bioinformatics",   "level": 85 },
+        { "name": "Network Security", "level": 75 },
+        { "name": "Backend / API",    "level": 65 },
+        { "name": "GUI / Desktop",    "level": 80 }
+      ]
+    },
+    {
+      "category": "Tools & Infra",
+      "items": [
+        { "name": "Linux / CLI",  "level": 85 },
+        { "name": "Docker",       "level": 60 },
+        { "name": "Git / GitHub", "level": 80 }
+      ]
+    }
+  ],
+  "career": [
+    {
+      "year": "2020",
+      "title": "Started Bioinformatics",
+      "desc": "Began working with genomic data pipelines and sequence analysis tools."
+    },
+    {
+      "year": "2021",
+      "title": "Python GUI Tooling",
+      "desc": "Built beginner-friendly GUI wrappers for network security tools (Nmap, Scapy)."
+    },
+    {
+      "year": "2022",
+      "title": "Security / Backend Focus",
+      "desc": "Shifted focus toward security tooling and backend service development."
+    },
+    {
+      "year": "2023–",
+      "title": "Multi-language Engineering",
+      "desc": "Expanding into Go and TypeScript for backend APIs and developer tooling."
+    }
+  ]
+}

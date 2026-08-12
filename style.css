@@ -38,3 +38,59 @@ h2{margin:0 0 .75rem}
   .badges .tag { background: #141417; color: #ddd; }
 }
 .more { margin-top: 8px; font-size: .95rem; }
+
+/* ── Profile tabs ──────────────────────────────────────────────────────── */
+#profile h2 { margin-bottom: 0.75rem; }
+.tabs { display: flex; gap: 6px; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+.tab-btn {
+  background: none; border: none; padding: 6px 16px; cursor: pointer;
+  font: inherit; color: var(--muted); border-bottom: 2px solid transparent;
+  margin-bottom: -1px; transition: color .15s, border-color .15s;
+}
+.tab-btn:hover { color: var(--fg); }
+.tab-btn.active { color: var(--fg); border-bottom-color: currentColor; font-weight: 600; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* About */
+.about-text { line-height: 1.7; white-space: pre-line; }
+
+/* Skills */
+.skill-group { margin-bottom: 1.25rem; }
+.skill-category { margin: 0 0 .5rem; font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.skill-row { display: grid; grid-template-columns: 140px 1fr; align-items: center; gap: 10px; margin-bottom: 8px; }
+.skill-label { font-size: .9rem; }
+.skill-bar-track {
+  height: 8px; border-radius: 999px;
+  background: var(--border); overflow: hidden;
+}
+.skill-bar-fill {
+  height: 100%; border-radius: 999px;
+  background: var(--fg);
+  width: 0%;
+  transition: width .6s cubic-bezier(.4,0,.2,1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .skill-bar-fill { transition: none; }
+}
+
+/* Career timeline */
+.timeline { list-style: none; margin: 0; padding: 0; position: relative; }
+.timeline::before {
+  content: ''; position: absolute; left: 52px; top: 6px; bottom: 6px;
+  width: 2px; background: var(--border);
+}
+.timeline-item {
+  display: grid; grid-template-columns: 64px 1fr; gap: 12px;
+  position: relative; margin-bottom: 1.25rem;
+}
+.timeline-item::before {
+  content: ''; position: absolute; left: 48px; top: 5px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--fg); border: 2px solid var(--bg);
+  box-shadow: 0 0 0 2px var(--border);
+}
+.tl-year { font-size: .8rem; color: var(--muted); padding-top: 3px; text-align: right; }
+.tl-body strong { display: block; margin-bottom: 2px; }
+.tl-body p { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.5; }
+
