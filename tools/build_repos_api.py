@@ -94,7 +94,7 @@ def extract_heading_and_summary(readme_text):
     in_code_block = False
     for line in lines[heading_index + 1:]:
         stripped = line.strip()
-        if stripped.startswith(("\`\`\`", "~~~")):
+        if stripped.startswith(("```", "~~~")):
             in_code_block = not in_code_block
             continue
         if in_code_block:
