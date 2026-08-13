@@ -36,7 +36,7 @@ jobs:
 
       - name: Commit refreshed API when it changed
         run: |
-          if git diff --quiet -- api/repos.json .nojekyll; then
+          if [ -z "$(git status --porcelain -- api/repos.json .nojekyll)" ]; then
             exit 0
           fi
           git config user.name "github-actions[bot]"
