@@ -1,0 +1,46 @@
+name: Update repos API
+
+on:
+  schedule:
+    - cron: "0 21 * * *" # 06:00 JST
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - tools/build_repos_api.py
+      - .github/workflows/repos-api.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repos-api
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Build api/repos.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          touch .nojekyll
+          python tools/build_repos_api.py --owner myon-bioinformatics --output api/repos.json
+
+      - name: Commit refreshed API when it changed
+        run: |
+          if git diff --quiet -- api/repos.json .nojekyll; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add api/repos.json .nojekyll
+          git commit -m "chore: refresh repos API"
+          git push
