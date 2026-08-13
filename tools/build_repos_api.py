@@ -123,7 +123,8 @@ def build(owner):
         if repo.get("fork"):
             continue
         name = repo["name"]
-        heading, summary = extract_heading_and_summary(fetch_readme(owner, name)[0])
+        readme_text, readme_url = fetch_readme(owner, name)
+        heading, summary = extract_heading_and_summary(readme_text)
         entry = {
             "name": name,
             "url": repo.get("html_url"),
@@ -135,7 +136,7 @@ def build(owner):
             "homepage": repo.get("homepage") or None,
             "readmeHeading": heading,
             "readmeSummary": summary,
-            "readmeUrl": fetch_readme(owner, name)[1],
+            "readmeUrl": readme_url,
         }
         if repo.get("archived"):
             entry["archived"] = True
