@@ -1,30 +1,42 @@
 {
+  "name": "myon-bioinformatics",
+  "headline": "Security × Backend × Data • Python / Go / TypeScript",
   "about": "Bioinformatics → Security / Backend engineer.\nI design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
+  "motto": "I build practical tools and templates you can run today.",
+  "links": {
+    "github": "https://github.com/myon-bioinformatics",
+    "twitter": "https://twitter.com/myonitbusiness",
+    "litlink": "https://lit.link/myon123",
+    "linktree": "https://linktr.ee/myon123",
+    "portfolio": "https://myon-bioinformatics.github.io/"
+  },
   "skills": [
     {
       "category": "Languages",
       "items": [
-        { "name": "Python",     "level": 90 },
-        { "name": "Go",         "level": 65 },
+        { "name": "Python", "level": 90 },
+        { "name": "Go", "level": 65 },
         { "name": "TypeScript", "level": 60 },
-        { "name": "Bash",       "level": 70 }
+        { "name": "Bash", "level": 70 }
       ]
     },
     {
       "category": "Domain",
       "items": [
-        { "name": "Bioinformatics",   "level": 85 },
+        { "name": "Bioinformatics", "level": 85 },
         { "name": "Network Security", "level": 75 },
-        { "name": "Backend / API",    "level": 65 },
-        { "name": "GUI / Desktop",    "level": 80 }
+        { "name": "Backend / API", "level": 65 },
+        { "name": "GUI / Desktop", "level": 80 }
       ]
     },
     {
       "category": "Tools & Infra",
       "items": [
-        { "name": "Linux / CLI",  "level": 85 },
-        { "name": "Docker",       "level": 60 },
-        { "name": "Git / GitHub", "level": 80 }
+        { "name": "Linux / CLI", "level": 85 },
+        { "name": "Docker", "level": 60 },
+        { "name": "Git / GitHub", "level": 80 },
+        { "name": "Wireshark / Scapy / Ghidra", "level": 70 },
+        { "name": "Flutter / Dart", "level": 60 }
       ]
     }
   ],
@@ -49,5 +61,10 @@
       "title": "Multi-language Engineering",
       "desc": "Expanding into Go and TypeScript for backend APIs and developer tooling."
     }
+  ],
+  "currentFocus": [
+    "Security-oriented GUI / CUI tooling",
+    "Reusable API templates and backend integration patterns",
+    "Image / audio batch conversion and developer utilities"
   ]
 }
