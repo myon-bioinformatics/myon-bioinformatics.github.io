@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "owner": "myon-bioinformatics",
+  "services": {
+    "portfolio": {
+      "kind": "pages",
+      "url": "https://myon-bioinformatics.github.io/"
+    },
+    "profile": {
+      "kind": "data",
+      "url": "https://myon-bioinformatics.github.io/profile.json"
+    },
+    "projects": {
+      "kind": "data",
+      "url": "https://myon-bioinformatics.github.io/projects.json"
+    },
+    "repositories": {
+      "kind": "api",
+      "url": "https://myon-bioinformatics.github.io/api/repos.json"
+    },
+    "ironmate": {
+      "kind": "pages",
+      "url": "https://myon-bioinformatics.github.io/Ironmate/"
+    },
+    "ironmateMcpStub": {
+      "kind": "mcp-stub",
+      "url": "https://myon-bioinformatics.github.io/Ironmate/mcp-stub.html"
+    },
+    "flutterNavigationBasic": {
+      "kind": "pages",
+      "url": "https://myon-bioinformatics.github.io/flutter_navigation_basic/"
+    },
+    "mockServerJs": {
+      "kind": "repository",
+      "url": "https://github.com/myon-bioinformatics/mock_server_JS"
+    }
+  }
+}
