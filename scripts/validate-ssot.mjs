@@ -52,7 +52,7 @@ if (profile.links?.github !== services.account?.github?.url) {
 const allowedKinds = new Set(['external-profile', 'static-data', 'repository', 'pages', 'mcp-stub']);
 const validateEntry = (path, entry) => {
   if (!entry || typeof entry !== 'object') return;
-  if ('url' in entry) {
+  if ('kind' in entry || 'url' in entry) {
     if (!allowedKinds.has(entry.kind)) errors.push(`unknown service kind at ${path}: ${entry.kind}`);
     if (!entry.url) errors.push(`missing URL at ${path}`);
     return;
@@ -62,6 +62,11 @@ const validateEntry = (path, entry) => {
 validateEntry('services', services);
 
 for (const [repoName, projectServices] of Object.entries(services.projects || {})) {
+  if (!projectServices || typeof projectServices !== 'object') {
+    errors.push(`invalid project service group at services.projects.${repoName}`);
+    continue;
+  }
+
   const repo = repos.get(repoName);
   if (!repo) {
     errors.push(`services.json references unknown repository: ${repoName}`);
@@ -73,11 +78,13 @@ for (const [repoName, projectServices] of Object.entries(services.projects || {}
   }
 
   for (const [serviceName, service] of Object.entries(projectServices)) {
+    if (!service || typeof service !== 'object') {
+      errors.push(`invalid service entry at services.projects.${repoName}.${serviceName}`);
+      continue;
+    }
+
     if (service.kind === 'pages' || service.kind === 'mcp-stub') {
-      if (!service.url) {
-        errors.push(`missing URL at services.projects.${repoName}.${serviceName}`);
-        continue;
-      }
+      if (!service.url) continue;
       const expectedPrefix = `https://myon-bioinformatics.github.io/${repoName}/`;
       if (!service.url.startsWith(expectedPrefix)) {
         errors.push(`${serviceName} URL for ${repoName} must be under ${expectedPrefix}`);
