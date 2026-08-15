@@ -74,6 +74,10 @@ for (const [repoName, projectServices] of Object.entries(services.projects || {}
 
   for (const [serviceName, service] of Object.entries(projectServices)) {
     if (service.kind === 'pages' || service.kind === 'mcp-stub') {
+      if (!service.url) {
+        errors.push(`missing URL at services.projects.${repoName}.${serviceName}`);
+        continue;
+      }
       const expectedPrefix = `https://myon-bioinformatics.github.io/${repoName}/`;
       if (!service.url.startsWith(expectedPrefix)) {
         errors.push(`${serviceName} URL for ${repoName} must be under ${expectedPrefix}`);
