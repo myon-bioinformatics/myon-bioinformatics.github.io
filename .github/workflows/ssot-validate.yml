@@ -1,0 +1,34 @@
+name: Validate shared canonical data
+
+on:
+  pull_request:
+    paths:
+      - "profile.json"
+      - "projects.json"
+      - "services.json"
+      - "api/repos.json"
+      - "scripts/validate-ssot.mjs"
+      - ".github/workflows/ssot-validate.yml"
+  push:
+    paths:
+      - "profile.json"
+      - "projects.json"
+      - "services.json"
+      - "api/repos.json"
+      - "scripts/validate-ssot.mjs"
+      - ".github/workflows/ssot-validate.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate SSOT relationships
+        run: node scripts/validate-ssot.mjs
