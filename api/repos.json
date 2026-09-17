@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-09-16T21:11:50Z",
+  "generatedAt": "2026-09-17T21:11:43Z",
   "owner": "myon-bioinformatics",
-  "count": 24,
+  "count": 26,
   "repos": [
     {
       "name": "AttentionToJapaneseBeginners",
@@ -127,7 +127,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-16T19:49:35Z",
+      "updatedAt": "2026-09-17T15:55:14Z",
       "homepage": null,
       "readmeHeading": "FLUTTER_NAVIGATION_BASIC_DEMO(macOS)",
       "readmeSummary": null,
@@ -253,6 +253,32 @@
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/LINENotifyAPI_Template/main/README.md"
     },
     {
+      "name": "markdown",
+      "url": "https://github.com/myon-bioinformatics/markdown",
+      "description": "A lightweight, function-focused Markdown utility library for Python, built with the standard library only and tested without a CLI entry point.",
+      "language": "Python",
+      "topics": [],
+      "stars": 0,
+      "updatedAt": "2026-09-17T15:38:37Z",
+      "homepage": null,
+      "readmeHeading": "markdown",
+      "readmeSummary": "A lightweight, function-focused Markdown utility library for Python, built with the standard library only and tested without a CLI entry point.",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/markdown/main/README.md"
+    },
+    {
+      "name": "mcp-toolcall-lab",
+      "url": "https://github.com/myon-bioinformatics/mcp-toolcall-lab",
+      "description": "Description: Reproducible experiments for reliable LLM-to-MCP tool discovery, initialization, and calls using FastMCP and mock APIs.",
+      "language": "Python",
+      "topics": [],
+      "stars": 0,
+      "updatedAt": "2026-09-17T15:39:33Z",
+      "homepage": null,
+      "readmeHeading": "mcp-toolcall-lab",
+      "readmeSummary": "Reproducible experiments for reliable LLM-to-MCP tool discovery, initialization, and calls using FastMCP and mock APIs.",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/main/README.md"
+    },
+    {
       "name": "mock_server_JS",
       "url": "https://github.com/myon-bioinformatics/mock_server_JS",
       "description": "mock server for JS users(Vue.3.x)",
@@ -285,7 +311,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-16T01:09:51Z",
+      "updatedAt": "2026-09-17T01:10:16Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -304,7 +330,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-09-15T21:11:17Z",
+      "updatedAt": "2026-09-16T21:11:55Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
