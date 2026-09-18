@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T21:11:43Z",
+  "generatedAt": "2026-09-18T21:10:15Z",
   "owner": "myon-bioinformatics",
   "count": 26,
   "repos": [
@@ -258,11 +258,11 @@
       "description": "A lightweight, function-focused Markdown utility library for Python, built with the standard library only and tested without a CLI entry point.",
       "language": "Python",
       "topics": [],
-      "stars": 0,
-      "updatedAt": "2026-09-17T15:38:37Z",
+      "stars": 1,
+      "updatedAt": "2026-09-18T13:44:01Z",
       "homepage": null,
       "readmeHeading": "markdown",
-      "readmeSummary": "A lightweight, function-focused Markdown utility library for Python, built with the standard library only and tested without a CLI entry point.",
+      "readmeSummary": "stdlib だけで動く、関数提供に特化した Python Markdown ユーティリティ。",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/markdown/main/README.md"
     },
     {
@@ -271,8 +271,8 @@
       "description": "Description: Reproducible experiments for reliable LLM-to-MCP tool discovery, initialization, and calls using FastMCP and mock APIs.",
       "language": "Python",
       "topics": [],
-      "stars": 0,
-      "updatedAt": "2026-09-17T15:39:33Z",
+      "stars": 1,
+      "updatedAt": "2026-09-18T13:43:57Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "Reproducible experiments for reliable LLM-to-MCP tool discovery, initialization, and calls using FastMCP and mock APIs.",
@@ -311,7 +311,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-17T01:10:16Z",
+      "updatedAt": "2026-09-18T01:10:10Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -330,7 +330,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-09-16T21:11:55Z",
+      "updatedAt": "2026-09-17T21:11:48Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
