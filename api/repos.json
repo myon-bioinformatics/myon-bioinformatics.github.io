@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-20T21:10:15Z",
+  "generatedAt": "2026-09-21T21:11:06Z",
   "owner": "myon-bioinformatics",
   "count": 26,
   "repos": [
@@ -225,7 +225,7 @@
         "python3"
       ],
       "stars": 2,
-      "updatedAt": "2026-08-15T10:56:50Z",
+      "updatedAt": "2026-09-21T16:05:25Z",
       "homepage": null,
       "readmeHeading": "README.md",
       "readmeSummary": null,
@@ -259,7 +259,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-20T16:07:11Z",
+      "updatedAt": "2026-09-21T15:45:29Z",
       "homepage": null,
       "readmeHeading": "markdown",
       "readmeSummary": "stdlib だけで動く、関数提供に特化した Python Markdown ユーティリティ。",
@@ -272,7 +272,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-20T13:10:36Z",
+      "updatedAt": "2026-09-21T16:05:55Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "Reproducible experiments for reliable LLM-to-MCP tool discovery, initialization, and calls using FastMCP and mock APIs.",
@@ -311,7 +311,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-20T01:14:24Z",
+      "updatedAt": "2026-09-21T01:14:52Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -330,7 +330,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-09-19T21:09:54Z",
+      "updatedAt": "2026-09-20T21:10:19Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
