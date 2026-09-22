@@ -1,8 +1,21 @@
 {
-  "generatedAt": "2026-09-21T21:11:06Z",
+  "generatedAt": "2026-09-22T21:10:30Z",
   "owner": "myon-bioinformatics",
-  "count": 26,
+  "count": 27,
   "repos": [
+    {
+      "name": "ascii_artist",
+      "url": "https://github.com/myon-bioinformatics/ascii_artist",
+      "description": "Python utilities for ASCII art generation, conversion, layout, and text-based graphics, designed for lightweight and reusable workflows",
+      "language": "Python",
+      "topics": [],
+      "stars": 1,
+      "updatedAt": "2026-09-22T16:15:24Z",
+      "homepage": null,
+      "readmeHeading": "ascii_artist",
+      "readmeSummary": "Python utilities for ASCII art generation, conversion, layout, and text-based graphics, designed for lightweight and reusable workflows.",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/ascii_artist/main/README.md"
+    },
     {
       "name": "AttentionToJapaneseBeginners",
       "url": "https://github.com/myon-bioinformatics/AttentionToJapaneseBeginners",
@@ -213,7 +226,7 @@
     {
       "name": "Ironmate",
       "url": "https://github.com/myon-bioinformatics/Ironmate",
-      "description": null,
+      "description": "Local LLM CLI and Gradio toolkit for Qwen, tool calling, MCP, Markdown, ASCII art, and safe file operations.",
       "language": "Python",
       "topics": [
         "gradio",
@@ -225,7 +238,7 @@
         "python3"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-21T16:05:25Z",
+      "updatedAt": "2026-09-22T14:37:47Z",
       "homepage": null,
       "readmeHeading": "README.md",
       "readmeSummary": null,
@@ -259,7 +272,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-21T15:45:29Z",
+      "updatedAt": "2026-09-22T15:27:59Z",
       "homepage": null,
       "readmeHeading": "markdown",
       "readmeSummary": "stdlib だけで動く、関数提供に特化した Python Markdown ユーティリティ。",
@@ -272,7 +285,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-21T16:05:55Z",
+      "updatedAt": "2026-09-22T15:33:26Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "Reproducible experiments for reliable LLM-to-MCP tool discovery, initialization, and calls using FastMCP and mock APIs.",
@@ -311,7 +324,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-21T01:14:52Z",
+      "updatedAt": "2026-09-22T01:09:25Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -330,7 +343,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-09-20T21:10:19Z",
+      "updatedAt": "2026-09-21T21:11:12Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
