@@ -44,3 +44,54 @@ jobs:
           name: stagehand-v4-tooling-meta
           path: stagehand-v4-tooling-meta.json
           retention-days: 14
+
+
+  screenshots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install npm dependencies
+        run: npm install --ignore-scripts
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Serve site locally
+        run: python3 -m http.server 8000 > /tmp/github-io-http.log 2>&1 &
+
+      - name: Wait for server
+        run: |
+          python3 - <<'PY'
+          import time
+          import urllib.request
+
+          url = "http://127.0.0.1:8000/index.html"
+          for attempt in range(50):
+              try:
+                  with urllib.request.urlopen(url, timeout=1) as response:
+                      if response.status == 200:
+                          break
+              except Exception:
+                  if attempt == 49:
+                      raise
+                  time.sleep(0.1)
+          PY
+
+      - name: Capture desktop screenshot
+        run: |
+          npx playwright screenshot             --browser=chromium             --viewport-size="1440,900"             http://127.0.0.1:8000/index.html             github-io-desktop-1440x900.png
+
+      - name: Capture mobile screenshot
+        run: |
+          npx playwright screenshot             --browser=chromium             --viewport-size="390,844"             http://127.0.0.1:8000/index.html             github-io-mobile-390x844.png
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: github-io-screenshots
+          path: github-io-*.png
+          retention-days: 14
