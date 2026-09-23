@@ -28,10 +28,13 @@ screenshots at stable URLs:
 - [Mobile 390×844](https://myon-bioinformatics.github.io/evidence/latest/mobile.png)
 - [Evidence metadata (SHA / timestamp / viewport)](https://myon-bioinformatics.github.io/evidence/latest/meta.json)
 
-![Latest desktop render](https://myon-bioinformatics.github.io/evidence/latest/desktop.png)
+[![Latest desktop render](https://myon-bioinformatics.github.io/evidence/latest/desktop.png?v=25e9697c)](https://myon-bioinformatics.github.io/evidence/latest/desktop.png)
 
 These URLs are replaced only by a **successful Pages deployment**, so they act as
 a human-readable `latest` view rather than a per-run artifact archive.
+
+The inline README preview uses a cache-busting query only for GitHub's image
+proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 
 ---
 
