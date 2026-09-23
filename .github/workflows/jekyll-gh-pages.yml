@@ -35,6 +35,66 @@ jobs:
         with:
           source: ./
           destination: ./_site
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install npm dependencies
+        run: npm install --ignore-scripts
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Serve built site
+        run: python3 -m http.server 8000 --directory _site > /tmp/github-io-pages-http.log 2>&1 &
+
+      - name: Wait for built site
+        run: |
+          python3 - <<'PY'
+          import time
+          import urllib.request
+
+          url = "http://127.0.0.1:8000/index.html"
+          for attempt in range(50):
+              try:
+                  with urllib.request.urlopen(url, timeout=1) as response:
+                      if response.status == 200:
+                          break
+              except Exception:
+                  if attempt == 49:
+                      raise
+                  time.sleep(0.1)
+          PY
+
+      - name: Capture latest successful screenshots
+        run: |
+          mkdir -p _site/evidence/latest
+          npx playwright screenshot             --browser=chromium             --viewport-size="1440,900"             http://127.0.0.1:8000/index.html             _site/evidence/latest/desktop.png
+
+          npx playwright screenshot             --browser=chromium             --viewport-size="390,844"             http://127.0.0.1:8000/index.html             _site/evidence/latest/mobile.png
+
+      - name: Write latest evidence metadata
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          data = {
+              "sha": os.environ["GITHUB_SHA"],
+              "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+              "desktop": {"path": "desktop.png", "viewport": "1440x900"},
+              "mobile": {"path": "mobile.png", "viewport": "390x844"},
+              "source": "GitHub Pages deployment",
+          }
+          Path("_site/evidence/latest/meta.json").write_text(
+              json.dumps(data, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
 
