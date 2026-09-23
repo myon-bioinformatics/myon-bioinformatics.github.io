@@ -19,6 +19,22 @@
 
 ---
 
+## 🖼️ Latest successful render
+
+The latest successful GitHub Pages deployment publishes deterministic Chromium
+screenshots at stable URLs:
+
+- [Desktop 1440×900](https://myon-bioinformatics.github.io/evidence/latest/desktop.png)
+- [Mobile 390×844](https://myon-bioinformatics.github.io/evidence/latest/mobile.png)
+- [Evidence metadata (SHA / timestamp / viewport)](https://myon-bioinformatics.github.io/evidence/latest/meta.json)
+
+![Latest desktop render](https://myon-bioinformatics.github.io/evidence/latest/desktop.png)
+
+These URLs are replaced only by a **successful Pages deployment**, so they act as
+a human-readable `latest` view rather than a per-run artifact archive.
+
+---
+
 ## 🚀 Projects (JSON-driven cards)
 This site renders “Projects” cards from a simple `projects.json`.  
 Edit `projects.json` to reorder/update your cards.
