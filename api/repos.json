@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-09-22T21:10:30Z",
+  "generatedAt": "2026-09-23T21:11:50Z",
   "owner": "myon-bioinformatics",
-  "count": 27,
+  "count": 28,
   "repos": [
     {
       "name": "ascii_artist",
@@ -10,7 +10,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-22T16:15:24Z",
+      "updatedAt": "2026-09-23T05:39:48Z",
       "homepage": null,
       "readmeHeading": "ascii_artist",
       "readmeSummary": "Python utilities for ASCII art generation, conversion, layout, and text-based graphics, designed for lightweight and reusable workflows.",
@@ -140,7 +140,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-20T08:19:10Z",
+      "updatedAt": "2026-09-23T11:22:11Z",
       "homepage": null,
       "readmeHeading": "FLUTTER_NAVIGATION_BASIC_DEMO(macOS)",
       "readmeSummary": null,
@@ -238,7 +238,7 @@
         "python3"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-22T14:37:47Z",
+      "updatedAt": "2026-09-23T08:52:35Z",
       "homepage": null,
       "readmeHeading": "README.md",
       "readmeSummary": null,
@@ -272,7 +272,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-22T15:27:59Z",
+      "updatedAt": "2026-09-23T05:39:44Z",
       "homepage": null,
       "readmeHeading": "markdown",
       "readmeSummary": "stdlib だけで動く、関数提供に特化した Python Markdown ユーティリティ。",
@@ -285,7 +285,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-22T15:33:26Z",
+      "updatedAt": "2026-09-23T15:36:30Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "Reproducible experiments for reliable LLM-to-MCP tool discovery, initialization, and calls using FastMCP and mock APIs.",
@@ -324,7 +324,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-22T01:09:25Z",
+      "updatedAt": "2026-09-23T01:09:22Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -343,7 +343,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-09-21T21:11:12Z",
+      "updatedAt": "2026-09-23T09:39:18Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
@@ -543,6 +543,19 @@
       "readmeHeading": "vlm_ocr_jp_gui",
       "readmeSummary": null,
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/vlm_ocr_jp_gui/main/README.md"
+    },
+    {
+      "name": "web-ui",
+      "url": "https://github.com/myon-bioinformatics/web-ui",
+      "description": "web-ui provides shared CSS themes, UI components, and small JavaScript utilities for static web interfaces across myon-bioinformatics projects. It is build-free and dependency-light by design: repositories keep their domain logic, while presentation and reusable browser behavior can share a stable UI contract.",
+      "language": "Python",
+      "topics": [],
+      "stars": 1,
+      "updatedAt": "2026-09-23T10:09:19Z",
+      "homepage": null,
+      "readmeHeading": "web-ui",
+      "readmeSummary": "Shared CSS themes, semantic UI components, and small JavaScript utilities for static interfaces across myon-bioinformatics projects.",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/web-ui/main/README.md"
     }
   ]
 }
