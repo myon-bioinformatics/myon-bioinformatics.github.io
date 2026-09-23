@@ -1,10 +1,13 @@
 """Emit advisory dual-SDK tooling metadata; never a freshness gate."""
 import importlib.metadata
 import json
+import os
 import platform
 import shutil
 import subprocess
 from datetime import datetime, timezone
+
+COMMAND_TIMEOUT = float(os.environ.get("STAGEHAND_TOOL_TIMEOUT", "10"))
 
 
 def version(command, *args):
@@ -12,7 +15,7 @@ def version(command, *args):
     if not exe:
         return None
     try:
-        result = subprocess.run([exe, *args], capture_output=True, text=True, timeout=10, check=False)
+        result = subprocess.run([exe, *args], capture_output=True, text=True, timeout=COMMAND_TIMEOUT, check=False)
     except (OSError, subprocess.SubprocessError):
         return None
     lines = (result.stdout or result.stderr).strip().splitlines()
@@ -28,7 +31,7 @@ def package(name):
 
 def git(*args):
     try:
-        result = subprocess.run(["git", *args], capture_output=True, text=True, timeout=10, check=False)
+        result = subprocess.run(["git", *args], capture_output=True, text=True, timeout=COMMAND_TIMEOUT, check=False)
     except (OSError, subprocess.SubprocessError):
         return None
     return result.stdout.strip() or None
