@@ -10,10 +10,10 @@ function writeConfig(mode) {
 }
 
 function resetConfig() {
-  writeConfig('xml-like');
+  writeConfig('modern');
 }
 
-async function loadFresh(page, configMode = 'xml-like') {
+async function loadFresh(page, configMode = 'modern') {
   writeConfig(configMode);
   await page.context().clearCookies();
   await page.goto('/');
@@ -29,9 +29,9 @@ async function selectMode(page, mode) {
   await expect(page.locator('body')).toHaveAttribute('data-view-mode', mode);
 }
 
-test('applies default xml-like mode on first visit', async ({ page }) => {
-  const mode = await loadFresh(page, 'xml-like');
-  expect(mode).toBe('xml-like');
+test('applies default modern mode on first visit', async ({ page }) => {
+  const mode = await loadFresh(page, 'modern');
+  expect(mode).toBe('modern');
 });
 
 test.describe('site.config.json is respected when localStorage is empty', () => {
