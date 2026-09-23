@@ -61,7 +61,18 @@ Current baseline viewports:
 - `desktop-1440x900`
 - `mobile-390x844`
 
-Artifacts are uploaded as `github-io-screenshots` and retained for 14 days.
+PR/CI run screenshots are uploaded as `github-io-screenshots` and retained for 14 days.
+
+On a successful `main` GitHub Pages deployment, the built site also publishes
+stable latest-success URLs:
+
+- `/evidence/latest/desktop.png`
+- `/evidence/latest/mobile.png`
+- `/evidence/latest/meta.json`
+
+Because these files are inserted into the Pages deployment artifact only after
+the screenshot step succeeds, a failed deployment does not replace the previous
+public `latest` evidence.
 
 This visual evidence is intentionally separate from Stagehand's optional
 agent-oriented integration lane. Playwright provides the stable screenshot
