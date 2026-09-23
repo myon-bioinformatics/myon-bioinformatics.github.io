@@ -49,3 +49,20 @@ Other repositories should copy only the lane that matches their existing toolcha
 - Node/Playwright-heavy repository → prefer the Node Stagehand lane.
 - Python/pytest-heavy repository → prefer the Python Stagehand lane.
 - lightweight library → metadata only unless browser automation is actually useful.
+
+
+## Screenshot evidence
+
+In addition to the dual-SDK Stagehand surface checks, this repository captures
+deterministic browser screenshots with Playwright/Chromium.
+
+Current baseline viewports:
+
+- `desktop-1440x900`
+- `mobile-390x844`
+
+Artifacts are uploaded as `github-io-screenshots` and retained for 14 days.
+
+This visual evidence is intentionally separate from Stagehand's optional
+agent-oriented integration lane. Playwright provides the stable screenshot
+baseline; Stagehand remains the optional browser-agent reference.
