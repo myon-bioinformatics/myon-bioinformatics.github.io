@@ -38,6 +38,16 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 
 ---
 
+## 🧭 Tools & Demos portal
+The top page also contains a hand-maintained **Tools & Demos** discovery catalog
+for selected live GitHub Pages applications. This is intentionally separate from
+the JSON-driven repository cards: adding a new live tool requires updating both
+`index.html` and `tests/test_portal_links.py`, so the destination and its HTTPS
+Pages-host contract are reviewed together.
+
+Current destinations include Ironmate, mcp-toolcall-lab,
+flutter_navigation_basic, and web-ui.
+
 ## 🚀 Projects (JSON-driven cards)
 This site renders “Projects” cards from a simple `projects.json`.  
 Edit `projects.json` to reorder/update your cards.
