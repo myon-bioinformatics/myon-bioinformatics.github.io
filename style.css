@@ -405,3 +405,20 @@ body[data-view-mode="github-like"] .badges .tag {
   .view-mode-switch select { width: 100%; }
   .grid { grid-template-columns: 1fr; }
 }
+
+
+/* ── Tools & Demos portal ──────────────────────────────────────────────── */
+.portal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.portal-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.portal-card > a {
+  margin-top: auto;
+  font-weight: 600;
+}
