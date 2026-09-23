@@ -4,7 +4,8 @@
   "description": "<h1 align=\"center\">🧭 myon-bioinformatics.github.io</h1> <p align=\"center\">Personal site & portfolio — built and maintained by <a href=\"https://github.com/myon-bioinformatics\">myon</a></p>",
   "main": "index.js",
   "scripts": {
-    "test": "playwright test"
+    "test": "playwright test",
+    "stagehand:surface": "node tests/stagehand-v4-node.mjs"
   },
   "repository": {
     "type": "git",
@@ -15,6 +16,7 @@
   "license": "ISC",
   "devDependencies": {
     "@playwright/test": "^1.62.1",
-    "serve": "^14.2.6"
+    "serve": "^14.2.6",
+    "@browserbasehq/stagehand": "^4.0.0"
   }
 }
