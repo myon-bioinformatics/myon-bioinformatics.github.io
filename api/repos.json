@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-24T21:12:03Z",
+  "generatedAt": "2026-09-25T21:11:12Z",
   "owner": "myon-bioinformatics",
   "count": 29,
   "repos": [
@@ -153,7 +153,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-24T14:43:28Z",
+      "updatedAt": "2026-09-25T15:01:02Z",
       "homepage": null,
       "readmeHeading": "FLUTTER_NAVIGATION_BASIC_DEMO(macOS)",
       "readmeSummary": null,
@@ -337,7 +337,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-24T01:09:52Z",
+      "updatedAt": "2026-09-25T01:10:18Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -356,7 +356,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-09-23T21:11:55Z",
+      "updatedAt": "2026-09-24T21:12:08Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
