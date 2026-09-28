@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-28T07:58:29Z",
+  "generatedAt": "2026-09-28T21:11:33Z",
   "owner": "myon-bioinformatics",
   "count": 29,
   "repos": [
@@ -10,10 +10,10 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-28T07:42:54Z",
+      "updatedAt": "2026-09-28T10:49:58Z",
       "homepage": null,
       "readmeHeading": "ascii_artist",
-      "readmeSummary": "Python utilities for ASCII art generation, conversion, layout, and text-based graphics, designed for lightweight and reusable workflows.",
+      "readmeSummary": "**Python compatibility:** CI-tested on Python 3.10–3.14.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/ascii_artist/main/README.md"
     },
     {
@@ -41,11 +41,12 @@
         "tips-tricks"
       ],
       "stars": 1,
-      "updatedAt": "2026-08-13T13:15:52Z",
+      "updatedAt": "2026-09-28T11:53:27Z",
       "homepage": null,
       "readmeHeading": "😎Summary😎",
       "readmeSummary": null,
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/AttentionToJapaneseBeginners/main/README.md"
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/AttentionToJapaneseBeginners/main/README.md",
+      "archived": true
     },
     {
       "name": "audio_any2any_gui",
@@ -67,7 +68,7 @@
       "language": "Python",
       "topics": [],
       "stars": 0,
-      "updatedAt": "2026-09-28T07:49:45Z",
+      "updatedAt": "2026-09-28T10:52:56Z",
       "homepage": null,
       "readmeHeading": "browser-test-kit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, Stagehand, Replay, screenshots, mobile web, and GitHub Actions.",
@@ -89,7 +90,7 @@
         "webp"
       ],
       "stars": 3,
-      "updatedAt": "2026-09-28T07:18:43Z",
+      "updatedAt": "2026-09-28T08:36:27Z",
       "homepage": null,
       "readmeHeading": "convert_img_fmt_to_webp-CUI-",
       "readmeSummary": null,
@@ -110,11 +111,12 @@
         "webp"
       ],
       "stars": 1,
-      "updatedAt": "2026-08-13T13:15:44Z",
+      "updatedAt": "2026-09-28T11:53:32Z",
       "homepage": null,
       "readmeHeading": "convert_img_fmt_to_webp-GUI-",
-      "readmeSummary": null,
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/convert_img_fmt_to_webp-GUI-/main/README.md"
+      "readmeSummary": "[!IMPORTANT] **Archived / superseded.** This repository preserves the original GUI-only WebP conversion implementation. It is no longer actively maintained.",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/convert_img_fmt_to_webp-GUI-/main/README.md",
+      "archived": true
     },
     {
       "name": "cumlative_usage",
@@ -130,11 +132,12 @@
         "scipy"
       ],
       "stars": 1,
-      "updatedAt": "2026-08-13T13:17:25Z",
+      "updatedAt": "2026-09-28T11:53:33Z",
       "homepage": null,
       "readmeHeading": "cumlative_usage",
-      "readmeSummary": "This repository contains a Python script that models the cumulative cloud storage usage using an exponential function. The script fits an exponential model to daily usage data and plots the cumulative usage over a period of days.[default= 7 days]",
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/cumlative_usage/main/README.md"
+      "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a small historical example of fitting an exponential model to cumulative cloud-storage usage. No further feature development or compatibility maintenance is planned.",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/cumlative_usage/main/README.md",
+      "archived": true
     },
     {
       "name": "flutter_navigation_basic",
@@ -153,7 +156,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-27T12:10:50Z",
+      "updatedAt": "2026-09-28T10:05:41Z",
       "homepage": null,
       "readmeHeading": "FLUTTER_NAVIGATION_BASIC_DEMO(macOS)",
       "readmeSummary": null,
@@ -173,11 +176,12 @@
         "requests"
       ],
       "stars": 1,
-      "updatedAt": "2026-08-13T13:16:59Z",
+      "updatedAt": "2026-09-28T11:53:28Z",
       "homepage": null,
       "readmeHeading": "GitHub_api_Template",
-      "readmeSummary": null,
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/GitHub_api_Template/main/README.md"
+      "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a historical Python example for querying GitHub REST API repository search results. No further feature or compatibility maintenance is planned.",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/GitHub_api_Template/main/README.md",
+      "archived": true
     },
     {
       "name": "HelpYouBuildServer",
@@ -202,11 +206,12 @@
         "webrick"
       ],
       "stars": 1,
-      "updatedAt": "2026-08-13T13:16:44Z",
+      "updatedAt": "2026-09-28T11:53:29Z",
       "homepage": null,
-      "readmeHeading": "🥳<Help~　You~　Build~　Server~",
-      "readmeSummary": "__*🚴‍♀️When Beginners would like to build a server by any language, or use curl command, or understand...🚴‍♂️*__",
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/HelpYouBuildServer/main/README.md"
+      "readmeHeading": "Help You Build Server",
+      "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a historical beginner-oriented collection of tiny localhost HTTP server examples in several languages. It is not actively maintained or used as a production server framework.",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/HelpYouBuildServer/main/README.md",
+      "archived": true
     },
     {
       "name": "image_ext_converter_gui",
@@ -251,7 +256,7 @@
         "python3"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-28T07:51:30Z",
+      "updatedAt": "2026-09-28T20:22:11Z",
       "homepage": null,
       "readmeHeading": "README.md",
       "readmeSummary": null,
@@ -272,11 +277,12 @@
         "requests"
       ],
       "stars": 1,
-      "updatedAt": "2026-08-13T13:15:21Z",
+      "updatedAt": "2026-09-28T11:53:30Z",
       "homepage": null,
-      "readmeHeading": "LINE Notify API_Template for Python3",
-      "readmeSummary": null,
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/LINENotifyAPI_Template/main/README.md"
+      "readmeHeading": "LINE Notify API Template for Python 3",
+      "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** LINE Notify was discontinued on **March 31, 2025**. From April 1, 2025, the LINE Notify APIs, including `notify-api.line.me`, are no longer available. This repository is preserved as a historical Python example and is not expected to work ag…",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/LINENotifyAPI_Template/main/README.md",
+      "archived": true
     },
     {
       "name": "markdown",
@@ -285,7 +291,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-28T02:02:39Z",
+      "updatedAt": "2026-09-28T10:52:17Z",
       "homepage": null,
       "readmeHeading": "markdown",
       "readmeSummary": "stdlib だけで動く、関数提供に特化した Python Markdown ユーティリティ。",
@@ -298,7 +304,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-28T07:58:08Z",
+      "updatedAt": "2026-09-28T10:45:15Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "Reproducible experiments for reliable LLM-to-MCP tool discovery, initialization, and calls using FastMCP and mock APIs.",
@@ -320,7 +326,7 @@
         "vuejs"
       ],
       "stars": 1,
-      "updatedAt": "2026-08-13T13:16:31Z",
+      "updatedAt": "2026-09-28T10:04:33Z",
       "homepage": null,
       "readmeHeading": "Vue.js Mock Server Project",
       "readmeSummary": "This project provides a small browser demo and a Node.js mock API that can be used by other clients such as Flutter Web.",
@@ -337,7 +343,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-28T01:19:13Z",
+      "updatedAt": "2026-09-28T10:46:34Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -356,7 +362,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-09-28T07:58:12Z",
+      "updatedAt": "2026-09-28T10:03:38Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
@@ -376,11 +382,12 @@
         "requests"
       ],
       "stars": 2,
-      "updatedAt": "2026-08-13T13:16:49Z",
+      "updatedAt": "2026-09-28T11:44:15Z",
       "homepage": null,
-      "readmeHeading": "niconico Snapshot SearchAPI v2Template for Python3",
-      "readmeSummary": null,
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/niconicoSearchAPI_Template/main/README.md"
+      "readmeHeading": "niconico Snapshot Search API v2 Template",
+      "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a small historical example of calling the niconico Snapshot Search API v2 from Python. No further feature or compatibility maintenance is planned.",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/niconicoSearchAPI_Template/main/README.md",
+      "archived": true
     },
     {
       "name": "nvd_nist_known_vulns",
@@ -401,10 +408,10 @@
         "vulnerability"
       ],
       "stars": 1,
-      "updatedAt": "2026-09-28T07:45:12Z",
+      "updatedAt": "2026-09-28T08:31:51Z",
       "homepage": "https://nvd.nist.gov/vuln",
       "readmeHeading": "NVD NIST known vulnerabilities",
-      "readmeSummary": "Single-file, Python-standard-library client for the NVD CVE API 2.0. It fetches vulnerabilities for CPE 2.3 names and emits deterministic JSON Lines suitable for CLI use, CI, offline processing, and cross-repository adapters.",
+      "readmeSummary": "**Python compatibility:** CI-tested on Python 3.9–3.14. Single-file, Python-standard-library client for the NVD CVE API 2.0. It fetches vulnerabilities for CPE 2.3 names and emits deterministic JSON Lines suitable for CLI use, CI, offline processing, and cross-repository adapters.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/nvd_nist_known_vulns/main/README.md"
     },
     {
@@ -422,11 +429,12 @@
         "python3"
       ],
       "stars": 1,
-      "updatedAt": "2026-08-13T13:17:45Z",
+      "updatedAt": "2026-09-28T11:54:35Z",
       "homepage": "https://www.oracle.com/cloud/cost-management-and-governance/",
-      "readmeHeading": "Overview",
-      "readmeSummary": "This script processes \"cost data\" from Oracle Cloud Infrastructure (OCI).",
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/oci-cost-analysis/main/README.md"
+      "readmeHeading": "oci-cost-analysis",
+      "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a historical one-off Python example for processing an exported Oracle Cloud Infrastructure (OCI) Cost Analysis CSV. No further feature or compatibility maintenance is planned.",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/oci-cost-analysis/main/README.md",
+      "archived": true
     },
     {
       "name": "python3nmap_GUI_for_Beginners",
@@ -443,11 +451,12 @@
         "python3-nmap"
       ],
       "stars": 2,
-      "updatedAt": "2026-08-13T13:16:35Z",
+      "updatedAt": "2026-09-28T11:53:55Z",
       "homepage": null,
-      "readmeHeading": "python3-nmap_GUI_for_Beginners",
-      "readmeSummary": null,
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/python3nmap_GUI_for_Beginners/main/README.md"
+      "readmeHeading": "python3-nmap GUI for Beginners",
+      "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a historical beginner-oriented example of wrapping Nmap with Python and a desktop GUI. No further feature development or compatibility maintenance is planned.",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/python3nmap_GUI_for_Beginners/main/README.md",
+      "archived": true
     },
     {
       "name": "Qiita_API_Template",
@@ -462,11 +471,12 @@
         "requests"
       ],
       "stars": 1,
-      "updatedAt": "2026-08-13T13:16:00Z",
+      "updatedAt": "2026-09-28T11:53:31Z",
       "homepage": null,
       "readmeHeading": "Qiita_API_Template",
-      "readmeSummary": null,
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/Qiita_API_Template/main/README.md"
+      "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a historical Python example for retrieving articles through the Qiita API v2. No further feature or compatibility maintenance is planned.",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/Qiita_API_Template/main/README.md",
+      "archived": true
     },
     {
       "name": "scapy_GUI_for_Beginners",
@@ -486,11 +496,12 @@
         "uvicorn"
       ],
       "stars": 3,
-      "updatedAt": "2026-08-13T13:15:45Z",
+      "updatedAt": "2026-09-28T11:53:34Z",
       "homepage": null,
       "readmeHeading": "Scapy L2/L3 Toolkit",
-      "readmeSummary": "A single-window GUI to learn and test L2/L3 networking with Scapy.",
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/scapy_GUI_for_Beginners/main/README.md"
+      "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a historical standalone Scapy GUI/networking toolkit. Repository-wide search found no implementation dependency from the owner's other repositories, so it is not maintained as a shared module. No further featu…",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/scapy_GUI_for_Beginners/main/README.md",
+      "archived": true
     },
     {
       "name": "search_seq_including_spaces",
@@ -512,7 +523,7 @@
         "string-search"
       ],
       "stars": 1,
-      "updatedAt": "2026-09-28T07:47:47Z",
+      "updatedAt": "2026-09-28T08:33:47Z",
       "homepage": null,
       "readmeHeading": "search_seq_including_spaces",
       "readmeSummary": null,
@@ -525,10 +536,10 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-08-14T05:05:41Z",
+      "updatedAt": "2026-09-28T11:20:57Z",
       "homepage": null,
       "readmeHeading": "video2audio_gui",
-      "readmeSummary": null,
+      "readmeSummary": "A small desktop GUI for extracting audio tracks from video files with FFmpeg.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/video2audio_gui/main/README.md"
     },
     {
@@ -551,11 +562,12 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-08-14T05:05:44Z",
+      "updatedAt": "2026-09-28T11:53:35Z",
       "homepage": null,
       "readmeHeading": "vlm_ocr_jp_gui",
       "readmeSummary": null,
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/vlm_ocr_jp_gui/main/README.md"
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/vlm_ocr_jp_gui/main/README.md",
+      "archived": true
     },
     {
       "name": "web-ui",
@@ -564,7 +576,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-28T07:54:58Z",
+      "updatedAt": "2026-09-28T10:43:38Z",
       "homepage": null,
       "readmeHeading": "web-ui",
       "readmeSummary": "Shared CSS themes, semantic UI components, and small JavaScript utilities for static interfaces across myon-bioinformatics projects.",
