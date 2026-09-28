@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-27T21:10:58Z",
+  "generatedAt": "2026-09-28T07:58:29Z",
   "owner": "myon-bioinformatics",
   "count": 29,
   "repos": [
@@ -10,7 +10,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-23T05:39:48Z",
+      "updatedAt": "2026-09-28T07:42:54Z",
       "homepage": null,
       "readmeHeading": "ascii_artist",
       "readmeSummary": "Python utilities for ASCII art generation, conversion, layout, and text-based graphics, designed for lightweight and reusable workflows.",
@@ -67,7 +67,7 @@
       "language": "Python",
       "topics": [],
       "stars": 0,
-      "updatedAt": "2026-09-27T05:09:05Z",
+      "updatedAt": "2026-09-28T07:49:45Z",
       "homepage": null,
       "readmeHeading": "browser-test-kit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, Stagehand, Replay, screenshots, mobile web, and GitHub Actions.",
@@ -89,7 +89,7 @@
         "webp"
       ],
       "stars": 3,
-      "updatedAt": "2026-08-13T13:15:45Z",
+      "updatedAt": "2026-09-28T07:18:43Z",
       "homepage": null,
       "readmeHeading": "convert_img_fmt_to_webp-CUI-",
       "readmeSummary": null,
@@ -251,7 +251,7 @@
         "python3"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-27T12:21:15Z",
+      "updatedAt": "2026-09-28T07:51:30Z",
       "homepage": null,
       "readmeHeading": "README.md",
       "readmeSummary": null,
@@ -285,7 +285,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-27T09:52:29Z",
+      "updatedAt": "2026-09-28T02:02:39Z",
       "homepage": null,
       "readmeHeading": "markdown",
       "readmeSummary": "stdlib だけで動く、関数提供に特化した Python Markdown ユーティリティ。",
@@ -298,7 +298,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-27T13:28:26Z",
+      "updatedAt": "2026-09-28T07:58:08Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "Reproducible experiments for reliable LLM-to-MCP tool discovery, initialization, and calls using FastMCP and mock APIs.",
@@ -337,7 +337,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-27T01:18:09Z",
+      "updatedAt": "2026-09-28T01:19:13Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -356,7 +356,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-09-26T21:10:41Z",
+      "updatedAt": "2026-09-28T07:58:12Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
@@ -401,10 +401,10 @@
         "vulnerability"
       ],
       "stars": 1,
-      "updatedAt": "2026-08-13T13:17:41Z",
+      "updatedAt": "2026-09-28T07:45:12Z",
       "homepage": "https://nvd.nist.gov/vuln",
-      "readmeHeading": "Overview",
-      "readmeSummary": "return results known vulnerabilities by calling NVD NIST API",
+      "readmeHeading": "NVD NIST known vulnerabilities",
+      "readmeSummary": "Single-file, Python-standard-library client for the NVD CVE API 2.0. It fetches vulnerabilities for CPE 2.3 names and emits deterministic JSON Lines suitable for CLI use, CI, offline processing, and cross-repository adapters.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/nvd_nist_known_vulns/main/README.md"
     },
     {
@@ -512,7 +512,7 @@
         "string-search"
       ],
       "stars": 1,
-      "updatedAt": "2026-09-27T04:05:41Z",
+      "updatedAt": "2026-09-28T07:47:47Z",
       "homepage": null,
       "readmeHeading": "search_seq_including_spaces",
       "readmeSummary": null,
@@ -564,7 +564,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-27T11:55:15Z",
+      "updatedAt": "2026-09-28T07:54:58Z",
       "homepage": null,
       "readmeHeading": "web-ui",
       "readmeSummary": "Shared CSS themes, semantic UI components, and small JavaScript utilities for static interfaces across myon-bioinformatics projects.",
