@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-28T21:11:33Z",
+  "generatedAt": "2026-09-29T21:12:26Z",
   "owner": "myon-bioinformatics",
   "count": 29,
   "repos": [
@@ -10,7 +10,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-28T10:49:58Z",
+      "updatedAt": "2026-09-29T13:22:45Z",
       "homepage": null,
       "readmeHeading": "ascii_artist",
       "readmeSummary": "**Python compatibility:** CI-tested on Python 3.10–3.14.",
@@ -256,7 +256,7 @@
         "python3"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-28T20:22:11Z",
+      "updatedAt": "2026-09-29T10:39:51Z",
       "homepage": null,
       "readmeHeading": "README.md",
       "readmeSummary": null,
@@ -343,7 +343,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-28T10:46:34Z",
+      "updatedAt": "2026-09-29T01:16:00Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -362,7 +362,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-09-28T10:03:38Z",
+      "updatedAt": "2026-09-28T21:11:39Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
