@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-01T21:12:10Z",
+  "generatedAt": "2026-10-02T21:11:48Z",
   "owner": "myon-bioinformatics",
   "count": 32,
   "repos": [
@@ -80,8 +80,8 @@
       "description": "A single-file, standard-library-only Python toolkit for reusable CLI argument definitions, validation, command construction, execution, and JSON/text output, backed by practical CLI tests.",
       "language": null,
       "topics": [],
-      "stars": 0,
-      "updatedAt": "2026-09-30T15:12:39Z",
+      "stars": 1,
+      "updatedAt": "2026-10-02T06:45:28Z",
       "homepage": null,
       "readmeHeading": "cli_args",
       "readmeSummary": "A single-file, standard-library-only Python toolkit for reusable CLI argument definitions, validation, command construction, execution, and JSON/text output, backed by practical CLI tests.",
@@ -169,7 +169,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-30T23:27:08Z",
+      "updatedAt": "2026-10-02T04:29:20Z",
       "homepage": null,
       "readmeHeading": "FLUTTER_NAVIGATION_BASIC_DEMO(macOS)",
       "readmeSummary": null,
@@ -269,7 +269,7 @@
         "python3"
       ],
       "stars": 2,
-      "updatedAt": "2026-09-30T12:44:35Z",
+      "updatedAt": "2026-10-02T11:43:08Z",
       "homepage": null,
       "readmeHeading": "README.md",
       "readmeSummary": null,
@@ -356,7 +356,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-01T07:59:53Z",
+      "updatedAt": "2026-10-02T01:15:42Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -375,7 +375,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-09-30T21:12:54Z",
+      "updatedAt": "2026-10-01T21:12:16Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
@@ -536,7 +536,7 @@
         "string-search"
       ],
       "stars": 1,
-      "updatedAt": "2026-09-30T12:54:22Z",
+      "updatedAt": "2026-10-02T14:10:41Z",
       "homepage": null,
       "readmeHeading": "search_seq_including_spaces",
       "readmeSummary": null,
@@ -602,7 +602,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-09-30T13:03:28Z",
+      "updatedAt": "2026-10-02T14:07:53Z",
       "homepage": null,
       "readmeHeading": "xprobe",
       "readmeSummary": "For native pytest outcomes (including xfail/xpass and execution phases), see [pytest observations and exploration](docs/pytest-observations.md). The opt-in test adapter emits JSONL readable by the existing corpus and search helpers.",
