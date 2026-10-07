@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-06T21:12:07Z",
+  "generatedAt": "2026-10-07T21:12:06Z",
   "owner": "myon-bioinformatics",
-  "count": 33,
+  "count": 34,
   "repos": [
     {
       "name": "Aoi",
@@ -20,7 +20,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-04T07:36:41Z",
+      "updatedAt": "2026-10-07T02:53:53Z",
       "homepage": null,
       "readmeHeading": "Aoi",
       "readmeSummary": "Observe. Measure. Question.",
@@ -45,7 +45,7 @@
         "text-graphics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-03T12:46:56Z",
+      "updatedAt": "2026-10-07T15:42:53Z",
       "homepage": null,
       "readmeHeading": "ascii_artist",
       "readmeSummary": "**Python compatibility:** CI-tested on Python 3.10–3.14.",
@@ -129,7 +129,7 @@
         "typescript"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-04T19:56:18Z",
+      "updatedAt": "2026-10-07T14:34:08Z",
       "homepage": null,
       "readmeHeading": "browser-test-kit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, Stagehand, Replay, screenshots, mobile web, and GitHub Actions.",
@@ -174,7 +174,7 @@
         "webp"
       ],
       "stars": 3,
-      "updatedAt": "2026-10-06T13:27:06Z",
+      "updatedAt": "2026-10-07T15:32:59Z",
       "homepage": null,
       "readmeHeading": "convert_img_fmt_to_webp-CUI-",
       "readmeSummary": null,
@@ -240,11 +240,24 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-05T04:26:14Z",
+      "updatedAt": "2026-10-07T06:49:54Z",
       "homepage": null,
       "readmeHeading": "FLUTTER_NAVIGATION_BASIC_DEMO(macOS)",
       "readmeSummary": null,
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/flutter_navigation_basic/main/README.md"
+    },
+    {
+      "name": "gh_identity",
+      "url": "https://github.com/myon-bioinformatics/gh_identity",
+      "description": "Single-file, stdlib-only Python interface over the GitHub CLI with explicit identity, bounded output and guarded writes",
+      "language": "Python",
+      "topics": [],
+      "stars": 1,
+      "updatedAt": "2026-10-07T14:17:38Z",
+      "homepage": null,
+      "readmeHeading": "gh_identity",
+      "readmeSummary": "Single-file, stdlib-only Python interface for portable GitHub identity and operations.",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/gh_identity/main/README.md"
     },
     {
       "name": "GitHub_api_Template",
@@ -340,7 +353,7 @@
         "python3"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-04T20:34:39Z",
+      "updatedAt": "2026-10-07T10:29:58Z",
       "homepage": null,
       "readmeHeading": "README.md",
       "readmeSummary": null,
@@ -386,7 +399,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-04T00:01:20Z",
+      "updatedAt": "2026-10-07T15:45:40Z",
       "homepage": null,
       "readmeHeading": "markdown",
       "readmeSummary": "stdlib だけで動く、関数提供に特化した Python Markdown ユーティリティ。",
@@ -412,7 +425,7 @@
         "tool-calling"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-05T01:19:45Z",
+      "updatedAt": "2026-10-07T10:07:57Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "Reproducible experiments for reliable LLM-to-MCP tool discovery, initialization, and calls using FastMCP and mock APIs.",
@@ -451,7 +464,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-06T01:15:47Z",
+      "updatedAt": "2026-10-07T07:39:44Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -470,7 +483,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-05T21:18:25Z",
+      "updatedAt": "2026-10-06T21:12:12Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
@@ -769,7 +782,7 @@
         "troubleshooting"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-04T00:01:24Z",
+      "updatedAt": "2026-10-07T21:05:10Z",
       "homepage": null,
       "readmeHeading": "yourself",
       "readmeSummary": "Single-file, standard-library Python tool for read-only inspection of host, OS, and runtime facts. Produces concise, copyable environment reports for troubleshooting and AI context.",
