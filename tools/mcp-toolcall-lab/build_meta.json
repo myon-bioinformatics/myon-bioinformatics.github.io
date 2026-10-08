@@ -1,0 +1,10 @@
+{
+  "version": null,
+  "sha": "3b15b7911695fc76fa8cd01f514e57133fb02d83",
+  "shortSha": "3b15b791",
+  "ref": "main",
+  "committedAt": "2026-10-05T10:19:41+09:00",
+  "subject": "Use canonical portable tooling observations in repository diagnostics (#100)",
+  "commitUrl": "https://github.com/myon-bioinformatics/mcp-toolcall-lab/commit/3b15b7911695fc76fa8cd01f514e57133fb02d83",
+  "dirty": true
+}

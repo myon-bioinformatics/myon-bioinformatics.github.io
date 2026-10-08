@@ -45,7 +45,8 @@ the JSON-driven repository cards: adding a new live tool requires updating both
 `index.html` and `tests/test_portal_links.py`, so the destination and its HTTPS
 Pages-host contract are reviewed together.
 
-Current destinations include Ironmate, mcp-toolcall-lab,
+Ironmate now has a local metadata card (`project-ironmate.json`) and a repository link;
+its retired MCP stub does not need a dedicated Pages deployment. Live destinations include mcp-toolcall-lab,
 flutter_navigation_basic, and web-ui.
 
 ## 🚀 Projects (JSON-driven cards)
@@ -114,3 +115,31 @@ stable `evidence/latest/` screenshots described above.
 このリポジトリは**GitHub Pagesサイト**です。`projects.json` を編集するだけでトップのプロジェクトカードが更新されます。  
 ローカル確認は `python -m http.server` でOK。`projects.json` のピン留めからの定期自動更新workflowは現在ありません。編集・検証手順は [docs/SSOT.md](docs/SSOT.md) を参照してください。
 </details>
+
+## Lab public tools and reports
+
+The portfolio now receives the lab's public Wiki/Pixiv interfaces and exported
+Actions report under `tools/mcp-toolcall-lab/` (`#wiki` and `#pixiv`). MCP servers,
+Docker execution, raw traces, and test generation remain in mcp-toolcall-lab.
+Flutter's working Pages application is unchanged.
+
+The initial import is the public export observed on 2026-10-08, with source
+identity `3b15b7911695fc76fa8cd01f514e57133fb02d83` (2026-10-05).
+Its original `dirty: true` observation is preserved, not silently corrected.
+It is explicitly labelled an imported snapshot, not the latest Actions result.
+`publication.json` records source and published file hashes and import time.
+Only public report files are admitted; raw MCP/anti-pattern logs are excluded.
+Existing source copyright and repository LICENSE apply to transferred assets.
+
+To update, obtain a trusted lab `stub-pages-observations` artifact, extract its
+`_site/` public export, then run:
+
+```sh
+python -S scripts/import_lab_pages.py --source /path/to/export/_site
+python -m pytest tests/test_portal_links.py tests/test_lab_publication.py
+```
+
+Review and commit the imported output in a PR. No untrusted archive is extracted
+by this helper; it receives an already extracted trusted directory. There is no
+automatic claim that an imported snapshot equals the newest run. The lab-side
+legacy redirect must land only after this portfolio receiving change is deployed.

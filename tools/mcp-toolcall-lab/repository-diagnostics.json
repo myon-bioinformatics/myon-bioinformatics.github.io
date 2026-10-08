@@ -1,0 +1,107 @@
+{
+  "generated_at": "2026-10-05T01:20:19.235940Z",
+  "metadata": {
+    "generated_at": "2026-10-05T01:20:19.235940Z",
+    "head": {
+      "branch": "main",
+      "sha": "3b15b7911695fc76fa8cd01f514e57133fb02d83",
+      "short_sha": "3b15b791",
+      "subject": "Use canonical portable tooling observations in repository diagnostics (#100)",
+      "timestamp": "2026-10-05T10:19:41+09:00"
+    },
+    "measurements": {
+      "github_reported_size_bytes": null,
+      "release_artifact_bytes": null,
+      "working_tree_bytes": 1761320
+    },
+    "repository": {
+      "full_name": "myon-bioinformatics/mcp-toolcall-lab"
+    },
+    "schema_version": "1.0",
+    "tooling": {
+      "gh": "2.101.0",
+      "git": "2.55.0",
+      "node": "22.23.3",
+      "npm": "10.9.9",
+      "npx": "10.9.9",
+      "python": "3.11.16"
+    }
+  },
+  "resolver": {
+    "auth": "anonymous",
+    "candidates": [
+      {
+        "kind": "repository",
+        "url": "https://github.com/myon-bioinformatics/mcp-toolcall-lab"
+      },
+      {
+        "kind": "api",
+        "url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab"
+      },
+      {
+        "kind": "pages",
+        "url": "https://myon-bioinformatics.github.io/mcp-toolcall-lab/"
+      },
+      {
+        "kind": "raw",
+        "url": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/main/README.md"
+      },
+      {
+        "kind": "contents_api",
+        "url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab/contents/README.md?ref=main"
+      }
+    ],
+    "observations": [
+      {
+        "checked_at": "2026-10-05T01:20:19.721164+00:00",
+        "evidence": "http_response",
+        "http_status": 200,
+        "kind": "repository",
+        "resolved_url": "https://github.com/myon-bioinformatics/mcp-toolcall-lab",
+        "status": "reachable",
+        "url": "https://github.com/myon-bioinformatics/mcp-toolcall-lab"
+      },
+      {
+        "checked_at": "2026-10-05T01:20:20.318441+00:00",
+        "evidence": "http_response",
+        "http_status": 200,
+        "kind": "api",
+        "resolved_url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab",
+        "status": "reachable",
+        "url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab"
+      },
+      {
+        "checked_at": "2026-10-05T01:20:20.529101+00:00",
+        "evidence": "http_response",
+        "http_status": 200,
+        "kind": "pages",
+        "resolved_url": "https://myon-bioinformatics.github.io/mcp-toolcall-lab/",
+        "status": "reachable",
+        "url": "https://myon-bioinformatics.github.io/mcp-toolcall-lab/"
+      },
+      {
+        "checked_at": "2026-10-05T01:20:20.708869+00:00",
+        "evidence": "http_response",
+        "http_status": 200,
+        "kind": "raw",
+        "resolved_url": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/main/README.md",
+        "status": "reachable",
+        "url": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/main/README.md"
+      },
+      {
+        "checked_at": "2026-10-05T01:20:21.113392+00:00",
+        "evidence": "http_response",
+        "http_status": 200,
+        "kind": "contents_api",
+        "resolved_url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab/contents/README.md?ref=main",
+        "status": "reachable",
+        "url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab/contents/README.md?ref=main"
+      }
+    ],
+    "path": "README.md",
+    "ref": "main",
+    "repository": "myon-bioinformatics/mcp-toolcall-lab",
+    "status": "observed"
+  },
+  "schema_version": "1.0"
+}
