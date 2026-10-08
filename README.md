@@ -3,7 +3,7 @@
 
 <p align="center">
   <img alt="Last commit" src="https://img.shields.io/github/last-commit/myon-bioinformatics/myon-bioinformatics.github.io">
-  <img alt="License" src="https://img.shields.io/github/license/myon-bioinformatics/HelpYouBuildServer">
+  <img alt="License" src="https://img.shields.io/github/license/myon-bioinformatics/myon-bioinformatics.github.io">
   <a href="https://github.com/myon-bioinformatics"><img alt="GitHub followers" src="https://img.shields.io/github/followers/myon-bioinformatics?style=social"></a>
   <a href="https://twitter.com/myonitbusiness"><img alt="Twitter Follow" src="https://img.shields.io/twitter/follow/myonitbusiness?style=social"></a>
 </p>
@@ -82,13 +82,29 @@ I like building **GUI/CLI tools** for security & backend.
 
 ---
 
-## 🔄 Automation: projects.json from pinned repos
-- Manual run: **Actions → Update Projects JSON → Run workflow**
-- Schedule: every Monday 03:17 UTC
+## 🔄 Maintaining project cards
 
-Files:
-- `.github/workflows/update-projects.yml`
-- `scripts/generate_projects_from_pinned.py`
+Edit `projects.json` and validate its canonical shape using the instructions in
+[docs/SSOT.md](docs/SSOT.md). The current repository has no
+`update-projects.yml` workflow or scheduled pinned-repository card update.
+`scripts/generate_projects_from_pinned.py` is a standalone legacy helper; its
+presence does not mean it runs automatically.
+
+## 🧪 CI evidence
+
+[portal](.github/workflows/portal.yml) and the Python job in
+[Stagehand v4 dual-SDK reference](.github/workflows/stagehand-v4-reference.yml)
+produce pytest JUnit and call the parent's pinned shared failure-identity
+collector. Raw artifacts are `junit-portal-py3.12` and
+`junit-stagehand-python-py3.12`; compact artifacts are
+`portal-failure-identity` and `stagehand-python-failure-identity`, all retained
+for 14 days. Missing or invalid expected XML fails collection; the original
+test exit code remains authoritative.
+
+The Stagehand reference checks SDK surfaces. Its separate screenshot job uses
+Playwright Chromium; it does not demonstrate Stagehand agent execution. See
+[STAGEHAND.md](STAGEHAND.md) for the reference scope. Pages deployment owns the
+stable `evidence/latest/` screenshots described above.
 
 ---
 
@@ -96,5 +112,5 @@ Files:
 <summary>🇯🇵 日本語版 (クリックで展開)</summary>
 
 このリポジトリは**GitHub Pagesサイト**です。`projects.json` を編集するだけでトップのプロジェクトカードが更新されます。  
-ローカル確認は `python -m http.server` でOK。自動更新は Actions が `projects.json` をピン留めから生成します。
+ローカル確認は `python -m http.server` でOK。`projects.json` のピン留めからの定期自動更新workflowは現在ありません。編集・検証手順は [docs/SSOT.md](docs/SSOT.md) を参照してください。
 </details>
