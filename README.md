@@ -45,7 +45,8 @@ the JSON-driven repository cards: adding a new live tool requires updating both
 `index.html` and `tests/test_portal_links.py`, so the destination and its HTTPS
 Pages-host contract are reviewed together.
 
-Current destinations include Ironmate, mcp-toolcall-lab,
+Ironmate now has a local metadata card (`project-ironmate.json`) and a repository link;
+its retired MCP stub does not need a dedicated Pages deployment. Live destinations include mcp-toolcall-lab,
 flutter_navigation_basic, and web-ui.
 
 ## 🚀 Projects (JSON-driven cards)

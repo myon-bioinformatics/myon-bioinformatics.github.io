@@ -4,7 +4,6 @@ from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_PAGES = {
-    "https://myon-bioinformatics.github.io/Ironmate/mcp-stub.html",
     "https://myon-bioinformatics.github.io/mcp-toolcall-lab/",
     "https://myon-bioinformatics.github.io/flutter_navigation_basic/",
     "https://myon-bioinformatics.github.io/web-ui/",
@@ -34,3 +33,16 @@ def test_portal_pages_stay_under_owned_pages_host():
         assert parsed.scheme == "https"
         assert parsed.netloc == "myon-bioinformatics.github.io"
         assert parsed.path.startswith("/")
+
+
+def test_ironmate_metadata_lives_with_the_portfolio():
+    import json
+    metadata = json.loads((ROOT / "project-ironmate.json").read_text())
+    assert metadata["schema"] == "project-metadata/1"
+    assert metadata["repository"] == "https://github.com/myon-bioinformatics/Ironmate"
+    parser = LinkParser()
+    parser.feed((ROOT / "index.html").read_text())
+    assert metadata["repository"] in parser.links
+    assert "./project-ironmate.json" in parser.links
+    assert (ROOT / "project-ironmate.json").is_file()
+    assert not any("/Ironmate/mcp-stub.html" in url for url in parser.links)

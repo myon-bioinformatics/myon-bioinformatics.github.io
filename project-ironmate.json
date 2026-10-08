@@ -1,0 +1,10 @@
+{
+  "schema": "project-metadata/1",
+  "name": "Ironmate",
+  "repository": "https://github.com/myon-bioinformatics/Ironmate",
+  "summary": "Pythonを中心とした文書・素材の変換・置換を検証するプロジェクト",
+  "status": "prototype_planning",
+  "plan": "https://github.com/myon-bioinformatics/Ironmate/issues/80",
+  "pixel_prototype": "https://github.com/myon-bioinformatics/Ironmate/pull/79",
+  "adapter_transfer": "https://github.com/myon-bioinformatics/mcp-toolcall-lab/pull/108"
+}
