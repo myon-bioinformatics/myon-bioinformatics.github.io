@@ -1,0 +1,32 @@
+{
+  "schema": "portfolio-lab-publication/1",
+  "source_repository": "myon-bioinformatics/mcp-toolcall-lab",
+  "source_sha": "3b15b7911695fc76fa8cd01f514e57133fb02d83",
+  "source_dirty": true,
+  "imported_at": "2026-10-08T13:09:28.694218+00:00",
+  "report_status": "imported_snapshot",
+  "source_sha256": {
+    "index.html": "d256bd49583a61d01549282a5486185097850448d42c7c132a23c4ac451802f7",
+    "terminal.css": "036d49809998e118fd04de1df32d56e58dab772c05c683abe490f52d4041b0ae",
+    "pages-hash.js": "bbacea684991e021e7faf0cc8f08d4f06f18b475968ffff16d649833f5aab9c5",
+    "pages-wiki.js": "7926f3b1ef4121c769f542abc6a9ab652ba913aa37727085a69ca338da1f69e6",
+    "pages-pixiv.js": "b44157ffc92d6bdcee5d9a10e575ae0fc6f21f91bbbe28776bcbeda48956a8cb",
+    "summary.json": "c54e054d8143228e39a050f8601889703d510ecb1866ea18579e63336eb923ff",
+    "build_meta.json": "bdcc179c024b2cb1b6b2b0342dc4d6d8b399bb97621d6f920b697c96f617dd38",
+    "repository-diagnostics.html": "ec50de209a4c2e841bd6eda2befa454a18617aa33b1c037b9fd6da3a732f8000",
+    "repository-diagnostics.json": "1c0fd02e474fc8a6cc9c85f587684f944bfcde304c657fc638946df885c553be",
+    "repository-diagnostics.jsonl": "d23cb6d87704c467d605e650b7e14a04b4858167a581029d63d1df8dfbdfec97"
+  },
+  "published_sha256": {
+    "index.html": "89365c519024e7bfa7db5c861349261ead57aa9b67e8f579feb0111cbfdda3ea",
+    "terminal.css": "036d49809998e118fd04de1df32d56e58dab772c05c683abe490f52d4041b0ae",
+    "pages-hash.js": "bbacea684991e021e7faf0cc8f08d4f06f18b475968ffff16d649833f5aab9c5",
+    "pages-wiki.js": "7926f3b1ef4121c769f542abc6a9ab652ba913aa37727085a69ca338da1f69e6",
+    "pages-pixiv.js": "b44157ffc92d6bdcee5d9a10e575ae0fc6f21f91bbbe28776bcbeda48956a8cb",
+    "summary.json": "c54e054d8143228e39a050f8601889703d510ecb1866ea18579e63336eb923ff",
+    "build_meta.json": "bdcc179c024b2cb1b6b2b0342dc4d6d8b399bb97621d6f920b697c96f617dd38",
+    "repository-diagnostics.html": "ec50de209a4c2e841bd6eda2befa454a18617aa33b1c037b9fd6da3a732f8000",
+    "repository-diagnostics.json": "1c0fd02e474fc8a6cc9c85f587684f944bfcde304c657fc638946df885c553be",
+    "repository-diagnostics.jsonl": "d23cb6d87704c467d605e650b7e14a04b4858167a581029d63d1df8dfbdfec97"
+  }
+}

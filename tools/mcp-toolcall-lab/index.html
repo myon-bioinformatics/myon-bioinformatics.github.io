@@ -1,0 +1,90 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>.markdown-alert {
+  padding: 0.75em 1em;
+  margin: 1em 0;
+  border-left: 0.25em solid #57606a;
+  background: #f6f8fa;
+}
+.markdown-alert-title {
+  font-weight: 700;
+  margin: 0 0 0.35em;
+}
+.markdown-alert-note,
+.markdown-alert-info,
+.markdown-alert-message { border-left-color: #0969da; }
+.markdown-alert-tip { border-left-color: #1a7f37; }
+.markdown-alert-important { border-left-color: #8250df; }
+.markdown-alert-warning,
+.markdown-alert-warn { border-left-color: #9a6700; }
+.markdown-alert-caution,
+.markdown-alert-alert { border-left-color: #cf222e; }
+.markdown-alert[data-alert-flavor="github"] { background: #f6f8fa; }
+.markdown-alert[data-alert-flavor="obsidian"] { border-radius: 0.25em; }
+.markdown-alert[data-alert-flavor="qiita"] { border-left-width: 0.35em; }
+.markdown-alert[data-alert-flavor="zenn"] { background: #fff8f0; }
+table { border-collapse: collapse; margin: 1em 0; }
+th, td { border: 1px solid #d0d7de; padding: 0.4em 0.8em; }
+th { background: #f6f8fa; font-weight: 600; }
+blockquote {
+  margin: 1em 0;
+  padding: 0 1em;
+  border-left: 0.25em solid #d0d7de;
+  color: #656d76;
+}
+pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+pre {
+  padding: 0.8em;
+  overflow: auto;
+  background: #f6f8fa;
+  border-radius: 0.25em;
+}
+h1, h2, h3, h4, h5, h6 { margin-top: 1.25em; margin-bottom: 0.5em; }
+del { text-decoration: line-through; }
+li input[type="checkbox"] { margin: 0 0.35em 0 0; vertical-align: middle; }
+details {
+  margin: 1em 0;
+  border: 1px solid #d0d7de;
+  border-radius: 0.25em;
+  padding: 0.5em 0.8em;
+}
+summary { cursor: pointer; font-weight: 600; }
+.footnotes {
+  margin-top: 2em;
+  padding-top: 0.75em;
+  border-top: 1px solid #d0d7de;
+  font-size: 0.9em;
+}
+.footnotes ol { padding-left: 1.5em; }
+sup.footnote-ref { font-size: 0.75em; line-height: 0; }
+.footnote-backref { text-decoration: none; }
+</style><link rel="stylesheet" href="terminal.css?v=036d498099"><title>mcp-toolcall-lab stub</title></head><body><main class="term-page term-shell"><header class="term-header"><div><h1 class="term-title">mcp-toolcall-lab stub</h1><p class="term-muted">Static Pages evidence for MCP tool-call experiments.</p></div><div class="term-meta"><span class="term-tag">mcp</span><span class="term-tag">7 tools</span></div></header><aside aria-label="Publication ownership"><p>Portfolio-hosted lab tools. The report below is an imported Actions snapshot, not a live run or a claim of the latest result. See <a href="publication.json">import identity</a> and <a href="https://github.com/myon-bioinformatics/mcp-toolcall-lab/actions/workflows/stub-pages.yml">lab Actions</a>. <a href="../../#tools">Back to portfolio</a>.</p></aside><p id="pages-nav"><a href="#" data-pages-nav="home" data-testid="pages-nav-home">Home</a> · <a href="#wiki" data-pages-nav="wiki" data-testid="pages-nav-wiki">Wiki</a> · <a href="#pixiv" data-pages-nav="pixiv" data-testid="pages-nav-pixiv">Pixiv</a></p><div class="term-workspace"><section class="term-panel term-result"><section id="home" data-pages-view="home" data-testid="pages-home"><p id="build-meta"><a href="https://github.com/myon-bioinformatics/mcp-toolcall-lab/commit/3b15b7911695fc76fa8cd01f514e57133fb02d83" title="3b15b7911695fc76fa8cd01f514e57133fb02d83">Commit 3b15b791</a> · main · 2026-10-05T10:19:41+09:00 · Use canonical portable tooling observations in repository diagnostics (#100) · (dirty)</p><p>This host's <a href="#wiki">Wiki</a> panel fetches Wikipedia from the browser (MediaWiki Action API, CORS <code>origin=*</code>, no MCP). The MCP tools and local <code>GET /wiki</code> form still need compose or <code>stub_front serve</code>.</p>
+<p><a href="repository-diagnostics.html">Repository diagnostics</a> · <a href="repository-diagnostics.json">JSON</a> · <a href="repository-diagnostics.jsonl">JSONL</a></p>
+<h2>Last Actions summary</h2>
+<p>Allowlisted snapshot from the last <code>stub-pages</code> GitHub Actions run (stub + MCP mock + CPU-class model on one compose network). Raw MCP logs are not on Pages. This host cannot keep Docker running.</p>
+<pre><code class="language-json">{
+  "source": "stub-pages",
+  "verdict": "PASS",
+  "antipattern_id": null,
+  "case": "MCP_SUCCESS",
+  "cpu_llm_ok": true,
+  "cpu_llm_backend": "lite-stub",
+  "cpu_llm_completion_ok": true,
+  "stub_ok": true,
+  "turn_http": 200,
+  "showed_expected_fragment": true,
+  "observation_n": 1,
+  "antipattern_ids": []
+}
+</code></pre>
+<ul>
+<li>Local: <code>docker compose -f docker/stub-pages/docker-compose.yml up --build</code></li>
+<li>Actions: workflow <code>stub-pages</code> (<code>workflow_dispatch</code>)</li>
+<li>MCP: <code>http://mcp-mock:8000/mcp</code> · CPU model: <code>http://cpu-llm:8080/v1</code></li>
+</ul>
+</section><section id="wiki" data-pages-view="wiki" data-testid="pages-wiki" hidden><h2>Wikipedia extract (browser → MediaWiki API)</h2>
+<p>This <code>#wiki</code> panel calls Wikipedia's Action API from the browser (<code>origin=*</code>). It is not an MCP tool call. github.io <code>/wiki</code> stays 404; that path is the local stdlib stub. MCP tools / local form:</p>
+<pre><code class="language-bash">python -m mcp_toolcall_lab.stub_front serve --port 8765
+# then open /wiki  (http://127.0.0.1:8765/wiki)
+</code></pre>
+<p>CI screenshots of the local stub still use <code>fixtures/wikipedia/yokohama_extract.json</code>. A heading switch on this panel reuses the in-memory extract (no second fetch).</p>
+<p data-testid="pages-wiki-disclaimer">Browser → MediaWiki API (not MCP). For the MCP Wikipedia tools / local stub form, run compose or stub_front serve.</p><div id="pages-wiki-app" data-testid="pages-wiki-app"><form id="pages-wiki-form" data-testid="pages-wiki-form"><p><label for="pages-wiki-title">Wikipedia title</label> <input id="pages-wiki-title" name="title" value="Yokohama" placeholder="Article title" data-testid="pages-wiki-title"></p><p><label for="pages-wiki-lang">Language</label> <select id="pages-wiki-lang" name="lang" data-testid="pages-wiki-lang"><option value="en" selected>en</option><option value="ja">ja</option></select> <button type="submit" data-testid="pages-wiki-fetch">Fetch</button></p><p><label for="pages-wiki-heading">Heading</label> <select id="pages-wiki-heading" name="heading" data-testid="pages-wiki-heading"><option value="">(full extract)</option></select></p></form><p data-testid="pages-wiki-error" hidden></p><p data-testid="pages-wiki-canonical" hidden></p><p data-testid="pages-wiki-extract-note">MediaWiki plaintext extract, HTML-escaped. This page does not scrape Wikipedia HTML or run it through markdown.py.</p><pre class="term-output" data-testid="pages-wiki-extract" hidden></pre></div><script src="pages-wiki.js?v=7926f3b1ef"></script><p><a href="#" data-pages-nav="home" data-testid="pages-nav-back">Back to report</a></p></section><section id="pixiv" data-pages-view="pixiv" data-testid="pages-pixiv" hidden><h2>Pixiv Encyclopedia: Open → Source → Extract</h2><p>GitHub Pages is a static host with no server-side proxy, and <code>dic.pixiv.net</code> does not opt in to cross-origin browser requests the way Wikipedia does -- so this panel no longer searches or fetches dic.pixiv.net from your browser. Open the article or its history in a new tab, open a revision's <strong>原文表示</strong> (view source) page there, copy its text, and paste it below to Extract a stable title / reading / overview / headings / body locally. Plain Pixiv source is also passed through the same conservative normalization contract as the MCP path: labelled star headings, wiki links, pixivimage tokens, unspaced list items, and NEXT navigation are converted to Markdown-compatible forms without inventing unsupported semantics.</p><div id="pages-pixiv-app" data-testid="pages-pixiv-app"><p><label for="pages-pixiv-title">Pixiv Encyclopedia title</label> <input id="pages-pixiv-title" name="title" value="" placeholder="Article title" data-testid="pages-pixiv-title"></p><p><button type="button" data-testid="pages-pixiv-open-article">Open article</button> <button type="button" data-testid="pages-pixiv-open-history">Open history</button></p><form id="pages-pixiv-source-form" data-testid="pages-pixiv-source-form"><p><label for="pages-pixiv-source-url">Revision source URL (optional)</label> <input id="pages-pixiv-source-url" name="source-url" value="" placeholder="https://dic.pixiv.net/history/&lt;title&gt;/&lt;revision_id&gt;/source" data-testid="pages-pixiv-source-url"></p><p><label for="pages-pixiv-source-text">Pasted 原文表示 source text</label><br><textarea id="pages-pixiv-source-text" name="source-text" rows="8" data-testid="pages-pixiv-source-text"></textarea></p><p><button type="submit" data-testid="pages-pixiv-extract-submit">Extract</button></p></form><p class="term-muted" data-testid="pages-pixiv-status"></p><p role="alert" data-testid="pages-pixiv-error" hidden></p><pre class="term-output" data-testid="pages-pixiv-extract" hidden></pre></div><p class="term-muted">Want an automatic fetch instead of a manual paste? The local/MCP path already resolves <code>/a/&lt;title&gt;</code> directly and normalizes it with the vendored markdown.py:</p><pre class="term-output">python -m mcp_toolcall_lab.stub_front serve --port 8765
+# then open /pixiv?title=&lt;title&gt;</pre><ul><li><code>fetch_pixiv_dictionary_section</code> — Fetch one public pixiv Encyclopedia article HTML page, normalize it through vendored markdown.py, and return its hierarchical heading list or one selected section. The cached article is reused when only the heading changes.</li><li><code>fetch_pixiv_dictionary_article</code> — Fetch one public pixiv Encyclopedia article HTML page and normalize it through vendored markdown.py. Returns canonical_title, Markdown, hierarchical headings and source_url.</li></ul><script src="pages-pixiv.js?v=b44157ffc9"></script><p><a href="#" data-pages-nav="home" data-testid="pages-nav-back">Back to report</a></p></section></section><aside aria-label="Supporting information"><section class="term-card term-evidence"><h2>Tool catalog</h2><ul id="tool-catalog"><li><code>find_municipalities</code> — Find mock municipalities by name or prefecture.</li><li><code>find_transaction_prices</code> — Return mock property transaction prices. This never calls a live API.</li><li><code>find_stations</code> — Find mock stations in a municipality.</li><li><code>fetch_wikipedia_section</code> — Fetch a real Wikipedia article&#x27;s sections over HTTP (the one family here that is not a mock). Omit `heading` to list section titles (a pulldown); pass one to get that section&#x27;s body. Unmatched heading is an empty result, not an error. Same article is cached in-process so heading switches do not refetch.</li><li><code>fetch_wikipedia_article</code> — Fetch a real Wikipedia article as a MediaWiki plaintext extract (not HTML). Returns canonical_title, extract, and headings from that same fetch. In-process TTL/LRU cache reuses the extract when only the heading changes.</li><li><code>fetch_pixiv_dictionary_section</code> — Fetch one public pixiv Encyclopedia article HTML page, normalize it through vendored markdown.py, and return its hierarchical heading list or one selected section. The cached article is reused when only the heading changes.</li><li><code>fetch_pixiv_dictionary_article</code> — Fetch one public pixiv Encyclopedia article HTML page and normalize it through vendored markdown.py. Returns canonical_title, Markdown, hierarchical headings and source_url.</li></ul></section><section class="term-card term-history"><h2>Workspace provenance</h2><p>Styling: single lab-owned <code>terminal.css</code> (no external stylesheet chain).</p></section></aside></div></main><script src="pages-hash.js?v=bbacea6849"></script></body></html>

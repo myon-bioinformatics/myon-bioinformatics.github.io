@@ -1,0 +1,14 @@
+{
+  "source": "stub-pages",
+  "verdict": "PASS",
+  "antipattern_id": null,
+  "case": "MCP_SUCCESS",
+  "cpu_llm_ok": true,
+  "cpu_llm_backend": "lite-stub",
+  "cpu_llm_completion_ok": true,
+  "stub_ok": true,
+  "turn_http": 200,
+  "showed_expected_fragment": true,
+  "observation_n": 1,
+  "antipattern_ids": []
+}
