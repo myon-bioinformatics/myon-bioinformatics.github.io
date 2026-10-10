@@ -18,5 +18,8 @@
     "@playwright/test": "^1.62.1",
     "serve": "^14.2.6",
     "@browserbasehq/stagehand": "^4.0.0"
+  },
+  "overrides": {
+    "compression": "^1.8.2"
   }
 }
