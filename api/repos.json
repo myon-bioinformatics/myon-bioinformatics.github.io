@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-09T21:11:45Z",
+  "generatedAt": "2026-10-10T21:11:33Z",
   "owner": "myon-bioinformatics",
   "count": 34,
   "repos": [
@@ -20,7 +20,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-09T10:49:50Z",
+      "updatedAt": "2026-10-10T00:47:38Z",
       "homepage": null,
       "readmeHeading": "Aoi",
       "readmeSummary": "Observe. Measure. Question.",
@@ -129,7 +129,7 @@
         "typescript"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-09T06:25:48Z",
+      "updatedAt": "2026-10-10T04:40:47Z",
       "homepage": null,
       "readmeHeading": "browser-test-kit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, Stagehand, Replay, screenshots, mobile web, and GitHub Actions.",
@@ -240,7 +240,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-09T01:20:13Z",
+      "updatedAt": "2026-10-10T05:30:19Z",
       "homepage": null,
       "readmeHeading": "FLUTTER_NAVIGATION_BASIC_DEMO(macOS)",
       "readmeSummary": null,
@@ -263,7 +263,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-09T07:15:41Z",
+      "updatedAt": "2026-10-10T09:55:34Z",
       "homepage": null,
       "readmeHeading": "gh_identity",
       "readmeSummary": "Single-file, stdlib-only Python interface for portable GitHub identity and operations.",
@@ -363,10 +363,10 @@
         "python3"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-09T07:23:34Z",
+      "updatedAt": "2026-10-10T05:47:20Z",
       "homepage": null,
       "readmeHeading": "Ironmate",
-      "readmeSummary": "Pythonを中心に、文書・画像などの**内容や属性の変換・置換**を検証するプロジェクトです。 PPTXの文字・色・矢印属性の置換を今後の対象とし、画素／パレットに基づくドット表現を試作しています。 要件は [Issue #80](https://github.com/myon-bioinformatics/Ironmate/issues/80)、 ドット表現の試作は [PR #79](https://github.com/myon-bioinformatics/Ironmate/pull/79) で追跡します。 PPTX変換・写真変換・キャラクター部品合成は未実装です。実装済みのドット表現…",
+      "readmeSummary": "Pythonを中心に、文書・画像などの**内容や属性の変換・置換**を検証するプロジェクトです。 PPTXの文字・色・矢印属性の置換を今後の対象とし、画素／パレットに基づくドット表現を試作しています。 要件は [Issue #80](https://github.com/myon-bioinformatics/Ironmate/issues/80)、 ドット表現の試作は [PR #79](https://github.com/myon-bioinformatics/Ironmate/pull/79) で追跡します。 Markdown→PPTX変換と既存PPTXの属性編集CLIは試作実装済みです…",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/Ironmate/main/README.md"
     },
     {
@@ -474,7 +474,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-09T07:23:14Z",
+      "updatedAt": "2026-10-10T05:01:31Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -493,7 +493,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-08T23:26:49Z",
+      "updatedAt": "2026-10-10T00:22:27Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
@@ -654,7 +654,7 @@
         "string-search"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-04T20:00:55Z",
+      "updatedAt": "2026-10-10T00:26:14Z",
       "homepage": null,
       "readmeHeading": "search_seq_including_spaces",
       "readmeSummary": null,
@@ -742,7 +742,7 @@
         "vanilla-js"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-09T06:51:20Z",
+      "updatedAt": "2026-10-10T00:26:08Z",
       "homepage": null,
       "readmeHeading": "web-ui",
       "readmeSummary": "Shared CSS themes, semantic UI components, and small JavaScript utilities for static interfaces across myon-bioinformatics projects.",
