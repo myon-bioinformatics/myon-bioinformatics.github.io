@@ -2,8 +2,47 @@
   "schema": "project-metadata/1",
   "name": "Ironmate",
   "repository": "https://github.com/myon-bioinformatics/Ironmate",
-  "summary": "Pythonを中心とした文書・素材の変換・置換を検証するプロジェクト",
-  "status": "prototype_planning",
+  "summary": "PythonでMarkdown→PPTX生成と既存PPTXの文字・色・基本書式編集を試作実装するプロジェクト",
+  "status": "prototype_implemented",
+  "pptx": {
+    "status": "prototype",
+    "markdown_to_pptx": {
+      "cli": "pptx_pipeline.py",
+      "input_modes": [
+        "Markdown file",
+        "inline --text",
+        "stdin -"
+      ],
+      "requires": [
+        "python-pptx",
+        "preinstalled Marp CLI"
+      ],
+      "optional": [
+        "Mermaid SVG preprocessing (--mmdc)"
+      ],
+      "limitations": [
+        "Marp-generated slides may not have editable text",
+        "visual fidelity is not guaranteed"
+      ]
+    },
+    "existing_pptx_editing": {
+      "cli": "pptx_replace.py",
+      "supported": [
+        "text replacement within each text run",
+        "explicit RGB run text color",
+        "explicit solid RGB slide background",
+        "font family, size, and bold",
+        "dry-run and optional TOML rules",
+        "new output file without overwriting the original"
+      ],
+      "unsupported": [
+        "text matching across runs",
+        "theme/inherited text colors and slide backgrounds",
+        "grouped shapes, tables, notes, and masters",
+        "arrow attributes and advanced formatting"
+      ]
+    }
+  },
   "plan": "https://github.com/myon-bioinformatics/Ironmate/issues/80",
   "pixel_prototype": "https://github.com/myon-bioinformatics/Ironmate/pull/79",
   "adapter_transfer": "https://github.com/myon-bioinformatics/mcp-toolcall-lab/pull/108"
