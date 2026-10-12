@@ -47,6 +47,34 @@ def test_ironmate_metadata_lives_with_the_portfolio():
     assert not any("/Ironmate/mcp-stub.html" in url for url in parser.links)
 
 
+def test_ironmate_pptx_status_is_prototype_not_product_ready():
+    import json
+
+    metadata = json.loads((ROOT / "project-ironmate.json").read_text(encoding="utf-8"))
+    assert metadata["status"] == "prototype_implemented"
+    assert metadata["pptx"]["status"] == "prototype"
+    conversion = metadata["pptx"]["markdown_to_pptx"]
+    editing = metadata["pptx"]["existing_pptx_editing"]
+    assert conversion["cli"] == "pptx_pipeline.py"
+    assert conversion["input_modes"] == ["Markdown file", "inline --text", "stdin -"]
+    assert "preinstalled Marp CLI" in conversion["requires"]
+    assert "Marp-generated slides may not have editable text" in conversion["limitations"]
+    assert editing["cli"] == "pptx_replace.py"
+    assert "text replacement within each text run" in editing["supported"]
+    assert "explicit solid RGB slide background" in editing["supported"]
+    assert "theme/inherited text colors and slide backgrounds" in editing["unsupported"]
+    assert "arrow attributes and advanced formatting" in editing["unsupported"]
+
+    html = (ROOT / "index.html").read_text(encoding="utf-8")
+    card_start = html.index('<h3 id="ironmate">Ironmate</h3>')
+    card = html[card_start:html.index("</article>", card_start)]
+    assert "PPTX対応は計画段階" not in card
+    assert "Markdown→PPTX" in card
+    assert "試作実装" in card
+    assert "矢印属性や高度な書式は未対応" in card
+    assert "表示の完全再現は保証していません" in card
+
+
 def test_lab_pages_are_hosted_by_portfolio():
     parser = LinkParser()
     parser.feed((ROOT / "index.html").read_text())
