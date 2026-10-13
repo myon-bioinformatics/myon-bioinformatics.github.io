@@ -9,7 +9,7 @@ for(const mobile of [false,true]){
  test.describe(mobile?'mobile':'desktop',()=>{
   test.use({viewport:mobile?{width:390,height:844}:{width:1440,height:900},isMobile:mobile,hasTouch:mobile});
   test('paste → extraction → conditions → download → clear',async({page},info)=>{
-   await open(page);await pasted(page);await expect(page.locator('#body-result')).toHaveText('見出し 本文 日本語 参照');
+   await open(page);expect(await page.locator("#profile").evaluate(el=>getComputedStyle(el).colorScheme)).toBe("dark");await pasted(page);await expect(page.locator('#body-result')).toHaveText('見出し 本文 日本語 参照');
    await expect(page.locator('#links-result')).toContainText('https://example.test/ref');
    const first=await download(page);expect(first.snapshot.schema).toBe('html-snapshot/1');expect(first.snapshot.fetched_at).toBeNull();expect(first.snapshot).not.toHaveProperty('html');
    await page.locator('#html-input').fill('<p>not loaded</p>');await page.locator('#source-url').fill('https://changed.test/');
@@ -18,6 +18,7 @@ for(const mobile of [false,true]){
    await page.locator('#selector').fill('[id]');await page.locator('#apply').click();await expect(page.locator('#status')).toContainText('unsupported selector syntax');await expect(page.locator('#download')).toBeDisabled();
    await page.locator('#selector').fill('');await page.locator('#profile').selectOption('github-readme');await page.locator('#apply').click();await expect(page.locator('#body-result')).toContainText('見出し');
    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+   await page.locator('#html-input').fill(input);await page.locator('#source-url').fill(source);
    await page.screenshot({path:info.outputPath('result.png'),fullPage:true});
    await page.locator('#clear').click();await expect(page.locator('#body-result')).toBeEmpty();await expect(page.locator('#html-input')).toHaveValue('');await expect(page.locator('#download')).toBeDisabled();
   });

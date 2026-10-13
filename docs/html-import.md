@@ -8,7 +8,8 @@ PythonサーバーはPagesの実行基盤ではなく、生成・検証に限る
 - lab PR #110の `html-snapshot/1` / `html_snapshot.extract` を参照。
   Python基準実装はlab main `56982948ba79c070664cf9efe87a3d753e417acf` からコピー。
   最新契約には複数articleと小さいselector集合も含まれる。
-- web-ui main `e24ee996c21a552d3133ee84d7a860334681f910` の `web_ui.py` が静的ページを生成。
+- web-ui main `d83962e7b5876754dad116ea9f258f42960be54a` の `web_ui.py` が静的ページを生成。
+  web-ui PR #48のmodern native color-scheme修正を含む固定版（未マージ時でもcommitは固定）。
   同repoの `ui.js` の文字列表示・JSON整形とCSSを実利用する。
 - `tools/html-import/vendor.lock.json` に完全commit、元パス、SHA-256、ライセンスを記録。
   実行時CDN、外部フレームワーク、Python/WASM配信は不要。
