@@ -59,7 +59,6 @@
           <h3 id="ironmate">Ironmate</h3>
           <p>PythonでMarkdown→PPTX生成（Marp使用）と既存PPTXの文字・明示RGB色／背景・基本フォント属性の編集CLIを試作実装。矢印属性や高度な書式は未対応で、表示の完全再現は保証していません。</p>
           <a href="https://github.com/myon-bioinformatics/Ironmate">Open Repository →</a>
-          <a href="./project-ironmate.json">Read Project Metadata →</a>
         </article>
         <article class="card portal-card">
           <h3 id="mcp-toolcall-lab">mcp-toolcall-lab</h3>
@@ -72,8 +71,16 @@
           <a href="https://myon-bioinformatics.github.io/flutter_navigation_basic/">Open Flutter Tools →</a>
         </article>
         <article class="card portal-card">
-          <h3>web-ui</h3>
-          <p>Shared static-first UI patterns used across the tool pages.</p>
+          <h3 id="web-ui">web-ui</h3>
+          <p>このポートフォリオのツールページの見た目と表示部品を、ビルド不要の共通UI部品でそろえています。</p>
+          <ul class="portal-points">
+            <li>見た目の統一：<code>tokens → base → components → themes/modern</code> の CSS 層と <code>ui-*</code> クラス</li>
+            <li>静的ページ生成：<code>web_ui.py</code> の <code>render_document</code>（HTML文書取込をこれで生成）</li>
+            <li>他リポジトリのページ取り込み：<code>adopt_document</code> で lab 独自クラスを <code>ui-*</code> に置換し、挙動は元のまま</li>
+            <li>安全な表示：<code>ui.js</code> の <code>setText</code>（textContent のみ）と <code>prettyJson</code></li>
+            <li>画面切替と外部リンク：<code>navigation.js</code> の <code>bindViews</code>（Home / Wiki / Pixiv）と <code>openExternalURL</code></li>
+            <li>版の固定：取り込んだ commit と SHA-256 を <code>vendor.lock.json</code> に記録</li>
+          </ul>
           <a href="https://myon-bioinformatics.github.io/web-ui/">Open UI Catalog →</a>
         </article>
       </div>

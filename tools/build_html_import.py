@@ -5,8 +5,10 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('web_ui', ROOT / 'tools/vendor/web-ui/web_ui.py')
 ui = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ui)
+nav_spec = importlib.util.spec_from_file_location('portfolio_nav', ROOT / 'scripts/portfolio_nav.py')
+nav = importlib.util.module_from_spec(nav_spec)
+nav_spec.loader.exec_module(nav)
 BODY = '''<main class="ui-page">
-<a href="../../index.html#tools">← Tools &amp; Demos</a>
 <h1>📄 HTML文書取込</h1>
 <p>貼り付けたHTMLやローカルファイルから本文・見出し・リンクを取り出します。入力と結果はこのページのメモリ内で処理し、運営者へ自動送信・保存しません。HTML内のスクリプトや画像は実行・取得しません。</p>
 <section class="ui-panel" aria-labelledby="input-title"><h2 id="input-title">1. 取り込む</h2>
@@ -42,6 +44,7 @@ def generate():
     document = ui.render_document(title='HTML文書取込', trusted_html=BODY.replace("__SOURCE_LINK__", ui.source_link("source-url")), css=CSS,
         stylesheets=ui.shared_stylesheets('../vendor/web-ui'), scripts=('./app.mjs',))
     csp = "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'none'; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    document = nav.add_back_nav(document)
     return document.replace('<head>', '<head><meta http-equiv="Content-Security-Policy" content="'+csp+'">', 1).replace('<html lang="en">','<html lang="ja">')
 if __name__ == '__main__':
     (ROOT / 'tools/html-import/index.html').write_text(generate(), encoding='utf-8')
