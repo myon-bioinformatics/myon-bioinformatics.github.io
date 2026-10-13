@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-12T21:10:59Z",
+  "generatedAt": "2026-10-13T21:10:42Z",
   "owner": "myon-bioinformatics",
   "count": 35,
   "repos": [
@@ -129,7 +129,7 @@
         "typescript"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-12T14:34:51Z",
+      "updatedAt": "2026-10-13T19:26:29Z",
       "homepage": null,
       "readmeHeading": "browser-test-kit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, Stagehand, Replay, screenshots, mobile web, and GitHub Actions.",
@@ -244,7 +244,7 @@
         "traceback"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-12T08:59:50Z",
+      "updatedAt": "2026-10-13T02:45:26Z",
       "homepage": null,
       "readmeHeading": "Err-o-RoadRunner",
       "readmeSummary": "Err-o-RoadRunner is a tool that does nothing in normal times. It starts working only after an error has happened. The name combines \"Error\" and \"Road Runner\".",
@@ -267,7 +267,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-12T21:09:47Z",
+      "updatedAt": "2026-10-13T12:26:00Z",
       "homepage": null,
       "readmeHeading": "FLUTTER_NAVIGATION_BASIC_DEMO(macOS)",
       "readmeSummary": null,
@@ -290,7 +290,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-12T20:52:52Z",
+      "updatedAt": "2026-10-13T09:00:53Z",
       "homepage": null,
       "readmeHeading": "gh_identity",
       "readmeSummary": "Single-file, stdlib-only Python interface for portable GitHub identity and operations.",
@@ -396,7 +396,7 @@
         "python3"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-12T11:44:25Z",
+      "updatedAt": "2026-10-13T00:51:39Z",
       "homepage": null,
       "readmeHeading": "Ironmate",
       "readmeSummary": "Pythonを中心に、文書・画像などの**内容や属性の変換・置換**を検証するプロジェクトです。 PPTXの文字・色・矢印属性の置換を今後の対象とし、画素／パレットに基づくドット表現を試作しています。 要件は [Issue #80](https://github.com/myon-bioinformatics/Ironmate/issues/80)、 ドット表現の試作は [PR #79](https://github.com/myon-bioinformatics/Ironmate/pull/79) で追跡します。 Markdown→PPTX変換と既存PPTXの属性編集CLIは試作実装済みです…",
@@ -468,7 +468,7 @@
         "tool-calling"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-12T09:41:27Z",
+      "updatedAt": "2026-10-13T01:27:27Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "Reproducible experiments for reliable LLM-to-MCP tool discovery, initialization, and calls using FastMCP and mock APIs.",
@@ -507,7 +507,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-12T14:38:32Z",
+      "updatedAt": "2026-10-13T01:22:23Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -526,7 +526,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-12T06:23:54Z",
+      "updatedAt": "2026-10-13T19:21:59Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
@@ -775,7 +775,7 @@
         "vanilla-js"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-12T05:00:09Z",
+      "updatedAt": "2026-10-13T03:43:43Z",
       "homepage": null,
       "readmeHeading": "web-ui",
       "readmeSummary": "Shared CSS themes, semantic UI components, and small JavaScript utilities for static interfaces across myon-bioinformatics projects.",
