@@ -1,12 +1,8 @@
 // Browser companion to the pinned lab extractor. Input nodes never enter the live DOM.
 const excluded = new Set(['script', 'style', 'template', 'noscript']);
 export const MAX_BYTES = 2 * 1024 * 1024;
-export function sourceURL(value) {
-  if (!/^https?:\/\//.test(value) || /[\s\\]/.test(value)) throw Error('取得元は絶対HTTP(S) URLを指定してください。');
-  const u = new URL(value);
-  if (!u.hostname || u.username || u.password) throw Error('取得元URLに認証情報は指定できません。');
-  return value;
-}
+import '../vendor/web-ui/js/navigation.js';
+export const sourceURL = globalThis.webUiNavigation.sourceURL;
 export function parseHTML(html) {
   if (typeof html !== 'string' || new TextEncoder().encode(html).length > MAX_BYTES) throw Error('HTMLの上限は2 MiBです。');
   const template = document.createElement('template');

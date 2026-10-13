@@ -8,8 +8,8 @@ PythonサーバーはPagesの実行基盤ではなく、生成・検証に限る
 - lab PR #110の `html-snapshot/1` / `html_snapshot.extract` を参照。
   Python基準実装はlab main `56982948ba79c070664cf9efe87a3d753e417acf` からコピー。
   最新契約には複数articleと小さいselector集合も含まれる。
-- web-ui main `d83962e7b5876754dad116ea9f258f42960be54a` の `web_ui.py` が静的ページを生成。
-  web-ui PR #48のmodern native color-scheme修正を含む固定版（未マージ時でもcommitは固定）。
+- web-ui main `2410a5a63c5117c321e8e737ee6811d64fab2afb` の `web_ui.py` が静的ページを生成。
+  web-ui PR #49の共通導線・表示適用を含む固定版（未マージ時でもcommitは固定）。
   同repoの `ui.js` の文字列表示・JSON整形とCSSを実利用する。
 - `tools/html-import/vendor.lock.json` に完全commit、元パス、SHA-256、ライセンスを記録。
   実行時CDN、外部フレームワーク、Python/WASM配信は不要。
@@ -81,3 +81,11 @@ JUnitとscreenshotsをartifactとして残す。合成ケースのみで実利�
 既存Pages workflowは変更しない。公開後はその成功を契機に別workflowが同じ実入力・結果取得を
 公開URLで検証する。PR内テストが緑でも公開後成功とは数えない。
 公開workflowとPRをマージするまでは新ツールの公開受入条件は未完了である。
+
+## 明示的な取得元リンクと共有導線
+
+取得元URLの入力だけでは通信しない。有効なHTTP(S) URLのときだけ「取得元サイトを新しいタブで開く」リンクを表示し、クリックで通常のサイト表示へ移動する。新規タブはnoopener/noreferrer、元HTML・抽出結果は送らない。開いたサイトで保存したHTMLやコピーしたソースを利用者が取り込む。cross-origin fetchや運営proxyの機能ではない。
+
+ボタンのHTML生成はweb-ui `source_link("source-url")`、URL検証と更新は `navigation.js`。独自のURL導線処理をconsumerに複製しない。Wikipedia/Pixiv公開画面のテーマとフォントは同じweb-uiの `adopt_document`、切替は `bindViews`、Pixivの既存article/historyボタンは `openExternalURL` に接続する。記事URLの組立や原文抽出はlabに残す。
+
+`import_lab_pages.py`も同じ変換を再適用し、source_sha/source_sha256とpublished_sha256、presentationのweb-ui pinを分けて記録する。レポートの再実行・新しい取得結果とは表示しない。公開後CIもlab-publication specを実行し、プロバイダーAPI応答は明示した合成fixtureをブラウザrouteで再生する。WikipediaのライブAPI成功とは数えない。

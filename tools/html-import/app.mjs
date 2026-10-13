@@ -2,6 +2,7 @@ import {setText,prettyJson} from '../vendor/web-ui/js/ui.js';
 import {parseHTML,extract,sourceURL,MAX_BYTES} from './extract.mjs';
 const $=id=>document.getElementById(id);
 let loaded=null, result=null, revision=0;
+const sourceLink=globalThis.webUiNavigation.bindSourceLink($('source-url'),$('source-open'));
 function clearResult(){result=null;setText($('body-result'),'');setText($('headings-result'),'');setText($('links-result'),'');setText($('provenance'),'');$('download').disabled=true;}
 function fail(e){clearResult();setText($('status'),e.message);}
 function apply(){
@@ -44,4 +45,4 @@ $('download').addEventListener('click',()=>{
   const url=URL.createObjectURL(new Blob([prettyJson(result)+'\n'],{type:'application/json'}));
   const a=document.createElement('a');a.href=url;a.download='html-extraction.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
-$('clear').addEventListener('click',()=>{++revision;loaded=null;clearResult();$('html-input').value='';$('file-input').value='';$('source-url').value='';setText($('status'),'取込データと結果を消去しました。');});
+$('clear').addEventListener('click',()=>{++revision;loaded=null;clearResult();$('html-input').value='';$('file-input').value='';$('source-url').value='';sourceLink.update();setText($('status'),'取込データと結果を消去しました。');});
