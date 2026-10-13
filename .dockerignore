@@ -1,0 +1,6 @@
+.git
+node_modules
+reports
+test-results
+**/__pycache__
+.pytest_cache

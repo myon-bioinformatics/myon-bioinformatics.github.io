@@ -1,0 +1,30 @@
+name: HTML import Docker and browser contract
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  docker-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build reusable Python and browser environment
+        run: docker build -f Dockerfile.html-import -t html-import-test .
+      - name: Run offline fixture and desktop/mobile browser tests
+        run: |
+          mkdir -p reports test-results
+          docker run --rm --ipc=host -v "$PWD/reports:/app/reports" -v "$PWD/test-results:/app/test-results" html-import-test
+      - name: Preserve JUnit and browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: html-import-contract
+          path: |
+            reports/html-import-*.xml
+            test-results/
+          if-no-files-found: error
+          retention-days: 14
