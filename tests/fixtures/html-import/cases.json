@@ -1,0 +1,417 @@
+[
+  {
+    "name": "article",
+    "html": "<title>Test &amp; 日本語</title><link rel=\"stylesheet\" href=\"/a.css\"><nav>exclude</nav><main id=\"m\"><article class=\"markdown-body\"><h1>A</h1><p>Hello <b>world</b>!</p><a href=\"../link?q=1#x\">Link</a><script>bad()</script><style>p{}</style><template><p>hidden</p></template><noscript>hidden</noscript></article></main>",
+    "url": "https://example.test/dir/page",
+    "profile": "generic",
+    "selector": null,
+    "expected": {
+      "source_url": "https://example.test/dir/page",
+      "profile": "generic",
+      "scope": "article",
+      "scope_count": 1,
+      "title": "Test & 日本語",
+      "headings": [
+        {
+          "level": "h1",
+          "text": "A"
+        }
+      ],
+      "text": "A Hello world ! Link",
+      "links": [
+        {
+          "text": "Link",
+          "url": "https://example.test/link?q=1#x"
+        }
+      ],
+      "structure": [
+        {
+          "tag": "main",
+          "id": "m",
+          "class": null
+        },
+        {
+          "tag": "article",
+          "id": null,
+          "class": "markdown-body"
+        }
+      ],
+      "stylesheets": [
+        "https://example.test/a.css"
+      ]
+    }
+  },
+  {
+    "name": "readme",
+    "html": "<article class=\"markdown-body\"><h2>README</h2><p>A</p></article>",
+    "url": "https://example.test/dir/page",
+    "profile": "github-readme",
+    "selector": null,
+    "expected": {
+      "source_url": "https://example.test/dir/page",
+      "profile": "github-readme",
+      "scope": "article",
+      "scope_count": 1,
+      "title": "",
+      "headings": [
+        {
+          "level": "h2",
+          "text": "README"
+        }
+      ],
+      "text": "README A",
+      "links": [],
+      "structure": [
+        {
+          "tag": "article",
+          "id": null,
+          "class": "markdown-body"
+        }
+      ],
+      "stylesheets": []
+    }
+  },
+  {
+    "name": "multiple",
+    "html": "<article><h1>A</h1><article><p>nested</p></article></article><article><h2>B</h2></article>",
+    "url": "https://example.test/dir/page",
+    "profile": "generic",
+    "selector": null,
+    "expected": {
+      "source_url": "https://example.test/dir/page",
+      "profile": "generic",
+      "scope": "article",
+      "scope_count": 2,
+      "title": "",
+      "headings": [
+        {
+          "level": "h1",
+          "text": "A"
+        },
+        {
+          "level": "h2",
+          "text": "B"
+        }
+      ],
+      "text": "A nested B",
+      "links": [],
+      "structure": [
+        {
+          "tag": "article",
+          "id": null,
+          "class": null
+        },
+        {
+          "tag": "article",
+          "id": null,
+          "class": null
+        },
+        {
+          "tag": "article",
+          "id": null,
+          "class": null
+        }
+      ],
+      "stylesheets": []
+    }
+  },
+  {
+    "name": "main",
+    "html": "<main><h3>Main</h3><br><p>a&nbsp; b &#x65e5;</p></main>",
+    "url": "https://example.test/dir/page",
+    "profile": "generic",
+    "selector": null,
+    "expected": {
+      "source_url": "https://example.test/dir/page",
+      "profile": "generic",
+      "scope": "main",
+      "scope_count": 1,
+      "title": "",
+      "headings": [
+        {
+          "level": "h3",
+          "text": "Main"
+        }
+      ],
+      "text": "Main a b 日",
+      "links": [],
+      "structure": [
+        {
+          "tag": "main",
+          "id": null,
+          "class": null
+        }
+      ],
+      "stylesheets": []
+    }
+  },
+  {
+    "name": "document",
+    "html": "<p>A <em>B</em></p>",
+    "url": "https://example.test/dir/page",
+    "profile": "generic",
+    "selector": null,
+    "expected": {
+      "source_url": "https://example.test/dir/page",
+      "profile": "generic",
+      "scope": "document",
+      "scope_count": 1,
+      "title": "",
+      "headings": [],
+      "text": "A B",
+      "links": [],
+      "structure": [],
+      "stylesheets": []
+    }
+  },
+  {
+    "name": "selector",
+    "html": "<main id=\"m\"><article class=\"note\"><h4>Chosen</h4></article><aside>excluded</aside></main>",
+    "url": "https://example.test/dir/page",
+    "profile": "generic",
+    "selector": "main > article.note",
+    "expected": {
+      "source_url": "https://example.test/dir/page",
+      "profile": "generic",
+      "scope": "main > article.note",
+      "scope_count": 1,
+      "title": "",
+      "headings": [
+        {
+          "level": "h4",
+          "text": "Chosen"
+        }
+      ],
+      "text": "Chosen",
+      "links": [],
+      "structure": [
+        {
+          "tag": "main",
+          "id": "m",
+          "class": null
+        },
+        {
+          "tag": "article",
+          "id": null,
+          "class": "note"
+        }
+      ],
+      "stylesheets": []
+    }
+  },
+  {
+    "name": "descendant",
+    "html": "<main><div><article class=\"note\"><p>Chosen</p></article></div></main>",
+    "url": "https://example.test/dir/page",
+    "profile": "generic",
+    "selector": "main .note",
+    "expected": {
+      "source_url": "https://example.test/dir/page",
+      "profile": "generic",
+      "scope": "main .note",
+      "scope_count": 1,
+      "title": "",
+      "headings": [],
+      "text": "Chosen",
+      "links": [],
+      "structure": [
+        {
+          "tag": "main",
+          "id": null,
+          "class": null
+        },
+        {
+          "tag": "article",
+          "id": null,
+          "class": "note"
+        }
+      ],
+      "stylesheets": []
+    }
+  },
+  {
+    "name": "root",
+    "html": "<p id=\"a\">Root</p>",
+    "url": "https://example.test/dir/page",
+    "profile": "generic",
+    "selector": ":root",
+    "expected": {
+      "source_url": "https://example.test/dir/page",
+      "profile": "generic",
+      "scope": ":root",
+      "scope_count": 1,
+      "title": "",
+      "headings": [],
+      "text": "Root",
+      "links": [],
+      "structure": [],
+      "stylesheets": []
+    }
+  },
+  {
+    "name": "links",
+    "html": "<base href=\"https://ignored.test/\"><article><a href=\"/r\">R</a><a href=\"#x\">X</a><a href=\"https://other.test/a\">A</a><a href=\"//other.test/b\">B</a><a href=\"javascript:alert(1)\">J</a><a href=\"data:text/plain,A\">D</a><a href=\"mailto:a@b\">M</a></article>",
+    "url": "https://example.test/dir/page",
+    "profile": "generic",
+    "selector": null,
+    "expected": {
+      "source_url": "https://example.test/dir/page",
+      "profile": "generic",
+      "scope": "article",
+      "scope_count": 1,
+      "title": "",
+      "headings": [],
+      "text": "R X A B J D M",
+      "links": [
+        {
+          "text": "R",
+          "url": "https://example.test/r"
+        },
+        {
+          "text": "X",
+          "url": "https://example.test/dir/page#x"
+        },
+        {
+          "text": "A",
+          "url": "https://other.test/a"
+        },
+        {
+          "text": "B",
+          "url": "https://other.test/b"
+        }
+      ],
+      "structure": [
+        {
+          "tag": "article",
+          "id": null,
+          "class": null
+        }
+      ],
+      "stylesheets": []
+    }
+  },
+  {
+    "name": "full-document",
+    "html": "<!doctype html><html><head><title>Full</title></head><body><main><article><h1>Full</h1><p>body</p></article></main></body></html>",
+    "url": "https://example.test/dir/page",
+    "profile": "generic",
+    "selector": null,
+    "expected": {
+      "source_url": "https://example.test/dir/page",
+      "profile": "generic",
+      "scope": "article",
+      "scope_count": 1,
+      "title": "Full",
+      "headings": [
+        {
+          "level": "h1",
+          "text": "Full"
+        }
+      ],
+      "text": "Full body",
+      "links": [],
+      "structure": [
+        {
+          "tag": "main",
+          "id": null,
+          "class": null
+        },
+        {
+          "tag": "article",
+          "id": null,
+          "class": null
+        }
+      ],
+      "stylesheets": []
+    }
+  },
+  {
+    "name": "no-match",
+    "html": "<p>A</p>",
+    "url": "https://example.test/dir/page",
+    "profile": "generic",
+    "selector": ".missing",
+    "error": "selector matched no elements"
+  },
+  {
+    "name": "empty",
+    "html": "<article><script>bad()</script></article>",
+    "url": "https://example.test/dir/page",
+    "profile": "generic",
+    "selector": null,
+    "error": "selected HTML scope has no text"
+  },
+  {
+    "name": "ambiguous",
+    "html": "<article class=\"markdown-body\">A</article><article class=\"markdown-body\">B</article>",
+    "url": "https://example.test/dir/page",
+    "profile": "github-readme",
+    "selector": null,
+    "error": "github-readme requires exactly one article.markdown-body"
+  },
+  {
+    "name": "attribute-selector",
+    "html": "<p>A</p>",
+    "url": "https://example.test/dir/page",
+    "profile": "generic",
+    "selector": "[id]",
+    "error": "unsupported selector syntax"
+  },
+  {
+    "name": "profile-selector",
+    "html": "<article class=\"markdown-body\">A</article>",
+    "url": "https://example.test/dir/page",
+    "profile": "github-readme",
+    "selector": "article",
+    "error": "selector requires generic profile"
+  },
+  {
+    "name": "bad-combinator",
+    "html": "<p>A</p>",
+    "url": "https://example.test/dir/page",
+    "profile": "generic",
+    "selector": "p >",
+    "error": "invalid selector combinator"
+  },
+  {
+    "name": "pseudo",
+    "html": "<p>A</p>",
+    "url": "https://example.test/dir/page",
+    "profile": "generic",
+    "selector": "p:first-child",
+    "error": "unsupported selector syntax"
+  },
+  {
+    "name": "missing-readme",
+    "html": "<p>A</p>",
+    "url": "https://example.test/dir/page",
+    "profile": "github-readme",
+    "selector": null,
+    "error": "github-readme requires exactly one article.markdown-body"
+  },
+  {
+    "name": "whitespace",
+    "html": "<article><p>AB\u001cC</p></article>",
+    "url": "https://example.test/dir/page",
+    "profile": "generic",
+    "selector": null,
+    "expected": {
+      "source_url": "https://example.test/dir/page",
+      "profile": "generic",
+      "scope": "article",
+      "scope_count": 1,
+      "title": "",
+      "headings": [],
+      "text": "A B C",
+      "links": [],
+      "structure": [
+        {
+          "tag": "article",
+          "id": null,
+          "class": null
+        }
+      ],
+      "stylesheets": []
+    }
+  }
+]

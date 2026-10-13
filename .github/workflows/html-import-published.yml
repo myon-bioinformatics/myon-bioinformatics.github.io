@@ -1,0 +1,36 @@
+name: HTML import published browser acceptance
+on:
+  workflow_run:
+    workflows: [Deploy Jekyll with GitHub Pages dependencies preinstalled]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  published-browser:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - name: Build pinned consumer test environment
+        run: docker build -f Dockerfile.html-import -t html-import-test .
+      - name: Verify published desktop and mobile input to download
+        env:
+          HTML_TOOL_BASE_URL: https://myon-bioinformatics.github.io
+        run: |
+          mkdir -p reports test-results
+          docker run --rm --ipc=host -e HTML_TOOL_BASE_URL -v "$PWD/reports:/app/reports" -v "$PWD/test-results:/app/test-results" html-import-test npx playwright test --config playwright.html-import.config.js
+      - name: Preserve live browser acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: html-import-published-${{ github.event.workflow_run.head_sha || github.sha }}
+          path: |
+            reports/html-import-browser.xml
+            test-results/
+          if-no-files-found: error
+          retention-days: 14
