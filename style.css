@@ -422,3 +422,10 @@ body[data-view-mode="github-like"] .badges .tag {
   margin-top: auto;
   font-weight: 600;
 }
+.portal-points {
+  margin: 0 0 12px;
+  padding-left: 1.2em;
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+.portal-points li + li { margin-top: 4px; }

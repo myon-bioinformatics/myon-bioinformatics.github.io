@@ -42,7 +42,9 @@ def test_ironmate_metadata_lives_with_the_portfolio():
     parser = LinkParser()
     parser.feed((ROOT / "index.html").read_text())
     assert metadata["repository"] in parser.links
-    assert "./project-ironmate.json" in parser.links
+    # The card stays as a box with its repository link; the metadata file is kept
+    # but no longer linked while Ironmate's own Pages are not in use.
+    assert "./project-ironmate.json" not in parser.links
     assert (ROOT / "project-ironmate.json").is_file()
     assert not any("/Ironmate/mcp-stub.html" in url for url in parser.links)
 
@@ -81,3 +83,18 @@ def test_lab_pages_are_hosted_by_portfolio():
     assert "mcp-toolcall-lab" in parser.ids
     assert "./tools/mcp-toolcall-lab/" in parser.links
     assert (ROOT / "tools/mcp-toolcall-lab/index.html").is_file()
+
+
+def test_every_tool_page_has_the_same_back_link_first_in_main():
+    import re
+    pages = [ROOT / "tools/html-import/index.html", ROOT / "tools/mcp-toolcall-lab/index.html",
+             ROOT / "tools/mcp-toolcall-lab/repository-diagnostics.html"]
+    for page in pages:
+        html = page.read_text(encoding="utf-8")
+        main = re.search(r"<main[^>]*>", html)
+        assert main, page
+        after = html[main.end():]
+        assert after.startswith('<nav class="portfolio-back" aria-label="Portfolio">'
+                                '<a href="../../index.html#tools" data-testid="portfolio-back">'), page
+        assert html.count('data-testid="portfolio-back"') == 1, page
+        assert "Back to portfolio" not in html, page

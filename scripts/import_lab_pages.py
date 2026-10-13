@@ -10,6 +10,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lab_shared_ui import apply_shared_navigation, presentation_identity
+from portfolio_nav import add_back_nav
 
 FILES = ('index.html', 'terminal.css', 'pages-hash.js', 'pages-wiki.js',
          'pages-pixiv.js', 'summary.json', 'build_meta.json')
@@ -32,13 +33,16 @@ def import_export(source: Path, destination: Path = DESTINATION) -> dict:
     banner = ('<aside aria-label="Publication ownership"><p>Portfolio-hosted lab tools. '
               'The report below is an imported Actions snapshot, not a live run or a claim '
               'of the latest result. See <a href="publication.json">import identity</a> and '
-              '<a href="https://github.com/myon-bioinformatics/mcp-toolcall-lab/actions/workflows/stub-pages.yml">lab Actions</a>. '
-              '<a href="../../#tools">Back to portfolio</a>.</p></aside>')
+              '<a href="https://github.com/myon-bioinformatics/mcp-toolcall-lab/actions/workflows/stub-pages.yml">lab Actions</a>.</p></aside>')
     if '</header>' not in page:
         raise ValueError('public export has no page header')
     source_digests = {name: hashlib.sha256(data).hexdigest() for name, data in payload.items()}
     payload['index.html'] = page.replace('</header>', '</header>' + banner, 1).encode('utf-8')
     apply_shared_navigation(payload)
+    # Same back link, same place, as every other portfolio tool page.
+    for name in ('index.html', 'repository-diagnostics.html'):
+        if name in payload:
+            payload[name] = add_back_nav(payload[name].decode('utf-8')).encode('utf-8')
     manifest = {'schema': 'portfolio-lab-publication/1', 'source_repository': 'myon-bioinformatics/mcp-toolcall-lab',
                 'source_sha': meta['sha'], 'source_dirty': meta.get('dirty'),
                 'imported_at': datetime.now(timezone.utc).isoformat(),
