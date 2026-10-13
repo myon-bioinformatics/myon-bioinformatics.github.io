@@ -59,3 +59,21 @@ test('size, UTF-8, URL and depth failures clear stale downloads',async({page})=>
 test('portfolio still exposes old tools and the new independent tool',async({page})=>{
  await page.goto('/');await expect(page.locator('a[href="./tools/html-import/"]')).toBeVisible();await expect(page.locator('a[href="./tools/mcp-toolcall-lab/"]')).toBeVisible();await expect(page.locator('#ironmate')).toBeVisible();
 });
+for(const mobile of [false,true]){
+ test.describe(mobile?'mobile source navigation':'desktop source navigation',()=>{
+  test.use({viewport:mobile?{width:390,height:844}:{width:1440,height:900},isMobile:mobile,hasTouch:mobile});
+  test('selected source opens only on click in an isolated new tab',async({page,context})=>{
+   await open(page);await pasted(page);await page.waitForLoadState('networkidle');
+   const requests=[];let referer;
+   context.on('request',r=>requests.push(r.url()));
+   await context.route('https://source.example/chosen-source',async route=>{referer=route.request().headers().referer;await route.fulfill({contentType:'text/html',body:'<h1>Selected source</h1>'});});
+   await page.locator('#source-url').fill('https://source.example/chosen-source');await expect(page.locator('#source-open')).toBeVisible();expect(requests).toEqual([]);
+   const next=context.waitForEvent('page');await page.locator('#source-open').click();const popup=await next;await popup.waitForLoadState();expect(popup.url()).toBe('https://source.example/chosen-source');
+   expect(await popup.evaluate(()=>window.opener)).toBeNull();expect(referer).toBeUndefined();await popup.close();
+   await expect(page.locator('#body-result')).toHaveText('見出し 本文 日本語 参照');
+   for(const invalid of ['javascript:alert(1)','ftp://example.test/','https://user:secret@example.test/','https://example.test\\bad']){
+    await page.locator('#source-url').fill(invalid);await expect(page.locator('#source-open')).toBeHidden();await expect(page.locator('#source-open')).not.toHaveAttribute('href');
+   }
+  });
+ });
+}

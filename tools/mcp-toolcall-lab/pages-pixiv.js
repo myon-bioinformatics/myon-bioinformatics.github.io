@@ -432,7 +432,7 @@
         return;
       }
       if (win && typeof win.open === "function") {
-        win.open(url, "_blank", "noopener");
+        win.webUiNavigation.openExternalURL(url, win);
       }
     }
 

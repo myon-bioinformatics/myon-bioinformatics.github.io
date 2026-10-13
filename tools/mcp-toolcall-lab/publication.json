@@ -18,15 +18,78 @@
     "repository-diagnostics.jsonl": "d23cb6d87704c467d605e650b7e14a04b4858167a581029d63d1df8dfbdfec97"
   },
   "published_sha256": {
-    "index.html": "89365c519024e7bfa7db5c861349261ead57aa9b67e8f579feb0111cbfdda3ea",
+    "index.html": "5ac97bf41ad1d1a862d434541a83934663fa561929f196984293f291e4792d6b",
     "terminal.css": "036d49809998e118fd04de1df32d56e58dab772c05c683abe490f52d4041b0ae",
     "pages-hash.js": "bbacea684991e021e7faf0cc8f08d4f06f18b475968ffff16d649833f5aab9c5",
     "pages-wiki.js": "7926f3b1ef4121c769f542abc6a9ab652ba913aa37727085a69ca338da1f69e6",
-    "pages-pixiv.js": "b44157ffc92d6bdcee5d9a10e575ae0fc6f21f91bbbe28776bcbeda48956a8cb",
+    "pages-pixiv.js": "6cad0df0a82a7cb379f90e48566f69176870d053ded97cdcf9f559ca2f2775fd",
     "summary.json": "c54e054d8143228e39a050f8601889703d510ecb1866ea18579e63336eb923ff",
     "build_meta.json": "bdcc179c024b2cb1b6b2b0342dc4d6d8b399bb97621d6f920b697c96f617dd38",
     "repository-diagnostics.html": "ec50de209a4c2e841bd6eda2befa454a18617aa33b1c037b9fd6da3a732f8000",
     "repository-diagnostics.json": "1c0fd02e474fc8a6cc9c85f587684f944bfcde304c657fc638946df885c553be",
-    "repository-diagnostics.jsonl": "d23cb6d87704c467d605e650b7e14a04b4858167a581029d63d1df8dfbdfec97"
+    "repository-diagnostics.jsonl": "d23cb6d87704c467d605e650b7e14a04b4858167a581029d63d1df8dfbdfec97",
+    "shared-navigation.mjs": "1e1b612fe06c90e85692c4636e5f2c63e2b2d5ee0cb8f0714157da694a76dd48"
+  },
+  "presentation": {
+    "owner": "myon-bioinformatics/web-ui",
+    "theme": "modern",
+    "assets": [
+      {
+        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "commit": "6be1196bc30458b0dc92fa5515aa8c4a494b65f8",
+        "source_path": "web_ui.py",
+        "path": "tools/vendor/web-ui/web_ui.py",
+        "sha256": "365318ffb331f018530d248316954767247e8af89baee24149fbd3f063894cfe"
+      },
+      {
+        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "commit": "6be1196bc30458b0dc92fa5515aa8c4a494b65f8",
+        "source_path": "js/ui.js",
+        "path": "tools/vendor/web-ui/js/ui.js",
+        "sha256": "770f8d0ab97dc7805b8876e842d49ab2f2c9384f247e77ad5a90cb07cb34684c"
+      },
+      {
+        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "commit": "6be1196bc30458b0dc92fa5515aa8c4a494b65f8",
+        "source_path": "css/tokens.css",
+        "path": "tools/vendor/web-ui/css/tokens.css",
+        "sha256": "f83b01da9602a4aa3863ab6f903f8a87211669d2c96170994c7816332fd3bda3"
+      },
+      {
+        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "commit": "6be1196bc30458b0dc92fa5515aa8c4a494b65f8",
+        "source_path": "css/base.css",
+        "path": "tools/vendor/web-ui/css/base.css",
+        "sha256": "fa0b4e22ad23dcdc22544ac8545523d492650331d6d551440657508e61189c3c"
+      },
+      {
+        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "commit": "6be1196bc30458b0dc92fa5515aa8c4a494b65f8",
+        "source_path": "css/components.css",
+        "path": "tools/vendor/web-ui/css/components.css",
+        "sha256": "13e326986246e6cccf075e1dc44fd5de9fa6b2b6deace7914fb8a2f0febdfb4e"
+      },
+      {
+        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "commit": "6be1196bc30458b0dc92fa5515aa8c4a494b65f8",
+        "source_path": "css/themes/modern.css",
+        "path": "tools/vendor/web-ui/css/themes/modern.css",
+        "sha256": "69bb6b20e138c041717c2294ca3180a20cd0bfaf9c99153f2dc5eb7d53523852"
+      },
+      {
+        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "commit": "6be1196bc30458b0dc92fa5515aa8c4a494b65f8",
+        "source_path": "LICENSE",
+        "path": "tools/vendor/web-ui/LICENSE",
+        "sha256": "15f66204c4a6a1ce0c94f0ed4319ff9400f872e85fd32c95f21695c2f231af59"
+      },
+      {
+        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "commit": "6be1196bc30458b0dc92fa5515aa8c4a494b65f8",
+        "source_path": "js/navigation.js",
+        "path": "tools/vendor/web-ui/js/navigation.js",
+        "sha256": "0b9df28bc6798e2fc76ff943b25dddea48c203727d08ac65845397dacd030b2f"
+      }
+    ]
   }
 }

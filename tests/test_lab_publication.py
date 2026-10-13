@@ -33,7 +33,7 @@ def test_import_is_allowlisted_and_rejects_incomplete_source_before_writing():
         for name in module.FILES:
             content = (PUBLIC / name).read_bytes()
             if name == 'index.html':
-                content = b'<html><body><header>Demo</header></body></html>'
+                content = b'<html><head></head><body><header>Demo</header></body></html>'
             (source / name).write_bytes(content)
         (source / 'mcp-toolcalls.jsonl').write_text('private log')
         (source / 'antipatterns.jsonl').write_text('private log')
@@ -64,3 +64,36 @@ assert.equal(route.viewFromLocation('#pixiv',''),'pixiv');
 assert.equal(route.viewFromLocation('',''),'home');
 '''
     subprocess.run(['node', '-e', js], cwd=ROOT, check=True)
+
+
+def test_shared_presentation_keeps_original_report_identity():
+    meta=json.loads((PUBLIC/'publication.json').read_text())
+    assert meta['source_sha']=='3b15b7911695fc76fa8cd01f514e57133fb02d83'
+    assert meta['source_sha256']['pages-pixiv.js']=='b44157ffc92d6bdcee5d9a10e575ae0fc6f21f91bbbe28776bcbeda48956a8cb'
+    assert meta['presentation']['owner']=='myon-bioinformatics/web-ui'
+    assert meta['source_sha256']['index.html']!=meta['published_sha256']['index.html']
+    assert 'shared-navigation.mjs' not in meta['source_sha256']
+    assert 'shared-navigation.mjs' in meta['published_sha256']
+    page=(PUBLIC/'index.html').read_text()
+    assert 'data-ui-theme="modern"' in page
+    assert 'href="terminal.css' not in page
+    assert 'src="pages-hash.js' not in page
+    assert 'data-shared-ui="web-ui"' in page
+    assert 'font-family: inherit;' in page
+
+
+def test_reimport_reapplies_shared_runtime_and_records_both_hashes():
+    with tempfile.TemporaryDirectory() as directory:
+        source=Path(directory)/'source';source.mkdir()
+        destination=Path(directory)/'publication'
+        for name in module.FILES:
+            content=(PUBLIC/name).read_bytes()
+            if name=='index.html':
+                content=b'<html><head><link rel="stylesheet" href="terminal.css?v=1"></head><body><header>Demo</header><main class="term-page"><pre>Original report</pre></main><script src="pages-hash.js"></script></body></html>'
+            (source/name).write_bytes(content)
+        manifest=module.import_export(source,destination)
+        assert manifest['source_sha256']['index.html']==hashlib.sha256((source/'index.html').read_bytes()).hexdigest()
+        assert 'data-ui-theme="modern"' in (destination/'index.html').read_text()
+        assert '<pre class="ui-output">Original report</pre>' in (destination/'index.html').read_text()
+        assert (destination/'shared-navigation.mjs').is_file()
+        assert manifest['presentation']['owner']=='myon-bioinformatics/web-ui'

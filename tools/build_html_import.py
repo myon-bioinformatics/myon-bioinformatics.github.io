@@ -12,7 +12,9 @@ BODY = '''<main class="ui-page">
 <section class="ui-panel" aria-labelledby="input-title"><h2 id="input-title">1. 取り込む</h2>
 <label for="source-url">取得元URL（絶対HTTP(S)、相対リンクの基準）</label>
 <input class="ui-input" id="source-url" type="url" placeholder="https://example.org/page" autocomplete="off">
-<p>URLは出典の申告です。このツールはアクセスしません。元URLが不明な場合は明示した仮のURLを使用してください。ダウンロード済みの証明にはなりません。</p>
+__SOURCE_LINK__
+<p>上のリンクを選んだ時だけ指定サイトへアクセスします。開いたサイトでHTMLを保存するかソースをコピーし、このページへ取り込んでください。サイトの表示内容を自動取得する機能ではありません。</p>
+<p>URLは出典の申告です。取込・抽出処理はアクセスしません。元URLが不明な場合は明示した仮のURLを使用してください。ダウンロード済みの証明にはなりません。</p>
 <label for="html-input">HTMLを貼り付ける</label><textarea class="ui-input" id="html-input" rows="8" spellcheck="false" placeholder="&lt;article&gt;&lt;h1&gt;見出し&lt;/h1&gt;&lt;p&gt;本文&lt;/p&gt;&lt;/article&gt;"></textarea>
 <button class="ui-button" id="paste-load" type="button">貼り付けを取り込む</button>
 <label for="file-input">またはHTMLファイルを選択（UTF-8、2 MiBまで）</label>
@@ -37,7 +39,7 @@ BODY = '''<main class="ui-page">
 </main>'''
 CSS = 'label{display:block;margin:1rem 0 .3rem}input,textarea,select{width:100%;max-width:100%}button{margin:.3rem 0;min-height:44px}pre{overflow-wrap:anywhere}h1{font-size:1.8rem}'
 def generate():
-    document = ui.render_document(title='HTML文書取込', trusted_html=BODY, css=CSS,
+    document = ui.render_document(title='HTML文書取込', trusted_html=BODY.replace("__SOURCE_LINK__", ui.source_link("source-url")), css=CSS,
         stylesheets=ui.shared_stylesheets('../vendor/web-ui'), scripts=('./app.mjs',))
     csp = "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'none'; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
     return document.replace('<head>', '<head><meta http-equiv="Content-Security-Policy" content="'+csp+'">', 1).replace('<html lang="en">','<html lang="ja">')
