@@ -46,7 +46,8 @@ jobs:
     permissions:
       contents: read
       actions: read
-    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-junit-identity.yml@e7455cbf69eac4ba776fbeeaf15ba685454fea9a
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-junit-identity.yml@652608b16c73ecd1e39db848abba3d08a00a8a3a
     with:
       expected-reports: '["junit-portal-py3.12/portal.xml"]'
+      commit-sha: ${{ github.event.pull_request.head.sha || github.sha }}
       output-artifact: portal-failure-identity
