@@ -6,7 +6,14 @@ on:
   workflow_dispatch:
 
 jobs:
+  changes:
+    permissions:
+      contents: read
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@40bd74c4a36896509b506d6d06251255be6c77c7
+
   node:
+    if: needs.changes.outputs.product_changed == 'true'
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -17,6 +24,8 @@ jobs:
       - run: npm run stagehand:surface
 
   python:
+    if: needs.changes.outputs.product_changed == 'true'
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -36,6 +45,8 @@ jobs:
           retention-days: 14
 
   metadata:
+    if: needs.changes.outputs.product_changed == 'true'
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -56,6 +67,8 @@ jobs:
 
 
   screenshots:
+    if: needs.changes.outputs.product_changed == 'true'
+    needs: changes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -106,8 +119,8 @@ jobs:
           retention-days: 14
 
   failure-identity:
-    needs: python
-    if: always()
+    needs: [changes, python]
+    if: (always()) && needs.changes.outputs.product_changed == 'true'
     permissions:
       contents: read
       actions: read
