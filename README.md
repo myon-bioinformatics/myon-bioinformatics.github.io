@@ -147,3 +147,6 @@ legacy redirect must land only after this portfolio receiving change is deployed
 ### Shared browser controls
 
 HTML Import exposes an explicit HTTP(S) source link in a new tab; pasting or changing extraction options stays local. `web-ui` owns `source_link`, `view_tabs`, `adopt_document`, and `navigation.js`. The portfolio vendors the pinned implementation and keeps the lab report source identity separate from its shared presentation transform. Wikipedia/Pixiv typography and controls use that same modern theme. See [HTML Import contract](docs/html-import.md).
+
+Pixiv source now supports a local heading dropdown through a consumer adapter.
+See [source grammar, Python one-liners, and markdown.py integration](docs/pixiv-markup.md).

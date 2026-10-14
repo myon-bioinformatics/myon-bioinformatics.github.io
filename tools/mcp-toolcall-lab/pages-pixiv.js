@@ -24,7 +24,7 @@
   } else {
     root.mcpToolcallLabPagesPixiv = api;
     if (typeof document !== "undefined") {
-      api.autoMount(root);
+      /* Portfolio wrapper owns mounting. */
     }
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
