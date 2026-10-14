@@ -1,0 +1,95 @@
+{
+  "schema": "vendor-lock/1",
+  "files": [
+    {
+      "repository": "myon-bioinformatics/mcp-toolcall-lab",
+      "ref": "56982948ba79c070664cf9efe87a3d753e417acf",
+      "commit": "56982948ba79c070664cf9efe87a3d753e417acf",
+      "source": "LICENSE",
+      "destination": "tools/vendor/lab/LICENSE",
+      "blob_sha": "4ec4989b801bf1a3df6184d21f79e6e7ed5931f6",
+      "sha256": "15f66204c4a6a1ce0c94f0ed4319ff9400f872e85fd32c95f21695c2f231af59"
+    },
+    {
+      "repository": "myon-bioinformatics/mcp-toolcall-lab",
+      "ref": "56982948ba79c070664cf9efe87a3d753e417acf",
+      "commit": "56982948ba79c070664cf9efe87a3d753e417acf",
+      "source": "src/mcp_toolcall_lab/adapters/html_snapshot.py",
+      "destination": "tools/vendor/lab/html_snapshot.py",
+      "blob_sha": "0bcf84d53733408d4bb33c6461bdd4978c422924",
+      "sha256": "39a6ed442ef72ba4f72a55d3f9949cb502c846503631c6b0f4c1afedc450d164"
+    },
+    {
+      "repository": "myon-bioinformatics/web-ui",
+      "ref": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "commit": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "source": "LICENSE",
+      "destination": "tools/vendor/web-ui/LICENSE",
+      "blob_sha": "4ec4989b801bf1a3df6184d21f79e6e7ed5931f6",
+      "sha256": "15f66204c4a6a1ce0c94f0ed4319ff9400f872e85fd32c95f21695c2f231af59"
+    },
+    {
+      "repository": "myon-bioinformatics/web-ui",
+      "ref": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "commit": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "source": "css/base.css",
+      "destination": "tools/vendor/web-ui/css/base.css",
+      "blob_sha": "80ad35ff256653f8d56dc65690673b14d4d43312",
+      "sha256": "fa0b4e22ad23dcdc22544ac8545523d492650331d6d551440657508e61189c3c"
+    },
+    {
+      "repository": "myon-bioinformatics/web-ui",
+      "ref": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "commit": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "source": "css/components.css",
+      "destination": "tools/vendor/web-ui/css/components.css",
+      "blob_sha": "eb9c2074679cfa1e704024118b006ebb4f3d189b",
+      "sha256": "13e326986246e6cccf075e1dc44fd5de9fa6b2b6deace7914fb8a2f0febdfb4e"
+    },
+    {
+      "repository": "myon-bioinformatics/web-ui",
+      "ref": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "commit": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "source": "css/themes/modern.css",
+      "destination": "tools/vendor/web-ui/css/themes/modern.css",
+      "blob_sha": "a964e4545aa1586be4a02cd3cf533caffa3d932a",
+      "sha256": "69bb6b20e138c041717c2294ca3180a20cd0bfaf9c99153f2dc5eb7d53523852"
+    },
+    {
+      "repository": "myon-bioinformatics/web-ui",
+      "ref": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "commit": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "source": "css/tokens.css",
+      "destination": "tools/vendor/web-ui/css/tokens.css",
+      "blob_sha": "cc1414c0e1b2b895201fbe560903489e590aa020",
+      "sha256": "f83b01da9602a4aa3863ab6f903f8a87211669d2c96170994c7816332fd3bda3"
+    },
+    {
+      "repository": "myon-bioinformatics/web-ui",
+      "ref": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "commit": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "source": "js/navigation.js",
+      "destination": "tools/vendor/web-ui/js/navigation.js",
+      "blob_sha": "bf1897fdb3eedaa43c54ab315ac1c1dc3e3b9189",
+      "sha256": "0b9df28bc6798e2fc76ff943b25dddea48c203727d08ac65845397dacd030b2f"
+    },
+    {
+      "repository": "myon-bioinformatics/web-ui",
+      "ref": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "commit": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "source": "js/ui.js",
+      "destination": "tools/vendor/web-ui/js/ui.js",
+      "blob_sha": "893390e97f232d2dc3503f0712d0d2a765585407",
+      "sha256": "770f8d0ab97dc7805b8876e842d49ab2f2c9384f247e77ad5a90cb07cb34684c"
+    },
+    {
+      "repository": "myon-bioinformatics/web-ui",
+      "ref": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "commit": "2410a5a63c5117c321e8e737ee6811d64fab2afb",
+      "source": "web_ui.py",
+      "destination": "tools/vendor/web-ui/web_ui.py",
+      "blob_sha": "dbf691a14278e1a8bcda5d71042ec0d16efbe08a",
+      "sha256": "c5641be1eba19f75435de66ccf77cdebb42f583d693aa552a0d9aaffb72a45c9"
+    }
+  ]
+}
