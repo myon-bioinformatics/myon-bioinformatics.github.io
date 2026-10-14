@@ -1,0 +1,10 @@
+[
+  {"source":"Title: 試験記事\n\nBody:\n*概要\n**[作品](作品)**の説明。\n*世界観\n冒頭\n|^火の国|[里](里)|\n|^水の国|別の里|\n**文明描写\n説明\n-**用語**\n--[[下位>用語(詳細)]]\n**社会構成\n社会\n*関連イラスト\n![pixiv image 123](pixivimage:123)[pixivimage:456:s]\n*関連動画\n[youtube:nlRxufviKuc]"},
+  {"source":"*【概要】\n[[表示>リンク(対象)]]\n**小見出し\n本文\n*概要\n同名の別節\n*概要\n最後"},
+  {"source":"**太字だけ**\n*強調だけ*\n* list item\n`[[literal]]` `*heading`\n```text\n*not heading\n# not heading\n|^not|table|\n[youtube:nlRxufviKuc]\n```\n*本物\n本文\n~~~\n*not heading either\n~~~~\n**次\n本文"},
+  {"source":"*概要\r\n本文\u2028**詳細\u2029詳細の本文\r*次\n<script>alert(1)</script> & \"quoted\"\n\u0000"},
+  {"source":"# Canonical\n\n| Column | Value |\n| --- | --- |\n| One | Two |\n\n## Child\n\n[link](target)\n- **item**\n\n## Duplicate\nfirst\n## Duplicate\nsecond"},
+  {"source":"*末尾に閉じ記号はない\n|^ラベル|A \\| B|\n|^次|`[[code]]`|\n\n|^別表|別の値|"},
+  {"source":"### Deep ###\nbody\n# Parent\nfirst\n### Jump\nchild\n# Next\nnext"},
+  {"source":"*空の節\n*次の節\n本文"}
+]
