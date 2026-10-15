@@ -9,7 +9,7 @@ jobs:
   changes:
     permissions:
       contents: read
-    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@9cc33f08f225eaf67d9a00489a1bf15977ebee25
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@b000e5967cb7596f6f9f20fe396a686fdc700c16
 
   node:
     if: needs.changes.outputs.product_changed == 'true'
@@ -124,7 +124,7 @@ jobs:
     permissions:
       contents: read
       actions: read
-    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-junit-identity.yml@9cc33f08f225eaf67d9a00489a1bf15977ebee25
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-junit-identity.yml@b000e5967cb7596f6f9f20fe396a686fdc700c16
     with:
       expected-reports: '["junit-stagehand-python-py3.12/stagehand-python.xml"]'
       commit-sha: ${{ github.event.pull_request.head.sha || github.sha }}
