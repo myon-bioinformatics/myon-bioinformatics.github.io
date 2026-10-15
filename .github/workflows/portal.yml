@@ -12,7 +12,7 @@ jobs:
   changes:
     permissions:
       contents: read
-    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@ab17b409d82f95abc81116af7ff0d3e7bdc4158c
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@9cc33f08f225eaf67d9a00489a1bf15977ebee25
 
   static:
     if: needs.changes.outputs.product_changed == 'true'
@@ -53,7 +53,7 @@ jobs:
     permissions:
       contents: read
       actions: read
-    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-junit-identity.yml@ab17b409d82f95abc81116af7ff0d3e7bdc4158c
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-junit-identity.yml@9cc33f08f225eaf67d9a00489a1bf15977ebee25
     with:
       expected-reports: '["junit-portal-py3.12/portal.xml"]'
       commit-sha: ${{ github.event.pull_request.head.sha || github.sha }}
