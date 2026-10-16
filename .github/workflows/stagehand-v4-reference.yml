@@ -81,7 +81,7 @@ jobs:
         run: npm install --ignore-scripts
 
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps --only-shell chromium
 
       - name: Serve site locally
         run: python3 -m http.server 8000 > /tmp/github-io-http.log 2>&1 &
