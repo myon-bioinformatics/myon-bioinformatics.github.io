@@ -31,7 +31,7 @@ Live browser/model operations must receive credentials through GitHub Actions se
 
 ## Advisory metadata
 
-`scripts/tooling_meta.py` records repository SHA and observed tool/package versions as **advisory evidence only**.
+`scripts/myon_bioinformatics_github_io_tooling_meta.py` records repository SHA and observed tool/package versions as **advisory evidence only**.
 
 - version drift alone is never a failure condition,
 - an older installed version is not automatically an error,
