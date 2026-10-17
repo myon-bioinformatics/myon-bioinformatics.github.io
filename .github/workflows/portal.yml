@@ -28,6 +28,20 @@ jobs:
       - name: Validate portal links
         run: python -m pytest tests/test_portal_links.py tests/test_lab_publication.py tests/test_myon_bioinformatics_github_io_vendor_lock.py --junitxml=reports/portal.xml
 
+      - name: Preserve raw pytest JUnit
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: junit-portal-py3.12
+          path: reports/portal.xml
+          if-no-files-found: error
+          retention-days: 14
+
+  browser:
+    needs: static
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
@@ -37,15 +51,6 @@ jobs:
         run: npx playwright install --with-deps --no-shell chromium
       - name: Verify transferred browser tools
         run: npx playwright test tests/lab-publication.spec.js
-
-      - name: Preserve raw pytest JUnit
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: junit-portal-py3.12
-          path: reports/portal.xml
-          if-no-files-found: error
-          retention-days: 14
 
   failure-identity:
     needs: [changes, static]
