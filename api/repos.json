@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-17T21:09:51Z",
+  "generatedAt": "2026-10-18T15:00:10Z",
   "owner": "myon-bioinformatics",
-  "count": 40,
+  "count": 41,
   "repos": [
     {
       "name": "Aoi",
@@ -20,7 +20,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T16:52:04Z",
+      "updatedAt": "2026-10-18T09:44:04Z",
       "homepage": null,
       "readmeHeading": "Aoi",
       "readmeSummary": "Observe. Measure. Question.",
@@ -132,7 +132,7 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T15:47:37Z",
+      "updatedAt": "2026-10-18T03:27:14Z",
       "homepage": null,
       "readmeHeading": "BlueProbe",
       "readmeSummary": "まず見に行く。解釈はあとで。",
@@ -158,7 +158,7 @@
         "typescript"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-17T16:21:52Z",
+      "updatedAt": "2026-10-18T11:42:55Z",
       "homepage": null,
       "readmeHeading": "browser-test-kit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, Stagehand, Replay, screenshots, mobile web, and GitHub Actions.",
@@ -254,6 +254,34 @@
       "archived": true
     },
     {
+      "name": "DRAgoWing",
+      "url": "https://github.com/myon-bioinformatics/DRAgoWing",
+      "description": "DRAgoWing: 記録を、判定をやり直さずに置く。Aoi の dragowing/ から独立（git subtree）/ Renders baseball research records as Plotly.js HTML reports, proposition tables and optional headless-Chrome PNG/SVG exports without Python plotting libraries.",
+      "language": "Python",
+      "topics": [
+        "baseball",
+        "data-visualization",
+        "headless-chrome",
+        "html-report",
+        "markdown",
+        "npb",
+        "numpy",
+        "plotly-js",
+        "polars",
+        "pytest",
+        "python",
+        "python3",
+        "sports-analytics",
+        "static-html"
+      ],
+      "stars": 0,
+      "updatedAt": "2026-10-17T23:48:20Z",
+      "homepage": null,
+      "readmeHeading": "DRAgoWing",
+      "readmeSummary": "記録を、判定をやり直さずに置く。",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/DRAgoWing/main/README.md"
+    },
+    {
       "name": "Err-o-RoadRunner",
       "url": "https://github.com/myon-bioinformatics/Err-o-RoadRunner",
       "description": "Error-triggered, AI-agent-independent triage for Python/Node/CI failures: idle until something fails, then prints FOUND / NOT FOUND / HINT reports to stdout. Python stdlib only (Node optional).",
@@ -274,7 +302,7 @@
         "traceback"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T03:46:35Z",
+      "updatedAt": "2026-10-18T14:59:43Z",
       "homepage": null,
       "readmeHeading": "Err-o-RoadRunner",
       "readmeSummary": "Err-o-RoadRunner is a tool that does nothing in normal times. It starts working only after an error has happened. The name combines \"Error\" and \"Road Runner\".",
@@ -297,7 +325,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-17T12:11:51Z",
+      "updatedAt": "2026-10-18T14:59:40Z",
       "homepage": null,
       "readmeHeading": "FLUTTER_NAVIGATION_BASIC_DEMO(macOS)",
       "readmeSummary": null,
@@ -320,7 +348,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T12:18:40Z",
+      "updatedAt": "2026-10-18T08:02:41Z",
       "homepage": null,
       "readmeHeading": "gh_identity",
       "readmeSummary": "Single-file, stdlib-only Python interface for portable GitHub identity and operations.",
@@ -427,7 +455,7 @@
         "python3"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-17T14:20:27Z",
+      "updatedAt": "2026-10-18T11:01:45Z",
       "homepage": null,
       "readmeHeading": "Ironmate",
       "readmeSummary": "Pythonを中心に、文書・画像などの**内容や属性の変換・置換**を検証するプロジェクトです。 PPTXの文字・色・矢印属性の置換を今後の対象とし、画素／パレットに基づくドット表現を試作しています。 要件は [Issue #80](https://github.com/myon-bioinformatics/Ironmate/issues/80)、 ドット表現の試作は [PR #79](https://github.com/myon-bioinformatics/Ironmate/pull/79) で追跡します。 Markdown→PPTX変換と既存PPTXの属性編集CLIは試作実装済みです…",
@@ -499,7 +527,7 @@
         "tool-calling"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T07:58:50Z",
+      "updatedAt": "2026-10-18T11:01:21Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "Reproducible experiments for reliable LLM-to-MCP tool discovery, initialization, and calls using FastMCP and mock APIs.",
@@ -539,7 +567,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-17T13:12:35Z",
+      "updatedAt": "2026-10-18T11:16:52Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -558,7 +586,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T12:10:18Z",
+      "updatedAt": "2026-10-18T14:59:46Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
@@ -587,7 +615,7 @@
         "toml"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-17T15:53:44Z",
+      "updatedAt": "2026-10-18T08:15:56Z",
       "homepage": null,
       "readmeHeading": "NagoyAction",
       "readmeSummary": "研究を、続けられる仕組みに。",
@@ -685,10 +713,10 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T15:47:40Z",
+      "updatedAt": "2026-10-17T23:36:45Z",
       "homepage": null,
-      "readmeHeading": "このリポジトリで動かす",
-      "readmeSummary": "サイクルデータ（`cycles/`）、`scripts/`、SakAnalytics は Aoi に残します。コピーはせず、Aoi を固定 SHA で checkout して渡します。",
+      "readmeHeading": "PythDRagoras",
+      "readmeSummary": "本当にその説明で十分か？",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/PythDRagoras/main/README.md"
     },
     {
@@ -756,7 +784,7 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T15:47:53Z",
+      "updatedAt": "2026-10-18T03:22:33Z",
       "homepage": null,
       "readmeHeading": "QueRyu",
       "readmeSummary": "再現できる取得が、確かな理解をつくる。",
@@ -783,10 +811,10 @@
         "synthetic-data"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-17T16:11:48Z",
+      "updatedAt": "2026-10-17T23:48:11Z",
       "homepage": null,
-      "readmeHeading": "このリポジトリで動かす",
-      "readmeSummary": "サイクルデータ（`cycles/`）と PythDRagoras（`propositions`）は Aoi に残します。コピーはせず、Aoi を固定 SHA で checkout して渡します。",
+      "readmeHeading": "SakAnalytics",
+      "readmeSummary": "数字は語る。だが、まだ語りきっていないことがある。",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/sakanalytics/main/README.md"
     },
     {
@@ -924,7 +952,7 @@
         "vanilla-js"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T12:13:31Z",
+      "updatedAt": "2026-10-18T14:57:57Z",
       "homepage": null,
       "readmeHeading": "web-ui",
       "readmeSummary": "Shared CSS themes, semantic UI components, and small JavaScript utilities for static interfaces across myon-bioinformatics projects.",
@@ -949,7 +977,7 @@
         "text-search"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T13:31:48Z",
+      "updatedAt": "2026-10-18T10:25:37Z",
       "homepage": null,
       "readmeHeading": "xprobe",
       "readmeSummary": "For native pytest outcomes (including xfail/xpass and execution phases), see [pytest observations and exploration](docs/pytest-observations.md). The opt-in test adapter emits JSONL readable by the existing corpus and search helpers.",
@@ -974,7 +1002,7 @@
         "troubleshooting"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T08:41:50Z",
+      "updatedAt": "2026-10-18T04:54:43Z",
       "homepage": null,
       "readmeHeading": "yourself",
       "readmeSummary": "Single-file, standard-library Python tool for read-only inspection of host, OS, and runtime facts. Produces concise, copyable environment reports for troubleshooting and AI context.",
