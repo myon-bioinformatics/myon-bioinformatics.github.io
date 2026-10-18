@@ -27,9 +27,13 @@ def _headers():
     return headers
 
 
+# fetch-guard: every GitHub API call ends within a deadline.
+TIMEOUT_SECONDS = 30
+
+
 def _get_json(url):
     request = urllib.request.Request(url, headers=_headers())
-    with urllib.request.urlopen(request) as response:
+    with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
         return json.load(response)
 
 
@@ -52,7 +56,7 @@ def fetch_readme(owner, name):
     url = f"{API_ROOT}/repos/{owner}/{name}/readme"
     request = urllib.request.Request(url, headers=_headers())
     try:
-        with urllib.request.urlopen(request) as response:
+        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS) as response:
             payload = json.load(response)
     except urllib.error.HTTPError as error:
         if error.code == 404:
