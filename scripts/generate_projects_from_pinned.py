@@ -47,7 +47,8 @@ req = urllib.request.Request(
     },
     method="POST",
 )
-with urllib.request.urlopen(req) as resp:
+# fetch-guard: a stalled API call fails the job in 60 s instead of hanging it.
+with urllib.request.urlopen(req, timeout=60) as resp:
     data = json.loads(resp.read().decode("utf-8"))
 
 if "errors" in data:
