@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-18T15:00:10Z",
+  "generatedAt": "2026-10-18T21:09:41Z",
   "owner": "myon-bioinformatics",
   "count": 41,
   "repos": [
@@ -455,7 +455,7 @@
         "python3"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-18T11:01:45Z",
+      "updatedAt": "2026-10-18T15:20:50Z",
       "homepage": null,
       "readmeHeading": "Ironmate",
       "readmeSummary": "Pythonを中心に、文書・画像などの**内容や属性の変換・置換**を検証するプロジェクトです。 PPTXの文字・色・矢印属性の置換を今後の対象とし、画素／パレットに基づくドット表現を試作しています。 要件は [Issue #80](https://github.com/myon-bioinformatics/Ironmate/issues/80)、 ドット表現の試作は [PR #79](https://github.com/myon-bioinformatics/Ironmate/pull/79) で追跡します。 Markdown→PPTX変換と既存PPTXの属性編集CLIは試作実装済みです…",
@@ -567,7 +567,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-18T11:16:52Z",
+      "updatedAt": "2026-10-18T15:15:41Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -586,7 +586,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-18T14:59:46Z",
+      "updatedAt": "2026-10-18T15:00:14Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
@@ -952,7 +952,7 @@
         "vanilla-js"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-18T14:57:57Z",
+      "updatedAt": "2026-10-18T15:09:09Z",
       "homepage": null,
       "readmeHeading": "web-ui",
       "readmeSummary": "Shared CSS themes, semantic UI components, and small JavaScript utilities for static interfaces across myon-bioinformatics projects.",
