@@ -537,6 +537,127 @@ function initProjectControls(projects) {
   }
 }
 
+let aiHighlightsPool = [];
+let displayedAiHighlights = [];
+
+const FALLBACK_AI_HIGHLIGHTS = [
+  {
+    name: 'ollama/ollama',
+    desc: 'Get up and running with Llama 3.3, DeepSeek-R1, Gemma 2, and other large language models.',
+    url: 'https://github.com/ollama/ollama',
+    stars: 120000,
+    language: 'Go',
+  },
+  {
+    name: 'vllm-project/vllm',
+    desc: 'A high-throughput and memory-efficient inference and serving engine for LLMs.',
+    url: 'https://github.com/vllm-project/vllm',
+    stars: 38000,
+    language: 'Python',
+  },
+  {
+    name: 'langchain-ai/langchain',
+    desc: 'Building applications with LLMs through composability.',
+    url: 'https://github.com/langchain-ai/langchain',
+    stars: 98000,
+    language: 'Python',
+  },
+  {
+    name: 'huggingface/transformers',
+    desc: 'State-of-the-art Machine Learning for Pytorch, TensorFlow, and JAX.',
+    url: 'https://github.com/huggingface/transformers',
+    stars: 135000,
+    language: 'Python',
+  },
+];
+
+async function fetchAiHighlights() {
+  try {
+    const res = await fetch('https://api.github.com/search/repositories?q=topic:ai+stars:>1000&sort=updated&order=desc&per_page=12', {
+      headers: { Accept: 'application/vnd.github.v3+json' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (data && Array.isArray(data.items) && data.items.length > 0) {
+      aiHighlightsPool = data.items.map((item) => ({
+        name: item.full_name || item.name,
+        desc: item.description || '',
+        url: item.html_url || `https://github.com/${item.full_name}`,
+        stars: item.stargazers_count || 0,
+        language: item.language || 'Code',
+      }));
+    } else {
+      aiHighlightsPool = [...FALLBACK_AI_HIGHLIGHTS];
+    }
+  } catch {
+    aiHighlightsPool = [...FALLBACK_AI_HIGHLIGHTS];
+  }
+  pickRandomAiHighlights();
+}
+
+function pickRandomAiHighlights(count = 3) {
+  if (!aiHighlightsPool || aiHighlightsPool.length === 0) {
+    aiHighlightsPool = [...FALLBACK_AI_HIGHLIGHTS];
+  }
+  const shuffled = [...aiHighlightsPool].sort(() => 0.5 - Math.random());
+  displayedAiHighlights = shuffled.slice(0, Math.min(count, shuffled.length));
+}
+
+function renderAiHighlights(mode) {
+  const root = document.getElementById('ai-highlights-render-root');
+  if (!root) return;
+  clearElement(root);
+
+  if (mode === 'xml-like') {
+    root.dataset.renderer = 'xml';
+    root.className = 'notation-root xml-renderer';
+    xmlLine(root, 0, [xmlTag('<AiHighlights>')]);
+    displayedAiHighlights.forEach(({ name, desc, url, stars, language }) => {
+      xmlLine(root, 1, [xmlTag(`<Highlight name="${name}" stars="${stars}" language="${language}">`)]);
+      xmlLine(root, 2, [xmlTag('<Description>'), desc, xmlTag('</Description>')]);
+      xmlLine(root, 2, [xmlTag('<Url>'), externalLink(url, url), xmlTag('</Url>')]);
+      xmlLine(root, 1, [xmlTag('</Highlight>')]);
+    });
+    xmlLine(root, 0, [xmlTag('</AiHighlights>')]);
+  } else if (mode === 'json') {
+    root.dataset.renderer = 'json';
+    root.className = 'notation-root json-renderer';
+    appendJsonValue(root, displayedAiHighlights);
+  } else if (mode === 'markdown') {
+    root.dataset.renderer = 'markdown';
+    root.className = 'notation-root markdown-renderer';
+    displayedAiHighlights.forEach(({ name, desc, url, stars, language }) => {
+      const heading = element('h3', 'md-heading');
+      heading.appendChild(document.createTextNode('### '));
+      heading.appendChild(externalLink(url, name));
+      root.appendChild(heading);
+      root.appendChild(element('p', null, desc));
+      const list = element('ul', 'md-list');
+      list.appendChild(element('li', null, `★ ${stars.toLocaleString()} stars • ${language}`));
+      root.appendChild(list);
+    });
+  } else {
+    root.dataset.renderer = 'web';
+    root.className = 'grid';
+    displayedAiHighlights.forEach(({ name, desc, url, stars, language }) => {
+      const card = element('article', 'card ai-card');
+      const title = element('h3');
+      title.appendChild(externalLink(url, name));
+      card.appendChild(title);
+      card.appendChild(element('p', null, desc));
+
+      const meta = element('div', 'ai-meta');
+      const starTag = element('span', 'tag', `★ ${stars.toLocaleString()}`);
+      const langTag = element('span', 'tag', language);
+      meta.appendChild(starTag);
+      meta.appendChild(langTag);
+      card.appendChild(meta);
+
+      root.appendChild(card);
+    });
+  }
+}
+
 function renderPortfolio(mode, data) {
   const profileRoot = document.getElementById('profile-render-root');
   const projectsRoot = document.getElementById('projects-render-root');
@@ -552,6 +673,8 @@ function renderPortfolio(mode, data) {
   const filteredProjects = getFilteredProjects(data.projects);
   updateProjectsCount(filteredProjects.length, data.projects.length);
   PROJECT_RENDERERS[mode](projectsRoot, filteredProjects);
+
+  renderAiHighlights(mode);
 }
 
 function renderLoadError(error) {
@@ -567,9 +690,18 @@ function renderLoadError(error) {
   const selectedMode = normalizeViewMode(readStoredViewMode(configuredViewMode) || configuredViewMode);
   initViewModeSelector(selectedMode, configuredViewMode);
 
+  const refreshBtn = document.getElementById('ai-highlights-refresh');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+      pickRandomAiHighlights();
+      renderAiHighlights(getCurrentMode());
+    });
+  }
+
   try {
     sharedData = await loadSharedData();
     initProjectControls(sharedData.projects);
+    await fetchAiHighlights();
     renderPortfolio(selectedMode, sharedData);
   } catch (error) {
     renderLoadError(error);

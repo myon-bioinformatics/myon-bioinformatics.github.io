@@ -9,7 +9,7 @@ ui=importlib.util.module_from_spec(spec);spec.loader.exec_module(ui)
 CLASS_MAP={'term-page':'ui-page','term-title':'ui-title','term-muted':'ui-muted',
            'term-tag':'ui-tag','term-panel':'ui-panel','term-card':'ui-card',
            'term-output':'ui-output','term-input':'ui-input','term-button':'ui-button'}
-NAVIGATION_BINDING=b"globalThis.webUiNavigation.bindViews(globalThis,{viewAttribute:'data-pages-view',navAttribute:'data-pages-nav',queryAliases:{wiki:'wiki'}});\n"
+NAVIGATION_BINDING=b"globalThis.webUiNavigation.bindViews(globalThis,{viewAttribute:'data-pages-view',navAttribute:'data-pages-nav',queryAliases:{wiki:'wiki',pixiv:'pixiv',niconico:'niconico'}});\n"
 def presentation_identity():
     lock=json.loads((ROOT/'tools/html-import/vendor.lock.json').read_text())
     return {'owner':'myon-bioinformatics/web-ui','theme':'modern',
