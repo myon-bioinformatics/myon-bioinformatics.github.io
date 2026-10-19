@@ -5,6 +5,7 @@ module.exports = defineConfig({
   testDir: './tests',
   timeout: 30_000,
   retries: 0,
+  workers: 1,
   use: {
     baseURL: 'http://localhost:8080',
     channel: 'chromium',

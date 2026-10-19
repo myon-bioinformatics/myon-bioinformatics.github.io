@@ -57,6 +57,109 @@ h2{margin:0 0 .75rem}
 .intro,.outro{padding-top:.5rem}
 
 #projects h2 { margin-bottom: 0.75rem; }
+
+/* Projects controls: Search & Tag Filter */
+.projects-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 0.75rem;
+}
+.project-search-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+}
+#project-search-input {
+  width: 100%;
+  padding: 6px 30px 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.9rem;
+}
+.btn-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.btn-clear:hover {
+  color: var(--fg);
+}
+.project-tags-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.tag-btn:hover {
+  color: var(--fg);
+  border-color: var(--fg);
+}
+.tag-btn.active {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+  font-weight: 600;
+}
+.projects-count {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+.empty-projects-msg {
+  padding: 1rem 0;
+  color: var(--muted);
+  font-style: italic;
+}
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  gap: 8px;
+}
+.copy-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.copy-btn:hover {
+  color: var(--fg);
+  border-color: var(--fg);
+}
+.copy-btn.copied {
+  background: #2da44e;
+  border-color: #2da44e;
+  color: #ffffff;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill,minmax(260px,1fr));
@@ -239,6 +342,43 @@ body[data-view-mode="modern"] .timeline-item::before {
   box-shadow: 0 0 0 1px var(--terminal-border);
 }
 body[data-view-mode="modern"] a { color: inherit; }
+body[data-view-mode="modern"] #project-search-input {
+  border-radius: 0;
+  border-color: var(--terminal-border);
+  background: var(--terminal-panel);
+  color: var(--terminal-fg);
+}
+body[data-view-mode="modern"] .btn-clear {
+  color: var(--terminal-muted);
+}
+body[data-view-mode="modern"] .tag-btn {
+  border-radius: 0;
+  border-color: var(--terminal-border);
+  color: var(--terminal-muted);
+}
+body[data-view-mode="modern"] .tag-btn::before { content: "[ "; color: var(--terminal-border); }
+body[data-view-mode="modern"] .tag-btn::after { content: " ]"; color: var(--terminal-border); }
+body[data-view-mode="modern"] .tag-btn.active {
+  background: rgba(126, 231, 135, .12);
+  color: var(--terminal-fg);
+  border-color: var(--terminal-accent);
+}
+body[data-view-mode="modern"] .tag-btn.active::before { content: "[> "; color: var(--terminal-accent); }
+body[data-view-mode="modern"] .projects-count,
+body[data-view-mode="modern"] .empty-projects-msg {
+  color: var(--terminal-muted);
+}
+body[data-view-mode="modern"] .copy-btn {
+  border-radius: 0;
+  border-color: var(--terminal-border);
+  background: transparent;
+  color: var(--terminal-fg);
+}
+body[data-view-mode="modern"] .copy-btn.copied {
+  background: var(--terminal-accent);
+  color: var(--terminal-bg);
+  border-color: var(--terminal-accent);
+}
 
 /* ── XML-like mode ───────────────────────────────────────────────────────── */
 body[data-view-mode="xml-like"] {

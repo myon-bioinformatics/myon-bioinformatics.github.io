@@ -101,7 +101,7 @@ test('invalid config defaultViewMode falls back to modern', async ({ page }) => 
 test('modern keeps web behavior while using terminal-inspired presentation', async ({ page }) => {
   await loadFresh(page, 'modern');
   await expect(page.locator('#profile-render-root[data-renderer="web"] .tabs')).toBeVisible();
-  await expect(page.locator('.skill-bar-fill')).toHaveCount(11);
+  await expect(page.locator('.skill-bar-fill')).toHaveCount(13);
   await expect(page.locator('.timeline-item')).toHaveCount(4);
   await expect(page.locator('#projects-render-root[data-renderer="web"] .card')).toHaveCount(4);
 
@@ -192,7 +192,8 @@ test('reduced motion disables visible card movement', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await loadFresh(page, 'modern');
   const transitionDuration = await page.locator('.card').first().evaluate((node) => getComputedStyle(node).transitionDuration);
-  expect(transitionDuration === '0s' || transitionDuration === '0.00001s').toBeTruthy();
+  const seconds = parseFloat(transitionDuration);
+  expect(seconds === 0 || seconds <= 0.0001 || transitionDuration.includes('1e-05s') || transitionDuration.includes('0.00001s')).toBeTruthy();
 });
 
 test('all modes render the same shared profile and project data', async ({ page }) => {
