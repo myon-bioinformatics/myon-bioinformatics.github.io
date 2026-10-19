@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-19T10:54:23Z",
+  "generatedAt": "2026-10-19T21:11:30Z",
   "owner": "myon-bioinformatics",
   "count": 41,
   "repos": [
@@ -20,7 +20,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-19T10:38:40Z",
+      "updatedAt": "2026-10-19T19:42:51Z",
       "homepage": null,
       "readmeHeading": "Aoi",
       "readmeSummary": "Observe. Measure. Question.",
@@ -45,7 +45,7 @@
         "text-graphics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T12:10:14Z",
+      "updatedAt": "2026-10-19T12:07:43Z",
       "homepage": null,
       "readmeHeading": "ascii_artist",
       "readmeSummary": "**Python compatibility:** CI-tested on Python 3.10–3.14.",
@@ -132,7 +132,7 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-18T03:27:14Z",
+      "updatedAt": "2026-10-19T19:18:59Z",
       "homepage": null,
       "readmeHeading": "BlueProbe",
       "readmeSummary": "まず見に行く。解釈はあとで。",
@@ -158,7 +158,7 @@
         "typescript"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-19T10:25:14Z",
+      "updatedAt": "2026-10-19T12:00:29Z",
       "homepage": null,
       "readmeHeading": "browser-test-kit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, Stagehand, Replay, screenshots, mobile web, and GitHub Actions.",
@@ -181,7 +181,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T12:11:19Z",
+      "updatedAt": "2026-10-19T20:02:46Z",
       "homepage": null,
       "readmeHeading": "cli_args",
       "readmeSummary": "A single-file, standard-library-only Python toolkit for reusable CLI argument definitions, validation, command construction, execution, and JSON/text output, backed by practical CLI tests.",
@@ -275,7 +275,7 @@
         "static-html"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-17T23:48:20Z",
+      "updatedAt": "2026-10-19T12:03:29Z",
       "homepage": null,
       "readmeHeading": "DRAgoWing",
       "readmeSummary": "記録を、判定をやり直さずに置く。",
@@ -302,7 +302,7 @@
         "traceback"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-18T14:59:43Z",
+      "updatedAt": "2026-10-19T12:17:43Z",
       "homepage": null,
       "readmeHeading": "Err-o-RoadRunner",
       "readmeSummary": "Err-o-RoadRunner is a tool that does nothing in normal times. It starts working only after an error has happened. The name combines \"Error\" and \"Road Runner\".",
@@ -325,7 +325,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-18T14:59:40Z",
+      "updatedAt": "2026-10-19T11:55:16Z",
       "homepage": null,
       "readmeHeading": "FLUTTER_NAVIGATION_BASIC_DEMO(macOS)",
       "readmeSummary": null,
@@ -348,7 +348,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-18T08:02:41Z",
+      "updatedAt": "2026-10-19T12:21:40Z",
       "homepage": null,
       "readmeHeading": "gh_identity",
       "readmeSummary": "Single-file, stdlib-only Python interface for portable GitHub identity and operations.",
@@ -455,7 +455,7 @@
         "python3"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-19T09:06:44Z",
+      "updatedAt": "2026-10-19T19:17:57Z",
       "homepage": null,
       "readmeHeading": "Ironmate",
       "readmeSummary": "Pythonを中心に、文書・画像などの**内容や属性の変換・置換**を検証するプロジェクトです。 PPTXの文字・色・矢印属性の置換を今後の対象とし、画素／パレットに基づくドット表現を試作しています。 要件は [Issue #80](https://github.com/myon-bioinformatics/Ironmate/issues/80)、 ドット表現の試作は [PR #79](https://github.com/myon-bioinformatics/Ironmate/pull/79) で追跡します。 Markdown→PPTX変換と既存PPTXの属性編集CLIは試作実装済みです…",
@@ -501,7 +501,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T12:10:23Z",
+      "updatedAt": "2026-10-19T12:16:14Z",
       "homepage": null,
       "readmeHeading": "markdown",
       "readmeSummary": "stdlib だけで動く、関数提供に特化した Python Markdown ユーティリティ。",
@@ -527,7 +527,7 @@
         "tool-calling"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-18T11:01:21Z",
+      "updatedAt": "2026-10-19T19:18:50Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "Reproducible experiments for reliable LLM-to-MCP tool discovery, initialization, and calls using FastMCP and mock APIs.",
@@ -567,7 +567,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-19T06:31:49Z",
+      "updatedAt": "2026-10-19T12:21:24Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
@@ -586,7 +586,7 @@
         "skillsets"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-18T21:09:46Z",
+      "updatedAt": "2026-10-19T12:28:10Z",
       "homepage": null,
       "readmeHeading": "📍 Live",
       "readmeSummary": "- **Site:** https://myon-bioinformatics.github.io - **Intro/Profile:** https://github.com/myon-bioinformatics - **Links:** <a href=\"https://lit.link/myon123\">lit.link</a> / <a href=\"https://linktr.ee/myon123\">Linktree</a>",
@@ -615,7 +615,7 @@
         "toml"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-19T06:31:09Z",
+      "updatedAt": "2026-10-19T19:12:46Z",
       "homepage": null,
       "readmeHeading": "NagoyAction",
       "readmeSummary": "研究を、続けられる仕組みに。",
@@ -661,7 +661,7 @@
         "vulnerability"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T07:59:15Z",
+      "updatedAt": "2026-10-19T20:00:16Z",
       "homepage": "https://nvd.nist.gov/vuln",
       "readmeHeading": "NVD NIST known vulnerabilities",
       "readmeSummary": "**Python compatibility:** CI-tested on Python 3.9–3.14. Single-file, Python-standard-library client for the NVD CVE API 2.0. It fetches vulnerabilities for CPE 2.3 names and emits deterministic JSON Lines suitable for CLI use, CI, offline processing, and cross-repository adapters.",
@@ -713,7 +713,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T23:36:45Z",
+      "updatedAt": "2026-10-19T12:02:31Z",
       "homepage": null,
       "readmeHeading": "PythDRagoras",
       "readmeSummary": "本当にその説明で十分か？",
@@ -784,7 +784,7 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-18T03:22:33Z",
+      "updatedAt": "2026-10-19T12:02:27Z",
       "homepage": null,
       "readmeHeading": "QueRyu",
       "readmeSummary": "再現できる取得が、確かな理解をつくる。",
@@ -811,7 +811,7 @@
         "synthetic-data"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-19T10:49:35Z",
+      "updatedAt": "2026-10-19T12:07:33Z",
       "homepage": null,
       "readmeHeading": "SakAnalytics",
       "readmeSummary": "数字は語る。だが、まだ語りきっていないことがある。",
@@ -862,7 +862,7 @@
         "string-search"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-17T07:57:43Z",
+      "updatedAt": "2026-10-19T11:58:27Z",
       "homepage": null,
       "readmeHeading": "search_seq_including_spaces",
       "readmeSummary": null,
@@ -952,7 +952,7 @@
         "vanilla-js"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-19T08:51:22Z",
+      "updatedAt": "2026-10-19T12:21:39Z",
       "homepage": null,
       "readmeHeading": "web-ui",
       "readmeSummary": "Shared CSS themes, semantic UI components, and small JavaScript utilities for static interfaces across myon-bioinformatics projects.",
@@ -977,7 +977,7 @@
         "text-search"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-18T10:25:37Z",
+      "updatedAt": "2026-10-19T20:06:21Z",
       "homepage": null,
       "readmeHeading": "xprobe",
       "readmeSummary": "For native pytest outcomes (including xfail/xpass and execution phases), see [pytest observations and exploration](docs/pytest-observations.md). The opt-in test adapter emits JSONL readable by the existing corpus and search helpers.",
@@ -1002,7 +1002,7 @@
         "troubleshooting"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-18T04:54:43Z",
+      "updatedAt": "2026-10-19T12:16:31Z",
       "homepage": null,
       "readmeHeading": "yourself",
       "readmeSummary": "Single-file, standard-library Python tool for read-only inspection of host, OS, and runtime facts. Produces concise, copyable environment reports for troubleshooting and AI context.",
