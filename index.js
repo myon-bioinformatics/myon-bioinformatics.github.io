@@ -5,6 +5,9 @@ const VALID_VIEW_MODES = new Set(['modern', 'xml-like', 'json', 'markdown', 'git
 
 let sharedData = null;
 let configuredViewMode = DEFAULT_VIEW_MODE;
+let currentTagFilter = 'all';
+let currentSearchQuery = '';
+let controlsInitialized = false;
 
 function normalizeViewMode(mode) {
   return VALID_VIEW_MODES.has(mode) ? mode : DEFAULT_VIEW_MODE;
@@ -46,6 +49,10 @@ function externalLink(url, text = url) {
   link.target = '_blank';
   link.rel = 'noopener noreferrer';
   return link;
+}
+
+function getCurrentMode() {
+  return normalizeViewMode(document.body.dataset.viewMode || configuredViewMode);
 }
 
 function applyViewMode(mode) {
@@ -192,6 +199,12 @@ function renderWebProjects(root, projects) {
   root.dataset.renderer = 'web';
   root.className = 'grid';
 
+  if (!projects || projects.length === 0) {
+    const emptyMsg = element('div', 'empty-projects-msg', 'No projects match your filter.');
+    root.appendChild(emptyMsg);
+    return;
+  }
+
   projects.forEach(({ name, desc, url, topics = [] }) => {
     const card = element('article', 'card');
     const title = element('h3');
@@ -200,15 +213,54 @@ function renderWebProjects(root, projects) {
     card.appendChild(element('p', null, desc || ''));
 
     const badges = element('div', 'badges');
-    topics.slice(0, 6).forEach((topic) => badges.appendChild(element('span', 'tag', topic)));
+    topics.slice(0, 6).forEach((topic) => {
+      const tagSpan = element('span', 'tag', topic);
+      tagSpan.dataset.topic = topic;
+      tagSpan.style.cursor = 'pointer';
+      tagSpan.title = `Filter by ${topic}`;
+      tagSpan.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setTagFilter(topic);
+      });
+      badges.appendChild(tagSpan);
+    });
     card.appendChild(badges);
 
+    const footer = element('div', 'card-footer');
     const shields = element('img');
     shields.loading = 'lazy';
     shields.alt = 'GitHub stars';
     shields.src = `https://img.shields.io/github/stars/myon-bioinformatics/${encodeURIComponent(name)}?style=social`;
-    shields.style.marginTop = '6px';
-    card.appendChild(shields);
+    footer.appendChild(shields);
+
+    const copyBtn = element('button', 'copy-btn', 'Copy URL');
+    copyBtn.type = 'button';
+    copyBtn.setAttribute('aria-label', `Copy repository URL for ${name}`);
+    copyBtn.addEventListener('click', async () => {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(url);
+        } else {
+          const textarea = document.createElement('textarea');
+          textarea.value = url;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+        }
+        copyBtn.textContent = 'Copied!';
+        copyBtn.classList.add('copied');
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy URL';
+          copyBtn.classList.remove('copied');
+        }, 1500);
+      } catch (err) {
+        console.error('Copy failed:', err);
+      }
+    });
+    footer.appendChild(copyBtn);
+
+    card.appendChild(footer);
     root.appendChild(card);
   });
 }
@@ -256,16 +308,20 @@ function renderXmlProjects(root, projects) {
   root.dataset.renderer = 'xml';
   root.className = 'notation-root xml-renderer';
   xmlLine(root, 0, [xmlTag('<Projects>')]);
-  projects.forEach(({ name, desc, url, topics = [] }) => {
-    xmlLine(root, 1, [xmlTag(`<Project name="${name}">`)]);
-    xmlLine(root, 2, [xmlTag('<Description>'), desc || '', xmlTag('</Description>')]);
-    const urlLink = externalLink(url, url);
-    xmlLine(root, 2, [xmlTag('<Url>'), urlLink, xmlTag('</Url>')]);
-    xmlLine(root, 2, [xmlTag('<Topics>')]);
-    topics.forEach((topic) => xmlLine(root, 3, [xmlTag('<Topic>'), topic, xmlTag('</Topic>')]));
-    xmlLine(root, 2, [xmlTag('</Topics>')]);
-    xmlLine(root, 1, [xmlTag('</Project>')]);
-  });
+  if (!projects || projects.length === 0) {
+    xmlLine(root, 1, [document.createTextNode('<!-- No projects match your filter -->')]);
+  } else {
+    projects.forEach(({ name, desc, url, topics = [] }) => {
+      xmlLine(root, 1, [xmlTag(`<Project name="${name}">`)]);
+      xmlLine(root, 2, [xmlTag('<Description>'), desc || '', xmlTag('</Description>')]);
+      const urlLink = externalLink(url, url);
+      xmlLine(root, 2, [xmlTag('<Url>'), urlLink, xmlTag('</Url>')]);
+      xmlLine(root, 2, [xmlTag('<Topics>')]);
+      topics.forEach((topic) => xmlLine(root, 3, [xmlTag('<Topic>'), topic, xmlTag('</Topic>')]));
+      xmlLine(root, 2, [xmlTag('</Topics>')]);
+      xmlLine(root, 1, [xmlTag('</Project>')]);
+    });
+  }
   xmlLine(root, 0, [xmlTag('</Projects>')]);
 }
 
@@ -360,6 +416,11 @@ function renderMarkdownProjects(root, projects) {
   root.dataset.renderer = 'markdown';
   root.className = 'notation-root markdown-renderer';
 
+  if (!projects || projects.length === 0) {
+    root.appendChild(element('p', null, 'No projects match your filter.'));
+    return;
+  }
+
   projects.forEach(({ name, desc, url, topics = [] }) => {
     const heading = element('h3', 'md-heading');
     heading.appendChild(document.createTextNode('### '));
@@ -392,6 +453,90 @@ const PROJECT_RENDERERS = {
   markdown: renderMarkdownProjects,
 };
 
+function getFilteredProjects(projects) {
+  if (!projects || !Array.isArray(projects)) return [];
+  const query = currentSearchQuery.trim().toLowerCase();
+  return projects.filter((project) => {
+    const matchesTag = currentTagFilter === 'all' || (project.topics && project.topics.includes(currentTagFilter));
+    const matchesSearch = !query || (
+      project.name.toLowerCase().includes(query) ||
+      (project.desc && project.desc.toLowerCase().includes(query)) ||
+      (project.topics && project.topics.some((t) => t.toLowerCase().includes(query)))
+    );
+    return matchesTag && matchesSearch;
+  });
+}
+
+function updateProjectsCount(filteredCount, totalCount) {
+  const countEl = document.getElementById('projects-count');
+  if (!countEl) return;
+  if (filteredCount === totalCount) {
+    countEl.textContent = `Showing all ${totalCount} projects`;
+  } else if (filteredCount > 0) {
+    countEl.textContent = `Showing ${filteredCount} of ${totalCount} projects`;
+  } else {
+    countEl.textContent = 'No matching projects found.';
+  }
+}
+
+function setTagFilter(tag) {
+  currentTagFilter = tag;
+  const tagBtns = document.querySelectorAll('#project-tags-filter .tag-btn');
+  tagBtns.forEach((btn) => {
+    const active = btn.dataset.tag === tag;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', String(active));
+  });
+  if (sharedData) {
+    renderPortfolio(getCurrentMode(), sharedData);
+  }
+}
+
+function initProjectControls(projects) {
+  if (controlsInitialized || !projects) return;
+  controlsInitialized = true;
+
+  const searchInput = document.getElementById('project-search-input');
+  const searchClear = document.getElementById('project-search-clear');
+  const tagsContainer = document.getElementById('project-tags-filter');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      currentSearchQuery = searchInput.value;
+      if (searchClear) searchClear.hidden = !currentSearchQuery;
+      if (sharedData) {
+        renderPortfolio(getCurrentMode(), sharedData);
+      }
+    });
+  }
+
+  if (searchClear) {
+    searchClear.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      currentSearchQuery = '';
+      searchClear.hidden = true;
+      if (sharedData) {
+        renderPortfolio(getCurrentMode(), sharedData);
+      }
+    });
+  }
+
+  if (tagsContainer) {
+    const uniqueTopics = Array.from(new Set(projects.flatMap((p) => p.topics || []))).sort();
+    const allTags = ['all', ...uniqueTopics];
+
+    allTags.forEach((tag) => {
+      const label = tag === 'all' ? 'All' : tag;
+      const btn = element('button', `tag-btn${tag === currentTagFilter ? ' active' : ''}`, label);
+      btn.type = 'button';
+      btn.dataset.tag = tag;
+      btn.setAttribute('aria-pressed', String(tag === currentTagFilter));
+      btn.addEventListener('click', () => setTagFilter(tag));
+      tagsContainer.appendChild(btn);
+    });
+  }
+}
+
 function renderPortfolio(mode, data) {
   const profileRoot = document.getElementById('profile-render-root');
   const projectsRoot = document.getElementById('projects-render-root');
@@ -403,7 +548,10 @@ function renderPortfolio(mode, data) {
   projectsRoot.className = '';
 
   PROFILE_RENDERERS[mode](profileRoot, data.profile);
-  PROJECT_RENDERERS[mode](projectsRoot, data.projects);
+
+  const filteredProjects = getFilteredProjects(data.projects);
+  updateProjectsCount(filteredProjects.length, data.projects.length);
+  PROJECT_RENDERERS[mode](projectsRoot, filteredProjects);
 }
 
 function renderLoadError(error) {
@@ -421,6 +569,7 @@ function renderLoadError(error) {
 
   try {
     sharedData = await loadSharedData();
+    initProjectControls(sharedData.projects);
     renderPortfolio(selectedMode, sharedData);
   } catch (error) {
     renderLoadError(error);
