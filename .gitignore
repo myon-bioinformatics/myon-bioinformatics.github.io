@@ -3,3 +3,18 @@ __pycache__/
 test-results/
 playwright-report/
 node_modules/
+
+# --- common ignores (shared) ---
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+.venv/
+venv/
+.DS_Store
+Thumbs.db
+# --- end common ignores ---
