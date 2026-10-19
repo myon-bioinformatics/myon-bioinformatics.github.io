@@ -72,7 +72,7 @@ docker run --rm --ipc=host -e HTML_TOOL_BASE_URL=https://myon-bioinformatics.git
 ```
 
 Dockerはビルド・pytest・Playwrightの共通環境。Pagesに配布しない。
-Node baseは22-bookworm、JS test依存はpackage-lock、pytestは8.4.2。
+Node baseは22-bookworm、JS test依存はpackage-lock、pytestは9.1.1以上。
 画像digest/apt依存までのbit-for-bit固定は主張しない。
 CIはDockerをbuildしてからPython共有fixtureと既存portal/lab検証、
 Chromium/WebKit各々のdesktop/mobile貼付・ファイル・条件変更・JSON取得を実行。
