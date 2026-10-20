@@ -6,8 +6,13 @@ import sys
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / 'scripts'))
-from vendor_loader import load_module
+_scripts = str(ROOT / 'scripts')
+sys.path.insert(0, _scripts)
+try:
+    from vendor_loader import load_module
+finally:
+    if sys.path and sys.path[0] == _scripts:
+        sys.path.pop(0)
 
 extractor = load_module('html_snapshot', 'tools/vendor/lab/html_snapshot.py')
 CASES = json.loads((ROOT / 'tests/fixtures/html-import/cases.json').read_text(encoding='utf-8'))

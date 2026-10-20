@@ -4,8 +4,13 @@ from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / 'scripts'))
-from vendor_loader import load_module
+_scripts = str(ROOT / 'scripts')
+sys.path.insert(0, _scripts)
+try:
+    from vendor_loader import load_module
+finally:
+    if sys.path and sys.path[0] == _scripts:
+        sys.path.pop(0)
 
 ui = load_module('web_ui', 'tools/vendor/web-ui/web_ui.py')
 nav = load_module('portfolio_nav', 'scripts/portfolio_nav.py')

@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def load_module(name: str, relative_path: str | Path) -> ModuleType:
-    """Load a Python module dynamically given a path relative to the repository root."""
+    """Load a Python module from an absolute path or a path relative to the repository root."""
     path = Path(relative_path)
     if not path.is_absolute():
         path = ROOT / path
