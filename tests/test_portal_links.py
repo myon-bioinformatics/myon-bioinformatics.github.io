@@ -6,6 +6,8 @@ ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_PAGES = {
     "https://myon-bioinformatics.github.io/flutter_navigation_basic/",
     "https://myon-bioinformatics.github.io/web-ui/",
+    "https://myon-bioinformatics.github.io/Ironmate/",
+    "https://myon-bioinformatics.github.io/Ironmate/tools/",
 }
 
 class LinkParser(HTMLParser):
@@ -42,8 +44,7 @@ def test_ironmate_metadata_lives_with_the_portfolio():
     parser = LinkParser()
     parser.feed((ROOT / "index.html").read_text())
     assert metadata["repository"] in parser.links
-    # The card stays as a box with its repository link; the metadata file is kept
-    # but no longer linked while Ironmate's own Pages are not in use.
+    # Browser demos and the repository share the card; metadata stays machine-readable.
     assert "./project-ironmate.json" not in parser.links
     assert (ROOT / "project-ironmate.json").is_file()
     assert not any("/Ironmate/mcp-stub.html" in url for url in parser.links)
