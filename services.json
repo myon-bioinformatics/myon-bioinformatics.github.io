@@ -43,6 +43,10 @@
         "browserTools": {
           "kind": "pages",
           "url": "https://myon-bioinformatics.github.io/Ironmate/tools/"
+        },
+        "slides": {
+          "kind": "pages",
+          "url": "https://myon-bioinformatics.github.io/Ironmate/slides/"
         }
       },
       "flutter_navigation_basic": {
