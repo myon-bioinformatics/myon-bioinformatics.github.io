@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
       - name: Build pinned consumer test environment
@@ -26,7 +26,7 @@ jobs:
           docker run --rm --ipc=host -e HTML_TOOL_BASE_URL -v "$PWD/reports:/app/reports" -v "$PWD/test-results:/app/test-results" html-import-test npx playwright test --config playwright.html-import.config.js
       - name: Preserve live browser acceptance evidence
         if: always()
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: html-import-published-${{ github.event.workflow_run.head_sha || github.sha }}
           path: |
