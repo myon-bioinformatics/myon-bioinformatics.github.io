@@ -1,0 +1,3 @@
+-r requirements.txt
+# Browser capture is a development tool; production image helpers remain stdlib-only.
+playwright>=1.64.0
