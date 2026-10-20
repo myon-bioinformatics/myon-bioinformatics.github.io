@@ -8,6 +8,7 @@ EXPECTED_PAGES = {
     "https://myon-bioinformatics.github.io/web-ui/",
     "https://myon-bioinformatics.github.io/Ironmate/",
     "https://myon-bioinformatics.github.io/Ironmate/tools/",
+    "https://myon-bioinformatics.github.io/Ironmate/slides/",
 }
 
 class LinkParser(HTMLParser):
@@ -43,8 +44,8 @@ def test_ironmate_metadata_lives_with_the_portfolio():
     assert metadata["repository"] == "https://github.com/myon-bioinformatics/Ironmate"
     parser = LinkParser()
     parser.feed((ROOT / "index.html").read_text())
-    assert metadata["repository"] in parser.links
-    # Browser demos and the repository share the card; metadata stays machine-readable.
+    assert metadata["repository"] not in parser.links
+    # The former repository fallback is removed; metadata remains machine-readable.
     assert "./project-ironmate.json" not in parser.links
     assert (ROOT / "project-ironmate.json").is_file()
     assert not any("/Ironmate/mcp-stub.html" in url for url in parser.links)
@@ -74,8 +75,9 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
     assert "PPTX対応は計画段階" not in card
     assert "Markdown→PPTX" in card
     assert "試作実装" in card
-    assert "矢印属性や高度な書式は未対応" in card
-    assert "表示の完全再現は保証していません" in card
+    assert "ブラウザでスライドを作成" in card
+    assert "Open Repository" not in card
+    assert "Ironmate/slides/" in card
 
 
 def test_lab_pages_are_hosted_by_portfolio():

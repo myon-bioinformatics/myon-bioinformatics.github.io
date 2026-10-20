@@ -2,7 +2,7 @@
   "schema": "project-metadata/1",
   "name": "Ironmate",
   "repository": "https://github.com/myon-bioinformatics/Ironmate",
-  "summary": "ブラウザの画像編集・ドット絵・画像一覧と、ローカルCLIのPPTX生成・属性置換",
+  "summary": "ブラウザの画像・スライド編集、PPTX出力、ドット絵・画像一覧とローカルCLI",
   "status": "prototype_implemented",
   "pptx": {
     "status": "prototype",
@@ -55,7 +55,9 @@
       "PNG/SVG/JSON/Base64 export",
       "procedural pixel-grid presets and nearest resizing",
       "image contact sheet PNG and self-contained HTML",
-      "exact Base64 capacity calculation"
-    ]
+      "exact Base64 capacity calculation",
+      "multiple slides with editable text, shapes and triangle arrows exported as PPTX"
+    ],
+    "slides": "https://myon-bioinformatics.github.io/Ironmate/slides/"
   }
 }
