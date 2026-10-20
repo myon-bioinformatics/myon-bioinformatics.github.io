@@ -30,7 +30,7 @@ CLASS_MAP = {
 
 NAVIGATION_BINDING = (
     b"globalThis.webUiNavigation.bindViews(globalThis,{"
-    b"viewAttribute:'data-pages-view',navAttribute:'data-pages-nav',queryAliases:{wiki:'wiki'}});\n"
+    b"viewAttribute:'data-pages-view',navAttribute:'data-pages-nav',queryAliases:{wiki:'wiki',pixiv:'pixiv',niconico:'niconico'}});\n"
 )
 
 
@@ -56,6 +56,16 @@ def apply_shared_ui(page: str) -> str:
     if 'src="shared-navigation.mjs"' not in page:
         page = page.replace('</body>', '<script type="module" src="shared-navigation.mjs"></script></body>', 1)
     page = apply_pixiv_controls(page)
+    if 'data-testid="pages-nav-niconico"' not in page:
+        anchor = re.search(r'<a\b[^>]*data-pages-nav="pixiv"[^>]*>.*?</a>', page)
+        if anchor:
+            nav = '<a href="#niconico" data-pages-nav="niconico" data-testid="pages-nav-niconico">Niconico</a>'
+            page = page[:anchor.end()] + ' ' + nav + page[anchor.end():]
+    if 'data-pages-view="niconico"' not in page:
+        anchor = re.search(r'<section\b[^>]*data-pages-view="pixiv"[^>]*>', page)
+        if anchor:
+            panel = (ROOT / 'tools/niconico/panel.html').read_text(encoding='utf-8').strip()
+            page = page[:anchor.start()] + panel + page[anchor.start():]
     return page.replace(
         'Styling: single lab-owned <code>terminal.css</code> (no external stylesheet chain).',
         'Styling: pinned local <code>web-ui</code> modern theme; imported report and lab tool behavior retain their source identity.',

@@ -97,3 +97,16 @@ def test_reimport_reapplies_shared_runtime_and_records_both_hashes():
         assert '<pre class="ui-output">Original report</pre>' in (destination/'index.html').read_text()
         assert (destination/'shared-navigation.mjs').is_file()
         assert manifest['presentation']['owner']=='myon-bioinformatics/web-ui'
+
+
+def test_reimport_preserves_consumer_niconico_panel_and_routes():
+    from lab_shared_ui import apply_shared_ui, NAVIGATION_BINDING
+    source = '''<html><head></head><body><header>Lab</header>
+    <a href="#pixiv" data-pages-nav="pixiv">Pixiv</a>
+    <section data-pages-view="pixiv"></section></body></html>'''
+    page = apply_shared_ui(source)
+    assert 'data-pages-nav="niconico"' in page
+    assert 'id="pages-niconico-results"' in page
+    assert '../niconico/search.js' in page
+    assert apply_shared_ui(page).count('data-pages-view="niconico"') == 1
+    assert b"niconico:'niconico'" in NAVIGATION_BINDING

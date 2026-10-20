@@ -58,6 +58,45 @@ h2{margin:0 0 .75rem}
 
 #projects h2 { margin-bottom: 0.75rem; }
 
+/* AI Highlights section & refresh button */
+.section-header-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.section-header-wrap h2 {
+  margin: 0;
+}
+.section-sub {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-top: 0;
+  margin-bottom: 0.85rem;
+}
+.btn-refresh {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.btn-refresh:hover {
+  color: var(--fg);
+  border-color: var(--fg);
+}
+.ai-meta {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
 /* Projects controls: Search & Tag Filter */
 .projects-controls {
   display: flex;
@@ -266,7 +305,8 @@ body[data-view-mode="modern"] .outro h2::before {
   color: var(--terminal-accent);
 }
 body[data-view-mode="modern"] #profile,
-body[data-view-mode="modern"] #projects {
+body[data-view-mode="modern"] #projects,
+body[data-view-mode="modern"] #ai-highlights {
   position: relative;
   margin-top: 1rem;
   margin-bottom: 1rem;
@@ -275,7 +315,8 @@ body[data-view-mode="modern"] #projects {
   box-shadow: 6px 6px 0 rgba(88,166,255,.18);
 }
 body[data-view-mode="modern"] #profile::before,
-body[data-view-mode="modern"] #projects::before {
+body[data-view-mode="modern"] #projects::before,
+body[data-view-mode="modern"] #ai-highlights::before {
   position: absolute;
   top: -.9rem;
   left: 1rem;
@@ -286,6 +327,15 @@ body[data-view-mode="modern"] #projects::before {
 }
 body[data-view-mode="modern"] #profile::before { content: "+--[ profile ]--+"; }
 body[data-view-mode="modern"] #projects::before { content: "+--[ projects ]--+"; }
+body[data-view-mode="modern"] #ai-highlights::before { content: "+--[ ai highlights ]--+"; }
+body[data-view-mode="modern"] .btn-refresh {
+  border-radius: 0;
+  border-color: var(--terminal-border);
+  background: var(--terminal-panel);
+  color: var(--terminal-fg);
+}
+body[data-view-mode="modern"] .btn-refresh::before { content: "[ "; color: var(--terminal-border); }
+body[data-view-mode="modern"] .btn-refresh::after { content: " ]"; color: var(--terminal-border); }
 body[data-view-mode="modern"] .tabs {
   gap: 0;
   border-color: var(--terminal-border);

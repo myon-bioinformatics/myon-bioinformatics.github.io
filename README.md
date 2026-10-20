@@ -150,3 +150,14 @@ HTML Import exposes an explicit HTTP(S) source link in a new tab; pasting or cha
 
 Pixiv source now supports a local heading dropdown through a consumer adapter.
 See [source grammar, Python one-liners, and markdown.py integration](docs/pixiv-markup.md).
+
+### Portfolio search, highlights and image evidence
+
+- Project text search and topic filters work together in each view mode.
+- The lab's Niconico tab calls Snapshot Search API v2 from the browser. Network/API errors are displayed in the panel; existing Wikipedia and Pixiv tabs remain available. The portfolio owns `tools/niconico/` and reapplies this panel when importing a lab report.
+- AI & Tech Highlights displays public GitHub search results, or explicitly labelled curated examples when the API is unavailable. Curated examples do not claim current star counts.
+- `python -S scripts/generate_apng.py frame1.png frame2.png -o demo.png` creates an animation without third-party dependencies. Frames must share dimensions, color format, palette and transparency.
+- `python -S scripts/record_demo.py frame1.png frame2.png -o grid.png --mode montage` reconstructs PNG filters before stitching. Montage inputs must be matching non-interlaced 8-bit RGB/RGBA images.
+- Browser capture is a development dependency: install `tests/requirements-browser.txt`, run `python -m playwright install --no-shell chromium`, serve the site, then run `python scripts/capture_portfolio_evidence.py --base-url http://localhost:8080 -o test-results/evidence`. It records all five portfolio modes and six tool routes, screenshots, hashes and a montage. Capture uses labelled curated highlights for repeatability.
+
+Verification: `python -m pytest tests`, `npx playwright test`, and `node scripts/validate-ssot.mjs`. Python test dependencies (including the independent Pillow decoder) stay in `tests/requirements.txt`; production image conversion uses only the standard library. The portal workflow preserves browser evidence as an Actions artifact.

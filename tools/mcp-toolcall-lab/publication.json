@@ -18,7 +18,7 @@
     "repository-diagnostics.jsonl": "d23cb6d87704c467d605e650b7e14a04b4858167a581029d63d1df8dfbdfec97"
   },
   "published_sha256": {
-    "index.html": "ee87390bb0b333e6e95d976f52b21f3b025b29414ecce6c440467efdacca83f1",
+    "index.html": "ff066c6c239bf9bf86d4cb5986cce18479400c77b538238b003852db3144722a",
     "terminal.css": "036d49809998e118fd04de1df32d56e58dab772c05c683abe490f52d4041b0ae",
     "pages-hash.js": "bbacea684991e021e7faf0cc8f08d4f06f18b475968ffff16d649833f5aab9c5",
     "pages-wiki.js": "7926f3b1ef4121c769f542abc6a9ab652ba913aa37727085a69ca338da1f69e6",
@@ -28,9 +28,10 @@
     "repository-diagnostics.html": "e68d2badc4e3192b4098eaf9c5a0c50c4a16a0316a84bcdbcc351837d71165e0",
     "repository-diagnostics.json": "1c0fd02e474fc8a6cc9c85f587684f944bfcde304c657fc638946df885c553be",
     "repository-diagnostics.jsonl": "d23cb6d87704c467d605e650b7e14a04b4858167a581029d63d1df8dfbdfec97",
-    "shared-navigation.mjs": "1e1b612fe06c90e85692c4636e5f2c63e2b2d5ee0cb8f0714157da694a76dd48",
+    "shared-navigation.mjs": "b7581d42f9ec46643d4ca1c9cc1d2a25cc3ef2781e651f3baba3c2d7ba6e1de0",
     "pixiv-markup.js": "c3926bd80a131b3c677316d63d200ba1a3492fe0f7efeec87b3e914e96da2afd",
-    "pixiv-panel.js": "adb16c51b8de77f3ecc675fd6df85e30203672f8196c24c775139686194c6716"
+    "pixiv-panel.js": "adb16c51b8de77f3ecc675fd6df85e30203672f8196c24c775139686194c6716",
+    "LICENSE": "15f66204c4a6a1ce0c94f0ed4319ff9400f872e85fd32c95f21695c2f231af59"
   },
   "presentation": {
     "owner": "myon-bioinformatics/web-ui",
