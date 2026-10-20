@@ -1,0 +1,177 @@
+{
+  "kind": "live-http-not-browser",
+  "mocked": false,
+  "observed_at": "2026-10-20T20:03:26.613292+00:00",
+  "records": [
+    {
+      "query": "初音ミク",
+      "sort": "-viewCounter",
+      "url": "https://snapshot.search.nicovideo.jp/api/v2/snapshot/video/contents/search?q=%E5%88%9D%E9%9F%B3%E3%83%9F%E3%82%AF&targets=title%2Cdescription&fields=contentId%2Ctitle%2Cdescription%2CviewCounter%2ClikeCounter%2ClengthSeconds%2CthumbnailUrl%2CstartTime&_sort=-viewCounter&_limit=10&_context=myon-portfolio-lab",
+      "origin": "https://myon-bioinformatics.github.io",
+      "http_status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Access-Control-Allow-Origin": null,
+        "Vary": "Accept-Encoding",
+        "Date": "Tue, 20 Oct 2026 20:03:14 GMT"
+      },
+      "body_sha256": "59210c6d1d9c390a4d090d59d882522b5a8c1bb556545b52c0012c5a42df1278",
+      "meta": {
+        "status": 200,
+        "id": "45ff8b26-a470-4760-ad6e-3da7be701527",
+        "totalCount": 393646
+      },
+      "rows": [
+        {
+          "contentId": "sm15630734",
+          "title": "『初音ミク』千本桜『オリジナル曲PV』",
+          "viewCounter": 18776844,
+          "startTime": "2011-09-17T19:00:28+09:00"
+        },
+        {
+          "contentId": "sm1097445",
+          "title": "【初音ミク】みくみくにしてあげる♪【してやんよ】",
+          "viewCounter": 17326502,
+          "startTime": "2007-09-20T01:22:02+09:00"
+        },
+        {
+          "contentId": "sm1715919",
+          "title": "初音ミク　が　オリジナル曲を歌ってくれたよ「メルト」",
+          "viewCounter": 17199945,
+          "startTime": "2007-12-07T20:46:02+09:00"
+        },
+        {
+          "contentId": "sm10759623",
+          "title": "初音ミク・巡音ルカ　オリジナル曲　「ワールズエンド・ダンスホール」",
+          "viewCounter": 16220671,
+          "startTime": "2010-05-18T10:46:14+09:00"
+        },
+        {
+          "contentId": "sm11809611",
+          "title": "【オリジナル曲PV】マトリョシカ【初音ミク・GUMI】",
+          "viewCounter": 15516690,
+          "startTime": "2010-08-19T22:25:45+09:00"
+        },
+        {
+          "contentId": "sm31791630",
+          "title": "wowaka『アンノウン・マザーグース』feat. 初音ミク",
+          "viewCounter": 14746391,
+          "startTime": "2017-08-22T17:00:00+09:00"
+        },
+        {
+          "contentId": "sm9714351",
+          "title": "初音ミク　オリジナル曲　「ローリンガール」",
+          "viewCounter": 13798101,
+          "startTime": "2010-02-14T20:00:02+09:00"
+        },
+        {
+          "contentId": "sm27965309",
+          "title": "DECO*27 - ゴーストルール feat. 初音ミク",
+          "viewCounter": 12870209,
+          "startTime": "2016-01-08T20:00:00+09:00"
+        },
+        {
+          "contentId": "sm31606995",
+          "title": "ハチ MV「砂の惑星 feat.初音ミク」",
+          "viewCounter": 12437279,
+          "startTime": "2017-07-21T17:00:00+09:00"
+        },
+        {
+          "contentId": "sm22960446",
+          "title": "【初音ミク】 ウミユリ海底譚 【オリジナル曲】",
+          "viewCounter": 11829354,
+          "startTime": "2014-02-24T19:05:46+09:00"
+        }
+      ],
+      "schema_ok": true,
+      "descending_ok": true,
+      "cors_allows_origin": false,
+      "elapsed_seconds": 5.713
+    },
+    {
+      "query": "初音ミク",
+      "sort": "-startTime",
+      "url": "https://snapshot.search.nicovideo.jp/api/v2/snapshot/video/contents/search?q=%E5%88%9D%E9%9F%B3%E3%83%9F%E3%82%AF&targets=title%2Cdescription&fields=contentId%2Ctitle%2Cdescription%2CviewCounter%2ClikeCounter%2ClengthSeconds%2CthumbnailUrl%2CstartTime&_sort=-startTime&_limit=10&_context=myon-portfolio-lab",
+      "origin": "https://myon-bioinformatics.github.io",
+      "http_status": 200,
+      "headers": {
+        "Content-Type": "application/json; charset=utf-8",
+        "Access-Control-Allow-Origin": null,
+        "Vary": "Accept-Encoding",
+        "Date": "Tue, 20 Oct 2026 20:03:26 GMT"
+      },
+      "body_sha256": "3d5cf0a965eb54bc0388e1709f4f2a9877b17158eada13f9866d0a8e5819d5db",
+      "meta": {
+        "status": 200,
+        "id": "ca505c3a-5e6c-45da-88fc-2319b49d7241",
+        "totalCount": 393646
+      },
+      "rows": [
+        {
+          "contentId": "sm46945272",
+          "title": "【オリジナル曲】心のままに駆け抜けて【初音ミク】",
+          "viewCounter": 16,
+          "startTime": "2026-10-20T01:28:15+09:00"
+        },
+        {
+          "contentId": "sm46945210",
+          "title": "中二病（初音ミク・オリジナル曲）",
+          "viewCounter": 12,
+          "startTime": "2026-10-20T00:57:18+09:00"
+        },
+        {
+          "contentId": "sm46945138",
+          "title": "エンゲージ・シンフォニー feat.初音ミク / あおちゃん",
+          "viewCounter": 15,
+          "startTime": "2026-10-20T00:27:18+09:00"
+        },
+        {
+          "contentId": "sm46945133",
+          "title": "道のり / 初音ミク",
+          "viewCounter": 12,
+          "startTime": "2026-10-20T00:24:58+09:00"
+        },
+        {
+          "contentId": "sm46942958",
+          "title": "【VOCALOIDカバー】あだぽしゃ【asa】",
+          "viewCounter": 16,
+          "startTime": "2026-10-20T00:00:04+09:00"
+        },
+        {
+          "contentId": "sm46942341",
+          "title": "【プロセカMV】ハイドアンド・シーク【feat.初音ミク】",
+          "viewCounter": 1,
+          "startTime": "2026-10-20T00:00:00+09:00"
+        },
+        {
+          "contentId": "sm46944979",
+          "title": "【オリジナル】奥の細道序文 暗唱テスト用 / 初音ミク",
+          "viewCounter": 19,
+          "startTime": "2026-10-19T23:39:43+09:00"
+        },
+        {
+          "contentId": "sm46944815",
+          "title": "【マニア向け】もう一回、重音テトと深呼吸/優しい首絞め(睡眠用)",
+          "viewCounter": 64,
+          "startTime": "2026-10-19T23:00:00+09:00"
+        },
+        {
+          "contentId": "sm46944745",
+          "title": "Christmas Carol (Techno) / 初音ミク",
+          "viewCounter": 12,
+          "startTime": "2026-10-19T22:37:06+09:00"
+        },
+        {
+          "contentId": "sm46944401",
+          "title": "【12歳】千本桜WhiteFlamefeat.初音ミク【黒うさp】アコギ【弾き語り】",
+          "viewCounter": 6,
+          "startTime": "2026-10-19T21:22:34+09:00"
+        }
+      ],
+      "schema_ok": true,
+      "descending_ok": true,
+      "cors_allows_origin": false,
+      "elapsed_seconds": 5.919
+    }
+  ]
+}
