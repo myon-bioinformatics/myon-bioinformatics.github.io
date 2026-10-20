@@ -154,7 +154,7 @@ See [source grammar, Python one-liners, and markdown.py integration](docs/pixiv-
 ### Portfolio search, highlights and image evidence
 
 - Project text search and topic filters work together in each view mode.
-- The lab's Niconico tab calls Snapshot Search API v2 from the browser. Network/API errors are displayed in the panel; existing Wikipedia and Pixiv tabs remain available. The portfolio owns `tools/niconico/` and reapplies this panel when importing a lab report.
+- The lab's Niconico tab attempts Snapshot Search API v2 from the browser. Live verification on 2026-10-21 JST found HTTP 200 JSON responses without `Access-Control-Allow-Origin`; the published browser could not read results. The panel explains this limitation and offers official Niconico search with the selected keyword/sort. GitHub Pages cannot fix an upstream CORS header. The portfolio owns `tools/niconico/` and reapplies this panel when importing a lab report. See [live verification](docs/evidence/niconico-live-20261021/README.md).
 - AI & Tech Highlights displays public GitHub search results, or explicitly labelled curated examples when the API is unavailable. Curated examples do not claim current star counts.
 - `python -S scripts/generate_apng.py frame1.png frame2.png -o demo.png` creates an animation without third-party dependencies. Frames must share dimensions, color format, palette and transparency.
 - `python -S scripts/record_demo.py frame1.png frame2.png -o grid.png --mode montage` reconstructs PNG filters before stitching. Montage inputs must be matching non-interlaced 8-bit RGB/RGBA images.

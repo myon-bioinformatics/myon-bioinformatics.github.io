@@ -30,10 +30,23 @@
     if (!res.ok) {
       throw new Error(`Niconico API error: ${res.status}`);
     }
-    const data = await res.json();
-    if (data?.meta?.status !== 200 || !Array.isArray(data.data)) {
+    let data;
+    try {
+      data = await res.json();
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      throw new Error('Invalid Niconico API response: expected JSON.');
+    }
+    signal?.throwIfAborted();
+    if (data?.meta?.status !== 200 || !Array.isArray(data.data)
+        || !Number.isSafeInteger(data.meta.totalCount) || data.meta.totalCount < 0
+        || !data.data.every(video => video && typeof video.contentId === 'string'
+          && /^(?:[a-z]{2})?\d+$/.test(video.contentId)
+          && (video.title == null || typeof video.title === 'string')
+          && (video.description == null || typeof video.description === 'string'))) {
       throw new Error('Invalid Niconico API response');
     }
+    data.data = data.data.slice(0, 10);
     return data;
   }
 
@@ -95,18 +108,31 @@
     const statusEl = document.getElementById('pages-niconico-status');
     const errorEl = document.getElementById('pages-niconico-error');
     const resultsEl = document.getElementById('pages-niconico-results');
+    const officialLink = document.getElementById('pages-niconico-official');
 
     if (!form || !queryInput) return;
+
+    function updateOfficialLink() {
+      if (!officialLink) return;
+      const sort = { '-viewCounter': 'v', '-startTime': 'f', '-likeCounter': 'like', '-mylistCounter': 'm' };
+      const params = new URLSearchParams({ sort: sort[sortSelect?.value] || 'v', order: 'd' });
+      officialLink.href = `https://www.nicovideo.jp/search/${encodeURIComponent(queryInput.value.trim())}?${params}`;
+    }
+    queryInput.addEventListener('input', updateOfficialLink);
+    sortSelect?.addEventListener('change', updateOfficialLink);
+    updateOfficialLink();
 
     let currentRequest = null;
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const q = queryInput.value.trim();
       if (!q) return;
+      updateOfficialLink();
       if (currentRequest) currentRequest.abort();
       const request = new AbortController();
       currentRequest = request;
-      const timeout = setTimeout(() => request.abort(), 10000);
+      let timedOut = false;
+      const timeout = setTimeout(() => { timedOut = true; request.abort(); }, 10000);
 
       if (statusEl) statusEl.textContent = 'Searching Niconico...';
       if (errorEl) {
@@ -127,10 +153,14 @@
         if (statusEl) statusEl.textContent = '';
         if (errorEl) {
           errorEl.hidden = false;
-          errorEl.textContent = request.signal.aborted ? 'Search timed out. Please try again.' : (err.message || 'Failed to fetch Niconico search results.');
+          errorEl.textContent = timedOut ? 'Search timed out after 10 seconds. Try again later or open Search on Niconico.'
+            : err instanceof TypeError ? 'Cannot read the Niconico API response. The browser may block it because of CORS, or the network may be unavailable. Open Search on Niconico instead.'
+            : err.message === 'Niconico API error: 503' ? 'Niconico API error: 503. The service is busy; wait at least 5 minutes before retrying.'
+            : (err.message || 'Failed to fetch Niconico search results.');
         }
       } finally {
         clearTimeout(timeout);
+        if (currentRequest === request) currentRequest = null;
       }
     });
   }
