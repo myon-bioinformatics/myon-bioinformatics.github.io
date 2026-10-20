@@ -55,6 +55,9 @@ def capture_evidence(base_url: str = 'http://localhost:8080', output_dir: str | 
             target_url = route['url'].replace('http://localhost:8080', base_url.rstrip('/'))
             errors.clear()
             response = page.goto(target_url)
+            # A hash-only navigation returns None; reload to verify the actual document.
+            if response is None:
+                response = page.reload()
             if response is None or not response.ok:
                 raise RuntimeError(f'Failed evidence route: {target_url}')
             page.wait_for_load_state('networkidle')

@@ -73,3 +73,22 @@ test.describe('Project tag filtering and search', () => {
     await expect(firstCopyBtn).toHaveClass(/copied/);
   });
 });
+
+
+test('combined search and tag filters persist through every display mode', async ({ page }) => {
+  await page.route('https://api.github.com/search/repositories?*', route => route.fulfill({status:503,body:'{}'}));
+  await page.goto('/');
+  await page.locator('#project-tags-filter button[data-tag="security"]').click();
+  await page.locator('#project-search-input').fill('SCAPY');
+  await expect(page.locator('#projects-count')).toHaveText('No matching projects found.');
+  for (const mode of ['modern','github-like','xml-like','json','markdown']) {
+    await page.selectOption('#view-mode-select', mode);
+    await expect(page.locator('#projects-count')).toHaveText('No matching projects found.');
+    await page.locator('#project-search-clear').click();
+    await expect(page.locator('#projects-count')).toHaveText('Showing 1 of 4 projects');
+    await expect(page.locator('#project-tags-filter button[data-tag="security"]')).toHaveAttribute('aria-pressed','true');
+    await page.locator('#project-search-input').fill('SCAPY');
+  }
+  await page.locator('#project-tags-filter button[data-tag="all"]').click();
+  await expect(page.locator('#projects-count')).toHaveText('Showing 1 of 4 projects');
+});
