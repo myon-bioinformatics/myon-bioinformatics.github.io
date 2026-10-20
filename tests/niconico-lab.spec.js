@@ -45,7 +45,7 @@ test('official search preserves keyword and selected sort without an API respons
   await expect(link).toHaveAttribute('target', '_blank');
   await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
   await page.getByTestId('pages-niconico-query').fill('初音ミク & test');
-  for (const [sort, official] of [['-viewCounter','v'], ['-startTime','f'], ['-likeCounter','like'], ['-mylistCounter','m']]) {
+  for (const [sort, official] of [['-viewCounter','v'], ['-startTime','f'], ['-likeCounter','likeCount'], ['-mylistCounter','m']]) {
     await page.getByTestId('pages-niconico-sort').selectOption(sort);
     const url = new URL(await link.getAttribute('href'));
     expect(url.origin).toBe('https://www.nicovideo.jp');
@@ -86,7 +86,10 @@ test('HTTP 429 remains distinct from a browser network/CORS failure', async ({ p
 });
 
 test('a hung API request times out at ten seconds and a subsequent search recovers', async ({ page }) => {
-  await page.clock.install();
+  // Freeze before starting the request so click/route latency cannot consume
+  // the one-millisecond boundary between 9999 and 10000.
+  await page.clock.install({ time: new Date('2026-10-21T00:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-10-21T00:01:00Z'));
   let received;
   const started = new Promise(resolve => { received = resolve; });
   await page.route(endpoint, () => { received(); });

@@ -49,3 +49,35 @@ The opt-in browser test attaches actual observations and fails if either search 
 
 Official API guide consulted: https://site.nicovideo.jp/search-api-docs/snapshot
 (HTTP statuses/JSON fields, intervals between requests, and at least five minutes before retrying 503).
+
+## Independent review follow-up
+
+An independent check of the official search page's actual HTTP 200 HTML and
+`server-response` metadata found that `sort=like` silently selected the default
+“ニコニコで人気” instead of “いいね！数”. The fallback and its regression expectation
+now use `sort=likeCount`. The official response selected the expected sort keys:
+
+| Panel selection | Official URL sort | Active official sort key |
+| --- | --- | --- |
+| Views | `v` | `viewCount` |
+| Newest | `f` | `registeredAt` |
+| Likes | `likeCount` | `likeCount` |
+| Mylists | `m` | `mylistCount` |
+
+`order=d` selects descending order. Checks used the official search destination
+`https://www.nicovideo.jp/search/初音ミク`; this verifies HTTP destination/parameter
+recognition, not a successful browser API search or video playback.
+
+The 9999/10000 ms regression initially failed locally because its installed clock
+continued advancing during click/route handling. It now pauses before issuing the
+request so the boundary assertions measure only explicit clock advancement.
+After that correction, all 22 relevant browser cases (17 mocked Niconico cases
+and five existing publication/Pixiv cases) passed using the available headless
+Chromium executable. Python checks: 56 passed, one optional Stagehand dependency
+check skipped in this local environment. SSOT validation, JavaScript syntax and
+`git diff --check` passed. PR CI remains the authority for the normal browser
+configuration and complete suite.
+
+In-panel real API search is still unavailable under the recorded upstream CORS
+response. Restoring it requires API-provider CORS support or an owner-controlled
+backend; this follow-up only repairs the official-search fallback and a test.

@@ -114,7 +114,7 @@
 
     function updateOfficialLink() {
       if (!officialLink) return;
-      const sort = { '-viewCounter': 'v', '-startTime': 'f', '-likeCounter': 'like', '-mylistCounter': 'm' };
+      const sort = { '-viewCounter': 'v', '-startTime': 'f', '-likeCounter': 'likeCount', '-mylistCounter': 'm' };
       const params = new URLSearchParams({ sort: sort[sortSelect?.value] || 'v', order: 'd' });
       officialLink.href = `https://www.nicovideo.jp/search/${encodeURIComponent(queryInput.value.trim())}?${params}`;
     }
