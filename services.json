@@ -39,6 +39,10 @@
         "mcpStub": {
           "kind": "mcp-stub",
           "url": "https://myon-bioinformatics.github.io/Ironmate/mcp-stub.html"
+        },
+        "browserTools": {
+          "kind": "pages",
+          "url": "https://myon-bioinformatics.github.io/Ironmate/tools/"
         }
       },
       "flutter_navigation_basic": {
