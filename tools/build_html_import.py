@@ -1,13 +1,15 @@
 """Generate the static tool with the exact-pinned web-ui wrapper. No visitor input."""
+
 from pathlib import Path
-import importlib.util
+import sys
+
 ROOT = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location('web_ui', ROOT / 'tools/vendor/web-ui/web_ui.py')
-ui = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(ui)
-nav_spec = importlib.util.spec_from_file_location('portfolio_nav', ROOT / 'scripts/portfolio_nav.py')
-nav = importlib.util.module_from_spec(nav_spec)
-nav_spec.loader.exec_module(nav)
+sys.path.insert(0, str(ROOT / 'scripts'))
+from vendor_loader import load_module
+
+ui = load_module('web_ui', 'tools/vendor/web-ui/web_ui.py')
+nav = load_module('portfolio_nav', 'scripts/portfolio_nav.py')
+
 BODY = '''<main class="ui-page">
 <h1>📄 HTML文書取込</h1>
 <p>貼り付けたHTMLやローカルファイルから本文・見出し・リンクを取り出します。入力と結果はこのページのメモリ内で処理し、運営者へ自動送信・保存しません。HTML内のスクリプトや画像は実行・取得しません。</p>
@@ -40,11 +42,24 @@ __SOURCE_LINK__
 <p>JSONはhtml-snapshot/1のメタデータと抽出結果を含み、元HTML本文は含みません。fetched_atとresponse_sha256はnullです。入力はページを離れると失われます。保存は利用者がダウンロードを選んだ場合のみです。<a href="../../docs/html-import.md">抽出契約と検証方法</a></p></details>
 </main>'''
 CSS = 'label{display:block;margin:1rem 0 .3rem}input,textarea,select{width:100%;max-width:100%}button{margin:.3rem 0;min-height:44px}pre{overflow-wrap:anywhere}h1{font-size:1.8rem}'
+
+
 def generate():
-    document = ui.render_document(title='HTML文書取込', trusted_html=BODY.replace("__SOURCE_LINK__", ui.source_link("source-url")), css=CSS,
-        stylesheets=ui.shared_stylesheets('../vendor/web-ui'), scripts=('./app.mjs',))
-    csp = "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'none'; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    document = ui.render_document(
+        title='HTML文書取込',
+        trusted_html=BODY.replace("__SOURCE_LINK__", ui.source_link("source-url")),
+        css=CSS,
+        stylesheets=ui.shared_stylesheets('../vendor/web-ui'),
+        scripts=('./app.mjs',),
+    )
+    csp = (
+        "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "img-src 'none'; connect-src 'none'; frame-src 'none'; object-src 'none'; "
+        "base-uri 'none'; form-action 'none'"
+    )
     document = nav.add_back_nav(document)
-    return document.replace('<head>', '<head><meta http-equiv="Content-Security-Policy" content="'+csp+'">', 1).replace('<html lang="en">','<html lang="ja">')
+    return document.replace('<head>', '<head><meta http-equiv="Content-Security-Policy" content="' + csp + '">', 1).replace('<html lang="en">', '<html lang="ja">')
+
+
 if __name__ == '__main__':
     (ROOT / 'tools/html-import/index.html').write_text(generate(), encoding='utf-8')
