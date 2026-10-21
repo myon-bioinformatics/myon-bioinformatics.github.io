@@ -7,6 +7,7 @@ let sharedData = null;
 let configuredViewMode = DEFAULT_VIEW_MODE;
 let currentTagFilter = 'all';
 let currentSearchQuery = '';
+let currentStatusFilter = 'all';
 let controlsInitialized = false;
 
 function normalizeViewMode(mode) {
@@ -86,17 +87,35 @@ function initViewModeSelector(initialMode, configuredMode) {
   });
 }
 
+function buildProjectCatalog(catalog, curated) {
+  if (!Array.isArray(catalog?.repos)) throw new Error('Invalid repository catalog');
+  const overrides = new Map(curated.map((project) => [project.name, project]));
+  return catalog.repos.map((repo) => {
+    const project = overrides.get(repo.name);
+    return {
+      name: repo.name,
+      desc: project?.desc || repo.description || repo.readmeSummary || 'Explore the source and README on GitHub.',
+      url: repo.url,
+      topics: [...new Set([...(project?.topics || []), ...(repo.topics || [])])],
+      archived: repo.archived === true,
+    };
+  }).sort((a, b) => Number(a.archived) - Number(b.archived) || a.name.localeCompare(b.name, 'en'));
+}
+
 async function loadSharedData() {
-  const [profileRes, projectsRes] = await Promise.all([
+  const [profileRes, catalogRes, curated] = await Promise.all([
     fetch('./profile.json', { cache: 'no-store' }),
-    fetch('./projects.json', { cache: 'no-store' }),
+    fetch('./api/repos.json', { cache: 'no-store' }),
+    fetch('./projects.json', { cache: 'no-store' })
+      .then((res) => res.ok ? res.json() : [])
+      .catch(() => []),
   ]);
 
   if (!profileRes.ok) throw new Error(`profile.json HTTP ${profileRes.status}`);
-  if (!projectsRes.ok) throw new Error(`projects.json HTTP ${projectsRes.status}`);
+  if (!catalogRes.ok) throw new Error(`api/repos.json HTTP ${catalogRes.status}`);
 
-  const [profile, projects] = await Promise.all([profileRes.json(), projectsRes.json()]);
-  return { profile, projects };
+  const [profile, catalog] = await Promise.all([profileRes.json(), catalogRes.json()]);
+  return { profile, projects: buildProjectCatalog(catalog, Array.isArray(curated) ? curated : []) };
 }
 
 function renderWebProfile(root, profile) {
@@ -205,11 +224,12 @@ function renderWebProjects(root, projects) {
     return;
   }
 
-  projects.forEach(({ name, desc, url, topics = [] }) => {
+  projects.forEach(({ name, desc, url, topics = [], archived }) => {
     const card = element('article', 'card');
     const title = element('h3');
     title.appendChild(externalLink(url, name));
     card.appendChild(title);
+    if (archived) card.appendChild(element('span', 'tag project-status', 'Archived'));
     card.appendChild(element('p', null, desc || ''));
 
     const badges = element('div', 'badges');
@@ -311,8 +331,9 @@ function renderXmlProjects(root, projects) {
   if (!projects || projects.length === 0) {
     xmlLine(root, 1, [document.createTextNode('<!-- No projects match your filter -->')]);
   } else {
-    projects.forEach(({ name, desc, url, topics = [] }) => {
+    projects.forEach(({ name, desc, url, topics = [], archived }) => {
       xmlLine(root, 1, [xmlTag(`<Project name="${name}">`)]);
+      if (archived) xmlLine(root, 2, [xmlTag('<Status>'), 'Archived', xmlTag('</Status>')]);
       xmlLine(root, 2, [xmlTag('<Description>'), desc || '', xmlTag('</Description>')]);
       const urlLink = externalLink(url, url);
       xmlLine(root, 2, [xmlTag('<Url>'), urlLink, xmlTag('</Url>')]);
@@ -421,13 +442,14 @@ function renderMarkdownProjects(root, projects) {
     return;
   }
 
-  projects.forEach(({ name, desc, url, topics = [] }) => {
+  projects.forEach(({ name, desc, url, topics = [], archived }) => {
     const heading = element('h3', 'md-heading');
     heading.appendChild(document.createTextNode('### '));
     heading.appendChild(externalLink(url, name));
     root.appendChild(heading);
     root.appendChild(element('p', null, desc || ''));
     const list = element('ul', 'md-list');
+    if (archived) list.appendChild(element('li', null, 'Status: Archived'));
     list.appendChild(element('li', null, `Topics: ${topics.join(', ')}`));
     const sourceItem = element('li');
     sourceItem.appendChild(document.createTextNode('Source: '));
@@ -463,7 +485,9 @@ function getFilteredProjects(projects) {
       (project.desc && project.desc.toLowerCase().includes(query)) ||
       (project.topics && project.topics.some((t) => t.toLowerCase().includes(query)))
     );
-    return matchesTag && matchesSearch;
+    const matchesStatus = currentStatusFilter === 'all' ||
+      (currentStatusFilter === 'archived' ? project.archived : !project.archived);
+    return matchesTag && matchesSearch && matchesStatus;
   });
 }
 
@@ -499,6 +523,17 @@ function initProjectControls(projects) {
   const searchInput = document.getElementById('project-search-input');
   const searchClear = document.getElementById('project-search-clear');
   const tagsContainer = document.getElementById('project-tags-filter');
+  const statusSelect = document.getElementById('project-status-filter');
+  // Keep input entered while the catalog was still loading.
+  currentSearchQuery = searchInput?.value || '';
+  if (searchClear) searchClear.hidden = !currentSearchQuery;
+  currentStatusFilter = statusSelect?.value || 'all';
+  if (statusSelect) {
+    statusSelect.addEventListener('change', () => {
+      currentStatusFilter = statusSelect.value;
+      if (sharedData) renderPortfolio(getCurrentMode(), sharedData);
+    });
+  }
 
   if (searchInput) {
     searchInput.addEventListener('input', () => {
@@ -728,3 +763,4 @@ function renderLoadError(error) {
     renderLoadError(error);
   }
 })();
+

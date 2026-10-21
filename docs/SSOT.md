@@ -8,7 +8,7 @@ This repository owns canonical public data that is shared across the myon-bioinf
 | --- | --- | --- |
 | Person / skills / career | `profile.json` | Human profile facts and curated profile text |
 | Repository facts | `api/repos.json` | Generated GitHub repository metadata; do not hand-edit |
-| Portfolio curation | `projects.json` | Which repositories are featured and how they are presented |
+| Portfolio curation | `projects.json` | Optional descriptions and extra topics for repository presentation |
 | Public service endpoints | `services.json` | GitHub Pages, API/static data, MCP stub, repository and other public URLs |
 
 ## Ownership rules
@@ -17,7 +17,7 @@ This repository owns canonical public data that is shared across the myon-bioinf
 2. Consumers should read or generate from the canonical source instead of copying the same fact by hand.
 3. Generated outputs may be committed, but their generated regions must be clearly marked and reproducible.
 4. `api/repos.json` is generated from GitHub and is the source of truth for repository facts such as repository URL, description, language, topics, stars, and update time.
-5. `projects.json` is intentionally curated. `name` identifies the repository and `url` is a transitional compatibility field that must match `api/repos.json`; `desc`, `topics`, ordering, and future presentation-only fields may intentionally differ from repository metadata.
+5. `projects.json` is intentionally curated. `name` identifies the repository and `url` is a transitional compatibility field that must match `api/repos.json`. Projects membership comes from the complete `api/repos.json` catalog, including archived repositories. Curated `desc` overrides the catalog description; curated topics are combined with catalog topics. Stale curation cannot add a repository absent from the public catalog. Active repositories precede archived repositories, with names sorted within each group. The existing daily repos API workflow updates membership without manual card registration.
 6. `services.json` owns public endpoints. README files and demos should consume service entries rather than inventing new canonical URLs.
 7. `profile.json` may temporarily keep URL fields required by current renderers/generators, but CI must enforce that those compatibility values match the canonical entries in `services.json`.
 

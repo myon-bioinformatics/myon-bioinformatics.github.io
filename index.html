@@ -44,12 +44,23 @@
 
     <section id="projects" class="container">
       <h2>🚀 Projects</h2>
+      <p class="section-sub">All public repositories, including archived work. Active projects appear first.</p>
       <div class="projects-controls" id="projects-controls">
         <div class="project-search-wrap">
           <input type="search" id="project-search-input" placeholder="Search projects by name, description, or topic..." aria-label="Search projects">
           <button type="button" id="project-search-clear" class="btn-clear" hidden aria-label="Clear search">✕</button>
         </div>
-        <div class="project-tags-filter" id="project-tags-filter" role="group" aria-label="Filter projects by topic"></div>
+        <label class="project-status-control" for="project-status-filter">Status
+          <select id="project-status-filter">
+            <option value="all">All repositories</option>
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+          </select>
+        </label>
+        <details class="project-topic-controls">
+          <summary>Filter by topic</summary>
+          <div class="project-tags-filter" id="project-tags-filter" role="group" aria-label="Filter projects by topic"></div>
+        </details>
       </div>
       <div id="projects-count" class="projects-count" aria-live="polite"></div>
       <div id="projects-render-root"></div>
@@ -120,3 +131,4 @@
   <script src="./index.js"></script>
 </body>
 </html>
+
