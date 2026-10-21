@@ -477,18 +477,15 @@ const PROJECT_RENDERERS = {
 };
 
 function getFilteredProjects(projects) {
-  if (!projects || !Array.isArray(projects)) return [];
-  const query = currentSearchQuery.trim().toLowerCase();
-  return projects.filter((project) => {
-    const matchesTag = currentTagFilter === 'all' || (project.topics && project.topics.includes(currentTagFilter));
-    const matchesSearch = !query || (
-      project.name.toLowerCase().includes(query) ||
-      (project.desc && project.desc.toLowerCase().includes(query)) ||
-      (project.topics && project.topics.some((t) => t.toLowerCase().includes(query)))
-    );
-    const matchesStatus = currentStatusFilter === 'all' ||
-      (currentStatusFilter === 'archived' ? project.archived : !project.archived);
-    return matchesTag && matchesSearch && matchesStatus;
+  if (!Array.isArray(projects)) return [];
+  const facets = {};
+  if (currentTagFilter !== 'all') facets.topic = currentTagFilter;
+  if (currentStatusFilter !== 'all') facets.archived = currentStatusFilter === 'archived';
+  return WebUICollections.filterItems(projects, {
+    query: currentSearchQuery,
+    text: project => [project.name, project.desc, ...(project.topics || [])],
+    facets,
+    facetValues: { topic: project => project.topics || [] },
   });
 }
 

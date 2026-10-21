@@ -112,3 +112,21 @@ test('the full catalog and expanded topics fit a mobile viewport', async ({ page
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   }
 });
+
+test('vendored web-ui collection contract is loaded before project rendering', async ({ page }) => {
+  await page.goto('/');
+  const result = await page.evaluate(() => {
+    const filter = window.WebUICollections.filterItems;
+    return filter([
+      { name: 'Aoi', topics: ['python'], archived: false },
+      { name: 'Legacy', topics: ['python'], archived: true },
+      { name: 'Other', topics: ['javascript'], archived: false },
+    ], {
+      query: 'PYTHON',
+      text: item => [item.name, ...(item.topics || [])],
+      facets: { archived: false, topic: 'python' },
+      facetValues: { topic: item => item.topics },
+    }).map(item => item.name);
+  });
+  expect(result).toEqual(['Aoi']);
+});
