@@ -102,8 +102,8 @@
     },
     {
       "repository": "myon-bioinformatics/web-ui",
-      "ref": "1a226aff1a19af493546f29d382c3325558645d4",
-      "commit": "1a226aff1a19af493546f29d382c3325558645d4",
+      "ref": "0be6e80c2fca2ddbce46cdfbbb27432c1dcdbbeb",
+      "commit": "0be6e80c2fca2ddbce46cdfbbb27432c1dcdbbeb",
       "source": "js/collection.js",
       "destination": "tools/vendor/web-ui/js/collection.js",
       "blob_sha": "650fef7e506b4ae99757a82661ad18f4d8729a9e",

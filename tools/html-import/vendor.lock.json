@@ -80,7 +80,7 @@
     },
     {
       "repository": "https://github.com/myon-bioinformatics/web-ui",
-      "commit": "1a226aff1a19af493546f29d382c3325558645d4",
+      "commit": "0be6e80c2fca2ddbce46cdfbbb27432c1dcdbbeb",
       "source_path": "js/collection.js",
       "path": "tools/vendor/web-ui/js/collection.js",
       "sha256": "71ac00368ac709eed436a8a1a8882463356b49ae8d19d0c339ba5f522028ce9a"
