@@ -59,6 +59,7 @@ function getCurrentMode() {
 function applyViewMode(mode) {
   const normalized = normalizeViewMode(mode);
   document.body.dataset.viewMode = normalized;
+  document.body.dataset.uiTheme = normalized === 'modern' ? 'modern' : normalized === 'github-like' ? 'github-like' : 'plain';
   const selector = document.getElementById('view-mode-select');
   if (selector && selector.value !== normalized) selector.value = normalized;
   if (sharedData) renderPortfolio(normalized, sharedData);
@@ -216,7 +217,7 @@ function renderWebProfile(root, profile) {
 
 function renderWebProjects(root, projects) {
   root.dataset.renderer = 'web';
-  root.className = 'grid';
+  root.className = 'ui-grid';
 
   if (!projects || projects.length === 0) {
     const emptyMsg = element('div', 'empty-projects-msg', 'No projects match your filter.');
@@ -225,16 +226,16 @@ function renderWebProjects(root, projects) {
   }
 
   projects.forEach(({ name, desc, url, topics = [], archived }) => {
-    const card = element('article', 'card');
-    const title = element('h3');
+    const card = element('article', 'ui-card');
+    const title = element('h3', 'ui-title');
     title.appendChild(externalLink(url, name));
     card.appendChild(title);
-    if (archived) card.appendChild(element('span', 'tag project-status', 'Archived'));
-    card.appendChild(element('p', null, desc || ''));
+    if (archived) card.appendChild(element('span', 'ui-tag project-status', 'Archived'));
+    card.appendChild(element('p', 'ui-muted', desc || ''));
 
-    const badges = element('div', 'badges');
+    const badges = element('div', 'project-topics');
     topics.slice(0, 6).forEach((topic) => {
-      const tagSpan = element('span', 'tag', topic);
+      const tagSpan = element('span', 'ui-tag', topic);
       tagSpan.dataset.topic = topic;
       tagSpan.style.cursor = 'pointer';
       tagSpan.title = `Filter by ${topic}`;
@@ -246,14 +247,14 @@ function renderWebProjects(root, projects) {
     });
     card.appendChild(badges);
 
-    const footer = element('div', 'card-footer');
+    const footer = element('div', 'project-card-actions');
     const shields = element('img');
     shields.loading = 'lazy';
     shields.alt = 'GitHub stars';
     shields.src = `https://img.shields.io/github/stars/myon-bioinformatics/${encodeURIComponent(name)}?style=social`;
     footer.appendChild(shields);
 
-    const copyBtn = element('button', 'copy-btn', 'Copy URL');
+    const copyBtn = element('button', 'ui-button project-copy', 'Copy URL');
     copyBtn.type = 'button';
     copyBtn.setAttribute('aria-label', `Copy repository URL for ${name}`);
     copyBtn.addEventListener('click', async () => {

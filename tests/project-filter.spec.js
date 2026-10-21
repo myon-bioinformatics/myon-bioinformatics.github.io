@@ -14,7 +14,7 @@ test.describe('Project tag filtering and search', () => {
     await expect(page.locator('#project-search-input')).toBeVisible();
     await expect(page.locator('#project-tags-filter')).toBeVisible();
     await expect(page.locator('#projects-count')).toHaveText(`Showing all ${projectCount} projects`);
-    await expect(page.locator('#projects-render-root .card')).toHaveCount(projectCount);
+    await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(projectCount);
   });
 
   test('filters projects by tag button click', async ({ page }) => {
@@ -23,14 +23,14 @@ test.describe('Project tag filtering and search', () => {
 
     await expect(nmapBtn).toHaveClass(/active/);
     await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${projectCount} projects`);
-    await expect(page.locator('#projects-render-root .card')).toHaveCount(1);
-    await expect(page.locator('#projects-render-root .card h3')).toContainText('python3nmap_GUI_for_Beginners');
+    await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(1);
+    await expect(page.locator('#projects-render-root .ui-card h3')).toContainText('python3nmap_GUI_for_Beginners');
 
     // Return to All
     const allBtn = page.locator('#project-tags-filter button[data-tag="all"]');
     await allBtn.click();
     await expect(page.locator('#projects-count')).toHaveText(`Showing all ${projectCount} projects`);
-    await expect(page.locator('#projects-render-root .card')).toHaveCount(projectCount);
+    await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(projectCount);
   });
 
   test('filters projects by search input and clear button', async ({ page }) => {
@@ -40,13 +40,13 @@ test.describe('Project tag filtering and search', () => {
     await searchInput.fill('scapy');
     await expect(clearBtn).toBeVisible();
     await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${projectCount} projects`);
-    await expect(page.locator('#projects-render-root .card')).toHaveCount(1);
-    await expect(page.locator('#projects-render-root .card h3')).toContainText('scapy_GUI_for_Beginners');
+    await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(1);
+    await expect(page.locator('#projects-render-root .ui-card h3')).toContainText('scapy_GUI_for_Beginners');
 
     await clearBtn.click();
     await expect(clearBtn).toBeHidden();
     await expect(page.locator('#projects-count')).toHaveText(`Showing all ${projectCount} projects`);
-    await expect(page.locator('#projects-render-root .card')).toHaveCount(projectCount);
+    await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(projectCount);
   });
 
   test('shows empty state message when no projects match filter', async ({ page }) => {
@@ -59,17 +59,17 @@ test.describe('Project tag filtering and search', () => {
   });
 
   test('clicking topic tag on a card filters projects', async ({ page }) => {
-    const scapyBadge = page.locator('.badges .tag[data-topic="scapy"]').first();
+    const scapyBadge = page.locator('.project-topics .ui-tag[data-topic="scapy"]').first();
     await scapyBadge.click();
 
     await expect(page.locator('#project-tags-filter button[data-tag="scapy"]')).toHaveClass(/active/);
     await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${projectCount} projects`);
-    await expect(page.locator('#projects-render-root .card')).toHaveCount(1);
+    await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(1);
   });
 
   test('clicking Copy URL button copies URL and gives visual feedback', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-    const firstCopyBtn = page.locator('#projects-render-root .copy-btn').first();
+    const firstCopyBtn = page.locator('#projects-render-root .project-copy').first();
     await firstCopyBtn.click();
 
     await expect(firstCopyBtn).toHaveText('Copied!');

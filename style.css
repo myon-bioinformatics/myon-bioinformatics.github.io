@@ -597,17 +597,40 @@ body[data-view-mode="github-like"] .badges .tag {
 }
 
 
-/* ── Tools & Demos portal ──────────────────────────────────────────────── */
+/* Projects extends the pinned web-ui components used by the tool pages. */
+body[data-ui-theme="modern"] {
+  --terminal-bg: var(--ui-bg);
+  --terminal-panel: var(--ui-panel);
+  --terminal-fg: var(--ui-fg);
+  --terminal-muted: var(--ui-muted);
+  --terminal-border: var(--ui-border);
+  --terminal-accent: var(--ui-accent);
+}
+body[data-ui-theme="plain"] {
+  --ui-bg: var(--bg); --ui-panel: var(--bg); --ui-fg: var(--fg);
+  --ui-muted: var(--muted); --ui-border: var(--border);
+}
+body[data-ui-theme="github-like"] {
+  --ui-bg: #f6f8fa; --ui-panel: #ffffff; --ui-fg: #24292f;
+  --ui-muted: #57606a; --ui-border: #d0d7de;
+}
 .project-status-control { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
-.project-status-control select { font: inherit; padding: .4rem; color: inherit; background: var(--bg); border: 1px solid currentColor; max-width: 100%; }
-body[data-view-mode="modern"] .project-status-control select { background: var(--terminal-panel); }
+.project-status-control select { max-width: 100%; }
+body[data-ui-theme="github-like"] #projects .ui-card { background: var(--ui-panel); }
 body[data-view-mode="modern"] #projects .section-sub { color: var(--terminal-muted); }
-#projects .card { min-width: 0; overflow-wrap: anywhere; }
+#projects .ui-card { min-width: 0; overflow-wrap: anywhere; }
+#projects .ui-title { margin: 0 0 .5rem; font-size: 1.05rem; }
+#projects .ui-button, #projects .ui-input { min-height: 44px; }
+.project-topics { display: flex; flex-wrap: wrap; gap: .4rem; font-size: .75rem; }
+.project-card-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+.project-copy { cursor: pointer; font-size: .8rem; }
+.project-copy.copied { background: var(--ui-accent); color: var(--ui-bg); }
 #projects-render-root { overflow-wrap: anywhere; }
 .project-topic-controls summary { cursor: pointer; margin: .75rem 0; }
 .project-topic-controls .project-tags-filter { max-height: 12rem; overflow-y: auto; padding: .25rem; }
-.project-status { display: inline-block; margin-bottom: .75rem; border: 1px solid currentColor; padding: 0 .4rem; font-size: .8rem; }
+.project-status { margin-bottom: .5rem; font-size: .8rem; }
 
+/* ── Tools & Demos portal ──────────────────────────────────────────────── */
 .portal-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

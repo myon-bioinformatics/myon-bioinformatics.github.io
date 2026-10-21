@@ -22,12 +22,12 @@ test('every catalog repository is reachable in every display mode', async ({ pag
 
 test('active projects appear before archived work and curated descriptions survive', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('#projects-render-root .card')).toHaveCount(catalog.repos.length);
-  const titles = await page.locator('#projects-render-root .card h3').allTextContents();
+  await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(catalog.repos.length);
+  const titles = await page.locator('#projects-render-root .ui-card h3').allTextContents();
   const activeCount = catalog.repos.filter(repo => !repo.archived).length;
   expect(new Set(titles.slice(0, activeCount))).toEqual(new Set(catalog.repos.filter(repo => !repo.archived).map(repo => repo.name)));
   await expect(page.locator('#projects-render-root .project-status')).toHaveCount(catalog.repos.length - activeCount);
-  const nmap = page.locator('#projects-render-root .card').filter({ has: page.getByRole('link', { name: 'python3nmap_GUI_for_Beginners', exact: true }) });
+  const nmap = page.locator('#projects-render-root .ui-card').filter({ has: page.getByRole('link', { name: 'python3nmap_GUI_for_Beginners', exact: true }) });
   await expect(nmap).toContainText(curated.find(repo => repo.name === 'python3nmap_GUI_for_Beginners').desc);
 });
 
@@ -76,7 +76,7 @@ test('curation cannot publish stale entries or override canonical URLs', async (
 test('unavailable curation still displays the complete public catalog', async ({ page }) => {
   await page.route('**/projects.json', route => route.fulfill({ status: 503, body: '{}' }));
   await page.goto('/');
-  await expect(page.locator('#projects-render-root .card')).toHaveCount(catalog.repos.length);
+  await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(catalog.repos.length);
 });
 
 test('search and status entered before the catalog loads are respected', async ({ page }) => {
@@ -99,7 +99,7 @@ test('missing catalog reports an error instead of showing only curated projects'
   await page.route('**/api/repos.json', route => route.fulfill({ status: 503, body: '{}' }));
   await page.goto('/');
   await expect(page.locator('#projects-render-root')).toHaveText('Failed to load projects. Please refresh.');
-  await expect(page.locator('#projects-render-root .card')).toHaveCount(0);
+  await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(0);
 });
 
 test('the full catalog and expanded topics fit a mobile viewport', async ({ page }) => {

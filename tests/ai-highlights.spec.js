@@ -12,7 +12,7 @@ test('live cards follow all display modes and retain current mode on late respon
     })) } });
   });
   await page.goto('/');
-  await expect(page.locator('#projects-render-root .card')).toHaveCount(projectCount);
+  await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(projectCount);
   await page.selectOption('#view-mode-select','json');
   release();
   await expect(page.locator('#ai-highlights-status')).toContainText('public GitHub API');
