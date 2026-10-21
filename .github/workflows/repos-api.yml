@@ -9,6 +9,8 @@ on:
     paths:
       - tools/build_repos_api.py
       - .github/workflows/repos-api.yml
+      # Exercise the refresh-to-publication handoff when its configuration changes.
+      - .github/workflows/jekyll-gh-pages.yml
 
 permissions:
   contents: write
