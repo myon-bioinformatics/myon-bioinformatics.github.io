@@ -1,6 +1,7 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
+const projectCount = require('../api/repos.json').repos.length;
 const path = require('path');
 
 const CONFIG_PATH = path.resolve(__dirname, '../site.config.json');
@@ -103,7 +104,7 @@ test('modern keeps web behavior while using terminal-inspired presentation', asy
   await expect(page.locator('#profile-render-root[data-renderer="web"] .tabs')).toBeVisible();
   await expect(page.locator('.skill-bar-fill')).toHaveCount(13);
   await expect(page.locator('.timeline-item')).toHaveCount(4);
-  await expect(page.locator('#projects-render-root[data-renderer="web"] .card')).toHaveCount(4);
+  await expect(page.locator('#projects-render-root[data-renderer="web"] .ui-card')).toHaveCount(projectCount);
 
   const modernStyles = await page.evaluate(() => {
     const body = getComputedStyle(document.body);
@@ -125,7 +126,7 @@ test('modern keeps web behavior while using terminal-inspired presentation', asy
 test('github-like keeps the web-oriented renderer', async ({ page }) => {
   await loadFresh(page, 'github-like');
   await expect(page.locator('#profile-render-root')).toHaveAttribute('data-renderer', 'web');
-  await expect(page.locator('#projects-render-root .card')).toHaveCount(4);
+  await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(projectCount);
 });
 
 test('xml-like renders nested tag-style profile and project structures', async ({ page }) => {

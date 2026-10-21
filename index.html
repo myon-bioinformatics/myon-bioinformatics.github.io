@@ -4,10 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>myon-bioinformatics — Portfolio</title>
+  <link rel="stylesheet" href="./tools/vendor/web-ui/css/tokens.css">
+  <link rel="stylesheet" href="./tools/vendor/web-ui/css/base.css">
+  <link rel="stylesheet" href="./tools/vendor/web-ui/css/components.css">
+  <link rel="stylesheet" href="./tools/vendor/web-ui/css/themes/modern.css">
   <link rel="stylesheet" href="./style.css">
   <link rel="stylesheet" href="./renderer.css">
 </head>
-<body>
+<body data-ui-theme="modern">
   <header class="site-header">
     <div class="container">
       <h1>myon-bioinformatics</h1>
@@ -44,12 +48,23 @@
 
     <section id="projects" class="container">
       <h2>🚀 Projects</h2>
+      <p class="section-sub">All public repositories, including archived work. Active projects appear first.</p>
       <div class="projects-controls" id="projects-controls">
         <div class="project-search-wrap">
-          <input type="search" id="project-search-input" placeholder="Search projects by name, description, or topic..." aria-label="Search projects">
+          <input class="ui-input" type="search" id="project-search-input" placeholder="Search projects by name, description, or topic..." aria-label="Search projects">
           <button type="button" id="project-search-clear" class="btn-clear" hidden aria-label="Clear search">✕</button>
         </div>
-        <div class="project-tags-filter" id="project-tags-filter" role="group" aria-label="Filter projects by topic"></div>
+        <label class="project-status-control" for="project-status-filter">Status
+          <select class="ui-input" id="project-status-filter">
+            <option value="all">All repositories</option>
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+          </select>
+        </label>
+        <details class="project-topic-controls">
+          <summary>Filter by topic</summary>
+          <div class="project-tags-filter" id="project-tags-filter" role="group" aria-label="Filter projects by topic"></div>
+        </details>
       </div>
       <div id="projects-count" class="projects-count" aria-live="polite"></div>
       <div id="projects-render-root"></div>
@@ -120,3 +135,4 @@
   <script src="./index.js"></script>
 </body>
 </html>
+

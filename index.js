@@ -7,6 +7,7 @@ let sharedData = null;
 let configuredViewMode = DEFAULT_VIEW_MODE;
 let currentTagFilter = 'all';
 let currentSearchQuery = '';
+let currentStatusFilter = 'all';
 let controlsInitialized = false;
 
 function normalizeViewMode(mode) {
@@ -58,6 +59,7 @@ function getCurrentMode() {
 function applyViewMode(mode) {
   const normalized = normalizeViewMode(mode);
   document.body.dataset.viewMode = normalized;
+  document.body.dataset.uiTheme = normalized === 'modern' ? 'modern' : normalized === 'github-like' ? 'github-like' : 'plain';
   const selector = document.getElementById('view-mode-select');
   if (selector && selector.value !== normalized) selector.value = normalized;
   if (sharedData) renderPortfolio(normalized, sharedData);
@@ -86,17 +88,35 @@ function initViewModeSelector(initialMode, configuredMode) {
   });
 }
 
+function buildProjectCatalog(catalog, curated) {
+  if (!Array.isArray(catalog?.repos)) throw new Error('Invalid repository catalog');
+  const overrides = new Map(curated.map((project) => [project.name, project]));
+  return catalog.repos.map((repo) => {
+    const project = overrides.get(repo.name);
+    return {
+      name: repo.name,
+      desc: project?.desc || repo.description || repo.readmeSummary || 'Explore the source and README on GitHub.',
+      url: repo.url,
+      topics: [...new Set([...(project?.topics || []), ...(repo.topics || [])])],
+      archived: repo.archived === true,
+    };
+  }).sort((a, b) => Number(a.archived) - Number(b.archived) || a.name.localeCompare(b.name, 'en'));
+}
+
 async function loadSharedData() {
-  const [profileRes, projectsRes] = await Promise.all([
+  const [profileRes, catalogRes, curated] = await Promise.all([
     fetch('./profile.json', { cache: 'no-store' }),
-    fetch('./projects.json', { cache: 'no-store' }),
+    fetch('./api/repos.json', { cache: 'no-store' }),
+    fetch('./projects.json', { cache: 'no-store' })
+      .then((res) => res.ok ? res.json() : [])
+      .catch(() => []),
   ]);
 
   if (!profileRes.ok) throw new Error(`profile.json HTTP ${profileRes.status}`);
-  if (!projectsRes.ok) throw new Error(`projects.json HTTP ${projectsRes.status}`);
+  if (!catalogRes.ok) throw new Error(`api/repos.json HTTP ${catalogRes.status}`);
 
-  const [profile, projects] = await Promise.all([profileRes.json(), projectsRes.json()]);
-  return { profile, projects };
+  const [profile, catalog] = await Promise.all([profileRes.json(), catalogRes.json()]);
+  return { profile, projects: buildProjectCatalog(catalog, Array.isArray(curated) ? curated : []) };
 }
 
 function renderWebProfile(root, profile) {
@@ -197,7 +217,7 @@ function renderWebProfile(root, profile) {
 
 function renderWebProjects(root, projects) {
   root.dataset.renderer = 'web';
-  root.className = 'grid';
+  root.className = 'ui-grid';
 
   if (!projects || projects.length === 0) {
     const emptyMsg = element('div', 'empty-projects-msg', 'No projects match your filter.');
@@ -205,16 +225,17 @@ function renderWebProjects(root, projects) {
     return;
   }
 
-  projects.forEach(({ name, desc, url, topics = [] }) => {
-    const card = element('article', 'card');
-    const title = element('h3');
+  projects.forEach(({ name, desc, url, topics = [], archived }) => {
+    const card = element('article', 'ui-card');
+    const title = element('h3', 'ui-title');
     title.appendChild(externalLink(url, name));
     card.appendChild(title);
-    card.appendChild(element('p', null, desc || ''));
+    if (archived) card.appendChild(element('span', 'ui-tag project-status', 'Archived'));
+    card.appendChild(element('p', 'ui-muted', desc || ''));
 
-    const badges = element('div', 'badges');
+    const badges = element('div', 'project-topics');
     topics.slice(0, 6).forEach((topic) => {
-      const tagSpan = element('span', 'tag', topic);
+      const tagSpan = element('span', 'ui-tag', topic);
       tagSpan.dataset.topic = topic;
       tagSpan.style.cursor = 'pointer';
       tagSpan.title = `Filter by ${topic}`;
@@ -226,14 +247,14 @@ function renderWebProjects(root, projects) {
     });
     card.appendChild(badges);
 
-    const footer = element('div', 'card-footer');
+    const footer = element('div', 'project-card-actions');
     const shields = element('img');
     shields.loading = 'lazy';
     shields.alt = 'GitHub stars';
     shields.src = `https://img.shields.io/github/stars/myon-bioinformatics/${encodeURIComponent(name)}?style=social`;
     footer.appendChild(shields);
 
-    const copyBtn = element('button', 'copy-btn', 'Copy URL');
+    const copyBtn = element('button', 'ui-button project-copy', 'Copy URL');
     copyBtn.type = 'button';
     copyBtn.setAttribute('aria-label', `Copy repository URL for ${name}`);
     copyBtn.addEventListener('click', async () => {
@@ -311,8 +332,9 @@ function renderXmlProjects(root, projects) {
   if (!projects || projects.length === 0) {
     xmlLine(root, 1, [document.createTextNode('<!-- No projects match your filter -->')]);
   } else {
-    projects.forEach(({ name, desc, url, topics = [] }) => {
+    projects.forEach(({ name, desc, url, topics = [], archived }) => {
       xmlLine(root, 1, [xmlTag(`<Project name="${name}">`)]);
+      if (archived) xmlLine(root, 2, [xmlTag('<Status>'), 'Archived', xmlTag('</Status>')]);
       xmlLine(root, 2, [xmlTag('<Description>'), desc || '', xmlTag('</Description>')]);
       const urlLink = externalLink(url, url);
       xmlLine(root, 2, [xmlTag('<Url>'), urlLink, xmlTag('</Url>')]);
@@ -421,13 +443,14 @@ function renderMarkdownProjects(root, projects) {
     return;
   }
 
-  projects.forEach(({ name, desc, url, topics = [] }) => {
+  projects.forEach(({ name, desc, url, topics = [], archived }) => {
     const heading = element('h3', 'md-heading');
     heading.appendChild(document.createTextNode('### '));
     heading.appendChild(externalLink(url, name));
     root.appendChild(heading);
     root.appendChild(element('p', null, desc || ''));
     const list = element('ul', 'md-list');
+    if (archived) list.appendChild(element('li', null, 'Status: Archived'));
     list.appendChild(element('li', null, `Topics: ${topics.join(', ')}`));
     const sourceItem = element('li');
     sourceItem.appendChild(document.createTextNode('Source: '));
@@ -463,7 +486,9 @@ function getFilteredProjects(projects) {
       (project.desc && project.desc.toLowerCase().includes(query)) ||
       (project.topics && project.topics.some((t) => t.toLowerCase().includes(query)))
     );
-    return matchesTag && matchesSearch;
+    const matchesStatus = currentStatusFilter === 'all' ||
+      (currentStatusFilter === 'archived' ? project.archived : !project.archived);
+    return matchesTag && matchesSearch && matchesStatus;
   });
 }
 
@@ -499,6 +524,17 @@ function initProjectControls(projects) {
   const searchInput = document.getElementById('project-search-input');
   const searchClear = document.getElementById('project-search-clear');
   const tagsContainer = document.getElementById('project-tags-filter');
+  const statusSelect = document.getElementById('project-status-filter');
+  // Keep input entered while the catalog was still loading.
+  currentSearchQuery = searchInput?.value || '';
+  if (searchClear) searchClear.hidden = !currentSearchQuery;
+  currentStatusFilter = statusSelect?.value || 'all';
+  if (statusSelect) {
+    statusSelect.addEventListener('change', () => {
+      currentStatusFilter = statusSelect.value;
+      if (sharedData) renderPortfolio(getCurrentMode(), sharedData);
+    });
+  }
 
   if (searchInput) {
     searchInput.addEventListener('input', () => {
@@ -728,3 +764,4 @@ function renderLoadError(error) {
     renderLoadError(error);
   }
 })();
+

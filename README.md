@@ -50,8 +50,9 @@ its retired MCP stub does not need a dedicated Pages deployment. Live destinatio
 flutter_navigation_basic, and web-ui.
 
 ## 🚀 Projects (JSON-driven cards)
-This site renders “Projects” cards from a simple `projects.json`.  
-Edit `projects.json` to reorder/update your cards.
+Projects displays every repository in the public `api/repos.json` catalog, including archived work. Active repositories appear first, then archived repositories; each group is ordered by name. Search, topic and status filters work together across all five display modes. Topic controls expand on demand so the full catalog remains easy to reach on mobile. Cards, tags, inputs and copy buttons use the same pinned web-ui stylesheets already used by this portfolio’s tool pages (`tools/vendor/web-ui/`, source identity in `tools/html-import/vendor.lock.json`). Local CSS only adds catalog layout, mode mapping and filter state; no second component stylesheet is vendored.
+
+`projects.json` supplies optional curated descriptions and extra topics for matching repositories. It never limits catalog membership, and repository URLs always come from `api/repos.json`. If curation is unavailable, repository descriptions (then README summaries) are used. A missing catalog shows a load error instead of a misleading partial list.
 
 ## 🎛️ Display mode
 - Default mode is **modern**
