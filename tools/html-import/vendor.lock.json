@@ -77,6 +77,13 @@
       "source_path": "js/controls.js",
       "path": "tools/vendor/web-ui/js/controls.js",
       "sha256": "e545885ed2f0e43937d2eb3a44bdb874e8c4f42e895a36a51498a0db20956e9d"
+    },
+    {
+      "repository": "https://github.com/myon-bioinformatics/web-ui",
+      "commit": "1a226aff1a19af493546f29d382c3325558645d4",
+      "source_path": "js/collection.js",
+      "path": "tools/vendor/web-ui/js/collection.js",
+      "sha256": "71ac00368ac709eed436a8a1a8882463356b49ae8d19d0c339ba5f522028ce9a"
     }
   ]
 }
