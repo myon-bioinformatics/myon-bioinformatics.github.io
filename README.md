@@ -56,6 +56,8 @@ Projects displays every repository in the public `api/repos.json` catalog, inclu
 
 The catalog refresh runs daily at 06:00 JST. A successful `Update repos API` run on `main` triggers the existing Pages deployment through `workflow_run`, which checks out the refreshed `main`. This explicit handoff is required because catalog commits pushed with `GITHUB_TOKEN` do not trigger `push` workflows. Failed or cancelled refreshes do not publish a new site.
 
+Changes to the Pages workflow also trigger a catalog refresh to exercise this handoff. Render evidence records the actual checked-out commit, including when the refresh or a concurrent update has advanced `main` beyond the event's original SHA.
+
 ## 🎛️ Display mode
 - Default mode is **modern**
 - Repository default can be changed via `site.config.json`:

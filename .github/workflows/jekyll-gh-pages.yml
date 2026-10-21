@@ -34,6 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
+        id: checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The refresh commits after its own triggering SHA was recorded.
@@ -88,6 +89,8 @@ jobs:
           npx playwright screenshot             --browser=chromium             --viewport-size="390,844"             http://127.0.0.1:8000/index.html             _site/evidence/latest/mobile.png
 
       - name: Write latest evidence metadata
+        env:
+          PUBLISHED_SHA: ${{ steps.checkout.outputs.commit }}
         run: |
           python3 - <<'PY'
           import json
@@ -96,7 +99,7 @@ jobs:
           from pathlib import Path
 
           data = {
-              "sha": os.environ["GITHUB_SHA"],
+              "sha": os.environ["PUBLISHED_SHA"],
               "generated_at_utc": datetime.now(timezone.utc).isoformat(),
               "desktop": {"path": "desktop.png", "viewport": "1440x900"},
               "mobile": {"path": "mobile.png", "viewport": "390x844"},
