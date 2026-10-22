@@ -64,7 +64,7 @@ its retired MCP stub does not need a dedicated Pages deployment. Live destinatio
 flutter_navigation_basic, and web-ui.
 
 ## 🚀 Projects (JSON-driven cards)
-Projects displays only public, non-archived repositories from the `api/repos.json` catalog. The full candidate pool is collected first and then shuffled, so each page load shows a new order. Search and topic filters work together across all five display modes. Topic controls expand on demand so the full catalog remains easy to reach on mobile. Cards, tags, inputs and copy buttons use the same pinned web-ui stylesheets already used by this portfolio’s tool pages (`tools/vendor/web-ui/`, source identity in `tools/html-import/vendor.lock.json`). Local CSS only adds catalog layout, mode mapping and filter state; no second component stylesheet is vendored.
+The Projects section shows only public, non-archived repositories from the `api/repos.json` catalog. It collects the full candidate pool first and then shuffles it, so the order changes on each page load. Search and topic filters work together across all five display modes. Topic controls expand on demand so the full catalog remains easy to reach on mobile. Cards, tags, inputs and copy buttons use the same pinned web-ui stylesheets already used by this portfolio’s tool pages (`tools/vendor/web-ui/`, source identity in `tools/html-import/vendor.lock.json`). Local CSS only adds catalog layout, mode mapping and filter state; no second component stylesheet is vendored.
 
 `projects.json` supplies optional curated descriptions and extra topics for matching repositories. It never limits catalog membership, and repository URLs always come from `api/repos.json`. If curation is unavailable, repository descriptions (then README summaries) are used. A missing catalog shows a load error instead of a misleading partial list.
 
@@ -131,8 +131,8 @@ stable `evidence/latest/` screenshots described above.
 <details>
 <summary>🇯🇵 日本語版 (クリックで展開)</summary>
 
-このリポジトリは**GitHub Pagesサイト**です。`projects.json` を編集するだけでトップのプロジェクトカードが更新されます。  
-ローカル確認は `python -m http.server` でOK。`projects.json` のピン留めからの定期自動更新workflowは現在ありません。編集・検証手順は [docs/SSOT.md](docs/SSOT.md) を参照してください。
+このリポジトリは **GitHub Pages のサイト**です。`projects.json` を編集すると、トップのプロジェクトカードが更新されます。  
+ローカルで確認するには `python -m http.server` を実行します。現在、`projects.json` をピン留めのリポジトリから定期的に更新する workflow はありません。編集と検証の手順は [docs/SSOT.md](docs/SSOT.md) を参照してください。
 </details>
 
 ## Lab public tools and reports
