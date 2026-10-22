@@ -4,6 +4,7 @@ from pathlib import Path
 import struct
 import subprocess
 import sys
+import zlib
 
 import pytest
 
@@ -14,6 +15,110 @@ from generate_apng import create_apng, _parse_png_chunks
 from record_demo import stitch_png_grid
 
 Image = load_module('pillow_min', 'tools/vendor/ironmate/pillow_min.py').Image
+
+
+def png_chunk(kind, payload):
+    return (struct.pack('>I', len(payload)) + kind + payload
+            + struct.pack('>I', zlib.crc32(kind + payload) & 0xffffffff))
+
+
+def independent_png(rows, color_type, filter_type=0, metadata=()):
+    """Encode known samples without using the decoder or its PNG writer.
+
+    Split the compressed stream so create_apng must emit and the decoder must
+    join several fdAT chunks for one frame, including splits inside zlib headers.
+    """
+    channels = {0: 1, 2: 3, 3: 1, 6: 4}[color_type]
+    width = len(rows[0]) // channels
+    encoded = bytearray()
+    previous = bytes(len(rows[0]))
+    for row in rows:
+        encoded.append(filter_type)
+        for index, sample in enumerate(row):
+            left = row[index - channels] if index >= channels else 0
+            above = previous[index]
+            upper_left = previous[index - channels] if index >= channels else 0
+            estimate = left + above - upper_left
+            paeth = min((left, above, upper_left), key=lambda v: abs(estimate - v))
+            prediction = (0, left, above, (left + above) // 2, paeth)[filter_type]
+            encoded.append((sample - prediction) % 256)
+        previous = row
+    compressed = zlib.compress(encoded)
+    header = struct.pack('>IIBBBBB', width, len(rows), 8, color_type, 0, 0, 0)
+    parts = (compressed[:1], compressed[1:5], compressed[5:])
+    return (b'\x89PNG\r\n\x1a\n' + png_chunk(b'IHDR', header)
+            + b''.join(png_chunk(k, d) for k, d in metadata)
+            + b''.join(png_chunk(b'IDAT', part) for part in parts)
+            + png_chunk(b'IEND', b''))
+
+
+@pytest.mark.parametrize('color_type,mode', [(2, 'RGB'), (6, 'RGBA')])
+@pytest.mark.parametrize('filter_type', range(5))
+def test_independent_filtered_pixels_frames_and_grid(tmp_path, color_type, mode, filter_type):
+    channels = len(mode)
+    paths, expected = [], []
+    for frame in range(3):
+        pixels = bytes((x * 61 + y * 43 + band * 79 + frame * 101) % 256
+                       for y in range(5) for x in range(7) for band in range(channels))
+        rows = [pixels[y * 7 * channels:(y + 1) * 7 * channels] for y in range(5)]
+        path = tmp_path / f'independent{frame}.png'
+        path.write_bytes(independent_png(rows, color_type, filter_type))
+        assert Image.open(path).tobytes() == pixels
+        paths.append(path)
+        expected.append(pixels)
+    animation = Image.open(create_apng(paths, tmp_path / 'filtered-apng.png', delay_ms=125, loops=4))
+    assert animation.mode == mode
+    assert animation.n_frames == 3 and animation.is_animated
+    assert animation.info['loop'] == 4
+    for index in (0, 1, 2, 0, 2):
+        animation.seek(index)
+        assert animation.tell() == index
+        assert animation.convert(mode).tobytes() == expected[index]
+        assert animation.info['duration'] == 125
+    with pytest.raises(EOFError):
+        animation.seek(3)
+    grid = Image.open(stitch_png_grid(paths, tmp_path / 'filtered-grid.png', columns=2))
+    for index, pixels in enumerate(expected):
+        x, y = index % 2 * 7, index // 2 * 5
+        assert grid.crop((x, y, x + 7, y + 5)).convert(mode).tobytes() == pixels
+
+
+@pytest.mark.parametrize('color_type,rows,metadata,expected', [
+    (0, [bytes([17, 18])], [(b'tRNS', struct.pack('>H', 17))],
+     bytes([17, 17, 17, 0, 18, 18, 18, 255])),
+    (2, [bytes([17, 23, 31, 17, 23, 32])], [(b'tRNS', struct.pack('>HHH', 17, 23, 31))],
+     bytes([17, 23, 31, 0, 17, 23, 32, 255])),
+    (3, [bytes([0, 1, 2])], [(b'PLTE', bytes([255, 0, 0, 0, 255, 0, 0, 0, 255])),
+                            (b'tRNS', bytes([0, 128, 255]))],
+     bytes([255, 0, 0, 0, 0, 255, 0, 128, 0, 0, 255, 255])),
+])
+def test_independent_transparency_in_png_and_apng(tmp_path, color_type, rows, metadata, expected):
+    path = tmp_path / 'transparent.png'
+    path.write_bytes(independent_png(rows, color_type, metadata=metadata))
+    assert Image.open(path).convert('RGBA').tobytes() == expected
+    animation = Image.open(create_apng([path, path], tmp_path / 'transparent-apng.png'))
+    assert animation.n_frames == 2
+    for index in range(2):
+        animation.seek(index)
+        assert animation.convert('RGBA').tobytes() == expected
+
+
+def test_independent_decode_limits_and_invalid_payloads():
+    png = independent_png([bytes([10, 20, 30])], 2)
+    with pytest.raises(ValueError, match='limit'):
+        Image.open(png, max_decompressed=3)  # row is 3 samples plus its filter byte
+    large_header = struct.pack('>IIBBBBB', 1000, 1000, 8, 2, 0, 0, 0)
+    large = png[:8] + png_chunk(b'IHDR', large_header) + png[33:]
+    with pytest.raises(ValueError, match='limit'):
+        Image.open(large, max_pixels=100)
+    for bad in (png[:20], png[:-1], png[:25] + bytes([png[25] ^ 1]) + png[26:]):
+        with pytest.raises((ValueError, OSError)):
+            Image.open(bad)
+    # Valid chunk CRC but more inflated samples than the IHDR permits.
+    oversized = (png[:33] + png_chunk(b'IDAT', zlib.compress(bytes(100)))
+                 + png_chunk(b'IEND', b''))
+    with pytest.raises(ValueError, match='limit'):
+        Image.open(oversized)
 
 
 def frames(tmp_path, mode='RGBA'):
