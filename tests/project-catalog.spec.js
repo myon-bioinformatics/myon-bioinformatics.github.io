@@ -27,8 +27,9 @@ test('active projects appear before archived work and curated descriptions survi
   const activeCount = catalog.repos.filter(repo => !repo.archived).length;
   expect(new Set(titles.slice(0, activeCount))).toEqual(new Set(catalog.repos.filter(repo => !repo.archived).map(repo => repo.name)));
   await expect(page.locator('#projects-render-root .project-status')).toHaveCount(catalog.repos.length - activeCount);
-  const nmap = page.locator('#projects-render-root .ui-card').filter({ has: page.getByRole('link', { name: 'python3nmap_GUI_for_Beginners', exact: true }) });
-  await expect(nmap).toContainText(curated.find(repo => repo.name === 'python3nmap_GUI_for_Beginners').desc);
+  const sample = curated[0];
+  const card = page.locator('#projects-render-root .ui-card').filter({ has: page.getByRole('link', { name: sample.name, exact: true }) });
+  await expect(card).toContainText(sample.desc);
 });
 
 test('status, topic and search combine and survive mode changes', async ({ page }) => {

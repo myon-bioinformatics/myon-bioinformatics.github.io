@@ -2,6 +2,8 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const projectCount = require('../api/repos.json').repos.length;
+const profile = require('../profile.json');
+const skillCount = profile.skills.reduce((total, group) => total + group.items.length, 0);
 const path = require('path');
 
 const CONFIG_PATH = path.resolve(__dirname, '../site.config.json');
@@ -102,8 +104,8 @@ test('invalid config defaultViewMode falls back to modern', async ({ page }) => 
 test('modern keeps web behavior while using terminal-inspired presentation', async ({ page }) => {
   await loadFresh(page, 'modern');
   await expect(page.locator('#profile-render-root[data-renderer="web"] .tabs')).toBeVisible();
-  await expect(page.locator('.skill-bar-fill')).toHaveCount(13);
-  await expect(page.locator('.timeline-item')).toHaveCount(4);
+  await expect(page.locator('.skill-bar-fill')).toHaveCount(skillCount);
+  await expect(page.locator('.timeline-item')).toHaveCount(profile.career.length);
   await expect(page.locator('#projects-render-root[data-renderer="web"] .ui-card')).toHaveCount(projectCount);
 
   const modernStyles = await page.evaluate(() => {
