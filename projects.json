@@ -1,45 +1,213 @@
 [
   {
-    "name": "python3nmap_GUI_for_Beginners",
-    "desc": "Beginner-friendly Nmap GUI wrapper (Python + PySimpleGUI).",
-    "url": "https://github.com/myon-bioinformatics/python3nmap_GUI_for_Beginners",
+    "name": "search_seq_including_spaces",
+    "desc": "Standard-library Python CLI for DNA and protein sequences: finds patterns whose front and back are fixed while the spacer in between varies, and writes CSV/JSONL. Also reads FASTA/FASTQ/GenBank, compares and translates sequences, gives RNA-fold and protein hints, and fetches from NCBI/PDB. CI-tested on Python 3.10–3.14.",
+    "url": "https://github.com/myon-bioinformatics/search_seq_including_spaces",
     "topics": [
-      "python",
+      "bioinformatics",
+      "dna",
+      "protein",
+      "cli"
+    ]
+  },
+  {
+    "name": "Aoi",
+    "desc": "Baseball (NPB) research framework that looks for better questions rather than answers: starting from unexplained long-term outcomes, it observes, measures and tests the limits of models, metrics and evaluation. Parent of the six research subprojects below (git subtree).",
+    "url": "https://github.com/myon-bioinformatics/Aoi",
+    "topics": [
+      "baseball",
+      "research",
+      "statistics"
+    ]
+  },
+  {
+    "name": "QueRyu",
+    "desc": "Reproducible, polite fetching of NPB pages with conditional-GET caching and provenance, used to build observation datasets for Aoi.",
+    "url": "https://github.com/myon-bioinformatics/QueRyu",
+    "topics": [
+      "baseball",
+      "data-acquisition",
+      "reproducibility"
+    ]
+  },
+  {
+    "name": "BlueProbe",
+    "desc": "Observes and extracts the HTML/CSS/DOM structure of NPB pages before any interpretation (observe first, interpret later).",
+    "url": "https://github.com/myon-bioinformatics/BlueProbe",
+    "topics": [
+      "baseball",
+      "html",
+      "data-extraction"
+    ]
+  },
+  {
+    "name": "SakAnalytics",
+    "desc": "Team-season metrics, remaining-game and clinch magic-number simulation, and synthetic-league experiments from NPB game records.",
+    "url": "https://github.com/myon-bioinformatics/SakAnalytics",
+    "topics": [
+      "baseball",
+      "simulation",
+      "statistics"
+    ]
+  },
+  {
+    "name": "PythDRagoras",
+    "desc": "Treats explanations as propositions and tests them against counterexamples, with rule search and sensitivity analysis for NPB outcomes.",
+    "url": "https://github.com/myon-bioinformatics/PythDRagoras",
+    "topics": [
+      "baseball",
+      "hypothesis-testing",
+      "rule-search"
+    ]
+  },
+  {
+    "name": "DRAgoWing",
+    "desc": "Renders research records as Plotly.js HTML reports and proposition tables, with optional headless-Chrome PNG/SVG export and no Python plotting libraries.",
+    "url": "https://github.com/myon-bioinformatics/DRAgoWing",
+    "topics": [
+      "baseball",
+      "visualization",
+      "plotly"
+    ]
+  },
+  {
+    "name": "NagoyAction",
+    "desc": "Defines a research pipeline once in TOML and runs it with the same standard-library command locally and on GitHub Actions, with run receipts, Markdown link checks and publication gates.",
+    "url": "https://github.com/myon-bioinformatics/NagoyAction",
+    "topics": [
+      "pipeline",
+      "github-actions",
+      "reproducibility"
+    ]
+  },
+  {
+    "name": "gh_identity",
+    "desc": "Single-file, standard-library Python interface over the GitHub CLI for observing repositories, pull requests, checks and workflow runs, with explicit identity and bounded output.",
+    "url": "https://github.com/myon-bioinformatics/gh_identity",
+    "topics": [
+      "github",
+      "cli",
+      "single-file"
+    ]
+  },
+  {
+    "name": "xprobe",
+    "desc": "Single-file, standard-library toolkit for text search, boundary-case probing and failure-oriented test support, including convention-driven discovery of files and production symbols.",
+    "url": "https://github.com/myon-bioinformatics/xprobe",
+    "topics": [
+      "testing",
+      "cli",
+      "single-file"
+    ]
+  },
+  {
+    "name": "yourself",
+    "desc": "Single-file, standard-library tool that reports host, OS and runtime facts read-only, as concise copyable text for troubleshooting and AI context.",
+    "url": "https://github.com/myon-bioinformatics/yourself",
+    "topics": [
+      "diagnostics",
+      "cli",
+      "single-file"
+    ]
+  },
+  {
+    "name": "cli_args",
+    "desc": "Single-file, standard-library toolkit for reusable CLI argument definitions, validation, command construction, execution and JSON/text output.",
+    "url": "https://github.com/myon-bioinformatics/cli_args",
+    "topics": [
+      "cli",
+      "validation",
+      "single-file"
+    ]
+  },
+  {
+    "name": "markdown",
+    "desc": "Lightweight, function-focused Markdown utilities built with the Python standard library only.",
+    "url": "https://github.com/myon-bioinformatics/markdown",
+    "topics": [
+      "markdown",
+      "library",
+      "single-file"
+    ]
+  },
+  {
+    "name": "ascii_artist",
+    "desc": "Python utilities for ASCII art generation, conversion, layout and text-based diagrams. CI-tested on Python 3.10–3.14.",
+    "url": "https://github.com/myon-bioinformatics/ascii_artist",
+    "topics": [
+      "ascii-art",
+      "diagram",
+      "single-file"
+    ]
+  },
+  {
+    "name": "Err-o-RoadRunner",
+    "desc": "Error-triggered triage for Python, Node and CI failures: does nothing until something fails, then prints FOUND / NOT FOUND / HINT reports. Python standard library only.",
+    "url": "https://github.com/myon-bioinformatics/Err-o-RoadRunner",
+    "topics": [
+      "debugging",
+      "ci",
+      "cli"
+    ]
+  },
+  {
+    "name": "nvd_nist_known_vulns",
+    "desc": "Single-file, standard-library client for the NVD CVE API 2.0: fetches known vulnerabilities for CPE 2.3 names and emits deterministic JSON Lines. CI-tested on Python 3.9–3.14.",
+    "url": "https://github.com/myon-bioinformatics/nvd_nist_known_vulns",
+    "topics": [
       "security",
-      "gui",
-      "nmap"
+      "cve",
+      "cli"
     ]
   },
   {
-    "name": "scapy_GUI_for_Beginners",
-    "desc": "Packet crafting/inspection via GUI for newcomers.",
-    "url": "https://github.com/myon-bioinformatics/scapy_GUI_for_Beginners",
+    "name": "browser-test-kit",
+    "desc": "Cross-browser testing reference kit: Playwright Node and Python lanes on Chromium, Firefox and WebKit (desktop and mobile), screenshot evidence and OS/browser matrices on GitHub Actions, plus standard-library engineering utilities.",
+    "url": "https://github.com/myon-bioinformatics/browser-test-kit",
     "topics": [
-      "python",
-      "scapy",
-      "networking",
-      "gui"
+      "playwright",
+      "cross-browser",
+      "testing"
     ]
   },
   {
-    "name": "convert_img_fmt_to_webp-GUI-",
-    "desc": "Batch image conversion to WebP with a friendly UI (FFmpeg wrapper).",
-    "url": "https://github.com/myon-bioinformatics/convert_img_fmt_to_webp-GUI-",
+    "name": "web-ui",
+    "desc": "Shared, build-free CSS themes, UI components and small JavaScript utilities for the static pages of these projects, including layout presets that switch without reloading.",
+    "url": "https://github.com/myon-bioinformatics/web-ui",
     "topics": [
-      "python",
-      "ffmpeg",
-      "image",
-      "gui"
+      "css",
+      "ui-components",
+      "static-site"
     ]
   },
   {
-    "name": "niconicoSearchAPI_Template",
-    "desc": "Template to kickstart API-based search clients.",
-    "url": "https://github.com/myon-bioinformatics/niconicoSearchAPI_Template",
+    "name": "flutter_navigation_basic",
+    "desc": "Multi-platform Flutter app (Web, iOS, Android, macOS) with 198 routed screens on a reusable foundation (themes, routes, shared widgets, URL parameters); the Flutter Web build is published on GitHub Pages and checked with Playwright screenshots.",
+    "url": "https://github.com/myon-bioinformatics/flutter_navigation_basic",
     "topics": [
-      "template",
-      "api",
-      "starter"
+      "flutter",
+      "dart",
+      "multi-platform"
+    ]
+  },
+  {
+    "name": "mcp-toolcall-lab",
+    "desc": "Reproducible experiments on how LLMs discover and call MCP tools: a FastMCP server with deterministic mock tools, Open WebUI and LibreChat as clients under test, protocol tests and an anti-pattern catalog.",
+    "url": "https://github.com/myon-bioinformatics/mcp-toolcall-lab",
+    "topics": [
+      "llm",
+      "mcp",
+      "open-webui"
+    ]
+  },
+  {
+    "name": "Ironmate",
+    "desc": "Python toolkit for converting documents and images: a Markdown-to-PPTX pipeline, text and color editing of existing PPTX, browser-based Image Studio and Slide Studio, and pixel-grid art prototypes.",
+    "url": "https://github.com/myon-bioinformatics/Ironmate",
+    "topics": [
+      "pptx",
+      "markdown",
+      "image"
     ]
   }
 ]

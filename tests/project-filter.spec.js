@@ -1,6 +1,7 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 const { repos } = require('../api/repos.json');
+const curated = require('../projects.json');
 const projectCount = repos.length;
 
 test.describe('Project tag filtering and search', () => {
@@ -59,12 +60,24 @@ test.describe('Project tag filtering and search', () => {
   });
 
   test('clicking topic tag on a card filters projects', async ({ page }) => {
-    const scapyBadge = page.locator('.project-topics .ui-tag[data-topic="scapy"]').first();
-    await scapyBadge.click();
+    const badge = page.locator('.project-topics .ui-tag[data-topic]').first();
+    const topic = await badge.getAttribute('data-topic');
+    if (!topic) throw new Error('Expected a rendered project topic');
+    const expectedNames = repos.filter(repo =>
+      [...(repo.topics || []), ...(curated.find(project => project.name === repo.name)?.topics || [])]
+        .includes(topic)).map(repo => repo.name).sort();
+    expect(expectedNames.length).toBeGreaterThan(0);
+    await badge.click();
 
-    await expect(page.locator('#project-tags-filter button[data-tag="scapy"]')).toHaveClass(/active/);
-    await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${projectCount} projects`);
-    await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(1);
+    // Rendering after the card click collapses the controls; inspect their state even when hidden.
+    await expect(page.locator(`#project-tags-filter button[data-tag=${JSON.stringify(topic)}]`))
+      .toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#projects-count')).toHaveText(expectedNames.length === projectCount
+      ? `Showing all ${projectCount} projects`
+      : `Showing ${expectedNames.length} of ${projectCount} projects`);
+    const titles = page.locator('#projects-render-root .ui-card h3');
+    await expect(titles).toHaveCount(expectedNames.length);
+    expect((await titles.allTextContents()).sort()).toEqual(expectedNames);
   });
 
   test('clicking Copy URL button copies URL and gives visual feedback', async ({ page, context }) => {
