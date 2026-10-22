@@ -5,12 +5,15 @@ import struct
 import subprocess
 import sys
 
-from PIL import Image
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+from vendor_loader import load_module
 from generate_apng import create_apng, _parse_png_chunks
 from record_demo import stitch_png_grid
+
+Image = load_module('pillow_min', 'tools/vendor/ironmate/pillow_min.py').Image
 
 
 def frames(tmp_path, mode='RGBA'):

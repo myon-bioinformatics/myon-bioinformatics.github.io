@@ -1,10 +1,15 @@
 """Verify supplied brand artwork and the browser favicon contract."""
 from html.parser import HTMLParser
 from pathlib import Path
-
-from PIL import Image
+import hashlib
+import struct
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+from vendor_loader import load_module
+
+Image = load_module('pillow_min', 'tools/vendor/ironmate/pillow_min.py').Image
 ASSETS = ROOT / "assets" / "brand"
 
 
@@ -26,21 +31,38 @@ def test_source_crops_preserve_dimensions_and_rgb_background():
     for name, size in (("myon-profile-icon.png", 384), ("myon-favicon-source.png", 160)):
         with Image.open(ASSETS / name) as image:
             image.load()
-            assert image.format == "PNG"
+            assert (ASSETS / name).read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
             assert image.mode == "RGB"
             assert image.size == (size, size)
 
 
 def test_favicons_have_expected_sizes_and_ico_frames_match_pngs():
-    with Image.open(ROOT / "favicon.ico") as ico, Image.open(ASSETS / "myon-favicon-source.png") as source:
-        assert ico.ico.sizes() == {(16, 16), (32, 32), (48, 48)}
-        for size in (16, 32, 48):
-            with Image.open(ASSETS / f"favicon-{size}x{size}.png") as png:
-                assert png.size == (size, size)
-                assert png.mode == "RGB"
-                expected = source.resize((size, size), Image.Resampling.LANCZOS)
-                assert png.tobytes() == expected.tobytes()
-                assert ico.ico.getimage((size, size)).convert("RGB").tobytes() == png.tobytes()
+    # Frozen RGB pixels from the reviewed Pillow LANCZOS exports. pillow_min
+    # decodes PNG only; do not reintroduce Pillow for ICO or resampling here.
+    expected_pixels = {
+        16: '7ac0ccb39b6b495a2a41ae61efbffb6a148733355550e24972c0db6dc77dbb72',
+        32: '3f47f6fd6cae8e7bbf5de3166203d1e67bd9489c14d862fa3f85924455eddaad',
+        48: 'a68408bb69b1a56305af26e2745224258e13afcf0758e053063d9068add6e7fb',
+    }
+    with Image.open(ASSETS / 'myon-favicon-source.png') as source:
+        assert hashlib.sha256(source.tobytes()).hexdigest() == 'eb9bb1113af0852e61701404127802f36146245ce6391e31828b421831b2dac1'
+    ico = (ROOT / 'favicon.ico').read_bytes()
+    assert struct.unpack_from('<HHH', ico) == (0, 1, len(expected_pixels))
+    sizes = set()
+    for index in range(len(expected_pixels)):
+        width, height, _, _, _, _, length, offset = struct.unpack_from('<BBBBHHII', ico, 6 + 16 * index)
+        assert width == height
+        assert width in expected_pixels
+        sizes.add(width)
+        assert offset >= 6 + 16 * len(expected_pixels)
+        assert offset + length <= len(ico)
+        png_path = ASSETS / f'favicon-{width}x{height}.png'
+        assert ico[offset:offset + length] == png_path.read_bytes()
+        with Image.open(png_path) as png:
+            assert png.size == (width, height)
+            assert png.mode == 'RGB'
+            assert hashlib.sha256(png.tobytes()).hexdigest() == expected_pixels[width]
+    assert sizes == set(expected_pixels)
 
 
 def test_homepage_favicon_links_and_header_artwork_are_local():
@@ -70,12 +92,9 @@ def test_readme_uses_the_same_profile_artwork():
 
 
 def test_replacement_concept_diagram_is_preserved_and_linked():
-    import hashlib
-
     diagram = ASSETS / "myon-concept-diagram.jpg"
+    # Full-file integrity also preserves the supplied JPEG's format/dimensions;
+    # JPEG decoding is outside the PNG-only vendored helper's contract.
     assert hashlib.sha256(diagram.read_bytes()).hexdigest() == "4b5f4673e1eabe737913828fa54ec101c12d7fb1e4883581b9e8cd96a3f00964"
-    with Image.open(diagram) as image:
-        assert image.format == "JPEG"
-        assert image.size == (1536, 1024)
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "](assets/brand/myon-concept-diagram.jpg)" in readme
