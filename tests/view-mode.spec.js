@@ -131,6 +131,40 @@ test('github-like keeps the web-oriented renderer', async ({ page }) => {
   await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(projectCount);
 });
 
+for (const width of [390, 1280]) {
+  test(`career matches the canonical profile across modes at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await loadFresh(page, 'modern');
+    const currentActivity = profile.career.find(entry => entry.year === '2026–');
+    expect(currentActivity).toBeDefined();
+
+    for (const mode of ['modern', 'xml-like', 'json', 'markdown', 'github-like']) {
+      await selectMode(page, mode);
+      const root = page.locator('#profile-render-root');
+      if (mode === 'modern' || mode === 'github-like') {
+        await root.getByRole('tab', { name: 'Career', exact: true }).click();
+        const items = root.locator('.timeline-item');
+        await expect(items).toHaveCount(profile.career.length);
+        await expect(items.locator('.tl-year')).toHaveText(profile.career.map(entry => entry.year));
+        await expect(items.locator('.tl-body strong')).toHaveText(profile.career.map(entry => entry.title));
+        const currentItem = items.filter({ has: page.locator('.tl-year', { hasText: currentActivity.year }) });
+        await expect(currentItem.locator('.tl-year')).toBeVisible();
+        await expect(currentItem.locator('.tl-body strong')).toBeVisible();
+      } else if (mode === 'xml-like') {
+        await expect(root.locator('.xml-tag').filter({ hasText: /^<Entry year=/ }))
+          .toHaveCount(profile.career.length);
+      } else if (mode === 'markdown') {
+        await expect(root.locator('h3:has-text("### Career") + ul > li'))
+          .toHaveCount(profile.career.length);
+      } else {
+        expect(JSON.parse(await root.textContent()).career).toEqual(profile.career);
+      }
+      await expect(root).toContainText(currentActivity.year);
+      await expect(root).toContainText(currentActivity.title);
+    }
+  });
+}
+
 test('xml-like renders nested tag-style profile and project structures', async ({ page }) => {
   await loadFresh(page, 'xml-like');
   const profile = page.locator('#profile-render-root');
