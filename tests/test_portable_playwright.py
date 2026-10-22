@@ -30,7 +30,8 @@ class PortablePlaywrightTests(unittest.TestCase):
         b = self.call(["node", str(JS)])
         self.assertEqual(a.returncode, 0, a.stderr)
         self.assertEqual(b.returncode, 0, b.stderr)
-        self.assertEqual({k: v for k, v in json.loads(a.stdout).items() if k != 'browser'},\n                         {k: v for k, v in json.loads(b.stdout).items() if k != 'browser'})
+        self.assertEqual({k: v for k, v in json.loads(a.stdout).items() if k != 'browser'},
+                         {k: v for k, v in json.loads(b.stdout).items() if k != 'browser'})
 
     def test_failure_exit_code(self):
         result = self.call([sys.executable, "-S", str(PY)], env={"FAKE_EXIT": "7"})
