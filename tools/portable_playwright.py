@@ -16,8 +16,8 @@ def browsers(roots):
             found += [p for p in glob.glob(str(Path(root) / pattern)) if Path(p).is_file()]
     def rank(path):
         match = re.search(r"chromium-(\d+)", path)
-        return (int(match.group(1)) if match else -1, path)
-    return sorted(set(found), key=rank, reverse=True)
+        return (-(int(match.group(1)) if match else -1), str(Path(path).resolve()))
+    return sorted(set(found), key=rank)
 
 def main(argv=None):
     parser = argparse.ArgumentParser()
