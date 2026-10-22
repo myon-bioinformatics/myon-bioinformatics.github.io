@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Portable Playwright runner (Python stdlib only)."""
 import argparse
-import glob
 import json
 import os
 from pathlib import Path
@@ -10,14 +9,21 @@ import subprocess
 import sys
 
 def browsers(roots):
-    found = []
+    """Find Chromium by revision descending, then absolute path ascending."""
+    found = set()
     for root in roots:
-        for pattern in ("chromium-*/chrome-linux*/chrome", "chromium-*/chrome-linux*/chrome.exe"):
-            found += [p for p in glob.glob(str(Path(root) / pattern)) if Path(p).is_file()]
-    def rank(path):
-        match = re.search(r"chromium-(\d+)", path)
-        return (-(int(match.group(1)) if match else -1), str(Path(path).resolve()))
-    return sorted(set(found), key=rank)
+        for cache in Path(root).glob("chromium-*"):
+            revision = re.fullmatch(r"chromium-(\d+)", cache.name)
+            if not revision or not cache.is_dir():
+                continue
+            for sub in cache.glob("chrome-linux*"):
+                if not sub.is_dir():
+                    continue
+                for exe in ("chrome", "chrome.exe"):
+                    candidate = sub / exe
+                    if candidate.is_file():
+                        found.add((int(revision.group(1)), str(candidate.resolve())))
+    return [path for _, path in sorted(found, key=lambda pair: (-pair[0], pair[1]))]
 
 def main(argv=None):
     parser = argparse.ArgumentParser()
@@ -39,7 +45,7 @@ def main(argv=None):
         parser.error(f"missing {config}")
     if args.browser and not Path(args.browser).is_file():
         parser.error(f"browser not found: {args.browser}")
-    browser = args.browser or next(iter(browsers(args.browser_root or ["/opt/pw-browsers"])), None)
+    browser = str(Path(args.browser).resolve()) if args.browser else next(iter(browsers(args.browser_root or ["/opt/pw-browsers"])), None)
     env = dict(os.environ, PORTABLE_PW_BASE_CONFIG=str(config), PORTABLE_PW_TEST_DIR=str(root / "tests"))
     if browser:
         env["PORTABLE_PW_BROWSER"] = str(Path(browser).resolve())

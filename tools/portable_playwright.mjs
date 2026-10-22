@@ -27,20 +27,27 @@ function parse(argv) {
 function discover(roots) {
   const candidates = [];
   for (const root of roots) {
-    if (!fs.existsSync(root)) continue;
+    if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) continue;
     for (const dir of fs.readdirSync(root)) {
-      const m = /^chromium-(\d+)$/.exec(dir);
-      if (!m) continue;
-      for (const sub of fs.readdirSync(path.join(root, dir))) {
+      const match = /^chromium-(\d+)$/.exec(dir);
+      if (!match) continue;
+      const cache = path.join(root, dir);
+      if (!fs.statSync(cache).isDirectory()) continue;
+      for (const sub of fs.readdirSync(cache)) {
         if (!sub.startsWith('chrome-linux')) continue;
+        const folder = path.join(cache, sub);
+        if (!fs.statSync(folder).isDirectory()) continue;
         for (const exe of ['chrome', 'chrome.exe']) {
-          const candidate = path.join(root, dir, sub, exe);
-          if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) candidates.push({ version: Number(m[1]), path: path.resolve(candidate) });
+          const candidate = path.join(folder, exe);
+          if (fs.existsSync(candidate) && fs.statSync(candidate).isFile())
+            candidates.push({ version: Number(match[1]), path: path.resolve(candidate) });
         }
       }
     }
   }
-  return candidates.sort((a,b) => b.version - a.version || a.path.localeCompare(b.path))[0]?.path ?? null;
+  // Python lexicographic order differs from localeCompare for mixed-case paths.
+  return candidates.sort((a,b) => b.version - a.version ||
+    (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))[0]?.path ?? null;
 }
 function main() {
   const args = parse(process.argv.slice(2));
