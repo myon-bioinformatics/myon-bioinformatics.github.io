@@ -69,7 +69,8 @@ test.describe('Project tag filtering and search', () => {
     expect(expectedNames.length).toBeGreaterThan(0);
     await badge.click();
 
-    await expect(page.locator('#project-tags-filter').getByRole('button', { name: topic, exact: true }))
+    // Rendering after the card click collapses the controls; inspect their state even when hidden.
+    await expect(page.locator(`#project-tags-filter button[data-tag=${JSON.stringify(topic)}]`))
       .toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#projects-count')).toHaveText(expectedNames.length === projectCount
       ? `Showing all ${projectCount} projects`
