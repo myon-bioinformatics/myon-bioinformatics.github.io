@@ -1,0 +1,30 @@
+name: Portable Playwright browser smoke
+on:
+  pull_request:
+    paths:
+      - 'tools/portable_playwright.py'
+      - 'tools/portable_playwright.mjs'
+      - 'tools/portable_playwright_config.cjs'
+      - 'tests/portable-playwright.node.test.mjs'
+      - '.github/workflows/portable-playwright-browser.yml'
+  workflow_dispatch:
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Python browser smoke
+        run: python -S tools/portable_playwright.py --root . --timeout 600 tests/project-catalog.spec.js
+      - name: Node browser smoke
+        run: node tools/portable_playwright.mjs --root . --timeout 600 tests/project-catalog.spec.js
