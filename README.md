@@ -142,6 +142,9 @@ Actions report under `tools/mcp-toolcall-lab/` (`#wiki` and `#pixiv`). MCP serve
 Docker execution, raw traces, and test generation remain in mcp-toolcall-lab.
 Flutter's working Pages application is unchanged.
 
+The [Execution Lab](https://myon-bioinformatics.github.io/mcp-toolcall-lab/execution/) is the lab-hosted browser execution interface, separate from this imported report.
+The portfolio Wiki form starts empty: examples do not prefill a personal location.
+
 The initial import is the public export observed on 2026-10-08, with source
 identity `3b15b7911695fc76fa8cd01f514e57133fb02d83` (2026-10-05).
 Its original `dirty: true` observation is preserved, not silently corrected.

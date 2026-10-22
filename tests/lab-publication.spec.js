@@ -35,3 +35,14 @@ for(const mobile of [false,true]){
   });
  });
 }
+
+test('execution links and empty Wiki examples remain usable', async ({ page }) => {
+  const execution = 'https://myon-bioinformatics.github.io/mcp-toolcall-lab/execution/';
+  await page.goto('/');
+  await expect(page.getByRole('link', { name: 'Open Execution Lab →' })).toHaveAttribute('href', execution);
+  await page.goto('/tools/mcp-toolcall-lab/#wiki');
+  await expect(page.getByTestId('lab-execution-link')).toHaveAttribute('href', execution);
+  await expect(page.getByTestId('pages-wiki-title')).toHaveValue('');
+  await page.getByTestId('pages-wiki-fetch').click();
+  await expect(page.getByTestId('pages-wiki-error')).toContainText('Enter a Wikipedia title.');
+});

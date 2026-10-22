@@ -110,3 +110,34 @@ def test_reimport_preserves_consumer_niconico_panel_and_routes():
     assert '../niconico/search.js' in page
     assert apply_shared_ui(page).count('data-pages-view="niconico"') == 1
     assert b"niconico:'niconico'" in NAVIGATION_BINDING
+
+
+def test_example_defaults_are_blank_and_execution_is_linked():
+    import subprocess
+    from html.parser import HTMLParser
+
+    class Inputs(HTMLParser):
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if tag == 'input' and attrs.get('id') == 'pages-wiki-title':
+                assert attrs.get('value') == ''
+
+    Inputs().feed((PUBLIC / 'index.html').read_text())
+    for path in (ROOT / 'index.html', ROOT / 'README.md', PUBLIC / 'index.html'):
+        assert module.EXECUTION_URL in path.read_text()
+    services = json.loads((ROOT / 'services.json').read_text())
+    assert services['services']['projects']['mcp-toolcall-lab']['execution']['url'] == module.EXECUTION_URL
+    subprocess.run(['node', '-e', "require('node:assert/strict').equal(require('./tools/mcp-toolcall-lab/pages-wiki.js').DEFAULT_TITLE, '')"], cwd=ROOT, check=True)
+
+
+def test_import_clears_only_example_controls_and_preserves_original_evidence():
+    original = b'<header>Demo</header><input id="pages-wiki-title" value="Example City"><p>Article about Example City</p>'
+    payload = {'index.html': original, 'pages-wiki.js': b'var DEFAULT_TITLE = "Example City";\nvar content = "Example City";'}
+    module.apply_public_examples(payload)
+    assert b'value=""' in payload['index.html']
+    assert b'Article about Example City' in payload['index.html']
+    assert b'var DEFAULT_TITLE = "";' in payload['pages-wiki.js']
+    assert b'var content = "Example City";' in payload['pages-wiki.js']
+    before = dict(payload)
+    module.apply_public_examples(payload)
+    assert payload == before
