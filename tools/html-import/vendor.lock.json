@@ -88,6 +88,13 @@
     {
       "repository": "https://github.com/myon-bioinformatics/Ironmate",
       "commit": "b45ccd3e529aefe6519aa14e14bb63fa5873639d",
+      "source_path": "LICENSE",
+      "path": "tools/vendor/ironmate/LICENSE",
+      "sha256": "15f66204c4a6a1ce0c94f0ed4319ff9400f872e85fd32c95f21695c2f231af59"
+    },
+    {
+      "repository": "https://github.com/myon-bioinformatics/Ironmate",
+      "commit": "b45ccd3e529aefe6519aa14e14bb63fa5873639d",
       "source_path": "pillow_min.py",
       "path": "tools/vendor/ironmate/pillow_min.py",
       "sha256": "987a09e19ebd1d3d970779bf46917568ad058490d7ac9a84959ec2218ced836b"
