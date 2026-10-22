@@ -615,8 +615,6 @@ body[data-ui-theme="github-like"] {
   --ui-bg: #f6f8fa; --ui-panel: #ffffff; --ui-fg: #24292f;
   --ui-muted: #57606a; --ui-border: #d0d7de;
 }
-.project-status-control { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
-.project-status-control select { max-width: 100%; }
 body[data-ui-theme="github-like"] #projects .ui-card { background: var(--ui-panel); }
 body[data-view-mode="modern"] #projects .section-sub { color: var(--terminal-muted); }
 #projects .ui-card { min-width: 0; overflow-wrap: anywhere; }

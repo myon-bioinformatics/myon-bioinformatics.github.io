@@ -1,7 +1,8 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
-const projectCount = require('../api/repos.json').repos.length;
+// Archived repositories are not displayed; only active public repositories are counted.
+const projectCount = require('../api/repos.json').repos.filter(repo => !repo.archived).length;
 const profile = require('../profile.json');
 const skillCount = profile.skills.reduce((total, group) => total + group.items.length, 0);
 const path = require('path');
@@ -240,7 +241,7 @@ test('all modes render the same shared profile and project data', async ({ page 
   for (const mode of ['modern', 'xml-like', 'json', 'markdown', 'github-like']) {
     await selectMode(page, mode);
     await expect(page.locator('#profile-render-root')).toContainText('Bioinformatics');
-    await expect(page.locator('#projects-render-root')).toContainText('python3nmap_GUI_for_Beginners');
+    await expect(page.locator('#projects-render-root')).toContainText('nvd_nist_known_vulns');
   }
 });
 

@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
-const projectCount = require('../api/repos.json').repos.length;
+// Project cards exclude archived repositories; use the same pool as project-catalog specs.
+const projectCount = require('../api/repos.json').repos.filter(repo => !repo.archived).length;
 const endpoint = 'https://api.github.com/search/repositories?*';
 test('live cards follow all display modes and retain current mode on late response', async ({ page }) => {
   let release;

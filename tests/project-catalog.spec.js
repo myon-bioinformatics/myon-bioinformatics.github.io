@@ -1,6 +1,8 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
 const catalog = require('../api/repos.json');
+// Only public, non-archived repositories are displayed.
+const active = catalog.repos.filter(repo => !repo.archived);
 const curated = require('../projects.json');
 const modes = ['modern', 'github-like', 'xml-like', 'json', 'markdown'];
 
@@ -9,44 +11,48 @@ test.beforeEach(async ({ page }) => {
   await page.route('https://img.shields.io/**', route => route.abort());
 });
 
-test('every catalog repository is reachable in every display mode', async ({ page }) => {
+test('every active catalog repository is reachable in every display mode', async ({ page }) => {
   await page.goto('/');
   for (const mode of modes) {
     await page.selectOption('#view-mode-select', mode);
-    await expect(page.locator('#projects-count')).toHaveText(`Showing all ${catalog.repos.length} projects`);
+    await expect(page.locator('#projects-count')).toHaveText(`Showing all ${active.length} projects`);
     const urls = await page.locator('#projects-render-root a').evaluateAll(links =>
       [...new Set(links.map(link => link.getAttribute('href')))].sort());
-    expect(urls).toEqual(catalog.repos.map(repo => repo.url).sort());
+    expect(urls).toEqual(active.map(repo => repo.url).sort());
   }
 });
 
-test('active projects appear before archived work and curated descriptions survive', async ({ page }) => {
+test('only active repositories are displayed, and curated descriptions survive', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(catalog.repos.length);
+  await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(active.length);
   const titles = await page.locator('#projects-render-root .ui-card h3').allTextContents();
-  const activeCount = catalog.repos.filter(repo => !repo.archived).length;
-  expect(new Set(titles.slice(0, activeCount))).toEqual(new Set(catalog.repos.filter(repo => !repo.archived).map(repo => repo.name)));
-  await expect(page.locator('#projects-render-root .project-status')).toHaveCount(catalog.repos.length - activeCount);
-  const sample = curated[0];
+  expect(new Set(titles)).toEqual(new Set(active.map(repo => repo.name)));
+  await expect(page.locator('#projects-render-root .project-status')).toHaveCount(0);
+  const sample = curated.find(project => active.some(repo => repo.name === project.name));
   const card = page.locator('#projects-render-root .ui-card').filter({ has: page.getByRole('link', { name: sample.name, exact: true }) });
   await expect(card).toContainText(sample.desc);
 });
 
-test('status, topic and search combine and survive mode changes', async ({ page }) => {
+test('archived repositories are never displayed, even when the catalog contains them', async ({ page }) => {
+  const legacy = { name: 'Legacy-archived', url: 'https://github.com/myon-bioinformatics/Legacy-archived', description: 'Old work', archived: true, topics: ['legacy-topic'] };
+  await page.route('**/api/repos.json', route => route.fulfill({ json: { ...catalog, repos: [...catalog.repos, legacy] } }));
   await page.goto('/');
-  await page.selectOption('#project-status-filter', 'archived');
-  const archived = catalog.repos.filter(repo => repo.archived).length;
-  await expect(page.locator('#projects-count')).toHaveText(`Showing ${archived} of ${catalog.repos.length} projects`);
+  await expect(page.locator('#projects-count')).toHaveText(`Showing all ${active.length} projects`);
+  await page.locator('#project-search-input').fill('legacy-topic');
+  await expect(page.locator('#projects-count')).toHaveText('No matching projects found.');
+});
+
+test('topic and search combine and survive mode changes', async ({ page }) => {
+  await page.goto('/');
   await page.locator('.project-topic-controls summary').click();
-  await page.locator('#project-tags-filter button[data-tag="nmap"]').click();
-  await page.locator('#project-search-input').fill('PYTHON3NMAP');
+  await page.locator('#project-tags-filter button[data-tag="nvd"]').click();
+  await page.locator('#project-search-input').fill('NVD_NIST');
   for (const mode of modes) {
     await page.selectOption('#view-mode-select', mode);
-    await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${catalog.repos.length} projects`);
-    await expect(page.locator('#projects-render-root')).toContainText('python3nmap_GUI_for_Beginners');
-    await expect(page.locator('#project-status-filter')).toHaveValue('archived');
+    await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${active.length} projects`);
+    await expect(page.locator('#projects-render-root')).toContainText('nvd_nist_known_vulns');
   }
-  await page.selectOption('#project-status-filter', 'active');
+  await page.locator('#project-search-input').fill('no-such-project-term');
   await expect(page.locator('#projects-count')).toHaveText('No matching projects found.');
 });
 
@@ -55,13 +61,13 @@ test('a newly refreshed repository appears without a curated card', async ({ pag
   await page.route('**/api/repos.json', route => route.fulfill({ json: { ...catalog, repos: [...catalog.repos, added] } }));
   await page.goto('/');
   await page.locator('#project-search-input').fill('future-topic');
-  await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${catalog.repos.length + 1} projects`);
+  await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${active.length + 1} projects`);
   await expect(page.locator('#projects-render-root')).toContainText('New README summary');
   await expect(page.locator('#projects-render-root h3 a')).toHaveAttribute('href', added.url);
 });
 
 test('curation cannot publish stale entries or override canonical URLs', async ({ page }) => {
-  const repo = catalog.repos[0];
+  const repo = active[0];
   await page.route('**/projects.json', route => route.fulfill({ json: [
     { name: repo.name, url: 'https://example.com/stale', desc: 'Curated text', topics: ['curated-topic'] },
     { name: 'Removed-repository', url: 'https://example.com/removed', desc: 'Stale entry' },
@@ -74,13 +80,13 @@ test('curation cannot publish stale entries or override canonical URLs', async (
   await expect(page.locator('#projects-count')).toHaveText('No matching projects found.');
 });
 
-test('unavailable curation still displays the complete public catalog', async ({ page }) => {
+test('unavailable curation still displays the complete active catalog', async ({ page }) => {
   await page.route('**/projects.json', route => route.fulfill({ status: 503, body: '{}' }));
   await page.goto('/');
-  await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(catalog.repos.length);
+  await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(active.length);
 });
 
-test('search and status entered before the catalog loads are respected', async ({ page }) => {
+test('search entered before the catalog loads is respected', async ({ page }) => {
   let release;
   const gate = new Promise(resolve => { release = resolve; });
   await page.route('**/api/repos.json', async route => {
@@ -88,11 +94,10 @@ test('search and status entered before the catalog loads are respected', async (
     await route.fulfill({ json: catalog });
   });
   await page.goto('/');
-  await page.selectOption('#project-status-filter', 'archived');
-  await page.locator('#project-search-input').fill('python3nmap');
+  await page.locator('#project-search-input').fill('nvd_nist');
   release();
-  await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${catalog.repos.length} projects`);
-  await expect(page.locator('#projects-render-root')).toContainText('python3nmap_GUI_for_Beginners');
+  await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${active.length} projects`);
+  await expect(page.locator('#projects-render-root')).toContainText('nvd_nist_known_vulns');
   await expect(page.locator('#project-search-clear')).toBeVisible();
 });
 
@@ -103,13 +108,13 @@ test('missing catalog reports an error instead of showing only curated projects'
   await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(0);
 });
 
-test('the full catalog and expanded topics fit a mobile viewport', async ({ page }) => {
+test('the full active catalog and expanded topics fit a mobile viewport', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page.locator('.project-topic-controls summary').click();
   for (const mode of modes) {
     await page.selectOption('#view-mode-select', mode);
-    await expect(page.locator('#projects-count')).toHaveText(`Showing all ${catalog.repos.length} projects`);
+    await expect(page.locator('#projects-count')).toHaveText(`Showing all ${active.length} projects`);
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   }
 });
