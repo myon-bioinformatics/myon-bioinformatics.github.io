@@ -1,7 +1,7 @@
 {
   "name": "myon-bioinformatics",
-  "headline": "Security × Backend × Data • Python / Go / TypeScript",
-  "about": "Bioinformatics → Security / Backend engineer.\nI design and build practical GUI/CLI tools in Python, plus backend services in Go and TypeScript. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
+  "headline": "Security × Backend × Data • Python / Node.js / Dart (Flutter)",
+  "about": "Bioinformatics → Security / Backend engineer.\nI design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared across repositories. My background spans genomic data pipelines, network security tooling, and developer productivity utilities.",
   "motto": "I build practical tools and templates you can run today.",
   "links": {
     "github": "https://github.com/myon-bioinformatics",
@@ -57,14 +57,21 @@
       "desc": "Shifted focus toward security tooling and backend service development."
     },
     {
-      "year": "2023–",
+      "year": "2023",
       "title": "Multi-language Engineering",
       "desc": "Expanding into Go and TypeScript for backend APIs and developer tooling."
+    },
+    {
+      "year": "2026–",
+      "title": "Single-file Tools & Verified Workflows",
+      "desc": "Building standard-library Python tools shared across repositories, cross-browser and Flutter Web verification in CI, LLM/MCP tool-call experiments, and question-driven baseball data analysis."
     }
   ],
   "currentFocus": [
-    "Security-oriented GUI / CUI tooling",
-    "Reusable API templates and backend integration patterns",
-    "Image / audio batch conversion and developer utilities"
+    "Single-file, standard-library Python tools shared across repositories (gh_identity, xprobe, yourself, cli_args, markdown)",
+    "Question-driven baseball data analysis (Aoi and its subprojects)",
+    "Cross-browser and Flutter Web verification with Playwright and CI evidence (browser-test-kit, flutter_navigation_basic)",
+    "LLM / MCP tool-call experiments (mcp-toolcall-lab) and document conversion (Ironmate)",
+    "DNA / protein sequence search and analysis (search_seq_including_spaces)"
   ]
 }

@@ -77,7 +77,7 @@ python -m http.server 8080
 ---
 
 ## 🧑‍🎤 About me (short)
-I started coding through **Bioinformatics**. Main tools: **Python**, plus **Go/TypeScript**.  
+I started coding through **Bioinformatics**. Main tools: **Python** (mostly single-file, standard-library tools), plus **Node.js** and **Dart/Flutter**.  
 I like building **GUI/CLI tools** for security & backend.
 
 - Skills (JP): https://myon-bioinformatics.github.io  
