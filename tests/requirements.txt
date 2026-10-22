@@ -1,5 +1,2 @@
 pytest>=9.1.1
 stagehand>=4.2.1
-
-# Independent image decoder used only to verify exported pixels.
-Pillow>=13.0.0
