@@ -7,7 +7,6 @@ let sharedData = null;
 let configuredViewMode = DEFAULT_VIEW_MODE;
 let currentTagFilter = 'all';
 let currentSearchQuery = '';
-let currentStatusFilter = 'all';
 let controlsInitialized = false;
 
 function normalizeViewMode(mode) {
@@ -88,19 +87,33 @@ function initViewModeSelector(initialMode, configuredMode) {
   });
 }
 
+function shuffleItems(items) {
+  const shuffled = [...items];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+// Public, non-archived repositories only. The full candidate pool is collected
+// first, then shuffled so each page load shows a fresh order.
 function buildProjectCatalog(catalog, curated) {
   if (!Array.isArray(catalog?.repos)) throw new Error('Invalid repository catalog');
   const overrides = new Map(curated.map((project) => [project.name, project]));
-  return catalog.repos.map((repo) => {
-    const project = overrides.get(repo.name);
-    return {
-      name: repo.name,
-      desc: project?.desc || repo.description || repo.readmeSummary || 'Explore the source and README on GitHub.',
-      url: repo.url,
-      topics: [...new Set([...(project?.topics || []), ...(repo.topics || [])])],
-      archived: repo.archived === true,
-    };
-  }).sort((a, b) => Number(a.archived) - Number(b.archived) || a.name.localeCompare(b.name, 'en'));
+  const candidates = catalog.repos
+    .filter((repo) => repo.archived !== true)
+    .map((repo) => {
+      const project = overrides.get(repo.name);
+      return {
+        name: repo.name,
+        desc: project?.desc || repo.description || repo.readmeSummary || 'Explore the source and README on GitHub.',
+        url: repo.url,
+        topics: [...new Set([...(project?.topics || []), ...(repo.topics || [])])],
+        archived: false,
+      };
+    });
+  return shuffleItems(candidates);
 }
 
 async function loadSharedData() {
@@ -480,7 +493,6 @@ function getFilteredProjects(projects) {
   if (!Array.isArray(projects)) return [];
   const facets = {};
   if (currentTagFilter !== 'all') facets.topic = currentTagFilter;
-  if (currentStatusFilter !== 'all') facets.archived = currentStatusFilter === 'archived';
   return WebUICollections.filterItems(projects, {
     query: currentSearchQuery,
     text: project => [project.name, project.desc, ...(project.topics || [])],
@@ -521,17 +533,9 @@ function initProjectControls(projects) {
   const searchInput = document.getElementById('project-search-input');
   const searchClear = document.getElementById('project-search-clear');
   const tagsContainer = document.getElementById('project-tags-filter');
-  const statusSelect = document.getElementById('project-status-filter');
   // Keep input entered while the catalog was still loading.
   currentSearchQuery = searchInput?.value || '';
   if (searchClear) searchClear.hidden = !currentSearchQuery;
-  currentStatusFilter = statusSelect?.value || 'all';
-  if (statusSelect) {
-    statusSelect.addEventListener('change', () => {
-      currentStatusFilter = statusSelect.value;
-      if (sharedData) renderPortfolio(getCurrentMode(), sharedData);
-    });
-  }
 
   if (searchInput) {
     searchInput.addEventListener('input', () => {

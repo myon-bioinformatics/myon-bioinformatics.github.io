@@ -12,7 +12,7 @@ test('project cards and controls consume the pinned shared web-ui theme', async 
   }
   await expect(page.locator('body')).toHaveAttribute('data-ui-theme', 'modern');
   await page.evaluate(() => document.body.style.setProperty('--ui-border', 'rgb(1, 2, 3)'));
-  for (const selector of ['#projects-render-root .ui-card', '#project-search-input', '#project-status-filter', '#projects-render-root .project-copy']) {
+  for (const selector of ['#projects-render-root .ui-card', '#project-search-input', '#projects-render-root .project-copy']) {
     await expect(page.locator(selector).first()).toHaveCSS('border-top-color', 'rgb(1, 2, 3)');
   }
   for (const mode of ['github-like', 'xml-like', 'json', 'markdown', 'modern']) {
@@ -21,7 +21,7 @@ test('project cards and controls consume the pinned shared web-ui theme', async 
     await expect(page.locator('body')).toHaveAttribute('data-ui-theme', theme);
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const selector of ['#project-search-input', '#project-status-filter', '#projects-render-root .project-copy']) {
+  for (const selector of ['#project-search-input', '#projects-render-root .project-copy']) {
     const box = await page.locator(selector).first().boundingBox();
     expect(box.height).toBeGreaterThanOrEqual(44);
   }

@@ -1,7 +1,9 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
-const { repos } = require('../api/repos.json');
+const { repos: catalogRepos } = require('../api/repos.json');
 const curated = require('../projects.json');
+// Archived repositories are not displayed, so only active repositories are expected.
+const repos = catalogRepos.filter(repo => !repo.archived);
 const projectCount = repos.length;
 
 test.describe('Project tag filtering and search', () => {
@@ -19,13 +21,13 @@ test.describe('Project tag filtering and search', () => {
   });
 
   test('filters projects by tag button click', async ({ page }) => {
-    const nmapBtn = page.locator('#project-tags-filter button[data-tag="nmap"]');
-    await nmapBtn.click();
+    const cveBtn = page.locator('#project-tags-filter button[data-tag="nvd"]');
+    await cveBtn.click();
 
-    await expect(nmapBtn).toHaveClass(/active/);
+    await expect(cveBtn).toHaveClass(/active/);
     await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${projectCount} projects`);
     await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(1);
-    await expect(page.locator('#projects-render-root .ui-card h3')).toContainText('python3nmap_GUI_for_Beginners');
+    await expect(page.locator('#projects-render-root .ui-card h3')).toContainText('nvd_nist_known_vulns');
 
     // Return to All
     const allBtn = page.locator('#project-tags-filter button[data-tag="all"]');
@@ -38,11 +40,11 @@ test.describe('Project tag filtering and search', () => {
     const searchInput = page.locator('#project-search-input');
     const clearBtn = page.locator('#project-search-clear');
 
-    await searchInput.fill('scapy');
+    await searchInput.fill('nvd_nist');
     await expect(clearBtn).toBeVisible();
     await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${projectCount} projects`);
     await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(1);
-    await expect(page.locator('#projects-render-root .ui-card h3')).toContainText('scapy_GUI_for_Beginners');
+    await expect(page.locator('#projects-render-root .ui-card h3')).toContainText('nvd_nist_known_vulns');
 
     await clearBtn.click();
     await expect(clearBtn).toBeHidden();
@@ -95,7 +97,7 @@ test('combined search and tag filters persist through every display mode', async
   await page.route('https://api.github.com/search/repositories?*', route => route.fulfill({status:503,body:'{}'}));
   await page.goto('/');
   await page.locator('.project-topic-controls summary').click();
-  await page.locator('#project-tags-filter button[data-tag="nmap"]').click();
+  await page.locator('#project-tags-filter button[data-tag="nvd"]').click();
   await page.locator('#project-search-input').fill('SCAPY');
   await expect(page.locator('#projects-count')).toHaveText('No matching projects found.');
   for (const mode of ['modern','github-like','xml-like','json','markdown']) {
@@ -103,9 +105,9 @@ test('combined search and tag filters persist through every display mode', async
     await expect(page.locator('#projects-count')).toHaveText('No matching projects found.');
     await page.locator('#project-search-clear').click();
     await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${projectCount} projects`);
-    await expect(page.locator('#project-tags-filter button[data-tag="nmap"]')).toHaveAttribute('aria-pressed','true');
+    await expect(page.locator('#project-tags-filter button[data-tag="nvd"]')).toHaveAttribute('aria-pressed','true');
     await page.locator('#project-search-input').fill('SCAPY');
   }
   await page.locator('#project-tags-filter button[data-tag="all"]').click();
-  await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${projectCount} projects`);
+  await expect(page.locator('#projects-count')).toHaveText('No matching projects found.');
 });
