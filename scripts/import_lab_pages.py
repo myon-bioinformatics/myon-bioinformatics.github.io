@@ -17,8 +17,6 @@ FILES = ('index.html', 'terminal.css', 'pages-hash.js', 'pages-wiki.js',
 OPTIONAL = ('repository-diagnostics.html', 'repository-diagnostics.json', 'repository-diagnostics.jsonl')
 DESTINATION = Path(__file__).resolve().parents[1] / 'tools' / 'mcp-toolcall-lab'
 
-
-
 EXECUTION_URL = "https://myon-bioinformatics.github.io/mcp-toolcall-lab/execution/"
 
 
@@ -35,6 +33,12 @@ def apply_public_examples(payload: dict) -> None:
     script = payload['pages-wiki.js'].decode('utf-8')
     script = re.sub(r'(var DEFAULT_TITLE = )"[^"]*";', r'\1"";', script)
     payload['pages-wiki.js'] = script.encode('utf-8')
+    version = hashlib.sha256(payload['pages-wiki.js']).hexdigest()[:10]
+    payload['index.html'] = re.sub(
+        rb'(src="pages-wiki\.js)(?:\?[^"]*)?(")',
+        lambda match: match[1] + b'?v=' + version.encode('ascii') + match[2],
+        payload['index.html'],
+    )
 
 
 def import_export(source: Path, destination: Path = DESTINATION) -> dict:
