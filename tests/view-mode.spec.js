@@ -142,7 +142,8 @@ for (const width of [390, 1280]) {
       await selectMode(page, mode);
       const root = page.locator('#profile-render-root');
       if (mode === 'modern' || mode === 'github-like') {
-        await root.getByRole('tab', { name: 'Career', exact: true }).click();
+        // Modern's CSS adds brackets to the accessible tab name.
+        await root.getByRole('tab', { name: /Career/ }).click();
         const items = root.locator('.timeline-item');
         await expect(items).toHaveCount(profile.career.length);
         await expect(items.locator('.tl-year')).toHaveText(profile.career.map(entry => entry.year));
