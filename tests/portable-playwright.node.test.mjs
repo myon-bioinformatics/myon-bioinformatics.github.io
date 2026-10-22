@@ -84,3 +84,37 @@ test('bridge leaves configs without webServer unchanged', t => {
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   assert.equal(loadBridge(root, 'module.exports = {};'), null);
 });
+function loadLaunch(root, extraEnv = {}) {
+  const configDir = path.join(root, 'config');
+  fs.mkdirSync(configDir, { recursive: true });
+  const config = path.join(configDir, 'playwright.config.js');
+  fs.writeFileSync(config, 'module.exports = {use:{channel:"chromium",headless:true},projects:[{name:"chromium",use:{channel:"chromium",headless:true}}]}');
+  const script = 'const cfg = require(' + JSON.stringify(bridgePath) + '); console.log(JSON.stringify({use:cfg.use,projects:cfg.projects}))';
+  const env = { ...process.env, PORTABLE_PW_BASE_CONFIG: config, PORTABLE_PW_TEST_DIR: path.join(root, 'tests') };
+  delete env.PORTABLE_PW_BROWSER;
+  delete env.PORTABLE_PW_HEADLESS_SHELL;
+  Object.assign(env, extraEnv);
+  const r = spawnSync(process.execPath, ['-e', script], {
+    encoding: 'utf8',
+    env,
+  });
+  assert.equal(r.status, 0, r.stderr);
+  return JSON.parse(r.stdout);
+}
+test('bridge keeps the chromium channel unless a browser path or headless shell is requested', t => {
+  const root = fixture();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const kept = loadLaunch(root);
+  assert.equal(kept.use.channel, 'chromium');
+  assert.equal(kept.use.headless, true);
+  assert.equal(kept.projects[0].use.channel, 'chromium');
+  const shell = loadLaunch(root, { PORTABLE_PW_HEADLESS_SHELL: '1' });
+  assert.equal(shell.use.channel, undefined);
+  assert.equal(shell.projects[0].use.channel, undefined);
+  assert.equal(shell.use.headless, true);
+  assert.equal(shell.use.launchOptions.executablePath, undefined);
+  const browser = loadLaunch(root, { PORTABLE_PW_BROWSER: '/tmp/chrome' });
+  assert.equal(browser.use.channel, undefined);
+  assert.equal(browser.projects[0].use.channel, undefined);
+  assert.equal(browser.use.launchOptions.executablePath, '/tmp/chrome');
+});

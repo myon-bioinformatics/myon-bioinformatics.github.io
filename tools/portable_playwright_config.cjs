@@ -5,9 +5,14 @@ const baseConfig = process.env.PORTABLE_PW_BASE_CONFIG;
 const base = require(baseConfig);
 const cfg = base.default || base;
 const executablePath = process.env.PORTABLE_PW_BROWSER;
+const headlessShell = process.env.PORTABLE_PW_HEADLESS_SHELL === '1';
 function override(use) {
-  return { ...use, ...(executablePath ? { channel: undefined } : {}),
+  const next = { ...use,
     launchOptions: { ...(use?.launchOptions || {}), ...(executablePath ? { executablePath } : {}) } };
+  // A browser path replaces the channel build. Headless shell cannot launch the channel build.
+  if (executablePath || headlessShell)
+    delete next.channel;
+  return next;
 }
 function overrideWebServer(server) {
   const baseDir = path.dirname(baseConfig);
