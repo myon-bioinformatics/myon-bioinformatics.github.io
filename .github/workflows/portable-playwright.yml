@@ -1,0 +1,33 @@
+name: Portable Playwright runners
+on:
+  pull_request:
+    paths:
+      - 'tools/portable_playwright.py'
+      - 'tools/portable_playwright.mjs'
+      - 'tools/portable_playwright_config.cjs'
+      - 'tests/test_portable_playwright.py'
+      - 'tests/portable-playwright.node.test.mjs'
+      - '.github/workflows/portable-playwright.yml'
+  workflow_dispatch:
+jobs:
+  node-standalone:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Node standard-library tests
+        run: node --test tests/portable-playwright.node.test.mjs
+  python-and-bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Python standard-library and cross-runtime tests
+        run: python -m unittest discover -s tests -p test_portable_playwright.py -v
