@@ -33,6 +33,19 @@ class PortablePlaywrightTests(unittest.TestCase):
         self.assertEqual({k: v for k, v in json.loads(a.stdout).items() if k != 'browser'},
                          {k: v for k, v in json.loads(b.stdout).items() if k != 'browser'})
 
+    def test_same_revision_browser_tie_break(self):
+        browser_root = self.root / "browsers"
+        for name in ("chrome-linux-b", "chrome-linux-a"):
+            chrome = browser_root / "chromium-1194" / name / "chrome"
+            chrome.parent.mkdir(parents=True)
+            chrome.write_bytes(b"fake")
+        a = self.call([sys.executable, "-S", str(PY)], "--browser-root", str(browser_root), "--dry-run")
+        b = self.call(["node", str(JS)], "--browser-root", str(browser_root), "--dry-run")
+        self.assertEqual(a.returncode, 0, a.stderr)
+        self.assertEqual(b.returncode, 0, b.stderr)
+        self.assertEqual(json.loads(a.stdout)["browser"], json.loads(b.stdout)["browser"])
+        self.assertTrue(json.loads(a.stdout)["browser"].endswith("chrome-linux-a/chrome"))
+
     def test_failure_exit_code(self):
         result = self.call([sys.executable, "-S", str(PY)], env={"FAKE_EXIT": "7"})
         self.assertEqual(result.returncode, 7)
