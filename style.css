@@ -38,7 +38,8 @@ a{color:inherit}
 .site-header,.site-footer{border-bottom:1px solid var(--border)}
 .site-footer{border-top:1px solid var(--border);border-bottom:none}
 .site-header .container{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
-.site-header h1{margin:0;font-size:1.25rem}
+.site-header h1{display:flex;align-items:center;gap:.75rem;margin:0;max-width:100%;font-size:1.25rem;overflow-wrap:anywhere}
+.site-header .brand-icon{display:block;flex:none;width:40px;height:40px}
 .header-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .nav{display:flex;flex-wrap:wrap;gap:8px 12px}
 .nav a{text-decoration:none;border-bottom:1px solid transparent}

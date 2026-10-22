@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/brand/myon-profile-icon.png" alt="myon brand icon: a cat, DNA helix and laptop" width="160" height="160">
+</p>
+
 <h1 align="center">🧭 myon-bioinformatics.github.io</h1>
 <p align="center">Personal site & portfolio — built and maintained by <a href="https://github.com/myon-bioinformatics">myon</a></p>
 
@@ -7,6 +11,16 @@
   <a href="https://github.com/myon-bioinformatics"><img alt="GitHub followers" src="https://img.shields.io/github/followers/myon-bioinformatics?style=social"></a>
   <a href="https://twitter.com/myonitbusiness"><img alt="Twitter Follow" src="https://img.shields.io/twitter/follow/myonitbusiness?style=social"></a>
 </p>
+
+Artwork: the supplied profile icon and favicon are cropped from the original brand sheet.
+See [brand assets and concept-review notes](docs/brand-assets.md).
+
+## 🗺️ Concept map
+
+[![Concept map: biological data and practical challenges flow through development and verification to tools, public work and intended social impact](assets/brand/myon-concept-diagram.jpg)](assets/brand/myon-concept-diagram.jpg)
+
+Concept artwork supplied on 2026-10-22, preserved without modification. It shows
+the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.
 
 ---
 
@@ -77,7 +91,7 @@ python -m http.server 8080
 ---
 
 ## 🧑‍🎤 About me (short)
-I started coding through **Bioinformatics**. Main tools: **Python**, plus **Go/TypeScript**.  
+I started coding through **Bioinformatics**. Main tools: **Python** (mostly single-file, standard-library tools), plus **Node.js** and **Dart/Flutter**.  
 I like building **GUI/CLI tools** for security & backend.
 
 - Skills (JP): https://myon-bioinformatics.github.io  
