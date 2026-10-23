@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-22T21:12:02Z",
+  "generatedAt": "2026-10-23T21:11:51Z",
   "owner": "myon-bioinformatics",
   "count": 41,
   "repos": [
@@ -22,10 +22,10 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T20:38:49Z",
+      "updatedAt": "2026-10-23T20:39:38Z",
       "homepage": null,
       "readmeHeading": "Aoi",
-      "readmeSummary": "Observe. Measure. Question.",
+      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/Aoi/main/README.md"
     },
     {
@@ -47,10 +47,10 @@
         "text-graphics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T09:20:33Z",
+      "updatedAt": "2026-10-23T02:28:00Z",
       "homepage": null,
       "readmeHeading": "ascii_artist",
-      "readmeSummary": "**Python compatibility:** CI-tested on Python 3.10–3.14.",
+      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/ascii_artist/main/README.md"
     },
     {
@@ -134,10 +134,10 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T03:20:38Z",
+      "updatedAt": "2026-10-23T19:53:42Z",
       "homepage": null,
       "readmeHeading": "BlueProbe",
-      "readmeSummary": "Observe first, interpret later. HTML/CSS/DOM structure observation and extraction for NPB baseball pages (split out from Aoi/blueprobe).",
+      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/BlueProbe/main/README.md"
     },
     {
@@ -159,7 +159,7 @@
         "typescript"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-22T20:38:47Z",
+      "updatedAt": "2026-10-23T14:29:23Z",
       "homepage": null,
       "readmeHeading": "browser-test-kit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, screenshots, mobile web, and GitHub Actions. Stagehand and Replay lanes are planned but not yet implemented.",
@@ -182,10 +182,10 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T09:20:26Z",
+      "updatedAt": "2026-10-23T06:06:01Z",
       "homepage": null,
       "readmeHeading": "cli_args",
-      "readmeSummary": "A single-file, standard-library-only Python toolkit for reusable CLI argument definitions, validation, command construction, execution, and JSON/text output, backed by practical CLI tests.",
+      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/cli_args/main/README.md"
     },
     {
@@ -276,10 +276,10 @@
         "static-html"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T14:02:46Z",
+      "updatedAt": "2026-10-23T19:54:48Z",
       "homepage": null,
       "readmeHeading": "DRAgoWing",
-      "readmeSummary": "Lay down the record without re-judging it. Renders baseball research records as Plotly.js HTML reports, proposition tables and optional headless-Chrome PNG/SVG exports without Python plotting libraries. Split out from Aoi's dragowing/ (git subtree).",
+      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/DRAgoWing/main/README.md"
     },
     {
@@ -303,7 +303,7 @@
         "traceback"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T14:16:02Z",
+      "updatedAt": "2026-10-23T06:19:31Z",
       "homepage": null,
       "readmeHeading": "Err-o-RoadRunner",
       "readmeSummary": "Err-o-RoadRunner is a tool that does nothing in normal times. It starts working only after an error has happened. The name combines \"Error\" and \"Road Runner\".",
@@ -326,7 +326,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-22T09:28:26Z",
+      "updatedAt": "2026-10-23T03:02:18Z",
       "homepage": null,
       "readmeHeading": "flutter_navigation_basic",
       "readmeSummary": "Dart / Flutter で書いた、画面遷移・ルーティング・共通UIの検証用の基盤アプリです。リポジトリには Web・iOS・Android のターゲット構成を含みます。",
@@ -458,7 +458,7 @@
         "typescript"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-22T20:38:54Z",
+      "updatedAt": "2026-10-23T06:27:38Z",
       "homepage": null,
       "readmeHeading": "Ironmate",
       "readmeSummary": "ロゴは **I’m＋🔰のアポストロフィ**。6案を用途別に使い分け、現時点ではfaviconにダークグリーン、READMEにファミコン風、Web画面にヒートマップ配色、ホーム画面アイコンにPixel 3Dを暫定配置しています。正式版は未決定です。[6案ギャラリー](https://myon-bioinformatics.github.io/Ironmate/brand/)から各案を保存できます。[デザインと再生成](docs/brand.md)。",
@@ -504,10 +504,10 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T00:12:52Z",
+      "updatedAt": "2026-10-23T20:10:11Z",
       "homepage": null,
       "readmeHeading": "markdown",
-      "readmeSummary": "stdlib だけで動く、関数提供に特化した Python Markdown ユーティリティ。",
+      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/markdown/main/README.md"
     },
     {
@@ -530,7 +530,7 @@
         "tool-calling"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T20:40:56Z",
+      "updatedAt": "2026-10-23T11:38:30Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "**Explore what needs to run, what can be reused, and how to verify the difference.**",
@@ -569,7 +569,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-22T20:39:03Z",
+      "updatedAt": "2026-10-23T20:04:48Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
@@ -587,7 +587,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T20:38:59Z",
+      "updatedAt": "2026-10-23T06:01:39Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -616,10 +616,10 @@
         "toml"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T14:03:39Z",
+      "updatedAt": "2026-10-23T06:08:20Z",
       "homepage": null,
       "readmeHeading": "NagoyAction",
-      "readmeSummary": "Turning research into a system you can keep running. Define a research pipeline once in TOML and run it with the same stdlib-only command locally and on GitHub Actions, with run receipts, Markdown link checking and publication gates for Aoi's NPB baseball research (split out from Aoi/nagoyaction).",
+      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/NagoyAction/main/README.md"
     },
     {
@@ -663,10 +663,10 @@
         "vulnerability"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T20:39:01Z",
+      "updatedAt": "2026-10-23T06:05:05Z",
       "homepage": "https://nvd.nist.gov/vuln",
       "readmeHeading": "NVD NIST known vulnerabilities",
-      "readmeSummary": "**Python compatibility:** CI-tested on Python 3.9–3.14. Single-file, Python-standard-library client for the NVD CVE API 2.0. It fetches vulnerabilities for CPE 2.3 names and emits deterministic JSON Lines suitable for CLI use, CI, offline processing, and cross-repository adapters.",
+      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/nvd_nist_known_vulns/main/README.md"
     },
     {
@@ -715,10 +715,10 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T03:20:50Z",
+      "updatedAt": "2026-10-23T19:54:44Z",
       "homepage": null,
       "readmeHeading": "PythDRagoras",
-      "readmeSummary": "Propositions, precedents, objections. Tests explanations as propositions with counterexamples, rule search and sensitivity analysis for NPB baseball outcomes. Split out from Aoi's pythdragoras/ (git subtree).",
+      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/PythDRagoras/main/README.md"
     },
     {
@@ -786,10 +786,10 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T03:20:46Z",
+      "updatedAt": "2026-10-23T02:24:58Z",
       "homepage": null,
       "readmeHeading": "QueRyu",
-      "readmeSummary": "Reproducible fetching builds reliable understanding. Polite web fetching with conditional-GET caching and provenance for building NPB baseball observation datasets (split out from Aoi/queryu).",
+      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/QueRyu/main/README.md"
     },
     {
@@ -813,10 +813,10 @@
         "synthetic-data"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-22T03:20:54Z",
+      "updatedAt": "2026-10-23T19:55:19Z",
       "homepage": null,
       "readmeHeading": "SakAnalytics",
-      "readmeSummary": "The numbers speak, but they haven't said everything yet. Team-season metrics, remaining-game and clinch-magic simulation, and synthetic-league experiments for NPB baseball game records. Split out from Aoi's sakanalytics/ (git subtree).",
+      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/SakAnalytics/main/README.md"
     },
     {
@@ -862,10 +862,10 @@
         "string-search"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T20:39:06Z",
+      "updatedAt": "2026-10-23T06:04:44Z",
       "homepage": null,
       "readmeHeading": "search_seq_including_spaces",
-      "readmeSummary": null,
+      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/search_seq_including_spaces/main/README.md"
     },
     {
@@ -953,10 +953,10 @@
         "vanilla-js"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T20:38:57Z",
+      "updatedAt": "2026-10-23T20:37:19Z",
       "homepage": null,
       "readmeHeading": "web-ui",
-      "readmeSummary": "Shared CSS themes, semantic UI components, and small JavaScript utilities for static interfaces across myon-bioinformatics projects.",
+      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/web-ui/main/README.md"
     },
     {
@@ -980,10 +980,10 @@
         "typescript"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T20:38:52Z",
+      "updatedAt": "2026-10-23T09:40:51Z",
       "homepage": null,
       "readmeHeading": "xprobe",
-      "readmeSummary": "For native pytest outcomes (including xfail/xpass and execution phases), see [pytest observations and exploration](docs/pytest-observations.md). The opt-in test adapter emits JSONL readable by the existing corpus and search helpers.",
+      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/xprobe/main/README.md"
     },
     {
@@ -1005,7 +1005,7 @@
         "troubleshooting"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-22T09:24:02Z",
+      "updatedAt": "2026-10-23T00:23:14Z",
       "homepage": null,
       "readmeHeading": "yourself",
       "readmeSummary": "Single-file, standard-library Python tool for read-only inspection of host, OS, and runtime facts. Produces concise, copyable environment reports for troubleshooting and AI context.",
