@@ -11,6 +11,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lab_shared_ui import apply_shared_navigation, presentation_identity
 from portfolio_nav import add_back_nav
+from lab_branding import apply_lab_branding
 
 FILES = ('index.html', 'terminal.css', 'pages-hash.js', 'pages-wiki.js',
          'pages-pixiv.js', 'summary.json', 'build_meta.json')
@@ -66,7 +67,7 @@ def import_export(source: Path, destination: Path = DESTINATION) -> dict:
     # Same back link, same place, as every other portfolio tool page.
     for name in ('index.html', 'repository-diagnostics.html'):
         if name in payload:
-            payload[name] = add_back_nav(payload[name].decode('utf-8')).encode('utf-8')
+            payload[name] = apply_lab_branding(add_back_nav(payload[name].decode('utf-8'))).encode('utf-8')
     manifest = {'schema': 'portfolio-lab-publication/1', 'source_repository': 'myon-bioinformatics/mcp-toolcall-lab',
                 'source_sha': meta['sha'], 'source_dirty': meta.get('dirty'),
                 'imported_at': datetime.now(timezone.utc).isoformat(),
