@@ -57,7 +57,8 @@ jobs:
         with:
           node-version: "22"
       - run: python -m pip install -r tests/requirements.txt
-      - run: npm ci --ignore-scripts
+      # Metadata reads Python distributions and executable versions only.
+      # Node SDK imports are checked in the node job; no node_modules needed here.
       - run: python scripts/myon_bioinformatics_github_io_tooling_meta.py > stagehand-v4-tooling-meta.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
