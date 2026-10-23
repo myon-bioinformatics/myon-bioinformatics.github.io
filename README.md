@@ -105,11 +105,10 @@ I like building **GUI/CLI tools** for security & backend.
 
 ## 🔄 Maintaining project cards
 
-Edit `projects.json` and validate its canonical shape using the instructions in
-[docs/SSOT.md](docs/SSOT.md). The current repository has no
-`update-projects.yml` workflow or scheduled pinned-repository card update.
-`scripts/generate_projects_from_pinned.py` is a standalone legacy helper; its
-presence does not mean it runs automatically.
+Edit `projects.json` for curated descriptions and extra topics, then validate
+the canonical shape using [docs/SSOT.md](docs/SSOT.md). Catalog membership
+comes from `api/repos.json`. There is no pinned-repository generator and no
+scheduled card-update workflow.
 
 ## 🧪 CI evidence
 
@@ -132,8 +131,8 @@ stable `evidence/latest/` screenshots described above.
 <details>
 <summary>🇯🇵 日本語版 (クリックで展開)</summary>
 
-このリポジトリは**GitHub Pagesサイト**です。`projects.json` を編集するだけでトップのプロジェクトカードが更新されます。  
-ローカル確認は `python -m http.server` でOK。`projects.json` のピン留めからの定期自動更新workflowは現在ありません。編集・検証手順は [docs/SSOT.md](docs/SSOT.md) を参照してください。
+このリポジトリは**GitHub Pagesサイト**です。説明文と追加トピックは `projects.json`、掲載対象は `api/repos.json` です。  
+ローカル確認は `python -m http.server` でOK。ピン留めリポジトリからカードを作る処理や、その定期workflowはありません。編集・検証手順は [docs/SSOT.md](docs/SSOT.md) を参照してください。
 </details>
 
 ## Lab public tools and reports
