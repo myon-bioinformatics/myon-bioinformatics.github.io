@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/myon-profile-icon.png" alt="myon brand icon: a cat, DNA helix and laptop" width="160" height="160">
+  <img src="assets/brand/myon-profile-icon.png" alt="Portfolio icon: a white cat beside a code window and a plant" width="160" height="160">
 </p>
 
 <h1 align="center">🧭 myon-bioinformatics.github.io</h1>
@@ -12,7 +12,8 @@
   <a href="https://twitter.com/myonitbusiness"><img alt="Twitter Follow" src="https://img.shields.io/twitter/follow/myonitbusiness?style=social"></a>
 </p>
 
-Artwork: the supplied profile icon and favicon are cropped from the original brand sheet.
+Artwork: the supplied cat/code/plant icon and favicon are cropped from the new project brand sheet.
+The pair labelled `yourself` is assigned here to the portfolio; the parent and Yourself repository icons remain unchanged.
 See [brand assets and concept-review notes](docs/brand-assets.md).
 
 ## 🗺️ Concept map
