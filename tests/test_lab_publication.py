@@ -141,3 +141,40 @@ def test_import_clears_only_example_controls_and_preserves_original_evidence():
     before = dict(payload)
     module.apply_public_examples(payload)
     assert payload == before
+
+
+def test_lab_branding_is_idempotent_and_uses_published_absolute_paths():
+    from lab_branding import apply_lab_branding, FAVICON, LOGO
+    from urllib.parse import urljoin
+    for name in ('index.html', 'repository-diagnostics.html'):
+        page = (PUBLIC / name).read_text()
+        assert apply_lab_branding(page) == page
+        assert page.count('data-lab-brand="favicon"') == 1
+        assert page.count('mcp-toolcall-lab-logo.png') == 1
+        for asset in (FAVICON, LOGO):
+            assert asset in page
+            assert urljoin('https://myon-bioinformatics.github.io/tools/mcp-toolcall-lab/' + name, asset) == 'https://myon-bioinformatics.github.io' + asset
+    upstream = '<html><head><link rel="icon" href="assets/old.png"></head><body><header><img src="assets/mcp-toolcall-lab-logo.png"></header></body></html>'
+    branded = apply_lab_branding(upstream)
+    assert apply_lab_branding(branded) == branded
+    assert branded.count('rel="icon"') == 1
+    assert 'assets/old.png' not in branded
+    assert LOGO in branded
+
+
+def test_reimport_applies_branding_without_changing_source_identity():
+    from lab_branding import FAVICON, LOGO
+    with tempfile.TemporaryDirectory() as directory:
+        source = Path(directory) / 'source'; source.mkdir()
+        destination = Path(directory) / 'publication'
+        for name in (*module.FILES, *module.OPTIONAL):
+            (source / name).write_bytes((PUBLIC / name).read_bytes())
+        before = {name: (source / name).read_bytes() for name in (*module.FILES, *module.OPTIONAL)}
+        manifest = module.import_export(source, destination)
+        for name in ('index.html', 'repository-diagnostics.html'):
+            page = (destination / name).read_text()
+            assert page.count(FAVICON) == 1 and page.count(LOGO) == 1
+            assert manifest['source_sha256'][name] == hashlib.sha256(before[name]).hexdigest()
+            assert manifest['published_sha256'][name] == hashlib.sha256((destination / name).read_bytes()).hexdigest()
+        assert all((source / name).read_bytes() == content for name, content in before.items())
+        assert manifest['source_sha'] == json.loads(before['build_meta.json'])['sha']
