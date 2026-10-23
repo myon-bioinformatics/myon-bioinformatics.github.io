@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
 
 const readJson = async (path) => JSON.parse(await readFile(path, 'utf8'));
 
@@ -91,6 +91,13 @@ for (const [repoName, projectServices] of Object.entries(services.projects || {}
       }
     }
   }
+}
+
+try {
+  await access('scripts/generate_projects_from_pinned.py');
+  errors.push('scripts/generate_projects_from_pinned.py is not a project source');
+} catch (error) {
+  if (error.code !== 'ENOENT') throw error;
 }
 
 if (errors.length) {
