@@ -1,0 +1,36 @@
+{
+  "source_sha256": "5b01ec2dcf793ffc28335e2da1ce6842b8767aa6c1727ceec4a72f983ae98c50",
+  "source_dimensions": [
+    1536,
+    1024
+  ],
+  "source_label": "yourself",
+  "assigned_to": "portfolio",
+  "crop_coordinates": {
+    "icon": [
+      1232,
+      633,
+      1402,
+      803
+    ],
+    "favicon": [
+      1423,
+      721,
+      1500,
+      798
+    ]
+  },
+  "assets": {
+    "myon-profile-icon.png": "be34ca9da06c10ea1a21614735d5aeec4472ff20e39775884a253b7d5c5ff82f",
+    "myon-favicon-source.png": "388b33ba011a672b5c032daef285951f3c519a07c49317e8435b39e7faad5596",
+    "favicon-16x16.png": "d462397169035a9bfb1f21d3f4a877d3a5e84056cb54948f8ee65d7e0b2adca8",
+    "favicon-32x32.png": "8ead39a132094de47b701b5946d6cc633d2090fee2a0d8fbd1aa2d4a801ed660",
+    "favicon-48x48.png": "dbd194638d89e52f950afa3d352886b4827b2f5df02f03ac60e356442d5c883e",
+    "favicon.ico": "aeafb5e3cf0eebe2a5080e32412e18d4b764c19258ec14ae576b41dc90f29611"
+  },
+  "favicon_rgb_sha256": {
+    "16": "1c00e8a333b76ef0b844c3ba7f15c283b8898b5120bee12d2457f4232fe7910a",
+    "32": "a5db9cb07dc6bead53d116704fb4d186be146d1e4ca120f73d6e4e8e3c4978f4",
+    "48": "4fc093c9f714a33d7c7dee668488bf1052a909ae6ed46ff1d0ae44a414db08bc"
+  }
+}

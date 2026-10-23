@@ -17,6 +17,29 @@ FILES = ('index.html', 'terminal.css', 'pages-hash.js', 'pages-wiki.js',
 OPTIONAL = ('repository-diagnostics.html', 'repository-diagnostics.json', 'repository-diagnostics.jsonl')
 DESTINATION = Path(__file__).resolve().parents[1] / 'tools' / 'mcp-toolcall-lab'
 
+EXECUTION_URL = "https://myon-bioinformatics.github.io/mcp-toolcall-lab/execution/"
+
+
+def apply_public_examples(payload: dict) -> None:
+    """Keep editable example defaults empty without changing article/report data."""
+    page = payload['index.html'].decode('utf-8')
+    page = re.sub(r'(<input\b[^>]*\bid="pages-wiki-title"[^>]*\bvalue=")[^"]*(")',
+                  r'\1\2', page)
+    page = re.sub(r'CI screenshots of the local stub still use <code>fixtures/wikipedia/[^<]+</code>\. ', '', page)
+    if 'data-testid="lab-execution-link"' not in page:
+        page = page.replace('</header>', '</header><p><a data-testid="lab-execution-link" href="' +
+                            EXECUTION_URL + '">Open Execution Lab →</a> (lab-hosted browser interface)</p>', 1)
+    payload['index.html'] = page.encode('utf-8')
+    script = payload['pages-wiki.js'].decode('utf-8')
+    script = re.sub(r'(var DEFAULT_TITLE = )"[^"]*";', r'\1"";', script)
+    payload['pages-wiki.js'] = script.encode('utf-8')
+    version = hashlib.sha256(payload['pages-wiki.js']).hexdigest()[:10]
+    payload['index.html'] = re.sub(
+        rb'(src="pages-wiki\.js)(?:\?[^"]*)?(")',
+        lambda match: match[1] + b'?v=' + version.encode('ascii') + match[2],
+        payload['index.html'],
+    )
+
 
 def import_export(source: Path, destination: Path = DESTINATION) -> dict:
     # All reads/validation precede writes. The source must be a trusted public
@@ -38,6 +61,7 @@ def import_export(source: Path, destination: Path = DESTINATION) -> dict:
         raise ValueError('public export has no page header')
     source_digests = {name: hashlib.sha256(data).hexdigest() for name, data in payload.items()}
     payload['index.html'] = page.replace('</header>', '</header>' + banner, 1).encode('utf-8')
+    apply_public_examples(payload)
     apply_shared_navigation(payload)
     # Same back link, same place, as every other portfolio tool page.
     for name in ('index.html', 'repository-diagnostics.html'):

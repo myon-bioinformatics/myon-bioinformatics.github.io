@@ -64,6 +64,16 @@
           "kind": "repository",
           "url": "https://github.com/myon-bioinformatics/mock_server_JS"
         }
+      },
+      "mcp-toolcall-lab": {
+        "repository": {
+          "kind": "repository",
+          "url": "https://github.com/myon-bioinformatics/mcp-toolcall-lab"
+        },
+        "execution": {
+          "kind": "pages",
+          "url": "https://myon-bioinformatics.github.io/mcp-toolcall-lab/execution/"
+        }
       }
     }
   }

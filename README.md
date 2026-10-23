@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/myon-profile-icon.png" alt="myon brand icon: a cat, DNA helix and laptop" width="160" height="160">
+  <img src="assets/brand/myon-profile-icon.png" alt="Portfolio icon: a white cat beside a code window and a plant" width="160" height="160">
 </p>
 
 <h1 align="center">🧭 myon-bioinformatics.github.io</h1>
@@ -12,7 +12,8 @@
   <a href="https://twitter.com/myonitbusiness"><img alt="Twitter Follow" src="https://img.shields.io/twitter/follow/myonitbusiness?style=social"></a>
 </p>
 
-Artwork: the supplied profile icon and favicon are cropped from the original brand sheet.
+Artwork: the supplied cat/code/plant icon and favicon are cropped from the new project brand sheet.
+The pair labelled `yourself` is assigned here to the portfolio; the parent and Yourself repository icons remain unchanged.
 See [brand assets and concept-review notes](docs/brand-assets.md).
 
 ## 🗺️ Concept map
@@ -141,6 +142,9 @@ The portfolio now receives the lab's public Wiki/Pixiv interfaces and exported
 Actions report under `tools/mcp-toolcall-lab/` (`#wiki` and `#pixiv`). MCP servers,
 Docker execution, raw traces, and test generation remain in mcp-toolcall-lab.
 Flutter's working Pages application is unchanged.
+
+The [Execution Lab](https://myon-bioinformatics.github.io/mcp-toolcall-lab/execution/) is the lab-hosted browser execution interface, separate from this imported report.
+The portfolio Wiki form starts empty: examples do not prefill a personal location.
 
 The initial import is the public export observed on 2026-10-08, with source
 identity `3b15b7911695fc76fa8cd01f514e57133fb02d83` (2026-10-05).

@@ -1,25 +1,26 @@
 # Brand assets and concept-review notes
 
-## Installed assets
+## Installed assets (2026-10-23)
 
-The profile icon and favicon come from the user-supplied brand sheet, not from a
-new design. The replacement concept diagram supplied on 2026-10-22 is included
-unchanged in the README. The earlier concept sheets are not installed.
-GitHub account-avatar settings are unchanged; this change adds repository and
-portfolio presentation only. No PWA manifest or installability claim is added.
+The user assigned the bottom-right cat/code/plant pair from the new project sheet
+to this portfolio, even though the sheet labels that pair `yourself`.
+The parent profile and Yourself repository retain their existing icons.
+No new design, masking, invented transparency or upscaling was applied.
+GitHub account-avatar settings are unchanged. No PWA/installability claim is added.
 
-- `assets/brand/myon-profile-icon.png`: exact 384×384 RGB crop, used in README and the site header.
-- `assets/brand/myon-favicon-source.png`: exact 160×160 RGB crop.
-- `assets/brand/favicon-{16,32,48}x{16,32,48}.png`: corresponding square favicon sizes, resized with Pillow LANCZOS.
-- `/favicon.ico`: the same 16×16, 32×32 and 48×48 frames, including the conventional root fallback.
-- `assets/brand/myon-concept-diagram.jpg`: the supplied 1536×1024 JPEG, used without cropping, resizing or editing. SHA-256: `4b5f4673e1eabe737913828fa54ec101c12d7fb1e4883581b9e8cd96a3f00964`.
+- `assets/brand/myon-profile-icon.png`: exact 170×170 RGB crop, used in README and site header.
+- `assets/brand/myon-favicon-source.png`: exact 77×77 RGB crop.
+- `assets/brand/favicon-{16,32,48}x{16,32,48}.png`: Pillow LANCZOS downscales of the supplied favicon crop.
+- `/favicon.ico`: the same PNG bytes embedded as 16×16, 32×32 and 48×48 frames.
+- `assets/brand/myon-concept-diagram.jpg`: earlier supplied 1536×1024 JPEG preserved without any change, SHA-256 `4b5f4673e1eabe737913828fa54ec101c12d7fb1e4883581b9e8cd96a3f00964`.
 
-The source sheet is 1254×1254 pixels, SHA-256
-`64182aa94ff7d53823d461bb5c1fa9858da18416271a10cb0aef8dd7a6a9cfda`.
-Crop boxes use `(left, top, right, bottom)` with an exclusive right/bottom:
-profile `(57, 22, 441, 406)`, favicon `(504, 178, 664, 338)`.
-The supplied JPEG's background and colors are retained; no masking, invented
-transparency, generative editing or upscaling was applied.
+The new source sheet is 1536×1024 pixels, SHA-256
+`5b01ec2dcf793ffc28335e2da1ce6842b8767aa6c1727ceec4a72f983ae98c50`.
+Crop boxes `(left, top, right, bottom)`, exclusive right/bottom:
+profile `(1232, 633, 1402, 803)`, favicon `(1423, 721, 1500, 798)`.
+The JPEG's light background and colors are retained. Surrounding labels and
+neighboring projects are excluded. Crop coordinates and asset hashes are also
+recorded in `assets/brand/portfolio-brand-manifest.json`.
 
 ## 概念図の確認メモ（2026-10-22）
 

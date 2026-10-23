@@ -28,7 +28,7 @@ class BrandParser(HTMLParser):
 
 
 def test_source_crops_preserve_dimensions_and_rgb_background():
-    for name, size in (("myon-profile-icon.png", 384), ("myon-favicon-source.png", 160)):
+    for name, size in (("myon-profile-icon.png", 170), ("myon-favicon-source.png", 77)):
         with Image.open(ASSETS / name) as image:
             image.load()
             assert (ASSETS / name).read_bytes().startswith(b'\x89PNG\r\n\x1a\n')
@@ -39,13 +39,9 @@ def test_source_crops_preserve_dimensions_and_rgb_background():
 def test_favicons_have_expected_sizes_and_ico_frames_match_pngs():
     # Frozen RGB pixels from the reviewed Pillow LANCZOS exports. pillow_min
     # decodes PNG only; do not reintroduce Pillow for ICO or resampling here.
-    expected_pixels = {
-        16: '7ac0ccb39b6b495a2a41ae61efbffb6a148733355550e24972c0db6dc77dbb72',
-        32: '3f47f6fd6cae8e7bbf5de3166203d1e67bd9489c14d862fa3f85924455eddaad',
-        48: 'a68408bb69b1a56305af26e2745224258e13afcf0758e053063d9068add6e7fb',
-    }
+    expected_pixels = {16: '1c00e8a333b76ef0b844c3ba7f15c283b8898b5120bee12d2457f4232fe7910a', 32: 'a5db9cb07dc6bead53d116704fb4d186be146d1e4ca120f73d6e4e8e3c4978f4', 48: '4fc093c9f714a33d7c7dee668488bf1052a909ae6ed46ff1d0ae44a414db08bc'}
     with Image.open(ASSETS / 'myon-favicon-source.png') as source:
-        assert hashlib.sha256(source.tobytes()).hexdigest() == 'eb9bb1113af0852e61701404127802f36146245ce6391e31828b421831b2dac1'
+        assert hashlib.sha256(source.tobytes()).hexdigest() == '639ee9849ec9cb58c04fb44f4c073e65c4ad62c08b555f76e34d5f9433b1fd73'
     ico = (ROOT / 'favicon.ico').read_bytes()
     assert struct.unpack_from('<HHH', ico) == (0, 1, len(expected_pixels))
     sizes = set()
@@ -98,3 +94,14 @@ def test_replacement_concept_diagram_is_preserved_and_linked():
     assert hashlib.sha256(diagram.read_bytes()).hexdigest() == "4b5f4673e1eabe737913828fa54ec101c12d7fb1e4883581b9e8cd96a3f00964"
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "](assets/brand/myon-concept-diagram.jpg)" in readme
+
+
+def test_brand_manifest_matches_exported_bytes_and_assignment():
+    import json
+    manifest = json.loads((ASSETS / 'portfolio-brand-manifest.json').read_text())
+    assert manifest['assigned_to'] == 'portfolio'
+    assert manifest['source_label'] == 'yourself'
+    assert manifest['crop_coordinates'] == {'icon': [1232, 633, 1402, 803], 'favicon': [1423, 721, 1500, 798]}
+    for name, expected in manifest['assets'].items():
+        path = ROOT / name if name == 'favicon.ico' else ASSETS / name
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == expected
