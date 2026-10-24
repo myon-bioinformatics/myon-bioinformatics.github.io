@@ -1,38 +1,10 @@
 {
   "schema": "portfolio-lab-publication/1",
   "source_repository": "myon-bioinformatics/mcp-toolcall-lab",
-  "source_sha": "3b15b7911695fc76fa8cd01f514e57133fb02d83",
+  "source_sha": "e51e059accd1a78fb704162b3d11ccb701a34ec7",
   "source_dirty": true,
-  "imported_at": "2026-10-08T13:09:28.694218+00:00",
+  "imported_at": "2026-10-24T12:24:04.029818+00:00",
   "report_status": "imported_snapshot",
-  "source_sha256": {
-    "index.html": "d256bd49583a61d01549282a5486185097850448d42c7c132a23c4ac451802f7",
-    "terminal.css": "036d49809998e118fd04de1df32d56e58dab772c05c683abe490f52d4041b0ae",
-    "pages-hash.js": "bbacea684991e021e7faf0cc8f08d4f06f18b475968ffff16d649833f5aab9c5",
-    "pages-wiki.js": "7926f3b1ef4121c769f542abc6a9ab652ba913aa37727085a69ca338da1f69e6",
-    "pages-pixiv.js": "b44157ffc92d6bdcee5d9a10e575ae0fc6f21f91bbbe28776bcbeda48956a8cb",
-    "summary.json": "c54e054d8143228e39a050f8601889703d510ecb1866ea18579e63336eb923ff",
-    "build_meta.json": "bdcc179c024b2cb1b6b2b0342dc4d6d8b399bb97621d6f920b697c96f617dd38",
-    "repository-diagnostics.html": "ec50de209a4c2e841bd6eda2befa454a18617aa33b1c037b9fd6da3a732f8000",
-    "repository-diagnostics.json": "1c0fd02e474fc8a6cc9c85f587684f944bfcde304c657fc638946df885c553be",
-    "repository-diagnostics.jsonl": "d23cb6d87704c467d605e650b7e14a04b4858167a581029d63d1df8dfbdfec97"
-  },
-  "published_sha256": {
-    "index.html": "79ca08584e49aa771f961aa656aad491090ef030f59306a94730b0771f3e997a",
-    "terminal.css": "036d49809998e118fd04de1df32d56e58dab772c05c683abe490f52d4041b0ae",
-    "pages-hash.js": "bbacea684991e021e7faf0cc8f08d4f06f18b475968ffff16d649833f5aab9c5",
-    "pages-wiki.js": "98efeb4f952b5af1c4cd763d2539eb072d5833a848ed599a1fbeb218a53bc091",
-    "pages-pixiv.js": "ebc896768447b96c405a7d0495cffdc2e8bb032b8cd1045f729178dedeee4358",
-    "summary.json": "c54e054d8143228e39a050f8601889703d510ecb1866ea18579e63336eb923ff",
-    "build_meta.json": "bdcc179c024b2cb1b6b2b0342dc4d6d8b399bb97621d6f920b697c96f617dd38",
-    "repository-diagnostics.html": "797f3281468050a646b3c56d202abed724eb1a8893bdd823fa82f57375054811",
-    "repository-diagnostics.json": "1c0fd02e474fc8a6cc9c85f587684f944bfcde304c657fc638946df885c553be",
-    "repository-diagnostics.jsonl": "d23cb6d87704c467d605e650b7e14a04b4858167a581029d63d1df8dfbdfec97",
-    "shared-navigation.mjs": "b7581d42f9ec46643d4ca1c9cc1d2a25cc3ef2781e651f3baba3c2d7ba6e1de0",
-    "pixiv-markup.js": "c3926bd80a131b3c677316d63d200ba1a3492fe0f7efeec87b3e914e96da2afd",
-    "pixiv-panel.js": "adb16c51b8de77f3ecc675fd6df85e30203672f8196c24c775139686194c6716",
-    "LICENSE": "15f66204c4a6a1ce0c94f0ed4319ff9400f872e85fd32c95f21695c2f231af59"
-  },
   "presentation": {
     "owner": "myon-bioinformatics/web-ui",
     "theme": "modern",
@@ -99,7 +71,41 @@
         "source_path": "js/controls.js",
         "path": "tools/vendor/web-ui/js/controls.js",
         "sha256": "e545885ed2f0e43937d2eb3a44bdb874e8c4f42e895a36a51498a0db20956e9d"
+      },
+      {
+        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "commit": "0be6e80c2fca2ddbce46cdfbbb27432c1dcdbbeb",
+        "source_path": "js/collection.js",
+        "path": "tools/vendor/web-ui/js/collection.js",
+        "sha256": "71ac00368ac709eed436a8a1a8882463356b49ae8d19d0c339ba5f522028ce9a"
       }
     ]
+  },
+  "source_sha256": {
+    "index.html": "72dd5a7de2f1134fff31a707ba6d38e115a75e78695f0f412de514dd3e78a717",
+    "terminal.css": "036d49809998e118fd04de1df32d56e58dab772c05c683abe490f52d4041b0ae",
+    "pages-hash.js": "9439eebfca47165c915614e69ed1989636e04d173fc9e2cee5385d56ff8b5a5b",
+    "pages-wiki.js": "9d179d5a8baf64096227db9694b2cf11a1c486d59cf5984444a29a563fd187f5",
+    "pages-pixiv.js": "b44157ffc92d6bdcee5d9a10e575ae0fc6f21f91bbbe28776bcbeda48956a8cb",
+    "summary.json": "c54e054d8143228e39a050f8601889703d510ecb1866ea18579e63336eb923ff",
+    "build_meta.json": "de1182088fd3b694ababa2bcda08d76b4b907fb9cdcab9f824226f6d12091b57",
+    "repository-diagnostics.html": "ec50de209a4c2e841bd6eda2befa454a18617aa33b1c037b9fd6da3a732f8000",
+    "repository-diagnostics.json": "697be7111154de26807729f2868b1c17bd5175f2fef49ae210a5ea78dc8e5232",
+    "repository-diagnostics.jsonl": "8b9c63c0877a0e6ec3e1859de2fbba09b3b8b633ad7c155cf57623e69dabfbf1"
+  },
+  "published_sha256": {
+    "index.html": "e21510f6735582fb86685f3ba2f45c5acda15b2606d0f52e3e6c01437ff8af2d",
+    "terminal.css": "036d49809998e118fd04de1df32d56e58dab772c05c683abe490f52d4041b0ae",
+    "pages-hash.js": "9439eebfca47165c915614e69ed1989636e04d173fc9e2cee5385d56ff8b5a5b",
+    "pages-wiki.js": "9d179d5a8baf64096227db9694b2cf11a1c486d59cf5984444a29a563fd187f5",
+    "pages-pixiv.js": "ebc896768447b96c405a7d0495cffdc2e8bb032b8cd1045f729178dedeee4358",
+    "summary.json": "c54e054d8143228e39a050f8601889703d510ecb1866ea18579e63336eb923ff",
+    "build_meta.json": "de1182088fd3b694ababa2bcda08d76b4b907fb9cdcab9f824226f6d12091b57",
+    "repository-diagnostics.html": "797f3281468050a646b3c56d202abed724eb1a8893bdd823fa82f57375054811",
+    "repository-diagnostics.json": "697be7111154de26807729f2868b1c17bd5175f2fef49ae210a5ea78dc8e5232",
+    "repository-diagnostics.jsonl": "8b9c63c0877a0e6ec3e1859de2fbba09b3b8b633ad7c155cf57623e69dabfbf1",
+    "pixiv-markup.js": "c3926bd80a131b3c677316d63d200ba1a3492fe0f7efeec87b3e914e96da2afd",
+    "pixiv-panel.js": "adb16c51b8de77f3ecc675fd6df85e30203672f8196c24c775139686194c6716",
+    "shared-navigation.mjs": "b7581d42f9ec46643d4ca1c9cc1d2a25cc3ef2781e651f3baba3c2d7ba6e1de0"
   }
 }
