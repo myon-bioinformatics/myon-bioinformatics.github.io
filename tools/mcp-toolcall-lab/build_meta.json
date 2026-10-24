@@ -1,10 +1,10 @@
 {
   "version": null,
-  "sha": "3b15b7911695fc76fa8cd01f514e57133fb02d83",
-  "shortSha": "3b15b791",
-  "ref": "main",
-  "committedAt": "2026-10-05T10:19:41+09:00",
-  "subject": "Use canonical portable tooling observations in repository diagnostics (#100)",
-  "commitUrl": "https://github.com/myon-bioinformatics/mcp-toolcall-lab/commit/3b15b7911695fc76fa8cd01f514e57133fb02d83",
+  "sha": "e51e059accd1a78fb704162b3d11ccb701a34ec7",
+  "shortSha": "e51e059a",
+  "ref": "cursor/pages-wiki-mcp-8beb",
+  "committedAt": "2026-10-24T21:20:53+09:00",
+  "subject": "fix(pages): reset expired MCP sessions before user retry",
+  "commitUrl": "https://github.com/myon-bioinformatics/mcp-toolcall-lab/commit/e51e059accd1a78fb704162b3d11ccb701a34ec7",
   "dirty": true
 }
