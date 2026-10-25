@@ -12,7 +12,9 @@ def apply_lab_branding(page: str) -> str:
     # An upstream export can already contain its own relative branding links.
     page = re.sub(r'<link\b[^>]*\brel=[\"\']icon[\"\'][^>]*>', '', page, flags=re.I)
     icon = f'<link rel="icon" type="image/png" sizes="180x180" href="{FAVICON}" data-lab-brand="favicon">'
-    page = page.replace('</head>', icon + '</head>', 1)
+    page = re.sub(r'<link\b[^>]*\brel=["\']apple-touch-icon["\'][^>]*>', '', page, flags=re.I)
+    touch = f'<link rel="apple-touch-icon" sizes="180x180" href="{FAVICON}" data-lab-brand="touch-icon">'
+    page = page.replace('</head>', icon + touch + '</head>', 1)
     if 'mcp-toolcall-lab-logo.png' in page:
         page = re.sub(r'(src=[\"\'])[^\"\']*mcp-toolcall-lab-logo\.png([\"\'])',
                       lambda match: match[1] + LOGO + match[2], page)
