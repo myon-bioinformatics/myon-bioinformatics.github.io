@@ -151,6 +151,7 @@ def test_lab_branding_is_idempotent_and_uses_published_absolute_paths():
         page = (PUBLIC / name).read_text()
         assert apply_lab_branding(page) == page
         assert page.count('data-lab-brand="favicon"') == 1
+        assert page.count('rel="apple-touch-icon"') == 1
         assert page.count('mcp-toolcall-lab-logo.png') == 1
         for asset in (FAVICON, LOGO):
             assert asset in page
@@ -174,7 +175,7 @@ def test_reimport_applies_branding_without_changing_source_identity():
         manifest = module.import_export(source, destination)
         for name in ('index.html', 'repository-diagnostics.html'):
             page = (destination / name).read_text()
-            assert page.count(FAVICON) == 1 and page.count(LOGO) == 1
+            assert page.count(FAVICON) == 2 and page.count(LOGO) == 1
             assert manifest['source_sha256'][name] == hashlib.sha256(before[name]).hexdigest()
             assert manifest['published_sha256'][name] == hashlib.sha256((destination / name).read_bytes()).hexdigest()
         assert all((source / name).read_bytes() == content for name, content in before.items())
