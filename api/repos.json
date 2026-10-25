@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T21:09:57Z",
+  "generatedAt": "2026-10-25T21:09:56Z",
   "owner": "myon-bioinformatics",
   "count": 41,
   "repos": [
@@ -22,7 +22,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-24T03:06:30Z",
+      "updatedAt": "2026-10-25T09:00:02Z",
       "homepage": null,
       "readmeHeading": "Aoi",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -159,7 +159,7 @@
         "typescript"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-24T00:14:10Z",
+      "updatedAt": "2026-10-25T09:00:11Z",
       "homepage": null,
       "readmeHeading": "browser-test-kit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, screenshots, mobile web, and GitHub Actions. Stagehand and Replay lanes are planned but not yet implemented.",
@@ -182,7 +182,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-23T23:47:06Z",
+      "updatedAt": "2026-10-25T09:01:02Z",
       "homepage": null,
       "readmeHeading": "cli_args",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -276,7 +276,7 @@
         "static-html"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-23T23:57:56Z",
+      "updatedAt": "2026-10-25T09:14:31Z",
       "homepage": null,
       "readmeHeading": "DRAgoWing",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -303,7 +303,7 @@
         "traceback"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-24T00:14:00Z",
+      "updatedAt": "2026-10-25T09:29:14Z",
       "homepage": null,
       "readmeHeading": "Err-o-RoadRunner",
       "readmeSummary": "Err-o-RoadRunner is a tool that does nothing in normal times. It starts working only after an error has happened. The name combines \"Error\" and \"Road Runner\".",
@@ -458,7 +458,7 @@
         "typescript"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-24T00:24:32Z",
+      "updatedAt": "2026-10-25T09:00:43Z",
       "homepage": null,
       "readmeHeading": "Ironmate",
       "readmeSummary": "The logo is **I’m with a 🔰 apostrophe**. The 6 variants are used by purpose; for now the favicon uses dark green, the README the Famicom style, the web UI the heatmap palette and the home-screen icon Pixel 3D, provisionally. The final version is undecided. Each variant can be saved from the [6-varia…",
@@ -530,7 +530,7 @@
         "tool-calling"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-24T12:47:02Z",
+      "updatedAt": "2026-10-25T08:59:19Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "**Explore what needs to run, what can be reused, and how to verify the difference.**",
@@ -569,7 +569,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-24T12:20:40Z",
+      "updatedAt": "2026-10-25T09:25:40Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
@@ -587,7 +587,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-24T12:27:56Z",
+      "updatedAt": "2026-10-25T09:00:10Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -616,7 +616,7 @@
         "toml"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-24T01:39:47Z",
+      "updatedAt": "2026-10-25T09:00:17Z",
       "homepage": null,
       "readmeHeading": "NagoyAction",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -663,7 +663,7 @@
         "vulnerability"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-24T02:19:23Z",
+      "updatedAt": "2026-10-25T09:00:53Z",
       "homepage": "https://nvd.nist.gov/vuln",
       "readmeHeading": "NVD NIST known vulnerabilities",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -715,7 +715,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-24T02:05:45Z",
+      "updatedAt": "2026-10-25T09:00:29Z",
       "homepage": null,
       "readmeHeading": "PythDRagoras",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -813,7 +813,7 @@
         "synthetic-data"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-24T02:05:49Z",
+      "updatedAt": "2026-10-25T09:01:45Z",
       "homepage": null,
       "readmeHeading": "SakAnalytics",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -1005,7 +1005,7 @@
         "troubleshooting"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-24T00:14:02Z",
+      "updatedAt": "2026-10-25T09:00:59Z",
       "homepage": null,
       "readmeHeading": "yourself",
       "readmeSummary": "Single-file, standard-library Python tool for read-only inspection of host, OS, and runtime facts. Produces concise, copyable environment reports for troubleshooting and AI context.",
