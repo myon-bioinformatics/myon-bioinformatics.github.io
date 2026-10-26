@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-10-25T21:09:56Z",
+  "generatedAt": "2026-10-26T21:11:11Z",
   "owner": "myon-bioinformatics",
-  "count": 41,
+  "count": 42,
   "repos": [
     {
       "name": "Aoi",
@@ -326,7 +326,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-24T00:14:12Z",
+      "updatedAt": "2026-10-26T05:03:15Z",
       "homepage": null,
       "readmeHeading": "flutter_navigation_basic",
       "readmeSummary": "Dart / Flutter で書いた、画面遷移・ルーティング・共通UIの検証用の基盤アプリです。リポジトリには Web・iOS・Android のターゲット構成を含みます。",
@@ -569,7 +569,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-25T09:25:40Z",
+      "updatedAt": "2026-10-26T01:12:50Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
@@ -587,7 +587,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-25T09:00:10Z",
+      "updatedAt": "2026-10-25T21:10:01Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -867,6 +867,19 @@
       "readmeHeading": "search_seq_including_spaces",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/search_seq_including_spaces/main/README.md"
+    },
+    {
+      "name": "TalkCompress",
+      "url": "https://github.com/myon-bioinformatics/TalkCompress",
+      "description": "Conversation compression gradients: Zipilogue / TesseraTalk / ShorthandLab / ConvoZip / MorphoZip",
+      "language": "Python",
+      "topics": [],
+      "stars": 0,
+      "updatedAt": "2026-10-26T13:49:52Z",
+      "homepage": null,
+      "readmeHeading": "TalkCompress",
+      "readmeSummary": "会話の圧縮・省略化を目的とした実験リポジトリです。生成AIのコンテキスト節約や、MCP / チャット応答の短縮といった「減らす」工夫を、**読める相手のグラデーション**として拡張します。",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/TalkCompress/main/README.md"
     },
     {
       "name": "video2audio_gui",
