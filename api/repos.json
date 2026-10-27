@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T21:11:11Z",
+  "generatedAt": "2026-10-27T21:07:58Z",
   "owner": "myon-bioinformatics",
   "count": 42,
   "repos": [
@@ -569,7 +569,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-26T01:12:50Z",
+      "updatedAt": "2026-10-27T01:12:20Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
@@ -587,7 +587,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-25T21:10:01Z",
+      "updatedAt": "2026-10-26T21:11:17Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -875,7 +875,7 @@
       "language": "Python",
       "topics": [],
       "stars": 0,
-      "updatedAt": "2026-10-26T13:49:52Z",
+      "updatedAt": "2026-10-27T16:51:04Z",
       "homepage": null,
       "readmeHeading": "TalkCompress",
       "readmeSummary": "会話の圧縮・省略化を目的とした実験リポジトリです。生成AIのコンテキスト節約や、MCP / チャット応答の短縮といった「減らす」工夫を、**読める相手のグラデーション**として拡張します。",
