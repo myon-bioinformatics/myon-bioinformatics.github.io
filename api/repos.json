@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-28T21:08:44Z",
+  "generatedAt": "2026-10-29T21:08:42Z",
   "owner": "myon-bioinformatics",
   "count": 42,
   "repos": [
@@ -47,7 +47,7 @@
         "text-graphics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-24T12:44:29Z",
+      "updatedAt": "2026-10-29T16:36:05Z",
       "homepage": null,
       "readmeHeading": "ascii_artist",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -134,7 +134,7 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-24T00:21:20Z",
+      "updatedAt": "2026-10-29T10:25:31Z",
       "homepage": null,
       "readmeHeading": "BlueProbe",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -159,7 +159,7 @@
         "typescript"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-28T11:40:29Z",
+      "updatedAt": "2026-10-29T17:14:19Z",
       "homepage": null,
       "readmeHeading": "browser-test-kit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, screenshots, mobile web, and GitHub Actions. Stagehand and Replay lanes are planned but not yet implemented.",
@@ -182,7 +182,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-25T09:01:02Z",
+      "updatedAt": "2026-10-29T10:16:08Z",
       "homepage": null,
       "readmeHeading": "cli_args",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -276,7 +276,7 @@
         "static-html"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-25T09:14:31Z",
+      "updatedAt": "2026-10-29T13:49:55Z",
       "homepage": null,
       "readmeHeading": "DRAgoWing",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -303,7 +303,7 @@
         "traceback"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-25T09:29:14Z",
+      "updatedAt": "2026-10-29T17:14:28Z",
       "homepage": null,
       "readmeHeading": "Err-o-RoadRunner",
       "readmeSummary": "Err-o-RoadRunner is a tool that does nothing in normal times. It starts working only after an error has happened. The name combines \"Error\" and \"Road Runner\".",
@@ -326,7 +326,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-28T16:10:04Z",
+      "updatedAt": "2026-10-29T13:19:54Z",
       "homepage": null,
       "readmeHeading": "flutter_navigation_basic",
       "readmeSummary": "Dart / Flutter で書いた、画面遷移・ルーティング・共通UIの検証用の基盤アプリです。リポジトリには Web・iOS・Android のターゲット構成を含みます。",
@@ -349,7 +349,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-24T07:10:26Z",
+      "updatedAt": "2026-10-29T10:49:06Z",
       "homepage": null,
       "readmeHeading": "<img src=\"assets/branding/concept-c.svg\" width=\"40\" height=\"40\" alt=\"GHI search icon\"> gh_identity (GHI)",
       "readmeSummary": "Single-file, stdlib-only Python interface for portable GitHub identity and operations.",
@@ -458,7 +458,7 @@
         "typescript"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-25T09:00:43Z",
+      "updatedAt": "2026-10-29T17:37:59Z",
       "homepage": null,
       "readmeHeading": "Ironmate",
       "readmeSummary": "The logo is **I’m with a 🔰 apostrophe**. The 6 variants are used by purpose; for now the favicon uses dark green, the README the Famicom style, the web UI the heatmap palette and the home-screen icon Pixel 3D, provisionally. The final version is undecided. Each variant can be saved from the [6-varia…",
@@ -504,7 +504,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-24T12:44:26Z",
+      "updatedAt": "2026-10-29T16:36:14Z",
       "homepage": null,
       "readmeHeading": "markdown",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -530,7 +530,7 @@
         "tool-calling"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-28T11:24:07Z",
+      "updatedAt": "2026-10-29T17:38:09Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "**Explore what needs to run, what can be reused, and how to verify the difference.**",
@@ -569,7 +569,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-28T00:56:09Z",
+      "updatedAt": "2026-10-29T19:19:57Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
@@ -587,7 +587,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-27T21:08:04Z",
+      "updatedAt": "2026-10-29T17:43:40Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -616,7 +616,7 @@
         "toml"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-25T09:00:17Z",
+      "updatedAt": "2026-10-29T10:44:46Z",
       "homepage": null,
       "readmeHeading": "NagoyAction",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -663,7 +663,7 @@
         "vulnerability"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-25T09:00:53Z",
+      "updatedAt": "2026-10-29T16:35:55Z",
       "homepage": "https://nvd.nist.gov/vuln",
       "readmeHeading": "NVD NIST known vulnerabilities",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -715,7 +715,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-25T09:00:29Z",
+      "updatedAt": "2026-10-29T10:38:27Z",
       "homepage": null,
       "readmeHeading": "PythDRagoras",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -786,7 +786,7 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-24T00:01:21Z",
+      "updatedAt": "2026-10-29T10:38:48Z",
       "homepage": null,
       "readmeHeading": "QueRyu",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -813,7 +813,7 @@
         "synthetic-data"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-25T09:01:45Z",
+      "updatedAt": "2026-10-29T15:55:35Z",
       "homepage": null,
       "readmeHeading": "SakAnalytics",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -862,7 +862,7 @@
         "string-search"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-23T06:04:44Z",
+      "updatedAt": "2026-10-29T17:14:10Z",
       "homepage": null,
       "readmeHeading": "search_seq_including_spaces",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -874,8 +874,8 @@
       "description": "Conversation compression gradients: Zipilogue / TesseraTalk / ShorthandLab / ConvoZip / MorphoZip",
       "language": "Python",
       "topics": [],
-      "stars": 0,
-      "updatedAt": "2026-10-28T14:34:20Z",
+      "stars": 1,
+      "updatedAt": "2026-10-29T16:49:27Z",
       "homepage": null,
       "readmeHeading": "TalkCompress",
       "readmeSummary": "会話の圧縮・省略化を目的とした実験リポジトリです。生成AIのコンテキスト節約や、MCP / チャット応答の短縮といった「減らす」工夫を、**読める相手のグラデーション**として拡張します。",
@@ -966,7 +966,7 @@
         "vanilla-js"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-24T12:44:23Z",
+      "updatedAt": "2026-10-29T16:36:23Z",
       "homepage": null,
       "readmeHeading": "web-ui",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -993,7 +993,7 @@
         "typescript"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-24T02:33:23Z",
+      "updatedAt": "2026-10-29T11:02:47Z",
       "homepage": null,
       "readmeHeading": "xprobe",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -1018,7 +1018,7 @@
         "troubleshooting"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-25T09:00:59Z",
+      "updatedAt": "2026-10-29T17:14:00Z",
       "homepage": null,
       "readmeHeading": "yourself",
       "readmeSummary": "Single-file, standard-library Python tool for read-only inspection of host, OS, and runtime facts. Produces concise, copyable environment reports for troubleshooting and AI context.",
