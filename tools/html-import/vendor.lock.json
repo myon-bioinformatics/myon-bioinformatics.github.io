@@ -3,10 +3,10 @@
   "sources": [
     {
       "repository": "https://github.com/myon-bioinformatics/web-ui",
-      "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
+      "commit": "f6d0b4e666f8a4c29f82dd339b3fdcc459351d95",
       "source_path": "web_ui.py",
       "path": "tools/vendor/web-ui/web_ui.py",
-      "sha256": "0c8c1c3baf7c226779ce5f8fb71ff103b838882d36058b02e15c2108bc24b52c"
+      "sha256": "f7464ad834989777cb4b2861949c3386f154299d5f740eb0d34cd621c80c225a"
     },
     {
       "repository": "https://github.com/myon-bioinformatics/web-ui",
@@ -17,17 +17,17 @@
     },
     {
       "repository": "https://github.com/myon-bioinformatics/web-ui",
-      "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
+      "commit": "f6d0b4e666f8a4c29f82dd339b3fdcc459351d95",
       "source_path": "css/tokens.css",
       "path": "tools/vendor/web-ui/css/tokens.css",
-      "sha256": "f83b01da9602a4aa3863ab6f903f8a87211669d2c96170994c7816332fd3bda3"
+      "sha256": "d175dc092eb3fdfc3c7ddd6cee57ea0aa57aa3886c73b7b0babac23bd61f1f78"
     },
     {
       "repository": "https://github.com/myon-bioinformatics/web-ui",
-      "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
+      "commit": "f6d0b4e666f8a4c29f82dd339b3fdcc459351d95",
       "source_path": "css/base.css",
       "path": "tools/vendor/web-ui/css/base.css",
-      "sha256": "fa0b4e22ad23dcdc22544ac8545523d492650331d6d551440657508e61189c3c"
+      "sha256": "c43830acb13f5b34b6140163289d9cc7445bfbd3bba94b01ec4e89ac2c1f6b79"
     },
     {
       "repository": "https://github.com/myon-bioinformatics/web-ui",
@@ -38,10 +38,10 @@
     },
     {
       "repository": "https://github.com/myon-bioinformatics/web-ui",
-      "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
+      "commit": "f6d0b4e666f8a4c29f82dd339b3fdcc459351d95",
       "source_path": "css/themes/modern.css",
       "path": "tools/vendor/web-ui/css/themes/modern.css",
-      "sha256": "69bb6b20e138c041717c2294ca3180a20cd0bfaf9c99153f2dc5eb7d53523852"
+      "sha256": "3fd44c840b4648cd248b58dfd96e1b9da8fe71ea071ede2fcef51c11378b33b9"
     },
     {
       "repository": "https://github.com/myon-bioinformatics/web-ui",
@@ -52,10 +52,10 @@
     },
     {
       "repository": "https://github.com/myon-bioinformatics/mcp-toolcall-lab",
-      "commit": "56982948ba79c070664cf9efe87a3d753e417acf",
+      "commit": "d58318ff1701b851ded37e0c933ee2624d4aba0d",
       "source_path": "src/mcp_toolcall_lab/adapters/html_snapshot.py",
       "path": "tools/vendor/lab/html_snapshot.py",
-      "sha256": "39a6ed442ef72ba4f72a55d3f9949cb502c846503631c6b0f4c1afedc450d164"
+      "sha256": "7997019467c27b6a9e78c66ee35489778e6e81e7a4aeb8620ce2f3c205181e44"
     },
     {
       "repository": "https://github.com/myon-bioinformatics/mcp-toolcall-lab",
@@ -66,10 +66,10 @@
     },
     {
       "repository": "https://github.com/myon-bioinformatics/web-ui",
-      "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
+      "commit": "f6d0b4e666f8a4c29f82dd339b3fdcc459351d95",
       "source_path": "js/navigation.js",
       "path": "tools/vendor/web-ui/js/navigation.js",
-      "sha256": "0b9df28bc6798e2fc76ff943b25dddea48c203727d08ac65845397dacd030b2f"
+      "sha256": "b748512a224685c732db837ebe0738c647c5a8c512f238d75fbc954c1c0a5f35"
     },
     {
       "repository": "https://github.com/myon-bioinformatics/web-ui",

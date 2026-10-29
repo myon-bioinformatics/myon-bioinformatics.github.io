@@ -56,6 +56,7 @@ def apply_shared_ui(page: str) -> str:
     if 'src="shared-navigation.mjs"' not in page:
         page = page.replace('</body>', '<script type="module" src="shared-navigation.mjs"></script></body>', 1)
     page = apply_pixiv_controls(page)
+    page = apply_prose_extracts(page)
     if 'data-testid="pages-nav-niconico"' not in page:
         anchor = re.search(r'<a\b[^>]*data-pages-nav="pixiv"[^>]*>.*?</a>', page)
         if anchor:
@@ -69,6 +70,21 @@ def apply_shared_ui(page: str) -> str:
     return page.replace(
         'Styling: single lab-owned <code>terminal.css</code> (no external stylesheet chain).',
         'Styling: pinned local <code>web-ui</code> modern theme; imported report and lab tool behavior retain their source identity.',
+    )
+
+
+def apply_prose_extracts(page: str) -> str:
+    """Article extracts are prose; reserve the shared monospace rule for code.
+
+    ui-output already preserves whitespace and wraps text, without needing pre.
+    Keep the imported content and all controller hooks unchanged.
+    """
+    return re.sub(
+        r'<pre\b(?P<attrs>[^>]*\bdata-testid="pages-(?:pixiv|wiki)-extract"[^>]*)>'
+        r'(?P<body>.*?)</pre>',
+        r'<div\g<attrs>>\g<body></div>',
+        page,
+        flags=re.DOTALL,
     )
 
 

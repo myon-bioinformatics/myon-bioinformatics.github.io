@@ -180,3 +180,20 @@ def test_reimport_applies_branding_without_changing_source_identity():
             assert manifest['published_sha256'][name] == hashlib.sha256((destination / name).read_bytes()).hexdigest()
         assert all((source / name).read_bytes() == content for name, content in before.items())
         assert manifest['source_sha'] == json.loads(before['build_meta.json'])['sha']
+
+
+def test_prose_extract_adapter_preserves_whitespace_hooks_and_code_blocks():
+    from lab_shared_ui import apply_prose_extracts, apply_shared_ui
+    source = ('<html><head></head><body>'
+              '<pre data-testid="pages-pixiv-extract" hidden class="ui-output">A\nB &lt;C&gt;</pre>'
+              '<pre class="ui-output" data-testid="pages-wiki-extract">Wiki\ntext</pre>'
+              '<pre class="ui-output"><code>print(1)</code></pre></body></html>')
+    converted = apply_prose_extracts(source)
+    assert '<div data-testid="pages-pixiv-extract" hidden class="ui-output">A\nB &lt;C&gt;</div>' in converted
+    assert '<div class="ui-output" data-testid="pages-wiki-extract">Wiki\ntext</div>' in converted
+    assert '<pre class="ui-output"><code>print(1)</code></pre>' in converted
+    assert apply_prose_extracts(converted) == converted
+    assert apply_shared_ui(source) == apply_shared_ui(converted)
+    published = (PUBLIC / 'index.html').read_text()
+    assert '<div data-testid="pages-pixiv-extract" hidden class="ui-output"></div>' in published
+    assert '<div data-testid="pages-wiki-extract" hidden class="ui-output"></div>' in published
