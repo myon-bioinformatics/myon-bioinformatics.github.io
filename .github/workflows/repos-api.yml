@@ -31,7 +31,7 @@ jobs:
         env:
           UV_PYTHON_PREFERENCE: only-managed
         with:
-          version: "0.13.3"
+          version: "latest"
           python-version: "3"
           activate-environment: true
           enable-cache: false

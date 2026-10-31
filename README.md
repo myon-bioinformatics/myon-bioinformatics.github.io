@@ -114,7 +114,9 @@ scheduled card-update workflow.
 
 The catalog refresh keeps its latest-Python-3 lane using setup-uv's `"3"`
 selector with `UV_PYTHON_PREFERENCE=only-managed` during environment creation.
-This selects the newest stable Python 3 offered by the pinned uv provider,
+uv tracks its latest stable release at run time; the setup-uv action remains
+pinned by full commit SHA. This selects the newest stable Python 3 offered by
+the uv provider selected for that run,
 not an older Python already installed on the runner; it does not promise a
 Python release newer than that provider knows. Other migrated CI jobs use 3.15.
 
