@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-31T12:28:05Z",
+  "generatedAt": "2026-10-31T21:06:35Z",
   "owner": "myon-bioinformatics",
   "count": 42,
   "repos": [
@@ -458,7 +458,7 @@
         "typescript"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-31T12:14:46Z",
+      "updatedAt": "2026-10-31T15:07:34Z",
       "homepage": null,
       "readmeHeading": "Ironmate",
       "readmeSummary": "The logo is **I’m with a 🔰 apostrophe**. The 6 variants are used by purpose; for now the favicon uses dark green, the README the Famicom style, the web UI the heatmap palette and the home-screen icon Pixel 3D, provisionally. The final version is undecided. Each variant can be saved from the [6-varia…",
@@ -530,7 +530,7 @@
         "tool-calling"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T11:24:55Z",
+      "updatedAt": "2026-10-31T12:30:04Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "**Explore what needs to run, what can be reused, and how to verify the difference.**",
@@ -587,7 +587,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T12:27:40Z",
+      "updatedAt": "2026-10-31T12:28:09Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -786,7 +786,7 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T12:09:40Z",
+      "updatedAt": "2026-10-31T15:30:38Z",
       "homepage": null,
       "readmeHeading": "QueRyu",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -875,7 +875,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-10-31T12:11:01Z",
+      "updatedAt": "2026-10-31T17:28:32Z",
       "homepage": null,
       "readmeHeading": "TalkCompress",
       "readmeSummary": "会話の圧縮・省略化を目的とした実験リポジトリです。生成AIのコンテキスト節約や、MCP / チャット応答の短縮といった「減らす」工夫を、**読める相手のグラデーション**として拡張します。",
