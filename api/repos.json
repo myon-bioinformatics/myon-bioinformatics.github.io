@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-31T11:06:26Z",
+  "generatedAt": "2026-10-31T12:28:05Z",
   "owner": "myon-bioinformatics",
   "count": 42,
   "repos": [
@@ -22,7 +22,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T09:57:03Z",
+      "updatedAt": "2026-10-31T12:09:42Z",
       "homepage": null,
       "readmeHeading": "Aoi",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -47,7 +47,7 @@
         "text-graphics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T10:46:42Z",
+      "updatedAt": "2026-10-31T12:15:13Z",
       "homepage": null,
       "readmeHeading": "ascii_artist",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -134,7 +134,7 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T10:54:23Z",
+      "updatedAt": "2026-10-31T12:10:01Z",
       "homepage": null,
       "readmeHeading": "BlueProbe",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -159,7 +159,7 @@
         "typescript"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-31T10:09:04Z",
+      "updatedAt": "2026-10-31T12:09:59Z",
       "homepage": null,
       "readmeHeading": "browser-test-kit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, screenshots, mobile web, and GitHub Actions. Stagehand and Replay lanes are planned but not yet implemented.",
@@ -182,7 +182,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T10:47:20Z",
+      "updatedAt": "2026-10-31T12:10:52Z",
       "homepage": null,
       "readmeHeading": "cli_args",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -276,7 +276,7 @@
         "static-html"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T10:54:56Z",
+      "updatedAt": "2026-10-31T12:10:18Z",
       "homepage": null,
       "readmeHeading": "DRAgoWing",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -303,7 +303,7 @@
         "traceback"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T07:38:10Z",
+      "updatedAt": "2026-10-31T12:10:32Z",
       "homepage": null,
       "readmeHeading": "Err-o-RoadRunner",
       "readmeSummary": "Err-o-RoadRunner is a tool that does nothing in normal times. It starts working only after an error has happened. The name combines \"Error\" and \"Road Runner\".",
@@ -326,7 +326,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-31T03:36:58Z",
+      "updatedAt": "2026-10-31T11:46:36Z",
       "homepage": null,
       "readmeHeading": "flutter_navigation_basic",
       "readmeSummary": "Dart / Flutter で書いた、画面遷移・ルーティング・共通UIの検証用の基盤アプリです。リポジトリには Web・iOS・Android のターゲット構成を含みます。",
@@ -349,7 +349,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T10:31:59Z",
+      "updatedAt": "2026-10-31T12:10:38Z",
       "homepage": null,
       "readmeHeading": "<img src=\"assets/branding/concept-c.svg\" width=\"40\" height=\"40\" alt=\"GHI search icon\"> gh_identity (GHI)",
       "readmeSummary": "Single-file, stdlib-only Python interface for portable GitHub identity and operations.",
@@ -458,7 +458,7 @@
         "typescript"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-31T09:56:51Z",
+      "updatedAt": "2026-10-31T12:14:46Z",
       "homepage": null,
       "readmeHeading": "Ironmate",
       "readmeSummary": "The logo is **I’m with a 🔰 apostrophe**. The 6 variants are used by purpose; for now the favicon uses dark green, the README the Famicom style, the web UI the heatmap palette and the home-screen icon Pixel 3D, provisionally. The final version is undecided. Each variant can be saved from the [6-varia…",
@@ -504,7 +504,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T03:37:02Z",
+      "updatedAt": "2026-10-31T12:15:03Z",
       "homepage": null,
       "readmeHeading": "markdown",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -530,7 +530,7 @@
         "tool-calling"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T06:41:44Z",
+      "updatedAt": "2026-10-31T11:24:55Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "**Explore what needs to run, what can be reused, and how to verify the difference.**",
@@ -569,7 +569,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-10-31T10:55:50Z",
+      "updatedAt": "2026-10-31T12:24:59Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
@@ -587,7 +587,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T11:05:12Z",
+      "updatedAt": "2026-10-31T12:27:40Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -616,7 +616,7 @@
         "toml"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T10:54:48Z",
+      "updatedAt": "2026-10-31T12:10:09Z",
       "homepage": null,
       "readmeHeading": "NagoyAction",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -663,7 +663,7 @@
         "vulnerability"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T10:30:46Z",
+      "updatedAt": "2026-10-31T12:10:32Z",
       "homepage": "https://nvd.nist.gov/vuln",
       "readmeHeading": "NVD NIST known vulnerabilities",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -715,7 +715,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T11:00:16Z",
+      "updatedAt": "2026-10-31T12:09:47Z",
       "homepage": null,
       "readmeHeading": "PythDRagoras",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -786,7 +786,7 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T10:54:42Z",
+      "updatedAt": "2026-10-31T12:09:40Z",
       "homepage": null,
       "readmeHeading": "QueRyu",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -813,7 +813,7 @@
         "synthetic-data"
       ],
       "stars": 0,
-      "updatedAt": "2026-10-31T10:54:31Z",
+      "updatedAt": "2026-10-31T12:09:54Z",
       "homepage": null,
       "readmeHeading": "SakAnalytics",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -862,7 +862,7 @@
         "string-search"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T10:31:53Z",
+      "updatedAt": "2026-10-31T12:10:44Z",
       "homepage": null,
       "readmeHeading": "search_seq_including_spaces",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -875,7 +875,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-10-31T09:35:29Z",
+      "updatedAt": "2026-10-31T12:11:01Z",
       "homepage": null,
       "readmeHeading": "TalkCompress",
       "readmeSummary": "会話の圧縮・省略化を目的とした実験リポジトリです。生成AIのコンテキスト節約や、MCP / チャット応答の短縮といった「減らす」工夫を、**読める相手のグラデーション**として拡張します。",
@@ -966,7 +966,7 @@
         "vanilla-js"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T09:56:45Z",
+      "updatedAt": "2026-10-31T12:14:56Z",
       "homepage": null,
       "readmeHeading": "web-ui",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -993,7 +993,7 @@
         "typescript"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T10:12:06Z",
+      "updatedAt": "2026-10-31T12:10:26Z",
       "homepage": null,
       "readmeHeading": "xprobe",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -1018,7 +1018,7 @@
         "troubleshooting"
       ],
       "stars": 1,
-      "updatedAt": "2026-10-31T09:16:30Z",
+      "updatedAt": "2026-10-31T12:10:17Z",
       "homepage": null,
       "readmeHeading": "yourself",
       "readmeSummary": "Single-file, standard-library Python tool for read-only inspection of host, OS, and runtime facts. Produces concise, copyable environment reports for troubleshooting and AI context.",
