@@ -112,6 +112,12 @@ scheduled card-update workflow.
 
 ## 🧪 CI evidence
 
+The catalog refresh keeps its latest-Python-3 lane using setup-uv's `"3"`
+selector with `UV_PYTHON_PREFERENCE=only-managed` during environment creation.
+This selects the newest stable Python 3 offered by the pinned uv provider,
+not an older Python already installed on the runner; it does not promise a
+Python release newer than that provider knows. Other migrated CI jobs use 3.15.
+
 [portal](.github/workflows/portal.yml) and the Python job in
 [Stagehand v4 dual-SDK reference](.github/workflows/stagehand-v4-reference.yml)
 produce pytest JUnit and call the parent's pinned shared failure-identity
