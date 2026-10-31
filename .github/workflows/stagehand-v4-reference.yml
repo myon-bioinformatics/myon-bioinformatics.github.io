@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "22"
+          node-version: "24"
       - run: npm ci --ignore-scripts
       - run: npm run stagehand:surface
 
@@ -55,7 +55,7 @@ jobs:
           python-version: "3.12"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "22"
+          node-version: "24"
       - run: python -m pip install -r tests/requirements.txt
       # Metadata reads Python distributions and executable versions only.
       # Node SDK imports are checked in the node job; no node_modules needed here.
@@ -76,7 +76,7 @@ jobs:
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Install npm dependencies
         run: npm ci --ignore-scripts
