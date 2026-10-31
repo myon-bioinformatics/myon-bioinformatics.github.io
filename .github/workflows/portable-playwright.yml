@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
       - name: Node standard-library tests
         run: node --test tests/portable-playwright.node.test.mjs
   python-and-bridge:
@@ -28,6 +28,6 @@ jobs:
           python-version: '3.12'
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
       - name: Python standard-library and cross-runtime tests
         run: python -m unittest discover -s tests -p test_portable_playwright.py -v
