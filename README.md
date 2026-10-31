@@ -115,8 +115,8 @@ scheduled card-update workflow.
 [portal](.github/workflows/portal.yml) and the Python job in
 [Stagehand v4 dual-SDK reference](.github/workflows/stagehand-v4-reference.yml)
 produce pytest JUnit and call the parent's pinned shared failure-identity
-collector. Raw artifacts are `junit-portal-py3.12` and
-`junit-stagehand-python-py3.12`, retained for 14 days. Compact artifacts are
+collector. Raw artifacts are `junit-portal-py3.15` and
+`junit-stagehand-python-py3.15`, retained for 14 days. Compact artifacts are
 `portal-failure-identity` and `stagehand-python-failure-identity`; the shared
 collector does not set `retention-days`, so repository-default retention applies. Missing or invalid expected XML fails collection; the original
 test exit code remains authoritative.
