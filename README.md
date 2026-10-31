@@ -158,7 +158,7 @@ To update, obtain a trusted lab `stub-pages-observations` artifact, extract its
 
 ```sh
 python -S scripts/import_lab_pages.py --source /path/to/export/_site
-uv run pytest tests/test_portal_links.py tests/test_lab_publication.py
+uv run --with-requirements tests/requirements.txt pytest tests/test_portal_links.py tests/test_lab_publication.py
 ```
 
 Review and commit the imported output in a PR. No untrusted archive is extracted
@@ -182,7 +182,7 @@ See [source grammar, Python one-liners, and markdown.py integration](docs/pixiv-
 - `python -S scripts/record_demo.py frame1.png frame2.png -o grid.png --mode montage` reconstructs PNG filters before stitching. Montage inputs must be matching non-interlaced 8-bit RGB/RGBA images.
 - Browser capture is a development dependency: install `tests/requirements-browser.txt`, run `python -m playwright install --no-shell chromium`, serve the site, then run `python scripts/capture_portfolio_evidence.py --base-url http://localhost:8080 -o test-results/evidence`. It records all five portfolio modes and six tool routes, screenshots, hashes and a montage. Capture uses labelled curated highlights for repeatability.
 
-Verification: `uv run pytest tests`, `npx playwright test`, and `node scripts/validate-ssot.mjs`. Python test dependencies stay in `tests/requirements.txt`; image regression tests decode exports with the vendored `pillow_min` module from Ironmate (`tools/vendor/ironmate/`, recorded in `vendor.lock.json`). Production image conversion uses only the standard library. The portal workflow preserves browser evidence as an Actions artifact.
+Verification: `uv run --with-requirements tests/requirements.txt pytest tests`, `npx playwright test`, and `node scripts/validate-ssot.mjs`. Python test dependencies stay in `tests/requirements.txt`; image regression tests decode exports with the vendored `pillow_min` module from Ironmate (`tools/vendor/ironmate/`, recorded in `vendor.lock.json`). Production image conversion uses only the standard library. The portal workflow preserves browser evidence as an Actions artifact.
 
 Image regression inputs also include PNGs encoded independently from known sample
 bytes, without `pillow_min`'s writer. They cover all five scanline filters, split
