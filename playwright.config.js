@@ -12,7 +12,7 @@ module.exports = defineConfig({
     headless: true,
   },
   webServer: {
-    command: 'npx serve . --listen 8080 --no-clipboard',
+    command: 'npx sirv . --port 8080 --dev',
     url: 'http://localhost:8080',
     reuseExistingServer: false,
     timeout: 15_000,
