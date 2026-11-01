@@ -37,7 +37,7 @@ jobs:
           docker run --rm -i --entrypoint sh -v "$PWD/reports:/app/reports" html-import-test -s <<'SCRIPT'
           set -eu
           out="${OUT:-/app/reports}"
-          roots="${ROOTS:-/root/.cache/ms-playwright /usr/local/bin/node /usr/bin/python3}"
+          roots="${ROOTS:-$(ls -d /root/.cache/ms-playwright/*/ 2>/dev/null | tr '\n' ' ')/usr/local/bin/node /usr/bin/python3}"
           mkdir -p "$out"
           dpkg-query -W -f='${Package}\t${Architecture}\t${Version}\t${Installed-Size}\n' | sort > "$out/html-import-apt-installed.tsv"
           apt-mark showmanual | sort > "$out/html-import-apt-manual.txt"
@@ -50,12 +50,14 @@ jobs:
           # Shared libraries that node, python and the Playwright browsers load, and the package that owns each file.
           raw="$out/html-import-apt-linked.raw"
           : > "$raw"
-          # shellcheck disable=SC2086
-          find -L $roots -type f 2>/dev/null | while read -r f; do
-            [ "$(od -An -tx1 -N4 "$f" 2>/dev/null | tr -d ' \n')" = 7f454c46 ] || continue
-            d=$(dirname "$f")
-            # Playwright's launcher puts a browser bundle's own lib directory on LD_LIBRARY_PATH, so do the same.
-            LD_LIBRARY_PATH="$d:$d/../lib" ldd "$f" 2>/dev/null | awk -v f="$f" '/=> not found/ {print "NOTFOUND\t" f "\t" $1; next} /=> \// {print "LIB\t" $3}' >> "$raw"
+          # A Playwright bundle carries its own libraries and its launcher puts their directories on LD_LIBRARY_PATH.
+          # Do the same per bundle, so only libraries that really come from apt are attributed to a package.
+          for unit in $roots; do
+            libs=$(find -L "$unit" -name '*.so*' -type f 2>/dev/null | sed 's#/[^/]*$##' | sort -u | tr '\n' ':')
+            find -L "$unit" -type f 2>/dev/null | while read -r f; do
+              [ "$(od -An -tx1 -N4 "$f" 2>/dev/null | tr -d ' \n')" = 7f454c46 ] || continue
+              LD_LIBRARY_PATH="$libs$(dirname "$f")" ldd "$f" 2>/dev/null | awk -v f="$f" '/=> not found/ {print "NOTFOUND\t" f "\t" $1; next} /=> \// {print "LIB\t" $3}' >> "$raw"
+            done
           done
           grep '^NOTFOUND' "$raw" | cut -f2- | sort -u > "$out/html-import-apt-notfound.tsv" || true
           grep '^LIB' "$raw" | cut -f2 | sort -u | while read -r lib; do
