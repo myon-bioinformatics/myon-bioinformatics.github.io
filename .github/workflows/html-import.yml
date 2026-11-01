@@ -32,6 +32,8 @@ jobs:
           mkdir -p reports
           docker image inspect html-import-test --format '{{.Size}}' > reports/html-import-image-size.txt
           docker history --no-trunc --format '{{.Size}} {{.CreatedBy}}' html-import-test > reports/html-import-image-layers.txt
+          echo "image size (bytes): $(cat reports/html-import-image-size.txt)"
+          cat reports/html-import-image-layers.txt
           docker run --rm -i --entrypoint sh -v "$PWD/reports:/app/reports" html-import-test -s <<'SCRIPT'
           set -eu
           out="${OUT:-/app/reports}"
@@ -66,6 +68,10 @@ jobs:
           echo "libraries not found: $(wc -l < "$out/html-import-apt-notfound.tsv")"
           echo "apt packages that provide a loaded library: $(cut -f1 "$out/html-import-apt-linked.tsv" | sort -u | wc -l)"
           cut -f1 "$out/html-import-apt-linked.tsv" | sort -u
+          echo "--- manually installed (apt-mark showmanual) ---"
+          cat "$out/html-import-apt-manual.txt"
+          echo "--- libraries ldd could not resolve (binary, library) ---"
+          cat "$out/html-import-apt-notfound.tsv"
           SCRIPT
       - name: Preserve JUnit and browser screenshots
         if: always()
