@@ -51,9 +51,11 @@ jobs:
           raw="$out/html-import-apt-linked.raw"
           : > "$raw"
           # shellcheck disable=SC2086
-          find $roots -type f 2>/dev/null | while read -r f; do
+          find -L $roots -type f 2>/dev/null | while read -r f; do
             [ "$(od -An -tx1 -N4 "$f" 2>/dev/null | tr -d ' \n')" = 7f454c46 ] || continue
-            ldd "$f" 2>/dev/null | awk -v f="$f" '/=> not found/ {print "NOTFOUND\t" f "\t" $1; next} /=> \// {print "LIB\t" $3}' >> "$raw"
+            d=$(dirname "$f")
+            # Playwright's launcher puts a browser bundle's own lib directory on LD_LIBRARY_PATH, so do the same.
+            LD_LIBRARY_PATH="$d:$d/../lib" ldd "$f" 2>/dev/null | awk -v f="$f" '/=> not found/ {print "NOTFOUND\t" f "\t" $1; next} /=> \// {print "LIB\t" $3}' >> "$raw"
           done
           grep '^NOTFOUND' "$raw" | cut -f2- | sort -u > "$out/html-import-apt-notfound.tsv" || true
           grep '^LIB' "$raw" | cut -f2 | sort -u | while read -r lib; do
