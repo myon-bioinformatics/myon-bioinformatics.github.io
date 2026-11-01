@@ -19,9 +19,6 @@
     "@playwright/test": "^1.64.0",
     "sirv-cli": "3.0.1"
   },
-  "overrides": {
-    "compression": "^1.8.2"
-  },
   "engines": {
     "node": ">=24"
   }
