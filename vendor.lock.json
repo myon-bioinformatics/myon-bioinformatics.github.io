@@ -126,6 +126,15 @@
       "destination": "tools/vendor/ironmate/pillow_min.py",
       "blob_sha": "77516d14bce1bd371d16df98574cf8d5e9ed3207",
       "sha256": "987a09e19ebd1d3d970779bf46917568ad058490d7ac9a84959ec2218ced836b"
+    },
+    {
+      "repository": "myon-bioinformatics/web-ui",
+      "ref": "b3afe1cf5db6ab58e9b1dc77dce3fa62dd1d1a44",
+      "commit": "b3afe1cf5db6ab58e9b1dc77dce3fa62dd1d1a44",
+      "source": "web_ui.py",
+      "destination": "tools/vendor/web-ui-generator/web_ui.py",
+      "blob_sha": "44b9a0e2e756adc5138413f36cf34c292f953bfe",
+      "sha256": "db5f6a6d1a555d1cc425e2571cc9b07f9fdf410b5d5997d31497048cd8d0f067"
     }
   ]
 }

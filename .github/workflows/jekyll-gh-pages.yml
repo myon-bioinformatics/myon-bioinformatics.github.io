@@ -50,6 +50,9 @@ jobs:
       - name: Make built site writable for evidence
         run: sudo chown -R "$USER":"$USER" _site
 
+      - name: Generate verified shared browser assets
+        run: python3 scripts/build_web_ui_assets.py --output _site
+
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "26"

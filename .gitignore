@@ -18,3 +18,5 @@ venv/
 .DS_Store
 Thumbs.db
 # --- end common ignores ---
+
+.generated-site/

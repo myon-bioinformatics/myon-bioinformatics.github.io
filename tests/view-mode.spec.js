@@ -7,7 +7,7 @@ const profile = require('../profile.json');
 const skillCount = profile.skills.reduce((total, group) => total + group.items.length, 0);
 const path = require('path');
 
-const CONFIG_PATH = path.resolve(__dirname, '../site.config.json');
+const CONFIG_PATH = path.resolve(__dirname, process.env.GENERATED_ASSETS_TEST ? '../.generated-site/site.config.json' : '../site.config.json');
 
 function writeConfig(mode) {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify({ defaultViewMode: mode }));
