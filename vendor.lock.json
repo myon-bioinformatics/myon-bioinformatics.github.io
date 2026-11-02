@@ -21,8 +21,8 @@
     },
     {
       "repository": "myon-bioinformatics/web-ui",
-      "ref": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
-      "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
+      "ref": "a29a40ad123985a3dbb44837c68f98fd6ff9e8b2",
+      "commit": "a29a40ad123985a3dbb44837c68f98fd6ff9e8b2",
       "source": "LICENSE",
       "destination": "tools/vendor/web-ui/LICENSE",
       "blob_sha": "4ec4989b801bf1a3df6184d21f79e6e7ed5931f6",
@@ -84,12 +84,12 @@
     },
     {
       "repository": "myon-bioinformatics/web-ui",
-      "ref": "f6d0b4e666f8a4c29f82dd339b3fdcc459351d95",
-      "commit": "f6d0b4e666f8a4c29f82dd339b3fdcc459351d95",
+      "ref": "a29a40ad123985a3dbb44837c68f98fd6ff9e8b2",
+      "commit": "a29a40ad123985a3dbb44837c68f98fd6ff9e8b2",
       "source": "web_ui.py",
       "destination": "tools/vendor/web-ui/web_ui.py",
-      "blob_sha": "286614b07d2e470a0eb73ad11bf8e18fb2ee4e0e",
-      "sha256": "8e211583fcf35166d2f5189918518c98034cbbf563c5440e10b4a773583d5d30"
+      "blob_sha": "8f92f4aa05fedc81cc1821b7384cc3b31c439892",
+      "sha256": "5178c9162006288d82daf54b0f55d4a6a8b82d0ed008f975136a288e8e0ff476"
     },
     {
       "repository": "myon-bioinformatics/web-ui",

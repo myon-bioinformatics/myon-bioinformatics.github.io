@@ -1,7 +1,10 @@
 import hashlib
 import json
 import re
+import importlib.util
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -32,3 +35,28 @@ def test_root_vendor_lock_agrees_with_html_import_lock() -> None:
         html_entry = html_by_path[path]
         assert root_entry["commit"] == html_entry["commit"], path
         assert root_entry["sha256"] == html_entry["sha256"], path
+
+
+@pytest.mark.parametrize("major", [24, 25])
+@pytest.mark.parametrize("explicit", [False, True])
+def test_vendored_web_ui_reports_rejected_node_version(monkeypatch, major, explicit):
+    path = ROOT / "tools/vendor/web-ui/web_ui.py"
+    spec = importlib.util.spec_from_file_location("vendored_web_ui_diagnostics", path)
+    ui = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(ui)
+    launcher = ui._node_launch_module()
+    message = f"node_launch: Node must be 26 or newer (found {major})"
+    if explicit:
+        error = launcher.NodeNotFoundError(message)
+        node = "node-test"
+    else:
+        error = launcher.NodeNotFoundError("node executable not found")
+        node = None
+        monkeypatch.setattr(ui.shutil, "which", lambda _: "node-test")
+
+        def reject(*args):
+            raise launcher.NodeNotFoundError(message)
+
+        monkeypatch.setattr(launcher, "_probe_node_once", reject)
+    with pytest.raises(RuntimeError, match=rf"Node 26 or newer; found Node {major}"):
+        ui._raise_node_not_found(error, node)
