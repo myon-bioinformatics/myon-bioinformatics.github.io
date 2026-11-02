@@ -25,6 +25,58 @@ jobs:
         run: |
           mkdir -p reports test-results
           docker run --rm --ipc=host -v "$PWD/reports:/app/reports" -v "$PWD/test-results:/app/test-results" html-import-test
+      - name: Record apt packages, loaded libraries and image size for a Docker-free setup
+        if: always()
+        continue-on-error: true
+        run: |
+          mkdir -p reports
+          docker image inspect html-import-test --format '{{.Size}}' > reports/html-import-image-size.txt
+          docker history --no-trunc --format '{{.Size}} {{.CreatedBy}}' html-import-test > reports/html-import-image-layers.txt
+          echo "image size (bytes): $(cat reports/html-import-image-size.txt)"
+          cat reports/html-import-image-layers.txt
+          docker run --rm -i --entrypoint sh -v "$PWD/reports:/app/reports" html-import-test -s <<'SCRIPT'
+          set -eu
+          out="${OUT:-/app/reports}"
+          roots="${ROOTS:-$(ls -d /root/.cache/ms-playwright/*/ 2>/dev/null | tr '\n' ' ')/usr/local/bin/node /usr/bin/python3}"
+          mkdir -p "$out"
+          dpkg-query -W -f='${Package}\t${Architecture}\t${Version}\t${Installed-Size}\n' | sort > "$out/html-import-apt-installed.tsv"
+          apt-mark showmanual | sort > "$out/html-import-apt-manual.txt"
+          {
+            echo "node $(node --version)"
+            echo "npm $(npm --version)"
+            echo "python $(python3 --version 2>&1)"
+            ls /root/.cache/ms-playwright 2>/dev/null || true
+          } > "$out/html-import-runtime.txt"
+          # Shared libraries that node, python and the Playwright browsers load, and the package that owns each file.
+          raw="$out/html-import-apt-linked.raw"
+          : > "$raw"
+          # A Playwright bundle carries its own libraries and its launcher puts their directories on LD_LIBRARY_PATH.
+          # Do the same per bundle, so only libraries that really come from apt are attributed to a package.
+          for unit in $roots; do
+            libs=$(find -L "$unit" -name '*.so*' -type f 2>/dev/null | sed 's#/[^/]*$##' | sort -u | tr '\n' ':')
+            find -L "$unit" -type f 2>/dev/null | while read -r f; do
+              [ "$(od -An -tx1 -N4 "$f" 2>/dev/null | tr -d ' \n')" = 7f454c46 ] || continue
+              LD_LIBRARY_PATH="$libs$(dirname "$f")" ldd "$f" 2>/dev/null | awk -v f="$f" '/=> not found/ {print "NOTFOUND\t" f "\t" $1; next} /=> \// {print "LIB\t" $3}' >> "$raw"
+            done
+          done
+          grep '^NOTFOUND' "$raw" | cut -f2- | sort -u > "$out/html-import-apt-notfound.tsv" || true
+          grep '^LIB' "$raw" | cut -f2 | sort -u | while read -r lib; do
+            path=$(readlink -f "$lib")
+            pkg=$(dpkg-query -S "$path" 2>/dev/null | head -1 | cut -d: -f1)
+            [ -n "$pkg" ] || pkg=$(dpkg-query -S "${path#/usr}" 2>/dev/null | head -1 | cut -d: -f1)
+            printf '%s\t%s\n' "${pkg:-(not from apt)}" "$lib"
+          done | sort > "$out/html-import-apt-linked.tsv"
+          rm -f "$raw"
+          echo "installed packages: $(wc -l < "$out/html-import-apt-installed.tsv")"
+          echo "manually installed: $(wc -l < "$out/html-import-apt-manual.txt")"
+          echo "libraries not found: $(wc -l < "$out/html-import-apt-notfound.tsv")"
+          echo "apt packages that provide a loaded library: $(cut -f1 "$out/html-import-apt-linked.tsv" | sort -u | wc -l)"
+          cut -f1 "$out/html-import-apt-linked.tsv" | sort -u
+          echo "--- manually installed (apt-mark showmanual) ---"
+          cat "$out/html-import-apt-manual.txt"
+          echo "--- libraries ldd could not resolve (binary, library) ---"
+          cat "$out/html-import-apt-notfound.tsv"
+          SCRIPT
       - name: Preserve JUnit and browser screenshots
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -32,6 +84,9 @@ jobs:
           name: html-import-contract
           path: |
             reports/html-import-*.xml
+            reports/html-import-apt-*
+            reports/html-import-image-*
+            reports/html-import-runtime.txt
             test-results/
           if-no-files-found: error
           retention-days: 14

@@ -3,10 +3,10 @@
   "sources": [
     {
       "repository": "https://github.com/myon-bioinformatics/web-ui",
-      "commit": "f6d0b4e666f8a4c29f82dd339b3fdcc459351d95",
+      "commit": "a29a40ad123985a3dbb44837c68f98fd6ff9e8b2",
       "source_path": "web_ui.py",
       "path": "tools/vendor/web-ui/web_ui.py",
-      "sha256": "f7464ad834989777cb4b2861949c3386f154299d5f740eb0d34cd621c80c225a"
+      "sha256": "5178c9162006288d82daf54b0f55d4a6a8b82d0ed008f975136a288e8e0ff476"
     },
     {
       "repository": "https://github.com/myon-bioinformatics/web-ui",
@@ -45,7 +45,7 @@
     },
     {
       "repository": "https://github.com/myon-bioinformatics/web-ui",
-      "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
+      "commit": "a29a40ad123985a3dbb44837c68f98fd6ff9e8b2",
       "source_path": "LICENSE",
       "path": "tools/vendor/web-ui/LICENSE",
       "sha256": "15f66204c4a6a1ce0c94f0ed4319ff9400f872e85fd32c95f21695c2f231af59"
