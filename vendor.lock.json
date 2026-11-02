@@ -88,8 +88,8 @@
       "commit": "f6d0b4e666f8a4c29f82dd339b3fdcc459351d95",
       "source": "web_ui.py",
       "destination": "tools/vendor/web-ui/web_ui.py",
-      "blob_sha": "371641fe31064f4cc433e70b6cf4df6aec54587f",
-      "sha256": "f7464ad834989777cb4b2861949c3386f154299d5f740eb0d34cd621c80c225a"
+      "blob_sha": "286614b07d2e470a0eb73ad11bf8e18fb2ee4e0e",
+      "sha256": "8e211583fcf35166d2f5189918518c98034cbbf563c5440e10b4a773583d5d30"
     },
     {
       "repository": "myon-bioinformatics/web-ui",
