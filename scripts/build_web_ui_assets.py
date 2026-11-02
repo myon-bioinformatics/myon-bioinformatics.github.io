@@ -24,7 +24,10 @@ def generate(root: Path = ROOT) -> dict[str, bytes]:
         raise ValueError('unsupported generated asset lock')
     # The generator must also be an ordinary immutable vendor-lock/1 source.
     vendor = json.loads((root / 'vendor.lock.json').read_text(encoding='utf-8'))
-    source = next(x for x in vendor['files'] if x['destination'] == lock['generator'])
+    sources = [x for x in vendor['files'] if x.get('destination') == lock['generator']]
+    if len(sources) != 1:
+        raise ValueError('vendor lock must contain exactly one generator entry')
+    source = sources[0]
     if (source['repository'] != 'myon-bioinformatics/web-ui'
             or source['source'] != 'web_ui.py'
             or source['ref'] != source['commit'] or source['commit'] != lock['commit']

@@ -21,7 +21,7 @@ def test_reproducible_build_preserves_legacy_snapshot(tmp_path):
     assert json.loads((tmp_path / assets.ASSET_BASE / 'generated.lock.json').read_text())['commit']
 
 
-@pytest.mark.parametrize('tamper', ['source', 'output', 'path', 'commit'])
+@pytest.mark.parametrize('tamper', ['source', 'output', 'path', 'commit', 'missing', 'duplicate'])
 def test_tampering_fails_before_writing(tmp_path, tamper):
     root = tmp_path / 'source'
     root.mkdir()
@@ -38,8 +38,17 @@ def test_tampering_fails_before_writing(tmp_path, tamper):
         lock['outputs'][assets.ASSET_BASE + 'css/base.css'] = '0' * 64
     elif tamper == 'path':
         lock['outputs']['../escape.js'] = lock['outputs'].pop(assets.ASSET_BASE + 'js/ui.js')
-    else:
+    elif tamper == 'commit':
         lock['commit'] = '0' * 40
+    else:
+        vendor_path = root / 'vendor.lock.json'
+        vendor = json.loads(vendor_path.read_text())
+        entry = next(x for x in vendor['files'] if x['destination'] == lock['generator'])
+        if tamper == 'missing':
+            vendor['files'].remove(entry)
+        else:
+            vendor['files'].append(entry.copy())
+        vendor_path.write_text(json.dumps(vendor))
     lock_path.write_text(json.dumps(lock))
     output = tmp_path / 'built'
     with pytest.raises(ValueError):
