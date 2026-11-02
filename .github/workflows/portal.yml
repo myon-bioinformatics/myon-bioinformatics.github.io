@@ -60,8 +60,15 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Install Chromium
         run: npx playwright install --with-deps --no-shell chromium
+      - name: Stage site with generated browser assets
+        run: |
+          python - <<'PYTHON'
+          import shutil
+          shutil.copytree('.', '.generated-site', ignore=shutil.ignore_patterns('.git', '.generated-site', 'node_modules', 'test-results', '__pycache__'))
+          PYTHON
+          python scripts/build_web_ui_assets.py --output .generated-site
       - name: Verify transferred browser tools
-        run: npx playwright test
+        run: npx playwright test --config playwright.generated.config.js
       - name: Preserve screenshots and generated evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

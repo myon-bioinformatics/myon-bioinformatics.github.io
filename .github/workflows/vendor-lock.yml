@@ -48,3 +48,8 @@ jobs:
           PY
           python -S .vendor-sync-tools/vendor_sync.py materialize --manifest vendor.lock.json
           python -S .vendor-sync-tools/vendor_sync.py check --manifest vendor.lock.json
+      - name: Verify generated browser asset hashes
+        run: |
+          python -S scripts/build_web_ui_assets.py --output "$RUNNER_TEMP/web-ui-assets"
+          python -S scripts/build_web_ui_assets.py --output "$RUNNER_TEMP/web-ui-assets-repeat"
+          diff -r "$RUNNER_TEMP/web-ui-assets" "$RUNNER_TEMP/web-ui-assets-repeat"
