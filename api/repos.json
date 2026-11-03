@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-02T23:55:03Z",
+  "generatedAt": "2026-11-03T21:07:29Z",
   "owner": "myon-bioinformatics",
   "count": 42,
   "repos": [
@@ -458,7 +458,7 @@
         "typescript"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-02T05:05:29Z",
+      "updatedAt": "2026-11-03T12:21:50Z",
       "homepage": null,
       "readmeHeading": "Ironmate",
       "readmeSummary": "The logo is **I’m with a 🔰 apostrophe**. The 6 variants are used by purpose; for now the favicon uses dark green, the README the Famicom style, the web UI the heatmap palette and the home-screen icon Pixel 3D, provisionally. The final version is undecided. Each variant can be saved from the [6-varia…",
@@ -530,7 +530,7 @@
         "tool-calling"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-02T16:49:55Z",
+      "updatedAt": "2026-11-03T10:37:28Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "**Explore what needs to run, what can be reused, and how to verify the difference.**",
@@ -569,7 +569,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-02T16:56:53Z",
+      "updatedAt": "2026-11-03T00:47:44Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
@@ -587,7 +587,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-02T23:54:44Z",
+      "updatedAt": "2026-11-02T23:55:08Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -862,7 +862,7 @@
         "string-search"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-02T11:51:51Z",
+      "updatedAt": "2026-11-03T12:56:05Z",
       "homepage": null,
       "readmeHeading": "search_seq_including_spaces",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -875,7 +875,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-11-02T16:13:34Z",
+      "updatedAt": "2026-11-03T14:49:07Z",
       "homepage": null,
       "readmeHeading": "TalkCompress",
       "readmeSummary": "TalkCompress は、**誰が、どの共有知識・規則を持てば理解できるかを条件に、意味を保てる短い表現を探す**実験リポジトリです。文字数・通信バイト数・LLM のトークン数を測り、人と機械が扱える表現の幅を広げます。",
@@ -966,7 +966,7 @@
         "vanilla-js"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-02T17:47:04Z",
+      "updatedAt": "2026-11-03T11:54:00Z",
       "homepage": null,
       "readmeHeading": "web-ui",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
