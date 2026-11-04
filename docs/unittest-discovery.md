@@ -4,6 +4,10 @@ Run from this repository root with Python 3.11 or newer. These commands use
 Python’s built-in test runner; no pip, uv sync, pytest or browser installation
 is needed for the listed checks. `-S` keeps site-packages out of the interpreter.
 
+Node.js must also be on `PATH`: the selected tests launch `node` to compare
+the Python and JavaScript runners. Use the project's supported Node.js
+version declared in [`package.json`](../package.json).
+
 ```sh
 python -S -m unittest discover -s tests -p test_portable_playwright.py -v
 ```
