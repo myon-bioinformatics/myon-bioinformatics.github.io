@@ -196,3 +196,9 @@ Image regression inputs also include PNGs encoded independently from known sampl
 bytes, without `pillow_min`'s writer. They cover all five scanline filters, split
 IDAT/fdAT streams, RGB/RGBA frame pixels and timing, grayscale/RGB/palette
 transparency, CRC/truncation errors, and pixel/decompression limits.
+
+## Focused test discovery
+
+See [standard-library discovery commands](docs/unittest-discovery.md) for
+validated `python -S -m unittest discover` recipes, filename/name filtering,
+and the boundary with the full pytest suite.
