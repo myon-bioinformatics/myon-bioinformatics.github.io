@@ -173,7 +173,7 @@
   {
     "name": "web-ui",
     "desc": "Shared, build-free CSS themes, UI components and small JavaScript utilities for the static pages of these projects, including layout presets that switch without reloading.",
-    "url": "https://github.com/myon-bioinformatics/web-ui",
+    "url": "https://github.com/myon-bioinformatics/PySaiyanWeBoo",
     "topics": [
       "css",
       "ui-components",

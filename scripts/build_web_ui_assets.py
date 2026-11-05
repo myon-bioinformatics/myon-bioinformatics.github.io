@@ -28,7 +28,7 @@ def generate(root: Path = ROOT) -> dict[str, bytes]:
     if len(sources) != 1:
         raise ValueError('vendor lock must contain exactly one generator entry')
     source = sources[0]
-    if (source['repository'] != 'myon-bioinformatics/web-ui'
+    if (source['repository'] != 'myon-bioinformatics/PySaiyanWeBoo'
             or source['source'] != 'web_ui.py'
             or source['ref'] != source['commit'] or source['commit'] != lock['commit']
             or source['sha256'] != lock['sha256']):
