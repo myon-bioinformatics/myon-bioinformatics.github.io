@@ -1,5 +1,5 @@
 // @ts-check
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./portfolio-test');
 const { repos: catalogRepos } = require('../api/repos.json');
 const curated = require('../projects.json');
 // Archived repositories are not displayed, so only active repositories are expected.
