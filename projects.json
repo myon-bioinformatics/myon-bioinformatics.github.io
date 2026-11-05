@@ -161,9 +161,9 @@
     ]
   },
   {
-    "name": "browser-test-kit",
+    "name": "BrowserTestKit",
     "desc": "Cross-browser testing reference kit: Playwright Node and Python lanes on Chromium, Firefox and WebKit (desktop and mobile), screenshot evidence and OS/browser matrices on GitHub Actions, plus standard-library engineering utilities.",
-    "url": "https://github.com/myon-bioinformatics/browser-test-kit",
+    "url": "https://github.com/myon-bioinformatics/BrowserTestKit",
     "topics": [
       "playwright",
       "cross-browser",
@@ -171,7 +171,7 @@
     ]
   },
   {
-    "name": "web-ui",
+    "name": "PySaiyanWeBoo",
     "desc": "Shared, build-free CSS themes, UI components and small JavaScript utilities for the static pages of these projects, including layout presets that switch without reloading.",
     "url": "https://github.com/myon-bioinformatics/PySaiyanWeBoo",
     "topics": [
