@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-04T21:07:16Z",
+  "generatedAt": "2026-11-05T21:06:58Z",
   "owner": "myon-bioinformatics",
   "count": 42,
   "repos": [
@@ -22,7 +22,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T09:52:34Z",
+      "updatedAt": "2026-11-05T01:19:57Z",
       "homepage": null,
       "readmeHeading": "Aoi",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -47,7 +47,7 @@
         "text-graphics"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T04:35:23Z",
+      "updatedAt": "2026-11-04T23:11:25Z",
       "homepage": null,
       "readmeHeading": "ascii_artist",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -134,15 +134,15 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T12:05:10Z",
+      "updatedAt": "2026-11-04T23:13:41Z",
       "homepage": null,
       "readmeHeading": "BlueProbe",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/BlueProbe/main/README.md"
     },
     {
-      "name": "browser-test-kit",
-      "url": "https://github.com/myon-bioinformatics/browser-test-kit",
+      "name": "BrowserTestKit",
+      "url": "https://github.com/myon-bioinformatics/BrowserTestKit",
       "description": "Cross-browser testing reference kit: Playwright Node and Python lanes on Chromium, Firefox and WebKit, with screenshot evidence and GitHub Actions. Stagehand and Replay are planned.",
       "language": "Python",
       "topics": [
@@ -159,11 +159,11 @@
         "typescript"
       ],
       "stars": 0,
-      "updatedAt": "2026-11-04T04:34:06Z",
+      "updatedAt": "2026-11-05T09:16:22Z",
       "homepage": null,
       "readmeHeading": "browser-test-kit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, screenshots, mobile web, and GitHub Actions. Stagehand and Replay lanes are planned but not yet implemented.",
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/browser-test-kit/main/README.md"
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/BrowserTestKit/main/README.md"
     },
     {
       "name": "cli_args",
@@ -182,7 +182,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T04:35:58Z",
+      "updatedAt": "2026-11-04T23:12:09Z",
       "homepage": null,
       "readmeHeading": "cli_args",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -276,7 +276,7 @@
         "static-html"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T12:15:19Z",
+      "updatedAt": "2026-11-04T22:29:56Z",
       "homepage": null,
       "readmeHeading": "DRAgoWing",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -303,7 +303,7 @@
         "traceback"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T11:22:58Z",
+      "updatedAt": "2026-11-04T22:51:52Z",
       "homepage": null,
       "readmeHeading": "Err-o-RoadRunner",
       "readmeSummary": "Err-o-RoadRunner is a tool that does nothing in normal times. It starts working only after an error has happened. The name combines \"Error\" and \"Road Runner\".",
@@ -326,7 +326,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-04T04:34:40Z",
+      "updatedAt": "2026-11-04T23:11:23Z",
       "homepage": null,
       "readmeHeading": "flutter_navigation_basic",
       "readmeSummary": "Dart / Flutter で書いた、画面遷移・ルーティング・共通UIの検証用の基盤アプリです。リポジトリには Web・iOS・Android のターゲット構成を含みます。",
@@ -349,7 +349,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T10:49:02Z",
+      "updatedAt": "2026-11-04T23:11:55Z",
       "homepage": null,
       "readmeHeading": "<img src=\"assets/branding/concept-c.svg\" width=\"40\" height=\"40\" alt=\"GHI search icon\"> gh_identity (GHI)",
       "readmeSummary": "Single-file, stdlib-only Python interface for portable GitHub identity and operations.",
@@ -458,7 +458,7 @@
         "typescript"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-04T11:57:52Z",
+      "updatedAt": "2026-11-05T01:08:37Z",
       "homepage": null,
       "readmeHeading": "Ironmate",
       "readmeSummary": "The logo is **I’m with a 🔰 apostrophe**. The 6 variants are used by purpose; for now the favicon uses dark green, the README the Famicom style, the web UI the heatmap palette and the home-screen icon Pixel 3D, provisionally. The final version is undecided. Each variant can be saved from the [6-varia…",
@@ -504,7 +504,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T04:34:12Z",
+      "updatedAt": "2026-11-05T01:20:22Z",
       "homepage": null,
       "readmeHeading": "markdown",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -530,7 +530,7 @@
         "tool-calling"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T09:05:20Z",
+      "updatedAt": "2026-11-04T23:11:26Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "**Explore what needs to run, what can be reused, and how to verify the difference.**",
@@ -569,7 +569,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-04T04:40:09Z",
+      "updatedAt": "2026-11-05T00:47:27Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
@@ -587,7 +587,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T04:34:17Z",
+      "updatedAt": "2026-11-04T21:07:22Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -616,7 +616,7 @@
         "toml"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T12:15:22Z",
+      "updatedAt": "2026-11-05T03:24:25Z",
       "homepage": null,
       "readmeHeading": "NagoyAction",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -663,7 +663,7 @@
         "vulnerability"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T11:22:54Z",
+      "updatedAt": "2026-11-04T23:12:03Z",
       "homepage": "https://nvd.nist.gov/vuln",
       "readmeHeading": "NVD NIST known vulnerabilities",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -692,6 +692,31 @@
       "archived": true
     },
     {
+      "name": "PySaiyanWeBoo",
+      "url": "https://github.com/myon-bioinformatics/PySaiyanWeBoo",
+      "description": "web-ui provides shared CSS themes, UI components, and small JavaScript utilities for static web interfaces across myon-bioinformatics projects. It is build-free and dependency-light by design: repositories keep their domain logic, while presentation and reusable browser behavior can share a stable UI contract.",
+      "language": "Python",
+      "topics": [
+        "css",
+        "css-themes",
+        "github-actions",
+        "github-pages",
+        "html",
+        "javascript",
+        "python",
+        "stagehand",
+        "static-site",
+        "ui-components",
+        "vanilla-js"
+      ],
+      "stars": 1,
+      "updatedAt": "2026-11-05T13:39:18Z",
+      "homepage": "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
+      "readmeHeading": "web-ui",
+      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/PySaiyanWeBoo/main/README.md"
+    },
+    {
       "name": "PythDRagoras",
       "url": "https://github.com/myon-bioinformatics/PythDRagoras",
       "description": "PythDRagoras: propositions, precedents, objections. Split out from Aoi's pythdragoras/ (git subtree). Tests explanations as propositions with counterexamples, rule search and sensitivity analysis for NPB baseball outcomes.",
@@ -715,7 +740,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T20:40:56Z",
+      "updatedAt": "2026-11-04T23:13:46Z",
       "homepage": null,
       "readmeHeading": "PythDRagoras",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -786,7 +811,7 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T10:55:59Z",
+      "updatedAt": "2026-11-04T23:11:43Z",
       "homepage": null,
       "readmeHeading": "QueRyu",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -862,7 +887,7 @@
         "string-search"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T12:05:06Z",
+      "updatedAt": "2026-11-05T00:34:41Z",
       "homepage": null,
       "readmeHeading": "search_seq_including_spaces",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -873,9 +898,30 @@
       "url": "https://github.com/myon-bioinformatics/TalkCompress",
       "description": "Conversation compression gradients: Zipilogue / TesseraTalk / ShorthandLab / ConvoZip / MorphoZip",
       "language": "Python",
-      "topics": [],
+      "topics": [
+        "compression",
+        "context-compression",
+        "context-window",
+        "conversation-compression",
+        "cost-reduction",
+        "data-compression",
+        "llm",
+        "llm-optimization",
+        "multilingual",
+        "nlp",
+        "o200k",
+        "prompt-compression",
+        "prompt-optimization",
+        "python",
+        "text-compression",
+        "tiktoken",
+        "token-efficiency",
+        "token-optimization",
+        "token-reduction",
+        "tokenizer"
+      ],
       "stars": 1,
-      "updatedAt": "2026-11-04T09:32:04Z",
+      "updatedAt": "2026-11-05T09:21:19Z",
       "homepage": null,
       "readmeHeading": "TalkCompress",
       "readmeSummary": "TalkCompress は、**誰が、どの共有知識・規則を持てば理解できるかを条件に、意味を保てる短い表現を探す**実験リポジトリです。文字数・通信バイト数・LLM のトークン数を測り、人と機械が扱える表現の幅を広げます。",
@@ -948,31 +994,6 @@
       "archived": true
     },
     {
-      "name": "web-ui",
-      "url": "https://github.com/myon-bioinformatics/web-ui",
-      "description": "web-ui provides shared CSS themes, UI components, and small JavaScript utilities for static web interfaces across myon-bioinformatics projects. It is build-free and dependency-light by design: repositories keep their domain logic, while presentation and reusable browser behavior can share a stable UI contract.",
-      "language": "Python",
-      "topics": [
-        "css",
-        "css-themes",
-        "github-actions",
-        "github-pages",
-        "html",
-        "javascript",
-        "python",
-        "stagehand",
-        "static-site",
-        "ui-components",
-        "vanilla-js"
-      ],
-      "stars": 1,
-      "updatedAt": "2026-11-04T04:39:17Z",
-      "homepage": null,
-      "readmeHeading": "web-ui",
-      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/web-ui/main/README.md"
-    },
-    {
       "name": "xprobe",
       "url": "https://github.com/myon-bioinformatics/xprobe",
       "description": "Single-file, standard-library Python toolkit for text search, boundary-case probing, and failure-oriented test support. Importable, CLI-ready, and easy to vendor.",
@@ -993,7 +1014,7 @@
         "typescript"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T04:38:36Z",
+      "updatedAt": "2026-11-04T23:11:32Z",
       "homepage": null,
       "readmeHeading": "xprobe",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -1018,7 +1039,7 @@
         "troubleshooting"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T11:22:29Z",
+      "updatedAt": "2026-11-04T22:51:40Z",
       "homepage": null,
       "readmeHeading": "yourself",
       "readmeSummary": "Single-file, standard-library Python tool for read-only inspection of host, OS, and runtime facts. Produces concise, copyable environment reports for troubleshooting and AI context.",
