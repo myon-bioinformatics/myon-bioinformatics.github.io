@@ -4,7 +4,7 @@ const lock = require('../web-ui-assets.lock.json');
 
 test('generated build preserves public URLs and serves locked bytes', async ({ request }) => {
   // This contract is specifically for the generated-site CI configuration.
-  test.skip(!process.env.GENERATED_ASSETS_TEST, 'run with playwright.generated.config.js');
+  test.skip(!process.env.GENERATED_ASSETS_TEST, 'run with playwright/generated.config.js');
   for (const [url, digest] of Object.entries(lock.outputs)) {
     const response = await request.get('/' + url);
     expect(response.status(), url).toBe(200);
