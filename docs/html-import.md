@@ -68,7 +68,7 @@ docker build -f Dockerfile.html-import -t html-import-test .
 docker run --rm --ipc=host html-import-test
 # 公開後のみ（mainでデプロイ済みの機能を確認）
 docker run --rm --ipc=host -e HTML_TOOL_BASE_URL=https://myon-bioinformatics.github.io \
-  html-import-test npx playwright test --config playwright.html-import.config.js
+  html-import-test npx playwright test --config playwright/html-import.config.js
 ```
 
 Dockerはビルド・pytest・Playwrightの共通環境。Pagesに配布しない。
