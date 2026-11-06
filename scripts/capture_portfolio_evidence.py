@@ -47,6 +47,11 @@ def capture_evidence(base_url: str = 'http://localhost:8080', output_dir: str | 
         # Capture a stable curated fallback rather than changing external API data.
         context.route('https://api.github.com/search/repositories?*',
                       lambda route: route.fulfill(status=503, body='{}'))
+        # Decorative badges must not make reproducible evidence depend on Shields.
+        context.route('https://img.shields.io/github/stars/**',
+                      lambda route: route.fulfill(
+                          status=200, content_type='image/svg+xml',
+                          path=ROOT / 'tests' / 'fixtures' / 'github-stars.svg'))
         page = context.new_page()
         errors = []
         page.on('pageerror', lambda error: errors.append(str(error)))

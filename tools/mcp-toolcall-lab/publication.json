@@ -6,74 +6,74 @@
   "imported_at": "2026-10-24T12:24:04.029818+00:00",
   "report_status": "imported_snapshot",
   "presentation": {
-    "owner": "myon-bioinformatics/web-ui",
+    "owner": "myon-bioinformatics/PySaiyanWeBoo",
     "theme": "modern",
     "assets": [
       {
-        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "repository": "https://github.com/myon-bioinformatics/PySaiyanWeBoo",
         "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
         "source_path": "web_ui.py",
         "path": "tools/vendor/web-ui/web_ui.py",
         "sha256": "0c8c1c3baf7c226779ce5f8fb71ff103b838882d36058b02e15c2108bc24b52c"
       },
       {
-        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "repository": "https://github.com/myon-bioinformatics/PySaiyanWeBoo",
         "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
         "source_path": "js/ui.js",
         "path": "tools/vendor/web-ui/js/ui.js",
         "sha256": "770f8d0ab97dc7805b8876e842d49ab2f2c9384f247e77ad5a90cb07cb34684c"
       },
       {
-        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "repository": "https://github.com/myon-bioinformatics/PySaiyanWeBoo",
         "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
         "source_path": "css/tokens.css",
         "path": "tools/vendor/web-ui/css/tokens.css",
         "sha256": "f83b01da9602a4aa3863ab6f903f8a87211669d2c96170994c7816332fd3bda3"
       },
       {
-        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "repository": "https://github.com/myon-bioinformatics/PySaiyanWeBoo",
         "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
         "source_path": "css/base.css",
         "path": "tools/vendor/web-ui/css/base.css",
         "sha256": "fa0b4e22ad23dcdc22544ac8545523d492650331d6d551440657508e61189c3c"
       },
       {
-        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "repository": "https://github.com/myon-bioinformatics/PySaiyanWeBoo",
         "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
         "source_path": "css/components.css",
         "path": "tools/vendor/web-ui/css/components.css",
         "sha256": "13e326986246e6cccf075e1dc44fd5de9fa6b2b6deace7914fb8a2f0febdfb4e"
       },
       {
-        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "repository": "https://github.com/myon-bioinformatics/PySaiyanWeBoo",
         "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
         "source_path": "css/themes/modern.css",
         "path": "tools/vendor/web-ui/css/themes/modern.css",
         "sha256": "69bb6b20e138c041717c2294ca3180a20cd0bfaf9c99153f2dc5eb7d53523852"
       },
       {
-        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "repository": "https://github.com/myon-bioinformatics/PySaiyanWeBoo",
         "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
         "source_path": "LICENSE",
         "path": "tools/vendor/web-ui/LICENSE",
         "sha256": "15f66204c4a6a1ce0c94f0ed4319ff9400f872e85fd32c95f21695c2f231af59"
       },
       {
-        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "repository": "https://github.com/myon-bioinformatics/PySaiyanWeBoo",
         "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
         "source_path": "js/navigation.js",
         "path": "tools/vendor/web-ui/js/navigation.js",
         "sha256": "0b9df28bc6798e2fc76ff943b25dddea48c203727d08ac65845397dacd030b2f"
       },
       {
-        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "repository": "https://github.com/myon-bioinformatics/PySaiyanWeBoo",
         "commit": "349b1f57c7fcbb4697197ed6dfb96c51d33e970b",
         "source_path": "js/controls.js",
         "path": "tools/vendor/web-ui/js/controls.js",
         "sha256": "e545885ed2f0e43937d2eb3a44bdb874e8c4f42e895a36a51498a0db20956e9d"
       },
       {
-        "repository": "https://github.com/myon-bioinformatics/web-ui",
+        "repository": "https://github.com/myon-bioinformatics/PySaiyanWeBoo",
         "commit": "0be6e80c2fca2ddbce46cdfbbb27432c1dcdbbeb",
         "source_path": "js/collection.js",
         "path": "tools/vendor/web-ui/js/collection.js",
@@ -95,13 +95,13 @@
   },
   "published_sha256": {
     "index.html": "a397152ba42ba039af2082e0cc249c2239dff4974850b52a1ef4cc8373aae7fb",
-    "terminal.css": "036d49809998e118fd04de1df32d56e58dab772c05c683abe490f52d4041b0ae",
+    "terminal.css": "fd93491f42add7f9c40191bea397122058e5c26c8531d169a84453e54b597942",
     "pages-hash.js": "9439eebfca47165c915614e69ed1989636e04d173fc9e2cee5385d56ff8b5a5b",
     "pages-wiki.js": "9d179d5a8baf64096227db9694b2cf11a1c486d59cf5984444a29a563fd187f5",
     "pages-pixiv.js": "ebc896768447b96c405a7d0495cffdc2e8bb032b8cd1045f729178dedeee4358",
     "summary.json": "c54e054d8143228e39a050f8601889703d510ecb1866ea18579e63336eb923ff",
     "build_meta.json": "de1182088fd3b694ababa2bcda08d76b4b907fb9cdcab9f824226f6d12091b57",
-    "repository-diagnostics.html": "f1dfa9a3062ac360ffbcc6555c5066bcd97b3f53e277014eecf57b7bb02a9afc",
+    "repository-diagnostics.html": "be6cc34d407a0fe9306545677bc0c25c9de6ece4fc656fa499a5c26da88794fb",
     "repository-diagnostics.json": "697be7111154de26807729f2868b1c17bd5175f2fef49ae210a5ea78dc8e5232",
     "repository-diagnostics.jsonl": "8b9c63c0877a0e6ec3e1859de2fbba09b3b8b633ad7c155cf57623e69dabfbf1",
     "pixiv-markup.js": "c3926bd80a131b3c677316d63d200ba1a3492fe0f7efeec87b3e914e96da2afd",

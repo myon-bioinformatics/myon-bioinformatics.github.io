@@ -37,7 +37,7 @@ NAVIGATION_BINDING = (
 def presentation_identity() -> dict:
     lock = json.loads((ROOT / 'tools/html-import/vendor.lock.json').read_text(encoding='utf-8'))
     return {
-        'owner': 'myon-bioinformatics/web-ui',
+        'owner': 'myon-bioinformatics/PySaiyanWeBoo',
         'theme': 'modern',
         'assets': [x for x in lock['sources'] if x['repository'].endswith('/web-ui')],
     }

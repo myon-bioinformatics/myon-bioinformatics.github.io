@@ -1,5 +1,5 @@
 // @ts-check
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./portfolio-test');
 const fs = require('fs');
 // Archived repositories are not displayed; only active public repositories are counted.
 const projectCount = require('../api/repos.json').repos.filter(repo => !repo.archived).length;

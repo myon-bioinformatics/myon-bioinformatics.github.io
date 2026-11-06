@@ -1,5 +1,5 @@
 // @ts-check
-const { test, expect } = require('@playwright/test');
+const { test, expect } = require('./portfolio-test');
 const { createApng } = require('./apng-helper');
 const path = require('path');
 const fs = require('fs');

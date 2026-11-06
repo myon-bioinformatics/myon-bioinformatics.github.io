@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_PAGES = {
     "https://myon-bioinformatics.github.io/flutter_navigation_basic/",
-    "https://myon-bioinformatics.github.io/web-ui/",
+    "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
     "https://myon-bioinformatics.github.io/Ironmate/",
     "https://myon-bioinformatics.github.io/Ironmate/tools/",
     "https://myon-bioinformatics.github.io/Ironmate/slides/",
