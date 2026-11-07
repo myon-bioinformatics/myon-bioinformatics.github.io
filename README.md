@@ -125,7 +125,7 @@ scheduled card-update workflow.
 | 🎞️ evidence GIF shots | 9 | | |
 
 🌐 Avatars and badges are external and were refused (listed per shot in the receipt). `/mcp-toolcall-lab/execution/assets/…` is served by the mcp-toolcall-lab Pages site, so it is allowed rather than counted as a 404.
-⚠️ `tools/mcp-toolcall-lab/repository-diagnostics` shows an older snapshot (commit `e51e059a`, 2026-10-24).
+🔄 `tools/mcp-toolcall-lab/` is the lab's public export re-imported from its `main` (`2e581d2c`); the earlier copy was a 2026-10-24 branch build.
 
 🔁 Re-record (after building `.generated-site` as in CI; `$WEBUI` is a PySaiyanWeBoo checkout at `adb23d7`):
 
