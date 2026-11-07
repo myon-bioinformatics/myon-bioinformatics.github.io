@@ -1,30 +1,30 @@
 {
-  "generated_at": "2026-10-24T12:21:52.786940Z",
+  "generated_at": "2026-11-07T15:42:14.292996Z",
   "metadata": {
-    "generated_at": "2026-10-24T12:21:52.786940Z",
+    "generated_at": "2026-11-07T15:42:14.292996Z",
     "head": {
-      "branch": "cursor/pages-wiki-mcp-8beb",
-      "sha": "e51e059accd1a78fb704162b3d11ccb701a34ec7",
-      "short_sha": "e51e059a",
-      "subject": "fix(pages): reset expired MCP sessions before user retry",
-      "timestamp": "2026-10-24T21:20:53+09:00"
+      "branch": "detached",
+      "sha": "2e581d2cc9683a94568d881a59f0a8e2d87475bb",
+      "short_sha": "2e581d2c",
+      "subject": "Keep required contract and evidence validation active under python -O (#194)",
+      "timestamp": "2026-11-05T08:11:20+09:00"
     },
     "measurements": {
       "github_reported_size_bytes": null,
       "release_artifact_bytes": null,
-      "working_tree_bytes": 3778676
+      "working_tree_bytes": 5469166
     },
     "repository": {
       "full_name": "myon-bioinformatics/mcp-toolcall-lab"
     },
     "schema_version": "1.0",
     "tooling": {
-      "gh": "2.102.0",
-      "git": "2.55.0",
-      "node": "22.23.3",
+      "gh": "2.89.0",
+      "git": "2.43.0",
+      "node": "26.13.0",
       "npm": "10.9.9",
       "npx": "10.9.9",
-      "python": "3.11.17"
+      "python": "3.13.18"
     }
   },
   "resolver": {
@@ -44,16 +44,16 @@
       },
       {
         "kind": "raw",
-        "url": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/cursor/pages-wiki-mcp-8beb/README.md"
+        "url": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/detached/README.md"
       },
       {
         "kind": "contents_api",
-        "url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab/contents/README.md?ref=cursor%2Fpages-wiki-mcp-8beb"
+        "url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab/contents/README.md?ref=detached"
       }
     ],
     "observations": [
       {
-        "checked_at": "2026-10-24T12:21:52.787041+00:00",
+        "checked_at": "2026-11-07T15:42:14.293114+00:00",
         "evidence": "http_response",
         "http_status": 200,
         "kind": "repository",
@@ -62,7 +62,7 @@
         "url": "https://github.com/myon-bioinformatics/mcp-toolcall-lab"
       },
       {
-        "checked_at": "2026-10-24T12:21:53.258338+00:00",
+        "checked_at": "2026-11-07T15:42:14.992748+00:00",
         "evidence": "http_response",
         "http_status": 200,
         "kind": "api",
@@ -71,35 +71,35 @@
         "url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab"
       },
       {
-        "checked_at": "2026-10-24T12:21:53.397658+00:00",
-        "evidence": "http_response",
-        "http_status": 200,
+        "checked_at": "2026-11-07T15:42:15.562422+00:00",
+        "evidence": "network_error",
+        "http_status": null,
         "kind": "pages",
-        "resolved_url": "https://myon-bioinformatics.github.io/mcp-toolcall-lab/",
-        "status": "reachable",
+        "resolved_url": null,
+        "status": "unverified",
         "url": "https://myon-bioinformatics.github.io/mcp-toolcall-lab/"
       },
       {
-        "checked_at": "2026-10-24T12:21:53.509220+00:00",
+        "checked_at": "2026-11-07T15:42:15.638442+00:00",
         "evidence": "http_response",
-        "http_status": 200,
+        "http_status": 404,
         "kind": "raw",
-        "resolved_url": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/cursor/pages-wiki-mcp-8beb/README.md",
-        "status": "reachable",
-        "url": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/cursor/pages-wiki-mcp-8beb/README.md"
+        "resolved_url": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/detached/README.md",
+        "status": "not_found",
+        "url": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/detached/README.md"
       },
       {
-        "checked_at": "2026-10-24T12:21:53.604235+00:00",
+        "checked_at": "2026-11-07T15:42:15.921849+00:00",
         "evidence": "http_response",
-        "http_status": 200,
+        "http_status": 404,
         "kind": "contents_api",
-        "resolved_url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab/contents/README.md?ref=cursor%2Fpages-wiki-mcp-8beb",
-        "status": "reachable",
-        "url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab/contents/README.md?ref=cursor%2Fpages-wiki-mcp-8beb"
+        "resolved_url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab/contents/README.md?ref=detached",
+        "status": "not_found",
+        "url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab/contents/README.md?ref=detached"
       }
     ],
     "path": "README.md",
-    "ref": "cursor/pages-wiki-mcp-8beb",
+    "ref": "detached",
     "repository": "myon-bioinformatics/mcp-toolcall-lab",
     "status": "observed"
   },
