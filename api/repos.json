@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-06T21:06:31Z",
+  "generatedAt": "2026-11-07T21:06:38Z",
   "owner": "myon-bioinformatics",
   "count": 42,
   "repos": [
@@ -569,7 +569,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-06T12:29:02Z",
+      "updatedAt": "2026-11-07T00:46:57Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
@@ -587,7 +587,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-06T05:23:02Z",
+      "updatedAt": "2026-11-06T21:06:36Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -710,7 +710,7 @@
         "vanilla-js"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-06T05:23:02Z",
+      "updatedAt": "2026-11-07T07:00:30Z",
       "homepage": "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
       "readmeHeading": "PySaiyanWeBoo",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
