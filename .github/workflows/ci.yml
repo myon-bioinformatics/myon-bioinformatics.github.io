@@ -26,10 +26,8 @@ jobs:
           python-version: "3.15"
           activate-environment: true
           enable-cache: false
-      - name: Install test dependencies
-        run: uv pip install -r tests/requirements.txt
       - name: Validate portal links
-        run: python -m pytest tests --junitxml=reports/portal.xml
+        run: uv run --locked --only-group test python -m pytest tests --junitxml=reports/portal.xml
 
       - name: Preserve raw pytest JUnit
         if: always()
@@ -54,8 +52,8 @@ jobs:
           python-version: "3.15"
           activate-environment: true
           enable-cache: false
-      - name: Install capture and image verification dependencies
-        run: uv pip install -r tests/requirements-browser.txt
+      # This job's Python steps use only the standard library; the Python capture tools
+      # (`browser` group in pyproject.toml) are a local development aid, not run here.
       - name: Install browser test dependencies
         run: npm ci --ignore-scripts
       - name: Install Chromium
