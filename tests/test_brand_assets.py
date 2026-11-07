@@ -1,9 +1,6 @@
 """Verify supplied brand artwork and the browser favicon contract."""
-from html.parser import HTMLParser
-from pathlib import Path
-import hashlib
-import struct
-import sys
+import hashlib, struct, sys
+from html.parser import HTMLParser; from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))

@@ -2,11 +2,8 @@
 
 Exports PNG screenshot frames as APNG animations or stitched image montages.
 """
-import argparse
+import argparse, struct, sys, zlib
 from pathlib import Path
-import struct
-import sys
-import zlib
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))

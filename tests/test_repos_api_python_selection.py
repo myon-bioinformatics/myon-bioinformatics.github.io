@@ -1,7 +1,6 @@
 """Static guard: keep catalog refresh on provider-latest managed Python 3."""
+import re, unittest
 from pathlib import Path
-import re
-import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
