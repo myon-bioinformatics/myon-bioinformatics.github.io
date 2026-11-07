@@ -1,7 +1,7 @@
 name: HTML import published browser acceptance
 on:
   workflow_run:
-    workflows: [Deploy Jekyll with GitHub Pages dependencies preinstalled]
+    workflows: [Pages]
     types: [completed]
     branches: [main]
   workflow_dispatch:
