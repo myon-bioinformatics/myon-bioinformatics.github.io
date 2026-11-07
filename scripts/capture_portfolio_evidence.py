@@ -112,12 +112,12 @@ def capture_evidence(base_url: str = 'http://localhost:8080', output_dir: str | 
     return out_dir
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description='Capture screenshots and evidence montage for all sub-sites.')
     parser.add_argument('--base-url', default='http://localhost:8080', help='Base URL of running server')
     parser.add_argument('-o', '--output', default='test-results/evidence', help='Output evidence directory')
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     out = capture_evidence(base_url=args.base_url, output_dir=args.output)
     print(f'Captured evidence for {len(TARGET_ROUTES)} sub-sites in {out}')
 

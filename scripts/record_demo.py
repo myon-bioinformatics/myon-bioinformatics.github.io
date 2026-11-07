@@ -109,7 +109,7 @@ def stitch_png_grid(frame_paths: list[str | Path], output_path: str | Path, colu
     return out_path
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description='Export interactive UI demos as APNG animations or stitched grid montages.')
     parser.add_argument('frames', nargs='+', help='PNG screenshot frame file paths')
     parser.add_argument('-o', '--output', required=True, help='Output image path (.png)')
@@ -117,7 +117,7 @@ def main():
     parser.add_argument('-d', '--delay', type=int, default=600, help='APNG frame delay in ms')
     parser.add_argument('-c', '--columns', type=int, default=2, help='Montage grid column count')
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.mode == 'apng':
         create_apng(args.frames, args.output, delay_ms=args.delay)
         print(f'Created APNG animation at {args.output}')

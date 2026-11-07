@@ -37,15 +37,24 @@ def git(*args):
     return result.stdout.strip() or None
 
 
-print(json.dumps({
-    "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-    "sha": git("rev-parse", "HEAD"),
-    "python": platform.python_version(),
-    "python_stagehand": package("stagehand"),
-    "pytest": package("pytest"),
-    "node": version("node", "--version"),
-    "npm": version("npm", "--version"),
-    "npx": version("npx", "--version"),
-    "git": version("git", "--version"),
-    "gh": version("gh", "--version"),
-}, indent=2))
+def collect():
+    return {
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "sha": git("rev-parse", "HEAD"),
+        "python": platform.python_version(),
+        "python_stagehand": package("stagehand"),
+        "pytest": package("pytest"),
+        "node": version("node", "--version"),
+        "npm": version("npm", "--version"),
+        "npx": version("npx", "--version"),
+        "git": version("git", "--version"),
+        "gh": version("gh", "--version"),
+    }
+
+
+def main(argv=None):
+    print(json.dumps(collect(), indent=2))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

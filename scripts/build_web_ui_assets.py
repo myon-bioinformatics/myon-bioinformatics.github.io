@@ -10,6 +10,7 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_BASE = 'tools/vendor/web-ui/'
@@ -70,8 +71,13 @@ def build(output: Path, root: Path = ROOT) -> None:
         (root / 'web-ui-assets.lock.json').read_bytes())
 
 
-if __name__ == '__main__':
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else list(argv)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     build(args.output)
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

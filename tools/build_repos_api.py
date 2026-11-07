@@ -155,11 +155,11 @@ def build(owner):
     }
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--owner", default="myon-bioinformatics")
     parser.add_argument("--output", default="api/repos.json")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     output_dir = os.path.dirname(args.output)
     if output_dir:

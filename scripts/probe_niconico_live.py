@@ -58,11 +58,11 @@ def probe(query, sort):
     return result
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--query', default='初音ミク')
     parser.add_argument('--output', type=Path, required=True)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     records = []
     for sort in ('-viewCounter', '-startTime'):
         record = probe(args.query, sort)
