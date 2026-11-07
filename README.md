@@ -110,6 +110,32 @@ the canonical shape using [docs/SSOT.md](docs/SSOT.md). Catalog membership
 comes from `api/repos.json`. There is no pinned-repository generator and no
 scheduled card-update workflow.
 
+## 🎞️ Browser evidence
+
+![Portfolio search, tag filter, four display modes, and the lab tools in Chromium](docs/evidence/browser.gif)
+
+🗓️ 2026-11-07 · 🧭 Chromium 153 · 🐧 Linux · receipt [`docs/evidence/browser.json`](docs/evidence/browser.json)
+
+| 🧪 Suite | ✅ | ⏭️ | 📝 |
+| --- | ---: | ---: | --- |
+| Playwright Test, generated site (`playwright.generated.config.js`) | 91 | 1 | |
+| Playwright Test, source tree (`playwright.config.js`) | 90 | 2 | |
+| `pytest tests` | 105 | 0 | +1 local-only: Python/Node browser path differed because this machine aliases Chromium revisions |
+| `tools/portable_playwright.py` / `.mjs` (project catalog) | 11 + 11 | | |
+| 🎞️ evidence GIF shots | 9 | | |
+
+🌐 Avatars and badges are external and were refused (listed per shot in the receipt). `/mcp-toolcall-lab/execution/assets/…` is served by the mcp-toolcall-lab Pages site, so it is allowed rather than counted as a 404.
+⚠️ `tools/mcp-toolcall-lab/repository-diagnostics` shows an older snapshot (commit `e51e059a`, 2026-10-24).
+
+🔁 Re-record (after building `.generated-site` as in CI; `$WEBUI` is a PySaiyanWeBoo checkout at `adb23d7`):
+
+```sh
+python ../BrowserTestKit/tools/evidence_gif.py docs/evidence/browser.gif --serve .generated-site \
+  --map "https://cdn.jsdelivr.net/gh/myon-bioinformatics/web-ui@adb23d7ba6ea94672b76457573f6655a081ee054=$WEBUI" \
+  --map "https://cdn.jsdelivr.net/gh/myon-bioinformatics/PySaiyanWeBoo@adb23d7ba6ea94672b76457573f6655a081ee054=$WEBUI" \
+  --plan docs/evidence/browser.json
+```
+
 ## 🧪 CI evidence
 
 The catalog refresh keeps its latest-Python-3 lane using setup-uv's `"3"`
