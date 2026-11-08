@@ -62,10 +62,10 @@ Pages-host contract are reviewed together.
 
 Ironmate now has a local metadata card (`project-ironmate.json`) and a repository link;
 its retired MCP stub does not need a dedicated Pages deployment. Live destinations include mcp-toolcall-lab,
-flutter_navigation_basic, and web-ui.
+flutter_navigation_basic, and PySaiyanWeBoo.
 
 ## 🚀 Projects (JSON-driven cards)
-Projects displays only public, non-archived repositories from the `api/repos.json` catalog. The full candidate pool is collected first and then shuffled, so each page load shows a new order. Search and topic filters work together across all five display modes. Topic controls expand on demand so the full catalog remains easy to reach on mobile. Cards, tags, inputs and copy buttons use the same pinned web-ui stylesheets already used by this portfolio’s tool pages (`tools/vendor/web-ui/`, source identity in `tools/html-import/vendor.lock.json`). Local CSS only adds catalog layout, mode mapping and filter state; no second component stylesheet is vendored.
+Projects displays only public, non-archived repositories from the `api/repos.json` catalog. The full candidate pool is collected first and then shuffled, so each page load shows a new order. Search and topic filters work together across all five display modes. Topic controls expand on demand so the full catalog remains easy to reach on mobile. Cards, tags, inputs and copy buttons use the same pinned PySaiyanWeBoo stylesheets already used by this portfolio’s tool pages (`tools/vendor/web-ui/`, source identity in `tools/html-import/vendor.lock.json`). Local CSS only adds catalog layout, mode mapping and filter state; no second component stylesheet is vendored.
 
 `projects.json` supplies optional curated descriptions and extra topics for matching repositories. It never limits catalog membership, and repository URLs always come from `api/repos.json`. If curation is unavailable, repository descriptions (then README summaries) are used. A missing catalog shows a load error instead of a misleading partial list.
 
@@ -176,7 +176,7 @@ legacy redirect must land only after this portfolio receiving change is deployed
 
 ### Shared browser controls
 
-HTML Import exposes an explicit HTTP(S) source link in a new tab; pasting or changing extraction options stays local. `web-ui` owns `source_link`, `view_tabs`, `adopt_document`, and `navigation.js`. The portfolio vendors the pinned implementation and keeps the lab report source identity separate from its shared presentation transform. Wikipedia/Pixiv typography and controls use that same modern theme. See [HTML Import contract](docs/html-import.md).
+HTML Import exposes an explicit HTTP(S) source link in a new tab; pasting or changing extraction options stays local. `PySaiyanWeBoo` owns `source_link`, `view_tabs`, `adopt_document`, and `navigation.js`. The portfolio vendors the pinned implementation and keeps the lab report source identity separate from its shared presentation transform. Wikipedia/Pixiv typography and controls use that same modern theme. See [HTML Import contract](docs/html-import.md).
 
 Pixiv source now supports a local heading dropdown through a consumer adapter.
 See [source grammar, Python one-liners, and markdown.py integration](docs/pixiv-markup.md).
