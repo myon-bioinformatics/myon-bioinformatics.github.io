@@ -1,7 +1,7 @@
 {
   "schema": "web-ui-generated/2",
   "generator": "pysaiyanweboo (requirements-pages.txt)",
-  "commit": "1854362d625279f4278f917cd18bacd151bc69b4",
+  "commit": "10d52554ec63c050ffe489d3f98af0747ce40d7a",
   "outputs": {
     "tools/vendor/web-ui/css/base.css": "3326d1b1911bea03fa3b51253777a87483cc3b09c44d8a2a736aee5d2f95f07c",
     "tools/vendor/web-ui/css/components.css": "9cc16208581d082d6498292b506e623ce2bb1d8f6d5dd94a0c45615ae90d6964",
