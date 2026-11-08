@@ -1,12 +1,12 @@
 {
   "schema": "web-ui-generated/2",
   "generator": "pysaiyanweboo (requirements-pages.txt)",
-  "commit": "5b29a183960ca1fe038279084e47d1d9080b984f",
+  "commit": "1854362d625279f4278f917cd18bacd151bc69b4",
   "outputs": {
-    "tools/vendor/web-ui/css/base.css": "c43830acb13f5b34b6140163289d9cc7445bfbd3bba94b01ec4e89ac2c1f6b79",
-    "tools/vendor/web-ui/css/components.css": "9b0fc72072c822b4d8a576cfa93260dc35096e07903e7ab04d65c28923752e77",
+    "tools/vendor/web-ui/css/base.css": "3326d1b1911bea03fa3b51253777a87483cc3b09c44d8a2a736aee5d2f95f07c",
+    "tools/vendor/web-ui/css/components.css": "9cc16208581d082d6498292b506e623ce2bb1d8f6d5dd94a0c45615ae90d6964",
     "tools/vendor/web-ui/css/themes/modern.css": "6e937cad85ab0aaf85b7a7c6f6d28b0e205c49a82ac9767e9125a504583515ac",
-    "tools/vendor/web-ui/css/tokens.css": "81602b3e3a0066370f1bebe5d284549e95badf0ffa92b1505134ae895769d672",
+    "tools/vendor/web-ui/css/tokens.css": "f349bc22fd23b3b48cee388e42879d7364abf5d42bb4365c9411668186598973",
     "tools/vendor/web-ui/js/navigation.js": "b748512a224685c732db837ebe0738c647c5a8c512f238d75fbc954c1c0a5f35",
     "tools/vendor/web-ui/js/ui.js": "0b6068c83fd698e5c8d5ac03b95a48b84685aa801544843fc137a173659d502a",
     "tools/vendor/web-ui/js/controls.js": "e545885ed2f0e43937d2eb3a44bdb874e8c4f42e895a36a51498a0db20956e9d",
