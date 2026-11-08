@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.12'",
@@ -208,12 +208,16 @@ wheels = [
 name = "myon-bioinformatics-github-io-tests"
 version = "0.0.0"
 source = { virtual = "." }
+default-groups = ["test"]
 
 [package.dev-dependencies]
 browser = [
     { name = "playwright" },
     { name = "pytest" },
     { name = "stagehand" },
+]
+docker-test = [
+    { name = "pytest" },
 ]
 test = [
     { name = "pytest" },
@@ -228,6 +232,7 @@ browser = [
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "stagehand", specifier = ">=4.2.1" },
 ]
+docker-test = [{ name = "pytest", specifier = ">=9.1.1" }]
 test = [
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "stagehand", specifier = ">=4.2.1" },
