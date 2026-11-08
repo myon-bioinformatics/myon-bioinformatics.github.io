@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-05T21:06:58Z",
+  "generatedAt": "2026-11-07T21:06:38Z",
   "owner": "myon-bioinformatics",
   "count": 42,
   "repos": [
@@ -22,7 +22,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-05T01:19:57Z",
+      "updatedAt": "2026-11-06T08:43:41Z",
       "homepage": null,
       "readmeHeading": "Aoi",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -159,7 +159,7 @@
         "typescript"
       ],
       "stars": 0,
-      "updatedAt": "2026-11-05T09:16:22Z",
+      "updatedAt": "2026-11-06T10:02:45Z",
       "homepage": null,
       "readmeHeading": "browser-test-kit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, screenshots, mobile web, and GitHub Actions. Stagehand and Replay lanes are planned but not yet implemented.",
@@ -303,7 +303,7 @@
         "traceback"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T22:51:52Z",
+      "updatedAt": "2026-11-06T08:44:01Z",
       "homepage": null,
       "readmeHeading": "Err-o-RoadRunner",
       "readmeSummary": "Err-o-RoadRunner is a tool that does nothing in normal times. It starts working only after an error has happened. The name combines \"Error\" and \"Road Runner\".",
@@ -326,7 +326,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-04T23:11:23Z",
+      "updatedAt": "2026-11-06T08:43:48Z",
       "homepage": null,
       "readmeHeading": "flutter_navigation_basic",
       "readmeSummary": "Dart / Flutter で書いた、画面遷移・ルーティング・共通UIの検証用の基盤アプリです。リポジトリには Web・iOS・Android のターゲット構成を含みます。",
@@ -458,7 +458,7 @@
         "typescript"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-05T01:08:37Z",
+      "updatedAt": "2026-11-06T10:02:40Z",
       "homepage": null,
       "readmeHeading": "Ironmate",
       "readmeSummary": "The logo is **I’m with a 🔰 apostrophe**. The 6 variants are used by purpose; for now the favicon uses dark green, the README the Famicom style, the web UI the heatmap palette and the home-screen icon Pixel 3D, provisionally. The final version is undecided. Each variant can be saved from the [6-varia…",
@@ -569,7 +569,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-05T00:47:27Z",
+      "updatedAt": "2026-11-07T00:46:57Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
@@ -587,7 +587,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T21:07:22Z",
+      "updatedAt": "2026-11-06T21:06:36Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -710,9 +710,9 @@
         "vanilla-js"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-05T13:39:18Z",
+      "updatedAt": "2026-11-07T07:00:30Z",
       "homepage": "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
-      "readmeHeading": "web-ui",
+      "readmeHeading": "PySaiyanWeBoo",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/PySaiyanWeBoo/main/README.md"
     },
