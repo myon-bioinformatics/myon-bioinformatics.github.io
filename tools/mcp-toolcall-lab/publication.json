@@ -3,12 +3,46 @@
   "source_repository": "myon-bioinformatics/mcp-toolcall-lab",
   "source_sha": "2e581d2cc9683a94568d881a59f0a8e2d87475bb",
   "source_dirty": false,
-  "imported_at": "2026-11-07T15:42:16.539694+00:00",
+  "imported_at": "2026-11-08T00:35:56.110081+00:00",
   "report_status": "imported_snapshot",
   "presentation": {
     "owner": "myon-bioinformatics/PySaiyanWeBoo",
     "theme": "modern",
-    "assets": []
+    "commit": "001727177a4f36d691a615ba36057953b7085b78",
+    "assets": [
+      {
+        "path": "tools/vendor/web-ui/css/base.css",
+        "sha256": "c43830acb13f5b34b6140163289d9cc7445bfbd3bba94b01ec4e89ac2c1f6b79"
+      },
+      {
+        "path": "tools/vendor/web-ui/css/components.css",
+        "sha256": "f6dc71fe117ab9f0fdaf538395781b61fb86a7be0bfca9e334ee22217b537c26"
+      },
+      {
+        "path": "tools/vendor/web-ui/css/themes/modern.css",
+        "sha256": "3fd44c840b4648cd248b58dfd96e1b9da8fe71ea071ede2fcef51c11378b33b9"
+      },
+      {
+        "path": "tools/vendor/web-ui/css/tokens.css",
+        "sha256": "092f2f9332cc50b2b96416808285e5d487e4070c8c20f21b9400e963636aa58d"
+      },
+      {
+        "path": "tools/vendor/web-ui/js/collection.js",
+        "sha256": "71ac00368ac709eed436a8a1a8882463356b49ae8d19d0c339ba5f522028ce9a"
+      },
+      {
+        "path": "tools/vendor/web-ui/js/controls.js",
+        "sha256": "e545885ed2f0e43937d2eb3a44bdb874e8c4f42e895a36a51498a0db20956e9d"
+      },
+      {
+        "path": "tools/vendor/web-ui/js/navigation.js",
+        "sha256": "b748512a224685c732db837ebe0738c647c5a8c512f238d75fbc954c1c0a5f35"
+      },
+      {
+        "path": "tools/vendor/web-ui/js/ui.js",
+        "sha256": "0b6068c83fd698e5c8d5ac03b95a48b84685aa801544843fc137a173659d502a"
+      }
+    ]
   },
   "source_sha256": {
     "index.html": "323957ba69dcc899f80d9f15b14eddd5c02175e9d66d98ea0579ac5f7cddf511",
@@ -23,7 +57,7 @@
     "repository-diagnostics.jsonl": "730dfac85933dc1580cd417fd05d6fef7ffa1ae87608d06a5171b6a6286332d9"
   },
   "published_sha256": {
-    "index.html": "ab8d04b7b86053ea78d85a3ed4b864e8526ce84bfa4fe98c505b41e38f219b7a",
+    "index.html": "df9c0fbc8d41272ddd8ab2619f9cc2ccba0e5db57707031dbc856b59ea0cde31",
     "terminal.css": "036d49809998e118fd04de1df32d56e58dab772c05c683abe490f52d4041b0ae",
     "pages-hash.js": "9439eebfca47165c915614e69ed1989636e04d173fc9e2cee5385d56ff8b5a5b",
     "pages-wiki.js": "9d179d5a8baf64096227db9694b2cf11a1c486d59cf5984444a29a563fd187f5",

@@ -7,8 +7,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends python3 ca-cert
 
 FROM base AS tests-venv
 COPY --from=uv /uv /usr/local/bin/uv
+# git only here: uv clones the pinned PySaiyanWeBoo (requirements-pages.txt) into the test venv.
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+COPY requirements-pages.txt ./
 RUN UV_PYTHON_DOWNLOADS=never uv venv --python /usr/bin/python3 /opt/tests \
-    && UV_PYTHON_DOWNLOADS=never uv pip install --no-cache --python /opt/tests/bin/python 'pytest>=9.1.1'
+    && UV_PYTHON_DOWNLOADS=never uv pip install --no-cache --python /opt/tests/bin/python 'pytest>=9.1.1' -r requirements-pages.txt
 
 FROM base
 WORKDIR /app
@@ -16,6 +19,6 @@ COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts && npx playwright install --with-deps --only-shell chromium webkit
 COPY --from=tests-venv /opt/tests /opt/tests
 COPY . .
-RUN python3 tools/build_html_import.py
+RUN /opt/tests/bin/python tools/build_html_import.py
 ENV PATH="/opt/tests/bin:${PATH}"
 CMD ["sh", "-c", "python -m pytest tests/test_html_import.py tests/test_portal_links.py tests/test_lab_publication.py --junitxml=reports/html-import-python.xml && npx playwright test --config playwright.html-import.config.js"]

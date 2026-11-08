@@ -126,6 +126,7 @@ scheduled card-update workflow.
 
 🌐 Avatars and badges are external and were refused (listed per shot in the receipt). `/mcp-toolcall-lab/execution/assets/…` is served by the mcp-toolcall-lab Pages site, so it is allowed rather than counted as a 404.
 🔄 `tools/mcp-toolcall-lab/` is the lab's public export re-imported from its `main` (`2e581d2c`); the earlier copy was a 2026-10-24 branch build.
+📦 The shared Web UI is one pinned git dependency (`requirements-pages.txt` → PySaiyanWeBoo); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated asset under `tools/vendor/web-ui/`, and `python scripts/build_web_ui_assets.py --refresh-lock` moves them together. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
 
 🔁 Re-record (after building `.generated-site` as in CI; `$WEBUI` is a PySaiyanWeBoo checkout at `adb23d7`):
 
@@ -191,7 +192,7 @@ To update, obtain a trusted lab `stub-pages-observations` artifact, extract its
 `_site/` public export, then run:
 
 ```sh
-python -S scripts/import_lab_pages.py --source /path/to/export/_site
+uv run --with-requirements tests/requirements.txt python scripts/import_lab_pages.py --source /path/to/export/_site
 uv run --with-requirements tests/requirements.txt pytest tests/test_portal_links.py tests/test_lab_publication.py
 ```
 

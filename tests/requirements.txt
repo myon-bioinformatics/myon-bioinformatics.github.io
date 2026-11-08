@@ -1,2 +1,4 @@
 pytest>=9.1.1
 stagehand>=4.2.1
+# The pinned shared Web UI the build scripts and tests import (web_ui).
+-r ../requirements-pages.txt

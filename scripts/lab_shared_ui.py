@@ -1,20 +1,12 @@
-"""Thin consumer adapter around pinned web-ui; report ownership stays in lab."""
+"""Thin consumer adapter around the pinned PySaiyanWeBoo (web_ui); report ownership stays in lab."""
 
 from pathlib import Path
 import json
 import re
-import sys
+
+import web_ui as ui  # requirements-pages.txt pins the commit; web-ui-assets.lock.json records it
 
 ROOT = Path(__file__).resolve().parents[1]
-_scripts = str(Path(__file__).resolve().parent)
-sys.path.insert(0, _scripts)
-try:
-    from vendor_loader import load_module
-finally:
-    if sys.path and sys.path[0] == _scripts:
-        sys.path.pop(0)
-
-ui = load_module('publication_web_ui', 'tools/vendor/web-ui/web_ui.py')
 
 CLASS_MAP = {
     'term-page': 'ui-page',
@@ -35,11 +27,12 @@ NAVIGATION_BINDING = (
 
 
 def presentation_identity() -> dict:
-    lock = json.loads((ROOT / 'tools/html-import/vendor.lock.json').read_text(encoding='utf-8'))
+    lock = json.loads((ROOT / 'web-ui-assets.lock.json').read_text(encoding='utf-8'))
     return {
         'owner': 'myon-bioinformatics/PySaiyanWeBoo',
         'theme': 'modern',
-        'assets': [x for x in lock['sources'] if x['repository'].endswith('/web-ui')],
+        'commit': lock['commit'],
+        'assets': [{'path': path, 'sha256': digest} for path, digest in sorted(lock['outputs'].items())],
     }
 
 

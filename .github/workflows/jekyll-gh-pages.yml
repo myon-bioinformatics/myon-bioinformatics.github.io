@@ -50,6 +50,9 @@ jobs:
       - name: Make built site writable for evidence
         run: sudo chown -R "$USER":"$USER" _site
 
+      - name: Install the pinned shared Web UI generator (PySaiyanWeBoo)
+        run: python3 -m pip install --quiet --user -r requirements-pages.txt
+
       - name: Generate verified shared browser assets
         run: python3 scripts/build_web_ui_assets.py --output _site
 
