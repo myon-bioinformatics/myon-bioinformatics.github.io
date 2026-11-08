@@ -22,3 +22,16 @@ def test_parent_workflow_references_use_reviewed_rollout_commit():
                 pins.append(next((m.group(1) for m in refs if m), None))
     assert pins, "shared parent references must remain observable"
     assert set(pins) == {PARENT_WORKFLOW_PIN}, pins
+
+
+def test_vendor_asset_checks_use_installed_pinned_generator():
+    workflow = (ROOT / ".github/workflows/vendor-lock.yml").read_text(encoding="utf-8")
+    install = "uv pip install -r requirements-pages.txt"
+    generate = "python scripts/build_web_ui_assets.py --output"
+    assert "activate-environment: true" in workflow
+    assert workflow.index(install) < workflow.index(generate)
+    assert workflow.count(generate) == 2
+    assert "python -S scripts/build_web_ui_assets.py" not in workflow
+    assert 'diff -r "$RUNNER_TEMP/web-ui-assets" "$RUNNER_TEMP/web-ui-assets-repeat"' in workflow
+    assert "python -S .vendor-sync-tools/vendor_sync.py check" in workflow
+    assert "python -S .vendor-sync-tools/vendor_sync.py materialize" in workflow
