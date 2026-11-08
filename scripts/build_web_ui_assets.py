@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.metadata
 import json
 from pathlib import Path
 import tempfile
@@ -24,17 +23,16 @@ DISTRIBUTION = 'pysaiyanweboo'
 
 
 def installed_commit(distribution: str = DISTRIBUTION) -> str:
-    """The git commit the installed generator came from (pip's direct_url.json)."""
+    """The git commit the installed generator came from (web_ui.source_commit, i.e. pip's install record)."""
+    if distribution != DISTRIBUTION:
+        raise ValueError(f'{distribution} is not installed (pip install -r requirements-pages.txt)')
     try:
-        dist = importlib.metadata.distribution(distribution)
-    except importlib.metadata.PackageNotFoundError as exc:
+        import web_ui
+    except ImportError as exc:
         raise ValueError(f'{distribution} is not installed (pip install -r requirements-pages.txt)') from exc
-    raw = dist.read_text('direct_url.json')
-    if not raw:
+    commit = web_ui.source_commit()
+    if not commit:
         raise ValueError(f'{distribution} was not installed from its git source')
-    commit = json.loads(raw).get('vcs_info', {}).get('commit_id', '')
-    if not isinstance(commit, str) or len(commit) != 40:
-        raise ValueError(f'{distribution} has no git commit in its install record')
     return commit
 
 
