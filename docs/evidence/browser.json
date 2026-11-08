@@ -1,13 +1,47 @@
 {
-  "schema": "btk-evidence-gif/1",
+  "schema": "btk-evidence-gif/2",
   "gif": "browser.gif",
-  "bytes": 658015,
-  "sha256": "1449fb09afa88e5d462c887577736064599b2e0da2c9f296f4d00f6298df2966",
+  "bytes": 538355,
+  "sha256": "9a9fc78f9758cf4c7a0587baab7951378e827e6eebd4724ef10366fdd64fa3e6",
   "frames": 18,
   "canvas": "720x512",
   "browser": "chromium 153.0.8010.12",
   "recorded": "2026-11-08",
-  "commit": "4c316215bba127e50921dfc905568c76ba436034",
+  "commit": "0772e78a0e95421fd280ba580c4196736aa691af",
+  "encoder": {
+    "module": "PySaiyanWeBoo web_ui gif.js",
+    "web_ui": "d55e14fcf3f088522259295e4a8cf9564beb5721",
+    "bytes": 538355,
+    "frames": 18,
+    "colors": 255,
+    "thin": 0,
+    "attempts": 1,
+    "stored": 18,
+    "merged": 0,
+    "buckets": 4700,
+    "overBudget": false,
+    "encodeMs": 215,
+    "images": 18,
+    "reused": 0,
+    "patches": 0,
+    "synthesized": 0,
+    "capture_s": 12.0
+  },
+  "limits": {
+    "colors": 255,
+    "max_bytes": null,
+    "max_frames": 300,
+    "last_hold_ms": 2000
+  },
+  "transfer": {
+    "screenshots": 18,
+    "png_bytes": 1834613,
+    "identical": 0,
+    "patches": 0,
+    "calls": 9,
+    "sent_bytes": 2446176,
+    "gif_bytes": 538355
+  },
   "mapped": [
     "https://cdn.jsdelivr.net/gh/myon-bioinformatics/web-ui@adb23d7ba6ea94672b76457573f6655a081ee054/",
     "https://cdn.jsdelivr.net/gh/myon-bioinformatics/PySaiyanWeBoo@adb23d7ba6ea94672b76457573f6655a081ee054/"
@@ -32,23 +66,25 @@
       "allowed": [],
       "external": [
         "https://api.github.com/search/repositories?q=topic:ai+stars:%3E1000&sort=updated&order=desc&per_page=12",
+        "https://img.shields.io/github/stars/myon-bioinformatics/Aoi?style=social",
+        "https://img.shields.io/github/stars/myon-bioinformatics/BlueProbe?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/BrowserTestKit?style=social",
-        "https://img.shields.io/github/stars/myon-bioinformatics/Err-o-RoadRunner?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/Ironmate?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/PySaiyanWeBoo?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/QueRyu?style=social",
-        "https://img.shields.io/github/stars/myon-bioinformatics/SakAnalytics?style=social",
-        "https://img.shields.io/github/stars/myon-bioinformatics/TalkCompress?style=social",
+        "https://img.shields.io/github/stars/myon-bioinformatics/ascii_artist?style=social",
+        "https://img.shields.io/github/stars/myon-bioinformatics/cli_args?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/flutter_navigation_basic?style=social",
-        "https://img.shields.io/github/stars/myon-bioinformatics/gh_identity?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/markdown?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/mcp-toolcall-lab?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/myon-bioinformatics.github.io?style=social",
+        "https://img.shields.io/github/stars/myon-bioinformatics/myon-bioinformatics?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/nvd_nist_known_vulns?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/search_seq_including_spaces?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/xprobe?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/yourself?style=social"
-      ]
+      ],
+      "generator": null
     },
     {
       "label": "🎨 view modes",
@@ -65,18 +101,17 @@
       "allowed": [],
       "external": [
         "https://api.github.com/search/repositories?q=topic:ai+stars:%3E1000&sort=updated&order=desc&per_page=12",
+        "https://img.shields.io/github/stars/myon-bioinformatics/Aoi?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/BlueProbe?style=social",
+        "https://img.shields.io/github/stars/myon-bioinformatics/DRAgoWing?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/Err-o-RoadRunner?style=social",
+        "https://img.shields.io/github/stars/myon-bioinformatics/Ironmate?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/NagoyAction?style=social",
-        "https://img.shields.io/github/stars/myon-bioinformatics/PySaiyanWeBoo?style=social",
-        "https://img.shields.io/github/stars/myon-bioinformatics/PythDRagoras?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/QueRyu?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/SakAnalytics?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/TalkCompress?style=social",
-        "https://img.shields.io/github/stars/myon-bioinformatics/cli_args?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/flutter_navigation_basic?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/gh_identity?style=social",
-        "https://img.shields.io/github/stars/myon-bioinformatics/markdown?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/mcp-toolcall-lab?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/myon-bioinformatics.github.io?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/myon-bioinformatics?style=social",
@@ -84,7 +119,8 @@
         "https://img.shields.io/github/stars/myon-bioinformatics/search_seq_including_spaces?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/xprobe?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/yourself?style=social"
-      ]
+      ],
+      "generator": null
     },
     {
       "label": "📱 portfolio",
@@ -98,15 +134,16 @@
       "allowed": [],
       "external": [
         "https://api.github.com/search/repositories?q=topic:ai+stars:%3E1000&sort=updated&order=desc&per_page=12",
-        "https://img.shields.io/github/stars/myon-bioinformatics/Err-o-RoadRunner?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/NagoyAction?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/PySaiyanWeBoo?style=social",
+        "https://img.shields.io/github/stars/myon-bioinformatics/PythDRagoras?style=social",
         "https://img.shields.io/github/stars/myon-bioinformatics/TalkCompress?style=social",
-        "https://img.shields.io/github/stars/myon-bioinformatics/ascii_artist?style=social",
-        "https://img.shields.io/github/stars/myon-bioinformatics/flutter_navigation_basic?style=social",
-        "https://img.shields.io/github/stars/myon-bioinformatics/gh_identity?style=social",
-        "https://img.shields.io/github/stars/myon-bioinformatics/nvd_nist_known_vulns?style=social"
-      ]
+        "https://img.shields.io/github/stars/myon-bioinformatics/mcp-toolcall-lab?style=social",
+        "https://img.shields.io/github/stars/myon-bioinformatics/myon-bioinformatics.github.io?style=social",
+        "https://img.shields.io/github/stars/myon-bioinformatics/xprobe?style=social",
+        "https://img.shields.io/github/stars/myon-bioinformatics/yourself?style=social"
+      ],
+      "generator": null
     },
     {
       "label": "🧪 mcp-toolcall-lab wiki",
@@ -116,9 +153,10 @@
       "status": "pass",
       "errors": [],
       "allowed": [
-        "console: Failed to load resource: the server responded with a status of 404 (File not found) @ http://127.0.0.1:42171/mcp-toolcall-lab/execution/assets/mcp-toolcall-lab-logo.png"
+        "console: Failed to load resource: the server responded with a status of 404 (File not found) @ http://127.0.0.1:44199/mcp-toolcall-lab/execution/assets/mcp-toolcall-lab-logo.png"
       ],
-      "external": []
+      "external": [],
+      "generator": null
     },
     {
       "label": "🧪 mcp-toolcall-lab pixiv",
@@ -128,9 +166,10 @@
       "status": "pass",
       "errors": [],
       "allowed": [
-        "console: Failed to load resource: the server responded with a status of 404 (File not found) @ http://127.0.0.1:42171/mcp-toolcall-lab/execution/assets/mcp-toolcall-lab-logo.png"
+        "console: Failed to load resource: the server responded with a status of 404 (File not found) @ http://127.0.0.1:44199/mcp-toolcall-lab/execution/assets/mcp-toolcall-lab-logo.png"
       ],
-      "external": []
+      "external": [],
+      "generator": null
     },
     {
       "label": "🩺 repository diagnostics",
@@ -140,9 +179,10 @@
       "status": "pass",
       "errors": [],
       "allowed": [
-        "console: Failed to load resource: the server responded with a status of 404 (File not found) @ http://127.0.0.1:42171/mcp-toolcall-lab/execution/assets/mcp-toolcall-lab-logo.png"
+        "console: Failed to load resource: the server responded with a status of 404 (File not found) @ http://127.0.0.1:44199/mcp-toolcall-lab/execution/assets/mcp-toolcall-lab-logo.png"
       ],
-      "external": []
+      "external": [],
+      "generator": null
     },
     {
       "label": "📥 html import",
@@ -152,7 +192,8 @@
       "status": "pass",
       "errors": [],
       "allowed": [],
-      "external": []
+      "external": [],
+      "generator": null
     },
     {
       "label": "📺 niconico",
@@ -162,9 +203,10 @@
       "status": "pass",
       "errors": [],
       "allowed": [
-        "console: Failed to load resource: the server responded with a status of 404 (File not found) @ http://127.0.0.1:42171/mcp-toolcall-lab/execution/assets/mcp-toolcall-lab-logo.png"
+        "console: Failed to load resource: the server responded with a status of 404 (File not found) @ http://127.0.0.1:44199/mcp-toolcall-lab/execution/assets/mcp-toolcall-lab-logo.png"
       ],
-      "external": []
+      "external": [],
+      "generator": null
     },
     {
       "label": "📱 mcp-toolcall-lab",
@@ -174,9 +216,10 @@
       "status": "pass",
       "errors": [],
       "allowed": [
-        "console: Failed to load resource: the server responded with a status of 404 (File not found) @ http://127.0.0.1:42171/mcp-toolcall-lab/execution/assets/mcp-toolcall-lab-logo.png"
+        "console: Failed to load resource: the server responded with a status of 404 (File not found) @ http://127.0.0.1:44199/mcp-toolcall-lab/execution/assets/mcp-toolcall-lab-logo.png"
       ],
-      "external": []
+      "external": [],
+      "generator": null
     }
   ],
   "plan": [
