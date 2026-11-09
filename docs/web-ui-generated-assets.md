@@ -53,7 +53,7 @@ python -m pytest tests/test_generated_web_ui_assets.py tests/test_myon_bioinform
 python -S scripts/build_web_ui_assets.py --output /tmp/generated-web-ui
 ```
 
-Use the staging-copy step in `portal.yml` followed by
+Use the staging-copy step in `ci.yml` followed by
 `npx playwright test --config playwright/generated.config.js` for browser checks.
 To roll back, revert the deployment generation step and use the retained tracked
 snapshot. A later, separately reviewed stage can retire old source-path entries
