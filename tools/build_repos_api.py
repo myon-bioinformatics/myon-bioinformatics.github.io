@@ -1,13 +1,7 @@
 #!/usr/bin/env python3
 """Build api/repos.json from public GitHub repositories and their README summaries."""
 
-import argparse
-import base64
-import json
-import os
-import re
-import urllib.error
-import urllib.request
+import argparse, base64, json, os, re, urllib.error, urllib.request
 from datetime import datetime, timezone
 
 API_ROOT = "https://api.github.com"

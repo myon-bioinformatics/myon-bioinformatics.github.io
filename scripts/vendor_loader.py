@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
-from types import ModuleType
-from pathlib import Path
+from pathlib import Path; from types import ModuleType
 
 ROOT = Path(__file__).resolve().parents[1]
 

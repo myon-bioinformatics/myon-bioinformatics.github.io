@@ -1,8 +1,5 @@
-import hashlib
-import importlib.util
-import json
+import hashlib, importlib.util, json, tempfile
 from pathlib import Path
-import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('import_lab_pages', ROOT / 'scripts/import_lab_pages.py')

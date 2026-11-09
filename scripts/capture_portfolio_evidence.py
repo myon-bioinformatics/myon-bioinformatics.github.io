@@ -5,12 +5,8 @@ Navigates through all portfolio sub-pages, view modes, and sub-tools
 captures deterministic screenshots, writes metadata, and stitches a
 multi-frame evidence montage image.
 """
-import argparse
-from datetime import datetime, timezone
-import hashlib
-import json
-from pathlib import Path
-import sys
+import argparse, hashlib, json, sys
+from datetime import datetime, timezone; from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 

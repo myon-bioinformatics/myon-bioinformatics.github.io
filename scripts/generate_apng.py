@@ -1,9 +1,6 @@
 """Combine matching PNG frames into APNG using only the standard library."""
-import argparse
-from math import gcd
-from pathlib import Path
-import struct
-import zlib
+import argparse, struct, zlib
+from math import gcd; from pathlib import Path
 
 PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
 

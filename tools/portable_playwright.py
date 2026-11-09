@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 """Portable Playwright runner (Python stdlib only)."""
-import argparse
-import json
-import os
+import argparse, json, os, re, subprocess, sys
 from pathlib import Path
-import re
-import subprocess
-import sys
 
 def browsers(roots):
     """Find Chromium by revision descending, then absolute path ascending."""
