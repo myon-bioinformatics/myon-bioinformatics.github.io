@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-08T21:06:53Z",
+  "generatedAt": "2026-11-09T03:08:24Z",
   "owner": "myon-bioinformatics",
   "count": 42,
   "repos": [
@@ -134,7 +134,7 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T23:13:41Z",
+      "updatedAt": "2026-11-09T03:07:47Z",
       "homepage": null,
       "readmeHeading": "BlueProbe",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -159,7 +159,7 @@
         "typescript"
       ],
       "stars": 0,
-      "updatedAt": "2026-11-08T13:44:45Z",
+      "updatedAt": "2026-11-09T03:06:15Z",
       "homepage": null,
       "readmeHeading": "BrowserTestKit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, screenshots, mobile web, and GitHub Actions. Stagehand and Replay lanes are planned but not yet implemented.",
@@ -182,7 +182,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-08T17:58:38Z",
+      "updatedAt": "2026-11-09T03:07:39Z",
       "homepage": null,
       "readmeHeading": "cli_args",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -276,7 +276,7 @@
         "static-html"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T22:29:56Z",
+      "updatedAt": "2026-11-09T03:07:43Z",
       "homepage": null,
       "readmeHeading": "DRAgoWing",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -326,7 +326,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-08T13:44:20Z",
+      "updatedAt": "2026-11-09T03:07:52Z",
       "homepage": null,
       "readmeHeading": "flutter_navigation_basic",
       "readmeSummary": "Dart / Flutter で書いた、画面遷移・ルーティング・共通UIの検証用の基盤アプリです。リポジトリには Web・iOS・Android のターゲット構成を含みます。",
@@ -504,7 +504,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-08T13:07:12Z",
+      "updatedAt": "2026-11-09T03:07:56Z",
       "homepage": null,
       "readmeHeading": "markdown",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -530,7 +530,7 @@
         "tool-calling"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-08T13:07:17Z",
+      "updatedAt": "2026-11-09T03:07:52Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "**Explore what needs to run, what can be reused, and how to verify the difference.**",
@@ -569,7 +569,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-08T12:41:51Z",
+      "updatedAt": "2026-11-09T03:07:50Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
@@ -587,7 +587,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-08T13:07:07Z",
+      "updatedAt": "2026-11-09T03:07:46Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -616,7 +616,7 @@
         "toml"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-05T03:24:25Z",
+      "updatedAt": "2026-11-09T03:07:48Z",
       "homepage": null,
       "readmeHeading": "NagoyAction",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -663,7 +663,7 @@
         "vulnerability"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T23:12:03Z",
+      "updatedAt": "2026-11-09T03:07:46Z",
       "homepage": "https://nvd.nist.gov/vuln",
       "readmeHeading": "NVD NIST known vulnerabilities",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -710,7 +710,7 @@
         "vanilla-js"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-08T12:45:57Z",
+      "updatedAt": "2026-11-08T23:02:08Z",
       "homepage": "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
       "readmeHeading": "PySaiyanWeBoo",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -811,7 +811,7 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-04T23:11:43Z",
+      "updatedAt": "2026-11-09T03:07:43Z",
       "homepage": null,
       "readmeHeading": "QueRyu",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -838,7 +838,7 @@
         "synthetic-data"
       ],
       "stars": 0,
-      "updatedAt": "2026-11-04T12:15:15Z",
+      "updatedAt": "2026-11-09T03:07:41Z",
       "homepage": null,
       "readmeHeading": "SakAnalytics",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -887,7 +887,7 @@
         "string-search"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-05T00:34:41Z",
+      "updatedAt": "2026-11-09T03:07:53Z",
       "homepage": null,
       "readmeHeading": "search_seq_including_spaces",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -921,7 +921,7 @@
         "tokenizer"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-08T13:49:31Z",
+      "updatedAt": "2026-11-09T03:07:40Z",
       "homepage": null,
       "readmeHeading": "TalkCompress",
       "readmeSummary": "TalkCompress は、**誰が、どの共有知識・規則を持てば理解できるかを条件に、意味を保てる短い表現を探す**実験リポジトリです。文字数・通信バイト数・LLM のトークン数を測り、人と機械が扱える表現の幅を広げます。",
@@ -1014,7 +1014,7 @@
         "typescript"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-08T13:44:37Z",
+      "updatedAt": "2026-11-09T03:07:55Z",
       "homepage": null,
       "readmeHeading": "xprobe",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
