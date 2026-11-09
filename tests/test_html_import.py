@@ -1,8 +1,5 @@
+import hashlib, json, socket, sys
 from pathlib import Path
-import hashlib
-import json
-import socket
-import sys
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]

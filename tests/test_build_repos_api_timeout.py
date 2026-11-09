@@ -1,8 +1,5 @@
 """fetch-guard: GitHub API reads in tools/build_repos_api.py always pass a timeout."""
-import importlib.util
-import io
-import json
-import urllib.error
+import importlib.util, io, json, urllib.error
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
