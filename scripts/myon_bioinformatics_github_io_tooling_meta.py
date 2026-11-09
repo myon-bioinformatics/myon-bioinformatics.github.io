@@ -1,10 +1,5 @@
 """Emit advisory dual-SDK tooling metadata; never a freshness gate."""
-import importlib.metadata
-import json
-import os
-import platform
-import shutil
-import subprocess
+import importlib.metadata, json, os, platform, shutil, subprocess
 from datetime import datetime, timezone
 
 COMMAND_TIMEOUT = float(os.environ.get("STAGEHAND_TOOL_TIMEOUT", "10"))

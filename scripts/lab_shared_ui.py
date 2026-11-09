@@ -1,9 +1,7 @@
 """Thin consumer adapter around pinned web-ui; report ownership stays in lab."""
 
+import json, re, sys
 from pathlib import Path
-import json
-import re
-import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 _scripts = str(Path(__file__).resolve().parent)
