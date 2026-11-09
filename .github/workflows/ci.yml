@@ -25,7 +25,10 @@ jobs:
           version: "latest"
           python-version: "3.15"
           activate-environment: true
-          enable-cache: false
+          enable-cache: true
+          # Pull requests restore the cache and never write it; only main saves it.
+          save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          prune-cache: true
       - name: Validate portal links
         run: uv run --locked --only-group test python -m pytest tests --junitxml=reports/portal.xml
 
@@ -51,7 +54,10 @@ jobs:
           version: "latest"
           python-version: "3.15"
           activate-environment: true
-          enable-cache: false
+          enable-cache: true
+          # Pull requests restore the cache and never write it; only main saves it.
+          save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          prune-cache: true
       # capture-evidence.spec.js spawns the Python capture CLI from this active venv.
       - name: Install locked Python capture dependencies
         run: uv sync --locked --only-group browser
