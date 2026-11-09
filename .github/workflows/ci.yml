@@ -1,4 +1,4 @@
-name: portal
+name: CI
 
 on:
   pull_request:
@@ -25,7 +25,10 @@ jobs:
           version: "latest"
           python-version: "3.15"
           activate-environment: true
-          enable-cache: false
+          enable-cache: true
+          # Pull requests restore the cache and never write it; only main saves it.
+          save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          prune-cache: true
       - name: Install test dependencies
         run: uv pip install -r tests/requirements.txt
       - name: Validate portal links
@@ -53,7 +56,10 @@ jobs:
           version: "latest"
           python-version: "3.15"
           activate-environment: true
-          enable-cache: false
+          enable-cache: true
+          # Pull requests restore the cache and never write it; only main saves it.
+          save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          prune-cache: true
       - name: Install capture and image verification dependencies
         run: uv pip install -r tests/requirements-browser.txt
       - name: Install browser test dependencies

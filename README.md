@@ -120,7 +120,7 @@ the uv provider selected for that run,
 not an older Python already installed on the runner; it does not promise a
 Python release newer than that provider knows. Other migrated CI jobs use 3.15.
 
-[portal](.github/workflows/portal.yml) and the Python job in
+[CI](.github/workflows/ci.yml) and the Python job in
 [Stagehand v4 dual-SDK reference](.github/workflows/stagehand-v4-reference.yml)
 produce pytest JUnit and call the parent's pinned shared failure-identity
 collector. Raw artifacts are `junit-portal-py3.15` and

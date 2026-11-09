@@ -10,7 +10,7 @@ on:
       - tools/build_repos_api.py
       - .github/workflows/repos-api.yml
       # Exercise the refresh-to-publication handoff when its configuration changes.
-      - .github/workflows/jekyll-gh-pages.yml
+      - .github/workflows/pages.yml
 
 permissions:
   contents: write
@@ -34,7 +34,10 @@ jobs:
           version: "latest"
           python-version: "3"
           activate-environment: true
-          enable-cache: false
+          enable-cache: true
+          # Pull requests restore the cache and never write it; only main saves it.
+          save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          prune-cache: true
 
       - name: Build api/repos.json
         env:

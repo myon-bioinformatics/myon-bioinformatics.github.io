@@ -4,12 +4,8 @@ Only build output is replaced. All source/output hashes are verified before writ
 """
 from __future__ import annotations
 
-import argparse
-import hashlib
-import importlib.util
-import json
+import argparse, hashlib, importlib.util, json, tempfile
 from pathlib import Path
-import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_BASE = 'tools/vendor/web-ui/'

@@ -1,7 +1,5 @@
-import importlib.util
-import json
+import importlib.util, json, shutil
 from pathlib import Path
-import shutil
 
 import pytest
 
