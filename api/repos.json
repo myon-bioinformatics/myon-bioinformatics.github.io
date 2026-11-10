@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-09T21:07:31Z",
+  "generatedAt": "2026-11-10T21:07:40Z",
   "owner": "myon-bioinformatics",
   "count": 44,
   "repos": [
@@ -22,7 +22,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-09T16:36:17Z",
+      "updatedAt": "2026-11-10T15:46:00Z",
       "homepage": null,
       "readmeHeading": "Aoi",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -47,7 +47,7 @@
         "text-graphics"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-09T18:59:11Z",
+      "updatedAt": "2026-11-10T06:13:31Z",
       "homepage": null,
       "readmeHeading": "ascii_artist",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -159,7 +159,7 @@
         "typescript"
       ],
       "stars": 0,
-      "updatedAt": "2026-11-09T03:06:15Z",
+      "updatedAt": "2026-11-10T06:29:06Z",
       "homepage": null,
       "readmeHeading": "BrowserTestKit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, screenshots, mobile web, and GitHub Actions. Stagehand and Replay lanes are planned but not yet implemented.",
@@ -182,7 +182,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-09T16:11:53Z",
+      "updatedAt": "2026-11-10T06:13:19Z",
       "homepage": null,
       "readmeHeading": "cli_args",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -303,7 +303,7 @@
         "traceback"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-09T08:16:26Z",
+      "updatedAt": "2026-11-10T13:08:25Z",
       "homepage": null,
       "readmeHeading": "Err-o-RoadRunner",
       "readmeSummary": "Err-o-RoadRunner is a tool that does nothing in normal times. It starts working only after an error has happened. The name combines \"Error\" and \"Road Runner\".",
@@ -315,8 +315,8 @@
       "description": null,
       "language": "Python",
       "topics": [],
-      "stars": 0,
-      "updatedAt": "2026-11-09T19:03:01Z",
+      "stars": 1,
+      "updatedAt": "2026-11-10T11:05:00Z",
       "homepage": null,
       "readmeHeading": "🌊 FluidFullSpeedSimulation",
       "readmeSummary": "💧 水・🍶 エタノール・🧴 メタノールなどの作動流体で、**流れ・遅れ・検証**を整数演算で回すシミュレーター。",
@@ -339,7 +339,7 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-09T08:18:15Z",
+      "updatedAt": "2026-11-10T11:34:43Z",
       "homepage": null,
       "readmeHeading": "flutter_navigation_basic",
       "readmeSummary": "Dart / Flutter で書いた、画面遷移・ルーティング・共通UIの検証用の基盤アプリです。リポジトリには Web・iOS・Android のターゲット構成を含みます。",
@@ -362,7 +362,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-09T12:02:14Z",
+      "updatedAt": "2026-11-10T06:13:24Z",
       "homepage": null,
       "readmeHeading": "<img src=\"assets/branding/concept-c.svg\" width=\"40\" height=\"40\" alt=\"GHI search icon\"> gh_identity (GHI)",
       "readmeSummary": "Single-file, stdlib-only Python interface for portable GitHub identity and operations.",
@@ -471,7 +471,7 @@
         "typescript"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-09T08:18:14Z",
+      "updatedAt": "2026-11-10T15:08:48Z",
       "homepage": null,
       "readmeHeading": "Ironmate",
       "readmeSummary": "The logo is **I’m with a 🔰 apostrophe**. The 6 variants are used by purpose; for now the favicon uses dark green, the README the Famicom style, the web UI the heatmap palette and the home-screen icon Pixel 3D, provisionally. The final version is undecided. Each variant can be saved from the [6-varia…",
@@ -517,7 +517,7 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-09T15:56:29Z",
+      "updatedAt": "2026-11-10T15:14:16Z",
       "homepage": null,
       "readmeHeading": "markdown",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -543,7 +543,7 @@
         "tool-calling"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-09T11:23:11Z",
+      "updatedAt": "2026-11-10T16:49:03Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "**Explore what needs to run, what can be reused, and how to verify the difference.**",
@@ -582,7 +582,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-09T17:11:42Z",
+      "updatedAt": "2026-11-10T00:47:29Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
@@ -600,7 +600,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-09T11:04:07Z",
+      "updatedAt": "2026-11-09T21:07:36Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -629,7 +629,7 @@
         "toml"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-09T09:47:07Z",
+      "updatedAt": "2026-11-10T01:21:54Z",
       "homepage": null,
       "readmeHeading": "NagoyAction",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -676,7 +676,7 @@
         "vulnerability"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-09T12:08:48Z",
+      "updatedAt": "2026-11-09T23:22:38Z",
       "homepage": "https://nvd.nist.gov/vuln",
       "readmeHeading": "NVD NIST known vulnerabilities",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -710,11 +710,11 @@
       "description": null,
       "language": "Python",
       "topics": [],
-      "stars": 0,
-      "updatedAt": "2026-11-09T16:02:42Z",
+      "stars": 1,
+      "updatedAt": "2026-11-10T12:59:33Z",
       "homepage": null,
       "readmeHeading": "🧷 OneLinearNumerousMemo (olnm)",
-      "readmeSummary": "bash/zsh 用ワンライナー集 + ローカル GitHub（Gitea / Forgejo）。**Python 1 ファイル**（`olnm.py`、標準ライブラリのみ）が中にシェル関数を持ち、`eval` で読み込む形。 想定: Ubuntu 26.04、Python / Node(LTS) / uv はある前提（Bun・fzf・fd・rg・jq・gh・docker は任意）。",
+      "readmeSummary": "bash/zsh 用の **247 個のシェル関数**と、ローカル GitHub（Gitea / Forgejo）を扱う **42 個の Python API**。 実装は `olnm.py` 1 ファイル、実行時の Python 外部依存はゼロ。 Python 3.11 以降、Linux（Ubuntu / WSL の Ubuntu）の bash/zsh を対象とする。 macOS では GNU コマンドとの差異があり、PowerShell/cmd からシェル関数を使う場合は WSL 内で実行する。 Node / Bun / gh / Docker / fzf などは、それを使う関数を実行する…",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/OneLinearNumerousMemo/main/README.md"
     },
     {
@@ -736,7 +736,7 @@
         "vanilla-js"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-09T15:47:26Z",
+      "updatedAt": "2026-11-10T09:33:08Z",
       "homepage": "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
       "readmeHeading": "PySaiyanWeBoo",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -766,7 +766,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-09T09:46:57Z",
+      "updatedAt": "2026-11-10T06:23:40Z",
       "homepage": null,
       "readmeHeading": "PythDRagoras",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -864,7 +864,7 @@
         "synthetic-data"
       ],
       "stars": 0,
-      "updatedAt": "2026-11-09T09:46:37Z",
+      "updatedAt": "2026-11-10T06:23:30Z",
       "homepage": null,
       "readmeHeading": "SakAnalytics",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -947,7 +947,7 @@
         "tokenizer"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-09T13:45:10Z",
+      "updatedAt": "2026-11-10T14:33:04Z",
       "homepage": null,
       "readmeHeading": "TalkCompress",
       "readmeSummary": "TalkCompress は、**誰が、どの共有知識・規則を持てば理解できるかを条件に、意味を保てる短い表現を探す**実験リポジトリです。文字数・通信バイト数・LLM のトークン数を測り、人と機械が扱える表現の幅を広げます。",
@@ -1040,7 +1040,7 @@
         "typescript"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-09T18:59:24Z",
+      "updatedAt": "2026-11-10T06:13:17Z",
       "homepage": null,
       "readmeHeading": "xprobe",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -1065,7 +1065,7 @@
         "troubleshooting"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-09T18:59:18Z",
+      "updatedAt": "2026-11-10T12:51:16Z",
       "homepage": null,
       "readmeHeading": "yourself",
       "readmeSummary": "Single-file, standard-library Python tool for read-only inspection of host, OS, and runtime facts. Produces concise, copyable environment reports for troubleshooting and AI context.",
