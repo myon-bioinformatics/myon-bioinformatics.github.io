@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-12T03:53:02Z",
+  "generatedAt": "2026-11-12T21:07:30Z",
   "owner": "myon-bioinformatics",
   "count": 44,
   "repos": [
@@ -22,10 +22,10 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-11T13:41:13Z",
+      "updatedAt": "2026-11-12T08:32:42Z",
       "homepage": null,
       "readmeHeading": "Aoi",
-      "readmeSummary": null,
+      "readmeSummary": "📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/Aoi/) (GitHub Pages)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/Aoi/main/README.md"
     },
     {
@@ -185,7 +185,7 @@
       "updatedAt": "2026-11-10T06:13:19Z",
       "homepage": null,
       "readmeHeading": "cli_args",
-      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
+      "readmeSummary": "📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/cli_args/) (GitHub Pages)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/cli_args/main/README.md"
     },
     {
@@ -303,7 +303,7 @@
         "traceback"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-12T03:14:31Z",
+      "updatedAt": "2026-11-12T07:35:40Z",
       "homepage": null,
       "readmeHeading": "Err-o-RoadRunner",
       "readmeSummary": "Err-o-RoadRunner is a tool that does nothing in normal times. It starts working only after an error has happened. The name combines \"Error\" and \"Road Runner\".",
@@ -316,10 +316,10 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-11-12T02:29:03Z",
+      "updatedAt": "2026-11-12T11:12:55Z",
       "homepage": null,
       "readmeHeading": "🌊 FluidFullSpeedSimulation",
-      "readmeSummary": "💧 水・🍶 エタノール・🧴 メタノールなどの作動流体で、**流れ・遅れ・検証**を整数演算で回すシミュレーター。",
+      "readmeSummary": "📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/FluidFullSpeedSimulation/) (GitHub Pages)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/FluidFullSpeedSimulation/main/README.md"
     },
     {
@@ -582,7 +582,7 @@
         "introduction"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-12T01:49:25Z",
+      "updatedAt": "2026-11-12T11:48:50Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
@@ -600,7 +600,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-11T22:13:42Z",
+      "updatedAt": "2026-11-12T04:52:42Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -632,7 +632,7 @@
       "updatedAt": "2026-11-12T01:20:15Z",
       "homepage": null,
       "readmeHeading": "NagoyAction",
-      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
+      "readmeSummary": "📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/NagoyAction/) (GitHub Pages)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/NagoyAction/main/README.md"
     },
     {
@@ -679,7 +679,7 @@
       "updatedAt": "2026-11-09T23:22:38Z",
       "homepage": "https://nvd.nist.gov/vuln",
       "readmeHeading": "NVD NIST known vulnerabilities",
-      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
+      "readmeSummary": "📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/nvd_nist_known_vulns/) (GitHub Pages)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/nvd_nist_known_vulns/main/README.md"
     },
     {
@@ -711,7 +711,7 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-11-12T03:37:44Z",
+      "updatedAt": "2026-11-12T10:01:17Z",
       "homepage": null,
       "readmeHeading": "🧷 OneLinearNumerousMemo (olnm)",
       "readmeSummary": "bash/zsh 用の **249 個のシェル関数**と、それを Python・Node から名前で呼べる **28 個の Python API**。 ローカル GitHub（Gitea / Forgejo）とワークフロー検査は NagoyAction（`nagoyaction hub` / `nagoyaction actionlint`）へ転送する。 実装は `olnm.py` 1 ファイル、実行時の Python 外部依存はゼロ。 Python 3.11 以降、Linux（Ubuntu / WSL の Ubuntu）の bash/zsh を対象とする。 macOS では GNU コマンド…",
@@ -736,7 +736,7 @@
         "vanilla-js"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-10T09:33:08Z",
+      "updatedAt": "2026-11-12T12:51:01Z",
       "homepage": "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
       "readmeHeading": "PySaiyanWeBoo",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
