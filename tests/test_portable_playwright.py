@@ -1,12 +1,6 @@
 """Portable runner contract tests; no browser install required."""
-import json
-import os
-import shutil
+import json, os, shutil, subprocess, sys, tempfile, unittest
 from pathlib import Path
-import subprocess
-import sys
-import tempfile
-import unittest
 
 REPO = Path(__file__).resolve().parents[1]
 PY = REPO / "tools/portable_playwright.py"

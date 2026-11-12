@@ -68,11 +68,13 @@ docker build -f Dockerfile.html-import -t html-import-test .
 docker run --rm --ipc=host html-import-test
 # 公開後のみ（mainでデプロイ済みの機能を確認）
 docker run --rm --ipc=host -e HTML_TOOL_BASE_URL=https://myon-bioinformatics.github.io \
-  html-import-test npx playwright test --config playwright.html-import.config.js
+  html-import-test npx playwright test --config playwright/html-import.config.js
 ```
 
 Dockerはビルド・pytest・Playwrightの共通環境。Pagesに配布しない。
-Node baseは26-bookworm、JS test依存はpackage-lock、pytestは9.1.1以上。
+Node baseは26-bookworm、JS test依存はpackage-lock、Python test依存はpyproject.tomlの
+`docker-test`グループを同じuv.lockから`uv sync --locked --only-group docker-test`で導入する。
+Dockerにはpytestとその推移依存のみを入れ、Stagehand・Python Playwrightは導入しない。
 画像digest/apt依存までのbit-for-bit固定は主張しない。
 CIはDockerをbuildしてからPython共有fixtureと既存portal/lab検証、
 Chromium/WebKit各々のdesktop/mobile貼付・ファイル・条件変更・JSON取得を実行。

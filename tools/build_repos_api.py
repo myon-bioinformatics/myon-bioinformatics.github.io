@@ -1,13 +1,7 @@
 #!/usr/bin/env python3
 """Build api/repos.json from public GitHub repositories and their README summaries."""
 
-import argparse
-import base64
-import json
-import os
-import re
-import urllib.error
-import urllib.request
+import argparse, base64, json, os, re, urllib.error, urllib.request
 from datetime import datetime, timezone
 
 API_ROOT = "https://api.github.com"
@@ -155,11 +149,11 @@ def build(owner):
     }
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--owner", default="myon-bioinformatics")
     parser.add_argument("--output", default="api/repos.json")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     output_dir = os.path.dirname(args.output)
     if output_dir:

@@ -62,10 +62,10 @@ Pages-host contract are reviewed together.
 
 Ironmate now has a local metadata card (`project-ironmate.json`) and a repository link;
 its retired MCP stub does not need a dedicated Pages deployment. Live destinations include mcp-toolcall-lab,
-flutter_navigation_basic, and PySaiyanWeBoo.
+flutter_navigation_basic, and web-ui.
 
 ## 🚀 Projects (JSON-driven cards)
-Projects displays only public, non-archived repositories from the `api/repos.json` catalog. The full candidate pool is collected first and then shuffled, so each page load shows a new order. Search and topic filters work together across all five display modes. Topic controls expand on demand so the full catalog remains easy to reach on mobile. Cards, tags, inputs and copy buttons use the same pinned PySaiyanWeBoo stylesheets already used by this portfolio’s tool pages (`tools/vendor/web-ui/`, source identity in `tools/html-import/vendor.lock.json`). Local CSS only adds catalog layout, mode mapping and filter state; no second component stylesheet is vendored.
+Projects displays only public, non-archived repositories from the `api/repos.json` catalog. The full candidate pool is collected first and then shuffled, so each page load shows a new order. Search and topic filters work together across all five display modes. Topic controls expand on demand so the full catalog remains easy to reach on mobile. Cards, tags, inputs and copy buttons use the same pinned web-ui stylesheets already used by this portfolio’s tool pages (`tools/vendor/web-ui/`, source identity in `tools/html-import/vendor.lock.json`). Local CSS only adds catalog layout, mode mapping and filter state; no second component stylesheet is vendored.
 
 `projects.json` supplies optional curated descriptions and extra topics for matching repositories. It never limits catalog membership, and repository URLs always come from `api/repos.json`. If curation is unavailable, repository descriptions (then README summaries) are used. A missing catalog shows a load error instead of a misleading partial list.
 
@@ -126,7 +126,7 @@ scheduled card-update workflow.
 
 🌐 Avatars and badges are external and were refused (listed per shot in the receipt). `/mcp-toolcall-lab/execution/assets/…` is served by the mcp-toolcall-lab Pages site, so it is allowed rather than counted as a 404.
 🔄 `tools/mcp-toolcall-lab/` is the lab's public export re-imported from its `main` (`2e581d2c`); the earlier copy was a 2026-10-24 branch build.
-📦 The shared Web UI is one pinned git dependency (`requirements-pages.txt` → PySaiyanWeBoo); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated asset under `tools/vendor/web-ui/`, and `python scripts/build_web_ui_assets.py --refresh-lock` moves them together. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
+📦 The shared Web UI is one pinned git dependency (`requirements-pages.txt` → PySaiyanWeBoo); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated asset under `tools/vendor/web-ui/`, and `uv run --locked python scripts/build_web_ui_assets.py --refresh-lock` moves them together. Keep the same full commit in `[tool.uv.sources]` in `pyproject.toml`, run `uv lock`, and sync before refreshing. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
 
 🔁 Re-record (after building `.generated-site` as in CI; `$WEBUI` is a PySaiyanWeBoo checkout at `adb23d7`):
 
@@ -147,7 +147,7 @@ the uv provider selected for that run,
 not an older Python already installed on the runner; it does not promise a
 Python release newer than that provider knows. Other migrated CI jobs use 3.15.
 
-[portal](.github/workflows/portal.yml) and the Python job in
+[CI](.github/workflows/ci.yml) and the Python job in
 [Stagehand v4 dual-SDK reference](.github/workflows/stagehand-v4-reference.yml)
 produce pytest JUnit and call the parent's pinned shared failure-identity
 collector. Raw artifacts are `junit-portal-py3.15` and
@@ -192,8 +192,8 @@ To update, obtain a trusted lab `stub-pages-observations` artifact, extract its
 `_site/` public export, then run:
 
 ```sh
-uv run --with-requirements tests/requirements.txt python scripts/import_lab_pages.py --source /path/to/export/_site
-uv run --with-requirements tests/requirements.txt pytest tests/test_portal_links.py tests/test_lab_publication.py
+uv run --locked python scripts/import_lab_pages.py --source /path/to/export/_site
+uv run --locked pytest tests/test_portal_links.py tests/test_lab_publication.py
 ```
 
 Review and commit the imported output in a PR. No untrusted archive is extracted
@@ -203,7 +203,7 @@ legacy redirect must land only after this portfolio receiving change is deployed
 
 ### Shared browser controls
 
-HTML Import exposes an explicit HTTP(S) source link in a new tab; pasting or changing extraction options stays local. `PySaiyanWeBoo` owns `source_link`, `view_tabs`, `adopt_document`, and `navigation.js`. The portfolio vendors the pinned implementation and keeps the lab report source identity separate from its shared presentation transform. Wikipedia/Pixiv typography and controls use that same modern theme. See [HTML Import contract](docs/html-import.md).
+HTML Import exposes an explicit HTTP(S) source link in a new tab; pasting or changing extraction options stays local. `web-ui` owns `source_link`, `view_tabs`, `adopt_document`, and `navigation.js`. The portfolio vendors the pinned implementation and keeps the lab report source identity separate from its shared presentation transform. Wikipedia/Pixiv typography and controls use that same modern theme. See [HTML Import contract](docs/html-import.md).
 
 Pixiv source now supports a local heading dropdown through a consumer adapter.
 See [source grammar, Python one-liners, and markdown.py integration](docs/pixiv-markup.md).
@@ -215,9 +215,9 @@ See [source grammar, Python one-liners, and markdown.py integration](docs/pixiv-
 - AI & Tech Highlights displays public GitHub search results, or explicitly labelled curated examples when the API is unavailable. Curated examples do not claim current star counts.
 - `python -S scripts/generate_apng.py frame1.png frame2.png -o demo.png` creates an animation without third-party dependencies. Frames must share dimensions, color format, palette and transparency.
 - `python -S scripts/record_demo.py frame1.png frame2.png -o grid.png --mode montage` reconstructs PNG filters before stitching. Montage inputs must be matching non-interlaced 8-bit RGB/RGBA images.
-- Browser capture is a development dependency: install `tests/requirements-browser.txt`, run `python -m playwright install --no-shell chromium`, serve the site, then run `python scripts/capture_portfolio_evidence.py --base-url http://localhost:8080 -o test-results/evidence`. It records all five portfolio modes and six tool routes, screenshots, hashes and a montage. Capture uses labelled curated highlights for repeatability.
+- Browser capture is a development dependency: `uv sync --locked --group browser`, run `uv run python -m playwright install --no-shell chromium`, serve the site, then run `python scripts/capture_portfolio_evidence.py --base-url http://localhost:8080 -o test-results/evidence`. It records all five portfolio modes and six tool routes, screenshots, hashes and a montage. Capture uses labelled curated highlights for repeatability.
 
-Verification: `uv run --with-requirements tests/requirements.txt pytest tests`, `npx playwright test`, and `node scripts/validate-ssot.mjs`. Python test dependencies stay in `tests/requirements.txt`; image regression tests decode exports with the vendored `pillow_min` module from Ironmate (`tools/vendor/ironmate/`, recorded in `vendor.lock.json`). Production image conversion uses only the standard library. The portal workflow preserves browser evidence as an Actions artifact.
+Verification: `uv run --locked pytest tests`, `npx playwright test`, and `node scripts/validate-ssot.mjs`. Python test dependencies are the `test` and `browser` groups of `pyproject.toml`, pinned in `uv.lock`; image regression tests decode exports with the vendored `pillow_min` module from Ironmate (`tools/vendor/ironmate/`, recorded in `vendor.lock.json`). Production image conversion uses only the standard library. The portal workflow preserves browser evidence as an Actions artifact.
 
 Image regression inputs also include PNGs encoded independently from known sample
 bytes, without `pillow_min`'s writer. They cover all five scanline filters, split
@@ -229,3 +229,17 @@ transparency, CRC/truncation errors, and pixel/decompression limits.
 See [standard-library discovery commands](docs/unittest-discovery.md) for
 validated `python -S -m unittest discover` recipes, filename/name filtering,
 and the boundary with the full pytest suite.
+
+### Shared asset generator entry points
+
+```sh
+uv run --locked python scripts/build_web_ui_assets.py --output /tmp/portfolio-site
+uv run --locked python scripts/build_web_ui_assets.py --refresh-lock
+uv run --locked python -c "from scripts.build_web_ui_assets import main; main(['--output', '/tmp/portfolio-site'])"
+```
+
+`main(argv=None)` uses process arguments when omitted and accepts an explicit argument
+list after import. Both `--output` and `--refresh-lock` may be supplied together.
+Normal generation verifies the installed git commit, dependency pin and all asset hashes
+before writing output. Refresh only accepts the installed commit specified in the pin;
+rendering or provenance failures leave the previous lock and checked-in assets intact.

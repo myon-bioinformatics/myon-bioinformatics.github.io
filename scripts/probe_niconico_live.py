@@ -4,15 +4,8 @@
 Run manually: python -S scripts/probe_niconico_live.py --output reports/niconico-http.json
 No mocks, no retries, no proxy service; at most two sequential API requests.
 """
-import argparse
-from datetime import datetime, timezone
-import hashlib
-import json
-from pathlib import Path
-import time
-from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
-from urllib.request import Request, urlopen
+import argparse, hashlib, json, time
+from datetime import datetime, timezone; from pathlib import Path; from urllib.error import HTTPError, URLError; from urllib.parse import urlencode; from urllib.request import Request, urlopen
 
 ENDPOINT = 'https://snapshot.search.nicovideo.jp/api/v2/snapshot/video/contents/search'
 ORIGIN = 'https://myon-bioinformatics.github.io'
@@ -58,11 +51,11 @@ def probe(query, sort):
     return result
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--query', default='初音ミク')
     parser.add_argument('--output', type=Path, required=True)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     records = []
     for sort in ('-viewCounter', '-startTime'):
         record = probe(args.query, sort)

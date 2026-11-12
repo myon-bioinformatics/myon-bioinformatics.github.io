@@ -1,6 +1,4 @@
-import hashlib
-import json
-import re
+import hashlib, importlib.util, json, re
 from pathlib import Path
 
 import pytest

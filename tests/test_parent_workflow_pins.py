@@ -19,9 +19,24 @@ def test_parent_workflow_references_use_reviewed_rollout_commit():
         for i, line in enumerate(lines):
             if re.fullmatch(r"\s+repository:\s*['\"]?" + re.escape(PARENT) + r"['\"]?\s*", line):
                 refs = [re.fullmatch(r"\s+ref:\s*['\"]?([^\s'\"]+)['\"]?\s*", item) for item in lines[i + 1:i + 12]]
-                pins.append(next((m.group(1) for m in refs if m), None))
+                if not any(re.fullmatch(r"\s+path:\s*['\"]?\.vendor-sync-tools['\"]?\s*", item) for item in lines[i + 1:i + 12]):
+                    pins.append(next((m.group(1) for m in refs if m), None))
     assert pins, "shared parent references must remain observable"
     assert set(pins) == {PARENT_WORKFLOW_PIN}, pins
+
+
+def test_browser_lane_installs_locked_python_capture_dependencies():
+    import tomllib
+
+    workflow = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
+    browser = workflow.split('\n  browser:', 1)[1].split('\n  failure-identity:', 1)[0]
+    install = 'uv sync --locked --only-group browser'
+    assert install in browser
+    assert browser.index(install) < browser.index('npx playwright test')
+    assert 'activate-environment: true' in browser
+    groups = tomllib.loads((ROOT / 'pyproject.toml').read_text())['dependency-groups']
+    assert any(isinstance(item, str) and item.startswith('playwright>=') for item in groups['browser'])
+    assert 'scripts/capture_portfolio_evidence.py' in (ROOT / 'tests/capture-evidence.spec.js').read_text()
 
 
 def test_vendor_asset_checks_use_installed_pinned_generator():
@@ -34,4 +49,4 @@ def test_vendor_asset_checks_use_installed_pinned_generator():
     assert "python -S scripts/build_web_ui_assets.py" not in workflow
     assert 'diff -r "$RUNNER_TEMP/web-ui-assets" "$RUNNER_TEMP/web-ui-assets-repeat"' in workflow
     assert "python -S .vendor-sync-tools/vendor_sync.py check" in workflow
-    assert "python -S .vendor-sync-tools/vendor_sync.py materialize" in workflow
+    assert "python -S .vendor-sync-tools/vendor_sync.py recreate" in workflow

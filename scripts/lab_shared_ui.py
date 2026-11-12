@@ -1,10 +1,9 @@
 """Thin consumer adapter around the pinned PySaiyanWeBoo (web_ui); report ownership stays in lab."""
 
+import json, re
 from pathlib import Path
-import json
-import re
 
-import web_ui as ui  # requirements-pages.txt pins the commit; web-ui-assets.lock.json records it
+import web_ui as ui
 
 ROOT = Path(__file__).resolve().parents[1]
 

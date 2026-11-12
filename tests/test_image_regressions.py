@@ -1,10 +1,6 @@
 """Decode exported images independently, including real PNG filter encodings."""
-import io
+import io, struct, subprocess, sys, zlib
 from pathlib import Path
-import struct
-import subprocess
-import sys
-import zlib
 
 import pytest
 

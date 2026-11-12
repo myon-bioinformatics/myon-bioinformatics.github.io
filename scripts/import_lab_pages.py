@@ -1,12 +1,7 @@
 """Import an explicitly supplied trusted lab public export, never raw test logs."""
 from __future__ import annotations
-import argparse
-from datetime import datetime, timezone
-import hashlib
-import json
-from pathlib import Path
-import re
-import sys
+import argparse, hashlib, json, re, sys
+from datetime import datetime, timezone; from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lab_shared_ui import apply_shared_navigation, presentation_identity
@@ -84,8 +79,13 @@ def import_export(source: Path, destination: Path = DESTINATION) -> dict:
     return manifest
 
 
-if __name__ == '__main__':
+def main(argv=None):
+    argv = sys.argv[1:] if argv is None else list(argv)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source', type=Path, required=True, help='trusted extracted lab _site public export')
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     import_export(args.source)
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
