@@ -44,8 +44,10 @@ jobs:
           set -euo pipefail
           python -S .vendor-sync-tools/vendor_sync.py check --manifest vendor.lock.json
           python -S .vendor-sync-tools/vendor_sync.py recreate --manifest vendor.lock.json
+      - name: Install pinned browser asset generator
+        run: uv pip install -r requirements-pages.txt
       - name: Verify generated browser asset hashes
         run: |
-          python -S scripts/build_web_ui_assets.py --output "$RUNNER_TEMP/web-ui-assets"
-          python -S scripts/build_web_ui_assets.py --output "$RUNNER_TEMP/web-ui-assets-repeat"
+          python scripts/build_web_ui_assets.py --output "$RUNNER_TEMP/web-ui-assets"
+          python scripts/build_web_ui_assets.py --output "$RUNNER_TEMP/web-ui-assets-repeat"
           diff -r "$RUNNER_TEMP/web-ui-assets" "$RUNNER_TEMP/web-ui-assets-repeat"

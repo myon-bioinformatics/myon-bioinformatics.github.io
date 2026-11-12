@@ -110,6 +110,33 @@ the canonical shape using [docs/SSOT.md](docs/SSOT.md). Catalog membership
 comes from `api/repos.json`. There is no pinned-repository generator and no
 scheduled card-update workflow.
 
+## 🎞️ Browser evidence
+
+![Portfolio search, tag filter, four display modes, and the lab tools in Chromium](docs/evidence/browser.gif)
+
+🗓️ 2026-11-07 · 🧭 Chromium 153 · 🐧 Linux · receipt [`docs/evidence/browser.json`](docs/evidence/browser.json)
+
+| 🧪 Suite | ✅ | ⏭️ | 📝 |
+| --- | ---: | ---: | --- |
+| Playwright Test, generated site (`playwright.generated.config.js`) | 91 | 1 | |
+| Playwright Test, source tree (`playwright.config.js`) | 90 | 2 | |
+| `pytest tests` | 105 | 0 | +1 local-only: Python/Node browser path differed because this machine aliases Chromium revisions |
+| `tools/portable_playwright.py` / `.mjs` (project catalog) | 11 + 11 | | |
+| 🎞️ evidence GIF shots | 9 | | |
+
+🌐 Avatars and badges are external and were refused (listed per shot in the receipt). `/mcp-toolcall-lab/execution/assets/…` is served by the mcp-toolcall-lab Pages site, so it is allowed rather than counted as a 404.
+🔄 `tools/mcp-toolcall-lab/` is the lab's public export re-imported from its `main` (`2e581d2c`); the earlier copy was a 2026-10-24 branch build.
+📦 The shared Web UI is one pinned git dependency (`requirements-pages.txt` → PySaiyanWeBoo); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated asset under `tools/vendor/web-ui/`, and `uv run --locked python scripts/build_web_ui_assets.py --refresh-lock` moves them together. Keep the same full commit in `[tool.uv.sources]` in `pyproject.toml`, run `uv lock`, and sync before refreshing. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
+
+🔁 Re-record (after building `.generated-site` as in CI; `$WEBUI` is a PySaiyanWeBoo checkout at `adb23d7`):
+
+```sh
+uv run --project ../BrowserTestKit --group pages --group browser python ../BrowserTestKit/tools/evidence_gif.py docs/evidence/browser.gif --serve .generated-site \
+  --map "https://cdn.jsdelivr.net/gh/myon-bioinformatics/web-ui@adb23d7ba6ea94672b76457573f6655a081ee054=$WEBUI" \
+  --map "https://cdn.jsdelivr.net/gh/myon-bioinformatics/PySaiyanWeBoo@adb23d7ba6ea94672b76457573f6655a081ee054=$WEBUI" \
+  --plan docs/evidence/browser.json
+```
+
 ## 🧪 CI evidence
 
 The catalog refresh keeps its latest-Python-3 lane using setup-uv's `"3"`
@@ -165,7 +192,7 @@ To update, obtain a trusted lab `stub-pages-observations` artifact, extract its
 `_site/` public export, then run:
 
 ```sh
-python -S scripts/import_lab_pages.py --source /path/to/export/_site
+uv run --locked python scripts/import_lab_pages.py --source /path/to/export/_site
 uv run --locked pytest tests/test_portal_links.py tests/test_lab_publication.py
 ```
 
@@ -202,3 +229,17 @@ transparency, CRC/truncation errors, and pixel/decompression limits.
 See [standard-library discovery commands](docs/unittest-discovery.md) for
 validated `python -S -m unittest discover` recipes, filename/name filtering,
 and the boundary with the full pytest suite.
+
+### Shared asset generator entry points
+
+```sh
+uv run --locked python scripts/build_web_ui_assets.py --output /tmp/portfolio-site
+uv run --locked python scripts/build_web_ui_assets.py --refresh-lock
+uv run --locked python -c "from scripts.build_web_ui_assets import main; main(['--output', '/tmp/portfolio-site'])"
+```
+
+`main(argv=None)` uses process arguments when omitted and accepts an explicit argument
+list after import. Both `--output` and `--refresh-lock` may be supplied together.
+Normal generation verifies the installed git commit, dependency pin and all asset hashes
+before writing output. Refresh only accepts the installed commit specified in the pin;
+rendering or provenance failures leave the previous lock and checked-in assets intact.

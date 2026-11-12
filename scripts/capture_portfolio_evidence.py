@@ -8,8 +8,6 @@ multi-frame evidence montage image.
 import argparse, hashlib, json, sys
 from datetime import datetime, timezone; from pathlib import Path
 
-from playwright.sync_api import sync_playwright
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from record_demo import stitch_png_grid
@@ -31,6 +29,8 @@ TARGET_ROUTES = [
 
 
 def capture_evidence(base_url: str = 'http://localhost:8080', output_dir: str | Path = 'test-results/evidence') -> Path:
+    from playwright.sync_api import sync_playwright
+
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -108,12 +108,12 @@ def capture_evidence(base_url: str = 'http://localhost:8080', output_dir: str | 
     return out_dir
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description='Capture screenshots and evidence montage for all sub-sites.')
     parser.add_argument('--base-url', default='http://localhost:8080', help='Base URL of running server')
     parser.add_argument('-o', '--output', default='test-results/evidence', help='Output evidence directory')
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     out = capture_evidence(base_url=args.base_url, output_dir=args.output)
     print(f'Captured evidence for {len(TARGET_ROUTES)} sub-sites in {out}')
 

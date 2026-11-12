@@ -93,13 +93,13 @@ def create_apng(frame_paths: list[str | Path], output_path: str | Path,
     return path
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('frames', nargs='+')
     parser.add_argument('-o', '--output', required=True)
     parser.add_argument('-d', '--delay', type=int, default=500)
     parser.add_argument('-l', '--loops', type=int, default=0)
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     try:
         create_apng(args.frames, args.output, args.delay, args.loops)
     except (ValueError, OSError) as error:

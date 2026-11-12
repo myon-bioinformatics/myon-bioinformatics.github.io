@@ -36,11 +36,8 @@ def test_root_vendor_lock_agrees_with_html_import_lock() -> None:
 
 @pytest.mark.parametrize("major", [24, 25])
 @pytest.mark.parametrize("explicit", [False, True])
-def test_vendored_web_ui_reports_rejected_node_version(monkeypatch, major, explicit):
-    path = ROOT / "tools/vendor/web-ui/web_ui.py"
-    spec = importlib.util.spec_from_file_location("vendored_web_ui_diagnostics", path)
-    ui = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(ui)
+def test_pinned_web_ui_reports_rejected_node_version(monkeypatch, major, explicit):
+    import web_ui as ui  # the pinned PySaiyanWeBoo from requirements-pages.txt
     launcher = ui._node_launch_module()
     message = f"node_launch: Node must be 26 or newer (found {major})"
     if explicit:

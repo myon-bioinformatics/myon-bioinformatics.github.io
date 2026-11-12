@@ -37,3 +37,16 @@ def test_browser_lane_installs_locked_python_capture_dependencies():
     groups = tomllib.loads((ROOT / 'pyproject.toml').read_text())['dependency-groups']
     assert any(isinstance(item, str) and item.startswith('playwright>=') for item in groups['browser'])
     assert 'scripts/capture_portfolio_evidence.py' in (ROOT / 'tests/capture-evidence.spec.js').read_text()
+
+
+def test_vendor_asset_checks_use_installed_pinned_generator():
+    workflow = (ROOT / ".github/workflows/vendor-lock.yml").read_text(encoding="utf-8")
+    install = "uv pip install -r requirements-pages.txt"
+    generate = "python scripts/build_web_ui_assets.py --output"
+    assert "activate-environment: true" in workflow
+    assert workflow.index(install) < workflow.index(generate)
+    assert workflow.count(generate) == 2
+    assert "python -S scripts/build_web_ui_assets.py" not in workflow
+    assert 'diff -r "$RUNNER_TEMP/web-ui-assets" "$RUNNER_TEMP/web-ui-assets-repeat"' in workflow
+    assert "python -S .vendor-sync-tools/vendor_sync.py check" in workflow
+    assert "python -S .vendor-sync-tools/vendor_sync.py recreate" in workflow

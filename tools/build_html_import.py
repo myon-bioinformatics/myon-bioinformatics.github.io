@@ -1,4 +1,4 @@
-"""Generate the static tool with the exact-pinned web-ui wrapper. No visitor input."""
+"""Generate the static tool with the exact-pinned PySaiyanWeBoo wrapper. No visitor input."""
 
 from pathlib import Path
 import sys
@@ -12,8 +12,11 @@ finally:
     if sys.path and sys.path[0] == _scripts:
         sys.path.pop(0)
 
-ui = load_module('web_ui', 'tools/vendor/web-ui/web_ui.py')
+import web_ui as ui  # noqa: E402  the pinned PySaiyanWeBoo (requirements-pages.txt)
+
 nav = load_module('portfolio_nav', 'scripts/portfolio_nav.py')
+# The generated shared stylesheets, as tools/vendor/web-ui/ publishes them (web-ui-assets.lock.json).
+SHARED_STYLESHEETS = tuple(f'../vendor/web-ui/css/{name}.css' for name in ('tokens', 'base', 'components', 'themes/modern'))
 
 BODY = '''<main class="ui-page">
 <h1>📄 HTML文書取込</h1>
@@ -54,7 +57,7 @@ def generate():
         title='HTML文書取込',
         trusted_html=BODY.replace("__SOURCE_LINK__", ui.source_link("source-url")),
         css=CSS,
-        stylesheets=ui.shared_stylesheets('../vendor/web-ui'),
+        stylesheets=SHARED_STYLESHEETS,
         scripts=('./app.mjs',),
     )
     csp = (

@@ -13,15 +13,14 @@ finally:
 
 
 def test_load_module_relative_path():
-    web_ui = load_module('test_web_ui', 'tools/vendor/web-ui/web_ui.py')
-    assert hasattr(web_ui, 'render_document')
-    assert hasattr(web_ui, 'adopt_document')
+    pillow_min = load_module('test_pillow_min', 'tools/vendor/ironmate/pillow_min.py')
+    assert hasattr(pillow_min, 'paeth')
 
 
 def test_load_module_absolute_path():
-    abs_path = ROOT / 'tools/vendor/web-ui/web_ui.py'
-    web_ui = load_module('test_web_ui_abs', abs_path)
-    assert hasattr(web_ui, 'render_document')
+    abs_path = ROOT / 'tools/vendor/lab/html_snapshot.py'
+    html_snapshot = load_module('test_html_snapshot_abs', abs_path)
+    assert hasattr(html_snapshot, 'Parser')
 
 
 def test_load_module_not_found():

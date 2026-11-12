@@ -1,15 +1,14 @@
 {
-  "schema": "web-ui-generated/1",
-  "generator": "tools/vendor/web-ui-generator/web_ui.py",
-  "commit": "b3afe1cf5db6ab58e9b1dc77dce3fa62dd1d1a44",
-  "sha256": "db5f6a6d1a555d1cc425e2571cc9b07f9fdf410b5d5997d31497048cd8d0f067",
+  "schema": "web-ui-generated/2",
+  "generator": "pysaiyanweboo (requirements-pages.txt)",
+  "commit": "f624d9364017b7e2da7f797817dfba2a8d9adb14",
   "outputs": {
-    "tools/vendor/web-ui/css/base.css": "c43830acb13f5b34b6140163289d9cc7445bfbd3bba94b01ec4e89ac2c1f6b79",
-    "tools/vendor/web-ui/css/components.css": "f6dc71fe117ab9f0fdaf538395781b61fb86a7be0bfca9e334ee22217b537c26",
-    "tools/vendor/web-ui/css/themes/modern.css": "3fd44c840b4648cd248b58dfd96e1b9da8fe71ea071ede2fcef51c11378b33b9",
-    "tools/vendor/web-ui/css/tokens.css": "092f2f9332cc50b2b96416808285e5d487e4070c8c20f21b9400e963636aa58d",
+    "tools/vendor/web-ui/css/base.css": "3326d1b1911bea03fa3b51253777a87483cc3b09c44d8a2a736aee5d2f95f07c",
+    "tools/vendor/web-ui/css/components.css": "9cc16208581d082d6498292b506e623ce2bb1d8f6d5dd94a0c45615ae90d6964",
+    "tools/vendor/web-ui/css/themes/modern.css": "6e937cad85ab0aaf85b7a7c6f6d28b0e205c49a82ac9767e9125a504583515ac",
+    "tools/vendor/web-ui/css/tokens.css": "f349bc22fd23b3b48cee388e42879d7364abf5d42bb4365c9411668186598973",
     "tools/vendor/web-ui/js/navigation.js": "b748512a224685c732db837ebe0738c647c5a8c512f238d75fbc954c1c0a5f35",
-    "tools/vendor/web-ui/js/ui.js": "b84766c2313bfa549bdf0b4827d2da19d22b5e2616a47f76ffde5409671151db",
+    "tools/vendor/web-ui/js/ui.js": "0b6068c83fd698e5c8d5ac03b95a48b84685aa801544843fc137a173659d502a",
     "tools/vendor/web-ui/js/controls.js": "e545885ed2f0e43937d2eb3a44bdb874e8c4f42e895a36a51498a0db20956e9d",
     "tools/vendor/web-ui/js/collection.js": "71ac00368ac709eed436a8a1a8882463356b49ae8d19d0c339ba5f522028ce9a"
   }

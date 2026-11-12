@@ -65,7 +65,7 @@ assert.equal(route.viewFromLocation('',''),'home');
 
 def test_shared_presentation_keeps_original_report_identity():
     meta=json.loads((PUBLIC/'publication.json').read_text())
-    assert meta['source_sha']=='e51e059accd1a78fb704162b3d11ccb701a34ec7'
+    assert meta['source_sha']=='2e581d2cc9683a94568d881a59f0a8e2d87475bb'
     assert meta['source_sha256']['pages-wiki.js']=='9d179d5a8baf64096227db9694b2cf11a1c486d59cf5984444a29a563fd187f5'
     assert meta['source_sha256']['pages-pixiv.js']=='b44157ffc92d6bdcee5d9a10e575ae0fc6f21f91bbbe28776bcbeda48956a8cb'
     assert meta['presentation']['owner']=='myon-bioinformatics/PySaiyanWeBoo'
