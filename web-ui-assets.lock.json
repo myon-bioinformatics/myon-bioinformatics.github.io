@@ -11,5 +11,12 @@
     "tools/vendor/web-ui/js/ui.js": "86ba4a4d68fab199af5db9d884d930e1ba7334da973afb865bbc9f13040d43f3",
     "tools/vendor/web-ui/js/controls.js": "e545885ed2f0e43937d2eb3a44bdb874e8c4f42e895a36a51498a0db20956e9d",
     "tools/vendor/web-ui/js/collection.js": "71ac00368ac709eed436a8a1a8882463356b49ae8d19d0c339ba5f522028ce9a"
+  },
+  "pages": {
+    "tools/demos/index.html": "4407c4820d6120fc2d4887c397c7fa7d3c423aa71329771302037b38e151faac",
+    "tools/demos/mcp-stub.html": "bc675fcf83fb6140d3cb3306598c9b49a83971624e1850332e6cec0861463f76",
+    "tools/demos/api-stub.html": "633cae1b1464dc1c74488abe688c3d4dbdecdf17b7f97f91e380ae1a8a60bdf8",
+    "tools/demos/mcp-lab.html": "432f0eda52019965cfc3dec43ab2bb7422676c026baf13a5b1329d760dac961a",
+    "tools/demos/test-report.html": "5c834ebae8bfe4a09519ecd496032bbf104541760086132d8f30434593c74472"
   }
 }

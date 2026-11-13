@@ -220,7 +220,7 @@ def test_checked_in_copies_match_the_lock_and_the_generator(tmp_path):
     lock = json.loads((ROOT / 'web-ui-assets.lock.json').read_text())
     for name, data in payload.items():
         assert (ROOT / name).read_bytes() == data, name           # tools/vendor/web-ui/ is the generated output, nothing older
-        assert hashlib.sha256(data).hexdigest() == lock['outputs'][name]
+        assert hashlib.sha256(data).hexdigest() == {**lock['outputs'], **lock['pages']}[name]   # assets and the demo pages
     assets.build(tmp_path)
     for name, data in payload.items():
         assert (tmp_path / name).read_bytes() == data
@@ -291,6 +291,7 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     (root / 'scripts').mkdir(parents=True)
     shutil.copyfile(ROOT / 'requirements-pages.txt', root / 'requirements-pages.txt')
     shutil.copyfile(ROOT / 'scripts/build_web_ui_assets.py', root / 'scripts/build_web_ui_assets.py')
+    shutil.copyfile(ROOT / 'scripts/portfolio_nav.py', root / 'scripts/portfolio_nav.py')   # the demos get the way back
     output = tmp_path / 'cli-output'
     result = subprocess.run([sys.executable, str(root / 'scripts/build_web_ui_assets.py'),
                              '--refresh-lock', '--output', str(output)], capture_output=True, text=True)

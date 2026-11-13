@@ -4,7 +4,10 @@ The generator is the ``pysaiyanweboo`` module installed from ``requirements-page
 dependency pinned by commit). ``web-ui-assets.lock.json`` records that commit and the
 SHA-256 of every output, so a build fails closed when the installed module is not the
 pinned commit or when its output drifted from the lock. ``--refresh-lock`` rewrites the
-lock and the checked-in copies under ``tools/vendor/web-ui/`` after the pin moves.
+lock and the checked-in copies under ``tools/vendor/web-ui/`` and ``tools/demos/`` after the pin moves.
+
+The demos are PySaiyanWeBoo's stubs and mocks (MCP / API stubs, an in-page MCP server, a JUnit reader), published here
+with the portfolio's way back, shortcut label and icons.
 """
 from __future__ import annotations
 
@@ -12,6 +15,7 @@ import argparse
 import hashlib
 import json
 import re
+import sys
 import tempfile
 from pathlib import Path
 
@@ -21,6 +25,14 @@ ASSETS = ('css/base.css', 'css/components.css', 'css/themes/modern.css',
           'css/tokens.css', 'js/navigation.js', 'js/ui.js', 'js/controls.js',
           'js/collection.js')
 DISTRIBUTION = 'pysaiyanweboo'
+DEMO_BASE = 'tools/demos/'
+# 🧰 name -> (how pysaiyanweboo builds it, shortcut label, title, summary): the only list of demos.
+DEMOS = {
+    'mcp-stub': (lambda ui: ui.stub_document(ui.EXAMPLE_STUBS['mcp']), '🤖 MCP stub', 'MCP stub', '通信しない MCP のスタブ：ツール名を入れて結果と証跡を見る'),
+    'api-stub': (lambda ui: ui.stub_document(ui.EXAMPLE_STUBS['api']), '🔁 API stub', 'API stub', '通信しない API のスタブ：パスを送って結果と証跡を見る'),
+    'mcp-lab': (lambda ui: ui.mcp_document(), '🔌 MCP試験', 'MCP lab', 'ページ内で動く MCP サーバーのモック：新旧の protocol、PKCE、ヘッダー名、Bearer、OAuth メタデータ'),
+    'test-report': (lambda ui: ui.report_document(), '🧾 JUnit', 'Test report', 'JUnit の結果を貼るか開いて読み、前回と比べて新規・再発・解消を分ける'),
+}
 
 
 def installed_commit(distribution: str = DISTRIBUTION) -> str:
@@ -64,6 +76,23 @@ def render(ui) -> dict[str, bytes]:
     return result
 
 
+def render_demos(ui) -> dict[str, bytes]:
+    """Every demo page, plus their catalog as tools/demos/index.html, keyed by published path (two levels below the site root)."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        import portfolio_nav as nav
+    finally:
+        sys.path.pop(0)
+    result = {DEMO_BASE + 'index.html': nav.add_home_label(nav.add_back_nav(ui.catalog_document({
+        'schema': 'web-ui-catalog/1', 'title': '🧰 Demos',
+        'description': 'PySaiyanWeBoo が Python で生成したスタブとモック。どれも通信せず、このページの中で動きます。',
+        'items': [{'id': name, 'title': title, 'summary': summary, 'links': [{'label': 'Open →', 'href': f'./{name}.html'}]}
+                  for name, (_, _, title, summary) in DEMOS.items()]})), '🧰 Demos', icons_from='../../').encode('utf-8')}
+    for name, (build, label, _, _) in DEMOS.items():
+        result[DEMO_BASE + name + '.html'] = nav.add_home_label(nav.add_back_nav(build(ui)), label, icons_from='../../').encode('utf-8')
+    return result
+
+
 def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str, bytes]:
     lock = json.loads((root / 'web-ui-assets.lock.json').read_text(encoding='utf-8'))
     if lock['schema'] != 'web-ui-generated/2':
@@ -74,13 +103,19 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
     if set(lock['outputs']) != {ASSET_BASE + name for name in ASSETS}:
         raise ValueError('generated output paths differ from public URL contract')
+    if set(lock.get('pages', {})) != {DEMO_BASE + 'index.html'} | {DEMO_BASE + name + '.html' for name in DEMOS}:
+        raise ValueError('generated page paths differ from the demo list')
     if ui is None:
         import pysaiyanweboo as ui
     result = render(ui)
     for target, data in result.items():
         if hashlib.sha256(data).hexdigest() != lock['outputs'][target]:
             raise ValueError(f'generated asset hash mismatch: {target}')
-    return result
+    pages = render_demos(ui)
+    for target, data in pages.items():
+        if hashlib.sha256(data).hexdigest() != lock['pages'][target]:
+            raise ValueError(f'generated page hash mismatch: {target}')
+    return {**result, **pages}
 
 
 def validate_output(output: Path, root: Path = ROOT) -> None:
@@ -106,15 +141,16 @@ def refresh_lock(root: Path = ROOT) -> dict:
     import pysaiyanweboo as ui
     commit = installed_commit()
     verify_pin(commit, root)
-    payload = render(ui)
+    payload, pages = render(ui), render_demos(ui)
     lock = {
         'schema': 'web-ui-generated/2',
         'generator': 'pysaiyanweboo (requirements-pages.txt)',
         'commit': commit,
         'outputs': {target: hashlib.sha256(data).hexdigest() for target, data in payload.items()},
+        'pages': {target: hashlib.sha256(data).hexdigest() for target, data in pages.items()},
     }
     (root / 'web-ui-assets.lock.json').write_text(json.dumps(lock, indent=2) + '\n', encoding='utf-8')
-    for target, data in payload.items():
+    for target, data in {**payload, **pages}.items():
         (root / target).parent.mkdir(parents=True, exist_ok=True)
         (root / target).write_bytes(data)
     return lock
@@ -124,7 +160,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, help='write the generated assets under this directory')
     parser.add_argument('--refresh-lock', action='store_true',
-                        help='rewrite web-ui-assets.lock.json and tools/vendor/web-ui/ from the installed generator')
+                        help='rewrite web-ui-assets.lock.json, tools/vendor/web-ui/ and tools/demos/ from the installed generator')
     args = parser.parse_args(argv)
     if args.output:
         validate_output(args.output)
