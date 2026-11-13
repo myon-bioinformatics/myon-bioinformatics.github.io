@@ -208,9 +208,9 @@
         "command": [
           "sh",
           "-c",
-          "W=$(python3 -S dragowing/vendor/aoi/scripts/fetch_module.py fetch markdown --version 3.11.3 --cache /tmp/cdn) && echo \"📦 $W\" && PYTHONPATH=$W python3 -S -m dragowing --results cycles/c001-chunichi/outputs --out /tmp/dragowing-out --overlap-backend stdlib && wc -c /tmp/dragowing-out/*.html && grep -o \"<h2>[^<]*\" /tmp/dragowing-out/index.html"
+          "python3 -c \"import markdown as m; print(m.__name__, m.__version__)\" && python3 -m dragowing --results cycles/c001-chunichi/outputs --out /tmp/dragowing-out --overlap-backend stdlib && wc -c /tmp/dragowing-out/*.html && grep -o \"<h2>[^<]*\" /tmp/dragowing-out/index.html"
         ],
-        "output": "📦 /tmp/cdn/markdown-3.11.3-py3-none-any.whl\n 165951 /tmp/dragowing-out/index.html\n2061809 /tmp/dragowing-out/propositions.html\n2227760 total\n<h2>得点順位 × 失点順位\n<h2>球団 × 年（\n<h2>条件集合の重なり",
+        "output": "markdown 3.11.3\n 165951 /tmp/dragowing-out/index.html\n2061809 /tmp/dragowing-out/propositions.html\n2227760 total\n<h2>得点順位 × 失点順位\n<h2>球団 × 年（\n<h2>条件集合の重なり",
         "exit": 0
       }
     }
