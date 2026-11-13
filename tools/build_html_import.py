@@ -59,13 +59,16 @@ def generate():
         css=CSS,
         stylesheets=SHARED_STYLESHEETS,
         scripts=('./app.mjs',),
+        # The portfolio icons, so a tab or a home-screen shortcut of this page shows them (img-src 'self' below).
+        favicon='../../assets/brand/favicon-32x32.png',
+        touch_icon='../../assets/brand/myon-profile-icon.png',
     )
     csp = (
         "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
-        "img-src 'none'; connect-src 'none'; frame-src 'none'; object-src 'none'; "
+        "img-src 'self'; connect-src 'none'; frame-src 'none'; object-src 'none'; "
         "base-uri 'none'; form-action 'none'"
     )
-    document = nav.add_back_nav(document)
+    document = nav.add_home_label(nav.add_back_nav(document), '📄 HTML取込')
     return document.replace('<head>', '<head><meta http-equiv="Content-Security-Policy" content="' + csp + '">', 1).replace('<html lang="en">', '<html lang="ja">')
 
 

@@ -74,6 +74,10 @@ jobs:
           python scripts/build_web_ui_assets.py --output .generated-site
       - name: Verify transferred browser tools
         run: npx playwright test --config playwright/generated.config.js
+      # 📱 Python Playwright (same Chromium revision as above): manifest, icons, start_url, tool-page shortcuts.
+      # Writes test-results/home-screen/home-screen-shortcut-<UTC>.gif, uploaded with the evidence below.
+      - name: Check home-screen shortcuts in Chromium
+        run: python -m pytest tests/test_site.py -k home_screen -q
       - name: Preserve screenshots and generated evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
