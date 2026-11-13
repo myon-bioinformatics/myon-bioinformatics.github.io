@@ -11,5 +11,23 @@
     "tools/vendor/web-ui/js/ui.js": "86ba4a4d68fab199af5db9d884d930e1ba7334da973afb865bbc9f13040d43f3",
     "tools/vendor/web-ui/js/controls.js": "e545885ed2f0e43937d2eb3a44bdb874e8c4f42e895a36a51498a0db20956e9d",
     "tools/vendor/web-ui/js/collection.js": "71ac00368ac709eed436a8a1a8882463356b49ae8d19d0c339ba5f522028ce9a"
+  },
+  "pages": {
+    "tools/demos/index.html": "4407c4820d6120fc2d4887c397c7fa7d3c423aa71329771302037b38e151faac",
+    "tools/demos/mcp-stub.html": "bc675fcf83fb6140d3cb3306598c9b49a83971624e1850332e6cec0861463f76",
+    "tools/demos/api-stub.html": "633cae1b1464dc1c74488abe688c3d4dbdecdf17b7f97f91e380ae1a8a60bdf8",
+    "tools/demos/mcp-lab.html": "432f0eda52019965cfc3dec43ab2bb7422676c026baf13a5b1329d760dac961a",
+    "tools/demos/test-report.html": "5c834ebae8bfe4a09519ecd496032bbf104541760086132d8f30434593c74472",
+    "tools/projects/search_seq_including_spaces.html": "1e5fc6d0e60e98a0635512ff837a94008a8eaa762a058d24695982e2778cf5aa",
+    "tools/projects/queryu.html": "9d8cf16f6a87e2ecd1395efcdb851e18ba61ce0e4794c828139f31e0f4f87d8a",
+    "tools/projects/blueprobe.html": "ab869a96f6d230a78c07e389f9b26618a5dbf23b8210f123e5ddc28937f63079",
+    "tools/projects/sakanalytics.html": "78ed5bd83b198af05434395bc91bb9b7189a6f1a0adc87fc67c37f1cdb938f7a",
+    "tools/projects/pythdragoras.html": "b79b76d6516d233aa44e1020f10df6988e8ca7b4999bbf10ab05407783e31539",
+    "tools/projects/dragowing.html": "e404a37e2de6b0634fdb4e3c66b0f42adf81d7bcf81c4399d13241407559b216",
+    "tools/projects/err-o-roadrunner.html": "1b474cb0723c606368248de2c6a5b6276b5ecac6d60c5dc69ca6898cc6313e35",
+    "tools/projects/nvd_nist_known_vulns.html": "a6eb216b99e7a119412efc80ec98239ce55fdc2d083cfe2e29a6b29631834402",
+    "tools/projects/browsertestkit.html": "7b9320eb852d0fe020d9384930992ee586e8e3e7f1a74d2f2c5f8e4af1ba4f7f",
+    "tools/projects/talkcompress.html": "5ccb95595021b145555143732ef47119827a23fa74d923296beb2a2f604f8fb8",
+    "tools/projects/index.html": "8482dddfb28e175d167f03de9c295d1f98053488f1c6a227462251370c8f80f0"
   }
 }

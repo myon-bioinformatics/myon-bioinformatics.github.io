@@ -137,6 +137,12 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
   --plan docs/evidence/browser.json
 ```
 
+📱🧰📚 Home-screen shortcuts, the demos (stubs and mocks) and the project pages with their recorded runs, in Chromium:
+
+![Portfolio home-screen manifest and icons, tile labels, start_url, the HTML import page, the demos and every project page with its recorded run, in Chromium at 392×840](docs/evidence/home-screen.gif)
+
+🗓️ 2026-11-13 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k home_screen` writes `test-results/home-screen/home-screen-shortcut-<UTC>.gif` (CI keeps it in the browser evidence artifact); copy the newest one to `docs/evidence/home-screen.gif` to update this.
+
 ## 🧪 CI evidence
 
 The catalog refresh keeps its latest-Python-3 lane using setup-uv's `"3"`

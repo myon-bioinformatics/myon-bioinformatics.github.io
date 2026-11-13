@@ -12,6 +12,22 @@ A mismatch fails the build before upload; there is no fallback to stale assets.
 `tools/vendor/web-ui/generated.lock.json` publishes this provenance beside the assets.
 The lab's `publication.json` separately identifies the imported report source.
 
+🧰 The same generator also builds `tools/demos/` (`DEMOS` in `scripts/build_web_ui_assets.py`): PySaiyanWeBoo's MCP / API
+stubs, its in-page MCP server and its JUnit reader, plus their catalog `index.html`. Each gets the portfolio back link,
+shortcut label and icons (`scripts/portfolio_nav.py`). Their SHA-256 values are under `pages` in the same lock, so
+`presentation_identity()` (the shared assets, `outputs`) is unchanged. `--refresh-lock` rewrites them with the assets.
+
+📚 `tools/projects/` is built the same way from the `showcase` of each `projects.json` entry: icon and media as
+`raw.githubusercontent.com` URLs at the recorded commit, and one recorded run (command, exit code, output). Rerun a
+command after moving its commit, then refresh:
+
+```sh
+uv run --locked python scripts/build_web_ui_assets.py --record Err-o-RoadRunner=../err-o-roadrunner --refresh-lock
+```
+
+`--record` refuses a checkout that is not at the showcase commit, and runs with only `PATH`, a temporary `HOME` and
+`LANG`, so no other variable of the recording machine reaches the page.
+
 ## Reproduce
 
 ```sh

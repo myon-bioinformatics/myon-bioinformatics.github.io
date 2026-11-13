@@ -23,14 +23,19 @@ def add_back_nav(page: str) -> str:
     raise ValueError('tool page has no <main> or <body> element')
 
 
-def add_home_label(page: str, label: str) -> str:
+def add_home_label(page: str, label: str, *, icons_from: str | None = None) -> str:
     """Name a home-screen shortcut of the page ``label`` (iOS reads apple-mobile-web-app-title, Chrome application-name).
 
-    A long <title> is cut off under the icon; replaces any earlier label, so it is idempotent.
+    A long <title> is cut off under the icon; replaces any earlier label, so it is idempotent. ``icons_from`` is the way
+    back to the site root (``'../../'``): it also links the portfolio's tab icon and home-screen icon, replacing any others.
     """
     page = re.sub(r'<meta\b[^>]*\bname=["\'](?:apple-mobile-web-app-title|application-name)["\'][^>]*>', '', page, flags=re.I)
     value = html.escape(label, quote=True)
     tags = f'<meta name="apple-mobile-web-app-title" content="{value}"><meta name="application-name" content="{value}">'
+    if icons_from is not None:
+        page = re.sub(r'<link\b[^>]*\brel=["\'](?:icon|apple-touch-icon)["\'][^>]*>', '', page, flags=re.I)
+        tags += (f'<link rel="icon" type="image/png" sizes="32x32" href="{icons_from}assets/brand/favicon-32x32.png">'
+                 f'<link rel="apple-touch-icon" sizes="170x170" href="{icons_from}assets/brand/myon-profile-icon.png">')
     # Right after <title>, the name it shortens, so steps that append to </head> (lab branding) keep their place.
     for anchor in ('</title>', '</head>'):
         if anchor in page:

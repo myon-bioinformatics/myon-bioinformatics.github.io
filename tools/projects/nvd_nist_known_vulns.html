@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="web_ui bbe5c0b0087f40ff3fffd53bec5111c2ba2d747d"><title>nvd_nist_known_vulns</title><meta name="apple-mobile-web-app-title" content="🛡️ NVD"><meta name="application-name" content="🛡️ NVD"><link rel="icon" type="image/png" sizes="32x32" href="../../assets/brand/favicon-32x32.png"><link rel="apple-touch-icon" sizes="170x170" href="../../assets/brand/myon-profile-icon.png"><style>@layer base,components,theme;
+/* css/tokens.css */
+:root{--ui-bg:#0d1117;--ui-panel:#101820;--ui-fg:#d1f7c4;--ui-muted:#8b949e;--ui-border:#58a6ff;--ui-accent:#7ee787;--ui-danger:#cf222e;--ui-radius:0;--ui-text:16px;--ui-space:1rem;--ui-max:960px;--ui-font:Meiryo,メイリオ,sans-serif;--ui-font-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+/* auto: dark (the :root palette) unless the browser prefers light, then the github-like palette. */
+body[data-ui-theme="auto"]{color-scheme:dark light}@media(prefers-color-scheme:light){body[data-ui-theme="auto"]{--ui-bg:#ffffff;--ui-panel:#f6f8fa;--ui-fg:#1f2328;--ui-muted:#59636e;--ui-border:#d0d7de;--ui-accent:#0969da}}
+/* Candidate themes, token-only: palettes, no theme files (see theme_palettes()). */
+body[data-ui-theme="green"]{--ui-bg:#edf0ec;--ui-panel:#ffffff;--ui-fg:#163b3b;--ui-muted:#546a61;--ui-border:#ccdcd4;--ui-accent:#126d66;--ui-danger:#a73528;--ui-radius:.5rem;color-scheme:light}
+body[data-ui-theme="red"]{--ui-bg:#f6eeee;--ui-panel:#fdfcfc;--ui-fg:#6c4141;--ui-muted:#7e6363;--ui-border:#d4bfbf;--ui-accent:#c43131;--ui-danger:#d02525;--ui-radius:.5rem;color-scheme:light}
+body[data-ui-theme="blue"]{--ui-bg:#eef1f6;--ui-panel:#fcfcfd;--ui-fg:#41526c;--ui-muted:#636e7e;--ui-border:#bfc7d4;--ui-accent:#316cc4;--ui-danger:#d02525;--ui-radius:.5rem;color-scheme:light}
+body[data-ui-theme="purple"]{--ui-bg:#fffbfe;--ui-panel:#f7f2fa;--ui-fg:#1c1b1f;--ui-muted:#49454f;--ui-border:#cac4d0;--ui-accent:#6750a4;--ui-danger:#b3261e;--ui-radius:.5rem;color-scheme:light}
+body[data-ui-theme="terminal"]{--ui-bg:#0a0e10;--ui-panel:#11171a;--ui-fg:#d5dee0;--ui-muted:#7c8a8d;--ui-border:#2b3436;--ui-accent:#5fd7a7;--ui-danger:#ff8080;--ui-radius:0;--ui-font:var(--ui-font-mono);color-scheme:dark}
+/* css/base.css */
+@layer base{*{box-sizing:border-box}body{margin:0;background:var(--ui-bg);color:var(--ui-fg);font:var(--ui-text)/1.6 var(--ui-font)}pre,code,kbd,samp{font-family:var(--ui-font-mono)!important}.ui-page{max-width:var(--ui-max);margin:auto;padding:var(--ui-space)}a{color:inherit}.ui-print-only{display:none}@media print{body{background:#fff;color:#000}.ui-page{max-width:none;padding:0}.ui-no-print{display:none}.ui-print-only{display:block}a{text-decoration:none}}@media(prefers-reduced-motion:reduce){*,::before,::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}}
+/* css/components.css */
+@layer components{.ui-panel,.ui-card{background:var(--ui-panel);border:1px solid var(--ui-border);padding:var(--ui-space);margin:var(--ui-space) 0;border-radius:var(--ui-radius)}.ui-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.75rem}.ui-tag{display:inline-block;border:1px solid var(--ui-border);padding:.1rem .4rem}.ui-button,.ui-input,.ui-elements button,.ui-elements select,.ui-elements textarea,.ui-elements input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file]){font:inherit;background:var(--ui-panel);color:var(--ui-fg);border:1px solid var(--ui-border);padding:.6rem;border-radius:var(--ui-radius)}.ui-button,.ui-elements button{cursor:pointer}.ui-button:hover,.ui-elements button:hover{border-color:var(--ui-accent)}.ui-button:disabled,.ui-elements button:disabled{opacity:.4;cursor:default}.ui-elements input[type=range],.ui-elements input[type=checkbox],.ui-elements input[type=radio]{accent-color:var(--ui-accent)}.ui-elements label{color:var(--ui-muted)}.ui-muted{color:var(--ui-muted)}.ui-output{font:inherit;white-space:pre-wrap;overflow:auto;background:#d8dee4;color:#161b22;border:1px solid #8c959f;border-radius:4px;padding:.75rem}pre code,.ui-output code{font-family:inherit;color:inherit}pre.ui-output code{background:transparent}@media(max-width:480px){.ui-page{padding:.75rem}.ui-grid{grid-template-columns:1fr}.ui-card,.ui-panel{margin:.75rem 0;padding:.75rem}}.ui-lightbox{border:1px solid var(--ui-border);background:var(--ui-panel);color:var(--ui-fg);padding:1rem;max-width:min(96vw,960px);max-height:96vh;border-radius:var(--ui-radius)}.ui-lightbox::backdrop{background:rgba(0,0,0,.72)}.ui-lightbox img{display:block;max-width:100%;max-height:calc(96vh - 8rem);margin:auto}.ui-lightbox-bar{display:flex;gap:.5rem;justify-content:space-between;margin-top:.75rem}body:has(.ui-lightbox[open]){overflow:hidden}.ui-table,.ui-elements table{border-collapse:collapse;width:100%}.ui-table th,.ui-table td,.ui-elements th,.ui-elements td{border-bottom:1px solid var(--ui-border);padding:.25rem .5rem;text-align:left;vertical-align:top;overflow-wrap:anywhere}.ui-table th,.ui-elements th{color:var(--ui-muted);font-weight:500}.ui-table caption,.ui-elements caption{text-align:left;color:var(--ui-muted);padding:.25rem 0}.ui-pass{color:var(--ui-accent)}.ui-fail{color:var(--ui-danger)}.ui-changed{background:color-mix(in srgb,var(--ui-accent) 18%,transparent)}.ui-tag.ui-pass{border-color:var(--ui-accent)}.ui-tag.ui-fail{border-color:var(--ui-danger)}}
+/* css/themes/modern.css */
+@layer theme{body[data-ui-theme="modern"]{color-scheme:dark}body[data-ui-theme="modern"] .ui-title::before,body[data-ui-theme="modern"] .ui-card>h2::before{content:"> ";color:var(--ui-accent)}body[data-ui-theme="modern"] .ui-panel,body[data-ui-theme="modern"] .ui-card{background:var(--ui-panel);box-shadow:4px 4px 0 rgba(88,166,255,.16)}body[data-ui-theme="modern"] .ui-tag:not(.ui-pass,.ui-fail)::before{content:"#";color:var(--ui-accent)}}
+.ui-kv{display:grid;grid-template-columns:max-content 1fr;gap:.25rem var(--ui-space)}.ui-kv dt{color:var(--ui-muted)}.ui-kv dd{margin:0}.ui-badges .ui-tag{margin-right:.25rem}</style><style>.ui-title,.ui-kv dd{overflow-wrap:anywhere}</style></head><body data-ui-theme="modern"><main class="ui-page"><nav class="portfolio-back" aria-label="Portfolio"><a href="../../index.html#tools" data-testid="portfolio-back">← Tools &amp; Demos</a></nav><img src="https://raw.githubusercontent.com/myon-bioinformatics/nvd_nist_known_vulns/405fe8b5aeb221bde069aca31fd28ecfc4959023/docs/brand/icon.png" width="80" height="80" alt=""><h1 class="ui-title">nvd_nist_known_vulns</h1><p>Single-file, standard-library client for the NVD CVE API 2.0: fetches known vulnerabilities for CPE 2.3 names and emits deterministic JSON Lines. CI-tested on Python 3.9–3.14.</p><section class="ui-panel"><h2>🎞️</h2><img src="https://raw.githubusercontent.com/myon-bioinformatics/nvd_nist_known_vulns/405fe8b5aeb221bde069aca31fd28ecfc4959023/docs/images/nvd_nist_known_vulns-concept.png" alt="CPE inputs pass through NVD CVE API queries and CVSS processing to JSONL output, with offline tests and CI evidence."></section><section class="ui-panel"><h2>▶ 実行例</h2><dl class="ui-kv"><dt>📦</dt><dd>myon-bioinformatics/nvd_nist_known_vulns @ 405fe8b</dd><dt>⌨️</dt><dd>python3 -S nvd_nist_known_vulns.py --help</dd><dt>↩️</dt><dd>exit 0</dd></dl><pre class="ui-output">usage: nvd_nist_known_vulns.py [-h] [--silent] [--config CONFIG] [--cpe CPES]
+                               [--output OUTPUT] [--timeout SECONDS]
+                               [--format {text,json}]
+                               [--cvss-v3-severity {LOW,MEDIUM,HIGH,CRITICAL}]
+                               [--cvss-v3-metrics CVSS_V3_METRICS]
+
+Fetch known CVEs from the NVD CVE API 2.0 for CPE 2.3 names and write nvd-cve-summary/1 JSONL.
+
+options:
+  -h, --help            show this help message and exit
+  --silent              Do not print per-CPE progress lines on stderr. Errors
+                        are still reported.
+  --config CONFIG       UTF-8 INI file with a [cpeName] section, used only
+                        when --cpe is omitted. Default: config.ini. A missing,
+                        unreadable, invalid, or empty CPE list exits 2.
+  --cpe CPES            One CPE 2.3 name to query. Repeat for multiple names.
+                        Values are not split on commas. When any --cpe is
+                        present, --config is not read.
+  --output OUTPUT       Write JSONL to this UTF-8 path, replacing it only
+                        after a finished run. Default: stdout. A failed run
+                        leaves an existing file unchanged. An output path that
+                        cannot be published exits 1.
+  --timeout SECONDS     Positive finite per-request socket timeout in seconds.
+                        Default: 30.
+  --format {text,json}  Failure report on stderr. text (default) prints error:
+                        lines for input and runtime failures. json prints one
+                        nvd-cli-error/1 object and no progress lines. Success
+                        output is always JSONL.
+  --cvss-v3-severity {LOW,MEDIUM,HIGH,CRITICAL}
+                        Optional NVD cvssV3Severity filter on CVE API 2.0:
+                        LOW, MEDIUM, HIGH, or CRITICAL. Filtered output uses
+                        filtered_cve records.
+  --cvss-v3-metrics CVSS_V3_METRICS
+                        Optional NVD cvssV3Metrics filter: a partial or full
+                        CVSS v3 vector. Blank values are rejected. The value
+                        is trimmed and uppercased.
+
+exit status:
+  0  success, including a CPE query that returns zero CVEs
+  1  the NVD request failed, or --output could not be published
+  2  usage or local input error (flags, config file, or CPE list)
+
+--format json writes one nvd-cli-error/1 object to stderr on failure and
+omits progress lines. Success records stay JSONL on stdout or --output.
+--format text (the default) writes error: lines for input and runtime
+failures. Flag mistakes also include the usage summary.</pre></section><p class="ui-links"><a href="https://github.com/myon-bioinformatics/nvd_nist_known_vulns">🐙 GitHub</a> · <a href="https://github.com/myon-bioinformatics/nvd_nist_known_vulns#readme">📄 README</a></p><p class="ui-badges"><span class="ui-tag">security</span> <span class="ui-tag">cve</span> <span class="ui-tag">cli</span></p></main></body></html>

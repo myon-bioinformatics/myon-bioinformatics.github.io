@@ -220,7 +220,7 @@ def test_checked_in_copies_match_the_lock_and_the_generator(tmp_path):
     lock = json.loads((ROOT / 'web-ui-assets.lock.json').read_text())
     for name, data in payload.items():
         assert (ROOT / name).read_bytes() == data, name           # tools/vendor/web-ui/ is the generated output, nothing older
-        assert hashlib.sha256(data).hexdigest() == lock['outputs'][name]
+        assert hashlib.sha256(data).hexdigest() == {**lock['outputs'], **lock['pages']}[name]   # assets and the demo pages
     assets.build(tmp_path)
     for name, data in payload.items():
         assert (tmp_path / name).read_bytes() == data
@@ -291,6 +291,8 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     (root / 'scripts').mkdir(parents=True)
     shutil.copyfile(ROOT / 'requirements-pages.txt', root / 'requirements-pages.txt')
     shutil.copyfile(ROOT / 'scripts/build_web_ui_assets.py', root / 'scripts/build_web_ui_assets.py')
+    shutil.copyfile(ROOT / 'scripts/portfolio_nav.py', root / 'scripts/portfolio_nav.py')   # the demos get the way back
+    shutil.copyfile(ROOT / 'projects.json', root / 'projects.json')                       # the project pages come from it
     output = tmp_path / 'cli-output'
     result = subprocess.run([sys.executable, str(root / 'scripts/build_web_ui_assets.py'),
                              '--refresh-lock', '--output', str(output)], capture_output=True, text=True)
@@ -402,3 +404,29 @@ class ReposApiPythonSelectionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_record_reruns_the_showcase_at_its_commit_with_a_minimal_environment(tmp_path, monkeypatch):
+    import subprocess
+    checkout = tmp_path / 'tool'
+    checkout.mkdir()
+    (checkout / 'show.py').write_text('import os, sys\nprint(sorted(os.environ))\nsys.exit(3)\n')
+    git = ['git', '-C', str(checkout), '-c', 'user.name=t', '-c', 'user.email=t@example.invalid']
+    subprocess.run(['git', 'init', '-q', str(checkout)], check=True)
+    subprocess.run(git + ['add', 'show.py'], check=True)
+    subprocess.run(git + ['commit', '-q', '-m', 'x'], check=True)
+    head = subprocess.run(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], capture_output=True, text=True, check=True).stdout.strip()
+    root = tmp_path / 'site'
+    root.mkdir()
+    entry = {'name': 'Tool', 'desc': 'd', 'url': 'https://github.com/o/Tool',
+             'showcase': {'label': 'T', 'repository': 'o/Tool', 'commit': '0' * 40, 'run': {'command': [sys.executable, '-S', 'show.py']}}}
+    (root / 'projects.json').write_text(json.dumps([entry]))
+    with pytest.raises(ValueError, match='showcase records 0000000'):
+        assets.record('Tool', checkout, root)                    # 📌 only the commit the page names
+    entry['showcase']['commit'] = head
+    (root / 'projects.json').write_text(json.dumps([entry]))
+    monkeypatch.setenv('SECRET_LOOKING_NAME', 'value')
+    run = assets.record('Tool', checkout, root)
+    assert run['exit'] == 3
+    assert run['output'] == "['HOME', 'LANG', 'PATH']"            # 🔒 no other variable of this machine
+    assert json.loads((root / 'projects.json').read_text())[0]['showcase']['run'] == run

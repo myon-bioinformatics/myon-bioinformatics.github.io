@@ -24,6 +24,12 @@ EXPECTED_PAGES = {
     "https://myon-bioinformatics.github.io/Ironmate/",
     "https://myon-bioinformatics.github.io/Ironmate/tools/",
     "https://myon-bioinformatics.github.io/Ironmate/slides/",
+    # Other repositories' Pages (each checked to load on 2026-11-13): a benchmark, the operations dashboard, usage guides.
+    "https://myon-bioinformatics.github.io/markdown/",
+    "https://myon-bioinformatics.github.io/markdown/guide.html",
+    "https://myon-bioinformatics.github.io/myon-bioinformatics/",
+    *(f"https://myon-bioinformatics.github.io/{name}/" for name in
+      ("Aoi", "NagoyAction", "FluidFullSpeedSimulation", "xprobe", "gh_identity", "yourself", "cli_args", "ascii_artist")),
 }
 
 class LinkParser(HTMLParser):
@@ -103,7 +109,9 @@ def test_lab_pages_are_hosted_by_portfolio():
     assert (ROOT / "tools/mcp-toolcall-lab/index.html").is_file()
 
 
-TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp-toolcall-lab/index.html", "tools/mcp-toolcall-lab/repository-diagnostics.html")
+# The demos (DEMOS) and project pages (projects.json showcases) come from scripts/build_web_ui_assets.py; they are tool pages too.
+TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp-toolcall-lab/index.html", "tools/mcp-toolcall-lab/repository-diagnostics.html",
+              *sorted(str(path.relative_to(ROOT)) for folder in ("demos", "projects") for path in (ROOT / "tools" / folder).glob("*.html")))
 
 
 def test_every_tool_page_has_the_same_back_link_first_in_main():
@@ -309,11 +317,29 @@ def test_home_screen_in_chromium_with_a_gif():
             page.wait_for_url(base + "index.html#tools")
             frames.append((page.screenshot(), "↩️ ← Tools & Demos → index.html#tools"))
 
+            # 🧰📚 Every demo and project page opens without a script error, keeps its own shortcut, shows the portfolio icons and has the way back.
+            demos = browser.new_page(viewport={"width": 392, "height": 840}, is_mobile=True, has_touch=True)
+            errors = []
+            demos.on("pageerror", lambda error: errors.append(str(error)))
+            demo_cdp = demos.context.new_cdp_session(demos)
+            for name in [n for n in TOOL_PAGES if n.startswith(("tools/demos/", "tools/projects/"))]:
+                demos.goto(base + name)
+                assert demo_cdp.send("Page.getAppManifest")["url"] == "", name
+                icons = demos.evaluate("""() => [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')].map(l => l.href)""")
+                assert demos.evaluate(load, icons) == ["32x32", "170x170"], name
+                assert demos.get_by_test_id("portfolio-back").get_attribute("href") == "../../index.html#tools", name
+                assert errors == [], (name, errors)
+                frames.append((demos.screenshot(), f"🧰 {demos.title()} · {parse_page(ROOT / name).metas['apple-mobile-web-app-title']}"))
+                run = demos.get_by_role("heading", name="▶ 実行例")
+                if run.count():                                     # ▶ the recorded run, on a frame of its own
+                    run.evaluate("heading => heading.scrollIntoView({block: 'start'})")
+                    frames.append((demos.screenshot(), f"▶ {demos.title()} · {demos.locator('.ui-kv dd').nth(1).text_content()}"[:120]))
+
             recorder = browser.new_page()
             recorder.set_content(ui.gif_recorder_document())
             recorder.evaluate("o => { window.rec = new UiGif.Recorder(o); }", {"width": 392, "height": 840, "caption": 32})
             recorder.evaluate("items => rec.add(items)", [{"png": base64.b64encode(png).decode("ascii"), "caption": caption,
-                                                           "ok": True, "delay": 1600} for png, caption in frames])
+                                                           "ok": True, "delay": 1200} for png, caption in frames])
             gif = base64.b64decode(recorder.evaluate("() => rec.encodeBase64({})")["gif"])
             browser.close()
     finally:
