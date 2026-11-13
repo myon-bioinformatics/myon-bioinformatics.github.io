@@ -12,7 +12,7 @@ finally:
     if sys.path and sys.path[0] == _scripts:
         sys.path.pop(0)
 
-import web_ui as ui  # noqa: E402  the pinned PySaiyanWeBoo (requirements-pages.txt)
+import pysaiyanweboo as ui  # noqa: E402  the pinned PySaiyanWeBoo (requirements-pages.txt)
 
 nav = load_module('portfolio_nav', 'scripts/portfolio_nav.py')
 # The generated shared stylesheets, as tools/vendor/web-ui/ publishes them (web-ui-assets.lock.json).
