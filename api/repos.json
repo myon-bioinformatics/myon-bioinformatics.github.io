@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-12T21:07:30Z",
+  "generatedAt": "2026-11-13T21:06:55Z",
   "owner": "myon-bioinformatics",
   "count": 44,
   "repos": [
@@ -21,8 +21,8 @@
         "sports-analytics",
         "statistics"
       ],
-      "stars": 1,
-      "updatedAt": "2026-11-12T08:32:42Z",
+      "stars": 2,
+      "updatedAt": "2026-11-13T11:21:11Z",
       "homepage": null,
       "readmeHeading": "Aoi",
       "readmeSummary": "📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/Aoi/) (GitHub Pages)",
@@ -542,8 +542,8 @@
         "python3",
         "tool-calling"
       ],
-      "stars": 1,
-      "updatedAt": "2026-11-11T10:02:08Z",
+      "stars": 2,
+      "updatedAt": "2026-11-13T11:21:13Z",
       "homepage": null,
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "**Explore what needs to run, what can be reused, and how to verify the difference.**",
@@ -592,7 +592,7 @@
       "name": "myon-bioinformatics.github.io",
       "url": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io",
       "description": "I create for showing you guys about me in detail. Thus, for begginers or recruiters or.., it may not be friendly😅 if it is, instead of this please check the introduction🫡",
-      "language": "JavaScript",
+      "language": "HTML",
       "topics": [
         "about-me",
         "github-pages",
@@ -600,7 +600,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-12T04:52:42Z",
+      "updatedAt": "2026-11-13T14:49:40Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -735,8 +735,8 @@
         "ui-components",
         "vanilla-js"
       ],
-      "stars": 1,
-      "updatedAt": "2026-11-12T12:51:01Z",
+      "stars": 2,
+      "updatedAt": "2026-11-13T11:21:14Z",
       "homepage": "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
       "readmeHeading": "PySaiyanWeBoo",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
