@@ -8,7 +8,39 @@
       "dna",
       "protein",
       "cli"
-    ]
+    ],
+    "showcase": {
+      "label": "🧬 配列検索",
+      "repository": "myon-bioinformatics/search_seq_including_spaces",
+      "commit": "9d17f5079ca953e59c22eae40a97daf2d337b9aa",
+      "icon": "docs/brand/icon.png",
+      "media": [
+        {
+          "src": "line_dna_short.webp",
+          "alt": "DNA"
+        }
+      ],
+      "run": {
+        "command": [
+          "python3",
+          "-S",
+          "sequence_tool.py",
+          "match",
+          "tests/fixtures/P37840.fasta",
+          "--left",
+          "KT",
+          "--right",
+          "GV",
+          "--min-gap",
+          "2",
+          "--max-gap",
+          "2"
+        ],
+        "pretty_json": true,
+        "output": "{\"pattern_id\":\"inline\",\"record\":{\"description\":\"Alpha-synuclein\",\"id\":\"sp|P37840|SYUA_HUMAN\",\"metadata\":{},\"provenance\":{\"compression\":null,\"end_line\":4,\"format\":\"fasta\",\"record_index\":1,\"start_line\":1},\"source\":\"tests/fixtures/P37840.fasta\"},\"result\":{\"complete\":true,\"coordinate_convention\":\"1-based-inclusive\",\"iupac\":false,\"matches\":[{\"gap\":2,\"left\":\"KT\",\"left_span\":[21,22],\"middle\":\"KQ\",\"middle_source_span\":[23,24],\"middle_span\":[23,24],\"right\":\"GV\",\"right_span\":[25,26],\"source_span\":[21,26],\"span\":[21,26],\"strand\":\"+\"},{\"gap\":2,\"left\":\"KT\",\"left_span\":[32,33],\"middle\":\"KE\",\"middle_source_span\":[34,35],\"middle_span\":[34,35],\"right\":\"GV\",\"right_span\":[36,37],\"source_span\":[32,37],\"span\":[32,37],\"strand\":\"+\"},{\"gap\":2,\"left\":\"KT\",\"left_span\":[43,44],\"middle\":\"KE\",\"middle_source_span\":[45,46],\"middle_span\":[45,46],\"right\":\"GV\",\"right_span\":[47,48],\"source_span\":[43,48],\"span\":[43,48],\"strand\":\"+\"}],\"provenance\":{\"left_anchor\":\"KT\",\"max_gap\":2,\"min_gap\":2,\"right_anchor\":\"GV\",\"source_length\":140,\"source_sha256\":\"9a06387610edd099466d614941c42a433f444feb6a8f25375bb0b6ad8ec9c6f4\",\"strand\":\"+\"},\"schema\":\"anchor-gap/1\",\"sequence_length\":140,\"source_coordinate_unit\":\"python-string-character\"},\"schema\":\"sequence-matches/1\"}",
+        "exit": 0
+      }
+    }
   },
   {
     "name": "Aoi",
@@ -28,7 +60,14 @@
       "baseball",
       "data-acquisition",
       "reproducibility"
-    ]
+    ],
+    "showcase": {
+      "label": "🐉 QueRyu",
+      "repository": "myon-bioinformatics/Aoi",
+      "commit": "f420b32659cf2e8ffd713dc4a6462b27b520877d",
+      "path": "queryu/",
+      "icon": "docs/brand/icon.png"
+    }
   },
   {
     "name": "BlueProbe",
@@ -38,7 +77,14 @@
       "baseball",
       "html",
       "data-extraction"
-    ]
+    ],
+    "showcase": {
+      "label": "🔵 BlueProbe",
+      "repository": "myon-bioinformatics/Aoi",
+      "commit": "f420b32659cf2e8ffd713dc4a6462b27b520877d",
+      "path": "blueprobe/",
+      "icon": "docs/brand/icon.png"
+    }
   },
   {
     "name": "SakAnalytics",
@@ -48,7 +94,14 @@
       "baseball",
       "simulation",
       "statistics"
-    ]
+    ],
+    "showcase": {
+      "label": "📊 SakAna",
+      "repository": "myon-bioinformatics/Aoi",
+      "commit": "f420b32659cf2e8ffd713dc4a6462b27b520877d",
+      "path": "sakanalytics/",
+      "icon": "docs/brand/icon.png"
+    }
   },
   {
     "name": "PythDRagoras",
@@ -58,7 +111,14 @@
       "baseball",
       "hypothesis-testing",
       "rule-search"
-    ]
+    ],
+    "showcase": {
+      "label": "📐 PythDR",
+      "repository": "myon-bioinformatics/Aoi",
+      "commit": "f420b32659cf2e8ffd713dc4a6462b27b520877d",
+      "path": "pythdragoras/",
+      "icon": "docs/brand/icon.png"
+    }
   },
   {
     "name": "DRAgoWing",
@@ -68,7 +128,14 @@
       "baseball",
       "visualization",
       "plotly"
-    ]
+    ],
+    "showcase": {
+      "label": "🪽 DRAgo",
+      "repository": "myon-bioinformatics/Aoi",
+      "commit": "f420b32659cf2e8ffd713dc4a6462b27b520877d",
+      "path": "dragowing/",
+      "icon": "docs/brand/icon.png"
+    }
   },
   {
     "name": "NagoyAction",
@@ -148,7 +215,34 @@
       "debugging",
       "ci",
       "cli"
-    ]
+    ],
+    "showcase": {
+      "label": "🐦 Err-o-RR",
+      "repository": "myon-bioinformatics/Err-o-RoadRunner",
+      "commit": "92e89e3a6e02c4008ecda9d2fc87fcf4c7768532",
+      "icon": "docs/assets/icon.png",
+      "media": [
+        {
+          "src": "docs/images/concept-overview.png",
+          "alt": "Err-o-RoadRunner concept: failure logs are matched against known patterns, then reported as FOUND, NOT FOUND and HINT with examples and tests as evidence"
+        }
+      ],
+      "run": {
+        "command": [
+          "python3",
+          "-S",
+          "triage.py",
+          "--exit-code",
+          "1",
+          "--stderr",
+          "tests/fixtures/readme/inputs/python_module_not_found.stderr",
+          "--project-root",
+          "tests/fixtures/readme/empty_root"
+        ],
+        "output": "FOUND: exit code: 1\nFOUND: python exception type: ModuleNotFoundError\nFOUND: python exception message: No module named 'totally_missing_pkg_xyz'\nFOUND: python traceback frame (first): <string>:1 in <module>\nFOUND: python traceback frame (last): <string>:1 in <module>\nFOUND: python traceback frame count: 1\nFOUND: python version: 3.14.6 (cpython)\nFOUND: node version: v22.23.4\nFOUND: gh version: gh version 2.89.0 (2026-03-26)\nFOUND: environment variable count: 3\nFOUND: environment variable names: HOME, LANG, PATH\nNOT FOUND: lock files in project root\nHINT: web search keywords: ModuleNotFoundError No module named 'totally_missing_pkg_xyz'",
+        "exit": 0
+      }
+    }
   },
   {
     "name": "nvd_nist_known_vulns",
@@ -158,7 +252,29 @@
       "security",
       "cve",
       "cli"
-    ]
+    ],
+    "showcase": {
+      "label": "🛡️ NVD",
+      "repository": "myon-bioinformatics/nvd_nist_known_vulns",
+      "commit": "405fe8b5aeb221bde069aca31fd28ecfc4959023",
+      "icon": "docs/brand/icon.png",
+      "media": [
+        {
+          "src": "docs/images/nvd_nist_known_vulns-concept.png",
+          "alt": "CPE inputs pass through NVD CVE API queries and CVSS processing to JSONL output, with offline tests and CI evidence."
+        }
+      ],
+      "run": {
+        "command": [
+          "python3",
+          "-S",
+          "nvd_nist_known_vulns.py",
+          "--help"
+        ],
+        "output": "usage: nvd_nist_known_vulns.py [-h] [--silent] [--config CONFIG] [--cpe CPES]\n                               [--output OUTPUT] [--timeout SECONDS]\n                               [--format {text,json}]\n                               [--cvss-v3-severity {LOW,MEDIUM,HIGH,CRITICAL}]\n                               [--cvss-v3-metrics CVSS_V3_METRICS]\n\nFetch known CVEs from the NVD CVE API 2.0 for CPE 2.3 names and write nvd-cve-summary/1 JSONL.\n\noptions:\n  -h, --help            show this help message and exit\n  --silent              Do not print per-CPE progress lines on stderr. Errors\n                        are still reported.\n  --config CONFIG       UTF-8 INI file with a [cpeName] section, used only\n                        when --cpe is omitted. Default: config.ini. A missing,\n                        unreadable, invalid, or empty CPE list exits 2.\n  --cpe CPES            One CPE 2.3 name to query. Repeat for multiple names.\n                        Values are not split on commas. When any --cpe is\n                        present, --config is not read.\n  --output OUTPUT       Write JSONL to this UTF-8 path, replacing it only\n                        after a finished run. Default: stdout. A failed run\n                        leaves an existing file unchanged. An output path that\n                        cannot be published exits 1.\n  --timeout SECONDS     Positive finite per-request socket timeout in seconds.\n                        Default: 30.\n  --format {text,json}  Failure report on stderr. text (default) prints error:\n                        lines for input and runtime failures. json prints one\n                        nvd-cli-error/1 object and no progress lines. Success\n                        output is always JSONL.\n  --cvss-v3-severity {LOW,MEDIUM,HIGH,CRITICAL}\n                        Optional NVD cvssV3Severity filter on CVE API 2.0:\n                        LOW, MEDIUM, HIGH, or CRITICAL. Filtered output uses\n                        filtered_cve records.\n  --cvss-v3-metrics CVSS_V3_METRICS\n                        Optional NVD cvssV3Metrics filter: a partial or full\n                        CVSS v3 vector. Blank values are rejected. The value\n                        is trimmed and uppercased.\n\nexit status:\n  0  success, including a CPE query that returns zero CVEs\n  1  the NVD request failed, or --output could not be published\n  2  usage or local input error (flags, config file, or CPE list)\n\n--format json writes one nvd-cli-error/1 object to stderr on failure and\nomits progress lines. Success records stay JSONL on stdout or --output.\n--format text (the default) writes error: lines for input and runtime\nfailures. Flag mistakes also include the usage summary.",
+        "exit": 0
+      }
+    }
   },
   {
     "name": "BrowserTestKit",
@@ -168,7 +284,30 @@
       "playwright",
       "cross-browser",
       "testing"
-    ]
+    ],
+    "showcase": {
+      "label": "🧪 BTK",
+      "repository": "myon-bioinformatics/BrowserTestKit",
+      "commit": "5018d5221afa155d4685aad4019e09b63fe4a022",
+      "icon": "docs/assets/brand/validation-buddy.png",
+      "media": [
+        {
+          "src": "docs/evidence/browser.gif",
+          "alt": "BrowserTestKit fixtures, interaction and platform matrix in Chromium"
+        }
+      ],
+      "run": {
+        "command": [
+          "python3",
+          "-S",
+          "tools/btk.py",
+          "plan",
+          "."
+        ],
+        "output": "ok      .github/workflows/ci.yml:192 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:196 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:308 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:312 --only-shell (job runs headless only)\nok      .github/workflows/platform-matrix.yml:51 full + shell (job uses both the full build and the shell)",
+        "exit": 0
+      }
+    }
   },
   {
     "name": "PySaiyanWeBoo",
@@ -209,5 +348,39 @@
       "markdown",
       "image"
     ]
+  },
+  {
+    "name": "TalkCompress",
+    "desc": "Experiments in short expressions that keep their meaning for a given reader: which shared knowledge or rules make them understandable. Measures characters, UTF-8 bytes and LLM tokens across shared machine-to-machine rulebooks, human-readable shorthand and multilingual layers.",
+    "url": "https://github.com/myon-bioinformatics/TalkCompress",
+    "topics": [
+      "llm",
+      "compression",
+      "tokenizer",
+      "multilingual"
+    ],
+    "showcase": {
+      "label": "🗜️ 会話圧縮",
+      "repository": "myon-bioinformatics/TalkCompress",
+      "commit": "b1b35355f41ccf1fbc18044f53c2a3c8eddc7327",
+      "media": [
+        {
+          "src": "docs/evidence/browser.gif",
+          "alt": "examples/figures の SVG 6 枚を Chromium で表示（PC 720×480・スマホ 392×848）"
+        }
+      ],
+      "run": {
+        "command": [
+          "python3",
+          "-S",
+          "DensityFacadeRoute/density_facade_route.py",
+          "--compare",
+          "--text",
+          "I have 3 animals and 2 people"
+        ],
+        "output": "{\"layer\": \"C\", \"name\": \"ShorthandSessionEdge\", \"chars_before\": 29, \"chars_after\": 24, \"ratio\": 0.8276, \"preview\": \"I've 3 animals and 2 ppl\"}\n{\"layer\": \"E\", \"name\": \"MorphoGrammarMinimal\", \"chars_before\": 29, \"chars_after\": 14, \"ratio\": 0.4828, \"preview\": \"I have 3匹 & 2人\"}\n{\"layer\": \"B\", \"name\": \"SentenceCalibratedMosaic\", \"chars_before\": 29, \"chars_after\": 32, \"ratio\": 1.1034, \"preview\": \"en:I have 3 animals and 2 people\"}\n{\"layer\": \"C,E\", \"name\": \"pipeline\", \"chars_before\": 29, \"chars_after\": 15, \"ratio\": 0.5172, \"preview\": \"I've 3匹 & 2 ppl\"}",
+        "exit": 0
+      }
+    }
   }
 ]

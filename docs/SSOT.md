@@ -8,7 +8,7 @@ This repository owns canonical public data that is shared across the myon-bioinf
 | --- | --- | --- |
 | Person / skills / career | `profile.json` | Human profile facts and curated profile text |
 | Repository facts | `api/repos.json` | Generated GitHub repository metadata; do not hand-edit |
-| Portfolio curation | `projects.json` | Optional descriptions and extra topics for repository presentation |
+| Portfolio curation | `projects.json` | Optional descriptions and extra topics for repository presentation; an optional `showcase` (label, repository, commit, icon, media, recorded run) gives the project a page under `tools/projects/` |
 | Public service endpoints | `services.json` | GitHub Pages, API/static data, MCP stub, repository and other public URLs |
 
 ## Ownership rules
