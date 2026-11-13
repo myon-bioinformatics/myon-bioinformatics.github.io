@@ -1,6 +1,6 @@
 """Generate the shared browser assets from the pinned PySaiyanWeBoo dependency.
 
-The generator is the ``web_ui`` module installed from ``requirements-pages.txt`` (a git
+The generator is the ``pysaiyanweboo`` module installed from ``requirements-pages.txt`` (a git
 dependency pinned by commit). ``web-ui-assets.lock.json`` records that commit and the
 SHA-256 of every output, so a build fails closed when the installed module is not the
 pinned commit or when its output drifted from the lock. ``--refresh-lock`` rewrites the
@@ -24,14 +24,14 @@ DISTRIBUTION = 'pysaiyanweboo'
 
 
 def installed_commit(distribution: str = DISTRIBUTION) -> str:
-    """The git commit the installed generator came from (web_ui.installed_commit, i.e. pip's install record)."""
+    """The git commit the installed generator came from (pysaiyanweboo.installed_commit, i.e. pip's install record)."""
     if distribution != DISTRIBUTION:
         raise ValueError(f'{distribution} is not installed (pip install -r requirements-pages.txt)')
     try:
-        import web_ui
+        import pysaiyanweboo
     except ImportError as exc:
         raise ValueError(f'{distribution} is not installed (pip install -r requirements-pages.txt)') from exc
-    commit = web_ui.installed_commit()
+    commit = pysaiyanweboo.installed_commit()
     if not commit:
         raise ValueError(f'{distribution} was not installed from its git source')
     return commit
@@ -75,7 +75,7 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
     if set(lock['outputs']) != {ASSET_BASE + name for name in ASSETS}:
         raise ValueError('generated output paths differ from public URL contract')
     if ui is None:
-        import web_ui as ui
+        import pysaiyanweboo as ui
     result = render(ui)
     for target, data in result.items():
         if hashlib.sha256(data).hexdigest() != lock['outputs'][target]:
@@ -103,7 +103,7 @@ def build(output: Path, root: Path = ROOT) -> None:
 
 def refresh_lock(root: Path = ROOT) -> dict:
     """After moving the pin: rewrite the lock and the checked-in copies from the installed generator."""
-    import web_ui as ui
+    import pysaiyanweboo as ui
     commit = installed_commit()
     verify_pin(commit, root)
     payload = render(ui)

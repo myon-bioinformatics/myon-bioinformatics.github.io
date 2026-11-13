@@ -1,9 +1,9 @@
-"""Thin consumer adapter around the pinned PySaiyanWeBoo (web_ui); report ownership stays in lab."""
+"""Thin consumer adapter around the pinned PySaiyanWeBoo (pysaiyanweboo); report ownership stays in lab."""
 
 import json, re
 from pathlib import Path
 
-import web_ui as ui
+import pysaiyanweboo as ui
 
 ROOT = Path(__file__).resolve().parents[1]
 

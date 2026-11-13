@@ -5,4 +5,5 @@ body[data-ui-theme="auto"]{color-scheme:dark light}@media(prefers-color-scheme:l
 body[data-ui-theme="green"]{--ui-bg:#edf0ec;--ui-panel:#ffffff;--ui-fg:#163b3b;--ui-muted:#546a61;--ui-border:#ccdcd4;--ui-accent:#126d66;--ui-danger:#a73528;--ui-radius:.5rem;color-scheme:light}
 body[data-ui-theme="red"]{--ui-bg:#f6eeee;--ui-panel:#fdfcfc;--ui-fg:#6c4141;--ui-muted:#7e6363;--ui-border:#d4bfbf;--ui-accent:#c43131;--ui-danger:#d02525;--ui-radius:.5rem;color-scheme:light}
 body[data-ui-theme="blue"]{--ui-bg:#eef1f6;--ui-panel:#fcfcfd;--ui-fg:#41526c;--ui-muted:#636e7e;--ui-border:#bfc7d4;--ui-accent:#316cc4;--ui-danger:#d02525;--ui-radius:.5rem;color-scheme:light}
+body[data-ui-theme="purple"]{--ui-bg:#fffbfe;--ui-panel:#f7f2fa;--ui-fg:#1c1b1f;--ui-muted:#49454f;--ui-border:#cac4d0;--ui-accent:#6750a4;--ui-danger:#b3261e;--ui-radius:.5rem;color-scheme:light}
 body[data-ui-theme="terminal"]{--ui-bg:#0a0e10;--ui-panel:#11171a;--ui-fg:#d5dee0;--ui-muted:#7c8a8d;--ui-border:#2b3436;--ui-accent:#5fd7a7;--ui-danger:#ff8080;--ui-radius:0;--ui-font:var(--ui-font-mono);color-scheme:dark}

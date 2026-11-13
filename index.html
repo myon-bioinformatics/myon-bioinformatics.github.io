@@ -106,7 +106,7 @@
           <p>このポートフォリオのツールページの見た目と表示部品を、ビルド不要の共通UI部品でそろえています。</p>
           <ul class="portal-points">
             <li>見た目の統一：<code>tokens → base → components → themes/modern</code> の CSS 層と <code>ui-*</code> クラス</li>
-            <li>静的ページ生成：<code>web_ui.py</code> の <code>render_document</code>（HTML文書取込をこれで生成）</li>
+            <li>静的ページ生成：<code>pysaiyanweboo.py</code> の <code>render_document</code>（HTML文書取込をこれで生成）</li>
             <li>他リポジトリのページ取り込み：<code>adopt_document</code> で lab 独自クラスを <code>ui-*</code> に置換し、挙動は元のまま</li>
             <li>安全な表示：<code>ui.js</code> の <code>setText</code>（textContent のみ）と <code>prettyJson</code></li>
             <li>画面切替と外部リンク：<code>navigation.js</code> の <code>bindViews</code>（Home / Wiki / Pixiv）と <code>openExternalURL</code></li>

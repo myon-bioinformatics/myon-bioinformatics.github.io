@@ -33,23 +33,22 @@ heading selector in this first increment.
 
 ## Python one-liners
 
-From the portfolio root, using the pinned local UI copy:
+From the portfolio root, with the pinned PySaiyanWeBoo installed (`uv sync --locked`):
 
 ```sh
-PYTHONPATH=scripts:tools/vendor/web-ui python -S -c 'import sys; from pixiv_markup import extract_source; from web_ui import *; r=extract_source(sys.stdin.read()); print(render_document(title=r["title"],trusted_html=section_browser(tuple((s["label"],s["body"]) for s in r["sections"]),full_text=r["body"]),scripts=shared_scripts("tools/vendor/web-ui",names=("controls.js",))))' < source.txt > pixiv.html
+PYTHONPATH=scripts uv run --locked python -c 'import sys; from pixiv_markup import extract_source; from pysaiyanweboo import *; r=extract_source(sys.stdin.read()); print(render_document(title=r["title"],trusted_html=section_browser(tuple((s["label"],s["body"]) for s in r["sections"]),full_text=r["body"]),scripts=shared_scripts("tools/vendor/web-ui",names=("controls.js",))))' < source.txt > pixiv.html
 ```
 
-Serve the repository root over HTTP and open `pixiv.html`. On Windows, place
-`scripts`, `tools/vendor/web-ui` on `PYTHONPATH` using `;`, or copy the two Python
-files into the working directory. No package installation or network is needed
-for generation. The browser module must be served alongside the output.
+Serve the repository root over HTTP and open `pixiv.html`. On Windows, set
+`PYTHONPATH` to `scripts`. Once the environment is synced, generation needs no
+network. The browser module must be served alongside the output.
 
 For HTML rendering, make the separately pinned
 [myon-bioinformatics/markdown.py](https://github.com/myon-bioinformatics/markdown/blob/aa5bccfcaf11f17473c7f1ff502509dfa1547660/markdown.py)
 available on the Python import path, then compose the existing APIs:
 
 ```sh
-python -S -c 'import sys; from pixiv_markup import pixiv_to_markdown; from markdown import markdown_to_html; from web_ui import render_document; print(render_document(trusted_html=markdown_to_html(pixiv_to_markdown(sys.stdin.read())))))' < source.txt > article.html
+uv run --locked python -c 'import sys; from pixiv_markup import pixiv_to_markdown; from markdown import markdown_to_html; from pysaiyanweboo import render_document; print(render_document(trusted_html=markdown_to_html(pixiv_to_markdown(sys.stdin.read())))))' < source.txt > article.html
 ```
 
 `markdown.py` is neither forked nor patched. Do not feed arbitrary HTML directly
@@ -59,7 +58,7 @@ rendered article instead.
 
 ## Reimport and provenance
 
-`scripts/lab_shared_ui.py` generates the select with `web_ui.select()`, suppresses
+`scripts/lab_shared_ui.py` generates the select with `pysaiyanweboo.select()`, suppresses
 only the imported Pixiv auto-mount, and adds the consumer wrapper assets.
 `import_lab_pages.py` reapplies this on future lab imports. `publication.json`
 retains the original source hashes and records new published hashes. The lab
