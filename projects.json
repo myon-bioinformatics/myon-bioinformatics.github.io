@@ -206,13 +206,11 @@
       "icon": "dragowing/docs/brand/icon.png",
       "run": {
         "command": [
-          "python3",
-          "-S",
-          "-m",
-          "dragowing",
-          "--help"
+          "sh",
+          "-c",
+          "W=$(python3 -S dragowing/vendor/aoi/scripts/fetch_module.py fetch markdown --version 3.11.3 --cache /tmp/cdn) && echo \"📦 $W\" && PYTHONPATH=$W python3 -S -m dragowing --results cycles/c001-chunichi/outputs --out /tmp/dragowing-out --overlap-backend stdlib && wc -c /tmp/dragowing-out/*.html && grep -o \"<h2>[^<]*\" /tmp/dragowing-out/index.html"
         ],
-        "output": "usage: python3 -m dragowing [-h] --results RESULTS --out OUT [--id IDS]\n                            [--column COLUMN] [--team-order TEAM_ORDER]\n                            [--cond CONDS] [--breakdown BREAKDOWN]\n                            [--breakdown-keep BREAKDOWN_KEEP]\n                            [--chrome CHROME]\n                            [--overlap-backend {native,stdlib}] [--png]\n                            [--svg] [--embed]\n\n記録された結果を HTML にする。判定はやり直さない。\n\noptions:\n  -h, --help            show this help message and exit\n  --results RESULTS     season.jsonl と propositions.jsonl があるディレクトリ\n  --out OUT             HTML の出力ディレクトリ\n  --id IDS              この命題だけ。繰り返せる。省略すると全部\n  --column COLUMN       球団×年に置く数値列。既定は wins_vs_pythag\n  --team-order TEAM_ORDER\n                        球団×年で上から並べる球団の記号（カンマ区切り）。例: d,g,s 。省略すると記号順\n  --cond CONDS          重なりの条件。col,op,値（JSON）。例: rd,>,0 。繰り返せる（B クラスを含めて 2〜8\n                        個）。省略すると if の先頭2件と B クラス\n  --breakdown BREAKDOWN\n                        重なりの内訳を分ける列。team、team_name、league、season、upper_half\n                        のどれか。既定は team\n  --breakdown-keep BREAKDOWN_KEEP\n                        内訳で「その他」にまとめず別の色で残す値。繰り返せる。例: d（件数にかかわらず残す）\n  --chrome CHROME       Chrome/Chromium の実行ファイル。省略時は CHROME / CHROMIUM\n                        環境変数、なければ PATH\n  --overlap-backend {native,stdlib}\n                        重なり計算。stdlib は限定したスカラー列のみ（numpy/polars 不要）。既定は native\n  --png                 PNG も書く。Chrome が要る。既定では HTML だけ\n  --svg                 SVG も書く。Chrome が要る。既定では HTML だけ\n  --embed               index.html に Plotly.js を埋め込む。既定は CDN。propositions.html\n                        は Plotly を使わない",
+        "output": "📦 /tmp/cdn/markdown-3.11.3-py3-none-any.whl\n 165951 /tmp/dragowing-out/index.html\n2061809 /tmp/dragowing-out/propositions.html\n2227760 total\n<h2>得点順位 × 失点順位\n<h2>球団 × 年（\n<h2>条件集合の重なり",
         "exit": 0
       }
     }
