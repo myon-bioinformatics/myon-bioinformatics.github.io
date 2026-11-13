@@ -21,4 +21,4 @@ COPY --from=tests-venv /opt/tests /opt/tests
 COPY . .
 RUN /opt/tests/bin/python tools/build_html_import.py
 ENV PATH="/opt/tests/bin:${PATH}"
-CMD ["sh", "-c", "python -m pytest tests/test_html_import.py tests/test_portal_links.py tests/test_lab_publication.py --junitxml=reports/html-import-python.xml && npx playwright test --config playwright/html-import.config.js"]
+CMD ["sh", "-c", "python -m pytest tests/test_site.py --junitxml=reports/html-import-python.xml && npx playwright test --config playwright/html-import.config.js"]

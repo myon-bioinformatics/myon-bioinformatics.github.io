@@ -57,7 +57,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 The top page also contains a hand-maintained **Tools & Demos** discovery catalog
 for selected live GitHub Pages applications. This is intentionally separate from
 the JSON-driven repository cards: adding a new live tool requires updating both
-`index.html` and `tests/test_portal_links.py`, so the destination and its HTTPS
+`index.html` and `tests/test_site.py`, so the destination and its HTTPS
 Pages-host contract are reviewed together.
 
 Ironmate now has a local metadata card (`project-ironmate.json`) and a repository link;
@@ -193,7 +193,7 @@ To update, obtain a trusted lab `stub-pages-observations` artifact, extract its
 
 ```sh
 uv run --locked python scripts/import_lab_pages.py --source /path/to/export/_site
-uv run --locked pytest tests/test_portal_links.py tests/test_lab_publication.py
+uv run --locked pytest tests/test_site.py
 ```
 
 Review and commit the imported output in a PR. No untrusted archive is extracted
