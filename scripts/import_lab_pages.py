@@ -5,7 +5,7 @@ from datetime import datetime, timezone; from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lab_shared_ui import apply_shared_navigation, presentation_identity
-from portfolio_nav import add_back_nav
+from portfolio_nav import add_back_nav, add_home_label
 from lab_branding import apply_lab_branding
 
 FILES = ('index.html', 'terminal.css', 'pages-hash.js', 'pages-wiki.js',
@@ -59,10 +59,11 @@ def import_export(source: Path, destination: Path = DESTINATION) -> dict:
     payload['index.html'] = page.replace('</header>', '</header>' + banner, 1).encode('utf-8')
     apply_public_examples(payload)
     apply_shared_navigation(payload)
-    # Same back link, same place, as every other portfolio tool page.
-    for name in ('index.html', 'repository-diagnostics.html'):
+    # Same back link, same place, as every other portfolio tool page, and a shortcut label that fits under the icon.
+    for name, label in (('index.html', '🧪 MCP Lab'), ('repository-diagnostics.html', '🩺 Lab診断')):
         if name in payload:
-            payload[name] = apply_lab_branding(add_back_nav(payload[name].decode('utf-8'))).encode('utf-8')
+            page = apply_lab_branding(add_back_nav(payload[name].decode('utf-8')))
+            payload[name] = add_home_label(page, label).encode('utf-8')
     manifest = {'schema': 'portfolio-lab-publication/1', 'source_repository': 'myon-bioinformatics/mcp-toolcall-lab',
                 'source_sha': meta['sha'], 'source_dirty': meta.get('dirty'),
                 'imported_at': datetime.now(timezone.utc).isoformat(),

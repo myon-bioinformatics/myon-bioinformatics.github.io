@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import socket
+import struct
 import sys
 import tempfile
 from html.parser import HTMLParser
@@ -102,11 +103,12 @@ def test_lab_pages_are_hosted_by_portfolio():
     assert (ROOT / "tools/mcp-toolcall-lab/index.html").is_file()
 
 
+TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp-toolcall-lab/index.html", "tools/mcp-toolcall-lab/repository-diagnostics.html")
+
+
 def test_every_tool_page_has_the_same_back_link_first_in_main():
     import re
-    pages = [ROOT / "tools/html-import/index.html", ROOT / "tools/mcp-toolcall-lab/index.html",
-             ROOT / "tools/mcp-toolcall-lab/repository-diagnostics.html"]
-    for page in pages:
+    for page in (ROOT / name for name in TOOL_PAGES):
         html = page.read_text(encoding="utf-8")
         main = re.search(r"<main[^>]*>", html)
         assert main, page
@@ -115,6 +117,210 @@ def test_every_tool_page_has_the_same_back_link_first_in_main():
                                 '<a href="../../index.html#tools" data-testid="portfolio-back">'), page
         assert html.count('data-testid="portfolio-back"') == 1, page
         assert "Back to portfolio" not in html, page
+
+
+# ═══ 📱 home screen ═══════════════════════════════════════════════════════════════════════════════════════
+# A shortcut or home-screen icon of the portfolio opens index.html with its label and icon (manifest.webmanifest);
+# a shortcut of a tool page opens that page. Every local link and asset of these pages resolves.
+
+class PageParser(HTMLParser):
+    """<title>, <link> attributes, named <meta> contents, ids, and every href/src of one page."""
+    def __init__(self):
+        super().__init__()
+        self.title, self.links, self.metas, self.ids, self.refs, self._in_title = "", [], {}, set(), [], False
+    def handle_starttag(self, tag, attrs):
+        values = dict(attrs)
+        self.ids.update([values["id"]] if "id" in values else [])
+        self.links += [values] if tag == "link" else []
+        self.metas.update({values["name"]: values.get("content")} if tag == "meta" and "name" in values else {})
+        self.refs += [values[key] for key in ("href", "src") if values.get(key)]
+        self._in_title = tag == "title"
+    def handle_endtag(self, tag):
+        self._in_title = False
+    def handle_data(self, data):
+        self.title += data if self._in_title else ""
+
+
+def parse_page(path):
+    parser = PageParser()
+    parser.feed(path.read_text(encoding="utf-8"))
+    return parser
+
+
+def rel_links(page, rel):
+    return [link for link in page.links if rel in (link.get("rel") or "").split()]
+
+
+def png_size(path):
+    data = path.read_bytes()
+    assert data[:8] == b"\x89PNG\r\n\x1a\n", path
+    return "{}x{}".format(*struct.unpack(">II", data[16:24]))
+
+
+def home_manifest():
+    return json.loads((ROOT / "manifest.webmanifest").read_text(encoding="utf-8"))
+
+
+def largest_icon(manifest):
+    return max(manifest["icons"], key=lambda icon: int(icon["sizes"].split("x")[0]))
+
+
+def test_home_screen_shortcut_opens_the_portfolio_with_its_label_and_real_icons():
+    manifest = home_manifest()
+    # 🏠 The icon opens index.html, the whole site is in scope, and it opens in the browser ("browser"), so the
+    # other repositories' Pages it links to keep their back button.
+    assert (manifest["id"], manifest["start_url"], manifest["scope"], manifest["display"]) == ("./", "./", "./", "browser")
+    page = parse_page(ROOT / "index.html")
+    assert manifest["name"] == page.title
+    assert len(manifest["short_name"]) <= 12                       # longer home-screen labels are cut off
+    for icon in manifest["icons"]:
+        assert icon["type"] == "image/png" and icon["sizes"] == png_size(ROOT / icon["src"]), icon
+    assert int(largest_icon(manifest)["sizes"].split("x")[0]) >= 144   # Chromium's smallest home-screen icon
+
+
+def test_home_screen_index_head_matches_the_manifest():
+    page, manifest = parse_page(ROOT / "index.html"), home_manifest()
+    assert [link["href"] for link in rel_links(page, "manifest")] == ["./manifest.webmanifest"]
+    largest = largest_icon(manifest)
+    [touch] = rel_links(page, "apple-touch-icon")                  # 🍎 iOS: icon and label come from the page itself
+    assert (touch["href"], touch["sizes"]) == ("./" + largest["src"], largest["sizes"])
+    assert page.metas["apple-mobile-web-app-title"] == page.metas["application-name"] == manifest["short_name"]
+    for icon in rel_links(page, "icon"):
+        assert (ROOT / icon["href"]).is_file(), icon
+        assert icon.get("type") != "image/png" or icon["sizes"] == png_size(ROOT / icon["href"]), icon
+
+
+def test_home_screen_tool_page_shortcuts_open_that_page_and_show_an_icon():
+    for name in TOOL_PAGES:
+        page = parse_page(ROOT / name)
+        # 🔗 With the portfolio manifest linked, Android would open index.html instead of this page.
+        assert not rel_links(page, "manifest"), name
+        label = page.metas["apple-mobile-web-app-title"]         # 🏷️ the <title> would be cut off under the icon
+        assert label == page.metas["application-name"] and len(label) <= 12, (name, label)
+        for rel in ("icon", "apple-touch-icon"):
+            [icon] = rel_links(page, rel)
+            if icon["href"].startswith("/mcp-toolcall-lab/"):      # the lab's own artwork, served by its Pages on this host
+                continue
+            png_size((ROOT / name).parent / icon["href"])
+    assert "img-src 'self'" in (ROOT / TOOL_PAGES[0]).read_text(encoding="utf-8")   # its CSP lets the icons load
+
+
+def test_home_screen_every_local_link_and_asset_resolves():
+    for name in ("index.html", *TOOL_PAGES):
+        page = parse_page(ROOT / name)
+        for ref in page.refs:
+            url = urlparse(ref)
+            if url.scheme or ref.startswith("/"):                   # 🌐 other sites, or the lab's Pages on this host
+                assert url.scheme == "https" or ref.startswith("/mcp-toolcall-lab/"), (name, ref)
+                continue
+            target = ((ROOT / name).parent / url.path).resolve() if url.path else ROOT / name
+            target = target / "index.html" if target.is_dir() else target
+            assert target.is_file(), (name, ref)
+            if url.fragment and target.suffix == ".html":
+                assert url.fragment in parse_page(target).ids, (name, ref)
+
+
+def test_home_screen_in_chromium_with_a_gif():
+    """Chromium reads the manifest, loads every icon, opens start_url, and a tool page keeps its own shortcut.
+
+    The frames, with a sketch of the home-screen tiles, go to test-results/home-screen/home-screen-shortcut-<UTC>.gif.
+    """
+    sync_api = pytest.importorskip("playwright.sync_api")
+    ui = pytest.importorskip("pysaiyanweboo")
+    import base64, functools, threading
+    from html import escape
+    from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+    class Quiet(SimpleHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Quiet, directory=str(ROOT)))
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base, manifest, frames = f"http://127.0.0.1:{server.server_port}/", home_manifest(), []
+    load = """hrefs => Promise.all(hrefs.map(href => new Promise(done => { const image = new Image();
+        image.onload = () => done(image.naturalWidth + "x" + image.naturalHeight); image.onerror = () => done("error"); image.src = href; })))"""
+    try:
+        with sync_api.sync_playwright() as playwright:
+            try:
+                browser = playwright.chromium.launch(channel="chromium")
+            except Exception as exc:  # noqa: BLE001 - no browser on this machine
+                pytest.skip(f"Chromium is not installed: {exc}")
+            page = browser.new_page(viewport={"width": 392, "height": 840}, is_mobile=True, has_touch=True)
+            page.route("https://**", lambda route: route.abort())  # no external data or avatars
+            page.goto(base + "index.html")
+            cdp = page.context.new_cdp_session(page)
+            read = cdp.send("Page.getAppManifest")
+            assert read["errors"] == [] and read["url"] == base + "manifest.webmanifest"
+            app = read["manifest"]
+            assert (app["id"], app["startUrl"], app["scope"], app["name"]) == (base, base, base, manifest["name"])
+            assert [icon["url"] for icon in app["icons"]] == [base + icon["src"] for icon in manifest["icons"]]
+            assert json.loads(read["data"])["short_name"] == manifest["short_name"]
+            # Chromium finds nothing missing. It only notes that this is a shortcut rather than an app window
+            # ("browser" display, chosen above), and that a test context is incognito.
+            reasons = {error["errorId"] for error in cdp.send("Page.getInstallabilityErrors")["installabilityErrors"]}
+            assert reasons <= {"manifest-display-not-supported", "in-incognito"}, reasons
+            head = page.evaluate("""() => [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')]
+                .map(link => [link.href, link.sizes.value])""")
+            # Icons load in a page of their own: with any route in place, Chromium refuses favicon.ico to new Image().
+            probe = browser.new_page()
+            probe.goto(base + "manifest.webmanifest")
+            sizes = probe.evaluate(load, [base + icon["src"] for icon in manifest["icons"]] + [href for href, _ in head])
+            assert sizes[:len(manifest["icons"])] == [icon["sizes"] for icon in manifest["icons"]]
+            for (href, declared), actual in zip(head, sizes[len(manifest["icons"]):]):
+                assert actual != "error" and (actual in declared.split() if declared else True), (href, declared, actual)
+            frames.append((page.screenshot(), "🧬 index.html · manifest ✅ · icons " + " ".join(sizes)))
+
+            # 📱 How the tiles look (a sketch: 64px icon, 80px label): the portfolio on iOS and Android, then each tool page.
+            #    An icon served by another repository's Pages shows as 🌐; every label has to fit without "…".
+            tiles = [("🍎 iOS", base + largest_icon(manifest)["src"], manifest["short_name"]),
+                     ("🤖 Android", base + largest_icon(manifest)["src"], manifest["short_name"])]
+            for name in TOOL_PAGES:
+                tool = parse_page(ROOT / name)
+                [touch] = rel_links(tool, "apple-touch-icon")
+                local = not touch["href"].startswith("/")
+                tiles.append(("📄 " + name.split("/")[1], base + str(Path(name).parent / touch["href"]) if local else None,
+                              tool.metas["apple-mobile-web-app-title"]))
+            tile_html = "".join(f'<figure><figcaption>{escape(kind)}</figcaption>'
+                                + (f'<img src="{src}" alt="" width="64" height="64">' if src else '<b>🌐</b>')
+                                + f'<span>{escape(label)}</span></figure>' for kind, src, label in tiles)
+            page.set_content(ui.render_document(title="home screen", trusted_html=f"<main>{tile_html}</main>", css=(
+                "main{display:flex;flex-wrap:wrap;gap:24px;padding:32px;background:#1e2a3a;min-height:100vh;align-content:flex-start;"
+                "font-family:Meiryo,'メイリオ',sans-serif}"
+                "figure{margin:0;width:80px;text-align:center;color:#fff;font-size:12px}figcaption{margin-bottom:8px;opacity:.8}"
+                "img,b{border-radius:16px;display:block;margin:0 auto 8px;width:64px;height:64px}b{font-size:40px;line-height:64px;background:#2e3e52}"
+                "span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}")))
+            page.wait_for_function("() => [...document.images].every(image => image.complete && image.naturalWidth > 0)")
+            cut = page.evaluate("() => [...document.querySelectorAll('figure span')].filter(s => s.scrollWidth > s.clientWidth).map(s => s.textContent)")
+            assert cut == [], cut
+            frames.append((page.screenshot(), "📱 tiles (sketch) · " + " · ".join(label for _, _, label in tiles)))
+
+            page.goto(app["startUrl"])                               # 👆 tapping the shortcut
+            assert page.title() == manifest["name"]
+            frames.append((page.screenshot(), "👆 start_url → " + page.title()))
+
+            probe.goto(base + "tools/html-import/")                  # no external requests: its CSP allows none
+            assert probe.context.new_cdp_session(probe).send("Page.getAppManifest")["url"] == ""   # its shortcut opens this page
+            icons = probe.evaluate("""() => [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')].map(l => l.href)""")
+            assert probe.evaluate(load, icons) == ["32x32", "170x170"]  # the CSP (img-src 'self') lets both load
+            page.goto(base + "tools/html-import/")
+            frames.append((page.screenshot(), "📄 " + page.title() + " · no manifest · icons 32x32 170x170"))
+            page.get_by_test_id("portfolio-back").click()
+            page.wait_for_url(base + "index.html#tools")
+            frames.append((page.screenshot(), "↩️ ← Tools & Demos → index.html#tools"))
+
+            recorder = browser.new_page()
+            recorder.set_content(ui.gif_recorder_document())
+            recorder.evaluate("o => { window.rec = new UiGif.Recorder(o); }", {"width": 392, "height": 840, "caption": 32})
+            recorder.evaluate("items => rec.add(items)", [{"png": base64.b64encode(png).decode("ascii"), "caption": caption,
+                                                           "ok": True, "delay": 1600} for png, caption in frames])
+            gif = base64.b64decode(recorder.evaluate("() => rec.encodeBase64({})")["gif"])
+            browser.close()
+    finally:
+        server.shutdown()
+    target = ui.gif_targets(ROOT / "test-results" / "home-screen", ["home-screen-shortcut"], run_details=["timestamp"])
+    target["home-screen-shortcut"].write_bytes(gif)
+    assert gif[:6] == b"GIF89a"
 
 
 # ═══ 📥 HTML import ═══════════════════════════════════════════════════════════════════════════════════════

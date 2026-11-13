@@ -1,0 +1,14 @@
+{
+  "id": "./",
+  "name": "myon-bioinformatics — Portfolio",
+  "short_name": "🧬 myon",
+  "description": "Bioinformatics → Security/Backend engineer. Practical CLI and browser tools in Python, Node.js and Dart/Flutter.",
+  "lang": "en",
+  "start_url": "./",
+  "scope": "./",
+  "display": "browser",
+  "icons": [
+    {"src": "assets/brand/favicon-48x48.png", "sizes": "48x48", "type": "image/png"},
+    {"src": "assets/brand/myon-profile-icon.png", "sizes": "170x170", "type": "image/png"}
+  ]
+}
