@@ -16,4 +16,239 @@ body[data-ui-theme="terminal"]{--ui-bg:#0a0e10;--ui-panel:#11171a;--ui-fg:#d5dee
 @layer components{.ui-panel,.ui-card{background:var(--ui-panel);border:1px solid var(--ui-border);padding:var(--ui-space);margin:var(--ui-space) 0;border-radius:var(--ui-radius)}.ui-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.75rem}.ui-tag{display:inline-block;border:1px solid var(--ui-border);padding:.1rem .4rem}.ui-button,.ui-input,.ui-elements button,.ui-elements select,.ui-elements textarea,.ui-elements input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file]){font:inherit;background:var(--ui-panel);color:var(--ui-fg);border:1px solid var(--ui-border);padding:.6rem;border-radius:var(--ui-radius)}.ui-button,.ui-elements button{cursor:pointer}.ui-button:hover,.ui-elements button:hover{border-color:var(--ui-accent)}.ui-button:disabled,.ui-elements button:disabled{opacity:.4;cursor:default}.ui-elements input[type=range],.ui-elements input[type=checkbox],.ui-elements input[type=radio]{accent-color:var(--ui-accent)}.ui-elements label{color:var(--ui-muted)}.ui-muted{color:var(--ui-muted)}.ui-output{font:inherit;white-space:pre-wrap;overflow:auto;background:#d8dee4;color:#161b22;border:1px solid #8c959f;border-radius:4px;padding:.75rem}pre code,.ui-output code{font-family:inherit;color:inherit}pre.ui-output code{background:transparent}@media(max-width:480px){.ui-page{padding:.75rem}.ui-grid{grid-template-columns:1fr}.ui-card,.ui-panel{margin:.75rem 0;padding:.75rem}}.ui-lightbox{border:1px solid var(--ui-border);background:var(--ui-panel);color:var(--ui-fg);padding:1rem;max-width:min(96vw,960px);max-height:96vh;border-radius:var(--ui-radius)}.ui-lightbox::backdrop{background:rgba(0,0,0,.72)}.ui-lightbox img{display:block;max-width:100%;max-height:calc(96vh - 8rem);margin:auto}.ui-lightbox-bar{display:flex;gap:.5rem;justify-content:space-between;margin-top:.75rem}body:has(.ui-lightbox[open]){overflow:hidden}.ui-table,.ui-elements table{border-collapse:collapse;width:100%}.ui-table th,.ui-table td,.ui-elements th,.ui-elements td{border-bottom:1px solid var(--ui-border);padding:.25rem .5rem;text-align:left;vertical-align:top;overflow-wrap:anywhere}.ui-table th,.ui-elements th{color:var(--ui-muted);font-weight:500}.ui-table caption,.ui-elements caption{text-align:left;color:var(--ui-muted);padding:.25rem 0}.ui-pass{color:var(--ui-accent)}.ui-fail{color:var(--ui-danger)}.ui-changed{background:color-mix(in srgb,var(--ui-accent) 18%,transparent)}.ui-tag.ui-pass{border-color:var(--ui-accent)}.ui-tag.ui-fail{border-color:var(--ui-danger)}}
 /* css/themes/modern.css */
 @layer theme{body[data-ui-theme="modern"]{color-scheme:dark}body[data-ui-theme="modern"] .ui-title::before,body[data-ui-theme="modern"] .ui-card>h2::before{content:"> ";color:var(--ui-accent)}body[data-ui-theme="modern"] .ui-panel,body[data-ui-theme="modern"] .ui-card{background:var(--ui-panel);box-shadow:4px 4px 0 rgba(88,166,255,.16)}body[data-ui-theme="modern"] .ui-tag:not(.ui-pass,.ui-fail)::before{content:"#";color:var(--ui-accent)}}
-.ui-kv{display:grid;grid-template-columns:max-content 1fr;gap:.25rem var(--ui-space)}.ui-kv dt{color:var(--ui-muted)}.ui-kv dd{margin:0}.ui-badges .ui-tag{margin-right:.25rem}</style><style>.ui-title,.ui-kv dd{overflow-wrap:anywhere}</style></head><body data-ui-theme="modern"><main class="ui-page"><nav class="portfolio-back" aria-label="Portfolio"><a href="../../index.html#tools" data-testid="portfolio-back">← Tools &amp; Demos</a></nav><img src="https://raw.githubusercontent.com/myon-bioinformatics/Aoi/f420b32659cf2e8ffd713dc4a6462b27b520877d/pythdragoras/docs/brand/icon.png" width="80" height="80" alt=""><h1 class="ui-title">PythDRagoras</h1><p>Treats explanations as propositions and tests them against counterexamples, with rule search and sensitivity analysis for NPB outcomes.</p><p class="ui-links"><a href="https://github.com/myon-bioinformatics/PythDRagoras">🐙 GitHub</a> · <a href="https://github.com/myon-bioinformatics/PythDRagoras#readme">📄 README</a></p><p class="ui-badges"><span class="ui-tag">baseball</span> <span class="ui-tag">hypothesis-testing</span> <span class="ui-tag">rule-search</span></p></main></body></html>
+.ui-kv{display:grid;grid-template-columns:max-content 1fr;gap:.25rem var(--ui-space)}.ui-kv dt{color:var(--ui-muted)}.ui-kv dd{margin:0}.ui-badges .ui-tag{margin-right:.25rem}</style><style>.ui-title,.ui-kv dd{overflow-wrap:anywhere}</style></head><body data-ui-theme="modern"><main class="ui-page"><nav class="portfolio-back" aria-label="Portfolio"><a href="../../index.html#tools" data-testid="portfolio-back">← Tools &amp; Demos</a></nav><img src="https://raw.githubusercontent.com/myon-bioinformatics/Aoi/719ed6e60fb9ede3af3311efeb14f37a80107552/pythdragoras/docs/brand/icon.png" width="80" height="80" alt=""><h1 class="ui-title">PythDRagoras</h1><p>Treats explanations as propositions and tests them against counterexamples, with rule search and sensitivity analysis for NPB outcomes.</p><section class="ui-panel"><h2>▶ 実行例</h2><dl class="ui-kv"><dt>📦</dt><dd>myon-bioinformatics/Aoi/pythdragoras @ 719ed6e</dd><dt>⌨️</dt><dd>python3 -S season_sensitivity.py --season ../cycles/c001-chunichi/outputs/season.jsonl --additional-season ../cycles/c001-chunichi/references/season-2026-central-summary.jsonl --config ../cycles/c001-chunichi/season_sensitivity.toml --out /dev/null --markdown /dev/stdout</dd><dt>↩️</dt><dd>exit 0</dd></dl><pre class="ui-output"># 年単位の指標感度探索
+
+探索的な関連。有限差分はグリッド依存、面積は設定区間依存。因果・有意性・CS出場確率を示さない。2026の結果は既知のため完全な盲検ではない。
+
+入力年: 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2021, 2022, 2023, 2024, 2025, 2026
+
+| 指標 | 重み | 閾値 | 探索MCC | 基準からの差 | 正の関連の年 | 別年MCC | 状態 |
+|---|---:|---:|---:|---:|---:|---:|---|
+| run_balance | 1.25 | -0.3 | 0.7172 | 0.0761 | 11/12 | 0.7071 | exploratory_candidate |
+| onbase_power | 0.5 | -0.01 | 0.5195 | 0.2694 | 10/12 | 0.7071 | exploratory_candidate |
+| inning_frequency_size | 1.75 | -0.05 | 0.4627 | 0.1844 | 9/12 | 未定義 | exploratory_candidate |
+
+## run_balance
+
+式: `rf_vs_peers + weight × ra_saved_vs_peers`。以上側が上位半分を予測。
+
+欠損単位: 0。別年の欠損: []。
+
+| 年 | 中日の指標値 | 前年差 | 条件成立 | 上位半分 | 用途 |
+|---|---:|---:|---|---|---|
+| 2013 | -0.4976 | 未定義 | False | False | exploration |
+| 2014 | -0.0281 | 0.4694 | True | False | exploration |
+| 2015 | -0.1374 | -0.1093 | True | False | exploration |
+| 2016 | -0.5192 | -0.3818 | False | False | exploration |
+| 2017 | -1.2042 | -0.6850 | False | False | exploration |
+| 2018 | -0.4185 | 0.7857 | False | False | exploration |
+| 2019 | 0.3266 | 0.7451 | True | False | exploration |
+| 2021 | -0.4269 | 未定義 | False | False | exploration |
+| 2022 | -0.5629 | -0.1360 | False | False | exploration |
+| 2023 | -0.9231 | -0.3601 | False | False | exploration |
+| 2024 | -0.9283 | -0.0052 | False | False | exploration |
+| 2025 | -0.4465 | 0.4818 | False | False | exploration |
+| 2026 | -0.0486 | 0.3979 | True | False | holdout |
+
+別年: P(上位半分 | 条件成立)=0.7500、条件不成立=0.0000。
+
+別年の反例: 2026/d
+
+### 選択点の近傍（片方だけ変更）
+
+| 重み | 閾値 | MCC | 条件付き確率の差 |
+|---|---|---|---|
+| 1 | -0.3 | 0.6482 | 0.6875 |
+| 1.25 | -0.4 | 0.6482 | 0.6875 |
+| 1.25 | -0.2 | 0.6838 | 0.7013 |
+| 1.5 | -0.3 | 0.6940 | 0.7224 |
+
+### 重みを固定した閾値の推移
+
+| 閾値 | MCC | 基準との差 | 条件成立側の確率 | 条件不成立側の確率 |
+|---|---|---|---|---|
+| -1 | 0.2085 | -0.4326 | 0.5217 | 0.0000 |
+| -0.9 | 0.3536 | -0.2876 | 0.5625 | 0.0000 |
+| -0.8 | 0.3780 | -0.2632 | 0.5714 | 0.0000 |
+| -0.7 | 0.3780 | -0.2632 | 0.5714 | 0.0000 |
+| -0.6 | 0.3727 | -0.2684 | 0.5833 | 0.0833 |
+| -0.5 | 0.4906 | -0.1506 | 0.6364 | 0.0588 |
+| -0.4 | 0.6482 | 0.0071 | 0.7292 | 0.0417 |
+| -0.3 | 0.7172 | 0.0761 | 0.7778 | 0.0370 |
+| -0.2 | 0.6838 | 0.0426 | 0.7727 | 0.0714 |
+| -0.1 | 0.6708 | 0.0297 | 0.8000 | 0.1250 |
+| 0 | 0.5590 | -0.0821 | 0.8125 | 0.2500 |
+| 0.1 | 0.6025 | -0.0387 | 0.8889 | 0.2667 |
+| 0.2 | 0.5543 | -0.0868 | 0.8800 | 0.2979 |
+| 0.3 | 0.5303 | -0.1108 | 0.8750 | 0.3125 |
+| 0.4 | 0.5427 | -0.0984 | 0.9091 | 0.3200 |
+| 0.5 | 0.5774 | -0.0638 | 1.0000 | 0.3333 |
+| 0.6 | 0.5130 | -0.1281 | 1.0000 | 0.3684 |
+| 0.7 | 0.4016 | -0.2395 | 1.0000 | 0.4194 |
+| 0.8 | 0.3536 | -0.2876 | 1.0000 | 0.4375 |
+| 0.9 | 0.2732 | -0.3679 | 1.0000 | 0.4627 |
+| 1 | 0.2732 | -0.3679 | 1.0000 | 0.4627 |
+
+### 年全体を外して選び直す検証
+
+| 外した年 | 重み | 閾値 | 外した年のMCC |
+|---|---|---|---|
+| 2013 | 1.2500 | -0.3000 | 1.0000 |
+| 2014 | 1.2500 | -0.3000 | 0.7071 |
+| 2015 | 1.2500 | -0.3000 | 0.0000 |
+| 2016 | 1.2500 | -0.3000 | 0.7071 |
+| 2017 | 1.2500 | -0.3000 | 0.7071 |
+| 2018 | 1.2500 | -0.3000 | 1.0000 |
+| 2019 | 0.7500 | -0.1000 | 0.0000 |
+| 2021 | 1.2500 | -0.3000 | 1.0000 |
+| 2022 | 1.0000 | -0.2000 | 0.3333 |
+| 2023 | 0.7500 | -0.1000 | 0.3333 |
+| 2024 | 1.2500 | -0.3000 | 0.7071 |
+| 2025 | 1.2500 | -0.3000 | 1.0000 |
+
+## onbase_power
+
+式: `bat_d_obp + weight × bat_d_iso`。以上側が上位半分を予測。
+
+欠損単位: 0。別年の欠損: []。
+
+| 年 | 中日の指標値 | 前年差 | 条件成立 | 上位半分 | 用途 |
+|---|---:|---:|---|---|---|
+| 2013 | -0.0136 | 未定義 | False | False | exploration |
+| 2014 | -0.0176 | -0.0040 | False | False | exploration |
+| 2015 | -0.0129 | 0.0047 | False | False | exploration |
+| 2016 | -0.0231 | -0.0101 | False | False | exploration |
+| 2017 | -0.0258 | -0.0027 | False | False | exploration |
+| 2018 | -0.0218 | 0.0040 | False | False | exploration |
+| 2019 | -0.0201 | 0.0017 | False | False | exploration |
+| 2021 | -0.0520 | 未定義 | False | False | exploration |
+| 2022 | -0.0247 | 0.0272 | False | False | exploration |
+| 2023 | -0.0410 | -0.0163 | False | False | exploration |
+| 2024 | -0.0188 | 0.0221 | False | False | exploration |
+| 2025 | -0.0200 | -0.0011 | False | False | exploration |
+| 2026 | 0.0034 | 0.0234 | True | False | holdout |
+
+別年: P(上位半分 | 条件成立)=0.7500、条件不成立=0.0000。
+
+別年の反例: 2026/d
+
+### 選択点の近傍（片方だけ変更）
+
+| 重み | 閾値 | MCC | 条件付き確率の差 |
+|---|---|---|---|
+| 0.25 | -0.01 | 0.4727 | 0.5362 |
+| 0.5 | -0.02 | 0.2981 | 0.4000 |
+| 0.5 | 0 | 0.2509 | 0.2517 |
+| 0.75 | -0.01 | 0.4824 | 0.5236 |
+
+### 重みを固定した閾値の推移
+
+| 閾値 | MCC | 基準との差 | 条件成立側の確率 | 条件不成立側の確率 |
+|---|---|---|---|---|
+| -0.08 | 未定義 | 未定義 | 0.5000 | 未定義 |
+| -0.07 | 未定義 | 未定義 | 0.5000 | 未定義 |
+| -0.06 | 未定義 | 未定義 | 0.5000 | 未定義 |
+| -0.05 | 0.1187 | -0.1314 | 0.5070 | 0.0000 |
+| -0.04 | 0.1690 | -0.0811 | 0.5143 | 0.0000 |
+| -0.03 | 0.2085 | -0.0416 | 0.5217 | 0.0000 |
+| -0.02 | 0.2981 | 0.0480 | 0.5667 | 0.1667 |
+| -0.01 | 0.5195 | 0.2694 | 0.6667 | 0.0952 |
+| 0 | 0.2509 | 0.0008 | 0.6364 | 0.3846 |
+| 0.01 | 0.2085 | -0.0416 | 0.6522 | 0.4286 |
+| 0.02 | 0.2940 | 0.0439 | 0.8889 | 0.4444 |
+| 0.03 | 0.2425 | -0.0076 | 1.0000 | 0.4706 |
+| 0.04 | 0.1690 | -0.0811 | 1.0000 | 0.4857 |
+| 0.05 | 未定義 | 未定義 | 未定義 | 0.5000 |
+| 0.06 | 未定義 | 未定義 | 未定義 | 0.5000 |
+| 0.07 | 未定義 | 未定義 | 未定義 | 0.5000 |
+| 0.08 | 未定義 | 未定義 | 未定義 | 0.5000 |
+
+### 年全体を外して選び直す検証
+
+| 外した年 | 重み | 閾値 | 外した年のMCC |
+|---|---|---|---|
+| 2013 | 0.7500 | -0.0100 | 0.0000 |
+| 2014 | 0.5000 | -0.0100 | 0.7071 |
+| 2015 | 0.5000 | -0.0100 | 0.4472 |
+| 2016 | 0.5000 | -0.0100 | 0.7071 |
+| 2017 | 0.5000 | -0.0100 | 0.7071 |
+| 2018 | 0.5000 | -0.0100 | 1.0000 |
+| 2019 | 0.5000 | -0.0100 | 0.0000 |
+| 2021 | 0.5000 | -0.0100 | 0.4472 |
+| 2022 | 0.5000 | -0.0100 | 0.0000 |
+| 2023 | 0.5000 | -0.0100 | 0.4472 |
+| 2024 | 0.5000 | -0.0100 | 0.7071 |
+| 2025 | 0.5000 | -0.0100 | 0.7071 |
+
+## inning_frequency_size
+
+式: `inn_dlog_freq + weight × inn_dlog_size`。以上側が上位半分を予測。
+
+欠損単位: 6。別年の欠損: [2026]。
+
+| 年 | 中日の指標値 | 前年差 | 条件成立 | 上位半分 | 用途 |
+|---|---:|---:|---|---|---|
+| 2013 | -0.1546 | 未定義 | False | False | exploration |
+| 2014 | -0.0976 | 0.0570 | False | False | exploration |
+| 2015 | -0.1010 | -0.0034 | False | False | exploration |
+| 2016 | -0.1332 | -0.0322 | False | False | exploration |
+| 2017 | -0.2843 | -0.1511 | False | False | exploration |
+| 2018 | -0.0936 | 0.1907 | False | False | exploration |
+| 2019 | -0.1020 | -0.0084 | False | False | exploration |
+| 2021 | -0.4345 | 未定義 | False | False | exploration |
+| 2022 | -0.3794 | 0.0551 | False | False | exploration |
+| 2023 | -0.3747 | 0.0047 | False | False | exploration |
+| 2024 | -0.3257 | 0.0490 | False | False | exploration |
+| 2025 | -0.2199 | 0.1058 | False | False | exploration |
+
+別年: P(上位半分 | 条件成立)=未定義、条件不成立=未定義。
+
+別年の反例: 未検証
+
+### 選択点の近傍（片方だけ変更）
+
+| 重み | 閾値 | MCC | 条件付き確率の差 |
+|---|---|---|---|
+| 1.5 | -0.05 | 0.4376 | 0.4596 |
+| 1.75 | -0.1 | 0.3597 | 0.4235 |
+| 1.75 | 0 | 0.3354 | 0.3375 |
+| 2 | -0.05 | 0.4627 | 0.4816 |
+
+### 重みを固定した閾値の推移
+
+| 閾値 | MCC | 基準との差 | 条件成立側の確率 | 条件不成立側の確率 |
+|---|---|---|---|---|
+| -0.4 | 0.1187 | -0.1595 | 0.5070 | 0.0000 |
+| -0.35 | 0.2085 | -0.0697 | 0.5217 | 0.0000 |
+| -0.3 | 0.2425 | -0.0357 | 0.5294 | 0.0000 |
+| -0.25 | 0.2732 | -0.0050 | 0.5373 | 0.0000 |
+| -0.2 | 0.3282 | 0.0500 | 0.5538 | 0.0000 |
+| -0.15 | 0.3213 | 0.0431 | 0.5645 | 0.1000 |
+| -0.1 | 0.3597 | 0.0815 | 0.6000 | 0.1765 |
+| -0.05 | 0.4627 | 0.1844 | 0.6739 | 0.1923 |
+| 0 | 0.3354 | 0.0572 | 0.6500 | 0.3125 |
+| 0.05 | 0.2849 | 0.0067 | 0.6786 | 0.3864 |
+| 0.1 | 0.2289 | -0.0493 | 0.7059 | 0.4364 |
+| 0.15 | 0.2702 | -0.0080 | 0.8182 | 0.4426 |
+| 0.2 | 0.3015 | 0.0233 | 1.0000 | 0.4545 |
+| 0.25 | 0.1690 | -0.1092 | 1.0000 | 0.4857 |
+| 0.3 | 0.1187 | -0.1595 | 1.0000 | 0.4930 |
+| 0.35 | 0.1187 | -0.1595 | 1.0000 | 0.4930 |
+| 0.4 | 0.1187 | -0.1595 | 1.0000 | 0.4930 |
+
+### 年全体を外して選び直す検証
+
+| 外した年 | 重み | 閾値 | 外した年のMCC |
+|---|---|---|---|
+| 2013 | 1.7500 | -0.0500 | 0.0000 |
+| 2014 | 1.0000 | -0.1000 | 未定義 |
+| 2015 | 1.7500 | -0.0500 | 0.0000 |
+| 2016 | 1.7500 | -0.0500 | 0.3333 |
+| 2017 | 1.7500 | -0.0500 | 1.0000 |
+| 2018 | 1.7500 | -0.0500 | 1.0000 |
+| 2019 | 1.0000 | -0.1000 | -0.4472 |
+| 2021 | 1.7500 | -0.0500 | 0.4472 |
+| 2022 | 1.7500 | -0.0500 | 0.0000 |
+| 2023 | 1.7500 | -0.0500 | 0.4472 |
+| 2024 | 1.7500 | -0.0500 | 0.7071 |
+| 2025 | 1.7500 | -0.0500 | 0.7071 |</pre></section><p class="ui-links"><a href="https://github.com/myon-bioinformatics/PythDRagoras">🐙 GitHub</a> · <a href="https://github.com/myon-bioinformatics/PythDRagoras#readme">📄 README</a></p><p class="ui-badges"><span class="ui-tag">baseball</span> <span class="ui-tag">hypothesis-testing</span> <span class="ui-tag">rule-search</span></p></main></body></html>
