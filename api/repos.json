@@ -1,7 +1,7 @@
 {
-  "generatedAt": "2026-11-13T21:06:55Z",
+  "generatedAt": "2026-11-14T21:06:51Z",
   "owner": "myon-bioinformatics",
-  "count": 44,
+  "count": 45,
   "repos": [
     {
       "name": "Aoi",
@@ -581,8 +581,8 @@
         "about-me",
         "introduction"
       ],
-      "stars": 2,
-      "updatedAt": "2026-11-12T11:48:50Z",
+      "stars": 3,
+      "updatedAt": "2026-11-14T11:52:01Z",
       "homepage": null,
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
@@ -718,6 +718,19 @@
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/OneLinearNumerousMemo/main/README.md"
     },
     {
+      "name": "OnTautoLogy",
+      "url": "https://github.com/myon-bioinformatics/OnTautoLogy",
+      "description": null,
+      "language": "Python",
+      "topics": [],
+      "stars": 0,
+      "updatedAt": "2026-11-14T15:43:48Z",
+      "homepage": null,
+      "readmeHeading": "OnTautoLogy",
+      "readmeSummary": "ナレッジグラフとオントロジーの小さな実験。最初の用途は PR 監査データの関係整理です。Python 3.11 以降の標準ライブラリだけで動きます。",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/OnTautoLogy/main/README.md"
+    },
+    {
       "name": "PySaiyanWeBoo",
       "url": "https://github.com/myon-bioinformatics/PySaiyanWeBoo",
       "description": "web-ui provides shared CSS themes, UI components, and small JavaScript utilities for static web interfaces across myon-bioinformatics projects. It is build-free and dependency-light by design: repositories keep their domain logic, while presentation and reusable browser behavior can share a stable UI contract.",
@@ -836,8 +849,8 @@
         "sports-analytics",
         "web-scraping"
       ],
-      "stars": 1,
-      "updatedAt": "2026-11-11T09:26:29Z",
+      "stars": 2,
+      "updatedAt": "2026-11-14T14:22:00Z",
       "homepage": null,
       "readmeHeading": "QueRyu",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
