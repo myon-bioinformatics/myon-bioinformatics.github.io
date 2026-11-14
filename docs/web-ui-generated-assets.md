@@ -27,6 +27,8 @@ uv run --locked python scripts/build_web_ui_assets.py --record Err-o-RoadRunner=
 
 `--record` refuses a checkout that is not at the showcase commit, and runs with only `PATH`, a temporary `HOME` and
 `LANG`, so no other variable of the recording machine reaches the page.
+A command that needs packages (DRAgoWing needs Python-Markdown) uses the latest release, as its own build installs it:
+add them with `uv run --locked --with markdown python scripts/build_web_ui_assets.py --record DRAgoWing=../Aoi`.
 
 ## Reproduce
 
