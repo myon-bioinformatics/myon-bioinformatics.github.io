@@ -79,9 +79,7 @@
           "--cache",
           "/tmp/queryu-cache",
           "--offline",
-          "--plan",
-          "--today",
-          "2026-11-14"
+          "--plan"
         ],
         "output": "観測:\n  日付: 2026-11-14\n  凍結シーズン: なし\n  再確認の対象年: なし\n  キャッシュ済み（再確認しない）: 0\n  条件付きGET: 0\n  再確認（条件なし）: 0\n  新規: 9\n  未来の月（取得しない）: 0\n  オフラインで不足するページ: 9\n解釈:\n  待ち時間の見積もり: 0 秒（間隔 3 秒を 0 回足した値）",
         "exit": 0
@@ -137,18 +135,12 @@
           "python3",
           "-S",
           "moshimo_box.py",
-          "--converse",
-          "0.6",
-          "--inverse",
-          "0.7",
-          "--contrapositive",
-          "0.8",
-          "--n",
-          "168",
-          "--sweep",
-          "converse=0.3,0.5,0.7,0.9"
+          "--ledger",
+          "../cycles/c001-chunichi/outputs/propositions.jsonl",
+          "--id",
+          "P1"
         ],
-        "output": "| n | converse (dial) | inverse (dial) | contrapositive (dial) | a | b | c | d | original (readout) | original exact | J | MK | mcc |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n| 168 | **0.300** | 0.700 | 0.800 | 17 | 22 | 39 | 90 | 0.436 | 0.424 | 0.107 | 0.134 | 0.120 |\n| 168 | **0.500** | 0.700 | 0.800 | 34 | 20 | 34 | 80 | 0.630 | 0.632 | 0.300 | 0.331 | 0.315 |\n| 168 | **0.700** | 0.700 | 0.800 | 63 | 15 | 27 | 63 | 0.808 | 0.800 | 0.508 | 0.508 | 0.508 |\n| 168 | **0.900** | 0.700 | 0.800 | 117 | 8 | 13 | 30 | 0.936 | 0.939 | 0.689 | 0.634 | 0.661 |",
+        "output": "| n | converse (dial) | inverse (dial) | contrapositive (dial) | a | b | c | d | original (readout) | original exact | J | MK | mcc |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n| 156 | 0.782 | 0.795 | 0.846 | 61 | 12 | 17 | 66 | 0.836 | 0.836 | 0.628 | 0.631 | 0.629 |\n\n| row | original | threshold | gap (logit) | converse at break-even (now) | inverse at break-even (now) | contrapositive at break-even (now) |\n|---|---|---|---|---|---|---|\n| base | 0.836 | 0.750 | +0.527 | 0.679 (0.782) | 0.868 (0.795) | 0.764 (0.846) |",
         "exit": 0
       }
     }
