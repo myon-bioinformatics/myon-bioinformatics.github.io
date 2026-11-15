@@ -222,16 +222,11 @@ See [source grammar, Python one-liners, and markdown.py integration](docs/pixiv-
 
 Verification: `uv run --locked pytest tests` (includes the canonical-data check of `docs/SSOT.md`) and `npx playwright test`. Python test dependencies are the `test` and `browser` groups of `pyproject.toml`, pinned in `uv.lock`; the brand-asset tests read images with the vendored `pillow_min` module from Ironmate (`tools/vendor/ironmate/`, recorded in `vendor.lock.json`). Animated evidence is the GIF recorded with BrowserTestKit's `tools/evidence_gif.py` (see Re-record above). The portal workflow preserves browser evidence as an Actions artifact.
 
-Image regression inputs also include PNGs encoded independently from known sample
-bytes, without `pillow_min`'s writer. They cover all five scanline filters, split
-IDAT/fdAT streams, RGB/RGBA frame pixels and timing, grayscale/RGB/palette
-transparency, CRC/truncation errors, and pixel/decompression limits.
+## Browser suite without a Playwright install
 
-## Focused test discovery
-
-See [standard-library discovery commands](docs/unittest-discovery.md) for
-validated `python -S -m unittest discover` recipes, filename/name filtering,
-and the boundary with the full pytest suite.
+Without Playwright's own Chromium installed, run the browser suite with a browser already on disk through
+BrowserTestKit: `python ../BrowserTestKit/tools/btk.py pw-test --root . tests/project-catalog.spec.js` (the portable
+runner that used to live here).
 
 ### Shared asset generator entry points
 
