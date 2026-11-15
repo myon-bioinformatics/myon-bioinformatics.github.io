@@ -125,8 +125,8 @@ scheduled card-update workflow.
 | 🎞️ evidence GIF shots | 9 | | |
 
 🌐 Avatars and badges are external and were refused (listed per shot in the receipt). `/mcp-toolcall-lab/execution/assets/…` is served by the mcp-toolcall-lab Pages site, so it is allowed rather than counted as a 404.
-🔄 `tools/mcp-toolcall-lab/` is the lab's public export re-imported from its `main` (`2e581d2c`); the earlier copy was a 2026-10-24 branch build.
-📦 The shared Web UI is one pinned git dependency (`requirements-pages.txt` → PySaiyanWeBoo); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated asset under `tools/vendor/web-ui/`, and `uv run --locked python scripts/build_web_ui_assets.py --refresh-lock` moves them together. Keep the same full commit in `[tool.uv.sources]` in `pyproject.toml`, run `uv lock`, and sync before refreshing. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
+🔄 `tools/mcp-toolcall-lab/` is the lab's public export re-imported from its `main` (`6af885d9`); the earlier copy was a 2026-10-24 branch build.
+📦 The shared Web UI is one pinned git dependency (`requirements-pages.txt` → PySaiyanWeBoo); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated file (`tools/vendor/web-ui/`, `tools/demos/`, `tools/projects/`). The front page (`index.html`) is built by `scripts/front_page.py` from `profile.json`, `api/repos.json` and `projects.json`: the profile and projects in each display mode (cards, XML-like, JSON, Markdown) are rendered in Python, and the colour themes are PySaiyanWeBoo's palettes. It is not in the lock, because the repository catalog is refreshed by a workflow. None of these files are kept in git: the Pages build writes them, `uv run --locked python scripts/project_pages.py --stage .generated-site` writes the whole site for tests and local previews, and `--refresh-lock` rewrites the lock after the pin moves. Keep the same full commit in `[tool.uv.sources]` in `pyproject.toml`, run `uv lock`, and sync before refreshing. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
 
 🔁 Re-record (after building `.generated-site` as in CI; `$WEBUI` is a PySaiyanWeBoo checkout at `adb23d7`):
 
@@ -179,7 +179,7 @@ stable `evidence/latest/` screenshots described above.
 ## Lab public tools and reports
 
 The portfolio now receives the lab's public Wiki/Pixiv interfaces and exported
-Actions report under `tools/mcp-toolcall-lab/` (`#wiki` and `#pixiv`). MCP servers,
+Actions report under `tools/mcp-toolcall-lab/` (`#wiki`, `#pixiv` and `#pokemon`). MCP servers,
 Docker execution, raw traces, and test generation remain in mcp-toolcall-lab.
 Flutter's working Pages application is unchanged.
 
@@ -198,7 +198,7 @@ To update, obtain a trusted lab `stub-pages-observations` artifact, extract its
 `_site/` public export, then run:
 
 ```sh
-uv run --locked python scripts/import_lab_pages.py --source /path/to/export/_site
+uv run --locked python scripts/lab_import.py --source /path/to/export/_site
 uv run --locked pytest tests/test_site.py
 ```
 
@@ -219,29 +219,22 @@ See [source grammar, Python one-liners, and markdown.py integration](docs/pixiv-
 - Project text search and topic filters work together in each view mode.
 - The lab's Niconico tab attempts Snapshot Search API v2 from the browser. Live verification on 2026-10-21 JST found HTTP 200 JSON responses without `Access-Control-Allow-Origin`; the published browser could not read results. The panel explains this limitation and offers official Niconico search with the selected keyword/sort. GitHub Pages cannot fix an upstream CORS header. The portfolio owns `tools/niconico/` and reapplies this panel when importing a lab report. See [live verification](docs/evidence/niconico-live-20261021/README.md).
 - AI & Tech Highlights displays public GitHub search results, or explicitly labelled curated examples when the API is unavailable. Curated examples do not claim current star counts.
-- `python -S scripts/generate_apng.py frame1.png frame2.png -o demo.png` creates an animation without third-party dependencies. Frames must share dimensions, color format, palette and transparency.
-- `python -S scripts/record_demo.py frame1.png frame2.png -o grid.png --mode montage` reconstructs PNG filters before stitching. Montage inputs must be matching non-interlaced 8-bit RGB/RGBA images.
-- Browser capture is a development dependency: `uv sync --locked --group browser`, run `uv run python -m playwright install --no-shell chromium`, serve the site, then run `python scripts/capture_portfolio_evidence.py --base-url http://localhost:8080 -o test-results/evidence`. It records all five portfolio modes and six tool routes, screenshots, hashes and a montage. Capture uses labelled curated highlights for repeatability.
 
-Verification: `uv run --locked pytest tests`, `npx playwright test`, and `node scripts/validate-ssot.mjs`. Python test dependencies are the `test` and `browser` groups of `pyproject.toml`, pinned in `uv.lock`; image regression tests decode exports with the vendored `pillow_min` module from Ironmate (`tools/vendor/ironmate/`, recorded in `vendor.lock.json`). Production image conversion uses only the standard library. The portal workflow preserves browser evidence as an Actions artifact.
+Verification: `uv run --locked pytest tests` (includes the canonical-data check of `docs/SSOT.md`) and, in a browser, `uv run --locked --group browser python -m pytest tests/test_front_page.py` (the front page, Python Playwright) plus `npx playwright test --config playwright/html-import.config.js` (HTML import and MCP lab; the Docker contract runs it on Chromium and WebKit). Python test dependencies are the `test` and `browser` groups of `pyproject.toml`, pinned in `uv.lock`; the brand-asset tests read images with the vendored `pillow_min` module from Ironmate (`tools/vendor/ironmate/`, recorded in `vendor.lock.json`). Animated evidence is the GIF recorded with BrowserTestKit's `tools/evidence_gif.py` (see Re-record above). The portal workflow preserves browser evidence as an Actions artifact.
 
-Image regression inputs also include PNGs encoded independently from known sample
-bytes, without `pillow_min`'s writer. They cover all five scanline filters, split
-IDAT/fdAT streams, RGB/RGBA frame pixels and timing, grayscale/RGB/palette
-transparency, CRC/truncation errors, and pixel/decompression limits.
+## Browser suite without a Playwright install
 
-## Focused test discovery
-
-See [standard-library discovery commands](docs/unittest-discovery.md) for
-validated `python -S -m unittest discover` recipes, filename/name filtering,
-and the boundary with the full pytest suite.
+Without Playwright's own Chromium installed, run the browser suite with a browser already on disk through
+BrowserTestKit: `python ../BrowserTestKit/tools/btk.py pw-test --root . --config playwright/html-import.config.js tests/html-import.spec.js` (the portable
+runner that used to live here).
 
 ### Shared asset generator entry points
 
 ```sh
-uv run --locked python scripts/build_web_ui_assets.py --output /tmp/portfolio-site
-uv run --locked python scripts/build_web_ui_assets.py --refresh-lock
-uv run --locked python -c "from scripts.build_web_ui_assets import main; main(['--output', '/tmp/portfolio-site'])"
+uv run --locked python scripts/project_pages.py --stage .generated-site   # the whole site; the Node browser specs serve it
+uv run --locked python scripts/project_pages.py --output /tmp/portfolio-site  # the generated files only
+uv run --locked python scripts/project_pages.py --refresh-lock
+uv run --locked python -c "from scripts.project_pages import main; main(['--output', '/tmp/portfolio-site'])"
 ```
 
 `main(argv=None)` uses process arguments when omitted and accepts an explicit argument

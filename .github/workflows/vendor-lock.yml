@@ -48,6 +48,6 @@ jobs:
         run: uv pip install -r requirements-pages.txt
       - name: Verify generated browser asset hashes
         run: |
-          python scripts/build_web_ui_assets.py --output "$RUNNER_TEMP/web-ui-assets"
-          python scripts/build_web_ui_assets.py --output "$RUNNER_TEMP/web-ui-assets-repeat"
+          python scripts/project_pages.py --output "$RUNNER_TEMP/web-ui-assets"
+          python scripts/project_pages.py --output "$RUNNER_TEMP/web-ui-assets-repeat"
           diff -r "$RUNNER_TEMP/web-ui-assets" "$RUNNER_TEMP/web-ui-assets-repeat"

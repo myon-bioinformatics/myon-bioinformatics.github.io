@@ -1,30 +1,30 @@
 {
-  "generated_at": "2026-11-07T15:42:14.292996Z",
+  "generated_at": "2026-11-14T10:36:47.086309Z",
   "metadata": {
-    "generated_at": "2026-11-07T15:42:14.292996Z",
+    "generated_at": "2026-11-14T10:36:47.086309Z",
     "head": {
-      "branch": "detached",
-      "sha": "2e581d2cc9683a94568d881a59f0a8e2d87475bb",
-      "short_sha": "2e581d2c",
-      "subject": "Keep required contract and evidence validation active under python -O (#194)",
-      "timestamp": "2026-11-05T08:11:20+09:00"
+      "branch": "main",
+      "sha": "6af885d90f7f0b04ab5a29759404130fece946e2",
+      "short_sha": "6af885d9",
+      "subject": "Merge pull request #217 from myon-bioinformatics/dependabot/uv/dnspython-2.9.2",
+      "timestamp": "2026-11-14T19:35:50+09:00"
     },
     "measurements": {
       "github_reported_size_bytes": null,
       "release_artifact_bytes": null,
-      "working_tree_bytes": 5469166
+      "working_tree_bytes": 7563088
     },
     "repository": {
       "full_name": "myon-bioinformatics/mcp-toolcall-lab"
     },
     "schema_version": "1.0",
     "tooling": {
-      "gh": "2.89.0",
-      "git": "2.43.0",
-      "node": "26.13.0",
-      "npm": "10.9.9",
-      "npx": "10.9.9",
-      "python": "3.13.18"
+      "gh": "2.103.3",
+      "git": "2.56.1",
+      "node": "26.12.1",
+      "npm": "11.20.0",
+      "npx": "11.20.0",
+      "python": "3.12.15"
     }
   },
   "resolver": {
@@ -44,16 +44,16 @@
       },
       {
         "kind": "raw",
-        "url": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/detached/README.md"
+        "url": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/main/README.md"
       },
       {
         "kind": "contents_api",
-        "url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab/contents/README.md?ref=detached"
+        "url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab/contents/README.md?ref=main"
       }
     ],
     "observations": [
       {
-        "checked_at": "2026-11-07T15:42:14.293114+00:00",
+        "checked_at": "2026-11-14T10:36:47.086390+00:00",
         "evidence": "http_response",
         "http_status": 200,
         "kind": "repository",
@@ -62,7 +62,7 @@
         "url": "https://github.com/myon-bioinformatics/mcp-toolcall-lab"
       },
       {
-        "checked_at": "2026-11-07T15:42:14.992748+00:00",
+        "checked_at": "2026-11-14T10:36:47.567980+00:00",
         "evidence": "http_response",
         "http_status": 200,
         "kind": "api",
@@ -71,35 +71,35 @@
         "url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab"
       },
       {
-        "checked_at": "2026-11-07T15:42:15.562422+00:00",
-        "evidence": "network_error",
-        "http_status": null,
+        "checked_at": "2026-11-14T10:36:47.711175+00:00",
+        "evidence": "http_response",
+        "http_status": 200,
         "kind": "pages",
-        "resolved_url": null,
-        "status": "unverified",
+        "resolved_url": "https://myon-bioinformatics.github.io/mcp-toolcall-lab/",
+        "status": "reachable",
         "url": "https://myon-bioinformatics.github.io/mcp-toolcall-lab/"
       },
       {
-        "checked_at": "2026-11-07T15:42:15.638442+00:00",
+        "checked_at": "2026-11-14T10:36:47.800017+00:00",
         "evidence": "http_response",
-        "http_status": 404,
+        "http_status": 200,
         "kind": "raw",
-        "resolved_url": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/detached/README.md",
-        "status": "not_found",
-        "url": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/detached/README.md"
+        "resolved_url": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/main/README.md",
+        "status": "reachable",
+        "url": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/main/README.md"
       },
       {
-        "checked_at": "2026-11-07T15:42:15.921849+00:00",
+        "checked_at": "2026-11-14T10:36:47.880914+00:00",
         "evidence": "http_response",
-        "http_status": 404,
+        "http_status": 200,
         "kind": "contents_api",
-        "resolved_url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab/contents/README.md?ref=detached",
-        "status": "not_found",
-        "url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab/contents/README.md?ref=detached"
+        "resolved_url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab/contents/README.md?ref=main",
+        "status": "reachable",
+        "url": "https://api.github.com/repos/myon-bioinformatics/mcp-toolcall-lab/contents/README.md?ref=main"
       }
     ],
     "path": "README.md",
-    "ref": "detached",
+    "ref": "main",
     "repository": "myon-bioinformatics/mcp-toolcall-lab",
     "status": "observed"
   },

@@ -2,7 +2,7 @@
 
 Every page under tools/<name>/ gets the same link, as the first element inside
 <main>, so returning after a transition never depends on where a page put it.
-Builders (tools/build_html_import.py) and the lab import (scripts/import_lab_pages.py)
+Builders (scripts/html_import_page.py) and the lab import (scripts/lab_import.py)
 both call add_back_nav() and add_home_label(), so regenerated or re-imported pages keep them.
 """
 import html

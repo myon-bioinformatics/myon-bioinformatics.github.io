@@ -69,7 +69,7 @@ jobs:
           node-version: "26"
       # Metadata reads Python distributions and executable versions only.
       # Node SDK imports are checked in the node job; no node_modules needed here.
-      - run: uv run --locked --only-group test python scripts/myon_bioinformatics_github_io_tooling_meta.py > stagehand-v4-tooling-meta.json
+      - run: uv run --locked --only-group test python scripts/stagehand_tooling_meta.py > stagehand-v4-tooling-meta.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: stagehand-v4-tooling-meta
@@ -94,8 +94,17 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps --only-shell chromium
 
+      # The front page and shared assets are generated, so serve the staged site (source tree plus generated files).
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "latest"
+          python-version: "3.15"
+          enable-cache: false
+      - name: Stage the site
+        run: uv run --locked --only-group test python scripts/project_pages.py --stage .generated-site
+
       - name: Serve site locally
-        run: python3 -m http.server 8000 > /tmp/github-io-http.log 2>&1 &
+        run: python3 -m http.server 8000 --directory .generated-site > /tmp/github-io-http.log 2>&1 &
 
       - name: Wait for server
         run: |

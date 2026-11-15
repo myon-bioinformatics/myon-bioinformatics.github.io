@@ -20,3 +20,10 @@ Thumbs.db
 # --- end common ignores ---
 
 .generated-site/
+# Generated at build time by scripts/project_pages.py (hashes in web-ui-assets.lock.json); never committed.
+/index.html
+tools/demos/
+tools/projects/
+tools/vendor/web-ui/css/
+tools/vendor/web-ui/js/
+tools/vendor/web-ui/generated.lock.json

@@ -58,8 +58,8 @@ rendered article instead.
 
 ## Reimport and provenance
 
-`scripts/lab_shared_ui.py` generates the select with `pysaiyanweboo.select()`, suppresses
+`scripts/lab_import.py` generates the select with `pysaiyanweboo.select()`, suppresses
 only the imported Pixiv auto-mount, and adds the consumer wrapper assets.
-`import_lab_pages.py` reapplies this on future lab imports. `publication.json`
+`lab_import.py` reapplies this on future lab imports. `publication.json`
 retains the original source hashes and records new published hashes. The lab
 report snapshot is unchanged. No CI/deployment workflow is modified.

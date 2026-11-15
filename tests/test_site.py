@@ -3,6 +3,7 @@
 import hashlib
 import importlib.util
 import json
+import re
 import socket
 import struct
 import sys
@@ -15,6 +16,21 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
+# The front page, the demos and the project pages are generated, not committed, so pages are read from the staged site:
+# the source tree plus the generated files (scripts/project_pages.py --stage).
+def _staged_site() -> Path:
+    import atexit, shutil
+    spec = importlib.util.spec_from_file_location('project_pages', ROOT / 'scripts/project_pages.py')
+    pages = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pages)
+    site = Path(tempfile.mkdtemp(prefix='portfolio-site-'))
+    atexit.register(shutil.rmtree, site, ignore_errors=True)
+    pages.stage(site)
+    return site
+
+
+SITE = _staged_site()
 
 # ═══ 🔗 portal links ══════════════════════════════════════════════════════════════════════════════════════
 
@@ -46,7 +62,7 @@ class LinkParser(HTMLParser):
 
 def test_portal_exposes_expected_pages():
     parser = LinkParser()
-    parser.feed((ROOT / "index.html").read_text(encoding="utf-8"))
+    parser.feed((SITE / "index.html").read_text(encoding="utf-8"))
     assert "tools" in parser.ids
     assert EXPECTED_PAGES <= set(parser.links)
 
@@ -64,8 +80,10 @@ def test_ironmate_metadata_lives_with_the_portfolio():
     assert metadata["schema"] == "project-metadata/1"
     assert metadata["repository"] == "https://github.com/myon-bioinformatics/Ironmate"
     parser = LinkParser()
-    parser.feed((ROOT / "index.html").read_text())
-    assert metadata["repository"] not in parser.links
+    page = (SITE / "index.html").read_text()
+    tools = page[page.index('<section id="tools"'):]
+    parser.feed(tools[:tools.index("</section>")])          # the Tools & Demos cards; the project list links every repository
+    assert parser.links and metadata["repository"] not in parser.links
     # The former repository fallback is removed; metadata remains machine-readable.
     assert "./project-ironmate.json" not in parser.links
     assert (ROOT / "project-ironmate.json").is_file()
@@ -90,7 +108,7 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
     assert "theme/inherited text colors and slide backgrounds" in editing["unsupported"]
     assert "arrow attributes and advanced formatting" in editing["unsupported"]
 
-    html = (ROOT / "index.html").read_text(encoding="utf-8")
+    html = (SITE / "index.html").read_text(encoding="utf-8")
     card_start = html.index('<h3 id="ironmate">Ironmate</h3>')
     card = html[card_start:html.index("</article>", card_start)]
     assert "PPTX対応は計画段階" not in card
@@ -103,20 +121,20 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
 
 def test_lab_pages_are_hosted_by_portfolio():
     parser = LinkParser()
-    parser.feed((ROOT / "index.html").read_text())
+    parser.feed((SITE / "index.html").read_text())
     assert "mcp-toolcall-lab" in parser.ids
     assert "./tools/mcp-toolcall-lab/" in parser.links
     assert (ROOT / "tools/mcp-toolcall-lab/index.html").is_file()
 
 
-# The demos (DEMOS) and project pages (projects.json showcases) come from scripts/build_web_ui_assets.py; they are tool pages too.
+# The demos (DEMOS) and project pages (projects.json showcases) come from scripts/project_pages.py; they are tool pages too.
 TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp-toolcall-lab/index.html", "tools/mcp-toolcall-lab/repository-diagnostics.html",
-              *sorted(str(path.relative_to(ROOT)) for folder in ("demos", "projects") for path in (ROOT / "tools" / folder).glob("*.html")))
+              *sorted(str(path.relative_to(SITE)) for folder in ("demos", "projects") for path in (SITE / "tools" / folder).glob("*.html")))
 
 
 def test_every_tool_page_has_the_same_back_link_first_in_main():
     import re
-    for page in (ROOT / name for name in TOOL_PAGES):
+    for page in (SITE / name for name in TOOL_PAGES):
         html = page.read_text(encoding="utf-8")
         main = re.search(r"<main[^>]*>", html)
         assert main, page
@@ -125,6 +143,189 @@ def test_every_tool_page_has_the_same_back_link_first_in_main():
                                 '<a href="../../index.html#tools" data-testid="portfolio-back">'), page
         assert html.count('data-testid="portfolio-back"') == 1, page
         assert "Back to portfolio" not in html, page
+
+
+# ═══ 🐍 front page (scripts/front_page.py) ═══════════════════════════════════════════════════════════════════════
+# The catalog rules and the four notations are Python; the browser only switches, filters and fills AI highlights.
+
+def _front():
+    spec = importlib.util.spec_from_file_location('front_page', ROOT / 'scripts/front_page.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class _Text(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.text, self.links, self.units = [], [], []
+
+    def handle_starttag(self, tag, attrs):
+        values = dict(attrs)
+        if tag == 'a' and 'href' in values:
+            self.links.append(values['href'])
+        if 'data-project' in values:
+            self.units.append(values['data-project'])
+
+    def handle_data(self, data):
+        self.text.append(data)
+
+
+def _read(fragment):
+    parser = _Text()
+    parser.feed(fragment)
+    return ''.join(parser.text), parser.links, parser.units
+
+
+def test_front_page_catalog_shows_active_repositories_and_curation_cannot_override_them():
+    front = _front()
+    repo = lambda name, **more: {'name': name, 'url': f'https://github.com/myon-bioinformatics/{name}', **more}
+    catalog = {'repos': [repo('Kept', description='From GitHub', topics=['python', 'cli']), repo('Legacy', archived=True, topics=['legacy-topic']),
+                         repo('Future', description=None, readmeSummary='New README summary', topics=['future-topic']), repo('Bare')]}
+    curated = [{'name': 'Kept', 'url': 'https://example.com/stale', 'desc': 'Curated text', 'topics': ['curated-topic', 'python']},
+               {'name': 'Removed-repository', 'url': 'https://example.com/removed', 'desc': 'Stale entry'}]
+    projects = {p['name']: p for p in front.project_catalog(catalog, curated)}
+    assert list(projects) == ['Kept', 'Future', 'Bare']                                  # archived and stale curated entries never show
+    assert projects['Kept'] == {'name': 'Kept', 'desc': 'Curated text', 'url': 'https://github.com/myon-bioinformatics/Kept',
+                                'topics': ['curated-topic', 'python', 'cli'], 'archived': False}   # the catalog owns the URL
+    assert projects['Future']['desc'] == 'New README summary'                            # a refreshed repository needs no curated card
+    assert projects['Bare']['desc'] == 'Explore the source and README on GitHub.'
+    assert [p['name'] for p in front.project_catalog(catalog, [])] == ['Kept', 'Future', 'Bare']   # no curation at all
+    with pytest.raises(ValueError, match='Invalid repository catalog'):                  # a broken catalog fails the build
+        front.project_catalog({}, curated)
+
+
+def test_front_page_notations_carry_the_same_profile_and_projects():
+    front = _front()
+    profile = json.loads((ROOT / 'profile.json').read_text(encoding='utf-8'))
+    projects = front.project_catalog(json.loads((ROOT / 'api/repos.json').read_text(encoding='utf-8')),
+                                     json.loads((ROOT / 'projects.json').read_text(encoding='utf-8')))
+    assert json.loads(_read(front.profile_html(profile, 'json'))[0]) == profile          # the JSON notation is the data itself
+    names, urls = [p['name'] for p in projects], sorted(p['url'] for p in projects)
+    for notation in ('web', 'xml', 'json', 'markdown'):
+        text, links, units = _read(front.projects_html(projects, notation))
+        assert units == names, notation                                                  # one removable unit per project
+        assert sorted(set(links)) == urls, notation
+        assert profile['career'][0]['title'] in _read(front.profile_html(profile, notation))[0], notation
+    # Without the comma the page script drops after the last shown project, the JSON notation parses back to the catalog.
+    listing = front.projects_html(projects, 'json')
+    last = listing.rindex(front._LAST_COMMA)
+    assert json.loads(_read(listing[:last] + listing[last + len(front._LAST_COMMA):])[0]) == projects
+    text = _read(front.projects_html(projects, 'xml'))[0]
+    assert text.startswith('<Projects>') and text.endswith('</Projects>') and text.count('<Project name=') == len(projects)
+    assert '<script' not in front.profile_html({**profile, 'about': '<script>alert(1)</script>'}, 'web')   # data is escaped
+
+
+def test_front_page_ai_highlight_templates_have_the_same_slots_in_every_notation():
+    front = _front()
+    for notation in ('web', 'xml', 'json', 'markdown'):
+        frame = front.highlights_html(notation)
+        assert frame.count('<template data-item>') == 1, notation
+        fields = set(re.findall(r'data-field="(\w+)"', frame))
+        assert {'name', 'desc', 'language'} <= fields and fields & {'stars', 'starsLabel'}, (notation, fields)
+        assert 'data-href="url"' in frame and 'href="' not in frame.replace('data-href="', ''), notation   # links are filled, never written
+
+
+def test_front_page_offers_the_shared_colour_themes_and_embeds_no_unsafe_json():
+    front = _front()
+    ui = pytest.importorskip('pysaiyanweboo')
+    page = front.document()
+    for name in ui.theme_palettes():
+        assert f'<option value="{name}">' in page and f'body[data-ui-theme="{name}"]' in page, name
+    assert set(front.MODES) == {'modern', 'xml-like', 'json', 'markdown', 'github-like'}
+    data = page[page.index('id="projects-data">') + len('id="projects-data">'):]
+    assert '<' not in data[:data.index('</script>')]                                     # nothing can close the script element early
+
+
+# ═══ 🧭 canonical data (docs/SSOT.md) ═══════════════════════════════════════════════════════════════════════
+# One owner per fact: api/repos.json (repository facts), projects.json (curation), services.json (endpoints),
+# profile.json (person). These are the relationships between them.
+
+SERVICE_KINDS = {'external-profile', 'static-data', 'repository', 'pages', 'mcp-stub'}
+
+
+def canonical_data_errors(profile: dict, projects: list, catalog: dict, registry: dict) -> list[str]:
+    errors = []
+    repos = {repo['name']: repo for repo in catalog['repos']}
+    services = registry.get('services') or {}
+    for project in projects:
+        repo = repos.get(project['name'])
+        if repo is None:
+            errors.append(f"projects.json references unknown repository: {project['name']}")
+        elif project.get('url') and project['url'] != repo['url']:  # url is a compatibility field only
+            errors.append(f"project URL drift for {project['name']}: {project['url']} != {repo['url']}")
+
+    def url(*path):
+        entry = services
+        for key in path:
+            entry = (entry or {}).get(key)
+        return (entry or {}).get('url')
+
+    for path in (('account', 'github'), ('portfolio', 'pages'), ('portfolio', 'profileData'),
+                 ('portfolio', 'projectsData'), ('portfolio', 'repositoryCatalog')):
+        if not url(*path):
+            errors.append(f"services.json is missing required service URL: {'.'.join(path)}")
+    if url('portfolio', 'repositoryCatalog') != 'https://myon-bioinformatics.github.io/api/repos.json':
+        errors.append('portfolio.repositoryCatalog must point to the canonical repos.json endpoint')
+    links = profile.get('links') or {}
+    if links.get('portfolio') != url('portfolio', 'pages'):
+        errors.append('profile.links.portfolio must match services.portfolio.pages.url')
+    if links.get('github') != url('account', 'github'):
+        errors.append('profile.links.github must match services.account.github.url')
+
+    def check_entry(path, entry):
+        if not isinstance(entry, dict):
+            return
+        if 'kind' in entry or 'url' in entry:
+            if entry.get('kind') not in SERVICE_KINDS:
+                errors.append(f"unknown service kind at {path}: {entry.get('kind')}")
+            if not entry.get('url'):
+                errors.append(f'missing URL at {path}')
+            return
+        for key, value in entry.items():
+            check_entry(f'{path}.{key}', value)
+
+    check_entry('services', services)
+    for name, group in (services.get('projects') or {}).items():
+        if not isinstance(group, dict):
+            errors.append(f'invalid project service group at services.projects.{name}')
+            continue
+        repo = repos.get(name)
+        if repo is None:
+            errors.append(f'services.json references unknown repository: {name}')
+            continue
+        repository_url = (group.get('repository') or {}).get('url') if isinstance(group.get('repository'), dict) else None
+        if repository_url and repository_url != repo['url']:
+            errors.append(f"repository service URL drift for {name}: {repository_url} != {repo['url']}")
+        prefix = f'https://myon-bioinformatics.github.io/{name}/'
+        for service_name, service in group.items():
+            if not isinstance(service, dict):
+                errors.append(f'invalid service entry at services.projects.{name}.{service_name}')
+            elif service.get('kind') in ('pages', 'mcp-stub') and service.get('url') and not service['url'].startswith(prefix):
+                errors.append(f'{service_name} URL for {name} must be under {prefix}')
+    return errors
+
+
+def _canonical_data():
+    return [json.loads((ROOT / name).read_text(encoding='utf-8'))
+            for name in ('profile.json', 'projects.json', 'api/repos.json', 'services.json')]
+
+
+def test_canonical_data_relationships_hold():
+    assert canonical_data_errors(*_canonical_data()) == []
+
+
+def test_canonical_data_check_reports_drift():
+    profile, projects, catalog, registry = _canonical_data()
+    name = next(iter(registry['services']['projects']))
+    registry['services']['projects'][name]['pages'] = {'kind': 'pages', 'url': 'https://example.test/elsewhere/'}
+    projects = projects + [{'name': 'no-such-repository'}]
+    registry['services']['portfolio']['broken'] = {'kind': 'unknown-kind', 'url': ''}
+    errors = canonical_data_errors(profile, projects, catalog, registry)
+    assert 'projects.json references unknown repository: no-such-repository' in errors
+    assert f'pages URL for {name} must be under https://myon-bioinformatics.github.io/{name}/' in errors
+    assert 'unknown service kind at services.portfolio.broken: unknown-kind' in errors
+    assert 'missing URL at services.portfolio.broken' in errors
 
 
 # ═══ 📱 home screen ═══════════════════════════════════════════════════════════════════════════════════════
@@ -166,7 +367,7 @@ def png_size(path):
 
 
 def home_manifest():
-    return json.loads((ROOT / "manifest.webmanifest").read_text(encoding="utf-8"))
+    return json.loads((SITE / "manifest.webmanifest").read_text(encoding="utf-8"))
 
 
 def largest_icon(manifest):
@@ -178,29 +379,29 @@ def test_home_screen_shortcut_opens_the_portfolio_with_its_label_and_real_icons(
     # 🏠 The icon opens index.html, the whole site is in scope, and it opens in the browser ("browser"), so the
     # other repositories' Pages it links to keep their back button.
     assert (manifest["id"], manifest["start_url"], manifest["scope"], manifest["display"]) == ("./", "./", "./", "browser")
-    page = parse_page(ROOT / "index.html")
+    page = parse_page(SITE / "index.html")
     assert manifest["name"] == page.title
     assert len(manifest["short_name"]) <= 12                       # longer home-screen labels are cut off
     for icon in manifest["icons"]:
-        assert icon["type"] == "image/png" and icon["sizes"] == png_size(ROOT / icon["src"]), icon
+        assert icon["type"] == "image/png" and icon["sizes"] == png_size(SITE / icon["src"]), icon
     assert int(largest_icon(manifest)["sizes"].split("x")[0]) >= 144   # Chromium's smallest home-screen icon
 
 
 def test_home_screen_index_head_matches_the_manifest():
-    page, manifest = parse_page(ROOT / "index.html"), home_manifest()
+    page, manifest = parse_page(SITE / "index.html"), home_manifest()
     assert [link["href"] for link in rel_links(page, "manifest")] == ["./manifest.webmanifest"]
     largest = largest_icon(manifest)
     [touch] = rel_links(page, "apple-touch-icon")                  # 🍎 iOS: icon and label come from the page itself
     assert (touch["href"], touch["sizes"]) == ("./" + largest["src"], largest["sizes"])
     assert page.metas["apple-mobile-web-app-title"] == page.metas["application-name"] == manifest["short_name"]
     for icon in rel_links(page, "icon"):
-        assert (ROOT / icon["href"]).is_file(), icon
-        assert icon.get("type") != "image/png" or icon["sizes"] == png_size(ROOT / icon["href"]), icon
+        assert (SITE / icon["href"]).is_file(), icon
+        assert icon.get("type") != "image/png" or icon["sizes"] == png_size(SITE / icon["href"]), icon
 
 
 def test_home_screen_tool_page_shortcuts_open_that_page_and_show_an_icon():
     for name in TOOL_PAGES:
-        page = parse_page(ROOT / name)
+        page = parse_page(SITE / name)
         # 🔗 With the portfolio manifest linked, Android would open index.html instead of this page.
         assert not rel_links(page, "manifest"), name
         label = page.metas["apple-mobile-web-app-title"]         # 🏷️ the <title> would be cut off under the icon
@@ -209,19 +410,19 @@ def test_home_screen_tool_page_shortcuts_open_that_page_and_show_an_icon():
             [icon] = rel_links(page, rel)
             if icon["href"].startswith("/mcp-toolcall-lab/"):      # the lab's own artwork, served by its Pages on this host
                 continue
-            png_size((ROOT / name).parent / icon["href"])
-    assert "img-src 'self'" in (ROOT / TOOL_PAGES[0]).read_text(encoding="utf-8")   # its CSP lets the icons load
+            png_size((SITE / name).parent / icon["href"])
+    assert "img-src 'self'" in (SITE / TOOL_PAGES[0]).read_text(encoding="utf-8")   # its CSP lets the icons load
 
 
 def test_home_screen_every_local_link_and_asset_resolves():
     for name in ("index.html", *TOOL_PAGES):
-        page = parse_page(ROOT / name)
+        page = parse_page(SITE / name)
         for ref in page.refs:
             url = urlparse(ref)
             if url.scheme or ref.startswith("/"):                   # 🌐 other sites, or the lab's Pages on this host
                 assert url.scheme == "https" or ref.startswith("/mcp-toolcall-lab/"), (name, ref)
                 continue
-            target = ((ROOT / name).parent / url.path).resolve() if url.path else ROOT / name
+            target = ((SITE / name).parent / url.path).resolve() if url.path else SITE / name
             target = target / "index.html" if target.is_dir() else target
             assert target.is_file(), (name, ref)
             if url.fragment and target.suffix == ".html":
@@ -243,7 +444,7 @@ def test_home_screen_in_chromium_with_a_gif():
         def log_message(self, *args):
             pass
 
-    server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Quiet, directory=str(ROOT)))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Quiet, directory=str(SITE)))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     base, manifest, frames = f"http://127.0.0.1:{server.server_port}/", home_manifest(), []
     load = """hrefs => Promise.all(hrefs.map(href => new Promise(done => { const image = new Image();
@@ -284,7 +485,7 @@ def test_home_screen_in_chromium_with_a_gif():
             tiles = [("🍎 iOS", base + largest_icon(manifest)["src"], manifest["short_name"]),
                      ("🤖 Android", base + largest_icon(manifest)["src"], manifest["short_name"])]
             for name in TOOL_PAGES:
-                tool = parse_page(ROOT / name)
+                tool = parse_page(SITE / name)
                 [touch] = rel_links(tool, "apple-touch-icon")
                 local = not touch["href"].startswith("/")
                 tiles.append(("📄 " + name.split("/")[1], base + str(Path(name).parent / touch["href"]) if local else None,
@@ -329,7 +530,7 @@ def test_home_screen_in_chromium_with_a_gif():
                 assert demos.evaluate(load, icons) == ["32x32", "170x170"], name
                 assert demos.get_by_test_id("portfolio-back").get_attribute("href") == "../../index.html#tools", name
                 assert errors == [], (name, errors)
-                frames.append((demos.screenshot(), f"🧰 {demos.title()} · {parse_page(ROOT / name).metas['apple-mobile-web-app-title']}"))
+                frames.append((demos.screenshot(), f"🧰 {demos.title()} · {parse_page(SITE / name).metas['apple-mobile-web-app-title']}"))
                 run = demos.get_by_role("heading", name="▶ 実行例")
                 if run.count():                                     # ▶ the recorded run, on a frame of its own
                     run.evaluate("heading => heading.scrollIntoView({block: 'start'})")
@@ -387,7 +588,7 @@ def test_exact_vendor_bytes():
 
 
 def test_generated_page_is_current():
-    builder = load_module('build_html_import', 'tools/build_html_import.py')
+    builder = load_module('html_import_page', 'scripts/html_import_page.py')
     assert (ROOT / 'tools/html-import/index.html').read_text(encoding='utf-8') == builder.generate()
 
 
@@ -409,8 +610,9 @@ def test_fixture_oracles_are_explicit():
 
 # ═══ 🧪 lab publication ═══════════════════════════════════════════════════════════════════════════════════
 
-spec = importlib.util.spec_from_file_location('import_lab_pages', ROOT / 'scripts/import_lab_pages.py')
+spec = importlib.util.spec_from_file_location('lab_import', ROOT / 'scripts/lab_import.py')
 module = importlib.util.module_from_spec(spec)
+sys.modules['lab_import'] = module  # the tests below import names from it; loading it leaves sys.path alone
 spec.loader.exec_module(module)
 PUBLIC = ROOT / 'tools/mcp-toolcall-lab'
 
@@ -465,6 +667,7 @@ assert.equal(pixiv.extractSource({title:'Demo',sourceText:''}).ok,false);
 assert.equal(pixiv.parseSourceUrl('https://evil.example/history/Demo/1/source').ok,false);
 assert.equal(route.viewFromLocation('#wiki',''),'wiki');
 assert.equal(route.viewFromLocation('#pixiv',''),'pixiv');
+assert.equal(route.viewFromLocation('#pokemon',''),'pokemon');
 assert.equal(route.viewFromLocation('',''),'home');
 '''
     subprocess.run(['node', '-e', js], cwd=ROOT, check=True)
@@ -472,9 +675,9 @@ assert.equal(route.viewFromLocation('',''),'home');
 
 def test_shared_presentation_keeps_original_report_identity():
     meta=json.loads((PUBLIC/'publication.json').read_text())
-    assert meta['source_sha']=='2e581d2cc9683a94568d881a59f0a8e2d87475bb'
+    assert meta['source_sha']=='6af885d90f7f0b04ab5a29759404130fece946e2'
     assert meta['source_sha256']['pages-wiki.js']=='9d179d5a8baf64096227db9694b2cf11a1c486d59cf5984444a29a563fd187f5'
-    assert meta['source_sha256']['pages-pixiv.js']=='b44157ffc92d6bdcee5d9a10e575ae0fc6f21f91bbbe28776bcbeda48956a8cb'
+    assert meta['source_sha256']['pages-pixiv.js']=='c19d6a41df02ed6e2ca33d0b9f0291e8db92cbbdc48c2208adcda9b4b3848ff1'
     assert meta['presentation']['owner']=='myon-bioinformatics/PySaiyanWeBoo'
     assert meta['source_sha256']['index.html']!=meta['published_sha256']['index.html']
     assert 'shared-navigation.mjs' not in meta['source_sha256']
@@ -505,7 +708,7 @@ def test_reimport_reapplies_shared_runtime_and_records_both_hashes():
 
 
 def test_reimport_preserves_consumer_niconico_panel_and_routes():
-    from lab_shared_ui import apply_shared_ui, NAVIGATION_BINDING
+    from lab_import import apply_shared_ui, NAVIGATION_BINDING
     source = '''<html><head></head><body><header>Lab</header>
     <a href="#pixiv" data-pages-nav="pixiv">Pixiv</a>
     <section data-pages-view="pixiv"></section></body></html>'''
@@ -515,6 +718,18 @@ def test_reimport_preserves_consumer_niconico_panel_and_routes():
     assert '../niconico/search.js' in page
     assert apply_shared_ui(page).count('data-pages-view="niconico"') == 1
     assert b"niconico:'niconico'" in NAVIGATION_BINDING
+
+
+def test_reimport_preserves_consumer_pokemon_panel_and_routes():
+    from lab_import import NAVIGATION_BINDING
+    page = (PUBLIC / 'index.html').read_text()
+    assert 'data-pages-nav="pokemon"' in page
+    assert 'data-pages-view="pokemon"' in page
+    assert 'data-source-fetch' in page
+    assert 'data-source-extract' in page
+    assert 'source.js' in page
+    assert (PUBLIC / 'source.js').is_file()
+    assert b"pokemon:'pokemon'" in NAVIGATION_BINDING
 
 
 def test_example_defaults_are_blank_and_execution_is_linked():
@@ -528,7 +743,7 @@ def test_example_defaults_are_blank_and_execution_is_linked():
                 assert attrs.get('value') == ''
 
     Inputs().feed((PUBLIC / 'index.html').read_text())
-    for path in (ROOT / 'index.html', ROOT / 'README.md', PUBLIC / 'index.html'):
+    for path in (SITE / 'index.html', ROOT / 'README.md', PUBLIC / 'index.html'):
         assert module.EXECUTION_URL in path.read_text()
     services = json.loads((ROOT / 'services.json').read_text())
     assert services['services']['projects']['mcp-toolcall-lab']['execution']['url'] == module.EXECUTION_URL
@@ -549,7 +764,7 @@ def test_import_clears_only_example_controls_and_preserves_original_evidence():
 
 
 def test_lab_branding_is_idempotent_and_uses_published_absolute_paths():
-    from lab_branding import apply_lab_branding, FAVICON, LOGO
+    from lab_import import apply_lab_branding, FAVICON, LOGO
     from urllib.parse import urljoin
     for name in ('index.html', 'repository-diagnostics.html'):
         page = (PUBLIC / name).read_text()
@@ -569,7 +784,7 @@ def test_lab_branding_is_idempotent_and_uses_published_absolute_paths():
 
 
 def test_reimport_applies_branding_without_changing_source_identity():
-    from lab_branding import FAVICON, LOGO
+    from lab_import import FAVICON, LOGO
     with tempfile.TemporaryDirectory() as directory:
         source = Path(directory) / 'source'; source.mkdir()
         destination = Path(directory) / 'publication'
@@ -587,7 +802,7 @@ def test_reimport_applies_branding_without_changing_source_identity():
 
 
 def test_prose_extract_adapter_preserves_whitespace_hooks_and_code_blocks():
-    from lab_shared_ui import apply_prose_extracts, apply_shared_ui
+    from lab_import import apply_prose_extracts, apply_shared_ui
     source = ('<html><head></head><body>'
               '<pre data-testid="pages-pixiv-extract" hidden class="ui-output">A\nB &lt;C&gt;</pre>'
               '<pre class="ui-output" data-testid="pages-wiki-extract">Wiki\ntext</pre>'
