@@ -62,6 +62,9 @@ def test_map_links_pins_share_and_tokyo_with_gif(site, browser):
             other.close()
 
         page.locator('#tokyo-link').click()
+        # PSWB asks for the walking avatar on entry; choose it through the normal UI.
+        expect(page.locator('.ui-world-pick')).to_be_visible()
+        page.locator('.ui-world-pick-grid [data-emoji]').first.click()
         sheet = page.locator('#cities-spot-tokyo-kanda')
         expect(sheet).to_be_visible()
         shot('Parallel Tokyo: Kanda sheet')

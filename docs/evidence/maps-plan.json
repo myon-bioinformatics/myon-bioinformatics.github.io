@@ -9,6 +9,7 @@
       {"click": "#pin"},
       {"eval": "document.querySelector('#pins').scrollIntoView({block:'center'})"},
       {"click": "#tokyo-link"},
+      {"click": ".ui-world-pick-grid [data-emoji]:first-child"},
       {"wait": 700},
       {"click": "#cities-spot-tokyo-kanda a.ui-button"}
     ]
