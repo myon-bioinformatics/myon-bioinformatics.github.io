@@ -74,7 +74,7 @@ def test_favicons_have_expected_sizes_and_ico_frames_match_pngs():
 
 def test_homepage_favicon_links_and_header_artwork_are_local():
     parser = BrandParser()
-    parser.feed((ROOT / "index.html").read_text(encoding="utf-8"))
+    parser.feed(load_module('front_page', 'scripts/front_page.py').document())   # the front page is built in Python
     assert {(item["href"], item["sizes"]) for item in parser.icons} == {
         ("./favicon.ico", "16x16 32x32 48x48"),
         ("./assets/brand/favicon-16x16.png", "16x16"),

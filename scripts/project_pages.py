@@ -84,13 +84,22 @@ def render(ui) -> dict[str, bytes]:
     return result
 
 
-def _nav():
+def _sibling(name: str):
+    """A module beside this file, imported without leaving scripts/ on sys.path."""
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     try:
-        import portfolio_nav
+        return __import__(name)
     finally:
         sys.path.pop(0)
-    return portfolio_nav
+
+
+def _nav():
+    return _sibling('portfolio_nav')
+
+
+def render_front() -> dict[str, bytes]:
+    """The portfolio's own front page (scripts/front_page.py): shell, cards, stylesheet and script in one index.html."""
+    return {'index.html': _sibling('front_page').document().encode('utf-8')}
 
 
 def render_demos(ui) -> dict[str, bytes]:
@@ -181,17 +190,17 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
     if set(lock['outputs']) != {ASSET_BASE + name for name in ASSETS}:
         raise ValueError('generated output paths differ from public URL contract')
-    expected = ({DEMO_BASE + 'index.html', PROJECT_BASE + 'index.html'} | {DEMO_BASE + name + '.html' for name in DEMOS}
+    expected = ({'index.html', DEMO_BASE + 'index.html', PROJECT_BASE + 'index.html'} | {DEMO_BASE + name + '.html' for name in DEMOS}
                 | {_project_file(p) for p in showcases(root)})
     if set(lock.get('pages', {})) != expected:
-        raise ValueError('generated page paths differ from the demo list and projects.json showcases')
+        raise ValueError('generated page paths differ from the front page, the demo list and projects.json showcases')
     if ui is None:
         import pysaiyanweboo as ui
     result = render(ui)
     for target, data in result.items():
         if hashlib.sha256(data).hexdigest() != lock['outputs'][target]:
             raise ValueError(f'generated asset hash mismatch: {target}')
-    pages = {**render_demos(ui), **render_projects(ui, root)}
+    pages = {**render_front(), **render_demos(ui), **render_projects(ui, root)}
     for target, data in pages.items():
         if hashlib.sha256(data).hexdigest() != lock['pages'][target]:
             raise ValueError(f'generated page hash mismatch: {target}')
@@ -232,7 +241,7 @@ def refresh_lock(root: Path = ROOT) -> dict:
     import pysaiyanweboo as ui
     commit = installed_commit()
     verify_pin(commit, root)
-    payload, pages = render(ui), {**render_demos(ui), **render_projects(ui, root)}
+    payload, pages = render(ui), {**render_front(), **render_demos(ui), **render_projects(ui, root)}
     lock = {
         'schema': 'web-ui-generated/2',
         'generator': 'pysaiyanweboo (requirements-pages.txt)',

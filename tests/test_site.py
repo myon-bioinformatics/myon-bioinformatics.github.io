@@ -16,6 +16,21 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
+# The front page, the demos and the project pages are generated, not committed, so pages are read from the staged site:
+# the source tree plus the generated files (scripts/project_pages.py --stage).
+def _staged_site() -> Path:
+    import atexit, shutil
+    spec = importlib.util.spec_from_file_location('project_pages', ROOT / 'scripts/project_pages.py')
+    pages = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pages)
+    site = Path(tempfile.mkdtemp(prefix='portfolio-site-'))
+    atexit.register(shutil.rmtree, site, ignore_errors=True)
+    pages.stage(site)
+    return site
+
+
+SITE = _staged_site()
+
 # ═══ 🔗 portal links ══════════════════════════════════════════════════════════════════════════════════════
 
 EXPECTED_PAGES = {
@@ -46,7 +61,7 @@ class LinkParser(HTMLParser):
 
 def test_portal_exposes_expected_pages():
     parser = LinkParser()
-    parser.feed((ROOT / "index.html").read_text(encoding="utf-8"))
+    parser.feed((SITE / "index.html").read_text(encoding="utf-8"))
     assert "tools" in parser.ids
     assert EXPECTED_PAGES <= set(parser.links)
 
@@ -64,7 +79,7 @@ def test_ironmate_metadata_lives_with_the_portfolio():
     assert metadata["schema"] == "project-metadata/1"
     assert metadata["repository"] == "https://github.com/myon-bioinformatics/Ironmate"
     parser = LinkParser()
-    parser.feed((ROOT / "index.html").read_text())
+    parser.feed((SITE / "index.html").read_text())
     assert metadata["repository"] not in parser.links
     # The former repository fallback is removed; metadata remains machine-readable.
     assert "./project-ironmate.json" not in parser.links
@@ -90,7 +105,7 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
     assert "theme/inherited text colors and slide backgrounds" in editing["unsupported"]
     assert "arrow attributes and advanced formatting" in editing["unsupported"]
 
-    html = (ROOT / "index.html").read_text(encoding="utf-8")
+    html = (SITE / "index.html").read_text(encoding="utf-8")
     card_start = html.index('<h3 id="ironmate">Ironmate</h3>')
     card = html[card_start:html.index("</article>", card_start)]
     assert "PPTX対応は計画段階" not in card
@@ -103,26 +118,13 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
 
 def test_lab_pages_are_hosted_by_portfolio():
     parser = LinkParser()
-    parser.feed((ROOT / "index.html").read_text())
+    parser.feed((SITE / "index.html").read_text())
     assert "mcp-toolcall-lab" in parser.ids
     assert "./tools/mcp-toolcall-lab/" in parser.links
     assert (ROOT / "tools/mcp-toolcall-lab/index.html").is_file()
 
 
 # The demos (DEMOS) and project pages (projects.json showcases) come from scripts/project_pages.py; they are tool pages too.
-# They are generated, not committed, so the pages are read from the staged site: the source tree plus the generated files.
-def _staged_site() -> Path:
-    import atexit, shutil
-    spec = importlib.util.spec_from_file_location('project_pages', ROOT / 'scripts/project_pages.py')
-    pages = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(pages)
-    site = Path(tempfile.mkdtemp(prefix='portfolio-site-'))
-    atexit.register(shutil.rmtree, site, ignore_errors=True)
-    pages.stage(site)
-    return site
-
-
-SITE = _staged_site()
 TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp-toolcall-lab/index.html", "tools/mcp-toolcall-lab/repository-diagnostics.html",
               *sorted(str(path.relative_to(SITE)) for folder in ("demos", "projects") for path in (SITE / "tools" / folder).glob("*.html")))
 
@@ -646,7 +648,7 @@ def test_example_defaults_are_blank_and_execution_is_linked():
                 assert attrs.get('value') == ''
 
     Inputs().feed((PUBLIC / 'index.html').read_text())
-    for path in (ROOT / 'index.html', ROOT / 'README.md', PUBLIC / 'index.html'):
+    for path in (SITE / 'index.html', ROOT / 'README.md', PUBLIC / 'index.html'):
         assert module.EXECUTION_URL in path.read_text()
     services = json.loads((ROOT / 'services.json').read_text())
     assert services['services']['projects']['mcp-toolcall-lab']['execution']['url'] == module.EXECUTION_URL

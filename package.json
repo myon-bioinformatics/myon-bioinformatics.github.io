@@ -2,7 +2,6 @@
   "name": "myon-bioinformatics.github.io",
   "version": "1.0.0",
   "description": "<h1 align=\"center\">🧭 myon-bioinformatics.github.io</h1> <p align=\"center\">Personal site & portfolio — built and maintained by <a href=\"https://github.com/myon-bioinformatics\">myon</a></p>",
-  "main": "index.js",
   "scripts": {
     "test": "playwright test",
     "stagehand:surface": "node tests/stagehand-v4-node.mjs"
