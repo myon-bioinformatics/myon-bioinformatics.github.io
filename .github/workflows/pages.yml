@@ -54,7 +54,7 @@ jobs:
         run: python3 -m pip install --quiet --user -r requirements-pages.txt
 
       - name: Generate verified shared browser assets
-        run: python3 scripts/build_web_ui_assets.py --output _site
+        run: python3 scripts/project_pages.py --output _site
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

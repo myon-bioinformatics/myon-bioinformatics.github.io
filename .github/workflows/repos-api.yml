@@ -7,7 +7,7 @@ on:
   push:
     branches: [main]
     paths:
-      - tools/build_repos_api.py
+      - scripts/repos_catalog.py
       - .github/workflows/repos-api.yml
       # Exercise the refresh-to-publication handoff when its configuration changes.
       - .github/workflows/pages.yml
@@ -44,7 +44,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           touch .nojekyll
-          python tools/build_repos_api.py --owner myon-bioinformatics --output api/repos.json
+          python scripts/repos_catalog.py --owner myon-bioinformatics --output api/repos.json
 
       - name: Commit refreshed API when it changed
         run: |

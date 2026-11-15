@@ -13,7 +13,7 @@ const skillCount = profile.skills.reduce((total, group) => total + group.items.l
 
 const CONFIG_PATH = path.resolve(
   __dirname,
-  process.env.GENERATED_ASSETS_TEST ? '../.generated-site/site.config.json' : '../site.config.json'
+  '../.generated-site/site.config.json'
 );
 
 function writeConfig(mode) {
