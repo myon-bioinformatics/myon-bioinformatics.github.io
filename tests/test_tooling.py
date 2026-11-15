@@ -1,4 +1,4 @@
-"""🧰 Tooling: vendor lock and loader, parent workflow pins, callable entrypoints, the generated PySaiyanWeBoo assets and the repos API builder."""
+"""🧰 Tooling: the module loader, callable entrypoints, the generated PySaiyanWeBoo assets and the repos API builder (fleet contracts: test_fleet.py)."""
 
 import hashlib
 import importlib.util
@@ -16,35 +16,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 
 
-# ═══ 🔒 vendor lock ═══════════════════════════════════════════════════════════════════════════════════════
-
-def test_vendor_lock_matches_checked_in_bytes() -> None:
-    lock = json.loads((ROOT / "vendor.lock.json").read_text(encoding="utf-8"))
-    assert lock["schema"] == "vendor-lock/1"
-    for entry in lock["files"]:
-        assert re.fullmatch(r"[0-9a-f]{40}", entry["ref"]), entry["destination"]
-        assert entry["ref"] == entry["commit"], entry["destination"]
-        data = (ROOT / entry["destination"]).read_bytes()
-        blob = hashlib.sha1(b"blob " + str(len(data)).encode() + b"\0" + data).hexdigest()
-        assert blob == entry["blob_sha"], entry["destination"]
-        assert hashlib.sha256(data).hexdigest() == entry["sha256"], entry["destination"]
-
-
-def test_root_vendor_lock_agrees_with_html_import_lock() -> None:
-    root_lock = json.loads((ROOT / "vendor.lock.json").read_text(encoding="utf-8"))
-    html_lock = json.loads((ROOT / "tools/html-import/vendor.lock.json").read_text(encoding="utf-8"))
-    assert html_lock["schema"] == "html-import-vendor/1"
-
-    root_by_path = {entry["destination"]: entry for entry in root_lock["files"]}
-    html_by_path = {entry["path"]: entry for entry in html_lock["sources"]}
-
-    assert set(root_by_path) == set(html_by_path)
-    for path in root_by_path:
-        root_entry = root_by_path[path]
-        html_entry = html_by_path[path]
-        assert root_entry["commit"] == html_entry["commit"], path
-        assert root_entry["sha256"] == html_entry["sha256"], path
-
+# ═══ 🟢 Node version message ═══════════════════════════════════════════════════════════════════════════════════════
 
 @pytest.mark.parametrize("major", [24, 25])
 @pytest.mark.parametrize("explicit", [False, True])
@@ -68,15 +40,13 @@ def test_pinned_web_ui_reports_rejected_node_version(monkeypatch, major, explici
         ui._raise_node_not_found(error, node)
 
 
-# ═══ 📦 vendor loader ═════════════════════════════════════════════════════════════════════════════════════
+# ═══ 📦 module loader ═════════════════════════════════════════════════════════════════════════════════════
 
-_scripts = str(ROOT / 'scripts')
-sys.path.insert(0, _scripts)
-try:
-    from vendor_loader import load_module
-finally:
-    if sys.path and sys.path[0] == _scripts:
-        sys.path.pop(0)
+# One bootstrap: the site builder is loaded by path; every other repository file goes through its load_module().
+spec = importlib.util.spec_from_file_location('build_assets', ROOT / 'scripts/project_pages.py')
+assets = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(assets)
+load_module = assets.load_module
 
 
 def test_load_module_relative_path():
@@ -106,58 +76,6 @@ def test_lab_import_does_not_mutate_sys_path():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert sys.path == before
-
-
-# ═══ 📍 parent workflow pins ══════════════════════════════════════════════════════════════════════════════
-# Local rollout contract; adopted vendor locks are deliberately independent.
-
-PARENT = "myon-bioinformatics/myon-bioinformatics"
-PARENT_WORKFLOW_PIN = "9e3da7ae1846e9604ebc24bb5178f7de094a4e77"
-
-
-def test_parent_workflow_references_use_reviewed_rollout_commit():
-    pins = []
-    for path in sorted((ROOT / ".github/workflows").glob("*")):
-        if path.suffix not in (".yml", ".yaml"):
-            continue
-        text = path.read_text(encoding="utf-8")
-        # Capture mutable and shortened references too, rather than ignoring them.
-        pins.extend(re.findall(r"uses:\s*['\"]?" + re.escape(PARENT) + r"/[^\s@'\"]+@([^\s'\"]+)", text))
-        lines = text.splitlines()
-        for i, line in enumerate(lines):
-            if re.fullmatch(r"\s+repository:\s*['\"]?" + re.escape(PARENT) + r"['\"]?\s*", line):
-                refs = [re.fullmatch(r"\s+ref:\s*['\"]?([^\s'\"]+)['\"]?\s*", item) for item in lines[i + 1:i + 12]]
-                if not any(re.fullmatch(r"\s+path:\s*['\"]?\.vendor-sync-tools['\"]?\s*", item) for item in lines[i + 1:i + 12]):
-                    pins.append(next((m.group(1) for m in refs if m), None))
-    assert pins, "shared parent references must remain observable"
-    assert set(pins) == {PARENT_WORKFLOW_PIN}, pins
-
-
-def test_browser_lane_installs_locked_python_playwright():
-    import tomllib
-
-    workflow = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
-    browser = workflow.split('\n  browser:', 1)[1].split('\n  failure-identity:', 1)[0]
-    install = 'uv sync --locked --only-group browser'
-    assert install in browser
-    assert browser.index(install) < browser.index('python -m pytest tests/test_front_page.py')
-    assert 'npm ci' not in browser and 'npx ' not in browser            # the front page lane needs no Node
-    assert 'activate-environment: true' in browser
-    groups = tomllib.loads((ROOT / 'pyproject.toml').read_text())['dependency-groups']
-    assert any(isinstance(item, str) and item.startswith('playwright>=') for item in groups['browser'])
-
-
-def test_vendor_asset_checks_use_installed_pinned_generator():
-    workflow = (ROOT / ".github/workflows/vendor-lock.yml").read_text(encoding="utf-8")
-    install = "uv pip install -r requirements-pages.txt"
-    generate = "python scripts/project_pages.py --output"
-    assert "activate-environment: true" in workflow
-    assert workflow.index(install) < workflow.index(generate)
-    assert workflow.count(generate) == 2
-    assert "python -S scripts/project_pages.py" not in workflow
-    assert 'diff -r "$RUNNER_TEMP/web-ui-assets" "$RUNNER_TEMP/web-ui-assets-repeat"' in workflow
-    assert "python -S .vendor-sync-tools/vendor_sync.py check" in workflow
-    assert "python -S .vendor-sync-tools/vendor_sync.py recreate" in workflow
 
 
 # ═══ 📞 callable entrypoints ══════════════════════════════════════════════════════════════════════════════
@@ -197,11 +115,14 @@ def test_tooling_metadata_import_is_quiet_and_main_is_callable(monkeypatch, caps
     assert '"sha": "verified"' in capsys.readouterr().out
 
 
-# ═══ 🐉 generated PySaiyanWeBoo assets ════════════════════════════════════════════════════════════════════
+def test_stagehand_v4_python_surface():
+    # The Stagehand v4 reference lane (stagehand-v4-reference.yml) selects this test; the Node side is `npm run stagehand:surface`.
+    # Python may expose sync and/or async entry points; this differs intentionally from Node.
+    stagehand = pytest.importorskip("stagehand")
+    assert hasattr(stagehand, "Stagehand") or hasattr(stagehand, "AsyncStagehand")
 
-spec = importlib.util.spec_from_file_location('build_assets', ROOT / 'scripts/project_pages.py')
-assets = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(assets)
+
+# ═══ 🐉 generated PySaiyanWeBoo assets ════════════════════════════════════════════════════════════════════
 
 
 def test_installed_generator_is_the_pinned_commit():
@@ -290,7 +211,6 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     (root / 'scripts').mkdir(parents=True)
     shutil.copyfile(ROOT / 'requirements-pages.txt', root / 'requirements-pages.txt')
     shutil.copyfile(ROOT / 'scripts/project_pages.py', root / 'scripts/project_pages.py')
-    shutil.copyfile(ROOT / 'scripts/portfolio_nav.py', root / 'scripts/portfolio_nav.py')   # the demos get the way back
     shutil.copyfile(ROOT / 'scripts/front_page.py', root / 'scripts/front_page.py')         # the front page is generated too
     (root / 'api').mkdir()
     for name in ('profile.json', 'api/repos.json'):                                       # ... from these and projects.json

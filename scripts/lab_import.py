@@ -9,11 +9,11 @@ from datetime import datetime, timezone; from pathlib import Path
 
 import pysaiyanweboo as ui
 
-# portfolio_nav sits beside this file; importing this module must leave sys.path as it found it.
+# project_pages (the site builder) sits beside this file; importing this module must leave sys.path as it found it.
 _scripts = str(Path(__file__).resolve().parent)
 sys.path.insert(0, _scripts)
 try:
-    from portfolio_nav import add_back_nav, add_home_label
+    from project_pages import add_back_nav, add_home_label
 finally:
     if sys.path and sys.path[0] == _scripts:
         sys.path.pop(0)
@@ -38,6 +38,8 @@ NAVIGATION_BINDING = (
     b"globalThis.webUiNavigation.bindViews(globalThis,{"
     b"viewAttribute:'data-pages-view',navAttribute:'data-pages-nav',queryAliases:{wiki:'wiki',pixiv:'pixiv',niconico:'niconico',pokemon:'pokemon'}});\n"
 )
+# The Niconico tab the portfolio adds before the Pixiv view; its behaviour is tools/niconico/search.js.
+NICONICO_PANEL = '''<section id="niconico" data-pages-view="niconico" data-testid="pages-niconico" hidden><h2>Niconico Search: Snapshot Search API v2</h2><p>Try the official Niconico Snapshot Search API v2. Direct browser requests may be blocked by CORS. If results cannot be loaded, use the official search below.</p><div id="pages-niconico-app" data-testid="pages-niconico-app"><form id="pages-niconico-form" data-testid="pages-niconico-form"><p><label for="pages-niconico-query">Keyword</label> <input id="pages-niconico-query" name="q" value="初音ミク" placeholder="Search query" data-testid="pages-niconico-query" class="ui-input"></p><p><label for="pages-niconico-sort">Sort</label> <select id="pages-niconico-sort" name="sort" data-testid="pages-niconico-sort" class="ui-input"><option value="-viewCounter" selected>Views (High to Low)</option><option value="-startTime">Newest</option><option value="-likeCounter">Likes (High to Low)</option><option value="-mylistCounter">Mylists (High to Low)</option></select> <button type="submit" data-testid="pages-niconico-search" class="ui-button">Search</button></p></form><p><a id="pages-niconico-official" data-testid="pages-niconico-official" href="https://www.nicovideo.jp/search/%E5%88%9D%E9%9F%B3%E3%83%9F%E3%82%AF?sort=v&amp;order=d" target="_blank" rel="noopener noreferrer">Search on Niconico ↗</a></p><p id="pages-niconico-status" data-testid="pages-niconico-status" class="ui-muted"></p><p role="alert" id="pages-niconico-error" data-testid="pages-niconico-error" hidden></p><div id="pages-niconico-results" data-testid="pages-niconico-results"></div></div><script src="../niconico/search.js"></script><p><a href="#" data-pages-nav="home" data-testid="pages-nav-back">Back to report</a></p></section>'''
 
 
 def presentation_identity() -> dict:
@@ -72,8 +74,7 @@ def apply_shared_ui(page: str) -> str:
     if 'data-pages-view="niconico"' not in page:
         anchor = re.search(r'<section\b[^>]*data-pages-view="pixiv"[^>]*>', page)
         if anchor:
-            panel = (ROOT / 'tools/niconico/panel.html').read_text(encoding='utf-8').strip()
-            page = page[:anchor.start()] + panel + page[anchor.start():]
+            page = page[:anchor.start()] + NICONICO_PANEL + page[anchor.start():]
     return page.replace(
         'Styling: single lab-owned <code>terminal.css</code> (no external stylesheet chain).',
         'Styling: pinned local <code>web-ui</code> modern theme; imported report and lab tool behavior retain their source identity.',
@@ -105,8 +106,9 @@ def apply_shared_navigation(payload: dict) -> None:
     # The consumer wrapper owns mounting; retain the imported URL/HTML helpers.
     pixiv = pixiv.replace('api.autoMount(root);', '/* Portfolio wrapper owns mounting. */')
     payload['pages-pixiv.js'] = pixiv.encode('utf-8')
-    payload['pixiv-markup.js'] = (ROOT / 'tools/pixiv/markup.js').read_bytes()
-    payload['pixiv-panel.js'] = (ROOT / 'tools/pixiv/panel.js').read_bytes()
+    # The portfolio's own Pixiv wrapper is kept once, where it is published (no second copy under tools/pixiv/).
+    payload['pixiv-markup.js'] = (DESTINATION / 'pixiv-markup.js').read_bytes()
+    payload['pixiv-panel.js'] = (DESTINATION / 'pixiv-panel.js').read_bytes()
     payload['shared-navigation.mjs'] = NAVIGATION_BINDING
 
 

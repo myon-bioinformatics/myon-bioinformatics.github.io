@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 # The front page, the demos and the project pages are generated, not committed, so pages are read from the staged site:
 # the source tree plus the generated files (scripts/project_pages.py --stage).
-def _staged_site() -> Path:
+def _staged_site() -> tuple:
     import atexit, shutil
     spec = importlib.util.spec_from_file_location('project_pages', ROOT / 'scripts/project_pages.py')
     pages = importlib.util.module_from_spec(spec)
@@ -27,10 +27,10 @@ def _staged_site() -> Path:
     site = Path(tempfile.mkdtemp(prefix='portfolio-site-'))
     atexit.register(shutil.rmtree, site, ignore_errors=True)
     pages.stage(site)
-    return site
+    return site, pages
 
 
-SITE = _staged_site()
+SITE, PAGES = _staged_site()
 
 # ═══ 🔗 portal links ══════════════════════════════════════════════════════════════════════════════════════
 
@@ -237,7 +237,7 @@ def test_front_page_offers_the_shared_colour_themes_and_embeds_no_unsafe_json():
     assert '<' not in data[:data.index('</script>')]                                     # nothing can close the script element early
 
 
-# ═══ 🧭 canonical data (docs/SSOT.md) ═══════════════════════════════════════════════════════════════════════
+# ═══ 🧭 canonical data (docs/ssot.md) ═══════════════════════════════════════════════════════════════════════
 # One owner per fact: api/repos.json (repository facts), projects.json (curation), services.json (endpoints),
 # profile.json (person). These are the relationships between them.
 
@@ -552,15 +552,7 @@ def test_home_screen_in_chromium_with_a_gif():
 
 # ═══ 📥 HTML import ═══════════════════════════════════════════════════════════════════════════════════════
 
-_scripts = str(ROOT / 'scripts')
-sys.path.insert(0, _scripts)
-try:
-    from vendor_loader import load_module
-finally:
-    if sys.path and sys.path[0] == _scripts:
-        sys.path.pop(0)
-
-extractor = load_module('html_snapshot', 'tools/vendor/lab/html_snapshot.py')
+extractor = PAGES.load_module('html_snapshot', 'tools/vendor/lab/html_snapshot.py')
 CASES = json.loads((ROOT / 'tests/fixtures/html-import/cases.json').read_text(encoding='utf-8'))
 
 
@@ -580,16 +572,14 @@ def test_shared_contract(case, monkeypatch):
         assert result == case['expected']
 
 
-def test_exact_vendor_bytes():
-    lock = json.loads((ROOT / 'tools/html-import/vendor.lock.json').read_text(encoding='utf-8'))
-    for item in lock['sources']:
-        assert len(item['commit']) == 40
-        assert hashlib.sha256((ROOT / item['path']).read_bytes()).hexdigest() == item['sha256']
-
-
 def test_generated_page_is_current():
-    builder = load_module('html_import_page', 'scripts/html_import_page.py')
-    assert (ROOT / 'tools/html-import/index.html').read_text(encoding='utf-8') == builder.generate()
+    # Built by the site builder and hash-locked (web-ui-assets.lock.json), not kept in git.
+    import pysaiyanweboo as ui
+    lock = json.loads((ROOT / 'web-ui-assets.lock.json').read_text(encoding='utf-8'))
+    served = (SITE / PAGES.HTML_IMPORT_PAGE).read_bytes()
+    assert served == PAGES.render_html_import(ui)[PAGES.HTML_IMPORT_PAGE]
+    assert hashlib.sha256(served).hexdigest() == lock['pages'][PAGES.HTML_IMPORT_PAGE]
+    assert PAGES.HTML_IMPORT_PAGE in (ROOT / '.gitignore').read_text(encoding='utf-8').splitlines()
 
 
 def test_fixture_oracles_are_explicit():

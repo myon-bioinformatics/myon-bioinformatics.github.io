@@ -1,7 +1,7 @@
 # Pixiv source → Markdown → heading dropdown
 
 The portfolio wraps the imported lab Pixiv URL and HTML helpers. It owns the
-source-grammar adapter in `scripts/pixiv_markup.py` and `tools/pixiv/markup.js`.
+source-grammar adapter in `scripts/pixiv_markup.py` and `tools/mcp-toolcall-lab/pixiv-markup.js`.
 Shared fixtures compare the Python and browser outputs. Generic controls belong
 to pinned `web-ui`; Markdown rendering belongs to `markdown.py`.
 

@@ -14,7 +14,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 
-from vendor_loader import load_module
+from project_pages import load_module
 
 
 # ═══ 🎨 brand assets ══════════════════════════════════════════════════════════════════════════════════════
@@ -127,7 +127,7 @@ FIXTURES = json.loads((ROOT / 'tests/fixtures/pixiv-markup.json').read_text())
 
 
 def test_python_and_browser_share_one_narrow_contract():
-    js = "const m=require('./tools/pixiv/markup.js');const fs=require('fs');console.log(JSON.stringify(JSON.parse(fs.readFileSync(0,'utf8')).map(x=>m.extractSource(x.source,x.title||''))))"
+    js = "const m=require('./tools/mcp-toolcall-lab/pixiv-markup.js');const fs=require('fs');console.log(JSON.stringify(JSON.parse(fs.readFileSync(0,'utf8')).map(x=>m.extractSource(x.source,x.title||''))))"
     run = subprocess.run(['node', '-e', js], input=json.dumps(FIXTURES), text=True, capture_output=True, cwd=ROOT, check=True)
     assert json.loads(run.stdout) == [markup.extract_source(item['source'], item.get('title', '')) for item in FIXTURES]
 
@@ -180,5 +180,5 @@ def test_import_reapplies_wrapper_and_generated_select():
     assert html.count('id="pages-pixiv-heading"') == 1
     assert html.count('src="pixiv-panel.js"') == 1
     assert b'api.autoMount(root);' not in payload['pages-pixiv.js']
-    assert payload['pixiv-markup.js'] == (ROOT / 'tools/pixiv/markup.js').read_bytes()
-    assert payload['pixiv-panel.js'] == (ROOT / 'tools/pixiv/panel.js').read_bytes()
+    assert payload['pixiv-markup.js'] == (ROOT / 'tools/mcp-toolcall-lab/pixiv-markup.js').read_bytes()   # kept once, where it is published
+    assert payload['pixiv-panel.js'] == (ROOT / 'tools/mcp-toolcall-lab/pixiv-panel.js').read_bytes()

@@ -4,7 +4,7 @@
   "description": "<h1 align=\"center\">🧭 myon-bioinformatics.github.io</h1> <p align=\"center\">Personal site & portfolio — built and maintained by <a href=\"https://github.com/myon-bioinformatics\">myon</a></p>",
   "scripts": {
     "test": "playwright test --config playwright/html-import.config.js",
-    "stagehand:surface": "node tests/stagehand-v4-node.mjs"
+    "stagehand:surface": "node --input-type=module -e \"import * as stagehand from '@browserbasehq/stagehand'; if (typeof stagehand.Stagehand !== 'function') throw new Error('Stagehand v4 Node surface missing: expected Stagehand export'); console.log('Stagehand v4 Node surface: OK')\""
   },
   "repository": {
     "type": "git",

@@ -17,8 +17,11 @@ The lab's `publication.json` separately identifies the imported report source.
 
 🧰 The same generator also builds `tools/demos/` (`DEMOS` in `scripts/project_pages.py`): PySaiyanWeBoo's MCP / API
 stubs, its in-page MCP server and its JUnit reader, plus their catalog `index.html`. Each gets the portfolio back link,
-shortcut label and icons (`scripts/portfolio_nav.py`). Their SHA-256 values are under `pages` in the same lock, so
+shortcut label and icons (`add_back_nav()` / `add_home_label()` in `scripts/project_pages.py`). Their SHA-256 values are under `pages` in the same lock, so
 `presentation_identity()` (the shared assets, `outputs`) is unchanged. `--refresh-lock` rewrites their hashes with the assets'.
+
+📄 `tools/html-import/index.html` (the HTML import tool page) is built by `render_html_import()` in the same file and locked
+under `pages` as well; it is no longer kept in git.
 
 📚 `tools/projects/` is built the same way from the `showcase` of each `projects.json` entry: icon and media as
 `raw.githubusercontent.com` URLs at the recorded commit, and one recorded run (command, exit code, output). Rerun a
