@@ -96,12 +96,12 @@ def test_load_module_not_found():
     assert 'Vendor module file not found' in str(exc_info.value)
 
 
-def test_lab_shared_ui_import_does_not_mutate_sys_path():
+def test_lab_import_does_not_mutate_sys_path():
     import importlib.util
 
     before = sys.path.copy()
-    path = ROOT / 'scripts' / 'lab_shared_ui.py'
-    spec = importlib.util.spec_from_file_location('lab_shared_ui_path_test', path)
+    path = ROOT / 'scripts' / 'lab_import.py'
+    spec = importlib.util.spec_from_file_location('lab_import_path_test', path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -150,11 +150,11 @@ def test_browser_lane_installs_locked_python_capture_dependencies():
 def test_vendor_asset_checks_use_installed_pinned_generator():
     workflow = (ROOT / ".github/workflows/vendor-lock.yml").read_text(encoding="utf-8")
     install = "uv pip install -r requirements-pages.txt"
-    generate = "python scripts/build_web_ui_assets.py --output"
+    generate = "python scripts/project_pages.py --output"
     assert "activate-environment: true" in workflow
     assert workflow.index(install) < workflow.index(generate)
     assert workflow.count(generate) == 2
-    assert "python -S scripts/build_web_ui_assets.py" not in workflow
+    assert "python -S scripts/project_pages.py" not in workflow
     assert 'diff -r "$RUNNER_TEMP/web-ui-assets" "$RUNNER_TEMP/web-ui-assets-repeat"' in workflow
     assert "python -S .vendor-sync-tools/vendor_sync.py check" in workflow
     assert "python -S .vendor-sync-tools/vendor_sync.py recreate" in workflow
@@ -164,13 +164,13 @@ def test_vendor_asset_checks_use_installed_pinned_generator():
 # Imported entry points accept argv without consuming the caller's CLI.
 
 PARSERS = [
-    'scripts/build_web_ui_assets.py',
+    'scripts/project_pages.py',
     'scripts/capture_portfolio_evidence.py',
     'scripts/generate_apng.py',
-    'scripts/import_lab_pages.py',
+    'scripts/lab_import.py',
     'scripts/probe_niconico_live.py',
     'scripts/record_demo.py',
-    'tools/build_repos_api.py',
+    'scripts/repos_catalog.py',
 ]
 
 
@@ -193,7 +193,7 @@ def test_import_then_named_main_uses_explicit_arguments(path, monkeypatch, capsy
 
 
 def test_tooling_metadata_import_is_quiet_and_main_is_callable(monkeypatch, capsys):
-    module = load('scripts/myon_bioinformatics_github_io_tooling_meta.py')
+    module = load('scripts/stagehand_tooling_meta.py')
     assert not capsys.readouterr().out
     monkeypatch.setattr(module, 'collect', lambda: {'sha': 'verified'})
     getattr(module, 'main')([])
@@ -202,7 +202,7 @@ def test_tooling_metadata_import_is_quiet_and_main_is_callable(monkeypatch, caps
 
 # ═══ 🐉 generated PySaiyanWeBoo assets ════════════════════════════════════════════════════════════════════
 
-spec = importlib.util.spec_from_file_location('build_assets', ROOT / 'scripts/build_web_ui_assets.py')
+spec = importlib.util.spec_from_file_location('build_assets', ROOT / 'scripts/project_pages.py')
 assets = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(assets)
 
@@ -290,11 +290,11 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     root = tmp_path / 'source'
     (root / 'scripts').mkdir(parents=True)
     shutil.copyfile(ROOT / 'requirements-pages.txt', root / 'requirements-pages.txt')
-    shutil.copyfile(ROOT / 'scripts/build_web_ui_assets.py', root / 'scripts/build_web_ui_assets.py')
+    shutil.copyfile(ROOT / 'scripts/project_pages.py', root / 'scripts/project_pages.py')
     shutil.copyfile(ROOT / 'scripts/portfolio_nav.py', root / 'scripts/portfolio_nav.py')   # the demos get the way back
     shutil.copyfile(ROOT / 'projects.json', root / 'projects.json')                       # the project pages come from it
     output = tmp_path / 'cli-output'
-    result = subprocess.run([sys.executable, str(root / 'scripts/build_web_ui_assets.py'),
+    result = subprocess.run([sys.executable, str(root / 'scripts/project_pages.py'),
                              '--refresh-lock', '--output', str(output)], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout) == json.loads((ROOT / 'web-ui-assets.lock.json').read_text())
@@ -303,7 +303,7 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
         assert (root / name).read_bytes() == (output / name).read_bytes() == data
         assert (tmp_path / 'function-output' / name).read_bytes() == data
     # The old CLI without refresh uses the same validated generation path.
-    result = subprocess.run([sys.executable, str(root / 'scripts/build_web_ui_assets.py'),
+    result = subprocess.run([sys.executable, str(root / 'scripts/project_pages.py'),
                              '--output', str(output)], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
 
@@ -333,11 +333,11 @@ def test_invalid_output_does_not_refresh(monkeypatch):
 
 
 # ═══ ⏱️ repos API timeout ════════════════════════════════════════════════════════════════════════════════
-# fetch-guard: GitHub API reads in tools/build_repos_api.py always pass a timeout.
+# fetch-guard: GitHub API reads in scripts/repos_catalog.py always pass a timeout.
 
-spec_build_repos_api_timeout = importlib.util.spec_from_file_location("build_repos_api", ROOT / "tools" / "build_repos_api.py")
-api = importlib.util.module_from_spec(spec_build_repos_api_timeout)
-spec_build_repos_api_timeout.loader.exec_module(api)
+spec_repos_catalog_timeout = importlib.util.spec_from_file_location("repos_catalog", ROOT / "scripts" / "repos_catalog.py")
+api = importlib.util.module_from_spec(spec_repos_catalog_timeout)
+spec_repos_catalog_timeout.loader.exec_module(api)
 
 
 def test_every_api_read_has_a_timeout(monkeypatch):
@@ -372,7 +372,7 @@ def check_latest_python_setup(workflow):
         "managed-only selection must apply while setup-uv creates the venv"
     )
     assert re.search(r"(?m)^          activate-environment: true$", setup), "activate plain Python"
-    consumer = next(step for step in steps if "python tools/build_repos_api.py" in step)
+    consumer = next(step for step in steps if "python scripts/repos_catalog.py" in step)
     assert steps.index(setup) < steps.index(consumer), "set up Python before catalog refresh"
 
 

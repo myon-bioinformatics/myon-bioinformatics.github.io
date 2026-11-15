@@ -71,7 +71,7 @@ jobs:
           import shutil
           shutil.copytree('.', '.generated-site', ignore=shutil.ignore_patterns('.git', '.generated-site', 'node_modules', 'test-results', '__pycache__'))
           PYTHON
-          python scripts/build_web_ui_assets.py --output .generated-site
+          python scripts/project_pages.py --output .generated-site
       - name: Verify transferred browser tools
         run: npx playwright test --config playwright/generated.config.js
       # 📱 Python Playwright (same Chromium revision as above): manifest, icons, start_url, tool-page shortcuts.

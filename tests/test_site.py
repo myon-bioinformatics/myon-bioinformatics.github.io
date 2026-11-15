@@ -109,7 +109,7 @@ def test_lab_pages_are_hosted_by_portfolio():
     assert (ROOT / "tools/mcp-toolcall-lab/index.html").is_file()
 
 
-# The demos (DEMOS) and project pages (projects.json showcases) come from scripts/build_web_ui_assets.py; they are tool pages too.
+# The demos (DEMOS) and project pages (projects.json showcases) come from scripts/project_pages.py; they are tool pages too.
 TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp-toolcall-lab/index.html", "tools/mcp-toolcall-lab/repository-diagnostics.html",
               *sorted(str(path.relative_to(ROOT)) for folder in ("demos", "projects") for path in (ROOT / "tools" / folder).glob("*.html")))
 
@@ -387,7 +387,7 @@ def test_exact_vendor_bytes():
 
 
 def test_generated_page_is_current():
-    builder = load_module('build_html_import', 'tools/build_html_import.py')
+    builder = load_module('html_import_page', 'scripts/html_import_page.py')
     assert (ROOT / 'tools/html-import/index.html').read_text(encoding='utf-8') == builder.generate()
 
 
@@ -409,7 +409,7 @@ def test_fixture_oracles_are_explicit():
 
 # ═══ 🧪 lab publication ═══════════════════════════════════════════════════════════════════════════════════
 
-spec = importlib.util.spec_from_file_location('import_lab_pages', ROOT / 'scripts/import_lab_pages.py')
+spec = importlib.util.spec_from_file_location('lab_import', ROOT / 'scripts/lab_import.py')
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 PUBLIC = ROOT / 'tools/mcp-toolcall-lab'
@@ -506,7 +506,7 @@ def test_reimport_reapplies_shared_runtime_and_records_both_hashes():
 
 
 def test_reimport_preserves_consumer_niconico_panel_and_routes():
-    from lab_shared_ui import apply_shared_ui, NAVIGATION_BINDING
+    from lab_import import apply_shared_ui, NAVIGATION_BINDING
     source = '''<html><head></head><body><header>Lab</header>
     <a href="#pixiv" data-pages-nav="pixiv">Pixiv</a>
     <section data-pages-view="pixiv"></section></body></html>'''
@@ -519,7 +519,7 @@ def test_reimport_preserves_consumer_niconico_panel_and_routes():
 
 
 def test_reimport_preserves_consumer_pokemon_panel_and_routes():
-    from lab_shared_ui import NAVIGATION_BINDING
+    from lab_import import NAVIGATION_BINDING
     page = (PUBLIC / 'index.html').read_text()
     assert 'data-pages-nav="pokemon"' in page
     assert 'data-pages-view="pokemon"' in page
@@ -562,7 +562,7 @@ def test_import_clears_only_example_controls_and_preserves_original_evidence():
 
 
 def test_lab_branding_is_idempotent_and_uses_published_absolute_paths():
-    from lab_branding import apply_lab_branding, FAVICON, LOGO
+    from lab_import import apply_lab_branding, FAVICON, LOGO
     from urllib.parse import urljoin
     for name in ('index.html', 'repository-diagnostics.html'):
         page = (PUBLIC / name).read_text()
@@ -582,7 +582,7 @@ def test_lab_branding_is_idempotent_and_uses_published_absolute_paths():
 
 
 def test_reimport_applies_branding_without_changing_source_identity():
-    from lab_branding import FAVICON, LOGO
+    from lab_import import FAVICON, LOGO
     with tempfile.TemporaryDirectory() as directory:
         source = Path(directory) / 'source'; source.mkdir()
         destination = Path(directory) / 'publication'
@@ -600,7 +600,7 @@ def test_reimport_applies_branding_without_changing_source_identity():
 
 
 def test_prose_extract_adapter_preserves_whitespace_hooks_and_code_blocks():
-    from lab_shared_ui import apply_prose_extracts, apply_shared_ui
+    from lab_import import apply_prose_extracts, apply_shared_ui
     source = ('<html><head></head><body>'
               '<pre data-testid="pages-pixiv-extract" hidden class="ui-output">A\nB &lt;C&gt;</pre>'
               '<pre class="ui-output" data-testid="pages-wiki-extract">Wiki\ntext</pre>'

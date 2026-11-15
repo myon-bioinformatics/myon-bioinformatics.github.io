@@ -434,7 +434,7 @@ def test_normalization_is_idempotent_and_rejects_oversize_input():
 
 def test_import_reapplies_wrapper_and_generated_select():
     sys.path.insert(0, str(ROOT / 'scripts'))
-    from lab_shared_ui import apply_shared_navigation
+    from lab_import import apply_shared_navigation
     source = '<html><head></head><body><div data-testid="pages-pixiv-app"><p data-testid="pages-pixiv-status"></p></div><script src="pages-pixiv.js?v=old"></script></body></html>'
     payload = {'index.html': source.encode(), 'pages-pixiv.js': b'api.autoMount(root);'}
     apply_shared_navigation(payload)

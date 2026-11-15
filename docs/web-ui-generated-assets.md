@@ -12,7 +12,7 @@ A mismatch fails the build before upload; there is no fallback to stale assets.
 `tools/vendor/web-ui/generated.lock.json` publishes this provenance beside the assets.
 The lab's `publication.json` separately identifies the imported report source.
 
-🧰 The same generator also builds `tools/demos/` (`DEMOS` in `scripts/build_web_ui_assets.py`): PySaiyanWeBoo's MCP / API
+🧰 The same generator also builds `tools/demos/` (`DEMOS` in `scripts/project_pages.py`): PySaiyanWeBoo's MCP / API
 stubs, its in-page MCP server and its JUnit reader, plus their catalog `index.html`. Each gets the portfolio back link,
 shortcut label and icons (`scripts/portfolio_nav.py`). Their SHA-256 values are under `pages` in the same lock, so
 `presentation_identity()` (the shared assets, `outputs`) is unchanged. `--refresh-lock` rewrites them with the assets.
@@ -22,20 +22,20 @@ shortcut label and icons (`scripts/portfolio_nav.py`). Their SHA-256 values are 
 command after moving its commit, then refresh:
 
 ```sh
-uv run --locked python scripts/build_web_ui_assets.py --record Err-o-RoadRunner=../err-o-roadrunner --refresh-lock
+uv run --locked python scripts/project_pages.py --record Err-o-RoadRunner=../err-o-roadrunner --refresh-lock
 ```
 
 `--record` refuses a checkout that is not at the showcase commit, and runs with only `PATH`, a temporary `HOME` and
 `LANG`, so no other variable of the recording machine reaches the page.
 A command that needs packages (DRAgoWing needs Python-Markdown) uses the latest release, as its own build installs it:
-add them with `uv run --locked --with markdown python scripts/build_web_ui_assets.py --record DRAgoWing=../Aoi`.
+add them with `uv run --locked --with markdown python scripts/project_pages.py --record DRAgoWing=../Aoi`.
 
 ## Reproduce
 
 ```sh
 uv sync --locked --only-group browser
-uv run --locked python scripts/build_web_ui_assets.py --output /tmp/generated-web-ui
-uv run --locked python -c "from scripts.build_web_ui_assets import main; main(['--output', '/tmp/generated-web-ui'])"
+uv run --locked python scripts/project_pages.py --output /tmp/generated-web-ui
+uv run --locked python -c "from scripts.project_pages import main; main(['--output', '/tmp/generated-web-ui'])"
 uv run --locked pytest tests
 npx playwright test --config playwright/generated.config.js
 ```
@@ -48,7 +48,7 @@ after the Jekyll build. The public CSS/JS URLs remain unchanged.
 
 1. Review the upstream commit; set its full SHA in both dependency definitions.
 2. Run `uv lock` and `uv sync --locked --only-group browser`.
-3. Run `uv run --locked python scripts/build_web_ui_assets.py --refresh-lock`.
+3. Run `uv run --locked python scripts/project_pages.py --refresh-lock`.
 4. Review all changed assets and hashes, then run Python and browser checks.
 
 `--refresh-lock --output DIR` supports refreshing and building together.

@@ -126,7 +126,7 @@ scheduled card-update workflow.
 
 🌐 Avatars and badges are external and were refused (listed per shot in the receipt). `/mcp-toolcall-lab/execution/assets/…` is served by the mcp-toolcall-lab Pages site, so it is allowed rather than counted as a 404.
 🔄 `tools/mcp-toolcall-lab/` is the lab's public export re-imported from its `main` (`6af885d9`); the earlier copy was a 2026-10-24 branch build.
-📦 The shared Web UI is one pinned git dependency (`requirements-pages.txt` → PySaiyanWeBoo); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated asset under `tools/vendor/web-ui/`, and `uv run --locked python scripts/build_web_ui_assets.py --refresh-lock` moves them together. Keep the same full commit in `[tool.uv.sources]` in `pyproject.toml`, run `uv lock`, and sync before refreshing. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
+📦 The shared Web UI is one pinned git dependency (`requirements-pages.txt` → PySaiyanWeBoo); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated asset under `tools/vendor/web-ui/`, and `uv run --locked python scripts/project_pages.py --refresh-lock` moves them together. Keep the same full commit in `[tool.uv.sources]` in `pyproject.toml`, run `uv lock`, and sync before refreshing. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
 
 🔁 Re-record (after building `.generated-site` as in CI; `$WEBUI` is a PySaiyanWeBoo checkout at `adb23d7`):
 
@@ -198,7 +198,7 @@ To update, obtain a trusted lab `stub-pages-observations` artifact, extract its
 `_site/` public export, then run:
 
 ```sh
-uv run --locked python scripts/import_lab_pages.py --source /path/to/export/_site
+uv run --locked python scripts/lab_import.py --source /path/to/export/_site
 uv run --locked pytest tests/test_site.py
 ```
 
@@ -239,9 +239,9 @@ and the boundary with the full pytest suite.
 ### Shared asset generator entry points
 
 ```sh
-uv run --locked python scripts/build_web_ui_assets.py --output /tmp/portfolio-site
-uv run --locked python scripts/build_web_ui_assets.py --refresh-lock
-uv run --locked python -c "from scripts.build_web_ui_assets import main; main(['--output', '/tmp/portfolio-site'])"
+uv run --locked python scripts/project_pages.py --output /tmp/portfolio-site
+uv run --locked python scripts/project_pages.py --refresh-lock
+uv run --locked python -c "from scripts.project_pages import main; main(['--output', '/tmp/portfolio-site'])"
 ```
 
 `main(argv=None)` uses process arguments when omitted and accepts an explicit argument
