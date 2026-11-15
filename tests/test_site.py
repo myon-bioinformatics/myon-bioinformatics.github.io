@@ -411,6 +411,7 @@ def test_fixture_oracles_are_explicit():
 
 spec = importlib.util.spec_from_file_location('lab_import', ROOT / 'scripts/lab_import.py')
 module = importlib.util.module_from_spec(spec)
+sys.modules['lab_import'] = module  # the tests below import names from it; loading it leaves sys.path alone
 spec.loader.exec_module(module)
 PUBLIC = ROOT / 'tools/mcp-toolcall-lab'
 
