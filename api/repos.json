@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-15T11:07:29Z",
+  "generatedAt": "2026-11-15T21:07:06Z",
   "owner": "myon-bioinformatics",
   "count": 45,
   "repos": [
@@ -592,7 +592,7 @@
       "name": "myon-bioinformatics.github.io",
       "url": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io",
       "description": "I create for showing you guys about me in detail. Thus, for begginers or recruiters or.., it may not be friendly😅 if it is, instead of this please check the introduction🫡",
-      "language": "HTML",
+      "language": "Python",
       "topics": [
         "about-me",
         "github-pages",
@@ -600,7 +600,7 @@
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-13T14:49:40Z",
+      "updatedAt": "2026-11-15T11:59:13Z",
       "homepage": null,
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
@@ -727,7 +727,7 @@
       "updatedAt": "2026-11-14T15:43:48Z",
       "homepage": null,
       "readmeHeading": "OnTautoLogy",
-      "readmeSummary": "ナレッジグラフとオントロジーの小さな実験。最初の用途は PR 監査データの関係整理です。Python 3.11 以降の標準ライブラリだけで動きます。",
+      "readmeSummary": "オントロジーをトートロジーの水準まで持っていく。複数のリポジトリを横断して見るための、小さなナレッジグラフです。Python 3.11 以降の標準ライブラリだけで動き、GitHub からの取得・書き込み・マージ・CI 起動は行いません。",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/OnTautoLogy/main/README.md"
     },
     {
