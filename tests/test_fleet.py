@@ -15,8 +15,8 @@ ACCEPTED = {"vendor/fleet_check.py": "6c29503cf17eda856766ddfdf4d66a5b0965a8b1"}
 
 
 def test_vendor_lock_matches_checked_in_bytes_and_accepted_commits():
-    rows = fleet.check_lock(ROOT, commits=ACCEPTED)      # the one lock: tools/vendor/ (HTML import, lab, Ironmate) and vendor/
-    assert {'tools/vendor/lab/html_snapshot.py', 'tools/vendor/ironmate/pillow_min.py', 'tools/vendor/web-ui/LICENSE'} <= set(rows)
+    rows = fleet.check_lock(ROOT, commits=ACCEPTED)      # the one lock: tools/vendor/ (HTML import, lab) and vendor/ (parent)
+    assert {'tools/vendor/lab/html_snapshot.py', 'vendor/pillow_min.py', 'tools/vendor/web-ui/LICENSE'} <= set(rows)
 
 
 def test_parent_workflow_references_use_reviewed_rollout_commit():

@@ -20,7 +20,7 @@ from project_pages import load_module
 # ═══ 🎨 brand assets ══════════════════════════════════════════════════════════════════════════════════════
 # Verify supplied brand artwork and the browser favicon contract.
 
-Image = load_module('pillow_min', 'tools/vendor/ironmate/pillow_min.py').Image
+Image = load_module('pillow_min', 'vendor/pillow_min.py').Image
 ASSETS = ROOT / "assets" / "brand"
 
 
