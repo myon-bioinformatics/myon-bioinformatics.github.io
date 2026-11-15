@@ -12,7 +12,8 @@ module.exports = defineConfig({
     headless: true,
   },
   webServer: {
-    command: 'npx sirv . --port 8080 --dev',
+    // The site as published: `python scripts/project_pages.py --stage .generated-site` (source tree + generated files).
+    command: 'npx sirv .generated-site --port 8080 --dev',
     url: 'http://localhost:8080',
     reuseExistingServer: false,
     timeout: 15_000,

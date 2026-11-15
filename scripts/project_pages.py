@@ -3,8 +3,9 @@
 The generator is the ``pysaiyanweboo`` module installed from ``requirements-pages.txt`` (a git
 dependency pinned by commit). ``web-ui-assets.lock.json`` records that commit and the
 SHA-256 of every output, so a build fails closed when the installed module is not the
-pinned commit or when its output drifted from the lock. ``--refresh-lock`` rewrites the
-lock and the checked-in copies under ``tools/vendor/web-ui/`` and ``tools/demos/`` after the pin moves.
+pinned commit or when its output drifted from the lock. The generated files are not kept in git: ``--output DIR``
+writes them (Pages overlays them on its build), ``--stage DIR`` writes the whole site for tests and local previews,
+and ``--refresh-lock`` rewrites the lock after the pin moves.
 
 The demos are PySaiyanWeBoo's stubs and mocks (MCP / API stubs, an in-page MCP server, a JUnit reader), published here
 with the portfolio's way back, shortcut label and icons. ``tools/projects/`` gives every project in ``projects.json`` that
@@ -19,6 +20,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -214,8 +216,19 @@ def build(output: Path, root: Path = ROOT) -> None:
         (root / 'web-ui-assets.lock.json').read_bytes())
 
 
+def stage(output: Path, root: Path = ROOT) -> None:
+    """The site as Pages serves it: the source tree plus the generated files. Tests and local previews serve this."""
+    validate_output(output, root)
+    generate(root)  # Fail closed before copying anything.
+    skip = ['.git', 'node_modules', '.venv', 'test-results', 'reports', '__pycache__', '.pytest_cache']
+    if output.resolve().is_relative_to(root.resolve()):
+        skip.append(output.resolve().relative_to(root.resolve()).parts[0])
+    shutil.copytree(root, output, ignore=shutil.ignore_patterns(*skip), dirs_exist_ok=True)
+    build(output, root)
+
+
 def refresh_lock(root: Path = ROOT) -> dict:
-    """After moving the pin: rewrite the lock and the checked-in copies from the installed generator."""
+    """After moving the pin: rewrite the lock from the installed generator (the generated files are not kept in git)."""
     import pysaiyanweboo as ui
     commit = installed_commit()
     verify_pin(commit, root)
@@ -228,9 +241,6 @@ def refresh_lock(root: Path = ROOT) -> dict:
         'pages': {target: hashlib.sha256(data).hexdigest() for target, data in pages.items()},
     }
     (root / 'web-ui-assets.lock.json').write_text(json.dumps(lock, indent=2) + '\n', encoding='utf-8')
-    for target, data in {**payload, **pages}.items():
-        (root / target).parent.mkdir(parents=True, exist_ok=True)
-        (root / target).write_bytes(data)
     return lock
 
 
@@ -244,13 +254,15 @@ def _name_checkout(value: str) -> tuple[str, Path]:
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, help='write the generated assets under this directory')
+    parser.add_argument('--stage', type=Path, help='write the whole site (source tree plus generated assets) under this directory')
     parser.add_argument('--refresh-lock', action='store_true',
-                        help='rewrite web-ui-assets.lock.json, tools/vendor/web-ui/, tools/demos/ and tools/projects/ from the installed generator')
+                        help='rewrite web-ui-assets.lock.json from the installed generator')
     parser.add_argument('--record', action='append', default=[], metavar='NAME=CHECKOUT', type=_name_checkout,
                         help="rerun NAME's showcase command in CHECKOUT (at the showcase commit) and store its output in projects.json; repeatable")
     args = parser.parse_args(argv)
-    if args.output:
-        validate_output(args.output)
+    for target in (args.output, args.stage):
+        if target:
+            validate_output(target)
     for name, checkout in args.record:
         run = record(name, checkout)
         print(f"▶ {name}: exit {run['exit']}, {len(run['output'].splitlines())} lines", file=sys.stderr)
@@ -258,8 +270,10 @@ def main(argv=None):
         print(json.dumps(refresh_lock(), indent=2))
     if args.output:
         build(args.output)
-    if not args.refresh_lock and not args.output and not args.record:
-        parser.error('give --output DIR, --refresh-lock and/or --record NAME=CHECKOUT')
+    if args.stage:
+        stage(args.stage)
+    if not args.refresh_lock and not args.output and not args.stage and not args.record:
+        parser.error('give --output DIR, --stage DIR, --refresh-lock and/or --record NAME=CHECKOUT')
 
 
 if __name__ == '__main__':

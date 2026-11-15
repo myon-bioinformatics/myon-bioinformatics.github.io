@@ -58,22 +58,17 @@ jobs:
           # Pull requests restore the cache and never write it; only main saves it.
           save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           prune-cache: true
-      # capture-evidence.spec.js spawns the Python capture CLI from this active venv.
-      - name: Install locked Python capture dependencies
+      # The home-screen check below drives Chromium from Python Playwright in this active venv.
+      - name: Install locked Python Playwright
         run: uv sync --locked --only-group browser
       - name: Install browser test dependencies
         run: npm ci --ignore-scripts
       - name: Install Chromium
         run: npx playwright install --with-deps --no-shell chromium
       - name: Stage site with generated browser assets
-        run: |
-          python - <<'PYTHON'
-          import shutil
-          shutil.copytree('.', '.generated-site', ignore=shutil.ignore_patterns('.git', '.generated-site', 'node_modules', 'test-results', '__pycache__'))
-          PYTHON
-          python scripts/build_web_ui_assets.py --output .generated-site
+        run: python scripts/project_pages.py --stage .generated-site
       - name: Verify transferred browser tools
-        run: npx playwright test --config playwright/generated.config.js
+        run: npx playwright test
       # 📱 Python Playwright (same Chromium revision as above): manifest, icons, start_url, tool-page shortcuts.
       # Writes test-results/home-screen/home-screen-shortcut-<UTC>.gif, uploaded with the evidence below.
       - name: Check home-screen shortcuts in Chromium
