@@ -1,0 +1,17 @@
+[
+  {
+    "label": "Map URLs, pins and sharing",
+    "url": "/tools/maps/",
+    "viewport": "392x840",
+    "steps": [
+      {"select": ["#tokyo-point", "tokyo-kanda"]},
+      {"frame": "#map-result"},
+      {"click": "#pin"},
+      {"eval": "document.querySelector('#pins').scrollIntoView({block:'center'})"},
+      {"click": "#tokyo-link"},
+      {"click": ".ui-world-pick-grid [data-emoji]:first-child"},
+      {"wait": 700},
+      {"click": "#cities-spot-tokyo-kanda a.ui-button"}
+    ]
+  }
+]

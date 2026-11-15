@@ -129,6 +129,7 @@ def test_lab_pages_are_hosted_by_portfolio():
 
 # The demos (DEMOS) and project pages (projects.json showcases) come from scripts/project_pages.py; they are tool pages too.
 TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp-toolcall-lab/index.html", "tools/mcp-toolcall-lab/repository-diagnostics.html",
+              "tools/maps/index.html", "tools/maps/tokyo.html",
               *sorted(str(path.relative_to(SITE)) for folder in ("demos", "projects") for path in (SITE / "tools" / folder).glob("*.html")))
 
 
