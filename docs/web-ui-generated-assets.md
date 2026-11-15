@@ -2,7 +2,9 @@
 
 The generator is the installed `pysaiyanweboo` dependency. Its full git commit is
 pinned in `requirements-pages.txt` and `[tool.uv.sources]` in `pyproject.toml`.
-`uv.lock` records the same source. The generated CSS/JS and pages are not kept in git
+`uv.lock` records the same source. The front page (`index.html`, from `scripts/front_page.py`: shell, Tools & Demos
+cards, the profile and projects rendered in every display mode, stylesheet and script in one file; outside the
+lock because it follows the refreshed `api/repos.json`), the generated CSS/JS and the pages are not kept in git
 (`.gitignore`); only the license under `tools/vendor/web-ui/` is. `--output DIR` writes the
 generated files, `--stage DIR` writes the whole site (source tree plus generated files).
 
@@ -38,11 +40,12 @@ uv sync --locked --only-group browser
 uv run --locked python scripts/project_pages.py --output /tmp/generated-web-ui
 uv run --locked python -c "from scripts.project_pages import main; main(['--output', '/tmp/generated-web-ui'])"
 uv run --locked pytest tests
+uv run --locked --group browser python -m pytest tests/test_front_page.py
 uv run --locked python scripts/project_pages.py --stage .generated-site
-npx playwright test
+npx playwright test --config playwright/html-import.config.js
 ```
 
-The browser suite serves `.generated-site`, so stage it first (CI does the same). Pages overlays the same verified
+The front page tests stage the site themselves; the Node specs (HTML import, MCP lab) serve `.generated-site`, so stage it first. Pages overlays the same verified
 assets after the Jekyll build. The public CSS/JS URLs remain unchanged.
 
 ## Move the generator pin

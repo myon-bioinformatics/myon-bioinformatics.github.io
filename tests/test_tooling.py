@@ -140,7 +140,8 @@ def test_browser_lane_installs_locked_python_playwright():
     browser = workflow.split('\n  browser:', 1)[1].split('\n  failure-identity:', 1)[0]
     install = 'uv sync --locked --only-group browser'
     assert install in browser
-    assert browser.index(install) < browser.index('npx playwright test')
+    assert browser.index(install) < browser.index('python -m pytest tests/test_front_page.py')
+    assert 'npm ci' not in browser and 'npx ' not in browser            # the front page lane needs no Node
     assert 'activate-environment: true' in browser
     groups = tomllib.loads((ROOT / 'pyproject.toml').read_text())['dependency-groups']
     assert any(isinstance(item, str) and item.startswith('playwright>=') for item in groups['browser'])
@@ -290,6 +291,10 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     shutil.copyfile(ROOT / 'requirements-pages.txt', root / 'requirements-pages.txt')
     shutil.copyfile(ROOT / 'scripts/project_pages.py', root / 'scripts/project_pages.py')
     shutil.copyfile(ROOT / 'scripts/portfolio_nav.py', root / 'scripts/portfolio_nav.py')   # the demos get the way back
+    shutil.copyfile(ROOT / 'scripts/front_page.py', root / 'scripts/front_page.py')         # the front page is generated too
+    (root / 'api').mkdir()
+    for name in ('profile.json', 'api/repos.json'):                                       # ... from these and projects.json
+        shutil.copyfile(ROOT / name, root / name)
     shutil.copyfile(ROOT / 'projects.json', root / 'projects.json')                       # the project pages come from it
     output = tmp_path / 'cli-output'
     result = subprocess.run([sys.executable, str(root / 'scripts/project_pages.py'),

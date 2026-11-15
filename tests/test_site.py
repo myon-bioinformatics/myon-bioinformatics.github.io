@@ -3,6 +3,7 @@
 import hashlib
 import importlib.util
 import json
+import re
 import socket
 import struct
 import sys
@@ -15,6 +16,21 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
+
+# The front page, the demos and the project pages are generated, not committed, so pages are read from the staged site:
+# the source tree plus the generated files (scripts/project_pages.py --stage).
+def _staged_site() -> Path:
+    import atexit, shutil
+    spec = importlib.util.spec_from_file_location('project_pages', ROOT / 'scripts/project_pages.py')
+    pages = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pages)
+    site = Path(tempfile.mkdtemp(prefix='portfolio-site-'))
+    atexit.register(shutil.rmtree, site, ignore_errors=True)
+    pages.stage(site)
+    return site
+
+
+SITE = _staged_site()
 
 # ═══ 🔗 portal links ══════════════════════════════════════════════════════════════════════════════════════
 
@@ -46,7 +62,7 @@ class LinkParser(HTMLParser):
 
 def test_portal_exposes_expected_pages():
     parser = LinkParser()
-    parser.feed((ROOT / "index.html").read_text(encoding="utf-8"))
+    parser.feed((SITE / "index.html").read_text(encoding="utf-8"))
     assert "tools" in parser.ids
     assert EXPECTED_PAGES <= set(parser.links)
 
@@ -64,8 +80,10 @@ def test_ironmate_metadata_lives_with_the_portfolio():
     assert metadata["schema"] == "project-metadata/1"
     assert metadata["repository"] == "https://github.com/myon-bioinformatics/Ironmate"
     parser = LinkParser()
-    parser.feed((ROOT / "index.html").read_text())
-    assert metadata["repository"] not in parser.links
+    page = (SITE / "index.html").read_text()
+    tools = page[page.index('<section id="tools"'):]
+    parser.feed(tools[:tools.index("</section>")])          # the Tools & Demos cards; the project list links every repository
+    assert parser.links and metadata["repository"] not in parser.links
     # The former repository fallback is removed; metadata remains machine-readable.
     assert "./project-ironmate.json" not in parser.links
     assert (ROOT / "project-ironmate.json").is_file()
@@ -90,7 +108,7 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
     assert "theme/inherited text colors and slide backgrounds" in editing["unsupported"]
     assert "arrow attributes and advanced formatting" in editing["unsupported"]
 
-    html = (ROOT / "index.html").read_text(encoding="utf-8")
+    html = (SITE / "index.html").read_text(encoding="utf-8")
     card_start = html.index('<h3 id="ironmate">Ironmate</h3>')
     card = html[card_start:html.index("</article>", card_start)]
     assert "PPTX対応は計画段階" not in card
@@ -103,26 +121,13 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
 
 def test_lab_pages_are_hosted_by_portfolio():
     parser = LinkParser()
-    parser.feed((ROOT / "index.html").read_text())
+    parser.feed((SITE / "index.html").read_text())
     assert "mcp-toolcall-lab" in parser.ids
     assert "./tools/mcp-toolcall-lab/" in parser.links
     assert (ROOT / "tools/mcp-toolcall-lab/index.html").is_file()
 
 
 # The demos (DEMOS) and project pages (projects.json showcases) come from scripts/project_pages.py; they are tool pages too.
-# They are generated, not committed, so the pages are read from the staged site: the source tree plus the generated files.
-def _staged_site() -> Path:
-    import atexit, shutil
-    spec = importlib.util.spec_from_file_location('project_pages', ROOT / 'scripts/project_pages.py')
-    pages = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(pages)
-    site = Path(tempfile.mkdtemp(prefix='portfolio-site-'))
-    atexit.register(shutil.rmtree, site, ignore_errors=True)
-    pages.stage(site)
-    return site
-
-
-SITE = _staged_site()
 TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp-toolcall-lab/index.html", "tools/mcp-toolcall-lab/repository-diagnostics.html",
               *sorted(str(path.relative_to(SITE)) for folder in ("demos", "projects") for path in (SITE / "tools" / folder).glob("*.html")))
 
@@ -138,6 +143,98 @@ def test_every_tool_page_has_the_same_back_link_first_in_main():
                                 '<a href="../../index.html#tools" data-testid="portfolio-back">'), page
         assert html.count('data-testid="portfolio-back"') == 1, page
         assert "Back to portfolio" not in html, page
+
+
+# ═══ 🐍 front page (scripts/front_page.py) ═══════════════════════════════════════════════════════════════════════
+# The catalog rules and the four notations are Python; the browser only switches, filters and fills AI highlights.
+
+def _front():
+    spec = importlib.util.spec_from_file_location('front_page', ROOT / 'scripts/front_page.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class _Text(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.text, self.links, self.units = [], [], []
+
+    def handle_starttag(self, tag, attrs):
+        values = dict(attrs)
+        if tag == 'a' and 'href' in values:
+            self.links.append(values['href'])
+        if 'data-project' in values:
+            self.units.append(values['data-project'])
+
+    def handle_data(self, data):
+        self.text.append(data)
+
+
+def _read(fragment):
+    parser = _Text()
+    parser.feed(fragment)
+    return ''.join(parser.text), parser.links, parser.units
+
+
+def test_front_page_catalog_shows_active_repositories_and_curation_cannot_override_them():
+    front = _front()
+    repo = lambda name, **more: {'name': name, 'url': f'https://github.com/myon-bioinformatics/{name}', **more}
+    catalog = {'repos': [repo('Kept', description='From GitHub', topics=['python', 'cli']), repo('Legacy', archived=True, topics=['legacy-topic']),
+                         repo('Future', description=None, readmeSummary='New README summary', topics=['future-topic']), repo('Bare')]}
+    curated = [{'name': 'Kept', 'url': 'https://example.com/stale', 'desc': 'Curated text', 'topics': ['curated-topic', 'python']},
+               {'name': 'Removed-repository', 'url': 'https://example.com/removed', 'desc': 'Stale entry'}]
+    projects = {p['name']: p for p in front.project_catalog(catalog, curated)}
+    assert list(projects) == ['Kept', 'Future', 'Bare']                                  # archived and stale curated entries never show
+    assert projects['Kept'] == {'name': 'Kept', 'desc': 'Curated text', 'url': 'https://github.com/myon-bioinformatics/Kept',
+                                'topics': ['curated-topic', 'python', 'cli'], 'archived': False}   # the catalog owns the URL
+    assert projects['Future']['desc'] == 'New README summary'                            # a refreshed repository needs no curated card
+    assert projects['Bare']['desc'] == 'Explore the source and README on GitHub.'
+    assert [p['name'] for p in front.project_catalog(catalog, [])] == ['Kept', 'Future', 'Bare']   # no curation at all
+    with pytest.raises(ValueError, match='Invalid repository catalog'):                  # a broken catalog fails the build
+        front.project_catalog({}, curated)
+
+
+def test_front_page_notations_carry_the_same_profile_and_projects():
+    front = _front()
+    profile = json.loads((ROOT / 'profile.json').read_text(encoding='utf-8'))
+    projects = front.project_catalog(json.loads((ROOT / 'api/repos.json').read_text(encoding='utf-8')),
+                                     json.loads((ROOT / 'projects.json').read_text(encoding='utf-8')))
+    assert json.loads(_read(front.profile_html(profile, 'json'))[0]) == profile          # the JSON notation is the data itself
+    names, urls = [p['name'] for p in projects], sorted(p['url'] for p in projects)
+    for notation in ('web', 'xml', 'json', 'markdown'):
+        text, links, units = _read(front.projects_html(projects, notation))
+        assert units == names, notation                                                  # one removable unit per project
+        assert sorted(set(links)) == urls, notation
+        assert profile['career'][0]['title'] in _read(front.profile_html(profile, notation))[0], notation
+    # Without the comma the page script drops after the last shown project, the JSON notation parses back to the catalog.
+    listing = front.projects_html(projects, 'json')
+    last = listing.rindex(front._LAST_COMMA)
+    assert json.loads(_read(listing[:last] + listing[last + len(front._LAST_COMMA):])[0]) == projects
+    text = _read(front.projects_html(projects, 'xml'))[0]
+    assert text.startswith('<Projects>') and text.endswith('</Projects>') and text.count('<Project name=') == len(projects)
+    assert '<script' not in front.profile_html({**profile, 'about': '<script>alert(1)</script>'}, 'web')   # data is escaped
+
+
+def test_front_page_ai_highlight_templates_have_the_same_slots_in_every_notation():
+    front = _front()
+    for notation in ('web', 'xml', 'json', 'markdown'):
+        frame = front.highlights_html(notation)
+        assert frame.count('<template data-item>') == 1, notation
+        fields = set(re.findall(r'data-field="(\w+)"', frame))
+        assert {'name', 'desc', 'language'} <= fields and fields & {'stars', 'starsLabel'}, (notation, fields)
+        assert 'data-href="url"' in frame and 'href="' not in frame.replace('data-href="', ''), notation   # links are filled, never written
+
+
+def test_front_page_offers_the_shared_colour_themes_and_embeds_no_unsafe_json():
+    front = _front()
+    ui = pytest.importorskip('pysaiyanweboo')
+    page = front.document()
+    for name in ui.theme_palettes():
+        assert f'<option value="{name}">' in page and f'body[data-ui-theme="{name}"]' in page, name
+    assert set(front.MODES) == {'modern', 'xml-like', 'json', 'markdown', 'github-like'}
+    data = page[page.index('id="projects-data">') + len('id="projects-data">'):]
+    assert '<' not in data[:data.index('</script>')]                                     # nothing can close the script element early
 
 
 # ═══ 🧭 canonical data (docs/SSOT.md) ═══════════════════════════════════════════════════════════════════════
@@ -646,7 +743,7 @@ def test_example_defaults_are_blank_and_execution_is_linked():
                 assert attrs.get('value') == ''
 
     Inputs().feed((PUBLIC / 'index.html').read_text())
-    for path in (ROOT / 'index.html', ROOT / 'README.md', PUBLIC / 'index.html'):
+    for path in (SITE / 'index.html', ROOT / 'README.md', PUBLIC / 'index.html'):
         assert module.EXECUTION_URL in path.read_text()
     services = json.loads((ROOT / 'services.json').read_text())
     assert services['services']['projects']['mcp-toolcall-lab']['execution']['url'] == module.EXECUTION_URL

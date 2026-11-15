@@ -126,7 +126,7 @@ scheduled card-update workflow.
 
 🌐 Avatars and badges are external and were refused (listed per shot in the receipt). `/mcp-toolcall-lab/execution/assets/…` is served by the mcp-toolcall-lab Pages site, so it is allowed rather than counted as a 404.
 🔄 `tools/mcp-toolcall-lab/` is the lab's public export re-imported from its `main` (`6af885d9`); the earlier copy was a 2026-10-24 branch build.
-📦 The shared Web UI is one pinned git dependency (`requirements-pages.txt` → PySaiyanWeBoo); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated file (`tools/vendor/web-ui/`, `tools/demos/`, `tools/projects/`). Those files are not kept in git: the Pages build writes them, `uv run --locked python scripts/project_pages.py --stage .generated-site` writes the whole site for tests and local previews, and `--refresh-lock` rewrites the lock after the pin moves. Keep the same full commit in `[tool.uv.sources]` in `pyproject.toml`, run `uv lock`, and sync before refreshing. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
+📦 The shared Web UI is one pinned git dependency (`requirements-pages.txt` → PySaiyanWeBoo); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated file (`tools/vendor/web-ui/`, `tools/demos/`, `tools/projects/`). The front page (`index.html`) is built by `scripts/front_page.py` from `profile.json`, `api/repos.json` and `projects.json`: the profile and projects in each display mode (cards, XML-like, JSON, Markdown) are rendered in Python, and the colour themes are PySaiyanWeBoo's palettes. It is not in the lock, because the repository catalog is refreshed by a workflow. None of these files are kept in git: the Pages build writes them, `uv run --locked python scripts/project_pages.py --stage .generated-site` writes the whole site for tests and local previews, and `--refresh-lock` rewrites the lock after the pin moves. Keep the same full commit in `[tool.uv.sources]` in `pyproject.toml`, run `uv lock`, and sync before refreshing. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
 
 🔁 Re-record (after building `.generated-site` as in CI; `$WEBUI` is a PySaiyanWeBoo checkout at `adb23d7`):
 
@@ -220,18 +220,18 @@ See [source grammar, Python one-liners, and markdown.py integration](docs/pixiv-
 - The lab's Niconico tab attempts Snapshot Search API v2 from the browser. Live verification on 2026-10-21 JST found HTTP 200 JSON responses without `Access-Control-Allow-Origin`; the published browser could not read results. The panel explains this limitation and offers official Niconico search with the selected keyword/sort. GitHub Pages cannot fix an upstream CORS header. The portfolio owns `tools/niconico/` and reapplies this panel when importing a lab report. See [live verification](docs/evidence/niconico-live-20261021/README.md).
 - AI & Tech Highlights displays public GitHub search results, or explicitly labelled curated examples when the API is unavailable. Curated examples do not claim current star counts.
 
-Verification: `uv run --locked pytest tests` (includes the canonical-data check of `docs/SSOT.md`) and `npx playwright test`. Python test dependencies are the `test` and `browser` groups of `pyproject.toml`, pinned in `uv.lock`; the brand-asset tests read images with the vendored `pillow_min` module from Ironmate (`tools/vendor/ironmate/`, recorded in `vendor.lock.json`). Animated evidence is the GIF recorded with BrowserTestKit's `tools/evidence_gif.py` (see Re-record above). The portal workflow preserves browser evidence as an Actions artifact.
+Verification: `uv run --locked pytest tests` (includes the canonical-data check of `docs/SSOT.md`) and, in a browser, `uv run --locked --group browser python -m pytest tests/test_front_page.py` (the front page, Python Playwright) plus `npx playwright test --config playwright/html-import.config.js` (HTML import and MCP lab; the Docker contract runs it on Chromium and WebKit). Python test dependencies are the `test` and `browser` groups of `pyproject.toml`, pinned in `uv.lock`; the brand-asset tests read images with the vendored `pillow_min` module from Ironmate (`tools/vendor/ironmate/`, recorded in `vendor.lock.json`). Animated evidence is the GIF recorded with BrowserTestKit's `tools/evidence_gif.py` (see Re-record above). The portal workflow preserves browser evidence as an Actions artifact.
 
 ## Browser suite without a Playwright install
 
 Without Playwright's own Chromium installed, run the browser suite with a browser already on disk through
-BrowserTestKit: `python ../BrowserTestKit/tools/btk.py pw-test --root . tests/project-catalog.spec.js` (the portable
+BrowserTestKit: `python ../BrowserTestKit/tools/btk.py pw-test --root . --config playwright/html-import.config.js tests/html-import.spec.js` (the portable
 runner that used to live here).
 
 ### Shared asset generator entry points
 
 ```sh
-uv run --locked python scripts/project_pages.py --stage .generated-site   # the whole site; `npx playwright test` serves it
+uv run --locked python scripts/project_pages.py --stage .generated-site   # the whole site; the Node browser specs serve it
 uv run --locked python scripts/project_pages.py --output /tmp/portfolio-site  # the generated files only
 uv run --locked python scripts/project_pages.py --refresh-lock
 uv run --locked python -c "from scripts.project_pages import main; main(['--output', '/tmp/portfolio-site'])"

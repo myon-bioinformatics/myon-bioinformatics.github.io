@@ -84,13 +84,24 @@ def render(ui) -> dict[str, bytes]:
     return result
 
 
-def _nav():
+def _sibling(name: str):
+    """A module beside this file, imported without leaving scripts/ on sys.path."""
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     try:
-        import portfolio_nav
+        return __import__(name)
     finally:
         sys.path.pop(0)
-    return portfolio_nav
+
+
+def _nav():
+    return _sibling('portfolio_nav')
+
+
+def render_front(root: Path = ROOT) -> dict[str, bytes]:
+    """The portfolio's own front page (scripts/front_page.py), built from profile.json, api/repos.json and projects.json.
+
+    It is not in the lock: api/repos.json is refreshed by a workflow, and the page must follow it without a lock refresh."""
+    return {'index.html': _sibling('front_page').document(root).encode('utf-8')}
 
 
 def render_demos(ui) -> dict[str, bytes]:
@@ -206,7 +217,7 @@ def validate_output(output: Path, root: Path = ROOT) -> None:
 
 def build(output: Path, root: Path = ROOT) -> None:
     validate_output(output, root)
-    payload = generate(root)  # Fail closed before touching any output.
+    payload = {**generate(root), **render_front(root)}  # Fail closed before touching any output.
     for name, data in payload.items():
         path = output / name
         path.parent.mkdir(parents=True, exist_ok=True)
