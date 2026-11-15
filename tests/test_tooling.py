@@ -133,7 +133,7 @@ def test_parent_workflow_references_use_reviewed_rollout_commit():
     assert set(pins) == {PARENT_WORKFLOW_PIN}, pins
 
 
-def test_browser_lane_installs_locked_python_capture_dependencies():
+def test_browser_lane_installs_locked_python_playwright():
     import tomllib
 
     workflow = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
@@ -144,7 +144,6 @@ def test_browser_lane_installs_locked_python_capture_dependencies():
     assert 'activate-environment: true' in browser
     groups = tomllib.loads((ROOT / 'pyproject.toml').read_text())['dependency-groups']
     assert any(isinstance(item, str) and item.startswith('playwright>=') for item in groups['browser'])
-    assert 'scripts/capture_portfolio_evidence.py' in (ROOT / 'tests/capture-evidence.spec.js').read_text()
 
 
 def test_vendor_asset_checks_use_installed_pinned_generator():
@@ -165,11 +164,8 @@ def test_vendor_asset_checks_use_installed_pinned_generator():
 
 PARSERS = [
     'scripts/project_pages.py',
-    'scripts/capture_portfolio_evidence.py',
-    'scripts/generate_apng.py',
     'scripts/lab_import.py',
     'scripts/probe_niconico_live.py',
-    'scripts/record_demo.py',
     'scripts/repos_catalog.py',
 ]
 

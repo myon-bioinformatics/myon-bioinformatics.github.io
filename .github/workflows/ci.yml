@@ -58,8 +58,8 @@ jobs:
           # Pull requests restore the cache and never write it; only main saves it.
           save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           prune-cache: true
-      # capture-evidence.spec.js spawns the Python capture CLI from this active venv.
-      - name: Install locked Python capture dependencies
+      # The home-screen check below drives Chromium from Python Playwright in this active venv.
+      - name: Install locked Python Playwright
         run: uv sync --locked --only-group browser
       - name: Install browser test dependencies
         run: npm ci --ignore-scripts
