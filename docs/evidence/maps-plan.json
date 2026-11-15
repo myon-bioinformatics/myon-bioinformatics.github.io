@@ -1,10 +1,11 @@
 [
   {
-    "label": "Map URLs, pins and sharing",
+    "label": "Map regions, pins and sharing",
     "url": "/tools/maps/",
     "viewport": "392x840",
     "steps": [
       {"select": ["#tokyo-point", "tokyo-kanda"]},
+      {"select": ["#radius-preset", "350"]},
       {"frame": "#map-result"},
       {"click": "#pin"},
       {"eval": "document.querySelector('#pins').scrollIntoView({block:'center'})"},
