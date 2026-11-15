@@ -46,9 +46,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: "26"
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: "latest"
@@ -58,18 +55,16 @@ jobs:
           # Pull requests restore the cache and never write it; only main saves it.
           save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           prune-cache: true
-      # The home-screen check below drives Chromium from Python Playwright in this active venv.
+      # Browser tests are Python Playwright in this active venv; each stages the site (source tree + generated files) itself.
+      # The HTML import and MCP lab specs run in the Docker contract (html-import.yml), on Chromium and WebKit.
       - name: Install locked Python Playwright
         run: uv sync --locked --only-group browser
-      - name: Install browser test dependencies
-        run: npm ci --ignore-scripts
       - name: Install Chromium
-        run: npx playwright install --with-deps --no-shell chromium
-      - name: Stage site with generated browser assets
-        run: python scripts/project_pages.py --stage .generated-site
-      - name: Verify transferred browser tools
-        run: npx playwright test
-      # 📱 Python Playwright (same Chromium revision as above): manifest, icons, start_url, tool-page shortcuts.
+        run: python -m playwright install --with-deps chromium
+      # 🧬 Catalog, search and topics, display modes, colour themes, AI highlights, brand.
+      - name: Check the front page in Chromium
+        run: python -m pytest tests/test_front_page.py -q
+      # 📱 Manifest, icons, start_url, tool-page shortcuts.
       # Writes test-results/home-screen/home-screen-shortcut-<UTC>.gif, uploaded with the evidence below.
       - name: Check home-screen shortcuts in Chromium
         run: python -m pytest tests/test_site.py -k home_screen -q

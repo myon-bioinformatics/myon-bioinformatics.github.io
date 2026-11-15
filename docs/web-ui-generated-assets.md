@@ -40,11 +40,12 @@ uv sync --locked --only-group browser
 uv run --locked python scripts/project_pages.py --output /tmp/generated-web-ui
 uv run --locked python -c "from scripts.project_pages import main; main(['--output', '/tmp/generated-web-ui'])"
 uv run --locked pytest tests
+uv run --locked --group browser python -m pytest tests/test_front_page.py
 uv run --locked python scripts/project_pages.py --stage .generated-site
-npx playwright test
+npx playwright test --config playwright/html-import.config.js
 ```
 
-The browser suite serves `.generated-site`, so stage it first (CI does the same). Pages overlays the same verified
+The front page tests stage the site themselves; the Node specs (HTML import, MCP lab) serve `.generated-site`, so stage it first. Pages overlays the same verified
 assets after the Jekyll build. The public CSS/JS URLs remain unchanged.
 
 ## Move the generator pin

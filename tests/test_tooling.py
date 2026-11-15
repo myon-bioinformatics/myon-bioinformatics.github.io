@@ -140,7 +140,8 @@ def test_browser_lane_installs_locked_python_playwright():
     browser = workflow.split('\n  browser:', 1)[1].split('\n  failure-identity:', 1)[0]
     install = 'uv sync --locked --only-group browser'
     assert install in browser
-    assert browser.index(install) < browser.index('npx playwright test')
+    assert browser.index(install) < browser.index('python -m pytest tests/test_front_page.py')
+    assert 'npm ci' not in browser and 'npx ' not in browser            # the front page lane needs no Node
     assert 'activate-environment: true' in browser
     groups = tomllib.loads((ROOT / 'pyproject.toml').read_text())['dependency-groups']
     assert any(isinstance(item, str) and item.startswith('playwright>=') for item in groups['browser'])
