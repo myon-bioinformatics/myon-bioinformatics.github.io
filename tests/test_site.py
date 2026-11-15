@@ -127,6 +127,97 @@ def test_every_tool_page_has_the_same_back_link_first_in_main():
         assert "Back to portfolio" not in html, page
 
 
+# ═══ 🧭 canonical data (docs/SSOT.md) ═══════════════════════════════════════════════════════════════════════
+# One owner per fact: api/repos.json (repository facts), projects.json (curation), services.json (endpoints),
+# profile.json (person). These are the relationships between them.
+
+SERVICE_KINDS = {'external-profile', 'static-data', 'repository', 'pages', 'mcp-stub'}
+
+
+def canonical_data_errors(profile: dict, projects: list, catalog: dict, registry: dict) -> list[str]:
+    errors = []
+    repos = {repo['name']: repo for repo in catalog['repos']}
+    services = registry.get('services') or {}
+    for project in projects:
+        repo = repos.get(project['name'])
+        if repo is None:
+            errors.append(f"projects.json references unknown repository: {project['name']}")
+        elif project.get('url') and project['url'] != repo['url']:  # url is a compatibility field only
+            errors.append(f"project URL drift for {project['name']}: {project['url']} != {repo['url']}")
+
+    def url(*path):
+        entry = services
+        for key in path:
+            entry = (entry or {}).get(key)
+        return (entry or {}).get('url')
+
+    for path in (('account', 'github'), ('portfolio', 'pages'), ('portfolio', 'profileData'),
+                 ('portfolio', 'projectsData'), ('portfolio', 'repositoryCatalog')):
+        if not url(*path):
+            errors.append(f"services.json is missing required service URL: {'.'.join(path)}")
+    if url('portfolio', 'repositoryCatalog') != 'https://myon-bioinformatics.github.io/api/repos.json':
+        errors.append('portfolio.repositoryCatalog must point to the canonical repos.json endpoint')
+    links = profile.get('links') or {}
+    if links.get('portfolio') != url('portfolio', 'pages'):
+        errors.append('profile.links.portfolio must match services.portfolio.pages.url')
+    if links.get('github') != url('account', 'github'):
+        errors.append('profile.links.github must match services.account.github.url')
+
+    def check_entry(path, entry):
+        if not isinstance(entry, dict):
+            return
+        if 'kind' in entry or 'url' in entry:
+            if entry.get('kind') not in SERVICE_KINDS:
+                errors.append(f"unknown service kind at {path}: {entry.get('kind')}")
+            if not entry.get('url'):
+                errors.append(f'missing URL at {path}')
+            return
+        for key, value in entry.items():
+            check_entry(f'{path}.{key}', value)
+
+    check_entry('services', services)
+    for name, group in (services.get('projects') or {}).items():
+        if not isinstance(group, dict):
+            errors.append(f'invalid project service group at services.projects.{name}')
+            continue
+        repo = repos.get(name)
+        if repo is None:
+            errors.append(f'services.json references unknown repository: {name}')
+            continue
+        repository_url = (group.get('repository') or {}).get('url') if isinstance(group.get('repository'), dict) else None
+        if repository_url and repository_url != repo['url']:
+            errors.append(f"repository service URL drift for {name}: {repository_url} != {repo['url']}")
+        prefix = f'https://myon-bioinformatics.github.io/{name}/'
+        for service_name, service in group.items():
+            if not isinstance(service, dict):
+                errors.append(f'invalid service entry at services.projects.{name}.{service_name}')
+            elif service.get('kind') in ('pages', 'mcp-stub') and service.get('url') and not service['url'].startswith(prefix):
+                errors.append(f'{service_name} URL for {name} must be under {prefix}')
+    return errors
+
+
+def _canonical_data():
+    return [json.loads((ROOT / name).read_text(encoding='utf-8'))
+            for name in ('profile.json', 'projects.json', 'api/repos.json', 'services.json')]
+
+
+def test_canonical_data_relationships_hold():
+    assert canonical_data_errors(*_canonical_data()) == []
+
+
+def test_canonical_data_check_reports_drift():
+    profile, projects, catalog, registry = _canonical_data()
+    name = next(iter(registry['services']['projects']))
+    registry['services']['projects'][name]['pages'] = {'kind': 'pages', 'url': 'https://example.test/elsewhere/'}
+    projects = projects + [{'name': 'no-such-repository'}]
+    registry['services']['portfolio']['broken'] = {'kind': 'unknown-kind', 'url': ''}
+    errors = canonical_data_errors(profile, projects, catalog, registry)
+    assert 'projects.json references unknown repository: no-such-repository' in errors
+    assert f'pages URL for {name} must be under https://myon-bioinformatics.github.io/{name}/' in errors
+    assert 'unknown service kind at services.portfolio.broken: unknown-kind' in errors
+    assert 'missing URL at services.portfolio.broken' in errors
+
+
 # ═══ 📱 home screen ═══════════════════════════════════════════════════════════════════════════════════════
 # A shortcut or home-screen icon of the portfolio opens index.html with its label and icon (manifest.webmanifest);
 # a shortcut of a tool page opens that page. Every local link and asset of these pages resolves.
