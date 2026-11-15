@@ -48,6 +48,7 @@ BODY = '''<main class="ui-page">
 CSS = '''label{display:block;margin:1rem 0 .35rem}.ui-input{width:100%;box-sizing:border-box}
 .map-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:1rem}
 .map-actions{display:flex;flex-wrap:wrap;gap:.5rem}button,a.ui-button{min-height:44px;margin:.3rem 0}
+a.ui-button{display:inline-flex;align-items:center;max-width:100%;box-sizing:border-box}
 textarea{overflow-wrap:anywhere}#pins{padding:0;list-style:none}#pins li{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;margin:.5rem 0}
 #point-error,#range-error{color:var(--ui-danger,#c33)}pre{white-space:pre-wrap;overflow-wrap:anywhere}
 [hidden]{display:none!important}h1{font-size:1.8rem}'''
