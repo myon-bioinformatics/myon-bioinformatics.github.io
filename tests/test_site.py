@@ -110,13 +110,26 @@ def test_lab_pages_are_hosted_by_portfolio():
 
 
 # The demos (DEMOS) and project pages (projects.json showcases) come from scripts/project_pages.py; they are tool pages too.
+# They are generated, not committed, so the pages are read from the staged site: the source tree plus the generated files.
+def _staged_site() -> Path:
+    import atexit, shutil
+    spec = importlib.util.spec_from_file_location('project_pages', ROOT / 'scripts/project_pages.py')
+    pages = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pages)
+    site = Path(tempfile.mkdtemp(prefix='portfolio-site-'))
+    atexit.register(shutil.rmtree, site, ignore_errors=True)
+    pages.stage(site)
+    return site
+
+
+SITE = _staged_site()
 TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp-toolcall-lab/index.html", "tools/mcp-toolcall-lab/repository-diagnostics.html",
-              *sorted(str(path.relative_to(ROOT)) for folder in ("demos", "projects") for path in (ROOT / "tools" / folder).glob("*.html")))
+              *sorted(str(path.relative_to(SITE)) for folder in ("demos", "projects") for path in (SITE / "tools" / folder).glob("*.html")))
 
 
 def test_every_tool_page_has_the_same_back_link_first_in_main():
     import re
-    for page in (ROOT / name for name in TOOL_PAGES):
+    for page in (SITE / name for name in TOOL_PAGES):
         html = page.read_text(encoding="utf-8")
         main = re.search(r"<main[^>]*>", html)
         assert main, page
@@ -257,7 +270,7 @@ def png_size(path):
 
 
 def home_manifest():
-    return json.loads((ROOT / "manifest.webmanifest").read_text(encoding="utf-8"))
+    return json.loads((SITE / "manifest.webmanifest").read_text(encoding="utf-8"))
 
 
 def largest_icon(manifest):
@@ -269,29 +282,29 @@ def test_home_screen_shortcut_opens_the_portfolio_with_its_label_and_real_icons(
     # 🏠 The icon opens index.html, the whole site is in scope, and it opens in the browser ("browser"), so the
     # other repositories' Pages it links to keep their back button.
     assert (manifest["id"], manifest["start_url"], manifest["scope"], manifest["display"]) == ("./", "./", "./", "browser")
-    page = parse_page(ROOT / "index.html")
+    page = parse_page(SITE / "index.html")
     assert manifest["name"] == page.title
     assert len(manifest["short_name"]) <= 12                       # longer home-screen labels are cut off
     for icon in manifest["icons"]:
-        assert icon["type"] == "image/png" and icon["sizes"] == png_size(ROOT / icon["src"]), icon
+        assert icon["type"] == "image/png" and icon["sizes"] == png_size(SITE / icon["src"]), icon
     assert int(largest_icon(manifest)["sizes"].split("x")[0]) >= 144   # Chromium's smallest home-screen icon
 
 
 def test_home_screen_index_head_matches_the_manifest():
-    page, manifest = parse_page(ROOT / "index.html"), home_manifest()
+    page, manifest = parse_page(SITE / "index.html"), home_manifest()
     assert [link["href"] for link in rel_links(page, "manifest")] == ["./manifest.webmanifest"]
     largest = largest_icon(manifest)
     [touch] = rel_links(page, "apple-touch-icon")                  # 🍎 iOS: icon and label come from the page itself
     assert (touch["href"], touch["sizes"]) == ("./" + largest["src"], largest["sizes"])
     assert page.metas["apple-mobile-web-app-title"] == page.metas["application-name"] == manifest["short_name"]
     for icon in rel_links(page, "icon"):
-        assert (ROOT / icon["href"]).is_file(), icon
-        assert icon.get("type") != "image/png" or icon["sizes"] == png_size(ROOT / icon["href"]), icon
+        assert (SITE / icon["href"]).is_file(), icon
+        assert icon.get("type") != "image/png" or icon["sizes"] == png_size(SITE / icon["href"]), icon
 
 
 def test_home_screen_tool_page_shortcuts_open_that_page_and_show_an_icon():
     for name in TOOL_PAGES:
-        page = parse_page(ROOT / name)
+        page = parse_page(SITE / name)
         # 🔗 With the portfolio manifest linked, Android would open index.html instead of this page.
         assert not rel_links(page, "manifest"), name
         label = page.metas["apple-mobile-web-app-title"]         # 🏷️ the <title> would be cut off under the icon
@@ -300,19 +313,19 @@ def test_home_screen_tool_page_shortcuts_open_that_page_and_show_an_icon():
             [icon] = rel_links(page, rel)
             if icon["href"].startswith("/mcp-toolcall-lab/"):      # the lab's own artwork, served by its Pages on this host
                 continue
-            png_size((ROOT / name).parent / icon["href"])
-    assert "img-src 'self'" in (ROOT / TOOL_PAGES[0]).read_text(encoding="utf-8")   # its CSP lets the icons load
+            png_size((SITE / name).parent / icon["href"])
+    assert "img-src 'self'" in (SITE / TOOL_PAGES[0]).read_text(encoding="utf-8")   # its CSP lets the icons load
 
 
 def test_home_screen_every_local_link_and_asset_resolves():
     for name in ("index.html", *TOOL_PAGES):
-        page = parse_page(ROOT / name)
+        page = parse_page(SITE / name)
         for ref in page.refs:
             url = urlparse(ref)
             if url.scheme or ref.startswith("/"):                   # 🌐 other sites, or the lab's Pages on this host
                 assert url.scheme == "https" or ref.startswith("/mcp-toolcall-lab/"), (name, ref)
                 continue
-            target = ((ROOT / name).parent / url.path).resolve() if url.path else ROOT / name
+            target = ((SITE / name).parent / url.path).resolve() if url.path else SITE / name
             target = target / "index.html" if target.is_dir() else target
             assert target.is_file(), (name, ref)
             if url.fragment and target.suffix == ".html":
@@ -334,7 +347,7 @@ def test_home_screen_in_chromium_with_a_gif():
         def log_message(self, *args):
             pass
 
-    server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Quiet, directory=str(ROOT)))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Quiet, directory=str(SITE)))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     base, manifest, frames = f"http://127.0.0.1:{server.server_port}/", home_manifest(), []
     load = """hrefs => Promise.all(hrefs.map(href => new Promise(done => { const image = new Image();
@@ -375,7 +388,7 @@ def test_home_screen_in_chromium_with_a_gif():
             tiles = [("🍎 iOS", base + largest_icon(manifest)["src"], manifest["short_name"]),
                      ("🤖 Android", base + largest_icon(manifest)["src"], manifest["short_name"])]
             for name in TOOL_PAGES:
-                tool = parse_page(ROOT / name)
+                tool = parse_page(SITE / name)
                 [touch] = rel_links(tool, "apple-touch-icon")
                 local = not touch["href"].startswith("/")
                 tiles.append(("📄 " + name.split("/")[1], base + str(Path(name).parent / touch["href"]) if local else None,
@@ -420,7 +433,7 @@ def test_home_screen_in_chromium_with_a_gif():
                 assert demos.evaluate(load, icons) == ["32x32", "170x170"], name
                 assert demos.get_by_test_id("portfolio-back").get_attribute("href") == "../../index.html#tools", name
                 assert errors == [], (name, errors)
-                frames.append((demos.screenshot(), f"🧰 {demos.title()} · {parse_page(ROOT / name).metas['apple-mobile-web-app-title']}"))
+                frames.append((demos.screenshot(), f"🧰 {demos.title()} · {parse_page(SITE / name).metas['apple-mobile-web-app-title']}"))
                 run = demos.get_by_role("heading", name="▶ 実行例")
                 if run.count():                                     # ▶ the recorded run, on a frame of its own
                     run.evaluate("heading => heading.scrollIntoView({block: 'start'})")

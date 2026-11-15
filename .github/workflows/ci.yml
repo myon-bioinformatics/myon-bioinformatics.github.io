@@ -66,14 +66,9 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps --no-shell chromium
       - name: Stage site with generated browser assets
-        run: |
-          python - <<'PYTHON'
-          import shutil
-          shutil.copytree('.', '.generated-site', ignore=shutil.ignore_patterns('.git', '.generated-site', 'node_modules', 'test-results', '__pycache__'))
-          PYTHON
-          python scripts/project_pages.py --output .generated-site
+        run: python scripts/project_pages.py --stage .generated-site
       - name: Verify transferred browser tools
-        run: npx playwright test --config playwright/generated.config.js
+        run: npx playwright test
       # 📱 Python Playwright (same Chromium revision as above): manifest, icons, start_url, tool-page shortcuts.
       # Writes test-results/home-screen/home-screen-shortcut-<UTC>.gif, uploaded with the evidence below.
       - name: Check home-screen shortcuts in Chromium
