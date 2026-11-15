@@ -291,6 +291,9 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     shutil.copyfile(ROOT / 'scripts/project_pages.py', root / 'scripts/project_pages.py')
     shutil.copyfile(ROOT / 'scripts/portfolio_nav.py', root / 'scripts/portfolio_nav.py')   # the demos get the way back
     shutil.copyfile(ROOT / 'scripts/front_page.py', root / 'scripts/front_page.py')         # the front page is generated too
+    (root / 'api').mkdir()
+    for name in ('profile.json', 'api/repos.json'):                                       # ... from these and projects.json
+        shutil.copyfile(ROOT / name, root / name)
     shutil.copyfile(ROOT / 'projects.json', root / 'projects.json')                       # the project pages come from it
     output = tmp_path / 'cli-output'
     result = subprocess.run([sys.executable, str(root / 'scripts/project_pages.py'),

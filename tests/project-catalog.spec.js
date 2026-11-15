@@ -43,6 +43,8 @@ async function selectMode(page, mode) {
 // ═══ 🧭 Catalog discovery & active repository visibility ═══════════════════════════════════════════════════
 
 test.describe('Catalog discovery and active repository visibility', () => {
+  // The catalog and its curation are merged in Python at build time (scripts/front_page.py project_catalog);
+  // tests/test_site.py checks those rules. These tests check what the built page shows.
   test.beforeEach(async ({ page }) => {
     await page.route('https://api.github.com/**', route => route.fulfill({ status: 503, body: '{}' }));
     await page.route('https://img.shields.io/**', route => route.abort());
@@ -71,15 +73,6 @@ test.describe('Catalog discovery and active repository visibility', () => {
     await expect(card).toContainText(sample.desc);
   });
 
-  test('archived repositories are never displayed, even when the catalog contains them', async ({ page }) => {
-    const legacy = { name: 'Legacy-archived', url: 'https://github.com/myon-bioinformatics/Legacy-archived', description: 'Old work', archived: true, topics: ['legacy-topic'] };
-    await page.route('**/api/repos.json', route => route.fulfill({ json: { ...catalog, repos: [...catalog.repos, legacy] } }));
-    await page.goto('/');
-    await expect(page.locator('#projects-count')).toHaveText(`Showing all ${active.length} projects`);
-    await page.locator('#project-search-input').fill('legacy-topic');
-    await expect(page.locator('#projects-count')).toHaveText('No matching projects found.');
-  });
-
   test('topic and search combine and survive mode changes', async ({ page }) => {
     await page.goto('/');
     await page.locator('.project-topic-controls summary').click();
@@ -94,42 +87,13 @@ test.describe('Catalog discovery and active repository visibility', () => {
     await expect(page.locator('#projects-count')).toHaveText('No matching projects found.');
   });
 
-  test('a newly refreshed repository appears without a curated card', async ({ page }) => {
-    const added = { name: 'Future-project', url: 'https://github.com/myon-bioinformatics/Future-project', description: null, readmeSummary: 'New README summary', topics: ['future-topic'] };
-    await page.route('**/api/repos.json', route => route.fulfill({ json: { ...catalog, repos: [...catalog.repos, added] } }));
-    await page.goto('/');
-    await page.locator('#project-search-input').fill('future-topic');
-    await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${active.length + 1} projects`);
-    await expect(page.locator('#projects-render-root')).toContainText('New README summary');
-    await expect(page.locator('#projects-render-root h3 a')).toHaveAttribute('href', added.url);
-  });
-
-  test('curation cannot publish stale entries or override canonical URLs', async ({ page }) => {
-    const repo = active[0];
-    await page.route('**/projects.json', route => route.fulfill({ json: [
-      { name: repo.name, url: 'https://example.com/stale', desc: 'Curated text', topics: ['curated-topic'] },
-      { name: 'Removed-repository', url: 'https://example.com/removed', desc: 'Stale entry' },
-    ] }));
-    await page.goto('/');
-    await page.locator('#project-search-input').fill('curated-topic');
-    await expect(page.locator('#projects-render-root h3 a')).toHaveAttribute('href', repo.url);
-    await expect(page.locator('#projects-render-root')).toContainText('Curated text');
-    await page.locator('#project-search-input').fill('Removed-repository');
-    await expect(page.locator('#projects-count')).toHaveText('No matching projects found.');
-  });
-
-  test('unavailable curation still displays the complete active catalog', async ({ page }) => {
-    await page.route('**/projects.json', route => route.fulfill({ status: 503, body: '{}' }));
-    await page.goto('/');
-    await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(active.length);
-  });
-
-  test('search entered before the catalog loads is respected', async ({ page }) => {
+  test('search typed while the page starts is respected', async ({ page }) => {
+    // The page script waits for site.config.json before its first render; hold it so the search is typed first.
     let release;
     const gate = new Promise(resolve => { release = resolve; });
-    await page.route('**/api/repos.json', async route => {
+    await page.route('**/site.config.json', async route => {
       await gate;
-      await route.fulfill({ json: catalog });
+      await route.fulfill({ json: { defaultViewMode: 'modern' } });
     });
     await page.goto('/');
     await page.locator('#project-search-input').fill('nvd_nist');
@@ -137,13 +101,6 @@ test.describe('Catalog discovery and active repository visibility', () => {
     await expect(page.locator('#projects-count')).toHaveText(`Showing 1 of ${active.length} projects`);
     await expect(page.locator('#projects-render-root')).toContainText('nvd_nist_known_vulns');
     await expect(page.locator('#project-search-clear')).toBeVisible();
-  });
-
-  test('missing catalog reports an error instead of showing only curated projects', async ({ page }) => {
-    await page.route('**/api/repos.json', route => route.fulfill({ status: 503, body: '{}' }));
-    await page.goto('/');
-    await expect(page.locator('#projects-render-root')).toHaveText('Failed to load projects. Please refresh.');
-    await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(0);
   });
 
   test('the full active catalog and expanded topics fit a mobile viewport', async ({ page }) => {
@@ -309,6 +266,27 @@ test.describe('Shared UI theme and controls', () => {
       const box = await page.locator(selector).first().boundingBox();
       expect(box.height).toBeGreaterThanOrEqual(44);
     }
+  });
+
+  test('a colour theme recolours every display mode and is remembered', async ({ page }) => {
+    await loadFresh(page, 'modern');
+    const background = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    const seen = new Set([await background()]);
+    for (const theme of ['purple', 'green', 'terminal']) {
+      await page.selectOption('#theme-select', theme);
+      for (const mode of modes) {
+        await selectMode(page, mode);
+        await expect(page.locator('body')).toHaveAttribute('data-ui-theme', theme);
+      }
+      seen.add(await background());
+    }
+    expect(seen.size).toBe(4);                                   // the mode's own colours, then three different palettes
+    await page.reload();
+    await expect(page.locator('body')).toHaveAttribute('data-ui-theme', 'terminal');
+    await page.selectOption('#theme-select', '');                // back to the display mode's own colours
+    await selectMode(page, 'github-like');
+    await expect(page.locator('body')).toHaveAttribute('data-ui-theme', 'github-like');
+    await expect(page.locator('#projects-render-root .ui-card')).toHaveCount(projectCount);
   });
 });
 

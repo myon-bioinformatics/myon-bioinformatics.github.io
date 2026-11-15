@@ -1,10 +1,16 @@
 """The portfolio's front page (index.html), built in Python: no index.html, index.js, style.css or renderer.css in the repository.
 
-``document()`` returns the one page that ``scripts/project_pages.py`` writes and locks with the other generated pages.
-The page shell, the Tools & Demos cards (``PORTAL``, data), the stylesheet and the page script are all here; the page
-script still draws the profile and the projects from profile.json / projects.json / api/repos.json in the browser.
+``document()`` returns the one page that ``scripts/project_pages.py`` writes at build time. Everything a visitor reads is
+made here from ``profile.json``, ``api/repos.json`` and ``projects.json``: the page shell, the Tools & Demos cards
+(``PORTAL``), and the profile and projects in each notation (cards, XML-like, JSON, Markdown). The colour themes are
+PySaiyanWeBoo's palettes. The page script only switches between what Python built, filters projects and fills the AI
+highlight slots with what the public GitHub API returns in the browser.
 """
 import html
+import json
+import re
+from pathlib import Path
+from urllib.parse import quote
 
 # 🧭 Tools & Demos: one card each. ``points`` are trusted HTML (they carry <code>); everything else is escaped.
 PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル選択から、端末内で本文・見出し・リンクを抽出。', 'links': [('Open HTML Import →', './tools/html-import/')]},
@@ -76,8 +82,247 @@ def portal_cards() -> str:
     return '      <div class="portal-grid">\n' + ''.join(out)
 
 
-def document() -> str:
-    return SHELL.replace('@@PORTAL@@', portal_cards()).replace('@@STYLE@@', '\n' + STYLE + '\n  ').replace('@@SCRIPT@@', '\n' + SCRIPT + '\n  ')
+# ── data ────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+# 🤖 Shown until (and unless) the public GitHub API answers in the browser; they claim no star counts.
+AI_FALLBACK = [
+    {'name': 'ollama/ollama', 'desc': 'Get up and running with Llama 3.3, DeepSeek-R1, Gemma 2, and other large language models.',
+     'url': 'https://github.com/ollama/ollama', 'stars': None, 'language': 'Go'},
+    {'name': 'vllm-project/vllm', 'desc': 'A high-throughput and memory-efficient inference and serving engine for LLMs.',
+     'url': 'https://github.com/vllm-project/vllm', 'stars': None, 'language': 'Python'},
+    {'name': 'langchain-ai/langchain', 'desc': 'Building applications with LLMs through composability.',
+     'url': 'https://github.com/langchain-ai/langchain', 'stars': None, 'language': 'Python'},
+    {'name': 'huggingface/transformers', 'desc': 'State-of-the-art Machine Learning for Pytorch, TensorFlow, and JAX.',
+     'url': 'https://github.com/huggingface/transformers', 'stars': None, 'language': 'Python'},
+]
+# 👁️ display mode -> the notation it draws (modern and github-like differ in colour only).
+MODES = {'modern': 'web', 'xml-like': 'xml', 'json': 'json', 'markdown': 'markdown', 'github-like': 'web'}
+NOTATION_CLASS = {'web': '', 'xml': 'notation-root xml-renderer', 'json': 'notation-root json-renderer', 'markdown': 'notation-root markdown-renderer'}
+
+
+def project_catalog(catalog: dict, curated: list) -> list[dict]:
+    """The projects to show: every public, non-archived repository of ``api/repos.json``, with ``projects.json`` curation.
+
+    The catalog owns name and URL; curation only adds a description and topics, and entries for repositories that are
+    not in the catalog are ignored."""
+    if not isinstance(catalog.get('repos'), list):
+        raise ValueError('Invalid repository catalog')
+    overrides = {project['name']: project for project in curated}
+    projects = []
+    for repo in catalog['repos']:
+        if repo.get('archived') is True:
+            continue
+        project = overrides.get(repo['name'], {})
+        projects.append({
+            'name': repo['name'],
+            'desc': project.get('desc') or repo.get('description') or repo.get('readmeSummary') or 'Explore the source and README on GitHub.',
+            'url': repo['url'],
+            'topics': list(dict.fromkeys([*(project.get('topics') or []), *(repo.get('topics') or [])])),
+            'archived': False,
+        })
+    return projects
+
+
+# ── notations: the same data as cards (web), XML-like, JSON and Markdown ────────────────────────────────────────────
+# Everything a reader sees in a notation is written here. The page script only shows one of them, removes the projects
+# a search hides, and fills the AI highlight templates with what the GitHub API returns.
+
+def _e(text) -> str:
+    return html.escape(str(text), quote=False)
+
+
+def _a(text) -> str:
+    return html.escape(str(text), quote=True)
+
+
+def _link(url: str, text: str | None = None, attrs: str = '') -> str:
+    return f'<a href="{_a(url)}" target="_blank" rel="noopener noreferrer"{attrs}>{_e(url if text is None else text)}</a>'
+
+
+def _xml(indent: int, *parts: str, attrs: str = '') -> str:
+    return f'<div class="xml-line" style="--indent: {indent}"{attrs}>{"".join(parts)}</div>'
+
+
+def _tag(text: str, slots: bool = False) -> str:
+    """One XML-like tag; with ``slots``, ``{field}`` becomes a slot the page script fills (AI highlights)."""
+    text = _e(text)
+    return '<span class="xml-tag">' + (re.sub(r'\{(\w+)\}', r'<span data-field="\1"></span>', text) if slots else text) + '</span>'
+
+
+def _json_scalar(value) -> str:
+    if isinstance(value, str):
+        if re.match(r'https?://', value):
+            return '"' + _link(value) + '"'
+        return f'<span class="json-string">{_e(json.dumps(value, ensure_ascii=False))}</span>'
+    return f'<span class="json-number">{_e(json.dumps(value))}</span>'
+
+
+def json_lines(value, indent: int = 0, key: str | None = None, comma: str = '') -> str:
+    """``value`` as indented JSON lines (what ``JSON.stringify(value, null, 2)`` would print, with links for URLs).
+
+    ``comma`` is the HTML after the value: ``_COMMA`` between siblings, ``_LAST_COMMA`` where the page script decides."""
+    head = f'<div class="json-line" style="--indent: {indent}">' + (f'<span class="json-key">"{_e(key)}"</span>: ' if key is not None else '')
+    close = lambda mark: f'<div class="json-line" style="--indent: {indent}"><span class="json-punctuation">{mark}</span>{comma}</div>'
+    if isinstance(value, list):
+        return (head + '<span class="json-punctuation">[</span></div>'
+                + ''.join(json_lines(item, indent + 1, None, _COMMA if at < len(value) - 1 else '') for at, item in enumerate(value)) + close(']'))
+    if isinstance(value, dict):
+        return (head + '<span class="json-punctuation">{</span></div>'
+                + ''.join(json_lines(item, indent + 1, name, _COMMA if at < len(value) - 1 else '') for at, (name, item) in enumerate(value.items()))
+                + close('}'))
+    return head + _json_scalar(value) + comma + '</div>'
+
+
+_COMMA = '<span class="json-punctuation">,</span>'
+_LAST_COMMA = '<span class="json-punctuation" data-comma>,</span>'      # the page script drops the one after the last shown item
+
+
+def profile_html(profile: dict, notation: str) -> str:
+    if notation == 'xml':
+        lines = [_xml(0, _tag('<Profile>')), _xml(1, _tag('<About>'), _e(profile['about']), _tag('</About>')), _xml(1, _tag('<Skills>'))]
+        for group in profile['skills']:
+            lines.append(_xml(2, _tag(f'<SkillGroup category="{group["category"]}">')))
+            lines += [_xml(3, _tag(f'<Skill name="{item["name"]}" level="{item["level"]}" />')) for item in group['items']]
+            lines.append(_xml(2, _tag('</SkillGroup>')))
+        lines += [_xml(1, _tag('</Skills>')), _xml(1, _tag('<Career>'))]
+        for entry in profile['career']:
+            lines += [_xml(2, _tag(f'<Entry year="{entry["year"]}">')), _xml(3, _tag('<Title>'), _e(entry['title']), _tag('</Title>')),
+                      _xml(3, _tag('<Description>'), _e(entry['desc']), _tag('</Description>')), _xml(2, _tag('</Entry>'))]
+        return ''.join(lines + [_xml(1, _tag('</Career>')), _xml(0, _tag('</Profile>'))])
+    if notation == 'json':
+        return json_lines(profile)
+    if notation == 'markdown':
+        out = ['<h3 class="md-heading">### About</h3>', f'<p class="about-text">{_e(profile["about"])}</p>', '<h3 class="md-heading">### Skills</h3>']
+        for group in profile['skills']:
+            out.append(f'<h4 class="md-heading">#### {_e(group["category"])}</h4><ul class="md-list">'
+                       + ''.join(f'<li>{_e(item["name"])} — {_e(item["level"])}%</li>' for item in group['items']) + '</ul>')
+        return ''.join(out) + '<h3 class="md-heading">### Career</h3><ul class="md-list">' + ''.join(
+            f'<li><strong>{_e(entry["year"])} — {_e(entry["title"])}</strong>: {_e(entry["desc"])}</li>' for entry in profile['career']) + '</ul>'
+    sections = (('about', 'About'), ('skills', 'Skills'), ('career', 'Career'))
+    tabs = ''.join(f'<button type="button" class="tab-btn{" active" if at == 0 else ""}" id="tab-{key}" role="tab" aria-selected="{str(at == 0).lower()}"'
+                   f' aria-controls="panel-{key}">{label}</button>' for at, (key, label) in enumerate(sections))
+    skills = ''.join(
+        f'<div class="skill-group"><h4 class="skill-category">{_e(group["category"])}</h4>' + ''.join(
+            f'<div class="skill-row"><span class="skill-label">{_e(item["name"])}</span><div class="skill-bar-track">'
+            f'<div class="skill-bar-fill" data-level="{_a(item["level"])}" style="width: 0%"></div></div></div>' for item in group['items']) + '</div>'
+        for group in profile['skills'])
+    career = '<ol class="timeline">' + ''.join(
+        f'<li class="timeline-item"><span class="tl-year">{_e(entry["year"])}</span><div class="tl-body"><strong>{_e(entry["title"])}</strong>'
+        f'<p>{_e(entry["desc"])}</p></div></li>' for entry in profile['career']) + '</ol>'
+    bodies = {'about': f'<p class="about-text">{_e(profile["about"])}</p>', 'skills': skills, 'career': career}
+    panels = ''.join(f'<div class="tab-panel{" active" if at == 0 else ""}" id="panel-{key}" role="tabpanel" aria-labelledby="tab-{key}"'
+                     f'{"" if at == 0 else " hidden"}>{bodies[key]}</div>' for at, (key, _) in enumerate(sections))
+    return f'<div class="tabs" role="tablist" aria-label="Profile sections">{tabs}</div><div class="profile-panels">{panels}</div>'
+
+
+def projects_html(projects: list[dict], notation: str) -> str:
+    """Every project in ``notation``; each one is a ``data-project`` unit the page script can drop, ``data-empty`` shows when none is left."""
+    unit = lambda project, inner, tag='div', cls='': f'<{tag}{cls} data-project="{_a(project["name"])}">{inner}</{tag}>'
+    if notation == 'xml':
+        body = ''.join(unit(p, ''.join([
+            _xml(1, _tag(f'<Project name="{p["name"]}">')),
+            *([_xml(2, _tag('<Status>'), 'Archived', _tag('</Status>'))] if p['archived'] else []),
+            _xml(2, _tag('<Description>'), _e(p['desc']), _tag('</Description>')),
+            _xml(2, _tag('<Url>'), _link(p['url']), _tag('</Url>')),
+            _xml(2, _tag('<Topics>')), *[_xml(3, _tag('<Topic>'), _e(topic), _tag('</Topic>')) for topic in p['topics']], _xml(2, _tag('</Topics>')),
+            _xml(1, _tag('</Project>'))])) for p in projects)
+        return (_xml(0, _tag('<Projects>')) + _xml(1, _e('<!-- No projects match your filter -->'), attrs=' data-empty')
+                + body + _xml(0, _tag('</Projects>')))
+    if notation == 'json':
+        return ('<div class="json-line" style="--indent: 0"><span class="json-punctuation">[</span></div>'
+                + ''.join(unit(p, json_lines(p, 1, None, _LAST_COMMA)) for p in projects)
+                + '<div class="json-line" style="--indent: 0"><span class="json-punctuation">]</span></div>')
+    if notation == 'markdown':
+        return '<p data-empty>No projects match your filter.</p>' + ''.join(unit(p, (
+            f'<h3 class="md-heading">### {_link(p["url"], p["name"])}</h3><p>{_e(p["desc"])}</p><ul class="md-list">'
+            + ('<li>Status: Archived</li>' if p['archived'] else '') + f'<li>Topics: {_e(", ".join(p["topics"]))}</li>'
+            f'<li>Source: {_link(p["url"])}</li></ul>')) for p in projects)
+    cards = ''.join(unit(p, (
+        f'<h3 class="ui-title">{_link(p["url"], p["name"])}</h3>' + ('<span class="ui-tag project-status">Archived</span>' if p['archived'] else '')
+        + f'<p class="ui-muted">{_e(p["desc"])}</p><div class="project-topics">' + ''.join(
+            f'<span class="ui-tag" data-topic="{_a(topic)}" style="cursor: pointer" title="Filter by {_a(topic)}">{_e(topic)}</span>'
+            for topic in p['topics'][:6])
+        + '</div><div class="project-card-actions"><img loading="lazy" alt="GitHub stars" '
+          f'src="https://img.shields.io/github/stars/myon-bioinformatics/{_a(quote(p["name"], safe=""))}?style=social">'
+          f'<button type="button" class="ui-button project-copy" data-copy="{_a(p["url"])}" aria-label="Copy repository URL for {_a(p["name"])}">Copy URL</button></div>'
+    ), 'article', ' class="ui-card"') for p in projects)
+    return '<div class="empty-projects-msg" data-empty>No projects match your filter.</div>' + cards
+
+
+def highlights_html(notation: str) -> str:
+    """AI highlights in ``notation`` for data that only exists in the browser: the frame, and one ``<template data-item>``
+    whose ``data-field`` slots (and ``data-href`` links) the page script fills per highlight."""
+    item = lambda inner: f'<template data-item>{inner}</template>'
+    slot = lambda field, cls='', fmt='': f'<span{cls} data-field="{field}"{fmt}></span>'
+    link = '<a target="_blank" rel="noopener noreferrer" data-href="url" data-field="{}"></a>'
+    if notation == 'xml':
+        return (_xml(0, _tag('<AiHighlights>')) + item(
+            _xml(1, _tag('<Highlight name="{name}" stars="{stars}" language="{language}">', slots=True))
+            + _xml(2, _tag('<Description>'), slot('desc'), _tag('</Description>')) + _xml(2, _tag('<Url>'), link.format('url'), _tag('</Url>'))
+            + _xml(1, _tag('</Highlight>'))) + _xml(0, _tag('</AiHighlights>')))
+    if notation == 'json':
+        line = lambda key, value, comma=_COMMA: f'<div class="json-line" style="--indent: 2"><span class="json-key">"{key}"</span>: {value}{comma}</div>'
+        text = lambda field: slot(field, ' class="json-string"', ' data-format="json"')
+        return ('<div class="json-line" style="--indent: 0"><span class="json-punctuation">[</span></div>' + item(
+            '<div class="json-line" style="--indent: 1"><span class="json-punctuation">{</span></div>'
+            + line('name', text('name')) + line('desc', text('desc')) + line('url', '"' + link.format('url') + '"')
+            + line('stars', slot('stars', ' class="json-number"', ' data-format="json"')) + line('language', text('language'), '')
+            + f'<div class="json-line" style="--indent: 1"><span class="json-punctuation">}}</span>{_LAST_COMMA}</div>')
+            + '<div class="json-line" style="--indent: 0"><span class="json-punctuation">]</span></div>')
+    if notation == 'markdown':
+        return item(f'<h3 class="md-heading">### {link.format("name")}</h3><p data-field="desc"></p>'
+                    f'<ul class="md-list"><li>{slot("starsLabel")} • {slot("language")}</li></ul>')
+    return item(f'<article class="card ai-card"><h3>{link.format("name")}</h3><p data-field="desc"></p>'
+                '<div class="ai-meta"><span class="tag" data-field="starsLabel"></span><span class="tag" data-field="language"></span></div></article>')
+
+
+def views_html(profile: dict, projects: list[dict]) -> str:
+    """Every section in every notation, as inert ``<template>`` elements the page script mounts (``tpl-<section>-<notation>``)."""
+    section_class = {'projects': {'web': 'ui-grid'}, 'highlights': {'web': 'grid'}}
+    out = []
+    for notation in dict.fromkeys(MODES.values()):
+        for section, body in (('profile', profile_html(profile, notation)), ('projects', projects_html(projects, notation)),
+                              ('highlights', highlights_html(notation))):
+            cls = section_class.get(section, {}).get(notation, NOTATION_CLASS[notation])
+            out.append(f'<template id="tpl-{section}-{notation}" data-class="{cls}">{body}</template>\n')
+    return ''.join(out)
+
+
+def topic_buttons(projects: list[dict]) -> str:
+    topics = sorted({topic for project in projects for topic in project['topics']})
+    return ''.join(f'<button type="button" class="tag-btn{" active" if tag == "all" else ""}" data-tag="{_a(tag)}" '
+                   f'aria-pressed="{str(tag == "all").lower()}">{_e("All" if tag == "all" else tag)}</button>' for tag in ['all', *topics])
+
+
+def _inline_json(value) -> str:
+    """JSON that is safe inside a <script> element."""
+    return json.dumps(value, ensure_ascii=False).replace('<', '\\u003c')
+
+
+def theme_options(ui) -> str:
+    """🎨 The colour themes PySaiyanWeBoo provides (light and dark palettes), after the display mode's own colours."""
+    mark = {'green': '🟢', 'red': '🔴', 'blue': '🔵', 'purple': '🟣', 'terminal': '⬛'}
+    return '<option value="">🎨 Mode</option>' + ''.join(
+        f'<option value="{_a(name)}">{mark.get(name, "🎨")} {_e(name)}</option>' for name in ui.theme_palettes())
+
+
+def document(root: Path | None = None, ui=None) -> str:
+    root = Path(__file__).resolve().parents[1] if root is None else Path(root)
+    if ui is None:
+        import pysaiyanweboo as ui
+    read = lambda name: json.loads((root / name).read_text(encoding='utf-8'))
+    profile, projects = read('profile.json'), project_catalog(read('api/repos.json'), read('projects.json'))
+    palettes = ''.join(ui.theme_css(name, tokens) for name, tokens in ui.theme_palettes().items())
+    data = (f'<script type="application/json" id="projects-data">{_inline_json([{k: p[k] for k in ("name", "desc", "topics")} for p in projects])}</script>\n'
+            f'<script type="application/json" id="page-data">{_inline_json({"modes": MODES, "fallback": AI_FALLBACK})}</script>\n')
+    page = SHELL
+    for mark, value in (('@@PORTAL@@', portal_cards()), ('@@THEMES@@', theme_options(ui)), ('@@TOPICS@@', topic_buttons(projects)),
+                        ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + STYLE + '\n  '),
+                        ('@@SCRIPT@@', '\n' + SCRIPT + '\n  ')):
+        assert page.count(mark) == 1, mark
+        page = page.replace(mark, value)
+    return page
+
 
 
 SHELL = '''<!doctype html>
@@ -120,6 +365,10 @@ SHELL = '''<!doctype html>
             <option value="github-like">GitHub-like</option>
           </select>
         </div>
+        <div class="view-mode-switch">
+          <label for="theme-select">Color</label>
+          <select id="theme-select" aria-label="Color theme">@@THEMES@@</select>
+        </div>
       </div>
     </div>
   </header>
@@ -145,7 +394,7 @@ SHELL = '''<!doctype html>
         </div>
         <details class="project-topic-controls">
           <summary>Filter by topic</summary>
-          <div class="project-tags-filter" id="project-tags-filter" role="group" aria-label="Filter projects by topic"></div>
+          <div class="project-tags-filter" id="project-tags-filter" role="group" aria-label="Filter projects by topic">@@TOPICS@@</div>
         </details>
       </div>
       <div id="projects-count" class="projects-count" aria-live="polite"></div>
@@ -182,7 +431,7 @@ SHELL = '''<!doctype html>
     </div>
   </footer>
 
-  <script src="./tools/vendor/web-ui/js/collection.js"></script>
+@@VIEWS@@  <script src="./tools/vendor/web-ui/js/collection.js"></script>
   <script>@@SCRIPT@@</script>
 </body>
 </html>
@@ -936,72 +1185,95 @@ body[data-view-mode="modern"] #projects .section-sub { color: var(--terminal-mut
   .json-line {
     padding-left: calc(var(--indent, 0) * .75rem);
   }
+}
+
+/* 🎨 A chosen colour theme (PySaiyanWeBoo palette, body[data-ui-theme=NAME]) drives this page's own colours too. */
+body[data-color] {
+  --fg: var(--ui-fg); --bg: var(--ui-bg); --muted: var(--ui-muted); --border: var(--ui-border);
+  --terminal-bg: var(--ui-bg); --terminal-panel: var(--ui-panel); --terminal-fg: var(--ui-fg);
+  --terminal-muted: var(--ui-muted); --terminal-border: var(--ui-accent); --terminal-accent: var(--ui-accent);
+  --syntax-xml: var(--ui-accent); --syntax-json-punctuation: var(--ui-muted); --syntax-json-key: var(--ui-accent);
+  --syntax-json-string: var(--ui-fg); --syntax-json-number: var(--ui-danger);
+  --syntax-markdown-marker: var(--ui-accent); --syntax-markdown-link: var(--ui-accent);
 }'''
 
-SCRIPT = r'''const DEFAULT_VIEW_MODE = 'modern';
+SCRIPT = '''// The page script. What each notation looks like is decided in Python (scripts/front_page.py) and arrives as <template>
+// elements; this script shows one, drops the projects a search hides, and fills the AI highlight slots.
+const DEFAULT_VIEW_MODE = 'modern';
 const VIEW_MODE_KEY = 'site:view-mode';
 const VIEW_MODE_BASE_KEY = 'site:view-mode-base';
-const VALID_VIEW_MODES = new Set(['modern', 'xml-like', 'json', 'markdown', 'github-like']);
+const COLOR_THEME_KEY = 'site:color-theme';
+const PAGE = JSON.parse(document.getElementById('page-data').textContent);
+const PROJECTS = JSON.parse(document.getElementById('projects-data').textContent);
 
-let sharedData = null;
 let configuredViewMode = DEFAULT_VIEW_MODE;
 let currentTagFilter = 'all';
 let currentSearchQuery = '';
-let controlsInitialized = false;
+let aiHighlightsPool = [];
+let displayedAiHighlights = [];
+
+function shuffleItems(items) {
+  const shuffled = [...items];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+// A fresh project order on each page load, the same in every notation.
+const projectOrder = shuffleItems(PROJECTS.map((project) => project.name));
 
 function normalizeViewMode(mode) {
-  return VALID_VIEW_MODES.has(mode) ? mode : DEFAULT_VIEW_MODE;
+  return Object.hasOwn(PAGE.modes, mode) ? mode : DEFAULT_VIEW_MODE;
 }
 
-function readStoredViewMode(configuredMode) {
-  try {
-    const base = localStorage.getItem(VIEW_MODE_BASE_KEY);
-    if (base !== configuredMode) return null;
-    return localStorage.getItem(VIEW_MODE_KEY);
-  } catch {
-    return null;
-  }
+function readStored(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
 }
 
-function saveViewMode(mode, configuredMode) {
+function store(key, value) {
   try {
-    localStorage.setItem(VIEW_MODE_KEY, mode);
-    localStorage.setItem(VIEW_MODE_BASE_KEY, configuredMode);
+    if (value) localStorage.setItem(key, value); else localStorage.removeItem(key);
   } catch {
     // ignore storage failures
   }
-}
-
-function clearElement(element) {
-  if (element) element.replaceChildren();
-}
-
-function element(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
-
-function externalLink(url, text = url) {
-  const link = element('a', null, text);
-  link.href = url;
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
-  return link;
 }
 
 function getCurrentMode() {
   return normalizeViewMode(document.body.dataset.viewMode || configuredViewMode);
 }
 
+// The notation of a section, from its Python-built template.
+function mount(root, section, notation) {
+  const template = document.getElementById(`tpl-${section}-${notation}`);
+  root.replaceChildren(template.content.cloneNode(true));
+  root.className = template.dataset.class;
+  root.dataset.renderer = notation;
+}
+
+function dropLastComma(root) {
+  const commas = root.querySelectorAll('[data-comma]');
+  if (commas.length) commas[commas.length - 1].remove();
+}
+
+// 🎨 A colour theme from PySaiyanWeBoo's palettes, or the display mode's own colours when none is chosen.
+function applyColorTheme() {
+  const mode = getCurrentMode();
+  const selector = document.getElementById('theme-select');
+  const chosen = selector && [...selector.options].some((option) => option.value === readStored(COLOR_THEME_KEY)) ? readStored(COLOR_THEME_KEY) : '';
+  if (selector) selector.value = chosen;
+  if (chosen) document.body.dataset.color = chosen; else delete document.body.dataset.color;
+  document.body.dataset.uiTheme = chosen || (mode === 'modern' || mode === 'github-like' ? mode : 'plain');
+}
+
 function applyViewMode(mode) {
   const normalized = normalizeViewMode(mode);
   document.body.dataset.viewMode = normalized;
-  document.body.dataset.uiTheme = normalized === 'modern' ? 'modern' : normalized === 'github-like' ? 'github-like' : 'plain';
+  applyColorTheme();
   const selector = document.getElementById('view-mode-select');
   if (selector && selector.value !== normalized) selector.value = normalized;
-  if (sharedData) renderPortfolio(normalized, sharedData);
+  renderPortfolio();
 }
 
 async function readConfiguredViewMode() {
@@ -1015,425 +1287,10 @@ async function readConfiguredViewMode() {
   }
 }
 
-function initViewModeSelector(initialMode, configuredMode) {
-  const selector = document.getElementById('view-mode-select');
-  applyViewMode(initialMode);
-  if (!selector) return;
-
-  selector.addEventListener('change', () => {
-    const nextMode = normalizeViewMode(selector.value);
-    applyViewMode(nextMode);
-    saveViewMode(nextMode, configuredMode);
-  });
-}
-
-function shuffleItems(items) {
-  const shuffled = [...items];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
-
-// Public, non-archived repositories only. The full candidate pool is collected
-// first, then shuffled so each page load shows a fresh order.
-function buildProjectCatalog(catalog, curated) {
-  if (!Array.isArray(catalog?.repos)) throw new Error('Invalid repository catalog');
-  const overrides = new Map(curated.map((project) => [project.name, project]));
-  const candidates = catalog.repos
-    .filter((repo) => repo.archived !== true)
-    .map((repo) => {
-      const project = overrides.get(repo.name);
-      return {
-        name: repo.name,
-        desc: project?.desc || repo.description || repo.readmeSummary || 'Explore the source and README on GitHub.',
-        url: repo.url,
-        topics: [...new Set([...(project?.topics || []), ...(repo.topics || [])])],
-        archived: false,
-      };
-    });
-  return shuffleItems(candidates);
-}
-
-async function loadSharedData() {
-  const [profileRes, catalogRes, curated] = await Promise.all([
-    fetch('./profile.json', { cache: 'no-store' }),
-    fetch('./api/repos.json', { cache: 'no-store' }),
-    fetch('./projects.json', { cache: 'no-store' })
-      .then((res) => res.ok ? res.json() : [])
-      .catch(() => []),
-  ]);
-
-  if (!profileRes.ok) throw new Error(`profile.json HTTP ${profileRes.status}`);
-  if (!catalogRes.ok) throw new Error(`api/repos.json HTTP ${catalogRes.status}`);
-
-  const [profile, catalog] = await Promise.all([profileRes.json(), catalogRes.json()]);
-  return { profile, projects: buildProjectCatalog(catalog, Array.isArray(curated) ? curated : []) };
-}
-
-function renderWebProfile(root, profile) {
-  root.dataset.renderer = 'web';
-
-  const tabs = element('div', 'tabs');
-  tabs.setAttribute('role', 'tablist');
-  tabs.setAttribute('aria-label', 'Profile sections');
-
-  const panelWrap = element('div', 'profile-panels');
-  const sections = [
-    ['about', 'About'],
-    ['skills', 'Skills'],
-    ['career', 'Career'],
-  ];
-  const panels = {};
-  let skillsAnimated = false;
-
-  function activateTab(key) {
-    tabs.querySelectorAll('.tab-btn').forEach((button) => {
-      const active = button.id === `tab-${key}`;
-      button.classList.toggle('active', active);
-      button.setAttribute('aria-selected', String(active));
-    });
-    Object.entries(panels).forEach(([panelKey, panel]) => {
-      const active = panelKey === key;
-      panel.classList.toggle('active', active);
-      panel.hidden = !active;
-    });
-
-    if (key === 'skills' && !skillsAnimated) {
-      skillsAnimated = true;
-      requestAnimationFrame(() => {
-        panels.skills.querySelectorAll('.skill-bar-fill').forEach((bar) => {
-          bar.style.width = `${bar.dataset.level}%`;
-        });
-      });
-    }
-  }
-
-  sections.forEach(([key, label], index) => {
-    const button = element('button', `tab-btn${index === 0 ? ' active' : ''}`, label);
-    button.type = 'button';
-    button.id = `tab-${key}`;
-    button.setAttribute('role', 'tab');
-    button.setAttribute('aria-selected', String(index === 0));
-    button.setAttribute('aria-controls', `panel-${key}`);
-    button.addEventListener('click', () => activateTab(key));
-    tabs.appendChild(button);
-
-    const panel = element('div', `tab-panel${index === 0 ? ' active' : ''}`);
-    panel.id = `panel-${key}`;
-    panel.setAttribute('role', 'tabpanel');
-    panel.setAttribute('aria-labelledby', `tab-${key}`);
-    panel.hidden = index !== 0;
-    panels[key] = panel;
-    panelWrap.appendChild(panel);
-  });
-
-  panels.about.appendChild(element('p', 'about-text', profile.about));
-
-  profile.skills.forEach(({ category, items }) => {
-    const group = element('div', 'skill-group');
-    group.appendChild(element('h4', 'skill-category', category));
-
-    items.forEach(({ name, level }) => {
-      const row = element('div', 'skill-row');
-      row.appendChild(element('span', 'skill-label', name));
-
-      const track = element('div', 'skill-bar-track');
-      const fill = element('div', 'skill-bar-fill');
-      fill.dataset.level = level;
-      fill.style.width = '0%';
-      track.appendChild(fill);
-      row.appendChild(track);
-      group.appendChild(row);
-    });
-
-    panels.skills.appendChild(group);
-  });
-
-  const timeline = element('ol', 'timeline');
-  profile.career.forEach(({ year, title, desc }) => {
-    const item = element('li', 'timeline-item');
-    item.appendChild(element('span', 'tl-year', year));
-
-    const body = element('div', 'tl-body');
-    body.appendChild(element('strong', null, title));
-    body.appendChild(element('p', null, desc));
-    item.appendChild(body);
-    timeline.appendChild(item);
-  });
-  panels.career.appendChild(timeline);
-
-  root.appendChild(tabs);
-  root.appendChild(panelWrap);
-}
-
-function renderWebProjects(root, projects) {
-  root.dataset.renderer = 'web';
-  root.className = 'ui-grid';
-
-  if (!projects || projects.length === 0) {
-    const emptyMsg = element('div', 'empty-projects-msg', 'No projects match your filter.');
-    root.appendChild(emptyMsg);
-    return;
-  }
-
-  projects.forEach(({ name, desc, url, topics = [], archived }) => {
-    const card = element('article', 'ui-card');
-    const title = element('h3', 'ui-title');
-    title.appendChild(externalLink(url, name));
-    card.appendChild(title);
-    if (archived) card.appendChild(element('span', 'ui-tag project-status', 'Archived'));
-    card.appendChild(element('p', 'ui-muted', desc || ''));
-
-    const badges = element('div', 'project-topics');
-    topics.slice(0, 6).forEach((topic) => {
-      const tagSpan = element('span', 'ui-tag', topic);
-      tagSpan.dataset.topic = topic;
-      tagSpan.style.cursor = 'pointer';
-      tagSpan.title = `Filter by ${topic}`;
-      tagSpan.addEventListener('click', (e) => {
-        e.stopPropagation();
-        setTagFilter(topic);
-      });
-      badges.appendChild(tagSpan);
-    });
-    card.appendChild(badges);
-
-    const footer = element('div', 'project-card-actions');
-    const shields = element('img');
-    shields.loading = 'lazy';
-    shields.alt = 'GitHub stars';
-    shields.src = `https://img.shields.io/github/stars/myon-bioinformatics/${encodeURIComponent(name)}?style=social`;
-    footer.appendChild(shields);
-
-    const copyBtn = element('button', 'ui-button project-copy', 'Copy URL');
-    copyBtn.type = 'button';
-    copyBtn.setAttribute('aria-label', `Copy repository URL for ${name}`);
-    copyBtn.addEventListener('click', async () => {
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(url);
-        } else {
-          const textarea = document.createElement('textarea');
-          textarea.value = url;
-          document.body.appendChild(textarea);
-          textarea.select();
-          document.execCommand('copy');
-          document.body.removeChild(textarea);
-        }
-        copyBtn.textContent = 'Copied!';
-        copyBtn.classList.add('copied');
-        setTimeout(() => {
-          copyBtn.textContent = 'Copy URL';
-          copyBtn.classList.remove('copied');
-        }, 1500);
-      } catch (err) {
-        console.error('Copy failed:', err);
-      }
-    });
-    footer.appendChild(copyBtn);
-
-    card.appendChild(footer);
-    root.appendChild(card);
-  });
-}
-
-function xmlLine(parent, indent, parts) {
-  const line = element('div', 'xml-line');
-  line.style.setProperty('--indent', indent);
-  parts.forEach((part) => {
-    if (part instanceof Node) line.appendChild(part);
-    else line.appendChild(document.createTextNode(part));
-  });
-  parent.appendChild(line);
-}
-
-function xmlTag(text, kind = 'tag') {
-  return element('span', `xml-${kind}`, text);
-}
-
-function renderXmlProfile(root, profile) {
-  root.dataset.renderer = 'xml';
-  root.className = 'notation-root xml-renderer';
-  xmlLine(root, 0, [xmlTag('<Profile>')]);
-  xmlLine(root, 1, [xmlTag('<About>'), document.createTextNode(profile.about), xmlTag('</About>')]);
-  xmlLine(root, 1, [xmlTag('<Skills>')]);
-  profile.skills.forEach(({ category, items }) => {
-    xmlLine(root, 2, [xmlTag(`<SkillGroup category="${category}">`)]);
-    items.forEach(({ name, level }) => {
-      xmlLine(root, 3, [xmlTag(`<Skill name="${name}" level="${level}" />`)]);
-    });
-    xmlLine(root, 2, [xmlTag('</SkillGroup>')]);
-  });
-  xmlLine(root, 1, [xmlTag('</Skills>')]);
-  xmlLine(root, 1, [xmlTag('<Career>')]);
-  profile.career.forEach(({ year, title, desc }) => {
-    xmlLine(root, 2, [xmlTag(`<Entry year="${year}">`)]);
-    xmlLine(root, 3, [xmlTag('<Title>'), title, xmlTag('</Title>')]);
-    xmlLine(root, 3, [xmlTag('<Description>'), desc, xmlTag('</Description>')]);
-    xmlLine(root, 2, [xmlTag('</Entry>')]);
-  });
-  xmlLine(root, 1, [xmlTag('</Career>')]);
-  xmlLine(root, 0, [xmlTag('</Profile>')]);
-}
-
-function renderXmlProjects(root, projects) {
-  root.dataset.renderer = 'xml';
-  root.className = 'notation-root xml-renderer';
-  xmlLine(root, 0, [xmlTag('<Projects>')]);
-  if (!projects || projects.length === 0) {
-    xmlLine(root, 1, [document.createTextNode('<!-- No projects match your filter -->')]);
-  } else {
-    projects.forEach(({ name, desc, url, topics = [], archived }) => {
-      xmlLine(root, 1, [xmlTag(`<Project name="${name}">`)]);
-      if (archived) xmlLine(root, 2, [xmlTag('<Status>'), 'Archived', xmlTag('</Status>')]);
-      xmlLine(root, 2, [xmlTag('<Description>'), desc || '', xmlTag('</Description>')]);
-      const urlLink = externalLink(url, url);
-      xmlLine(root, 2, [xmlTag('<Url>'), urlLink, xmlTag('</Url>')]);
-      xmlLine(root, 2, [xmlTag('<Topics>')]);
-      topics.forEach((topic) => xmlLine(root, 3, [xmlTag('<Topic>'), topic, xmlTag('</Topic>')]));
-      xmlLine(root, 2, [xmlTag('</Topics>')]);
-      xmlLine(root, 1, [xmlTag('</Project>')]);
-    });
-  }
-  xmlLine(root, 0, [xmlTag('</Projects>')]);
-}
-
-function appendJsonValue(parent, value, indent = 0, key = null, trailingComma = false) {
-  const line = element('div', 'json-line');
-  line.style.setProperty('--indent', indent);
-  if (key !== null) {
-    line.appendChild(element('span', 'json-key', `"${key}"`));
-    line.appendChild(document.createTextNode(': '));
-  }
-
-  if (Array.isArray(value)) {
-    line.appendChild(element('span', 'json-punctuation', '['));
-    parent.appendChild(line);
-    value.forEach((item, index) => appendJsonValue(parent, item, indent + 1, null, index < value.length - 1));
-    const close = element('div', 'json-line');
-    close.style.setProperty('--indent', indent);
-    close.appendChild(element('span', 'json-punctuation', `]${trailingComma ? ',' : ''}`));
-    parent.appendChild(close);
-    return;
-  }
-
-  if (value && typeof value === 'object') {
-    line.appendChild(element('span', 'json-punctuation', '{'));
-    parent.appendChild(line);
-    const entries = Object.entries(value);
-    entries.forEach(([childKey, childValue], index) => {
-      appendJsonValue(parent, childValue, indent + 1, childKey, index < entries.length - 1);
-    });
-    const close = element('div', 'json-line');
-    close.style.setProperty('--indent', indent);
-    close.appendChild(element('span', 'json-punctuation', `}${trailingComma ? ',' : ''}`));
-    parent.appendChild(close);
-    return;
-  }
-
-  if (typeof value === 'string') {
-    if (/^https?:\/\//.test(value)) {
-      line.appendChild(document.createTextNode('"'));
-      line.appendChild(externalLink(value, value));
-      line.appendChild(document.createTextNode('"'));
-    } else {
-      line.appendChild(element('span', 'json-string', JSON.stringify(value)));
-    }
-  } else {
-    line.appendChild(element('span', 'json-number', String(value)));
-  }
-  if (trailingComma) line.appendChild(element('span', 'json-punctuation', ','));
-  parent.appendChild(line);
-}
-
-function renderJsonProfile(root, profile) {
-  root.dataset.renderer = 'json';
-  root.className = 'notation-root json-renderer';
-  appendJsonValue(root, profile);
-}
-
-function renderJsonProjects(root, projects) {
-  root.dataset.renderer = 'json';
-  root.className = 'notation-root json-renderer';
-  appendJsonValue(root, projects);
-}
-
-function renderMarkdownProfile(root, profile) {
-  root.dataset.renderer = 'markdown';
-  root.className = 'notation-root markdown-renderer';
-
-  root.appendChild(element('h3', 'md-heading', '### About'));
-  root.appendChild(element('p', 'about-text', profile.about));
-
-  root.appendChild(element('h3', 'md-heading', '### Skills'));
-  profile.skills.forEach(({ category, items }) => {
-    root.appendChild(element('h4', 'md-heading', `#### ${category}`));
-    const list = element('ul', 'md-list');
-    items.forEach(({ name, level }) => list.appendChild(element('li', null, `${name} — ${level}%`)));
-    root.appendChild(list);
-  });
-
-  root.appendChild(element('h3', 'md-heading', '### Career'));
-  const career = element('ul', 'md-list');
-  profile.career.forEach(({ year, title, desc }) => {
-    const item = element('li');
-    const strong = element('strong', null, `${year} — ${title}`);
-    item.appendChild(strong);
-    item.appendChild(document.createTextNode(`: ${desc}`));
-    career.appendChild(item);
-  });
-  root.appendChild(career);
-}
-
-function renderMarkdownProjects(root, projects) {
-  root.dataset.renderer = 'markdown';
-  root.className = 'notation-root markdown-renderer';
-
-  if (!projects || projects.length === 0) {
-    root.appendChild(element('p', null, 'No projects match your filter.'));
-    return;
-  }
-
-  projects.forEach(({ name, desc, url, topics = [], archived }) => {
-    const heading = element('h3', 'md-heading');
-    heading.appendChild(document.createTextNode('### '));
-    heading.appendChild(externalLink(url, name));
-    root.appendChild(heading);
-    root.appendChild(element('p', null, desc || ''));
-    const list = element('ul', 'md-list');
-    if (archived) list.appendChild(element('li', null, 'Status: Archived'));
-    list.appendChild(element('li', null, `Topics: ${topics.join(', ')}`));
-    const sourceItem = element('li');
-    sourceItem.appendChild(document.createTextNode('Source: '));
-    sourceItem.appendChild(externalLink(url, url));
-    list.appendChild(sourceItem);
-    root.appendChild(list);
-  });
-}
-
-const PROFILE_RENDERERS = {
-  modern: renderWebProfile,
-  'github-like': renderWebProfile,
-  'xml-like': renderXmlProfile,
-  json: renderJsonProfile,
-  markdown: renderMarkdownProfile,
-};
-
-const PROJECT_RENDERERS = {
-  modern: renderWebProjects,
-  'github-like': renderWebProjects,
-  'xml-like': renderXmlProjects,
-  json: renderJsonProjects,
-  markdown: renderMarkdownProjects,
-};
-
-function getFilteredProjects(projects) {
-  if (!Array.isArray(projects)) return [];
+function getFilteredProjects() {
   const facets = {};
   if (currentTagFilter !== 'all') facets.topic = currentTagFilter;
-  return WebUICollections.filterItems(projects, {
+  return WebUICollections.filterItems(PROJECTS, {
     query: currentSearchQuery,
     text: project => [project.name, project.desc, ...(project.topics || [])],
     facets,
@@ -1453,100 +1310,101 @@ function updateProjectsCount(filteredCount, totalCount) {
   }
 }
 
+function renderProjects(notation) {
+  const root = document.getElementById('projects-render-root');
+  mount(root, 'projects', notation);
+  const shown = new Set(getFilteredProjects().map((project) => project.name));
+  const units = new Map([...root.querySelectorAll('[data-project]')].map((unit) => [unit.dataset.project, unit]));
+  const first = units.values().next().value;
+  const parent = first ? first.parentNode : root;
+  const after = first ? [...units.values()].pop().nextSibling : null;
+  for (const name of projectOrder) {
+    const unit = units.get(name);
+    if (shown.has(name)) parent.insertBefore(unit, after); else unit.remove();
+  }
+  if (shown.size) root.querySelectorAll('[data-empty]').forEach((note) => note.remove());
+  dropLastComma(root);
+  updateProjectsCount(shown.size, PROJECTS.length);
+}
+
 function setTagFilter(tag) {
   currentTagFilter = tag;
-  const tagBtns = document.querySelectorAll('#project-tags-filter .tag-btn');
-  tagBtns.forEach((btn) => {
+  document.querySelectorAll('#project-tags-filter .tag-btn').forEach((btn) => {
     const active = btn.dataset.tag === tag;
     btn.classList.toggle('active', active);
     btn.setAttribute('aria-pressed', String(active));
   });
-  if (sharedData) {
-    renderPortfolio(getCurrentMode(), sharedData);
-  }
+  renderPortfolio();
 }
 
-function initProjectControls(projects) {
-  if (controlsInitialized || !projects) return;
-  controlsInitialized = true;
-
-  const searchInput = document.getElementById('project-search-input');
-  const searchClear = document.getElementById('project-search-clear');
-  const tagsContainer = document.getElementById('project-tags-filter');
-  // Keep input entered while the catalog was still loading.
-  currentSearchQuery = searchInput?.value || '';
-  if (searchClear) searchClear.hidden = !currentSearchQuery;
-
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
-      currentSearchQuery = searchInput.value;
-      if (searchClear) searchClear.hidden = !currentSearchQuery;
-      if (sharedData) {
-        renderPortfolio(getCurrentMode(), sharedData);
-      }
-    });
-  }
-
-  if (searchClear) {
-    searchClear.addEventListener('click', () => {
-      if (searchInput) searchInput.value = '';
-      currentSearchQuery = '';
-      searchClear.hidden = true;
-      if (sharedData) {
-        renderPortfolio(getCurrentMode(), sharedData);
-      }
-    });
-  }
-
-  if (tagsContainer) {
-    const uniqueTopics = Array.from(new Set(projects.flatMap((p) => p.topics || []))).sort();
-    const allTags = ['all', ...uniqueTopics];
-
-    allTags.forEach((tag) => {
-      const label = tag === 'all' ? 'All' : tag;
-      const btn = element('button', `tag-btn${tag === currentTagFilter ? ' active' : ''}`, label);
-      btn.type = 'button';
-      btn.dataset.tag = tag;
-      btn.setAttribute('aria-pressed', String(tag === currentTagFilter));
-      btn.addEventListener('click', () => setTagFilter(tag));
-      tagsContainer.appendChild(btn);
+function activateProfileTab(root, key) {
+  root.querySelectorAll('.tab-btn').forEach((button) => {
+    const active = button.id === `tab-${key}`;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-selected', String(active));
+  });
+  root.querySelectorAll('.tab-panel').forEach((panel) => {
+    const active = panel.id === `panel-${key}`;
+    panel.classList.toggle('active', active);
+    panel.hidden = !active;
+  });
+  if (key === 'skills') {
+    requestAnimationFrame(() => {
+      root.querySelectorAll('.skill-bar-fill').forEach((bar) => { bar.style.width = `${bar.dataset.level}%`; });
     });
   }
 }
 
-let aiHighlightsPool = [];
-let displayedAiHighlights = [];
+async function copyUrl(button) {
+  const url = button.dataset.copy;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(url);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+    button.textContent = 'Copied!';
+    button.classList.add('copied');
+    setTimeout(() => {
+      button.textContent = 'Copy URL';
+      button.classList.remove('copied');
+    }, 1500);
+  } catch (err) {
+    console.error('Copy failed:', err);
+  }
+}
 
-const FALLBACK_AI_HIGHLIGHTS = [
-  {
-    name: 'ollama/ollama',
-    desc: 'Get up and running with Llama 3.3, DeepSeek-R1, Gemma 2, and other large language models.',
-    url: 'https://github.com/ollama/ollama',
-    stars: null,
-    language: 'Go',
-  },
-  {
-    name: 'vllm-project/vllm',
-    desc: 'A high-throughput and memory-efficient inference and serving engine for LLMs.',
-    url: 'https://github.com/vllm-project/vllm',
-    stars: null,
-    language: 'Python',
-  },
-  {
-    name: 'langchain-ai/langchain',
-    desc: 'Building applications with LLMs through composability.',
-    url: 'https://github.com/langchain-ai/langchain',
-    stars: null,
-    language: 'Python',
-  },
-  {
-    name: 'huggingface/transformers',
-    desc: 'State-of-the-art Machine Learning for Pytorch, TensorFlow, and JAX.',
-    url: 'https://github.com/huggingface/transformers',
-    stars: null,
-    language: 'Python',
-  },
-];
+function highlightStars(stars) {
+  return stars == null ? 'Curated example' : `★ ${stars.toLocaleString()} stars`;
+}
+
+function pickRandomAiHighlights(count = 3) {
+  if (!aiHighlightsPool.length) aiHighlightsPool = [...PAGE.fallback];
+  displayedAiHighlights = shuffleItems(aiHighlightsPool).slice(0, count);
+}
+
+function renderAiHighlights(notation) {
+  const root = document.getElementById('ai-highlights-render-root');
+  mount(root, 'highlights', notation);
+  const slot = root.querySelector('template[data-item]');
+  for (const highlight of displayedAiHighlights) {
+    const values = { ...highlight, starsLabel: highlightStars(highlight.stars) };
+    const item = slot.content.cloneNode(true);
+    item.querySelectorAll('[data-field]').forEach((node) => {
+      const value = values[node.dataset.field];
+      node.textContent = node.dataset.format === 'json' ? JSON.stringify(value) : String(value);
+    });
+    item.querySelectorAll('[data-href]').forEach((link) => { link.href = values[link.dataset.href]; });
+    slot.before(item);
+  }
+  slot.remove();
+  dropLastComma(root);
+}
 
 async function fetchAiHighlights() {
   const controller = new AbortController();
@@ -1575,133 +1433,76 @@ async function fetchAiHighlights() {
   } finally {
     clearTimeout(timeoutId);
   }
-  if (!live) aiHighlightsPool = [...FALLBACK_AI_HIGHLIGHTS];
+  if (!live) aiHighlightsPool = [...PAGE.fallback];
   const status = document.getElementById('ai-highlights-status');
   if (status) status.textContent = live
     ? 'Recently updated AI projects from the public GitHub API.'
     : 'Curated examples — live GitHub data is unavailable.';
   pickRandomAiHighlights();
-  renderAiHighlights(getCurrentMode());
+  renderAiHighlights(PAGE.modes[getCurrentMode()]);
 }
 
-function highlightStars(stars) {
-  return stars == null ? 'Curated example' : `★ ${stars.toLocaleString()} stars`;
-}
-
-function pickRandomAiHighlights(count = 3) {
-  if (!aiHighlightsPool || aiHighlightsPool.length === 0) {
-    aiHighlightsPool = [...FALLBACK_AI_HIGHLIGHTS];
-  }
-  const shuffled = [...aiHighlightsPool];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  displayedAiHighlights = shuffled.slice(0, Math.min(count, shuffled.length));
-}
-
-function renderAiHighlights(mode) {
-  const root = document.getElementById('ai-highlights-render-root');
-  if (!root) return;
-  clearElement(root);
-
-  if (mode === 'xml-like') {
-    root.dataset.renderer = 'xml';
-    root.className = 'notation-root xml-renderer';
-    xmlLine(root, 0, [xmlTag('<AiHighlights>')]);
-    displayedAiHighlights.forEach(({ name, desc, url, stars, language }) => {
-      xmlLine(root, 1, [xmlTag(`<Highlight name="${name}" stars="${stars}" language="${language}">`)]);
-      xmlLine(root, 2, [xmlTag('<Description>'), desc, xmlTag('</Description>')]);
-      xmlLine(root, 2, [xmlTag('<Url>'), externalLink(url, url), xmlTag('</Url>')]);
-      xmlLine(root, 1, [xmlTag('</Highlight>')]);
-    });
-    xmlLine(root, 0, [xmlTag('</AiHighlights>')]);
-  } else if (mode === 'json') {
-    root.dataset.renderer = 'json';
-    root.className = 'notation-root json-renderer';
-    appendJsonValue(root, displayedAiHighlights);
-  } else if (mode === 'markdown') {
-    root.dataset.renderer = 'markdown';
-    root.className = 'notation-root markdown-renderer';
-    displayedAiHighlights.forEach(({ name, desc, url, stars, language }) => {
-      const heading = element('h3', 'md-heading');
-      heading.appendChild(document.createTextNode('### '));
-      heading.appendChild(externalLink(url, name));
-      root.appendChild(heading);
-      root.appendChild(element('p', null, desc));
-      const list = element('ul', 'md-list');
-      list.appendChild(element('li', null, `${highlightStars(stars)} • ${language}`));
-      root.appendChild(list);
-    });
-  } else {
-    root.dataset.renderer = 'web';
-    root.className = 'grid';
-    displayedAiHighlights.forEach(({ name, desc, url, stars, language }) => {
-      const card = element('article', 'card ai-card');
-      const title = element('h3');
-      title.appendChild(externalLink(url, name));
-      card.appendChild(title);
-      card.appendChild(element('p', null, desc));
-
-      const meta = element('div', 'ai-meta');
-      const starTag = element('span', 'tag', highlightStars(stars));
-      const langTag = element('span', 'tag', language);
-      meta.appendChild(starTag);
-      meta.appendChild(langTag);
-      card.appendChild(meta);
-
-      root.appendChild(card);
-    });
-  }
-}
-
-function renderPortfolio(mode, data) {
+function renderPortfolio() {
+  const notation = PAGE.modes[getCurrentMode()];
   const profileRoot = document.getElementById('profile-render-root');
-  const projectsRoot = document.getElementById('projects-render-root');
-  if (!profileRoot || !projectsRoot) return;
-
-  clearElement(profileRoot);
-  clearElement(projectsRoot);
-  profileRoot.className = '';
-  projectsRoot.className = '';
-
-  PROFILE_RENDERERS[mode](profileRoot, data.profile);
-
-  const filteredProjects = getFilteredProjects(data.projects);
-  updateProjectsCount(filteredProjects.length, data.projects.length);
-  PROJECT_RENDERERS[mode](projectsRoot, filteredProjects);
-
-  renderAiHighlights(mode);
+  if (profileRoot.dataset.renderer !== notation) mount(profileRoot, 'profile', notation);
+  renderProjects(notation);
+  renderAiHighlights(notation);
 }
 
-function renderLoadError(error) {
+function bindControls() {
+  const searchInput = document.getElementById('project-search-input');
+  const searchClear = document.getElementById('project-search-clear');
+  // Keep input entered before the script ran.
+  currentSearchQuery = searchInput.value || '';
+  searchClear.hidden = !currentSearchQuery;
+  searchInput.addEventListener('input', () => {
+    currentSearchQuery = searchInput.value;
+    searchClear.hidden = !currentSearchQuery;
+    renderPortfolio();
+  });
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    currentSearchQuery = '';
+    searchClear.hidden = true;
+    renderPortfolio();
+  });
+  document.getElementById('project-tags-filter').addEventListener('click', (event) => {
+    const button = event.target.closest('.tag-btn');
+    if (button) setTagFilter(button.dataset.tag);
+  });
+  document.getElementById('projects-render-root').addEventListener('click', (event) => {
+    const topic = event.target.closest('.ui-tag[data-topic]');
+    const copy = event.target.closest('.project-copy');
+    if (topic) setTagFilter(topic.dataset.topic);
+    else if (copy) void copyUrl(copy);
+  });
   const profileRoot = document.getElementById('profile-render-root');
-  const projectsRoot = document.getElementById('projects-render-root');
-  if (profileRoot) profileRoot.textContent = 'Failed to load profile.';
-  if (projectsRoot) projectsRoot.textContent = 'Failed to load projects. Please refresh.';
-  console.error(error);
+  profileRoot.addEventListener('click', (event) => {
+    const tab = event.target.closest('.tab-btn');
+    if (tab) activateProfileTab(profileRoot, tab.id.replace(/^tab-/, ''));
+  });
+  document.getElementById('view-mode-select').addEventListener('change', (event) => {
+    const nextMode = normalizeViewMode(event.target.value);
+    applyViewMode(nextMode);
+    store(VIEW_MODE_KEY, nextMode);
+    store(VIEW_MODE_BASE_KEY, configuredViewMode);
+  });
+  document.getElementById('theme-select').addEventListener('change', (event) => {
+    store(COLOR_THEME_KEY, event.target.value);
+    applyColorTheme();
+  });
+  document.getElementById('ai-highlights-refresh').addEventListener('click', () => {
+    pickRandomAiHighlights();
+    renderAiHighlights(PAGE.modes[getCurrentMode()]);
+  });
 }
 
 (async () => {
   configuredViewMode = await readConfiguredViewMode();
-  const selectedMode = normalizeViewMode(readStoredViewMode(configuredViewMode) || configuredViewMode);
-  initViewModeSelector(selectedMode, configuredViewMode);
-
-  const refreshBtn = document.getElementById('ai-highlights-refresh');
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', () => {
-      pickRandomAiHighlights();
-      renderAiHighlights(getCurrentMode());
-    });
-  }
-
-  try {
-    sharedData = await loadSharedData();
-    initProjectControls(sharedData.projects);
-    pickRandomAiHighlights();
-    renderPortfolio(getCurrentMode(), sharedData);
-    void fetchAiHighlights();
-  } catch (error) {
-    renderLoadError(error);
-  }
+  const stored = readStored(VIEW_MODE_BASE_KEY) === configuredViewMode ? readStored(VIEW_MODE_KEY) : null;
+  bindControls();
+  pickRandomAiHighlights();
+  applyViewMode(normalizeViewMode(stored || configuredViewMode));
+  void fetchAiHighlights();
 })();'''

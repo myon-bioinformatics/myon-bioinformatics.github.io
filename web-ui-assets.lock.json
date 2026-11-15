@@ -13,7 +13,6 @@
     "tools/vendor/web-ui/js/collection.js": "71ac00368ac709eed436a8a1a8882463356b49ae8d19d0c339ba5f522028ce9a"
   },
   "pages": {
-    "index.html": "3bad3b6c5187e0987642367a18bb92f1e7c74b1736bfd328bc47c1966c87a57b",
     "tools/demos/index.html": "4407c4820d6120fc2d4887c397c7fa7d3c423aa71329771302037b38e151faac",
     "tools/demos/mcp-stub.html": "bc675fcf83fb6140d3cb3306598c9b49a83971624e1850332e6cec0861463f76",
     "tools/demos/api-stub.html": "633cae1b1464dc1c74488abe688c3d4dbdecdf17b7f97f91e380ae1a8a60bdf8",
