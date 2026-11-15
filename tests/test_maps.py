@@ -223,23 +223,3 @@ def test_nearby_city_handoff_preserves_radius_and_original_area(site, browser):
         expect(page.locator('#nearby')).to_be_hidden()
     finally:
         page.close()
-
-
-def test_legacy_point_pin_can_be_restored_and_updated_with_a_radius(site, browser):
-    page = browser.new_page()
-    try:
-        page.goto(site[1] + '/tools/maps/?lat=35.68134&lon=139.7665')
-        page.evaluate('localStorage.setItem("portfolio-map-pins/1",JSON.stringify([{lat:35.68134,lon:139.7665,label:"旧ピン"}]))')
-        page.reload()
-        page.locator('#pins').get_by_role('button', name='旧ピン', exact=True).click()
-        expect(page.locator('#radius')).to_have_value('0')
-        expect(page.locator('#area-result')).to_be_hidden()
-        page.locator('#radius-preset').select_option('350')
-        page.locator('#pin').click()
-        saved = page.evaluate('JSON.parse(localStorage.getItem("portfolio-map-pins/1"))')
-        assert len(saved) == 1 and saved[0]['radius_m'] == 350
-        page.reload()
-        page.locator('#pins').get_by_role('button', name='旧ピン', exact=True).click()
-        expect(page.locator('#radius')).to_have_value('350')
-    finally:
-        page.close()

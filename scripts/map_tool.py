@@ -52,7 +52,7 @@ textarea{overflow-wrap:anywhere}#pins{padding:0;list-style:none}#pins li{display
 #point-error,#range-error{color:var(--ui-danger,#c33)}pre{white-space:pre-wrap;overflow-wrap:anywhere}
 [hidden]{display:none!important}h1{font-size:1.8rem}'''
 
-# One radius contract for pins, query strings and the Tokyo handoff. Old point-only pins use zero.
+# One radius contract for pins, query strings and the Tokyo handoff.
 RANGE_HELPERS = r'''
 function readRadius(raw){
  const text=String(raw).normalize('NFKC').trim().replace(/\u2212/g,'-');
@@ -72,8 +72,8 @@ const distance=(a,b)=>{const rad=v=>v*Math.PI/180,dy=rad(b.lat-a.lat),dx=rad(b.l
  return 2*__EARTH_RADIUS__*Math.asin(Math.sqrt(Math.min(1,Math.max(0,h))))};
 let current=null,pins=[];
 const checked=p=>{
- if(!p||typeof p!=='object'||typeof p.lat!=='number'||typeof p.lon!=='number'||typeof p.label!=='string')throw Error('invalid pin');
- const [a,b]=parseCoordinate(String(p.lat),String(p.lon));return {lat:a,lon:b,label:p.label.slice(0,80),radius_m:readRadius(p.radius_m===undefined?0:p.radius_m)};
+ if(!p||typeof p!=='object'||typeof p.lat!=='number'||typeof p.lon!=='number'||typeof p.label!=='string'||typeof p.radius_m!=='number')throw Error('invalid pin');
+ const [a,b]=parseCoordinate(String(p.lat),String(p.lon));return {lat:a,lon:b,label:p.label.slice(0,80),radius_m:readRadius(p.radius_m)};
 };
 try{const saved=JSON.parse(localStorage.getItem(key)||'[]');if(!Array.isArray(saved))throw Error('invalid pins');
  for(const item of saved.slice(0,100)){try{const p=checked(item);if(!pins.some(v=>same(v,p)))pins.push(p)}catch{}}
@@ -140,7 +140,7 @@ $('share').addEventListener('click',async()=>{if(!current)return;
  catch(e){if(e.name!=='AbortError')await copy(text)}
 });
 const query=new URLSearchParams(location.search);
-if(query.has('lat')||query.has('lon')){lat.value=query.get('lat')||'';lon.value=query.get('lon')||'';name.value=(query.get('name')||'').slice(0,80);radius.value=query.get('radius_m')??'0'}
+if(query.has('lat')||query.has('lon')){lat.value=query.get('lat')||'';lon.value=query.get('lon')||'';name.value=(query.get('name')||'').slice(0,80);radius.value=query.get('radius_m')??'100'}
 else name.value=points[0].label;
 renderPins();show();
 '''
@@ -148,7 +148,7 @@ renderPins();show();
 TOKYO_SCRIPT = r'''
 __RANGE_HELPERS__
 const query=new URLSearchParams(location.search),banner=document.getElementById('tokyo-range');
-try{const radius=readRadius(query.get('radius_m')??'0');
+try{const radius=readRadius(query.get('radius_m')??'100');
  for(const link of document.querySelectorAll('.map-point-link')){const url=new URL(link.href);url.searchParams.set('radius_m',String(radius));link.href=url.href}
  if(query.has('lat')||query.has('lon')){
   const [lat,lon]=globalThis.webUiCoordinates.parseCoordinate(query.get('lat')||'',query.get('lon')||'');
