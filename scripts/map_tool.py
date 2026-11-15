@@ -121,7 +121,7 @@ def render(ui) -> dict[str, str]:
     world = ui.world_document(cities)
     # Keep PSWB's world behaviour and favorites; add a real-coordinate link to each existing sheet.
     for p in points:
-        href = './?' + urlencode({'lat': p['lat'], 'lon': p['lon'], 'name': p['label']})
+        href = './?' + urlencode({'lat': ui.fixed(p['lat'], 6), 'lon': ui.fixed(p['lon'], 6), 'name': p['label']})
         link = f'<p><a class="ui-button" href="{html.escape(href, quote=True)}">この地点の地図URL・ピン留め</a></p>'
         pattern = r'(<article\b[^>]*\bid="cities-spot-' + re.escape(p['id']) + r'"[^>]*>.*?)(</article>)'
         world, count = re.subn(pattern, lambda m: m[1] + link + m[2], world, count=1, flags=re.S)
