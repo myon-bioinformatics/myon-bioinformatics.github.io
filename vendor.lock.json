@@ -45,6 +45,15 @@
       "destination": "tools/vendor/ironmate/pillow_min.py",
       "blob_sha": "77516d14bce1bd371d16df98574cf8d5e9ed3207",
       "sha256": "987a09e19ebd1d3d970779bf46917568ad058490d7ac9a84959ec2218ced836b"
+    },
+    {
+      "repository": "myon-bioinformatics/myon-bioinformatics",
+      "ref": "6c29503cf17eda856766ddfdf4d66a5b0965a8b1",
+      "commit": "6c29503cf17eda856766ddfdf4d66a5b0965a8b1",
+      "source": "fleet_check.py",
+      "destination": "vendor/fleet_check.py",
+      "blob_sha": "5b6b732ff2c4fa966a64b6ab07e4da8d563038cf",
+      "sha256": "ae36c7e4d0f8d19ea5a62de98860a37302a65ab48db1bee2bdb6ada4bf7be56d"
     }
   ]
 }

@@ -19,6 +19,6 @@ COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts && npx playwright install --with-deps --only-shell chromium webkit
 COPY --from=tests-venv /opt/tests /opt/tests
 COPY . .
-RUN /opt/tests/bin/python scripts/html_import_page.py && /opt/tests/bin/python scripts/project_pages.py --stage .generated-site
+RUN /opt/tests/bin/python scripts/project_pages.py --stage .generated-site
 ENV PATH="/opt/tests/bin:${PATH}"
 CMD ["sh", "-c", "python -m pytest tests/test_site.py --junitxml=reports/html-import-python.xml && npx playwright test --config playwright/html-import.config.js"]

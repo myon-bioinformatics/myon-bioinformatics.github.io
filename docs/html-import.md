@@ -11,7 +11,7 @@ PythonサーバーはPagesの実行基盤ではなく、生成・検証に限る
 - web-ui main `2410a5a63c5117c321e8e737ee6811d64fab2afb` の `web_ui.py` が静的ページを生成。
   web-ui PR #49の共通導線・表示適用を含む固定版（未マージ時でもcommitは固定）。
   同repoの `ui.js` の文字列表示・JSON整形とCSSを実利用する。
-- `tools/html-import/vendor.lock.json` に完全commit、元パス、SHA-256、ライセンスを記録。
+- ルートの `vendor.lock.json` に完全commit、元パス、SHA-256を記録（ライセンスは `tools/vendor/*/LICENSE`）。
   実行時CDN、外部フレームワーク、Python/WASM配信は不要。
 - ブラウザに必要なparser/selectorの伴走実装は `extract.mjs`。現状のweb-uiには
   HTML読取モジュールがないため、UIの表示部品とPython生成基盤を再利用する。

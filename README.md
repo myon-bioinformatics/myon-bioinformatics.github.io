@@ -65,7 +65,7 @@ its retired MCP stub does not need a dedicated Pages deployment. Live destinatio
 flutter_navigation_basic, and web-ui.
 
 ## 🚀 Projects (JSON-driven cards)
-Projects displays only public, non-archived repositories from the `api/repos.json` catalog. The full candidate pool is collected first and then shuffled, so each page load shows a new order. Search and topic filters work together across all five display modes. Topic controls expand on demand so the full catalog remains easy to reach on mobile. Cards, tags, inputs and copy buttons use the same pinned web-ui stylesheets already used by this portfolio’s tool pages (`tools/vendor/web-ui/`, source identity in `tools/html-import/vendor.lock.json`). Local CSS only adds catalog layout, mode mapping and filter state; no second component stylesheet is vendored.
+Projects displays only public, non-archived repositories from the `api/repos.json` catalog. The full candidate pool is collected first and then shuffled, so each page load shows a new order. Search and topic filters work together across all five display modes. Topic controls expand on demand so the full catalog remains easy to reach on mobile. Cards, tags, inputs and copy buttons use the same pinned web-ui stylesheets already used by this portfolio’s tool pages (`tools/vendor/web-ui/`, source identity in `vendor.lock.json`). Local CSS only adds catalog layout, mode mapping and filter state; no second component stylesheet is vendored.
 
 `projects.json` supplies optional curated descriptions and extra topics for matching repositories. It never limits catalog membership, and repository URLs always come from `api/repos.json`. If curation is unavailable, repository descriptions (then README summaries) are used. A missing catalog shows a load error instead of a misleading partial list.
 
@@ -106,7 +106,7 @@ I like building **GUI/CLI tools** for security & backend.
 ## 🔄 Maintaining project cards
 
 Edit `projects.json` for curated descriptions and extra topics, then validate
-the canonical shape using [docs/SSOT.md](docs/SSOT.md). Catalog membership
+the canonical shape using [docs/ssot.md](docs/ssot.md). Catalog membership
 comes from `api/repos.json`. There is no pinned-repository generator and no
 scheduled card-update workflow.
 
@@ -164,7 +164,7 @@ test exit code remains authoritative.
 
 The Stagehand reference checks SDK surfaces. Its separate screenshot job uses
 Playwright Chromium; it does not demonstrate Stagehand agent execution. See
-[STAGEHAND.md](STAGEHAND.md) for the reference scope. Pages deployment owns the
+[docs/stagehand-v4-reference.md](docs/stagehand-v4-reference.md) for the reference scope. Pages deployment owns the
 stable `evidence/latest/` screenshots described above.
 
 ---
@@ -173,7 +173,7 @@ stable `evidence/latest/` screenshots described above.
 <summary>🇯🇵 日本語版 (クリックで展開)</summary>
 
 このリポジトリは**GitHub Pagesサイト**です。説明文と追加トピックは `projects.json`、掲載対象は `api/repos.json` です。  
-ローカル確認は `python -m http.server` でOK。ピン留めリポジトリからカードを作る処理や、その定期workflowはありません。編集・検証手順は [docs/SSOT.md](docs/SSOT.md) を参照してください。
+ローカル確認は `python -m http.server` でOK。ピン留めリポジトリからカードを作る処理や、その定期workflowはありません。編集・検証手順は [docs/ssot.md](docs/ssot.md) を参照してください。
 </details>
 
 ## Lab public tools and reports
@@ -220,7 +220,7 @@ See [source grammar, Python one-liners, and markdown.py integration](docs/pixiv-
 - The lab's Niconico tab attempts Snapshot Search API v2 from the browser. Live verification on 2026-10-21 JST found HTTP 200 JSON responses without `Access-Control-Allow-Origin`; the published browser could not read results. The panel explains this limitation and offers official Niconico search with the selected keyword/sort. GitHub Pages cannot fix an upstream CORS header. The portfolio owns `tools/niconico/` and reapplies this panel when importing a lab report. See [live verification](docs/evidence/niconico-live-20261021/README.md).
 - AI & Tech Highlights displays public GitHub search results, or explicitly labelled curated examples when the API is unavailable. Curated examples do not claim current star counts.
 
-Verification: `uv run --locked pytest tests` (includes the canonical-data check of `docs/SSOT.md`) and, in a browser, `uv run --locked --group browser python -m pytest tests/test_front_page.py` (the front page, Python Playwright) plus `npx playwright test --config playwright/html-import.config.js` (HTML import and MCP lab; the Docker contract runs it on Chromium and WebKit). Python test dependencies are the `test` and `browser` groups of `pyproject.toml`, pinned in `uv.lock`; the brand-asset tests read images with the vendored `pillow_min` module from Ironmate (`tools/vendor/ironmate/`, recorded in `vendor.lock.json`). Animated evidence is the GIF recorded with BrowserTestKit's `tools/evidence_gif.py` (see Re-record above). The portal workflow preserves browser evidence as an Actions artifact.
+Verification: `uv run --locked pytest tests` (includes the canonical-data check of `docs/ssot.md`) and, in a browser, `uv run --locked --group browser python -m pytest tests/test_front_page.py` (the front page, Python Playwright) plus `npx playwright test --config playwright/html-import.config.js` (HTML import and MCP lab; the Docker contract runs it on Chromium and WebKit). Python test dependencies are the `test` and `browser` groups of `pyproject.toml`, pinned in `uv.lock`; the brand-asset tests read images with the vendored `pillow_min` module from Ironmate (`tools/vendor/ironmate/`, recorded in `vendor.lock.json`). Animated evidence is the GIF recorded with BrowserTestKit's `tools/evidence_gif.py` (see Re-record above). The portal workflow preserves browser evidence as an Actions artifact.
 
 ## Browser suite without a Playwright install
 
