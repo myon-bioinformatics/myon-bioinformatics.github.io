@@ -46,3 +46,41 @@ test('execution links and empty Wiki examples remain usable', async ({ page }) =
   await page.getByTestId('pages-wiki-fetch').click();
   await expect(page.getByTestId('pages-wiki-error')).toContainText('Enter a Wikipedia title.');
 });
+
+test('lab Pokémon tab fetches PokéAPI and accepts pasted JSON', async ({ page }) => {
+  const ditto = {
+    id: 132,
+    name: 'ditto',
+    height: 3,
+    weight: 40,
+    base_experience: 101,
+    types: [{ slot: 1, type: { name: 'normal' } }],
+    abilities: [
+      { slot: 1, is_hidden: false, ability: { name: 'limber' } },
+      { slot: 3, is_hidden: true, ability: { name: 'imposter' } },
+    ],
+    stats: [
+      { base_stat: 48, stat: { name: 'hp' } },
+      { base_stat: 48, stat: { name: 'attack' } },
+      { base_stat: 48, stat: { name: 'defense' } },
+      { base_stat: 48, stat: { name: 'special-attack' } },
+      { base_stat: 48, stat: { name: 'special-defense' } },
+      { base_stat: 48, stat: { name: 'speed' } },
+    ],
+  };
+  await page.route('https://pokeapi.co/api/v2/pokemon/*', (route) =>
+    route.fulfill({ contentType: 'application/json', body: JSON.stringify(ditto) })
+  );
+  await page.goto('/tools/mcp-toolcall-lab/#pokemon');
+  await expect(page.locator('[data-pages-view="pokemon"]')).toBeVisible();
+  await page.locator('#pokemon-name').fill('ditto');
+  await page.locator('[data-source-fetch]').click();
+  await expect(page.locator('[data-source-output]')).toContainText('ditto (#132)');
+  await expect(page.locator('[data-source-output]')).toContainText('normal');
+
+  await page.locator('#pokemon-name').fill('');
+  await page.locator('#pokemon-text').fill(JSON.stringify(ditto));
+  await page.locator('[data-source-extract]').click();
+  await expect(page.locator('[data-source-output]')).toContainText('ditto (#132)');
+});
+

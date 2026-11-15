@@ -22,5 +22,9 @@ def apply_lab_branding(page: str) -> str:
         logo = (f'<img data-lab-brand="logo" src="{LOGO}" '
                 'alt="mcp-toolcall-lab logo: a robot and MCP flask, with the tagline Explore · Test · Trust" '
                 'width="138" height="150">')
-        page = re.sub(r'(<header\b[^>]*>)', lambda match: match[1] + logo, page, count=1)
+        if '<header' in page:
+            page = re.sub(r'(<header\b[^>]*>)', lambda match: match[1] + logo, page, count=1)
+        else:
+            page = re.sub(r'(<h1\b[^>]*class="ui-title"[^>]*>.*?</h1>(?:\s*<p\b[^>]*class="ui-muted"[^>]*>.*?</p>)?)',
+                          rf'<header>{logo}\1</header>', page, count=1, flags=re.DOTALL)
     return page

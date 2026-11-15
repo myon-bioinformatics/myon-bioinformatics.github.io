@@ -9,6 +9,7 @@ test.describe('Sub-site & Sub-page Evidence Coverage', () => {
     { name: 'Lab Wiki Tab', path: '/tools/mcp-toolcall-lab/#wiki' },
     { name: 'Lab Pixiv Tab', path: '/tools/mcp-toolcall-lab/#pixiv' },
     { name: 'Lab Niconico Tab', path: '/tools/mcp-toolcall-lab/#niconico' },
+    { name: 'Lab Pokemon Tab', path: '/tools/mcp-toolcall-lab/#pokemon' },
     { name: 'Lab Diagnostics', path: '/tools/mcp-toolcall-lab/repository-diagnostics.html' },
   ];
 

@@ -21,7 +21,7 @@ CLASS_MAP = {
 
 NAVIGATION_BINDING = (
     b"globalThis.webUiNavigation.bindViews(globalThis,{"
-    b"viewAttribute:'data-pages-view',navAttribute:'data-pages-nav',queryAliases:{wiki:'wiki',pixiv:'pixiv',niconico:'niconico'}});\n"
+    b"viewAttribute:'data-pages-view',navAttribute:'data-pages-nav',queryAliases:{wiki:'wiki',pixiv:'pixiv',niconico:'niconico',pokemon:'pokemon'}});\n"
 )
 
 

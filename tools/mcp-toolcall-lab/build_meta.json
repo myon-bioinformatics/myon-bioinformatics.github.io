@@ -1,10 +1,10 @@
 {
   "version": null,
-  "sha": "2e581d2cc9683a94568d881a59f0a8e2d87475bb",
-  "shortSha": "2e581d2c",
-  "ref": null,
-  "committedAt": "2026-11-05T08:11:20+09:00",
-  "subject": "Keep required contract and evidence validation active under python -O (#194)",
-  "commitUrl": "https://github.com/myon-bioinformatics/mcp-toolcall-lab/commit/2e581d2cc9683a94568d881a59f0a8e2d87475bb",
-  "dirty": false
+  "sha": "6af885d90f7f0b04ab5a29759404130fece946e2",
+  "shortSha": "6af885d9",
+  "ref": "main",
+  "committedAt": "2026-11-14T19:35:50+09:00",
+  "subject": "Merge pull request #217 from myon-bioinformatics/dependabot/uv/dnspython-2.9.2",
+  "commitUrl": "https://github.com/myon-bioinformatics/mcp-toolcall-lab/commit/6af885d90f7f0b04ab5a29759404130fece946e2",
+  "dirty": true
 }

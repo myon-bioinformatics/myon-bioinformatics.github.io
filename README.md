@@ -125,7 +125,7 @@ scheduled card-update workflow.
 | 🎞️ evidence GIF shots | 9 | | |
 
 🌐 Avatars and badges are external and were refused (listed per shot in the receipt). `/mcp-toolcall-lab/execution/assets/…` is served by the mcp-toolcall-lab Pages site, so it is allowed rather than counted as a 404.
-🔄 `tools/mcp-toolcall-lab/` is the lab's public export re-imported from its `main` (`2e581d2c`); the earlier copy was a 2026-10-24 branch build.
+🔄 `tools/mcp-toolcall-lab/` is the lab's public export re-imported from its `main` (`6af885d9`); the earlier copy was a 2026-10-24 branch build.
 📦 The shared Web UI is one pinned git dependency (`requirements-pages.txt` → PySaiyanWeBoo); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated asset under `tools/vendor/web-ui/`, and `uv run --locked python scripts/build_web_ui_assets.py --refresh-lock` moves them together. Keep the same full commit in `[tool.uv.sources]` in `pyproject.toml`, run `uv lock`, and sync before refreshing. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
 
 🔁 Re-record (after building `.generated-site` as in CI; `$WEBUI` is a PySaiyanWeBoo checkout at `adb23d7`):
@@ -179,7 +179,7 @@ stable `evidence/latest/` screenshots described above.
 ## Lab public tools and reports
 
 The portfolio now receives the lab's public Wiki/Pixiv interfaces and exported
-Actions report under `tools/mcp-toolcall-lab/` (`#wiki` and `#pixiv`). MCP servers,
+Actions report under `tools/mcp-toolcall-lab/` (`#wiki`, `#pixiv` and `#pokemon`). MCP servers,
 Docker execution, raw traces, and test generation remain in mcp-toolcall-lab.
 Flutter's working Pages application is unchanged.
 

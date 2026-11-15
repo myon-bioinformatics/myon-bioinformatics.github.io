@@ -10,7 +10,7 @@ from lab_branding import apply_lab_branding
 
 FILES = ('index.html', 'terminal.css', 'pages-hash.js', 'pages-wiki.js',
          'pages-pixiv.js', 'summary.json', 'build_meta.json')
-OPTIONAL = ('repository-diagnostics.html', 'repository-diagnostics.json', 'repository-diagnostics.jsonl')
+OPTIONAL = ('repository-diagnostics.html', 'repository-diagnostics.json', 'repository-diagnostics.jsonl', 'source.js')
 DESTINATION = Path(__file__).resolve().parents[1] / 'tools' / 'mcp-toolcall-lab'
 
 EXECUTION_URL = "https://myon-bioinformatics.github.io/mcp-toolcall-lab/execution/"
