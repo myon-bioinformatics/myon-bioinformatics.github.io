@@ -43,6 +43,7 @@ DISTRIBUTION = 'pysaiyanweboo'
 DEMO_BASE = 'tools/demos/'
 PROJECT_BASE = 'tools/projects/'
 HTML_IMPORT_PAGE = 'tools/html-import/index.html'
+MAP_PAGES = {'tools/maps/index.html', 'tools/maps/tokyo.html'}
 BACK_NAV = ('<nav class="portfolio-back" aria-label="Portfolio">'
             '<a href="../../index.html#tools" data-testid="portfolio-back">← Tools &amp; Demos</a></nav>')
 
@@ -267,8 +268,10 @@ def render_projects(ui, root: Path = ROOT) -> dict[str, bytes]:
 
 
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
-    """Every hash-locked page: the demos, the project pages and the HTML import tool, keyed by published path."""
-    return {**render_demos(ui), **render_projects(ui, root), **render_html_import(ui)}
+    """Every hash-locked page: demos, projects, HTML import and map tools, keyed by published path."""
+    maps = {path: add_home_label(add_back_nav(document), '地図・ピン', icons_from='../../').encode('utf-8')
+            for path, document in load_module('map_tool', 'scripts/map_tool.py').render(ui).items()}
+    return {**render_demos(ui), **render_projects(ui, root), **render_html_import(ui), **maps}
 
 
 def record(name: str, checkout: Path, root: Path = ROOT) -> dict:
@@ -300,7 +303,7 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
     if set(lock['outputs']) != {ASSET_BASE + name for name in ASSETS}:
         raise ValueError('generated output paths differ from public URL contract')
-    expected = ({DEMO_BASE + 'index.html', PROJECT_BASE + 'index.html', HTML_IMPORT_PAGE} | {DEMO_BASE + name + '.html' for name in DEMOS}
+    expected = ({DEMO_BASE + 'index.html', PROJECT_BASE + 'index.html', HTML_IMPORT_PAGE} | MAP_PAGES | {DEMO_BASE + name + '.html' for name in DEMOS}
                 | {_project_file(p) for p in showcases(root)})
     if set(lock.get('pages', {})) != expected:
         raise ValueError('generated page paths differ from the demo list, projects.json showcases and the HTML import page')

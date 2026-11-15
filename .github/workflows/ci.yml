@@ -63,7 +63,7 @@ jobs:
         run: python -m playwright install --with-deps chromium
       # 🧬 Catalog, search and topics, display modes, colour themes, AI highlights, brand.
       - name: Check the front page in Chromium
-        run: python -m pytest tests/test_front_page.py -q
+        run: python -m pytest tests/test_front_page.py tests/test_maps.py -q
       # 📱 Manifest, icons, start_url, tool-page shortcuts.
       # Writes test-results/home-screen/home-screen-shortcut-<UTC>.gif, uploaded with the evidence below.
       - name: Check home-screen shortcuts in Chromium

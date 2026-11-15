@@ -143,6 +143,29 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 
 🗓️ 2026-11-13 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k home_screen` writes `test-results/home-screen/home-screen-shortcut-<UTC>.gif` (CI keeps it in the browser evidence artifact); copy the newest one to `docs/evidence/home-screen.gif` to update this.
 
+### 地図URL・ピン留め
+
+Tools & Demos → **地図URL・ピン留め** (`tools/maps/`) で、緯度・経度からApple MapsとGoogle MapsのURLを生成できます。地図URLからの座標入力、端末内のピン保存・解除、地点リンクのコピー、端末の共有メニューに対応します。共有先は保存操作なしで同じ座標を開けます。ピンはブラウザごとの保存で、端末間では同期しません。保存やコピーが許可されていない場合は画面に表示します。
+
+パラレル東京 (`tools/maps/tokyo.html`) の各地点と相互に移動できます。座標・地図URL生成・ミニチュアは固定済みPSWBから再利用します。東京の座標はミニチュア用の概略値で、施設の正確な入口を保証するものではありません。URLだけを作るため地図APIキーは不要です。
+
+```sh
+uv run --locked --only-group browser python -m pytest tests/test_maps.py -q
+```
+
+このテストはピン保存・再読込・共有先の別ブラウザ・東京の対応地点を確認し、`test-results/maps/map-links-pins-<UTC>.gif` と実行結果JSONを自動保存します。CIの `portfolio-browser-evidence` artifactにも含まれます。共有メニューはブラウザAPIへの引き渡しをテストし、実機の共有先アプリでの受信は対象外です。
+
+BrowserTestKitの共通レコーダーでも操作プランから再生成できます（GIFと実行記録JSONを出力）。
+
+```sh
+uv run --locked python scripts/project_pages.py --stage .generated-site
+uv run --locked --only-group browser python ../BrowserTestKit/tools/evidence_gif.py \
+  test-results/maps/walkthrough.gif --serve .generated-site \
+  --plan docs/evidence/maps-plan.json --timestamp --git-commit
+```
+
+GIFは操作確認用です。テストの成否はpytestのアサーションと実行結果で確認します。
+
 ## 🧪 CI evidence
 
 The catalog refresh keeps its latest-Python-3 lane using setup-uv's `"3"`
