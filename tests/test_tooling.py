@@ -50,7 +50,7 @@ load_module = assets.load_module
 
 
 def test_load_module_relative_path():
-    pillow_min = load_module('test_pillow_min', 'tools/vendor/ironmate/pillow_min.py')
+    pillow_min = load_module('test_pillow_min', 'vendor/pillow_min.py')
     assert hasattr(pillow_min, 'paeth')
 
 
