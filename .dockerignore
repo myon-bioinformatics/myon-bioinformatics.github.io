@@ -1,5 +1,7 @@
 .git
 node_modules
+.venv
+.generated-site
 reports
 test-results
 **/__pycache__

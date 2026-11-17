@@ -1,8 +1,17 @@
 // @ts-check
 const { test, expect } = require('@playwright/test');
+const { EventEmitter } = require('node:events');
 const fixtures = require('./fixtures/pixiv-markup.json');
 
 const niconicoEndpoint = 'https://snapshot.search.nicovideo.jp/api/v2/snapshot/video/contents/search?*';
+
+function trackExternalRequests(page, baseURL) {
+  const external = [], siteOrigin = new URL(baseURL).origin;
+  page.on('request', request => {
+    if (new URL(request.url()).origin !== siteOrigin) external.push(request.url());
+  });
+  return external;
+}
 
 test.describe('MCP Tool Call Lab - Publication, navigation, and extraction', () => {
   test('transferred Pixiv extraction remains functional without upstream fetch', async ({ page }) => {
@@ -136,12 +145,31 @@ test.describe('MCP Tool Call Lab - Pixiv heading navigation', () => {
     test.describe(mobile ? 'Pixiv mobile' : 'Pixiv desktop', () => {
       test.use({ viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 } });
 
-      test('source headings select cached body and reset safely', async ({ page }, info) => {
-        const external = [], errors = [];
+      test('request guard ignores same-origin resources and records external origins', () => {
+        for (const baseURL of ['http://localhost:8080', 'https://myon-bioinformatics.github.io']) {
+          const probe = new EventEmitter();
+          const external = trackExternalRequests(probe, baseURL), site = new URL(baseURL);
+          for (const path of ['/tools/mcp-toolcall-lab/#pixiv', '/assets/style.css?v=1', '/assets/app.js', '/assets/logo.png']) {
+            probe.emit('request', { url: () => new URL(path, baseURL).href });
+          }
+          probe.emit('request', { url: () => `${baseURL.toUpperCase()}/probe` });
+          if (site.protocol === 'https:') probe.emit('request', { url: () => `${baseURL}:443/probe` });
+          expect(external).toEqual([]);
+          const foreign = [
+            'https://dic.pixiv.net/a/Demo',
+            site.protocol === 'https:' ? 'http://localhost:8080/probe' : 'https://myon-bioinformatics.github.io/probe',
+            `${site.protocol}//${site.hostname}.example.test${site.port ? `:${site.port}` : ''}/probe`,
+            `${site.protocol === 'https:' ? 'http:' : 'https:'}//${site.host}/probe`,
+            `${site.protocol}//${site.hostname}:8081/probe`,
+          ];
+          for (const url of foreign) probe.emit('request', { url: () => url });
+          expect(external).toEqual(foreign);
+        }
+      });
+
+      test('source headings select cached body and reset safely', async ({ page, baseURL }, info) => {
+        const external = trackExternalRequests(page, baseURL), errors = [];
         page.on('pageerror', error => errors.push(error.message));
-        page.on('request', request => {
-          if (!request.url().startsWith('http://localhost:8080/')) external.push(request.url());
-        });
         await page.goto('/tools/mcp-toolcall-lab/#pixiv');
         await page.getByTestId('pages-pixiv-source-text').fill(fixtures[0].source);
         await page.getByTestId('pages-pixiv-extract-submit').click();
