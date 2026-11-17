@@ -13,10 +13,12 @@ COPY pyproject.toml uv.lock ./
 RUN UV_PYTHON_DOWNLOADS=never UV_PROJECT_ENVIRONMENT=/opt/tests \
     uv sync --locked --only-group docker-test --python /usr/bin/python3 --no-cache
 
-FROM base
+FROM base AS browser-env
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts && npx playwright install --with-deps --only-shell chromium webkit
+
+FROM browser-env AS acceptance
 COPY --from=tests-venv /opt/tests /opt/tests
 COPY . .
 RUN /opt/tests/bin/python scripts/project_pages.py --stage .generated-site

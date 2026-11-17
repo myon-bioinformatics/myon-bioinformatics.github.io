@@ -249,6 +249,12 @@ Verification: `uv run --locked pytest tests` (includes the canonical-data check 
 
 ## Browser suite without a Playwright install
 
+The Docker contract and published acceptance workflows share `.github/actions/html-import-image`.
+Main push builds save BuildKit dependency layers in the Actions cache; both workflows reuse them.
+The lockfile pins Playwright and its browser builds, so dependency changes rebuild the browser layer.
+The first build or an evicted cache downloads browsers again. Source edits reuse dependency layers;
+local `.venv` and `.generated-site` directories are excluded from the Docker context.
+
 Without Playwright's own Chromium installed, run the browser suite with a browser already on disk through
 BrowserTestKit: `python ../BrowserTestKit/tools/btk.py pw-test --root . --config playwright/html-import.config.js tests/html-import.spec.js` (the portable
 runner that used to live here).

@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build reusable Python and browser environment
-        run: docker build -f Dockerfile.html-import -t html-import-test .
+        uses: ./.github/actions/html-import-image
       - name: Run offline fixture and desktop/mobile browser tests
         run: |
           mkdir -p reports test-results
