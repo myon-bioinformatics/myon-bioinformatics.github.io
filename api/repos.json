@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-17T21:07:54Z",
+  "generatedAt": "2026-11-18T21:07:37Z",
   "owner": "myon-bioinformatics",
   "count": 45,
   "repos": [
@@ -339,11 +339,12 @@
         "web"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-10T11:34:43Z",
+      "updatedAt": "2026-11-18T00:46:16Z",
       "homepage": null,
       "readmeHeading": "flutter_navigation_basic",
       "readmeSummary": "Dart / Flutter で書いた、画面遷移・ルーティング・共通UIの検証用の基盤アプリです。リポジトリには Web・iOS・Android のターゲット構成を含みます。",
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/flutter_navigation_basic/main/README.md"
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/flutter_navigation_basic/main/README.md",
+      "archived": true
     },
     {
       "name": "gh_identity",
@@ -720,11 +721,24 @@
     {
       "name": "OnTautoLogy",
       "url": "https://github.com/myon-bioinformatics/OnTautoLogy",
-      "description": null,
+      "description": "Stdlib-only Python graphlib knowledge graph: topological order, cycle detection, ontology checks, RDF/Turtle audit graphs.",
       "language": "Python",
-      "topics": [],
+      "topics": [
+        "cycle-detection",
+        "github-actions",
+        "github-pages",
+        "graphlib",
+        "knowledge-graph",
+        "ontology",
+        "python",
+        "python3",
+        "rdf",
+        "standard-library",
+        "topological-sort",
+        "unittest"
+      ],
       "stars": 1,
-      "updatedAt": "2026-11-17T09:23:56Z",
+      "updatedAt": "2026-11-18T00:42:21Z",
       "homepage": null,
       "readmeHeading": "OnTautoLogy",
       "readmeSummary": "オントロジーをトートロジーの水準まで持っていく、小さなナレッジグラフです。主張は 🤔 候補 → 🧮 規則で導出 → 👀 観測 → ✅ 証明 の段を上り、最上段は「見ていない場合も含めて常に成り立つ」＝トートロジーです。Python 3.11 以降の標準ライブラリだけで動き、取得・書き込み・マージ・CI 起動・LLM 呼び出しは行いません。",
