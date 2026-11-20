@@ -8,14 +8,10 @@ PythonサーバーはPagesの実行基盤ではなく、生成・検証に限る
 - lab PR #110の `html-snapshot/1` / `html_snapshot.extract` を参照。
   Python基準実装はlab main `56982948ba79c070664cf9efe87a3d753e417acf` からコピー。
   最新契約には複数articleと小さいselector集合も含まれる。
-- web-ui main `2410a5a63c5117c321e8e737ee6811d64fab2afb` の `web_ui.py` が静的ページを生成。
-  web-ui PR #49の共通導線・表示適用を含む固定版（未マージ時でもcommitは固定）。
-  同repoの `ui.js` の文字列表示・JSON整形とCSSを実利用する。
-- ルートの `vendor.lock.json` に完全commit、元パス、SHA-256を記録（ライセンスは `tools/vendor/*/LICENSE`）。
-  実行時CDN、外部フレームワーク、Python/WASM配信は不要。
-- ブラウザに必要なparser/selectorの伴走実装と画面操作は `scripts/project_pages.py` で管理し、ビルド時に1本の `extract.mjs` として配信する。抽出関数は同じモジュールから import できる。現状のweb-uiには
-  HTML読取モジュールがないため、UIの表示部品とPython生成基盤を再利用する。
-  labのAPI adapterや抽出契約の所有はlabに残す。
+- PSWBのPython API `html_import_files()` が画面とブラウザ用抽出モジュールを生成する。
+  ポートフォリオは共有CSS・JSの配置先、説明リンク、戻る導線、ホーム画面アイコンを指定する。
+  使用するPSWBのコミットは `requirements-pages.txt`、生成物のハッシュは `web-ui-assets.lock.json` に記録する。
+  ブラウザから利用する抽出関数は従来どおり `extract.mjs` が公開する。
 
 ## 入出力と再利用
 

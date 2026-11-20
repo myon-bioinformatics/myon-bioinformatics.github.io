@@ -1,3 +1,3 @@
 # The shared Web UI (CSS/JS generator, adopt_document, repository_diagnostics_page), pinned by commit.
 # Move the pin: edit the commit here and run scripts/project_pages.py --refresh-lock
-pysaiyanweboo @ git+https://github.com/myon-bioinformatics/PySaiyanWeBoo@d860646e2a02be483041ee50ddd0c9dfcc045895
+pysaiyanweboo @ git+https://github.com/myon-bioinformatics/PySaiyanWeBoo@a2e8b2e316531f85ba777342e1ee192fb5f2181a
