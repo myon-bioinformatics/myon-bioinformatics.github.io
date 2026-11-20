@@ -38,7 +38,7 @@ ROOT = Path(__file__).resolve().parents[1]
 ASSET_BASE = 'tools/vendor/web-ui/'
 ASSETS = ('css/base.css', 'css/components.css', 'css/themes/modern.css',
           'css/tokens.css', 'js/navigation.js', 'js/ui.js', 'js/controls.js',
-          'js/collection.js', 'js/coordinates.js')
+          'js/coordinates.js')
 STYLESHEET_BUNDLES = {'css/bundle.css': 'bundled_css', 'css/core.css': 'core_css'}
 DISTRIBUTION = 'pysaiyanweboo'
 DEMO_BASE = 'tools/demos/'
@@ -88,13 +88,11 @@ def verify_pin(commit: str, root: Path = ROOT) -> None:
 
 def render(ui) -> dict[str, bytes]:
     """Every public asset rendered by the generator module, keyed by its published path."""
-    with tempfile.TemporaryDirectory() as directory:
-        ui.write_js(directory)
-        result = {}
-        for name in ASSETS:
-            data = (ui.css_source(name[4:]).encode('utf-8') if name.startswith('css/')
-                    else (Path(directory) / name).read_bytes())
-            result[ASSET_BASE + name] = data
+    result = {}
+    for name in ASSETS:
+        kind, filename = name.split('/', 1)
+        source = ui.css_source(filename) if kind == 'css' else ui.js_source(filename)
+        result[ASSET_BASE + name] = source.encode('utf-8')
     for name, builder in STYLESHEET_BUNDLES.items():
         result[ASSET_BASE + name] = getattr(ui, builder)().encode()
     return result

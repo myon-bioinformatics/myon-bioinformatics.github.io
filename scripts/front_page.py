@@ -320,11 +320,11 @@ def document(root: Path | None = None, ui=None) -> str:
     data = (f'<script type="application/json" id="projects-data">{_inline_json([{k: p[k] for k in ("name", "desc", "topics")} for p in projects])}</script>\n'
             f'<script type="application/json" id="page-data">{_inline_json({"modes": MODES, "fallback": AI_FALLBACK})}</script>\n')
     avatar = ui.component_parts("gaze-avatar")
+    script = ui.module_script('\n'.join((ui.js_source('collection.js'), avatar['js'], SCRIPT)))
     page = SHELL
     for mark, value in (('@@PORTAL@@', portal_cards()), ('@@THEMES@@', theme_options(ui)), ('@@TOPICS@@', topic_buttons(projects)),
                         ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + STYLE + avatar['css'] + '\n  '),
-                        ('@@AVATAR@@', avatar['html']), ('@@AVATAR_MODULE@@', ui.module_script(avatar['js'])),
-                        ('@@SCRIPT@@', '\n' + SCRIPT + '\n  ')):
+                        ('@@AVATAR@@', avatar['html']), ('@@SCRIPT@@', script)):
         assert page.count(mark) == 1, mark
         page = page.replace(mark, value)
     return page
@@ -438,9 +438,7 @@ SHELL = '''<!doctype html>
     </div>
   </footer>
 
-@@VIEWS@@  <script src="./tools/vendor/web-ui/js/collection.js"></script>
-  @@AVATAR_MODULE@@
-  <script type="module">@@SCRIPT@@</script>
+@@VIEWS@@  @@SCRIPT@@
 </body>
 </html>
 
