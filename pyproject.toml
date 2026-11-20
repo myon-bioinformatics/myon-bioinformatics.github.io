@@ -16,4 +16,4 @@ package = false
 default-groups = ["test"]
 
 [tool.uv.sources]
-pysaiyanweboo = { git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo", rev = "bbe5c0b0087f40ff3fffd53bec5111c2ba2d747d" }
+pysaiyanweboo = { git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo", rev = "acf53d8f0eee8fff28f9e395c0e02dc65ae4f1e2" }

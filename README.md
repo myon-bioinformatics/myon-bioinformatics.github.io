@@ -73,6 +73,8 @@ The catalog refresh runs daily at 06:00 JST. A successful `Update repos API` run
 
 Changes to the Pages workflow also trigger a catalog refresh to exercise this handoff. Render evidence records the actual checked-out commit, including when the refresh or a concurrent update has advanced `main` beyond the event's original SHA.
 
+The header gets its animated face from PSWB’s Python `component_parts("gaze-avatar")` API. Project URL buttons use the same pinned PSWB release’s `copyText` helper. Reusable interaction changes belong in PSWB; the portfolio owns placement, labels and project data.
+
 ## 🎛️ Display mode
 - Default mode is **modern**
 - Repository default can be changed via `site.config.json`:
