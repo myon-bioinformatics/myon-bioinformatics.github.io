@@ -161,6 +161,9 @@ try{const radius=readRadius(query.get('radius_m')??'100');
 '''
 
 
+COORDINATES_MODULE = '<script type="module" src="../vendor/web-ui/js/coordinates.js"></script>'
+
+
 def render(ui) -> dict[str, str]:
     cities = ui.example_data('cities')
     tokyo = next(f for f in cities['floors'] if f['id'] == 'tokyo')
@@ -171,7 +174,7 @@ def render(ui) -> dict[str, str]:
     body = BODY.replace('__OPTIONS__', options)
     # The two inline modules execute in order; the shared module owns validation and URL encoding.
     script = SCRIPT.replace('__POINTS__', data).replace('__RANGE_HELPERS__', RANGE_HELPERS).replace('__EARTH_RADIUS__', str(ui.EARTH_RADIUS_M))
-    body += ui.module_script(ui.js_source('coordinates.js')) + ui.module_script(script)
+    body += COORDINATES_MODULE + ui.module_script(script)
     page = ui.render_document(title='地図URL・ピン留め', trusted_html=body, css=ui.bundled_css() + CSS)
     cities['title'], cities['floors'] = 'パラレル東京', [tokyo]
     cities['tools'] = {k: v for k, v in cities['tools'].items() if v.get('floor', 'tokyo') == 'tokyo'}
@@ -186,7 +189,7 @@ def render(ui) -> dict[str, str]:
             raise ValueError(f'PSWB city sheet missing: {p["id"]}')
     banner = '<p id="tokyo-range" hidden><span id="tokyo-range-label"></span></p><p><a id="area-return" hidden>元の指定範囲へ戻る</a></p>'
     world = world.replace('<body data-ui-theme="modern">', '<body data-ui-theme="modern"><main>' + banner, 1)
-    world = world.replace('</body>', '</main>' + ui.module_script(ui.js_source('coordinates.js'))
+    world = world.replace('</body>', '</main>' + COORDINATES_MODULE
                           + ui.module_script(TOKYO_SCRIPT.replace('__RANGE_HELPERS__', RANGE_HELPERS)) + '</body>', 1)
     return {path: document.replace('<html lang="en">', '<html lang="ja">', 1) for path, document in
             [('tools/maps/index.html', page), ('tools/maps/tokyo.html', world)]}

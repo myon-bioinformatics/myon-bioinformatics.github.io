@@ -38,7 +38,8 @@ ROOT = Path(__file__).resolve().parents[1]
 ASSET_BASE = 'tools/vendor/web-ui/'
 ASSETS = ('css/base.css', 'css/components.css', 'css/themes/modern.css',
           'css/tokens.css', 'js/navigation.js', 'js/ui.js', 'js/controls.js',
-          'js/collection.js')
+          'js/collection.js', 'js/coordinates.js')
+STYLESHEET_BUNDLES = {'css/bundle.css': 'bundled_css', 'css/core.css': 'core_css'}
 DISTRIBUTION = 'pysaiyanweboo'
 DEMO_BASE = 'tools/demos/'
 PROJECT_BASE = 'tools/projects/'
@@ -94,6 +95,8 @@ def render(ui) -> dict[str, bytes]:
             data = (ui.css_source(name[4:]).encode('utf-8') if name.startswith('css/')
                     else (Path(directory) / name).read_bytes())
             result[ASSET_BASE + name] = data
+    for name, builder in STYLESHEET_BUNDLES.items():
+        result[ASSET_BASE + name] = getattr(ui, builder)().encode()
     return result
 
 
@@ -271,7 +274,17 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     """Every hash-locked page: demos, projects, HTML import and map tools, keyed by published path."""
     maps = {path: add_home_label(add_back_nav(document), '地図・ピン', icons_from='../../').encode('utf-8')
             for path, document in load_module('map_tool', 'scripts/map_tool.py').render(ui).items()}
-    return {**render_demos(ui), **render_projects(ui, root), **render_html_import(ui), **maps}
+    pages = {**render_demos(ui), **render_projects(ui, root), **render_html_import(ui), **maps}
+    for sheet, builder in STYLESHEET_BUNDLES.items():
+        prefix = b'<style>' + getattr(ui, builder)().encode()
+        for path, page in pages.items():
+            head, end, body = page.partition(b'</head>')
+            if prefix in head:
+                href = os.path.relpath(ASSET_BASE + sheet, os.path.dirname(path)).replace(os.sep, '/')
+                link = f'<link rel="stylesheet" href="{href}">'.encode()
+                head = head.replace(prefix, link + b'<style>', 1).replace(link + b'<style></style>', link, 1)
+                pages[path] = head + end + body
+    return pages
 
 
 def record(name: str, checkout: Path, root: Path = ROOT) -> dict:
@@ -301,7 +314,7 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
     verify_pin(commit, root)
     if commit != lock['commit']:
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
-    if set(lock['outputs']) != {ASSET_BASE + name for name in ASSETS}:
+    if set(lock['outputs']) != {ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES)}:
         raise ValueError('generated output paths differ from public URL contract')
     expected = ({DEMO_BASE + 'index.html', PROJECT_BASE + 'index.html', HTML_IMPORT_PAGE} | MAP_PAGES | {DEMO_BASE + name + '.html' for name in DEMOS}
                 | {_project_file(p) for p in showcases(root)})
