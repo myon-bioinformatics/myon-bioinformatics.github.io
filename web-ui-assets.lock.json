@@ -1,7 +1,7 @@
 {
   "schema": "web-ui-generated/2",
   "generator": "pysaiyanweboo (requirements-pages.txt)",
-  "commit": "a2e8b2e316531f85ba777342e1ee192fb5f2181a",
+  "commit": "4376ec02b344fd628c849f02be9474066003ea3b",
   "outputs": {
     "tools/vendor/web-ui/css/base.css": "3326d1b1911bea03fa3b51253777a87483cc3b09c44d8a2a736aee5d2f95f07c",
     "tools/vendor/web-ui/css/components.css": "9cc16208581d082d6498292b506e623ce2bb1d8f6d5dd94a0c45615ae90d6964",
@@ -16,24 +16,24 @@
     "tools/vendor/web-ui/css/core.css": "d588313b40d84378ec4c628447eddf7acb7e18dbc43dd41ec8ec067369ea2014"
   },
   "pages": {
-    "tools/demos/index.html": "6b3da9362b62845af2fbd51778e23d73d486ed05c238775694fd2270cfde8af7",
-    "tools/demos/mcp-stub.html": "478cc20b3f4b57c97acf6f8d59c2ea60ae704b68bf5ff88edb1427445be27497",
-    "tools/demos/api-stub.html": "4024ee5e1aa235ecca9936789ec883e8625033efcc3491297d66216a841ec4ef",
-    "tools/demos/mcp-lab.html": "8d4d3dff25a5acb2f3e4a31764e31de5e91c33006e23db7c1d32a9b2261f33eb",
-    "tools/demos/test-report.html": "06ed5ee34aee0919c7ec120e2d329a021454914b6598b03cf665f2912bce1dcd",
-    "tools/projects/search_seq_including_spaces.html": "fc4f3ba90729303ac579cb23af58c19d0ef8114bf216753ce56d1e423c5b4bb7",
-    "tools/projects/queryu.html": "14bb05b7b843c567ee79dea60ed90972d100f28455453f62e7d1643f9e31c184",
-    "tools/projects/blueprobe.html": "dfd9ef3138bf0cf45a1e11aba224d8f3eaa9b73af31f981b0bcaed4bf3e3eb16",
-    "tools/projects/sakanalytics.html": "7357e3e20d3972e093ca40c6c37b4fea2044f0cc226795c3143cd0ce5435869f",
-    "tools/projects/pythdragoras.html": "8858e0d96c6de4a9313fd16b6f24c1b8ea5e5f45cab9f3e58324614f6688b203",
-    "tools/projects/dragowing.html": "6638f38ab3cdcba3e13eec97d3ed0c7b3367b246c233dd69de6ca31bae185071",
-    "tools/projects/err-o-roadrunner.html": "61e42417d97d3a4e672b07cf7539b193c40d90637d1dadbb082ae0cf2b0b9d45",
-    "tools/projects/nvd_nist_known_vulns.html": "145bb4b908f132d64861b47774be66022ecb78a9f221c6dc08b17c7a0b670d34",
-    "tools/projects/browsertestkit.html": "2de551512e8a35d892f538c44df6826b7c0538442ef352da3835e9fb52e1441d",
-    "tools/projects/talkcompress.html": "db3267fa1cd9d5f5b6349c92388b043c15e89749c39a203ee743fee2595e54a8",
-    "tools/projects/index.html": "1c2f21253da49d8607de133c7001a34e40321bb5dc27dcf52b9f11cdaa8c3568",
-    "tools/html-import/index.html": "8e60e1e2ec17b6620bc93804977ecd4095b3c28168b3944d4ff36112504f9789",
-    "tools/maps/index.html": "0648e2745abcbd292f98c61cfde772016518dadefeaced0427527a1324ccccda",
-    "tools/maps/tokyo.html": "a94ebe4acd6bd40b4176727c9de446e4016e315cdbd7032a6c6f849c09777e02"
+    "tools/demos/index.html": "7818171e98ede495513547af5cbc7c32d7b282381975c03eecdcdfebe3882f88",
+    "tools/demos/mcp-stub.html": "c697d88eaba5d4c7b45399c450297500853c74ed4ee1a93b9f1e08df7f379ef9",
+    "tools/demos/api-stub.html": "ab022d0c2eef8d27cf25f27ab3a6b0c24e9f9ca0a06a9f4feee43eaa0290893f",
+    "tools/demos/mcp-lab.html": "74fbe4c2e55c291f69623e769a43dbd0e78cf90ee2965e7cd81b057a1f1221fc",
+    "tools/demos/test-report.html": "45b3c2adcb2987910aec38c9108ae6259aa0cc5276abc955af7dedf5c7033422",
+    "tools/projects/search_seq_including_spaces.html": "b067844ff0778a5a0d11e89157c336c977e9aea3d9d72772c03318443a377bf7",
+    "tools/projects/queryu.html": "14d7ac73f6893a5832fd18cea00f2e94f8be76b3277401e187ad34574f3a2957",
+    "tools/projects/blueprobe.html": "aacb417b48dfcc0019901aa74fac6b6198abf20cd87f84bbe1d7268e40a74ace",
+    "tools/projects/sakanalytics.html": "de7b4b3defe54c60f315e0e06be27ecdf78fed29168bde2a30a2cdf261a970dc",
+    "tools/projects/pythdragoras.html": "7c2e9a0448cb0879427bbfdb8274166e9583c85a33d2b636a22691966eb2bbdd",
+    "tools/projects/dragowing.html": "74e24da2f120320eb322f57add7f2e6d8890afa61549c776c881d1fc614d25fc",
+    "tools/projects/err-o-roadrunner.html": "e6866261ffad584b4937a1e8ac24d139ceac27b4993227676a72c2791fb403d7",
+    "tools/projects/nvd_nist_known_vulns.html": "ce8d9e0d3018a07736c392e37054acfc64da54f9dba8893f3a922bd0efb2b522",
+    "tools/projects/browsertestkit.html": "5297adea84b4c02524451edb18b0f006bf31ad69208614d8e6008782320c169a",
+    "tools/projects/talkcompress.html": "96ce1744ca762e0a2f7b960a33232b582a18c2213a0074ea49ee72fb96efa28c",
+    "tools/projects/index.html": "9d37771a59c13bc1b941d3c8aee23e6872b2e36c6dc6135e97bbd40c09e182c1",
+    "tools/html-import/index.html": "755a2e403a76132ab1b958c1fae3c5170b94e710c0cb5c8dd9e615d5887ed9a2",
+    "tools/maps/index.html": "b46708e11405e9109fc5e62a39eba010e320fd7610ddcedb7068a72211ca8cb5",
+    "tools/maps/tokyo.html": "2c74c9ef33c675425215d3d4f71ea3366be0545ab99b55022fdd8f3366eee817"
   }
 }
