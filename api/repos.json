@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-19T21:07:58Z",
+  "generatedAt": "2026-11-20T21:07:18Z",
   "owner": "myon-bioinformatics",
   "count": 48,
   "repos": [
@@ -715,7 +715,7 @@
       "updatedAt": "2026-11-12T10:01:17Z",
       "homepage": null,
       "readmeHeading": "🧷 OneLinearNumerousMemo (olnm)",
-      "readmeSummary": "bash/zsh 用の **249 個のシェル関数**と、それを Python・Node から名前で呼べる **28 個の Python API**。 ローカル GitHub（Gitea / Forgejo）とワークフロー検査は NagoyAction（`nagoyaction hub` / `nagoyaction actionlint`）へ転送する。 実装は `olnm.py` 1 ファイル、実行時の Python 外部依存はゼロ。 Python 3.11 以降、Linux（Ubuntu / WSL の Ubuntu）の bash/zsh を対象とする。 macOS では GNU コマンド…",
+      "readmeSummary": "bash/zsh 用の **250 個のシェル関数**と、それを Python・Node から名前で呼べる **29 個の Python API**。 ローカル GitHub（Gitea / Forgejo）とワークフロー検査は NagoyAction（`nagoyaction hub` / `nagoyaction actionlint`）へ転送する。 実装は `olnm.py` 1 ファイル、実行時の Python 外部依存はゼロ。 Python 3.11 以降、Linux（Ubuntu / WSL の Ubuntu）の bash/zsh を対象とする。 macOS では GNU コマンド…",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/OneLinearNumerousMemo/main/README.md"
     },
     {
@@ -749,14 +749,14 @@
       "name": "ONTO",
       "url": "https://github.com/myon-bioinformatics/ONTO",
       "description": "ONTO: an index linking ontology-related repositories",
-      "language": null,
+      "language": "Python",
       "topics": [],
       "stars": 0,
-      "updatedAt": "2026-11-19T14:09:57Z",
+      "updatedAt": "2026-11-20T06:53:00Z",
       "homepage": null,
-      "readmeHeading": null,
-      "readmeSummary": null,
-      "readmeUrl": null
+      "readmeHeading": "ONTO",
+      "readmeSummary": "オントロジーに絡むリポジトリを紐付ける、索引と、横断して使う Python API。",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/ONTO/main/README.md"
     },
     {
       "name": "PySaiyanWeBoo",
@@ -995,30 +995,30 @@
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/TalkCompress/main/README.md"
     },
     {
-      "name": "TaxOntOY",
-      "url": "https://github.com/myon-bioinformatics/TaxOntOY",
-      "description": "TaxOntOY: Taxonomy × Ontology (OY = the letters shared by -logy and -nomy)",
+      "name": "TaxOntOy",
+      "url": "https://github.com/myon-bioinformatics/TaxOntOy",
+      "description": "TaxOntOy: Taxonomy × Ontology (Oy = the letters shared by -logy and -nomy)",
       "language": null,
       "topics": [],
       "stars": 0,
-      "updatedAt": "2026-11-19T13:45:02Z",
+      "updatedAt": "2026-11-20T04:54:41Z",
       "homepage": null,
-      "readmeHeading": null,
-      "readmeSummary": null,
-      "readmeUrl": null
+      "readmeHeading": "TaxOntOy",
+      "readmeSummary": "[otl-relations.json](otl-relations.json) は OnTautoLogy の第一弾（監査）、第二弾（概念）、第三弾（事例）の関係を、分析したい意味に対応づける最小の分類表です。キーは OTL のグラフ JSON に現れる関係名です。元の辺の向きと ID を保持します。",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/TaxOntOy/main/README.md"
     },
     {
-      "name": "TopOntolOgy",
-      "url": "https://github.com/myon-bioinformatics/TopOntolOgy",
-      "description": "TopOntolOgy: Topology × Ontology",
-      "language": null,
+      "name": "TopOntoLogy",
+      "url": "https://github.com/myon-bioinformatics/TopOntoLogy",
+      "description": "TopOntoLogy: Topology × Ontology",
+      "language": "Python",
       "topics": [],
       "stars": 0,
-      "updatedAt": "2026-11-19T14:05:24Z",
+      "updatedAt": "2026-11-20T07:39:30Z",
       "homepage": null,
-      "readmeHeading": null,
-      "readmeSummary": null,
-      "readmeUrl": null
+      "readmeHeading": "TopOntOlogy",
+      "readmeSummary": "**TopOntOlogy** は、Topology（トポロジー）と Ontology（オントロジー）を組み合わせた造語。",
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/TopOntoLogy/main/README.md"
     },
     {
       "name": "video2audio_gui",
