@@ -29,3 +29,4 @@ tools/maps/
 tools/vendor/web-ui/css/
 tools/vendor/web-ui/js/
 tools/vendor/web-ui/generated.lock.json
+tools/html-import/extract.mjs

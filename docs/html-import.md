@@ -13,7 +13,7 @@ PythonサーバーはPagesの実行基盤ではなく、生成・検証に限る
   同repoの `ui.js` の文字列表示・JSON整形とCSSを実利用する。
 - ルートの `vendor.lock.json` に完全commit、元パス、SHA-256を記録（ライセンスは `tools/vendor/*/LICENSE`）。
   実行時CDN、外部フレームワーク、Python/WASM配信は不要。
-- ブラウザに必要なparser/selectorの伴走実装は `extract.mjs`。現状のweb-uiには
+- ブラウザに必要なparser/selectorの伴走実装と画面操作は `scripts/project_pages.py` で管理し、ビルド時に1本の `extract.mjs` として配信する。抽出関数は同じモジュールから import できる。現状のweb-uiには
   HTML読取モジュールがないため、UIの表示部品とPython生成基盤を再利用する。
   labのAPI adapterや抽出契約の所有はlabに残す。
 
