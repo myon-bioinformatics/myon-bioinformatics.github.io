@@ -319,9 +319,11 @@ def document(root: Path | None = None, ui=None) -> str:
     palettes = ''.join(ui.theme_css(name, tokens) for name, tokens in ui.theme_palettes().items())
     data = (f'<script type="application/json" id="projects-data">{_inline_json([{k: p[k] for k in ("name", "desc", "topics")} for p in projects])}</script>\n'
             f'<script type="application/json" id="page-data">{_inline_json({"modes": MODES, "fallback": AI_FALLBACK})}</script>\n')
+    avatar = ui.component_parts("gaze-avatar")
     page = SHELL
     for mark, value in (('@@PORTAL@@', portal_cards()), ('@@THEMES@@', theme_options(ui)), ('@@TOPICS@@', topic_buttons(projects)),
-                        ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + STYLE + '\n  '),
+                        ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + STYLE + avatar['css'] + '\n  '),
+                        ('@@AVATAR@@', avatar['html']), ('@@AVATAR_MODULE@@', ui.module_script(avatar['js'])),
                         ('@@SCRIPT@@', '\n' + SCRIPT + '\n  ')):
         assert page.count(mark) == 1, mark
         page = page.replace(mark, value)
@@ -353,6 +355,7 @@ SHELL = '''<!doctype html>
   <header class="site-header">
     <div class="container">
       <h1><img class="brand-icon" src="./assets/brand/myon-profile-icon.png" alt="" width="40" height="40">myon-bioinformatics</h1>
+      @@AVATAR@@
       <div class="header-actions">
         <nav class="nav">
           <a href="https://github.com/myon-bioinformatics" target="_blank" rel="noopener noreferrer">GitHub</a>
@@ -436,7 +439,8 @@ SHELL = '''<!doctype html>
   </footer>
 
 @@VIEWS@@  <script src="./tools/vendor/web-ui/js/collection.js"></script>
-  <script>@@SCRIPT@@</script>
+  @@AVATAR_MODULE@@
+  <script type="module">@@SCRIPT@@</script>
 </body>
 </html>
 
@@ -481,7 +485,8 @@ a{color:inherit}
 .container{max-width:960px;margin:0 auto;padding:1.5rem}
 .site-header,.site-footer{border-bottom:1px solid var(--border)}
 .site-footer{border-top:1px solid var(--border);border-bottom:none}
-.site-header .container{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.site-header .container{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:1rem}
+.site-header .ui-gaze{justify-self:center}
 .site-header h1{display:flex;align-items:center;gap:.75rem;margin:0;max-width:100%;font-size:1.25rem;overflow-wrap:anywhere}
 .site-header .brand-icon{display:block;flex:none;width:40px;height:40px}
 .header-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -985,8 +990,9 @@ body[data-view-mode="github-like"] .badges .tag {
 @media (max-width: 720px) {
   .container { padding: 1.25rem; }
   body[data-view-mode="json"] .container { padding-left: 1rem; }
-  .site-header .container,
-  .header-actions { align-items: flex-start; }
+  .site-header .container { grid-template-columns:1fr; }
+  .site-header .ui-gaze { grid-row:1; }
+  .header-actions { align-items:flex-start; }
   .header-actions {
     width: 100%;
     flex-direction: column;
@@ -1203,6 +1209,8 @@ body[data-color] {
 
 SCRIPT = '''// The page script. What each notation looks like is decided in Python (scripts/front_page.py) and arrives as <template>
 // elements; this script shows one, drops the projects a search hides, and fills the AI highlight slots.
+import { copyText } from './tools/vendor/web-ui/js/ui.js';
+
 const DEFAULT_VIEW_MODE = 'modern';
 const VIEW_MODE_KEY = 'site:view-mode';
 const VIEW_MODE_BASE_KEY = 'site:view-mode-base';
@@ -1362,16 +1370,7 @@ function activateProfileTab(root, key) {
 async function copyUrl(button) {
   const url = button.dataset.copy;
   try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(url);
-    } else {
-      const textarea = document.createElement('textarea');
-      textarea.value = url;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-    }
+    await copyText(url);
     button.textContent = 'Copied!';
     button.classList.add('copied');
     setTimeout(() => {
