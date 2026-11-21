@@ -6,6 +6,7 @@ import io
 import json
 import re
 import shutil
+import subprocess
 import sys
 import unittest
 import urllib.error
@@ -113,6 +114,31 @@ def test_tooling_metadata_import_is_quiet_and_main_is_callable(monkeypatch, caps
     monkeypatch.setattr(module, 'collect', lambda: {'sha': 'verified'})
     getattr(module, 'main')([])
     assert '"sha": "verified"' in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("returncode, stdout, stderr", [
+    (1, "private diagnostic", "private diagnostic"),
+    (0, "", "private diagnostic"),
+])
+def test_tooling_metadata_omits_command_diagnostics(monkeypatch, returncode, stdout, stderr):
+    module = load("scripts/stagehand_tooling_meta.py")
+    monkeypatch.setattr(module.shutil, "which", lambda name: name)
+    monkeypatch.setattr(module.subprocess, "run", lambda *args, **kwargs:
+                        subprocess.CompletedProcess(args, returncode, stdout, stderr))
+    result = module.collect()
+    assert all(result[key] is None for key in ("sha", "node", "npm", "npx", "git", "gh"))
+    assert "private diagnostic" not in json.dumps(result)
+
+
+def test_tooling_metadata_reports_detached_head(tmp_path, monkeypatch):
+    module = load("scripts/stagehand_tooling_meta.py")
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    subprocess.run(["git", "-c", "user.name=test", "-c", "user.email=test@example.invalid",
+                    "commit", "-qm", "fixture", "--allow-empty"], check=True)
+    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    subprocess.run(["git", "checkout", "-q", "--detach", sha], check=True)
+    assert module.git("rev-parse", "HEAD") == sha
 
 
 def test_stagehand_v4_python_surface():
