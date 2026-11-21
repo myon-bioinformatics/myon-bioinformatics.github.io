@@ -1,5 +1,5 @@
 """Emit advisory dual-SDK tooling metadata; never a freshness gate."""
-import importlib.metadata, json, os, platform, shutil, subprocess
+import importlib.metadata, json, os, platform, re, shutil, subprocess
 from datetime import datetime, timezone
 
 COMMAND_TIMEOUT = float(os.environ.get("STAGEHAND_TOOL_TIMEOUT", "10"))
@@ -13,7 +13,9 @@ def version(command, *args):
         result = subprocess.run([exe, *args], capture_output=True, text=True, timeout=COMMAND_TIMEOUT, check=False)
     except (OSError, subprocess.SubprocessError):
         return None
-    lines = (result.stdout or result.stderr).strip().splitlines()
+    if result.returncode:
+        return None
+    lines = result.stdout.strip().splitlines()
     return lines[0] if lines else None
 
 
@@ -29,7 +31,10 @@ def git(*args):
         result = subprocess.run(["git", *args], capture_output=True, text=True, timeout=COMMAND_TIMEOUT, check=False)
     except (OSError, subprocess.SubprocessError):
         return None
-    return result.stdout.strip() or None
+    sha = result.stdout.strip()
+    if result.returncode or not re.fullmatch(r"(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})", sha):
+        return None
+    return sha
 
 
 def collect():
