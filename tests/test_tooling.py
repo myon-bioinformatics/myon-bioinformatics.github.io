@@ -417,3 +417,42 @@ def test_record_catalogs_the_scripts_from_their_own_docstring_and_help(tmp_path)
     assert cli['usage'] == 'usage: cli.py [-h] [--flag FLAG] [--more]' and quiet['usage'] == ''      # wrapped usage, not the prose                        # 📝 the code is the source
     if shutil.which('node'):
         assert facts['usage'] == ''                                                              # ran, printed nothing
+
+
+def test_advance_moves_each_showcase_to_the_tip_unless_that_breaks_its_page(tmp_path):
+    git = lambda repo, *args: subprocess.run(['git', '-C', str(repo), *args], check=True, capture_output=True, text=True).stdout.strip()
+    def repository(name, files):
+        repo = tmp_path / 'o' / name
+        repo.mkdir(parents=True)
+        git(repo, 'init', '-q')
+        commits = []
+        for step in files:                                  # one commit per dict: path -> text (None deletes)
+            for path, text in step.items():
+                (repo / path).unlink() if text is None else (repo / path).write_text(text)
+            git(repo, 'add', '-A')
+            git(repo, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'x')
+            commits.append(git(repo, 'rev-parse', 'HEAD'))
+        return commits
+    run = {'command': [sys.executable, '-S', 'show.py'], 'exit': 0, 'output': 'old'}
+    moved = repository('Moved', [{'show.py': 'print("v1")', 'icon.png': 'i'}, {'show.py': '"""Show."""\nprint("v2")'}])
+    lost = repository('Lost', [{'show.py': 'print(1)', 'icon.png': 'i'}, {'icon.png': None}])
+    broke = repository('Broke', [{'show.py': 'print(1)'}, {'show.py': 'raise SystemExit(3)'}])
+    same = repository('Same', [{'show.py': 'print(1)'}])
+    showcase = lambda repo, commit, **extra: {'label': repo, 'repository': f'o/{repo}', 'commit': commit,
+                                               'run': dict(run), **extra}
+    projects = [{'name': 'Moved', 'desc': 'd', 'showcase': showcase('Moved', moved[0], icon='icon.png', scripts={'match': ['*.py']})},
+                {'name': 'Lost', 'desc': 'd', 'showcase': showcase('Lost', lost[0], icon='icon.png')},
+                {'name': 'Broke', 'desc': 'd', 'showcase': showcase('Broke', broke[0])},
+                {'name': 'Same', 'desc': 'd', 'showcase': showcase('Same', same[0])},
+                {'name': 'Plain', 'desc': 'no showcase'}]
+    root = tmp_path / 'site'
+    root.mkdir()
+    (root / 'projects.json').write_text(json.dumps(projects))
+    log = assets.advance(root, remote=str(tmp_path) + '/')
+    assert [line.split()[0] for line in log] == ['⏩', '⏸', '⏸', '=']
+    assert 'icon.png missing' in log[1] and 'run exit 3' in log[2]
+    after = {p['name']: p.get('showcase') for p in json.loads((root / 'projects.json').read_text())}
+    assert after['Moved']['commit'] == moved[1] and after['Moved']['run']['output'] == 'v2'
+    assert after['Moved']['scripts']['items'] == [{'path': 'show.py', 'summary': 'Show.', 'usage': ''}]
+    assert (after['Lost']['commit'], after['Broke']['commit']) == (lost[0], broke[0])      # 📌 kept where the page works
+    assert after['Broke']['run']['output'] == 'old' and after['Plain'] is None

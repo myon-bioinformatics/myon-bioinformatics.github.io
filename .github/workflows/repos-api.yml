@@ -1,3 +1,5 @@
+# Daily: refresh api/repos.json and move each projects.json showcase to its repository's newest commit
+# (scripts/project_pages.py --advance). The name is what pages.yml waits on, so it stays.
 name: Update repos API
 
 on:
@@ -24,6 +26,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # 🔒 --advance runs other repositories' scripts; keep the token out of .git/config (pushed explicitly below).
+          persist-credentials: false
 
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         # Preserve the former setup-python 3.x lane. Without managed-only
@@ -46,13 +51,27 @@ jobs:
           touch .nojekyll
           python scripts/repos_catalog.py --owner myon-bioinformatics --output api/repos.json
 
-      - name: Commit refreshed API when it changed
+      - name: Advance showcases to their newest commits
+        shell: bash
         run: |
-          if [ -z "$(git status --porcelain -- api/repos.json .nojekyll)" ]; then
+          uv pip install --quiet -r requirements-pages.txt
+          # ⏩ moved · = unchanged · ⏸ kept (reason) — one line per showcase, also in the run summary.
+          python scripts/project_pages.py --advance --refresh-lock 2>&1 >/dev/null | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit refreshed API and showcases when they changed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          files=(api/repos.json .nojekyll projects.json web-ui-assets.lock.json)
+          if [ -z "$(git status --porcelain -- "${files[@]}")" ]; then
             exit 0
+          fi
+          message="chore: refresh repos API"
+          if ! git diff --quiet -- projects.json; then
+            message="chore: refresh repos API and advance showcases"
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add api/repos.json .nojekyll
-          git commit -m "chore: refresh repos API"
-          git push
+          git add "${files[@]}"
+          git commit -m "$message"
+          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main
