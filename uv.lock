@@ -73,6 +73,11 @@ wheels = [
 ]
 
 [[package]]
+name = "gh-identity-dev"
+version = "0.0.0"
+source = { git = "https://github.com/myon-bioinformatics/gh_identity?rev=f9c56ccb7fe73d1d1b4bd62047cee21e4de6d239#f9c56ccb7fe73d1d1b4bd62047cee21e4de6d239" }
+
+[[package]]
 name = "greenlet"
 version = "3.5.6"
 source = { registry = "https://pypi.org/simple" }
@@ -212,16 +217,19 @@ default-groups = ["test"]
 
 [package.dev-dependencies]
 browser = [
+    { name = "gh-identity-dev" },
     { name = "playwright" },
     { name = "pysaiyanweboo" },
     { name = "pytest" },
     { name = "stagehand" },
 ]
 docker-test = [
+    { name = "gh-identity-dev" },
     { name = "pysaiyanweboo" },
     { name = "pytest" },
 ]
 test = [
+    { name = "gh-identity-dev" },
     { name = "pysaiyanweboo" },
     { name = "pytest" },
     { name = "stagehand" },
@@ -231,16 +239,19 @@ test = [
 
 [package.metadata.requires-dev]
 browser = [
+    { name = "gh-identity-dev", git = "https://github.com/myon-bioinformatics/gh_identity?rev=f9c56ccb7fe73d1d1b4bd62047cee21e4de6d239" },
     { name = "playwright", specifier = ">=1.64.0" },
     { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=acf53d8f0eee8fff28f9e395c0e02dc65ae4f1e2" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "stagehand", specifier = ">=4.2.1" },
 ]
 docker-test = [
+    { name = "gh-identity-dev", git = "https://github.com/myon-bioinformatics/gh_identity?rev=f9c56ccb7fe73d1d1b4bd62047cee21e4de6d239" },
     { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=acf53d8f0eee8fff28f9e395c0e02dc65ae4f1e2" },
     { name = "pytest", specifier = ">=9.1.1" },
 ]
 test = [
+    { name = "gh-identity-dev", git = "https://github.com/myon-bioinformatics/gh_identity?rev=f9c56ccb7fe73d1d1b4bd62047cee21e4de6d239" },
     { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=acf53d8f0eee8fff28f9e395c0e02dc65ae4f1e2" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "stagehand", specifier = ">=4.2.1" },

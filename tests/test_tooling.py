@@ -120,10 +120,11 @@ def test_tooling_metadata_import_is_quiet_and_main_is_callable(monkeypatch, caps
     (1, "private diagnostic", "private diagnostic"),
     (0, "", "private diagnostic"),
 ])
-def test_tooling_metadata_omits_command_diagnostics(monkeypatch, returncode, stdout, stderr):
+def test_tooling_metadata_omits_command_diagnostics(monkeypatch, tmp_path, returncode, stdout, stderr):
     module = load("scripts/stagehand_tooling_meta.py")
-    monkeypatch.setattr(module.shutil, "which", lambda name: name)
-    monkeypatch.setattr(module.subprocess, "run", lambda *args, **kwargs:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(module.gh_identity.shutil, "which", lambda name: name)
+    monkeypatch.setattr(module.gh_identity.subprocess, "run", lambda *args, **kwargs:
                         subprocess.CompletedProcess(args, returncode, stdout, stderr))
     result = module.collect()
     assert all(result[key] is None for key in ("sha", "node", "npm", "npx", "git", "gh"))
@@ -135,10 +136,27 @@ def test_tooling_metadata_reports_detached_head(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
     subprocess.run(["git", "-c", "user.name=test", "-c", "user.email=test@example.invalid",
-                    "commit", "-qm", "fixture", "--allow-empty"], check=True)
+                    "commit", "-qm", "", "--allow-empty", "--allow-empty-message"], check=True)
     sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     subprocess.run(["git", "checkout", "-q", "--detach", sha], check=True)
-    assert module.git("rev-parse", "HEAD") == sha
+    result = module.collect()
+    assert result["sha"] == sha
+    assert set(result) == {"sha", "generated_at_utc", "python", "python_stagehand", "pytest",
+                           "node", "npm", "npx", "git", "gh"}
+
+
+def test_tooling_metadata_source_and_license():
+    from importlib.metadata import distribution
+    import tomllib
+
+    dist = distribution("gh-identity-dev")
+    source = tomllib.loads((ROOT / "pyproject.toml").read_text())["tool"]["uv"]["sources"]["gh-identity-dev"]
+    installed = json.loads(dist.read_text("direct_url.json"))
+    assert installed["url"] == source["git"]
+    assert installed["vcs_info"]["commit_id"] == source["rev"]
+    license_file, = [f for f in dist.files if f.parts[-2:] == ("licenses", "LICENSE")]
+    assert hashlib.sha256(license_file.locate().read_bytes()).hexdigest() == (
+        "15f66204c4a6a1ce0c94f0ed4319ff9400f872e85fd32c95f21695c2f231af59")
 
 
 def test_stagehand_v4_python_surface():

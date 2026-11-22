@@ -1,22 +1,10 @@
-"""Emit advisory dual-SDK tooling metadata; never a freshness gate."""
-import importlib.metadata, json, os, platform, re, shutil, subprocess
+"""Advisory dual-SDK tooling metadata. Portable versions are normalized by gh_identity."""
+import importlib.metadata
+import json
+import os
 from datetime import datetime, timezone
 
-COMMAND_TIMEOUT = float(os.environ.get("STAGEHAND_TOOL_TIMEOUT", "10"))
-
-
-def version(command, *args):
-    exe = shutil.which(command)
-    if not exe:
-        return None
-    try:
-        result = subprocess.run([exe, *args], capture_output=True, text=True, timeout=COMMAND_TIMEOUT, check=False)
-    except (OSError, subprocess.SubprocessError):
-        return None
-    if result.returncode:
-        return None
-    lines = result.stdout.strip().splitlines()
-    return lines[0] if lines else None
+import gh_identity
 
 
 def package(name):
@@ -26,29 +14,22 @@ def package(name):
         return None
 
 
-def git(*args):
-    try:
-        result = subprocess.run(["git", *args], capture_output=True, text=True, timeout=COMMAND_TIMEOUT, check=False)
-    except (OSError, subprocess.SubprocessError):
-        return None
-    sha = result.stdout.strip()
-    if result.returncode or not re.fullmatch(r"(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})", sha):
-        return None
-    return sha
-
-
 def collect():
+    commands = ("node", "npm", "npx", "git", "gh")
+    versions = gh_identity.tool_versions(commands, include_python=True, stdout_only=True,
+                                         timeout=float(os.environ.get("STAGEHAND_TOOL_TIMEOUT", "10")))
+    try:
+        # The advisory record needs only the commit, including commits with an empty subject.
+        sha = gh_identity._rm_sha(gh_identity._rev_commit(".", "HEAD"), "HEAD")
+    except (OSError, ValueError, gh_identity.GitInspectionError):
+        sha = None
     return {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "sha": git("rev-parse", "HEAD"),
-        "python": platform.python_version(),
+        "sha": sha,
+        "python": versions.get("python"),
         "python_stagehand": package("stagehand"),
         "pytest": package("pytest"),
-        "node": version("node", "--version"),
-        "npm": version("npm", "--version"),
-        "npx": version("npx", "--version"),
-        "git": version("git", "--version"),
-        "gh": version("gh", "--version"),
+        **{name: versions.get(name) for name in commands},
     }
 
 
