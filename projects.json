@@ -12,7 +12,7 @@
     "showcase": {
       "label": "🧬 配列検索",
       "repository": "myon-bioinformatics/search_seq_including_spaces",
-      "commit": "48bb3b65756808a7dd889c727ac8ac9f908f10d3",
+      "commit": "8bd868d66cdfda562f9116e4af9b0c378897db9e",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -281,7 +281,7 @@
     "showcase": {
       "label": "🐦 Err-o-RR",
       "repository": "myon-bioinformatics/Err-o-RoadRunner",
-      "commit": "0ff132922c38b1f4465f0e2559efabc5f0911b4c",
+      "commit": "569e7d45159e66c0d5cd4c2510f56794dfb7f1ed",
       "icon": "docs/assets/icon.png",
       "media": [
         {
@@ -301,7 +301,7 @@
           "--project-root",
           "tests/fixtures/readme/empty_root"
         ],
-        "output": "FOUND: exit code: 1\nFOUND: python exception type: ModuleNotFoundError\nFOUND: python exception message: No module named 'totally_missing_pkg_xyz'\nFOUND: python traceback frame (first): <string>:1 in <module>\nFOUND: python traceback frame (last): <string>:1 in <module>\nFOUND: python traceback frame count: 1\nFOUND: python version: 3.14.10 (cpython)\nFOUND: node version: v26.13.1\nFOUND: gh version: gh version 2.105.0\nFOUND: environment variable count: 3\nFOUND: environment variable names: HOME, LANG, PATH\nNOT FOUND: lock files in project root\nHINT: web search keywords: ModuleNotFoundError No module named 'totally_missing_pkg_xyz'",
+        "output": "FOUND: exit code: 1\nFOUND: python exception type: ModuleNotFoundError\nFOUND: python exception message: No module named 'totally_missing_pkg_xyz'\nFOUND: python traceback frame (first): <string>:1 in <module>\nFOUND: python traceback frame (last): <string>:1 in <module>\nFOUND: python traceback frame count: 1\nFOUND: python version: 3.15.2 (cpython)\nFOUND: node version: v24.22.3\nFOUND: gh version: gh version 2.104.0 (2026-11-12)\nFOUND: environment variable count: 3\nFOUND: environment variable names: HOME, LANG, PATH\nNOT FOUND: lock files in project root\nHINT: web search keywords: ModuleNotFoundError No module named 'totally_missing_pkg_xyz'",
         "exit": 0
       }
     }
@@ -318,7 +318,7 @@
     "showcase": {
       "label": "🛡️ NVD",
       "repository": "myon-bioinformatics/nvd_nist_known_vulns",
-      "commit": "cb978546adf475d1a6cfe3b206aa70986ef6372f",
+      "commit": "67290d89331ab6c9c0f1f66ae71960de8684982c",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -350,7 +350,7 @@
     "showcase": {
       "label": "🧪 BTK",
       "repository": "myon-bioinformatics/BrowserTestKit",
-      "commit": "f974ca02c77093e388783b50da72afbe6a622022",
+      "commit": "85c566b0d39ccd9355680cf5f4a6baae803dbb5a",
       "icon": "docs/assets/brand/validation-buddy.png",
       "media": [
         {
@@ -414,7 +414,7 @@
           {
             "path": "tools/check_font_family.py",
             "summary": "Check that generated pages and Plotly figures ask for Meiryo first.",
-            "usage": "usage: check_font_family.py FILE_OR_DIR [...]"
+            "usage": "usage: check_font_family.py [-h] FILE_OR_DIR [FILE_OR_DIR ...]"
           },
           {
             "path": "tools/element_overlay.py",
@@ -568,7 +568,7 @@
     "showcase": {
       "label": "🗜️ 会話圧縮",
       "repository": "myon-bioinformatics/TalkCompress",
-      "commit": "79518d1204496495da5dabac32ec56be2dc0bf35",
+      "commit": "550a7c47c46552722bb2ebdf7664f81bd3211ffb",
       "media": [
         {
           "src": "docs/evidence/browser.gif",
