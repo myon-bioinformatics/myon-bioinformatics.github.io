@@ -377,7 +377,25 @@ def test_record_reruns_the_showcase_at_its_commit_with_a_minimal_environment(tmp
     entry['showcase']['commit'] = head
     (root / 'projects.json').write_text(json.dumps([entry]))
     monkeypatch.setenv('SECRET_LOOKING_NAME', 'value')
-    run = assets.record('Tool', checkout, root)
+    run = assets.record('Tool', checkout, root)['run']
     assert run['exit'] == 3
     assert run['output'] == "['HOME', 'LANG', 'PATH']"            # 🔒 no other variable of this machine
     assert json.loads((root / 'projects.json').read_text())[0]['showcase']['run'] == run
+
+
+def test_record_catalogs_the_scripts_from_their_own_docstring_and_help(tmp_path):
+    import shutil
+    tools = tmp_path / 'tools'
+    tools.mkdir()
+    (tools / 'cli.py').write_text('"""Do one thing.\n\nMore words."""\nimport sys\n'
+                                  'print("usage: cli.py [-h] [--flag FLAG]\\n              [--more]\\nDoes one thing.")\n')  # no blank line
+    (tools / 'quiet.py').write_text('raise SystemExit(4)\n')                         # no docstring, no --help
+    (tools / 'facts.mjs').write_text('#!/usr/bin/env node\nimport fs from "node:fs";\n\n// Facts without a browser.\n')
+    (tools / 'notes.txt').write_text('not a script')
+    items = assets.script_catalog(tmp_path, ['tools/*.py', 'tools/*.mjs', 'tools/*.py'])
+    assert [i['path'] for i in items] == ['tools/cli.py', 'tools/facts.mjs', 'tools/quiet.py']   # sorted, once each
+    cli, facts, quiet = items
+    assert (cli['summary'], quiet['summary'], facts['summary']) == ('Do one thing.', '', 'Facts without a browser.')
+    assert cli['usage'] == 'usage: cli.py [-h] [--flag FLAG] [--more]' and quiet['usage'] == ''      # wrapped usage, not the prose                        # 📝 the code is the source
+    if shutil.which('node'):
+        assert facts['usage'] == ''                                                              # ran, printed nothing

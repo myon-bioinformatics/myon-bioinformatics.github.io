@@ -33,6 +33,11 @@ uv run --locked python scripts/project_pages.py --record Err-o-RoadRunner=../err
 
 `--record` refuses a checkout that is not at the showcase commit, and runs with only `PATH`, a temporary `HOME` and
 `LANG`, so no other variable of the recording machine reaches the page.
+🧰 A showcase with `"scripts": {"match": ["tools/*.py", …]}` also gets a table of the scripts those globs match at the
+same commit, recorded by the same `--record` into `scripts.items`: each file's own description (module docstring, or a
+JS module's leading `//` comment past the shebang and imports) and the usage line of its `--help` (`python3 -S` or
+`node`, same minimal environment; empty when a script has no `--help` or needs more than that). The list follows the
+code, so the project's README links here instead of listing scripts by hand; ❔ marks a script without a description.
 A command that needs packages (DRAgoWing needs Python-Markdown) uses the latest release, as its own build installs it:
 add them with `uv run --locked --with markdown python scripts/project_pages.py --record DRAgoWing=../Aoi`.
 
