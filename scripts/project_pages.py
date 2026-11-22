@@ -12,7 +12,8 @@ with the portfolio's way back, shortcut label and icons. ``tools/projects/`` giv
 has a ``showcase`` a page of its own, Pages or not: its icon and media at a fixed commit, and one recorded run.
 ``--record NAME=CHECKOUT`` reruns that command in a checkout of exactly that commit and stores the output. A showcase
 with ``scripts`` also gets a 🧰 table of the scripts its globs match there: each one's own description (module docstring,
-or the leading ``//`` comment of a JS module) and the usage line of its ``--help``, recorded by the same ``--record``
+or the leading ``//`` comment of a JS module) and, for a script that declares argparse / cli_args, the usage line of
+its ``--help``, recorded by the same ``--record``
 so the list follows the code instead of being written by hand. ``--advance`` (run daily by repos-api.yml) moves every
 showcase to the newest commit of its repository and records it there, keeping the old pin when that commit lacks the
 icon or media, or when the run that used to succeed now fails.
@@ -25,7 +26,6 @@ repository by path (a sibling script or a vendored module) without touching ``sy
 from __future__ import annotations
 
 import argparse
-import ast
 import hashlib
 import html
 import importlib.util
@@ -257,20 +257,6 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     return pages
 
 
-def script_summary(path: Path) -> str:
-    """The first line a script says about itself: its module docstring (Python) or leading ``//`` / ``/*`` comment (JS), else ''."""
-    text = path.read_text(encoding='utf-8')
-    if path.suffix == '.py':
-        return (ast.get_docstring(ast.parse(text)) or '').strip().split('\n', 1)[0]
-    for line in text.splitlines():  # past a shebang and the imports, up to the first statement
-        line = line.strip()
-        if line.startswith(('//', '/*')):
-            return line.lstrip('/*').removesuffix('*/').strip()
-        if line and not line.startswith(('#!', 'import ', "'use strict'", '"use strict"')):
-            return ''
-    return ''
-
-
 def _minimal_run(command: list[str], cwd: Path, timeout: int) -> subprocess.CompletedProcess:
     with tempfile.TemporaryDirectory() as home:      # 🔒 PATH only: no names or values of this machine's other variables
         return subprocess.run(command, cwd=cwd, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL,
@@ -278,22 +264,26 @@ def _minimal_run(command: list[str], cwd: Path, timeout: int) -> subprocess.Comp
 
 
 def script_catalog(base: Path, patterns: list[str]) -> list[dict]:
-    """``{path, summary, usage}`` for every file the globs match under ``base``: usage is the first line of ``--help``
-    (``python3 -S`` or ``node``) with its indented continuations, '' when the script has none, prints something that does
-    not start with ``usage`` or needs more than this; best effort, never raises."""
+    """``{path, summary, usage}`` for every file the globs match under ``base``, from what each one declares.
+
+    The summary and whether it declares its arguments come from the parent's ``fleet_check.script_facts`` (read with
+    ``ast``, never run). Only a script that imports argparse or cli_args is asked for ``--help`` (``python3 -S``, minimal
+    environment); usage is the first line of that and its indented continuations. Nothing else is executed, so a
+    script that would just run cannot answer for itself. Best effort, never raises."""
+    facts_of = load_module('portfolio_fleet_check', 'vendor/fleet_check.py').script_facts
     items = []
     for path in sorted({p for pattern in patterns for p in base.glob(pattern) if p.is_file()}):
-        relative = path.relative_to(base).as_posix()
-        command = ['python3', '-S', relative, '--help'] if path.suffix == '.py' else ['node', relative, '--help']
-        try:
-            done = _minimal_run(command, base, 20)
-            lines = (done.stdout or done.stderr).strip().splitlines() if done.returncode == 0 else []
-            lines = lines if lines and lines[0].lower().startswith('usage') else []   # a script that ignores --help just ran
-        except (OSError, subprocess.TimeoutExpired):
-            lines = []
+        relative, facts, lines = path.relative_to(base).as_posix(), facts_of(path), []
+        if facts['argparse']:
+            try:
+                done = _minimal_run(['python3', '-S', relative, '--help'], base, 20)
+                lines = done.stdout.strip().splitlines() if done.returncode == 0 else []
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+        lines = lines if lines and lines[0].lower().startswith('usage') else []
         end = next((i for i, line in enumerate(lines[1:], 1) if not line[:1].isspace() or not line.strip()), len(lines))
         usage = ' '.join(' '.join(line.split()) for line in lines[:end])  # the first line and its indented continuations
-        items.append({'path': relative, 'summary': script_summary(path), 'usage': usage[:300] + ('…' if len(usage) > 300 else '')})
+        items.append({'path': relative, 'summary': facts['summary'], 'usage': usage[:300] + ('…' if len(usage) > 300 else '')})
     return items
 
 

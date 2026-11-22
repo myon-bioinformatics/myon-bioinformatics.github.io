@@ -1,5 +1,6 @@
 """🚢 Fleet contracts through the parent's shared checks (vendor/fleet_check.py): vendor lock, parent workflow pins and CI job order."""
 
+import unittest
 import importlib.util
 import tomllib
 from pathlib import Path
@@ -11,7 +12,7 @@ spec.loader.exec_module(fleet)
 ROOT = fleet.repo_root(__file__)
 # Local rollout contract; adopted vendor locks are deliberately independent.
 PARENT_WORKFLOW_PIN = "9e3da7ae1846e9604ebc24bb5178f7de094a4e77"
-ACCEPTED = {"vendor/fleet_check.py": "6c29503cf17eda856766ddfdf4d66a5b0965a8b1"}
+ACCEPTED = {"vendor/fleet_check.py": "64db25eb0fd9025dbe3cbcbced8b88a39ecb9266"}
 
 
 def test_vendor_lock_matches_checked_in_bytes_and_accepted_commits():
@@ -45,3 +46,11 @@ def test_vendor_asset_checks_use_installed_pinned_generator():
     assert 'diff -r "$RUNNER_TEMP/web-ui-assets" "$RUNNER_TEMP/web-ui-assets-repeat"' in workflow
     assert "python -S .vendor-sync-tools/vendor_sync.py check" in workflow
     assert "python -S .vendor-sync-tools/vendor_sync.py recreate" in workflow
+
+
+# 🧰 Scripts: 📝 each one describes itself and ⌨️ one that reads sys.argv declares its arguments (argparse /
+# cli_args). Read with ast, never run; the portfolio's script catalog reads the same facts.
+
+class ScriptsDescribeThemselves(unittest.TestCase):
+    def test_every_script_has_a_description_and_declared_arguments(self):
+        fleet.check_scripts(fleet.repo_root(__file__))
