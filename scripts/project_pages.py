@@ -13,7 +13,9 @@ has a ``showcase`` a page of its own, Pages or not: its icon and media at a fixe
 ``--record NAME=CHECKOUT`` reruns that command in a checkout of exactly that commit and stores the output. A showcase
 with ``scripts`` also gets a 🧰 table of the scripts its globs match there: each one's own description (module docstring,
 or the leading ``//`` comment of a JS module) and the usage line of its ``--help``, recorded by the same ``--record``
-so the list follows the code instead of being written by hand.
+so the list follows the code instead of being written by hand. ``--advance`` (run daily by repos-api.yml) moves every
+showcase to the newest commit of its repository and records it there, keeping the old pin when that commit lacks the
+icon or media, or when the run that used to succeed now fails.
 
 ``tools/html-import/index.html`` (the HTML import tool page) is built here too and hash-locked with the other pages.
 Every generated or imported tool page gets the same way back and shortcut label: ``add_back_nav()`` and
@@ -277,8 +279,8 @@ def _minimal_run(command: list[str], cwd: Path, timeout: int) -> subprocess.Comp
 
 def script_catalog(base: Path, patterns: list[str]) -> list[dict]:
     """``{path, summary, usage}`` for every file the globs match under ``base``: usage is the first line of ``--help``
-    (``python3 -S`` or ``node``) with its indented continuations, '' when the script has none or needs more than this;
-    best effort, never raises."""
+    (``python3 -S`` or ``node``) with its indented continuations, '' when the script has none, prints something that does
+    not start with ``usage`` or needs more than this; best effort, never raises."""
     items = []
     for path in sorted({p for pattern in patterns for p in base.glob(pattern) if p.is_file()}):
         relative = path.relative_to(base).as_posix()
@@ -286,6 +288,7 @@ def script_catalog(base: Path, patterns: list[str]) -> list[dict]:
         try:
             done = _minimal_run(command, base, 20)
             lines = (done.stdout or done.stderr).strip().splitlines() if done.returncode == 0 else []
+            lines = lines if lines and lines[0].lower().startswith('usage') else []   # a script that ignores --help just ran
         except (OSError, subprocess.TimeoutExpired):
             lines = []
         end = next((i for i, line in enumerate(lines[1:], 1) if not line[:1].isspace() or not line.strip()), len(lines))
@@ -314,6 +317,56 @@ def record(name: str, checkout: Path, root: Path = ROOT) -> dict:
         show['scripts']['items'] = script_catalog(base, show['scripts']['match'])
     path.write_text(json.dumps(projects, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
     return show
+
+
+def advance(root: Path = ROOT, remote: str = 'https://github.com/') -> list[str]:
+    """Move each showcase to the tip of its repository's default branch and ``record`` it there; one log line each.
+
+    ⏩ moved · = already there · ⏸ kept at its pin because the new commit lacks the icon or media the page shows, or
+    because its run now fails where it used to succeed (the page keeps a working example; the line says why)."""
+    path, log = root / 'projects.json', []
+    with tempfile.TemporaryDirectory() as tmp:
+        checkouts = {}
+        for project in showcases(root):
+            name, show = project['name'], project['showcase']
+            repository = show['repository']
+            if repository not in checkouts:                    # one shallow fetch per repository (Aoi hosts several)
+                checkout = Path(tmp) / str(len(checkouts))
+                git = ['git', '-C', str(checkout)]
+                checkout.mkdir()
+                try:
+                    for step in (['init', '-q'], ['fetch', '-q', '--depth', '1', remote + repository, 'HEAD'],
+                                 ['-c', 'advice.detachedHead=false', 'checkout', '-q', 'FETCH_HEAD']):
+                        subprocess.run(git + step, check=True, capture_output=True, timeout=300)
+                    checkouts[repository] = checkout
+                except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+                    checkouts[repository] = None
+            checkout = checkouts[repository]
+            if checkout is None:
+                log.append(f"⏸ {name} {show['commit'][:7]} (✗ fetch {repository})")
+                continue
+            head = subprocess.run(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], capture_output=True, text=True,
+                                  check=True).stdout.strip()
+            old = show['commit']
+            if head == old:
+                log.append(f'= {name} {old[:7]}')
+                continue
+            base = checkout / show.get('path', '')
+            missing = [f for f in [show.get('icon'), *(m['src'] for m in show.get('media', []))] if f and not (base / f).is_file()]
+            if missing:
+                log.append(f"⏸ {name} {old[:7]} (✗ {head[:7]}: {', '.join(missing)} missing)")
+                continue
+            before = path.read_text(encoding='utf-8')
+            projects = json.loads(before)
+            next(p for p in projects if p['name'] == name)['showcase']['commit'] = head
+            path.write_text(json.dumps(projects, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+            new = record(name, checkout, root)
+            if 'run' in show and show['run'].get('exit') == 0 and new['run']['exit'] != 0:
+                path.write_text(before, encoding='utf-8')
+                log.append(f"⏸ {name} {old[:7]} (✗ {head[:7]}: run exit {new['run']['exit']})")
+                continue
+            log.append(f'⏩ {name} {old[:7]} → {head[:7]}')
+    return log
 
 
 def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str, bytes]:
@@ -404,10 +457,14 @@ def main(argv=None):
                         help='rewrite web-ui-assets.lock.json from the installed generator')
     parser.add_argument('--record', action='append', default=[], metavar='NAME=CHECKOUT', type=_name_checkout,
                         help="rerun NAME's showcase command and catalog its scripts in CHECKOUT (at the showcase commit), stored in projects.json; repeatable")
+    parser.add_argument('--advance', action='store_true',
+                        help="move every showcase to its repository's newest commit and record it there (keeps the pin when that would break the page)")
     args = parser.parse_args(argv)
     for target in (args.output, args.stage):
         if target:
             validate_output(target)
+    if args.advance:
+        print('\n'.join(advance()), file=sys.stderr)
     for name, checkout in args.record:
         show = record(name, checkout)
         if 'run' in show:
@@ -421,8 +478,8 @@ def main(argv=None):
         build(args.output)
     if args.stage:
         stage(args.stage)
-    if not args.refresh_lock and not args.output and not args.stage and not args.record:
-        parser.error('give --output DIR, --stage DIR, --refresh-lock and/or --record NAME=CHECKOUT')
+    if not args.refresh_lock and not args.output and not args.stage and not args.record and not args.advance:
+        parser.error('give --output DIR, --stage DIR, --refresh-lock, --advance and/or --record NAME=CHECKOUT')
 
 
 if __name__ == '__main__':

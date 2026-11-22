@@ -12,7 +12,7 @@
     "showcase": {
       "label": "🧬 配列検索",
       "repository": "myon-bioinformatics/search_seq_including_spaces",
-      "commit": "9d17f5079ca953e59c22eae40a97daf2d337b9aa",
+      "commit": "48bb3b65756808a7dd889c727ac8ac9f908f10d3",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -64,24 +64,16 @@
     "showcase": {
       "label": "🐉 QueRyu",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "719ed6e60fb9ede3af3311efeb14f37a80107552",
+      "commit": "5f5635307b54c142c96d9974ea63dbef8a4a2668",
       "path": "queryu/",
       "icon": "docs/brand/icon.png",
       "run": {
         "command": [
-          "python3",
-          "-S",
-          "queryu.py",
-          "--source",
-          "npb_calendar",
-          "--years",
-          "2024",
-          "--cache",
-          "/tmp/queryu-cache",
-          "--offline",
-          "--plan"
+          "sh",
+          "-c",
+          "cd .. && python3 -S aoi.py queryu --source npb_calendar --years 2024 --cache /tmp/queryu-cache --offline --plan"
         ],
-        "output": "観測:\n  日付: 2026-11-14\n  凍結シーズン: なし\n  再確認の対象年: なし\n  キャッシュ済み（再確認しない）: 0\n  条件付きGET: 0\n  再確認（条件なし）: 0\n  新規: 9\n  未来の月（取得しない）: 0\n  オフラインで不足するページ: 9\n解釈:\n  待ち時間の見積もり: 0 秒（間隔 3 秒を 0 回足した値）",
+        "output": "観測:\n  日付: 2026-11-22\n  凍結シーズン: なし\n  再確認の対象年: なし\n  キャッシュ済み（再確認しない）: 0\n  条件付きGET: 0\n  再確認（条件なし）: 0\n  新規: 9\n  未来の月（取得しない）: 0\n  オフラインで不足するページ: 9\n解釈:\n  待ち時間の見積もり: 0 秒（間隔 3 秒を 0 回足した値）",
         "exit": 0
       }
     }
@@ -98,7 +90,7 @@
     "showcase": {
       "label": "🔵 BlueProbe",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "719ed6e60fb9ede3af3311efeb14f37a80107552",
+      "commit": "5f5635307b54c142c96d9974ea63dbef8a4a2668",
       "path": "blueprobe/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -127,14 +119,14 @@
     "showcase": {
       "label": "📊 SakAna",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "719ed6e60fb9ede3af3311efeb14f37a80107552",
+      "commit": "5f5635307b54c142c96d9974ea63dbef8a4a2668",
       "path": "sakanalytics/",
       "icon": "docs/brand/icon.png",
       "run": {
         "command": [
           "python3",
           "-S",
-          "moshimo_box.py",
+          "npb/moshimo_box.py",
           "--ledger",
           "../cycles/c001-chunichi/outputs/propositions.jsonl",
           "--id",
@@ -157,14 +149,14 @@
     "showcase": {
       "label": "📐 PythDR",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "719ed6e60fb9ede3af3311efeb14f37a80107552",
+      "commit": "5f5635307b54c142c96d9974ea63dbef8a4a2668",
       "path": "pythdragoras/",
       "icon": "docs/brand/icon.png",
       "run": {
         "command": [
           "python3",
           "-S",
-          "season_sensitivity.py",
+          "npb/season_sensitivity.py",
           "--season",
           "../cycles/c001-chunichi/outputs/season.jsonl",
           "--additional-season",
@@ -193,16 +185,16 @@
     "showcase": {
       "label": "🪽 DRAgo",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "719ed6e60fb9ede3af3311efeb14f37a80107552",
+      "commit": "5f5635307b54c142c96d9974ea63dbef8a4a2668",
       "path": "",
       "icon": "dragowing/docs/brand/icon.png",
       "run": {
         "command": [
           "sh",
           "-c",
-          "python3 -c \"import markdown as m; print(m.__name__, m.__version__)\" && python3 -m dragowing --results cycles/c001-chunichi/outputs --out /tmp/dragowing-out --overlap-backend stdlib && wc -c /tmp/dragowing-out/*.html && grep -o \"<h2>[^<]*\" /tmp/dragowing-out/index.html"
+          "python3 -S aoi.py dragowing cycles/c001-chunichi/outputs --out /tmp/dragowing-out && wc -c /tmp/dragowing-out/*.html && grep -o \"<h2>[^<]*\" /tmp/dragowing-out/index.html"
         ],
-        "output": "markdown 3.11.3\n 165951 /tmp/dragowing-out/index.html\n2061809 /tmp/dragowing-out/propositions.html\n2227760 total\n<h2>得点順位 × 失点順位\n<h2>球団 × 年（\n<h2>条件集合の重なり",
+        "output": "📦 markdown.py（vendor/markdown）\n📄 file:///tmp/dragowing-out/index.html 163893 B · 📊 trajectory, heatmap, overlap_grid, overlap_breakdown\n📄 file:///tmp/dragowing-out/propositions.html 2011995 B · 🧾 145\n 163893 /tmp/dragowing-out/index.html\n2011995 /tmp/dragowing-out/propositions.html\n2175888 total\n<h2>得点順位 × 失点順位\n<h2>球団 × 年（\n<h2>条件集合の重なり",
         "exit": 0
       }
     }
@@ -289,7 +281,7 @@
     "showcase": {
       "label": "🐦 Err-o-RR",
       "repository": "myon-bioinformatics/Err-o-RoadRunner",
-      "commit": "92e89e3a6e02c4008ecda9d2fc87fcf4c7768532",
+      "commit": "0ff132922c38b1f4465f0e2559efabc5f0911b4c",
       "icon": "docs/assets/icon.png",
       "media": [
         {
@@ -309,7 +301,7 @@
           "--project-root",
           "tests/fixtures/readme/empty_root"
         ],
-        "output": "FOUND: exit code: 1\nFOUND: python exception type: ModuleNotFoundError\nFOUND: python exception message: No module named 'totally_missing_pkg_xyz'\nFOUND: python traceback frame (first): <string>:1 in <module>\nFOUND: python traceback frame (last): <string>:1 in <module>\nFOUND: python traceback frame count: 1\nFOUND: python version: 3.14.6 (cpython)\nFOUND: node version: v22.23.4\nFOUND: gh version: gh version 2.89.0 (2026-03-26)\nFOUND: environment variable count: 3\nFOUND: environment variable names: HOME, LANG, PATH\nNOT FOUND: lock files in project root\nHINT: web search keywords: ModuleNotFoundError No module named 'totally_missing_pkg_xyz'",
+        "output": "FOUND: exit code: 1\nFOUND: python exception type: ModuleNotFoundError\nFOUND: python exception message: No module named 'totally_missing_pkg_xyz'\nFOUND: python traceback frame (first): <string>:1 in <module>\nFOUND: python traceback frame (last): <string>:1 in <module>\nFOUND: python traceback frame count: 1\nFOUND: python version: 3.14.10 (cpython)\nFOUND: node version: v26.13.1\nFOUND: gh version: gh version 2.105.0\nFOUND: environment variable count: 3\nFOUND: environment variable names: HOME, LANG, PATH\nNOT FOUND: lock files in project root\nHINT: web search keywords: ModuleNotFoundError No module named 'totally_missing_pkg_xyz'",
         "exit": 0
       }
     }
@@ -326,7 +318,7 @@
     "showcase": {
       "label": "🛡️ NVD",
       "repository": "myon-bioinformatics/nvd_nist_known_vulns",
-      "commit": "405fe8b5aeb221bde069aca31fd28ecfc4959023",
+      "commit": "cb978546adf475d1a6cfe3b206aa70986ef6372f",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -576,7 +568,7 @@
     "showcase": {
       "label": "🗜️ 会話圧縮",
       "repository": "myon-bioinformatics/TalkCompress",
-      "commit": "b1b35355f41ccf1fbc18044f53c2a3c8eddc7327",
+      "commit": "79518d1204496495da5dabac32ec56be2dc0bf35",
       "media": [
         {
           "src": "docs/evidence/browser.gif",

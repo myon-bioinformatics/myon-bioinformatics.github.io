@@ -36,8 +36,14 @@ uv run --locked python scripts/project_pages.py --record Err-o-RoadRunner=../err
 🧰 A showcase with `"scripts": {"match": ["tools/*.py", …]}` also gets a table of the scripts those globs match at the
 same commit, recorded by the same `--record` into `scripts.items`: each file's own description (module docstring, or a
 JS module's leading `//` comment past the shebang and imports) and the usage line of its `--help` (`python3 -S` or
-`node`, same minimal environment; empty when a script has no `--help` or needs more than that). The list follows the
+`node`, same minimal environment; empty when a script has no `--help`, answers with something that does not start
+with `usage`, or needs more than that). The list follows the
 code, so the project's README links here instead of listing scripts by hand; ❔ marks a script without a description.
+
+⏩ `--advance`, run daily by `repos-api.yml` (06:00 JST, before Pages publishes), moves every showcase to the newest
+commit of its repository's default branch and records it there. It keeps the old pin (⏸, with the reason in the log)
+when that commit no longer has the icon or media the page shows, or when the run that used to exit 0 now fails, so the
+page always shows a working example; a repository it cannot fetch is skipped the same way.
 A command that needs packages (DRAgoWing needs Python-Markdown) uses the latest release, as its own build installs it:
 add them with `uv run --locked --with markdown python scripts/project_pages.py --record DRAgoWing=../Aoi`.
 
