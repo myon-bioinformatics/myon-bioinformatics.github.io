@@ -7,7 +7,7 @@ requires-python = ">=3.11"
 dependencies = []
 
 [dependency-groups]
-docker-test = ["pytest>=9.1.1", "pysaiyanweboo"]
+docker-test = ["pytest>=9.1.1", "pysaiyanweboo", "gh-identity-dev"]
 test = [{ include-group = "docker-test" }, "stagehand>=4.2.1"]
 browser = [{ include-group = "test" }, "playwright>=1.64.0"]
 
@@ -17,3 +17,4 @@ default-groups = ["test"]
 
 [tool.uv.sources]
 pysaiyanweboo = { git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo", rev = "acf53d8f0eee8fff28f9e395c0e02dc65ae4f1e2" }
+gh-identity-dev = { git = "https://github.com/myon-bioinformatics/gh_identity", rev = "f9c56ccb7fe73d1d1b4bd62047cee21e4de6d239" }
