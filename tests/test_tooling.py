@@ -131,6 +131,28 @@ def test_tooling_metadata_omits_command_diagnostics(monkeypatch, tmp_path, retur
     assert "private diagnostic" not in json.dumps(result)
 
 
+@pytest.mark.parametrize(("configured", "expected"), [
+    ("0.03", 0.03), ("invalid", 10.0), ("nan", 10.0), ("inf", 10.0), ("0", 10.0),
+])
+def test_tooling_metadata_uses_one_finite_timeout(monkeypatch, configured, expected):
+    module = load("scripts/stagehand_tooling_meta.py")
+    monkeypatch.setenv("STAGEHAND_TOOL_TIMEOUT", configured)
+
+    def versions(commands, *, include_python, stdout_only, timeout):
+        assert timeout == expected
+        return {"python": "3.15.2"}
+
+    def unavailable(*, timeout):
+        assert timeout == expected
+        raise module.gh_identity.GitInspectionError("private diagnostic")
+
+    monkeypatch.setattr(module.gh_identity, "tool_versions", versions)
+    monkeypatch.setattr(module.gh_identity, "checkout_sha", unavailable)
+    result = module.collect()
+    assert result["sha"] is None and result["python"] == "3.15.2"
+    assert "private diagnostic" not in json.dumps(result)
+
+
 def test_tooling_metadata_reports_detached_head(tmp_path, monkeypatch):
     module = load("scripts/stagehand_tooling_meta.py")
     monkeypatch.chdir(tmp_path)

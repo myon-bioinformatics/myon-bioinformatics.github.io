@@ -1,6 +1,7 @@
 """Advisory dual-SDK tooling metadata. Portable versions are normalized by gh_identity."""
 import importlib.metadata
 import json
+import math
 import os
 from datetime import datetime, timezone
 
@@ -14,13 +15,22 @@ def package(name):
         return None
 
 
+def probe_timeout():
+    default = 10.0
+    try:
+        seconds = float(os.environ.get("STAGEHAND_TOOL_TIMEOUT", default))
+    except ValueError:
+        return default
+    return seconds if math.isfinite(seconds) and seconds > 0 else default
+
+
 def collect():
+    timeout = probe_timeout()
     commands = ("node", "npm", "npx", "git", "gh")
     versions = gh_identity.tool_versions(commands, include_python=True, stdout_only=True,
-                                         timeout=float(os.environ.get("STAGEHAND_TOOL_TIMEOUT", "10")))
+                                         timeout=timeout)
     try:
-        # The advisory record needs only the commit, including commits with an empty subject.
-        sha = gh_identity._rm_sha(gh_identity._rev_commit(".", "HEAD"), "HEAD")
+        sha = gh_identity.checkout_sha(timeout=timeout)
     except (OSError, ValueError, gh_identity.GitInspectionError):
         sha = None
     return {
