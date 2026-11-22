@@ -10,7 +10,10 @@ and ``--refresh-lock`` rewrites the lock after the pin moves.
 The demos are PySaiyanWeBoo's stubs and mocks (MCP / API stubs, an in-page MCP server, a JUnit reader), published here
 with the portfolio's way back, shortcut label and icons. ``tools/projects/`` gives every project in ``projects.json`` that
 has a ``showcase`` a page of its own, Pages or not: its icon and media at a fixed commit, and one recorded run.
-``--record NAME=CHECKOUT`` reruns that command in a checkout of exactly that commit and stores the output.
+``--record NAME=CHECKOUT`` reruns that command in a checkout of exactly that commit and stores the output. A showcase
+with ``scripts`` also gets a 🧰 table of the scripts its globs match there: each one's own description (module docstring,
+or the leading ``//`` comment of a JS module) and the usage line of its ``--help``, recorded by the same ``--record``
+so the list follows the code instead of being written by hand.
 
 ``tools/html-import/index.html`` (the HTML import tool page) is built here too and hash-locked with the other pages.
 Every generated or imported tool page gets the same way back and shortcut label: ``add_back_nav()`` and
@@ -20,6 +23,7 @@ repository by path (a sibling script or a vendored module) without touching ``sy
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import html
 import importlib.util
@@ -196,23 +200,33 @@ def render_projects(ui, root: Path = ROOT) -> dict[str, bytes]:
         show = project['showcase']
         raw = lambda path: f"https://raw.githubusercontent.com/{show['repository']}/{show['commit']}/{show.get('path', '')}{path}"
         blocks = [{'type': 'text', 'text': project['desc']}]
+        where = show['repository'] + ('/' + show['path'].rstrip('/') if show.get('path') else '')
         if show.get('media'):
             blocks.append({'type': 'section', 'title': '🎞️', 'blocks': [
                 {'type': 'image', 'src': raw(m['src']), 'alt': m['alt']} for m in show['media']]})
         if 'run' in show:
             run = show['run']
             output = json.dumps(json.loads(run['output']), indent=2, ensure_ascii=False) if run.get('pretty_json') else run['output']
-            where = show['repository'] + ('/' + show['path'].rstrip('/') if show.get('path') else '')
             blocks.append({'type': 'section', 'title': '▶ 実行例', 'blocks': [
                 {'type': 'kv', 'rows': [['📦', f"{where} @ {show['commit'][:7]}"], ['⌨️', shlex.join(run['command'])],
                                         ['↩️', f"exit {run['exit']}"]]},
                 {'type': 'output', 'text': output}]})
+        if show.get('scripts', {}).get('items'):
+            items = show['scripts']['items']
+            unknown = sum(not item['summary'] for item in items)
+            blocks.append({'type': 'section', 'title': '🧰 スクリプト', 'blocks': [
+                {'type': 'kv', 'rows': [['📦', f"{where} @ {show['commit'][:7]}"],
+                                        ['🔢', f"{len(items)}" + (f" · ❔ {unknown}" if unknown else '')],
+                                        ['🛠️', 'docstring · --help → 自動生成']]},
+                *[block for item in items for block in (     # 📱 stacked, not a table: paths stay whole on a phone
+                    {'type': 'heading', 'level': 3, 'text': '📄 ' + item['path']},
+                    {'type': 'kv', 'rows': [['📝', item['summary'] or '❔'], ['⌨️', item['usage'] or '—']]})]]})
         blocks.append({'type': 'links', 'items': [{'label': '🐙 GitHub', 'href': project['url']},
                                                   {'label': '📄 README', 'href': project['url'] + '#readme'}]})
         if project.get('topics'):
             blocks.append({'type': 'badges', 'items': project['topics']})
         spec = {'schema': 'web-ui-page/1', 'title': project['name'], 'blocks': blocks} | ({'icon': raw(show['icon'])} if 'icon' in show else {})
-        page = ui.page_document(spec).replace('</head>', '<style>.ui-title,.ui-kv dd{overflow-wrap:anywhere}</style></head>', 1)  # long names and commands
+        page = ui.page_document(spec).replace('</head>', '<style>.ui-title,.ui-kv dd,.ui-page h3{overflow-wrap:anywhere}</style></head>', 1)  # long names and commands
         result[_project_file(project)] = add_home_label(add_back_nav(page), show['label'], icons_from='../../').encode('utf-8')
     catalog = ui.catalog_document({
         'schema': 'web-ui-catalog/1', 'title': '📚 Projects',
@@ -241,8 +255,48 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     return pages
 
 
+def script_summary(path: Path) -> str:
+    """The first line a script says about itself: its module docstring (Python) or leading ``//`` / ``/*`` comment (JS), else ''."""
+    text = path.read_text(encoding='utf-8')
+    if path.suffix == '.py':
+        return (ast.get_docstring(ast.parse(text)) or '').strip().split('\n', 1)[0]
+    for line in text.splitlines():  # past a shebang and the imports, up to the first statement
+        line = line.strip()
+        if line.startswith(('//', '/*')):
+            return line.lstrip('/*').removesuffix('*/').strip()
+        if line and not line.startswith(('#!', 'import ', "'use strict'", '"use strict"')):
+            return ''
+    return ''
+
+
+def _minimal_run(command: list[str], cwd: Path, timeout: int) -> subprocess.CompletedProcess:
+    with tempfile.TemporaryDirectory() as home:      # 🔒 PATH only: no names or values of this machine's other variables
+        return subprocess.run(command, cwd=cwd, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL,
+                              env={'PATH': os.environ.get('PATH', ''), 'HOME': home, 'LANG': 'C.UTF-8'})
+
+
+def script_catalog(base: Path, patterns: list[str]) -> list[dict]:
+    """``{path, summary, usage}`` for every file the globs match under ``base``: usage is the first line of ``--help``
+    (``python3 -S`` or ``node``) with its indented continuations, '' when the script has none or needs more than this;
+    best effort, never raises."""
+    items = []
+    for path in sorted({p for pattern in patterns for p in base.glob(pattern) if p.is_file()}):
+        relative = path.relative_to(base).as_posix()
+        command = ['python3', '-S', relative, '--help'] if path.suffix == '.py' else ['node', relative, '--help']
+        try:
+            done = _minimal_run(command, base, 20)
+            lines = (done.stdout or done.stderr).strip().splitlines() if done.returncode == 0 else []
+        except (OSError, subprocess.TimeoutExpired):
+            lines = []
+        end = next((i for i, line in enumerate(lines[1:], 1) if not line[:1].isspace() or not line.strip()), len(lines))
+        usage = ' '.join(' '.join(line.split()) for line in lines[:end])  # the first line and its indented continuations
+        items.append({'path': relative, 'summary': script_summary(path), 'usage': usage[:300] + ('…' if len(usage) > 300 else '')})
+    return items
+
+
 def record(name: str, checkout: Path, root: Path = ROOT) -> dict:
-    """Rerun ``name``'s showcase command in ``checkout`` (which must be at its commit) with a minimal environment; store the output."""
+    """Rerun ``name``'s showcase command and catalog its ``scripts`` in ``checkout`` (which must be at its commit) with a
+    minimal environment; store both in projects.json and return the showcase."""
     path = root / 'projects.json'
     projects = json.loads(path.read_text(encoding='utf-8'))
     project = next((p for p in projects if p['name'] == name and 'showcase' in p), None)
@@ -252,12 +306,14 @@ def record(name: str, checkout: Path, root: Path = ROOT) -> dict:
     head = subprocess.run(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], capture_output=True, text=True, check=True).stdout.strip()
     if head != show['commit']:
         raise ValueError(f'{checkout} is at {head[:7]}, the showcase records {show["commit"][:7]}')
-    with tempfile.TemporaryDirectory() as home:      # 🔒 PATH only: no names or values of this machine's other variables
-        done = subprocess.run(show['run']['command'], cwd=Path(checkout) / show.get('path', ''), capture_output=True, text=True,
-                              timeout=120, env={'PATH': os.environ.get('PATH', ''), 'HOME': home, 'LANG': 'C.UTF-8'})
-    show['run']['output'], show['run']['exit'] = (done.stdout + done.stderr).rstrip('\n'), done.returncode
+    base = Path(checkout) / show.get('path', '')
+    if 'run' in show:
+        done = _minimal_run(show['run']['command'], base, 120)
+        show['run']['output'], show['run']['exit'] = (done.stdout + done.stderr).rstrip('\n'), done.returncode
+    if 'scripts' in show:
+        show['scripts']['items'] = script_catalog(base, show['scripts']['match'])
     path.write_text(json.dumps(projects, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
-    return show['run']
+    return show
 
 
 def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str, bytes]:
@@ -347,14 +403,18 @@ def main(argv=None):
     parser.add_argument('--refresh-lock', action='store_true',
                         help='rewrite web-ui-assets.lock.json from the installed generator')
     parser.add_argument('--record', action='append', default=[], metavar='NAME=CHECKOUT', type=_name_checkout,
-                        help="rerun NAME's showcase command in CHECKOUT (at the showcase commit) and store its output in projects.json; repeatable")
+                        help="rerun NAME's showcase command and catalog its scripts in CHECKOUT (at the showcase commit), stored in projects.json; repeatable")
     args = parser.parse_args(argv)
     for target in (args.output, args.stage):
         if target:
             validate_output(target)
     for name, checkout in args.record:
-        run = record(name, checkout)
-        print(f"▶ {name}: exit {run['exit']}, {len(run['output'].splitlines())} lines", file=sys.stderr)
+        show = record(name, checkout)
+        if 'run' in show:
+            print(f"▶ {name}: exit {show['run']['exit']}, {len(show['run']['output'].splitlines())} lines", file=sys.stderr)
+        if 'scripts' in show:
+            items = show['scripts']['items']
+            print(f"🧰 {name}: {len(items)} scripts, ❔ {sum(not i['summary'] for i in items)} without a description", file=sys.stderr)
     if args.refresh_lock:
         print(json.dumps(refresh_lock(), indent=2))
     if args.output:

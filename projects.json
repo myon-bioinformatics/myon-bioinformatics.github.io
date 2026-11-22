@@ -358,7 +358,7 @@
     "showcase": {
       "label": "🧪 BTK",
       "repository": "myon-bioinformatics/BrowserTestKit",
-      "commit": "5018d5221afa155d4685aad4019e09b63fe4a022",
+      "commit": "f974ca02c77093e388783b50da72afbe6a622022",
       "icon": "docs/assets/brand/validation-buddy.png",
       "media": [
         {
@@ -374,8 +374,152 @@
           "plan",
           "."
         ],
-        "output": "ok      .github/workflows/ci.yml:192 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:196 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:308 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:312 --only-shell (job runs headless only)\nok      .github/workflows/platform-matrix.yml:51 full + shell (job uses both the full build and the shell)",
+        "output": "ok      .github/workflows/ci.yml:211 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:215 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:345 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:349 --only-shell (job runs headless only)\nok      .github/workflows/platform-matrix.yml:50 full + shell (job uses both the full build and the shell)",
         "exit": 0
+      },
+      "scripts": {
+        "match": [
+          "tools/*.py",
+          "tools/*.mjs",
+          "examples/*.py"
+        ],
+        "items": [
+          {
+            "path": "examples/capture_browser_dom.py",
+            "summary": "Open one URL in optional Playwright Chromium and save a selected DOM snapshot.",
+            "usage": "usage: capture_browser_dom.py [-h] [--selector SELECTOR] --output OUTPUT [--timeout-ms TIMEOUT_MS] [--max-bytes MAX_BYTES] [--headed] [--aria-snapshot] [--same-origin-only] url"
+          },
+          {
+            "path": "examples/replay_dom_with_blueprobe_min.py",
+            "summary": "Reinspect a saved BTK DOM capture with an explicitly supplied BlueProbe min.",
+            "usage": "usage: replay_dom_with_blueprobe_min.py [-h] --blueprobe-min BLUEPROBE_MIN [--find FIND] snapshot"
+          },
+          {
+            "path": "tools/app_comparison.py",
+            "summary": "Join published-app screenshots, planned coverage and measured observations.",
+            "usage": "usage: app_comparison.py [-h] [--out OUT] [--ironmate IRONMATE] --runners-json RUNNERS_JSON [--adapters ADAPTERS] [--shot SHOT] [--page PAGE] [--env ENV] [--list] root"
+          },
+          {
+            "path": "tools/app_digest.py",
+            "summary": "One small, self-contained page for reviewing a published-app run: every page x environment.",
+            "usage": "usage: app_digest.py [-h] [--out OUT] [--ironmate IRONMATE] --runners-json RUNNERS_JSON [--adapters ADAPTERS] [--shot SHOT] [--max-bytes MAX_BYTES] [--run-url RUN_URL] [--page PAGE] [--env ENV] [--list] root"
+          },
+          {
+            "path": "tools/browser_execution.mjs",
+            "summary": "Cap browser processes using available CPU and reported memory. This is an",
+            "usage": ""
+          },
+          {
+            "path": "tools/btk.py",
+            "summary": "btk: browser-test-kit's stdlib-only operations in one file.",
+            "usage": "usage: btk.py {fetch,plan,observe,act,pages,scenario,locate,count,describe,compare,operations,check-png,check-evidence,check-capture-evidence,write-capture-evidence,probe-capture-rejections,js-search,pw-test} ..."
+          },
+          {
+            "path": "tools/btk_events.py",
+            "summary": "Read and write btk-event/1 JSONL: one shared event contract for this kit.",
+            "usage": "usage: btk_events [-h]"
+          },
+          {
+            "path": "tools/check_font_family.py",
+            "summary": "Check that generated pages and Plotly figures ask for Meiryo first.",
+            "usage": "usage: check_font_family.py FILE_OR_DIR [...]"
+          },
+          {
+            "path": "tools/element_overlay.py",
+            "summary": "Element annotation overlay, DOM highlight CSS, and TAP element assertions.",
+            "usage": "usage: element_overlay.py [-h] [--file FILE] [--format {json,svg,tap,css}] [--find FIND] [--assert-role ASSERT_ROLE] [--assert-min-count ASSERT_MIN_COUNT] [--viewport VIEWPORT] [--color COLOR] [--shape {rect,ellipse,triangle,arrow}] [--label-field LABEL_FIELD] [--spotlight] [--out OUT]"
+          },
+          {
+            "path": "tools/evidence_board.py",
+            "summary": "Aggregate one or more btk-event/1 JSONL streams into an evidence board.",
+            "usage": "usage: evidence_board [-h] [--json] [--step-summary] [--allow STATUS[,STATUS...]] [--allow-malformed] paths [paths ...]"
+          },
+          {
+            "path": "tools/evidence_gif.py",
+            "summary": "Record browser evidence as one looping GIF for a README: each shot is a page x viewport (x steps), captioned in Meiryo.",
+            "usage": "usage: evidence_gif.py [-h] [--shot LABEL|URL|WxH] [--plan PLAN] [--serve DIR] [--map PREFIX=DIR] [--width WIDTH] [--height HEIGHT] [--sha SHA] [--browser {chromium,firefox,webkit}] [--colors COLORS] [--max-bytes MAX_BYTES] [--max-frames MAX_FRAMES] [--hold HOLD] [--stills DIR] [--stills-prefix STIL…"
+          },
+          {
+            "path": "tools/hit_probe.py",
+            "summary": "Map where a target is hit with few probes, then describe the map with a few binary factors.",
+            "usage": "usage: hit_probe.py [-h] {factorize} ..."
+          },
+          {
+            "path": "tools/html_builder.py",
+            "summary": "Tiny stdlib HTML builder for DRY Playwright/Stagehand test fixtures.",
+            "usage": "usage: html_builder.py [-h] [--page TITLE] TAG[:TEXT] [TAG[:TEXT] ...]"
+          },
+          {
+            "path": "tools/image_diff.py",
+            "summary": "Compare two images (files or zip members) and print one line: size, changed pixels, bbox, max delta.",
+            "usage": "usage: image_diff.py [-h] [--clip X,Y,W,H] [--viewport-width VIEWPORT_WIDTH] [--tolerance TOLERANCE] a b"
+          },
+          {
+            "path": "tools/interaction.py",
+            "summary": "Measured pointer/touch input and side-effect observation for an existing Playwright Page.",
+            "usage": "usage: interaction.py [-h] {check} ..."
+          },
+          {
+            "path": "tools/jsonl_digest.py",
+            "summary": "Digest a JSONL log (events, test or agent transcripts, tool traces) instead of reading it whole.",
+            "usage": "usage: jsonl_digest.py [-h] [--key KEY] [--last LAST] [--width WIDTH] [--show SHOW] [--pairs] [--where FIELD=VALUE] [--count FIELD] [--num FIELD] path"
+          },
+          {
+            "path": "tools/mirror_check.py",
+            "summary": "Mirror tests without a browser: several independent implementations, one answer.",
+            "usage": "usage: mirror_check.py [-h] {compare,facts} ..."
+          },
+          {
+            "path": "tools/mirror_facts.mjs",
+            "summary": "Facts about a document as read by independent JS libraries, without a browser.",
+            "usage": ""
+          },
+          {
+            "path": "tools/nano_bun.py",
+            "summary": "Opt-in, fixed-snapshot Bun installation followed by unchanged Node tests.",
+            "usage": "usage: nano_bun.py [-h] --prepared PREPARED --work-root WORK_ROOT --cache-root CACHE_ROOT --node NODE --bun BUN --python PYTHON [--allow-network]"
+          },
+          {
+            "path": "tools/nano_resources.py",
+            "summary": "Read-only cgroup v2 telemetry and an isolated stdlib child-command meter.",
+            "usage": "usage: nano_resources.py [-h] [--cgroup CGROUP] output ..."
+          },
+          {
+            "path": "tools/page_inspect_scenarios.py",
+            "summary": "Bounded active platform probes for the existing page_inspect evidence contract.",
+            "usage": "usage: page_inspect_scenarios [-h]"
+          },
+          {
+            "path": "tools/page_text.py",
+            "summary": "Read the text of a web page without a browser (#8).",
+            "usage": "usage: page_text.py [-h] [--json] [--max-chars MAX_CHARS] [--max-bytes MAX_BYTES] [--timeout TIMEOUT] [--url URL] [--find QUERY] [--limit LIMIT] [--compare-rendered FILE] source"
+          },
+          {
+            "path": "tools/platform_adapter.py",
+            "summary": "App-owned selectors and postconditions; browser/OS facts stay in platform_facts.js.",
+            "usage": "usage: platform_adapter.py [-h] [adapter]"
+          },
+          {
+            "path": "tools/platform_probe.py",
+            "summary": "Measure how one OS x browser x device sees the same page, and compare them in tabs (platform-matrix).",
+            "usage": "usage: platform_probe.py [-h] {collect,merge,summary,render} ..."
+          },
+          {
+            "path": "tools/pytest_btk_events.py",
+            "summary": "Opt-in pytest plugin: write btk-event/1 JSONL per test result.",
+            "usage": "usage: pytest_btk_events [-h]"
+          },
+          {
+            "path": "tools/route_trail.py",
+            "summary": "Turn an emoji page trail such as '🏠 → 🗺 ↔ 🌍' into the URLs to visit, in order.",
+            "usage": "usage: route_trail.py [-h] --registry REGISTRY [--map MAP_NAME] [--base BASE] [--path-routing] [--json] [--run] [--backend {python,python-async}] [--browser {chromium,firefox,webkit}] [--timeout-ms TIMEOUT_MS] [--run-timeout RUN_TIMEOUT] [--ready-selector READY_SELECTOR] trail"
+          },
+          {
+            "path": "tools/terminal_browser.py",
+            "summary": "Thin, dependency-free launcher for terminal-browser.",
+            "usage": "usage: terminal_browser.py [-h] [--check] [--log LOG] ..."
+          }
+        ]
       }
     }
   },
