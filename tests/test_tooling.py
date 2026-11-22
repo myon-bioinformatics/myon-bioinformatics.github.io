@@ -424,21 +424,21 @@ def test_record_reruns_the_showcase_at_its_commit_with_a_minimal_environment(tmp
 
 
 def test_record_catalogs_the_scripts_from_their_own_docstring_and_help(tmp_path):
-    import shutil
     tools = tmp_path / 'tools'
     tools.mkdir()
-    (tools / 'cli.py').write_text('"""Do one thing.\n\nMore words."""\nimport sys\n'
-                                  'print("usage: cli.py [-h] [--flag FLAG]\\n              [--more]\\nDoes one thing.")\n')  # no blank line
-    (tools / 'quiet.py').write_text('raise SystemExit(4)\n')                         # no docstring, no --help
+    (tools / 'cli.py').write_text('"""Do one thing.\n\nMore words."""\nimport argparse\n'
+                                  'p = argparse.ArgumentParser(prog="cli.py"); p.add_argument("--flag"); p.add_argument("--more", action="store_true")\n'
+                                  'p.add_argument("--and-a-rather-long-option-name", metavar="SOMETHING_WIDE"); p.parse_args()\n')
+    (tools / 'quiet.py').write_text('import sys\nopen(sys.argv[0] + ".ran", "w")\n')   # no docstring, no argparse: never run
     (tools / 'facts.mjs').write_text('#!/usr/bin/env node\nimport fs from "node:fs";\n\n// Facts without a browser.\n')
     (tools / 'notes.txt').write_text('not a script')
     items = assets.script_catalog(tmp_path, ['tools/*.py', 'tools/*.mjs', 'tools/*.py'])
     assert [i['path'] for i in items] == ['tools/cli.py', 'tools/facts.mjs', 'tools/quiet.py']   # sorted, once each
     cli, facts, quiet = items
     assert (cli['summary'], quiet['summary'], facts['summary']) == ('Do one thing.', '', 'Facts without a browser.')
-    assert cli['usage'] == 'usage: cli.py [-h] [--flag FLAG] [--more]' and quiet['usage'] == ''      # wrapped usage, not the prose                        # 📝 the code is the source
-    if shutil.which('node'):
-        assert facts['usage'] == ''                                                              # ran, printed nothing
+    assert cli['usage'] == 'usage: cli.py [-h] [--flag FLAG] [--more] [--and-a-rather-long-option-name SOMETHING_WIDE]'  # wrapped
+    assert quiet['usage'] == '' and not (tools / 'quiet.py.ran').exists()                    # 🔍 read, never run                        # 📝 the code is the source
+    assert facts['usage'] == ''                                                                  # JS is never run
 
 
 def test_advance_moves_each_showcase_to_the_tip_unless_that_breaks_its_page(tmp_path):

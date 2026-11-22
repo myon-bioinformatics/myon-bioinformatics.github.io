@@ -33,12 +33,14 @@ uv run --locked python scripts/project_pages.py --record Err-o-RoadRunner=../err
 
 `--record` refuses a checkout that is not at the showcase commit, and runs with only `PATH`, a temporary `HOME` and
 `LANG`, so no other variable of the recording machine reaches the page.
-🧰 A showcase with `"scripts": {"match": ["tools/*.py", …]}` also gets a table of the scripts those globs match at the
-same commit, recorded by the same `--record` into `scripts.items`: each file's own description (module docstring, or a
-JS module's leading `//` comment past the shebang and imports) and the usage line of its `--help` (`python3 -S` or
-`node`, same minimal environment; empty when a script has no `--help`, answers with something that does not start
-with `usage`, or needs more than that). The list follows the
-code, so the project's README links here instead of listing scripts by hand; ❔ marks a script without a description.
+🧰 A showcase with `"scripts": {"match": ["tools/*.py", …]}` also gets a list of the scripts those globs match at the
+same commit, recorded by the same `--record` into `scripts.items`. What each script declares is read, not run: the
+parent's `fleet_check.script_facts` gives its description (module docstring, or a JS module's leading `//` / `/**`
+comment past the shebang and imports) and whether it imports argparse or cli_args. Only those are asked for `--help`
+(`python3 -S`, same minimal environment) and show its usage line; nothing else is executed. Each project's own
+`tests/test_fleet.py` calls `fleet_check.check_scripts`, so a script without a description, or one that reads
+`sys.argv` without declaring its arguments, fails there first. The project's README links here instead of listing
+scripts by hand; ❔ marks a script without a description.
 
 ⏩ `--advance`, run daily by `repos-api.yml` (06:00 JST, before Pages publishes), moves every showcase to the newest
 commit of its repository's default branch and records it there. It keeps the old pin (⏸, with the reason in the log)
