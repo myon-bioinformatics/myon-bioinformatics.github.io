@@ -64,7 +64,7 @@
     "showcase": {
       "label": "🐉 QueRyu",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "657cf56f86a7ccc2fda5a56cd4c8948a8010ff10",
+      "commit": "e7790a368788943c3907dde156544e04e41d2daf",
       "path": "queryu/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -90,7 +90,7 @@
     "showcase": {
       "label": "🔵 BlueProbe",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "657cf56f86a7ccc2fda5a56cd4c8948a8010ff10",
+      "commit": "e7790a368788943c3907dde156544e04e41d2daf",
       "path": "blueprobe/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -119,7 +119,7 @@
     "showcase": {
       "label": "📊 SakAna",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "657cf56f86a7ccc2fda5a56cd4c8948a8010ff10",
+      "commit": "e7790a368788943c3907dde156544e04e41d2daf",
       "path": "sakanalytics/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -149,7 +149,7 @@
     "showcase": {
       "label": "📐 PythDR",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "657cf56f86a7ccc2fda5a56cd4c8948a8010ff10",
+      "commit": "e7790a368788943c3907dde156544e04e41d2daf",
       "path": "pythdragoras/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -185,7 +185,7 @@
     "showcase": {
       "label": "🪽 DRAgo",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "657cf56f86a7ccc2fda5a56cd4c8948a8010ff10",
+      "commit": "e7790a368788943c3907dde156544e04e41d2daf",
       "path": "",
       "icon": "dragowing/docs/brand/icon.png",
       "run": {
@@ -568,7 +568,7 @@
     "showcase": {
       "label": "🗜️ 会話圧縮",
       "repository": "myon-bioinformatics/TalkCompress",
-      "commit": "13578e95f7943621a1f4b9732ee89cf182d5a225",
+      "commit": "3a99f292d30d0b9071d096868758efae650e6840",
       "media": [
         {
           "src": "docs/evidence/browser.gif",
