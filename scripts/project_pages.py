@@ -437,7 +437,7 @@ def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
     blocks.append({'type': 'links', 'items': [{'label': '🌊 FFSS', 'href': link('ffss')}, {'label': '📊 DRAgoWing', 'href': link('dragowing')}]})
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '🌊 流れの実験室', 'blocks': blocks}).replace(
         '</head>', '<style>.ui-page img{max-width:100%;height:auto}</style></head>', 1)       # 📱 the GIF and SVG fit a phone
-    return {FLOW_PAGE: add_home_label(add_back_nav(page), '🌊 流れの実験室', icons_from='../../').encode('utf-8')}
+    return {FLOW_PAGE: add_home_label(add_back_nav(page), '🌊 流れ実験', icons_from='../../').encode('utf-8')}   # fits an 80 px tile
 
 
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
