@@ -228,6 +228,9 @@ docker-test = [
     { name = "pysaiyanweboo" },
     { name = "pytest" },
 ]
+pages = [
+    { name = "pysaiyanweboo" },
+]
 test = [
     { name = "gh-identity-dev" },
     { name = "pysaiyanweboo" },
@@ -250,6 +253,7 @@ docker-test = [
     { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=acf53d8f0eee8fff28f9e395c0e02dc65ae4f1e2" },
     { name = "pytest", specifier = ">=9.1.1" },
 ]
+pages = [{ name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=acf53d8f0eee8fff28f9e395c0e02dc65ae4f1e2" }]
 test = [
     { name = "gh-identity-dev", git = "https://github.com/myon-bioinformatics/gh_identity?rev=3111c17213baa0f469500a765d0a59f6de8e1d41" },
     { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=acf53d8f0eee8fff28f9e395c0e02dc65ae4f1e2" },

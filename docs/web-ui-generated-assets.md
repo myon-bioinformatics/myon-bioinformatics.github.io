@@ -1,7 +1,7 @@
 # Generated browser assets
 
-The generator is the installed `pysaiyanweboo` dependency. Its full git commit is
-pinned in `requirements-pages.txt` and `[tool.uv.sources]` in `pyproject.toml`.
+The generator is the installed `pysaiyanweboo` dependency (the `pages` group). Its full git commit is
+pinned once, in `[tool.uv.sources]` in `pyproject.toml`.
 `uv.lock` records the same source. The front page (`index.html`, from `scripts/front_page.py`: shell, Tools & Demos
 cards, the profile and projects rendered in every display mode, stylesheet and script in one file; outside the
 lock because it follows the refreshed `api/repos.json`), the generated CSS/JS and the pages are not kept in git
