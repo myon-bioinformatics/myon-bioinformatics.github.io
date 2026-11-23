@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-23T01:37:19Z",
+  "generatedAt": "2026-11-23T03:29:35Z",
   "owner": "myon-bioinformatics",
   "count": 48,
   "repos": [
@@ -706,17 +706,30 @@
       "archived": true
     },
     {
-      "name": "OneLinearNumerousMemo",
-      "url": "https://github.com/myon-bioinformatics/OneLinearNumerousMemo",
-      "description": null,
+      "name": "OneLaunchNumerousModules",
+      "url": "https://github.com/myon-bioinformatics/OneLaunchNumerousModules",
+      "description": "Single-file bash/zsh one-liners, standard-library tool launcher, and dial for closed networks (formerly OneLinearNumerousMemo)",
       "language": "Python",
-      "topics": [],
+      "topics": [
+        "bash",
+        "cli",
+        "command-line",
+        "offline",
+        "one-liner",
+        "python",
+        "python3",
+        "shell",
+        "single-file",
+        "standard-library",
+        "uv",
+        "zsh"
+      ],
       "stars": 1,
-      "updatedAt": "2026-11-12T10:01:17Z",
-      "homepage": null,
-      "readmeHeading": "🧷 OneLinearNumerousMemo (olnm)",
+      "updatedAt": "2026-11-23T03:24:20Z",
+      "homepage": "https://myon-bioinformatics.github.io/OneLaunchNumerousModules/",
+      "readmeHeading": "🧷 OneLaunchNumerousModules (olnm)",
       "readmeSummary": "bash/zsh 用の **251 個のシェル関数**と、それを Python・Node から名前で呼べる **30 個の Python API**。 ローカル GitHub（Gitea / Forgejo）とワークフロー検査は NagoyAction（`nagoyaction hub` / `nagoyaction actionlint`）へ転送する。 実装は `olnm.py` 1 ファイル、実行時の Python 外部依存はゼロ。 Python 3.11 以降、Linux（Ubuntu / WSL の Ubuntu）の bash/zsh を対象とする。 macOS では GNU コマンド…",
-      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/OneLinearNumerousMemo/main/README.md"
+      "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/OneLaunchNumerousModules/main/README.md"
     },
     {
       "name": "OnTautoLogy",
