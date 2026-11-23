@@ -45,8 +45,8 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
              '版の固定：<code>pyproject.toml</code> で commit を固定し、生成した CSS/JS の SHA-256 を <code>web-ui-assets.lock.json</code> に記録'],
   'links': [('Open UI Catalog →', 'https://myon-bioinformatics.github.io/PySaiyanWeBoo/')]},
  {'title': '📚 Project pages',
-  'text': '固定したコミットで記録した実行例・図や GIF・スクリプト一覧を1ページずつ（Err-o-RoadRunner・search_seq・TalkCompress・BrowserTestKit・NVD、Aoi '
-          'の各サブプロジェクト）。各ページから 🌐 そのリポジトリの Pages へ。',
+  'text': '固定したコミットで記録した実行例・図や GIF・スクリプト一覧を1ページずつ（Err-o-RoadRunner・search_seq・TalkCompress・BrowserTestKit・NVD、'
+          'QueRyu・BlueProbe・SakAnalytics・PythDRagoras・DRAgoWing）。各ページから 🌐 そのリポジトリの Pages へ。',
   'id': 'projects-pages',
   'links': [('Open Project pages →', './tools/projects/')]},
  {'title': '📝 markdown.py',
@@ -408,7 +408,7 @@ SHELL = '''<!doctype html>
 
     <section id="projects" class="container">
       <h2>🚀 Projects</h2>
-      <p class="section-sub">All public repositories, including archived work. Active projects appear first.</p>
+      <p class="section-sub">Each card is a public repository: the title opens GitHub, 🌐 Pages opens the live site when there is one, and 📄 opens a recorded example on this portfolio.</p>
       <div class="projects-controls" id="projects-controls">
         <div class="project-search-wrap">
           <input class="ui-input" type="search" id="project-search-input" placeholder="Search projects by name, description, or topic..." aria-label="Search projects">

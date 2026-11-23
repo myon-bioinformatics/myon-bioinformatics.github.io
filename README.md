@@ -60,14 +60,19 @@ the JSON-driven repository cards: adding a new live tool requires updating both
 `index.html` and `tests/test_site.py`, so the destination and its HTTPS
 Pages-host contract are reviewed together.
 
-Ironmate now has a local metadata card (`project-ironmate.json`) and a repository link;
-its retired MCP stub does not need a dedicated Pages deployment. Live destinations include mcp-toolcall-lab,
-flutter_navigation_basic, and web-ui.
+Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Live destinations include Ironmate (Image Studio, Browser Tools, and Slide Studio), mcp-toolcall-lab, and PySaiyanWeBoo.
 
-## 🚀 Projects (JSON-driven cards)
-Projects displays only public, non-archived repositories from the `api/repos.json` catalog. The full candidate pool is collected first and then shuffled, so each page load shows a new order. Search and topic filters work together across all five display modes. Topic controls expand on demand so the full catalog remains easy to reach on mobile. Cards, tags, inputs and copy buttons use the same pinned web-ui stylesheets already used by this portfolio’s tool pages (`tools/vendor/web-ui/`, source identity in `vendor.lock.json`). Local CSS only adds catalog layout, mode mapping and filter state; no second component stylesheet is vendored.
+## 🚀 Projects
+The Projects section on the [site](https://myon-bioinformatics.github.io) is a hub of every public, non-archived repository.
 
-`projects.json` supplies optional curated descriptions and extra topics for matching repositories. It never limits catalog membership, and repository URLs always come from `api/repos.json`. If curation is unavailable, repository descriptions (then README summaries) are used. A missing catalog shows a load error instead of a misleading partial list.
+- Each card states what the project is.
+- The project name opens the GitHub repository. **Copy URL** copies that same address.
+- **🌐 Pages** opens the project's live GitHub Pages site, when it has one.
+- **📄** opens a portfolio page with a recorded example, when the project has a showcase.
+
+Search and topic filters work together across all five display modes. Topic controls expand on demand so the full catalog remains easy to reach on mobile. The candidate pool is shuffled on each page load. Cards, tags, inputs and copy buttons use the same pinned web-ui stylesheets already used by this portfolio’s tool pages (`tools/vendor/web-ui/`, source identity in `vendor.lock.json`). Local CSS only adds catalog layout, mode mapping and filter state; no second component stylesheet is vendored.
+
+`api/repos.json` is the source of truth for membership and repository URLs; archived repositories are not shown. `projects.json` may add a curated description, extra topics, and an optional showcase; it cannot add a repository that is absent from the catalog. If curation is unavailable, the catalog description (then the README summary) is used. A missing catalog shows a load error instead of a misleading partial list.
 
 The catalog refresh runs daily at 06:00 JST. A successful `Update repos API` run on `main` triggers the existing Pages deployment through `workflow_run`, which checks out the refreshed `main`. This explicit handoff is required because catalog commits pushed with `GITHUB_TOKEN` do not trigger `push` workflows. Failed or cancelled refreshes do not publish a new site.
 
