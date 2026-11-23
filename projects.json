@@ -12,7 +12,7 @@
     "showcase": {
       "label": "🧬 配列検索",
       "repository": "myon-bioinformatics/search_seq_including_spaces",
-      "commit": "5c6941e2b61f11986b03c50774f4c3fab38472c7",
+      "commit": "9c62ca88b23793136832016c625daa536f92914e",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -89,7 +89,7 @@
     "showcase": {
       "label": "🔵 BlueProbe",
       "repository": "myon-bioinformatics/BlueProbe",
-      "commit": "89138d3f49b3b70dc60780755061233f8b6ad63a",
+      "commit": "556e3eae0ef01b1209f074a8f91e7a53209dcdb1",
       "icon": "docs/brand/icon.png",
       "run": {
         "command": [
@@ -276,7 +276,7 @@
     "showcase": {
       "label": "🐦 Err-o-RR",
       "repository": "myon-bioinformatics/Err-o-RoadRunner",
-      "commit": "218cf668786bafc8cb3013100008d28f42dd6689",
+      "commit": "f0a4c9649b184970914b289f07694864d9db4dbc",
       "icon": "docs/assets/icon.png",
       "media": [
         {
@@ -313,7 +313,7 @@
     "showcase": {
       "label": "🛡️ NVD",
       "repository": "myon-bioinformatics/nvd_nist_known_vulns",
-      "commit": "b41ae25927b513770a9321f394f915ea45df377f",
+      "commit": "b9206a649e5c4c127c756f965b056689dab371ad",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -345,7 +345,7 @@
     "showcase": {
       "label": "🧪 BTK",
       "repository": "myon-bioinformatics/BrowserTestKit",
-      "commit": "92f20e11d4782da87036b90792ab085a1e685072",
+      "commit": "60002a8303cabbc46d04f6170068aa060a96788f",
       "icon": "docs/assets/brand/validation-buddy.png",
       "media": [
         {
@@ -553,7 +553,7 @@
     "showcase": {
       "label": "🗜️ 会話圧縮",
       "repository": "myon-bioinformatics/TalkCompress",
-      "commit": "682fedbb86ff85a10afd21d1cd8cf4f863c02515",
+      "commit": "f84c5251cac14142e3b10c34ec6c13f406307e54",
       "media": [
         {
           "src": "docs/evidence/browser.gif",
