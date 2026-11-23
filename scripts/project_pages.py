@@ -1,7 +1,7 @@
 """Generate the shared browser assets from the pinned PySaiyanWeBoo dependency.
 
-The generator is the ``pysaiyanweboo`` module installed from ``requirements-pages.txt`` (a git
-dependency pinned by commit). ``web-ui-assets.lock.json`` records that commit and the
+The generator is the ``pysaiyanweboo`` module from the ``pages`` dependency group (a git dependency
+pinned by commit in ``pyproject.toml``; ``uv run --locked --only-group pages`` installs it). ``web-ui-assets.lock.json`` records that commit and the
 SHA-256 of every output, so a build fails closed when the installed module is not the
 pinned commit or when its output drifted from the lock. The generated files are not kept in git: ``--output DIR``
 writes them (Pages overlays them on its build), ``--stage DIR`` writes the whole site for tests and local previews,
@@ -67,11 +67,11 @@ DEMOS = {
 def installed_commit(distribution: str = DISTRIBUTION) -> str:
     """The git commit the installed generator came from (pysaiyanweboo.installed_commit, i.e. pip's install record)."""
     if distribution != DISTRIBUTION:
-        raise ValueError(f'{distribution} is not installed (pip install -r requirements-pages.txt)')
+        raise ValueError(f'{distribution} is not installed (uv run --locked --only-group pages)')
     try:
         import pysaiyanweboo
     except ImportError as exc:
-        raise ValueError(f'{distribution} is not installed (pip install -r requirements-pages.txt)') from exc
+        raise ValueError(f'{distribution} is not installed (uv run --locked --only-group pages)') from exc
     commit = pysaiyanweboo.installed_commit()
     if not commit:
         raise ValueError(f'{distribution} was not installed from its git source')
@@ -79,18 +79,18 @@ def installed_commit(distribution: str = DISTRIBUTION) -> str:
 
 
 def pinned_commit(root: Path = ROOT) -> str:
-    """Read the immutable dependency pin; refresh must never adopt another install."""
-    requirement = (root / 'requirements-pages.txt').read_text(encoding='utf-8')
-    pins = re.findall(r'^pysaiyanweboo @ git\+https://github\.com/myon-bioinformatics/PySaiyanWeBoo@([0-9a-f]{40})$',
-                      requirement, re.MULTILINE)
-    if len(pins) != 1:
+    """Read the immutable dependency pin ([tool.uv.sources] in pyproject.toml); refresh must never adopt another install."""
+    import tomllib
+    sources = tomllib.loads((root / 'pyproject.toml').read_text(encoding='utf-8')).get('tool', {}).get('uv', {}).get('sources', {})
+    source, rev = sources.get(DISTRIBUTION, {}), sources.get(DISTRIBUTION, {}).get('rev', '')
+    if source.get('git') != 'https://github.com/myon-bioinformatics/PySaiyanWeBoo' or not re.fullmatch(r'[0-9a-f]{40}', rev):
         raise ValueError('expected one full PySaiyanWeBoo commit pin')
-    return pins[0]
+    return rev
 
 
 def verify_pin(commit: str, root: Path = ROOT) -> None:
     if commit != pinned_commit(root):
-        raise ValueError('installed generator differs from requirements-pages.txt pin')
+        raise ValueError('installed generator differs from the pyproject.toml pin')
 
 
 def render(ui) -> dict[str, bytes]:
@@ -423,7 +423,7 @@ def refresh_lock(root: Path = ROOT) -> dict:
     payload, pages = render(ui), render_pages(ui, root)
     lock = {
         'schema': 'web-ui-generated/2',
-        'generator': 'pysaiyanweboo (requirements-pages.txt)',
+        'generator': 'pysaiyanweboo (pyproject.toml pages group)',
         'commit': commit,
         'outputs': {target: hashlib.sha256(data).hexdigest() for target, data in payload.items()},
         'pages': {target: hashlib.sha256(data).hexdigest() for target, data in pages.items()},

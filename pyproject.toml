@@ -7,7 +7,9 @@ requires-python = ">=3.11"
 dependencies = []
 
 [dependency-groups]
-docker-test = ["pytest>=9.1.1", "pysaiyanweboo", "gh-identity-dev"]
+# The shared Web UI generator (scripts/project_pages.py); its commit is pinned once, in [tool.uv.sources] below.
+pages = ["pysaiyanweboo"]
+docker-test = ["pytest>=9.1.1", { include-group = "pages" }, "gh-identity-dev"]
 test = [{ include-group = "docker-test" }, "stagehand>=4.2.1"]
 browser = [{ include-group = "test" }, "playwright>=1.64.0"]
 

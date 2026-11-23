@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 @pytest.mark.parametrize("major", [24, 25])
 @pytest.mark.parametrize("explicit", [False, True])
 def test_pinned_web_ui_reports_rejected_node_version(monkeypatch, major, explicit):
-    import pysaiyanweboo as ui  # the pinned PySaiyanWeBoo from requirements-pages.txt
+    import pysaiyanweboo as ui  # the pinned PySaiyanWeBoo (pyproject.toml pages group)
     launcher = ui._njs_launch_module()
     message = f"node_launch: Node must be 26 or newer (found {major})"
     if explicit:
@@ -193,10 +193,8 @@ def test_stagehand_v4_python_surface():
 
 def test_installed_generator_is_the_pinned_commit():
     lock = json.loads((ROOT / 'web-ui-assets.lock.json').read_text())
-    pin = (ROOT / 'requirements-pages.txt').read_text()
     assert lock['schema'] == 'web-ui-generated/2'
-    assert assets.installed_commit() == lock['commit']
-    assert f'PySaiyanWeBoo@{lock["commit"]}' in pin
+    assert assets.installed_commit() == lock['commit'] == assets.pinned_commit()
 
 
 def test_generated_files_match_the_lock_and_are_not_committed(tmp_path):
@@ -218,7 +216,7 @@ def test_tampering_fails_before_writing(tmp_path, tamper, monkeypatch):
     root = tmp_path / 'source'
     root.mkdir()
     shutil.copyfile(ROOT / 'web-ui-assets.lock.json', root / 'web-ui-assets.lock.json')
-    shutil.copyfile(ROOT / 'requirements-pages.txt', root / 'requirements-pages.txt')
+    shutil.copyfile(ROOT / 'pyproject.toml', root / 'pyproject.toml')
     lock_path = root / 'web-ui-assets.lock.json'
     lock = json.loads(lock_path.read_text())
     if tamper == 'output':
@@ -250,8 +248,15 @@ def test_source_output_is_rejected():
 
 def test_dependency_pins_agree():
     import tomllib
-    project = tomllib.loads((ROOT / 'pyproject.toml').read_text())
-    assert project['tool']['uv']['sources']['pysaiyanweboo']['rev'] == assets.pinned_commit()
+    lock = tomllib.loads((ROOT / 'uv.lock').read_text())
+    [package] = [p for p in lock['package'] if p['name'] == assets.DISTRIBUTION]
+    assert package['source']['git'].endswith('#' + assets.pinned_commit())   # uv.lock resolves the one pyproject pin
+
+
+def test_malformed_pin_is_rejected(tmp_path):
+    (tmp_path / 'pyproject.toml').write_text('[tool.uv.sources]\npysaiyanweboo = { git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo", rev = "main" }\n')
+    with pytest.raises(ValueError, match='full PySaiyanWeBoo commit pin'):
+        assets.pinned_commit(tmp_path)
 
 
 def test_explicit_main_ignores_process_arguments(tmp_path, monkeypatch):
@@ -275,7 +280,7 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     import sys
     root = tmp_path / 'source'
     (root / 'scripts').mkdir(parents=True)
-    shutil.copyfile(ROOT / 'requirements-pages.txt', root / 'requirements-pages.txt')
+    shutil.copyfile(ROOT / 'pyproject.toml', root / 'pyproject.toml')
     shutil.copyfile(ROOT / 'scripts/project_pages.py', root / 'scripts/project_pages.py')
     shutil.copyfile(ROOT / 'scripts/front_page.py', root / 'scripts/front_page.py')         # the front page is generated too
     shutil.copyfile(ROOT / 'scripts/map_tool.py', root / 'scripts/map_tool.py')
@@ -303,7 +308,7 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
 def test_failed_refresh_preserves_previous_snapshot(tmp_path, monkeypatch, failure):
     root = tmp_path / 'source'
     shutil.copytree(ROOT / 'tools/vendor/web-ui', root / 'tools/vendor/web-ui')
-    for name in ['requirements-pages.txt', 'web-ui-assets.lock.json']:
+    for name in ['pyproject.toml', 'web-ui-assets.lock.json']:
         shutil.copyfile(ROOT / name, root / name)
     before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
     if failure == 'commit':

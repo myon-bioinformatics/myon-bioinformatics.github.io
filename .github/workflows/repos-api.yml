@@ -54,9 +54,8 @@ jobs:
       - name: Advance showcases to their newest commits
         shell: bash
         run: |
-          uv pip install --quiet -r requirements-pages.txt
           # ⏩ moved · = unchanged · ⏸ kept (reason) — one line per showcase, also in the run summary.
-          python scripts/project_pages.py --advance --refresh-lock 2>&1 >/dev/null | tee -a "$GITHUB_STEP_SUMMARY"
+          uv run --locked --only-group pages python scripts/project_pages.py --advance --refresh-lock 2>&1 >/dev/null | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Commit refreshed API and showcases when they changed
         env:

@@ -1,6 +1,6 @@
 {
   "schema": "web-ui-generated/2",
-  "generator": "pysaiyanweboo (requirements-pages.txt)",
+  "generator": "pysaiyanweboo (pyproject.toml pages group)",
   "commit": "acf53d8f0eee8fff28f9e395c0e02dc65ae4f1e2",
   "outputs": {
     "tools/vendor/web-ui/css/base.css": "3326d1b1911bea03fa3b51253777a87483cc3b09c44d8a2a736aee5d2f95f07c",

@@ -37,10 +37,9 @@ def test_browser_lane_installs_locked_python_playwright():
 
 def test_vendor_asset_checks_use_installed_pinned_generator():
     workflow = fleet.workflow_job(ROOT, 'vendor-locked', 'vendor-lock.yml')
-    install = "uv pip install -r requirements-pages.txt"
-    generate = "python scripts/project_pages.py --output"
+    generate = "uv run --locked --only-group pages python scripts/project_pages.py --output"   # the one pyproject pin
     assert "activate-environment: true" in workflow
-    assert workflow.index(install) < workflow.index(generate)
+    assert "requirements" not in workflow and "pip install" not in workflow
     assert workflow.count(generate) == 2
     assert "python -S scripts/project_pages.py" not in workflow
     assert 'diff -r "$RUNNER_TEMP/web-ui-assets" "$RUNNER_TEMP/web-ui-assets-repeat"' in workflow

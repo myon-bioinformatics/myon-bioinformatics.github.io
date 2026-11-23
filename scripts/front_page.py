@@ -45,7 +45,7 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
              '他リポジトリのページ取り込み：<code>adopt_document</code> で lab 独自クラスを <code>ui-*</code> に置換し、挙動は元のまま',
              '安全な表示：<code>ui.js</code> の <code>setText</code>（textContent のみ）と <code>prettyJson</code>',
              '画面切替と外部リンク：<code>navigation.js</code> の <code>bindViews</code>（Home / Wiki / Pixiv）と <code>openExternalURL</code>',
-             '版の固定：<code>requirements-pages.txt</code> で commit を固定し、生成した CSS/JS の SHA-256 を <code>web-ui-assets.lock.json</code> に記録'],
+             '版の固定：<code>pyproject.toml</code> で commit を固定し、生成した CSS/JS の SHA-256 を <code>web-ui-assets.lock.json</code> に記録'],
   'links': [('Open UI Catalog →', 'https://myon-bioinformatics.github.io/PySaiyanWeBoo/')]},
  {'title': '📚 Project pages',
   'text': 'GitHub Pages を持たないプロジェクトにも1ページずつ：アイコン、図や GIF、固定したコミットで記録した実行例（Err-o-RoadRunner・search_seq・TalkCompress・BrowserTestKit・NVD、Aoi '

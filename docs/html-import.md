@@ -10,7 +10,7 @@ PythonサーバーはPagesの実行基盤ではなく、生成・検証に限る
   最新契約には複数articleと小さいselector集合も含まれる。
 - PSWBのPython API `html_import_files()` が画面とブラウザ用抽出モジュールを生成する。
   ポートフォリオは共有CSS・JSの配置先、説明リンク、戻る導線、ホーム画面アイコンを指定する。
-  使用するPSWBのコミットは `requirements-pages.txt`、生成物のハッシュは `web-ui-assets.lock.json` に記録する。
+  使用するPSWBのコミットは `pyproject.toml` の `[tool.uv.sources]`、生成物のハッシュは `web-ui-assets.lock.json` に記録する。
   ブラウザから利用する抽出関数は従来どおり `extract.mjs` が公開する。
 
 ## 入出力と再利用
