@@ -12,7 +12,7 @@
     "showcase": {
       "label": "🧬 配列検索",
       "repository": "myon-bioinformatics/search_seq_including_spaces",
-      "commit": "850815d5bda6fa53d7fc5696034e6f109042b202",
+      "commit": "a4d8c9e7f287a4703b1da80722a17e5a9d880bb0",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -64,7 +64,7 @@
     "showcase": {
       "label": "🐉 QueRyu",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "e7790a368788943c3907dde156544e04e41d2daf",
+      "commit": "cd9589c9269e075b4225011b6ca0121ac99b7388",
       "path": "queryu/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -90,7 +90,7 @@
     "showcase": {
       "label": "🔵 BlueProbe",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "e7790a368788943c3907dde156544e04e41d2daf",
+      "commit": "cd9589c9269e075b4225011b6ca0121ac99b7388",
       "path": "blueprobe/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -119,7 +119,7 @@
     "showcase": {
       "label": "📊 SakAna",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "e7790a368788943c3907dde156544e04e41d2daf",
+      "commit": "cd9589c9269e075b4225011b6ca0121ac99b7388",
       "path": "sakanalytics/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -149,7 +149,7 @@
     "showcase": {
       "label": "📐 PythDR",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "e7790a368788943c3907dde156544e04e41d2daf",
+      "commit": "cd9589c9269e075b4225011b6ca0121ac99b7388",
       "path": "pythdragoras/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -185,7 +185,7 @@
     "showcase": {
       "label": "🪽 DRAgo",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "e7790a368788943c3907dde156544e04e41d2daf",
+      "commit": "cd9589c9269e075b4225011b6ca0121ac99b7388",
       "path": "",
       "icon": "dragowing/docs/brand/icon.png",
       "run": {
@@ -194,7 +194,7 @@
           "-c",
           "python3 -S aoi.py dragowing cycles/c001-chunichi/outputs --out /tmp/dragowing-out && wc -c /tmp/dragowing-out/*.html && grep -o \"<h2>[^<]*\" /tmp/dragowing-out/index.html"
         ],
-        "output": "📦 markdown.py（vendor/markdown）\n📄 file:///tmp/dragowing-out/index.html 163893 B · 📊 trajectory, heatmap, overlap_grid, overlap_breakdown\n📄 file:///tmp/dragowing-out/propositions.html 2011995 B · 🧾 145\n 163893 /tmp/dragowing-out/index.html\n2011995 /tmp/dragowing-out/propositions.html\n2175888 total\n<h2>得点順位 × 失点順位\n<h2>球団 × 年（\n<h2>条件集合の重なり",
+        "output": "📦 markdown.py（vendor/markdown）\n📄 file:///tmp/dragowing-out/index.html 164027 B · 📊 trajectory, heatmap, overlap_grid, overlap_breakdown\n📄 file:///tmp/dragowing-out/propositions.html 2011995 B · 🧾 145\n 164027 /tmp/dragowing-out/index.html\n2011995 /tmp/dragowing-out/propositions.html\n2176022 total\n<h2>得点順位 × 失点順位\n<h2>球団 × 年（\n<h2>条件集合の重なり",
         "exit": 0
       }
     }
@@ -281,7 +281,7 @@
     "showcase": {
       "label": "🐦 Err-o-RR",
       "repository": "myon-bioinformatics/Err-o-RoadRunner",
-      "commit": "90c62ea96afac636fab5ecc36c5cce10a0402e21",
+      "commit": "1e3e29b4de1f2092cd7ba6be590124da03368d1d",
       "icon": "docs/assets/icon.png",
       "media": [
         {
@@ -318,7 +318,7 @@
     "showcase": {
       "label": "🛡️ NVD",
       "repository": "myon-bioinformatics/nvd_nist_known_vulns",
-      "commit": "67290d89331ab6c9c0f1f66ae71960de8684982c",
+      "commit": "192154e74c2cbf68e1690d146eef40a2337a7ccd",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -350,7 +350,7 @@
     "showcase": {
       "label": "🧪 BTK",
       "repository": "myon-bioinformatics/BrowserTestKit",
-      "commit": "e14875817e038509e4651ff6af1a6e109c28bd7e",
+      "commit": "1accbd9946f4fa34d2241c1590e7feeec5aa290d",
       "icon": "docs/assets/brand/validation-buddy.png",
       "media": [
         {
@@ -568,7 +568,7 @@
     "showcase": {
       "label": "🗜️ 会話圧縮",
       "repository": "myon-bioinformatics/TalkCompress",
-      "commit": "3a99f292d30d0b9071d096868758efae650e6840",
+      "commit": "0b5b6f7710acc823bdd1092afc61077ef92c738e",
       "media": [
         {
           "src": "docs/evidence/browser.gif",
