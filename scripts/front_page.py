@@ -58,6 +58,10 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'text': 'リポジトリ横断の運用ダッシュボード：CI の失敗・競合・未解決レビューの優先確認、監査と依存、実行手順、記録と差分。',
   'id': 'operations',
   'links': [('Open Dashboard →', 'https://myon-bioinformatics.github.io/myon-bioinformatics/')]},
+ {'title': '🎞 GIF工房',
+  'text': '手持ちの画像を並べて GIF に。端末の中で完結し、画像はどこにも送らず保存もしない（PySaiyanWeBoo の gif.js）。',
+  'id': 'gif',
+  'links': [('GIF をつくる →', './tools/gif/')]},
  {'title': '🌐 Pages',
   'text': '各リポジトリの GitHub Pages：動かし方・利用ガイド・デモ。一覧は api/repos.json（GitHub の has_pages）から毎日つくり直す。',
   'id': 'guides',
@@ -96,11 +100,12 @@ MODES = {'modern': 'web', 'xml-like': 'xml', 'json': 'json', 'markdown': 'markdo
 NOTATION_CLASS = {'web': '', 'xml': 'notation-root xml-renderer', 'json': 'notation-root json-renderer', 'markdown': 'notation-root markdown-renderer'}
 
 
-def project_catalog(catalog: dict, curated: list) -> list[dict]:
+def project_catalog(catalog: dict, curated: list, samples=frozenset()) -> list[dict]:
     """The projects to show: every public, non-archived repository of ``api/repos.json``, with ``projects.json`` curation.
 
     The catalog owns name and URL; curation only adds a description and topics, and entries for repositories that are
-    not in the catalog are ignored."""
+    not in the catalog are ignored. ``samples`` (lower-case names) are the repositories whose 🎥 moving sample of their
+    Pages was recorded for this build (``media/pages/<name>.gif``, project_pages.py --record-samples)."""
     if not isinstance(catalog.get('repos'), list):
         raise ValueError('Invalid repository catalog')
     overrides = {project['name']: project for project in curated}
@@ -118,6 +123,7 @@ def project_catalog(catalog: dict, curated: list) -> list[dict]:
             **({'pages': repo['pages']} if repo.get('pages') else {}),                     # 🌐 the repository's own Pages
             **({'page': f"https://myon-bioinformatics.github.io/tools/projects/{repo['name'].lower()}.html"}   # 📄 its portfolio page
                if 'showcase' in project else {}),
+            **({'sample': f"./media/pages/{repo['name'].lower()}.gif"} if repo.get('pages') and repo['name'].lower() in samples else {}),
         })
     return projects
 
@@ -242,6 +248,8 @@ def projects_html(projects: list[dict], notation: str) -> str:
             + f'<li>Source: {_link(p["url"])}</li></ul>')) for p in projects)
     cards = ''.join(unit(p, (
         f'<h3 class="ui-title">{_link(p["url"], p["name"])}</h3>' + ('<span class="ui-tag project-status">Archived</span>' if p['archived'] else '')
+        + (f'<a class="project-sample" href="{_a(p["pages"])}"><img src="{_a(p["sample"])}" alt="🎥 {_a(p["name"])} の Pages" '
+           'loading="lazy" width="240" height="456"></a>' if p.get('sample') else '')
         + f'<p class="ui-muted">{_e(p["desc"])}</p><div class="project-topics">' + ''.join(
             f'<span class="ui-tag" data-topic="{_a(topic)}" style="cursor: pointer" title="Filter by {_a(topic)}">{_e(topic)}</span>'
             for topic in p['topics'][:6])
@@ -312,12 +320,12 @@ def theme_options(ui) -> str:
         f'<option value="{_a(name)}">{mark.get(name, "🎨")} {_e(name)}</option>' for name in ui.theme_palettes())
 
 
-def document(root: Path | None = None, ui=None) -> str:
+def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
     root = Path(__file__).resolve().parents[1] if root is None else Path(root)
     if ui is None:
         import pysaiyanweboo as ui
     read = lambda name: json.loads((root / name).read_text(encoding='utf-8'))
-    profile, projects = read('profile.json'), project_catalog(read('api/repos.json'), read('projects.json'))
+    profile, projects = read('profile.json'), project_catalog(read('api/repos.json'), read('projects.json'), samples)
     palettes = ''.join(ui.theme_css(name, tokens) for name, tokens in ui.theme_palettes().items())
     data = (f'<script type="application/json" id="projects-data">{_inline_json([{k: p[k] for k in ("name", "desc", "topics")} for p in projects])}</script>\n'
             f'<script type="application/json" id="page-data">{_inline_json({"modes": MODES, "fallback": AI_FALLBACK})}</script>\n')
@@ -1072,6 +1080,8 @@ body[data-view-mode="modern"] #projects .section-sub { color: var(--terminal-mut
 #projects .ui-title { margin: 0 0 .5rem; font-size: 1.05rem; }
 #projects .ui-button, #projects .ui-input { min-height: 44px; }
 .project-topics { display: flex; flex-wrap: wrap; gap: .4rem; font-size: .75rem; }
+.project-sample { display: block; margin: .5rem 0; }
+.project-sample img { display: block; width: 100%; max-width: 240px; height: auto; border-radius: 8px; }
 .project-card-actions { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
 .project-copy { cursor: pointer; font-size: .8rem; }
 .project-copy.copied { background: var(--ui-accent); color: var(--ui-bg); }

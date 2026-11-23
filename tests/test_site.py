@@ -80,6 +80,26 @@ def test_every_active_repository_with_pages_is_one_tap_away():
     assert not any(f"github.io/{name}/" in page for name in archived)                          # archived repositories leave the portal
 
 
+def test_front_page_shows_only_the_moving_samples_this_build_recorded(tmp_path):
+    """🎥 A card carries its repository's sample only when the deploy recorded it (media/pages/<name>.gif), linked to its Pages."""
+    front = _front()
+    catalog = json.loads((ROOT / "api/repos.json").read_text())
+    with_pages = [repo["name"] for repo in catalog["repos"] if repo.get("pages") and not repo.get("archived")]
+    assert "media/pages/" not in (SITE / "index.html").read_text(encoding="utf-8")             # nothing recorded, nothing shown
+    page = front.document(ROOT, samples=frozenset({with_pages[0].lower(), "no-such-repository"}))
+    assert page.count('class="project-sample"') == 1
+    assert f'<a class="project-sample" href="https://myon-bioinformatics.github.io/{with_pages[0]}/"><img src="./media/pages/{with_pages[0].lower()}.gif"' in page
+    (tmp_path / "media/pages").mkdir(parents=True)
+    (tmp_path / "media/pages" / f"{with_pages[1].lower()}.gif").write_bytes(b"GIF89a")
+    assert PAGES.recorded_samples(tmp_path) == {with_pages[1].lower()}
+
+
+def test_gif_workshop_page_keeps_images_in_the_browser():
+    page = (SITE / "tools/gif/index.html").read_text(encoding="utf-8")
+    assert 'id="gif-files"' in page and 'accept="image/*"' in page and "UiGif.Recorder" in page
+    assert "fetch(" not in page and "XMLHttpRequest" not in page and "localStorage" not in page   # nothing is sent or kept
+
+
 def test_catalog_pages_come_from_has_pages():
     spec = importlib.util.spec_from_file_location("repos_catalog_pages", ROOT / "scripts" / "repos_catalog.py")
     catalog = importlib.util.module_from_spec(spec)
@@ -153,7 +173,7 @@ def test_lab_pages_are_hosted_by_portfolio():
 
 # The demos (DEMOS) and project pages (projects.json showcases) come from scripts/project_pages.py; they are tool pages too.
 TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp-toolcall-lab/index.html", "tools/mcp-toolcall-lab/repository-diagnostics.html",
-              "tools/maps/index.html", "tools/maps/tokyo.html",
+              "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html",
               *sorted(str(path.relative_to(SITE)) for folder in ("demos", "projects") for path in (SITE / "tools" / folder).glob("*.html")))
 
 
