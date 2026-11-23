@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-23T05:52:16Z",
+  "generatedAt": "2026-11-23T08:39:04Z",
   "owner": "myon-bioinformatics",
   "count": 48,
   "repos": [
@@ -354,7 +354,7 @@
       "stars": 2,
       "updatedAt": "2026-11-21T06:28:57Z",
       "homepage": null,
-      "pages": null,
+      "pages": "https://myon-bioinformatics.github.io/flutter_navigation_basic/",
       "readmeHeading": "flutter_navigation_basic",
       "readmeSummary": "Dart / Flutter で書いた、画面遷移・ルーティング・共通UIの検証用の基盤アプリです。リポジトリには Web・iOS・Android のターゲット構成を含みます。",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/flutter_navigation_basic/main/README.md",
@@ -590,7 +590,7 @@
       "stars": 1,
       "updatedAt": "2026-10-14T02:02:30Z",
       "homepage": null,
-      "pages": null,
+      "pages": "https://myon-bioinformatics.github.io/mock_server_JS/",
       "readmeHeading": "Vue.js Mock Server Project",
       "readmeSummary": "This project provides a small browser demo and a Node.js mock API that can be used by other clients such as Flutter Web.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/mock_server_JS/main/README.md",

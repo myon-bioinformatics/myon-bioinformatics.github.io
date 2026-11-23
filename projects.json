@@ -12,7 +12,7 @@
     "showcase": {
       "label": "🧬 配列検索",
       "repository": "myon-bioinformatics/search_seq_including_spaces",
-      "commit": "a4d8c9e7f287a4703b1da80722a17e5a9d880bb0",
+      "commit": "2da3d3c66d277790779c1983582f89bf16a6377c",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -64,7 +64,7 @@
     "showcase": {
       "label": "🐉 QueRyu",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "cd9589c9269e075b4225011b6ca0121ac99b7388",
+      "commit": "87ec9a442c9b538bdef93fa3ad4015fc3d06b4da",
       "path": "queryu/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -90,7 +90,7 @@
     "showcase": {
       "label": "🔵 BlueProbe",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "cd9589c9269e075b4225011b6ca0121ac99b7388",
+      "commit": "87ec9a442c9b538bdef93fa3ad4015fc3d06b4da",
       "path": "blueprobe/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -119,7 +119,7 @@
     "showcase": {
       "label": "📊 SakAna",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "cd9589c9269e075b4225011b6ca0121ac99b7388",
+      "commit": "87ec9a442c9b538bdef93fa3ad4015fc3d06b4da",
       "path": "sakanalytics/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -149,7 +149,7 @@
     "showcase": {
       "label": "📐 PythDR",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "cd9589c9269e075b4225011b6ca0121ac99b7388",
+      "commit": "87ec9a442c9b538bdef93fa3ad4015fc3d06b4da",
       "path": "pythdragoras/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -185,7 +185,7 @@
     "showcase": {
       "label": "🪽 DRAgo",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "cd9589c9269e075b4225011b6ca0121ac99b7388",
+      "commit": "87ec9a442c9b538bdef93fa3ad4015fc3d06b4da",
       "path": "",
       "icon": "dragowing/docs/brand/icon.png",
       "run": {
@@ -281,7 +281,7 @@
     "showcase": {
       "label": "🐦 Err-o-RR",
       "repository": "myon-bioinformatics/Err-o-RoadRunner",
-      "commit": "1e3e29b4de1f2092cd7ba6be590124da03368d1d",
+      "commit": "4f07b0a23fb6c57db1160008d46f40f869ec57ac",
       "icon": "docs/assets/icon.png",
       "media": [
         {
@@ -350,7 +350,7 @@
     "showcase": {
       "label": "🧪 BTK",
       "repository": "myon-bioinformatics/BrowserTestKit",
-      "commit": "1accbd9946f4fa34d2241c1590e7feeec5aa290d",
+      "commit": "345dde190083151f037ab25eb04d6db9f01c7568",
       "icon": "docs/assets/brand/validation-buddy.png",
       "media": [
         {
