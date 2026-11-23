@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-23T08:39:04Z",
+  "generatedAt": "2026-11-23T09:28:33Z",
   "owner": "myon-bioinformatics",
   "count": 48,
   "repos": [
@@ -22,8 +22,8 @@
         "statistics"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-17T02:45:57Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:50:59Z",
+      "homepage": "https://myon-bioinformatics.github.io/Aoi/",
       "pages": "https://myon-bioinformatics.github.io/Aoi/",
       "readmeHeading": "Aoi",
       "readmeSummary": "📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/Aoi/) (GitHub Pages)",
@@ -48,8 +48,8 @@
         "text-graphics"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-11T20:01:36Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:00Z",
+      "homepage": "https://myon-bioinformatics.github.io/ascii_artist/",
       "pages": "https://myon-bioinformatics.github.io/ascii_artist/",
       "readmeHeading": "ascii_artist",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -138,11 +138,11 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-11T13:44:57Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:02Z",
+      "homepage": "https://myon-bioinformatics.github.io/BlueProbe/",
       "pages": "https://myon-bioinformatics.github.io/BlueProbe/",
       "readmeHeading": "BlueProbe",
-      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
+      "readmeSummary": "🌐 [GitHub Pages](https://myon-bioinformatics.github.io/BlueProbe/) · 🏠 [Portfolio](https://myon-bioinformatics.github.io/)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/BlueProbe/main/README.md"
     },
     {
@@ -164,11 +164,11 @@
         "typescript"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-21T12:27:19Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:04Z",
+      "homepage": "https://myon-bioinformatics.github.io/BrowserTestKit/",
       "pages": "https://myon-bioinformatics.github.io/BrowserTestKit/",
       "readmeHeading": "BrowserTestKit",
-      "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, screenshots, mobile web, and GitHub Actions. Stagehand and Replay lanes are planned but not yet implemented.",
+      "readmeSummary": "🌐 [GitHub Pages](https://myon-bioinformatics.github.io/BrowserTestKit/) · 🏠 [Portfolio](https://myon-bioinformatics.github.io/)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/BrowserTestKit/main/README.md"
     },
     {
@@ -188,8 +188,8 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-10T06:13:19Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:06Z",
+      "homepage": "https://myon-bioinformatics.github.io/cli_args/",
       "pages": "https://myon-bioinformatics.github.io/cli_args/",
       "readmeHeading": "cli_args",
       "readmeSummary": "📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/cli_args/) (GitHub Pages)",
@@ -286,8 +286,8 @@
         "static-html"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-11T13:42:28Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:08Z",
+      "homepage": "https://myon-bioinformatics.github.io/DRAgoWing/",
       "pages": "https://myon-bioinformatics.github.io/DRAgoWing/",
       "readmeHeading": "DRAgoWing",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -314,11 +314,11 @@
         "traceback"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-12T07:35:40Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:11Z",
+      "homepage": "https://myon-bioinformatics.github.io/Err-o-RoadRunner/",
       "pages": "https://myon-bioinformatics.github.io/Err-o-RoadRunner/",
       "readmeHeading": "Err-o-RoadRunner",
-      "readmeSummary": "Err-o-RoadRunner is a tool that does nothing in normal times. It starts working only after an error has happened. The name combines \"Error\" and \"Road Runner\".",
+      "readmeSummary": "🌐 [GitHub Pages](https://myon-bioinformatics.github.io/Err-o-RoadRunner/) · 🏠 [Portfolio](https://myon-bioinformatics.github.io/)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/Err-o-RoadRunner/main/README.md"
     },
     {
@@ -328,8 +328,8 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-11-12T11:12:55Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:12Z",
+      "homepage": "https://myon-bioinformatics.github.io/FluidFullSpeedSimulation/",
       "pages": "https://myon-bioinformatics.github.io/FluidFullSpeedSimulation/",
       "readmeHeading": "🌊 FluidFullSpeedSimulation",
       "readmeSummary": "📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/FluidFullSpeedSimulation/) (GitHub Pages)",
@@ -377,8 +377,8 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-11T20:01:56Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:14Z",
+      "homepage": "https://myon-bioinformatics.github.io/gh_identity/",
       "pages": "https://myon-bioinformatics.github.io/gh_identity/",
       "readmeHeading": "<img src=\"assets/branding/concept-c.svg\" width=\"40\" height=\"40\" alt=\"GHI search icon\"> gh_identity (GHI)",
       "readmeSummary": "Single-file, stdlib-only Python interface for portable GitHub identity and operations.",
@@ -490,8 +490,8 @@
         "typescript"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-11T08:12:16Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:16Z",
+      "homepage": "https://myon-bioinformatics.github.io/Ironmate/",
       "pages": "https://myon-bioinformatics.github.io/Ironmate/",
       "readmeHeading": "Ironmate",
       "readmeSummary": "The logo is **I’m with a 🔰 apostrophe**. The 6 variants are used by purpose; for now the favicon uses dark green, the README the Famicom style, the web UI the heatmap palette and the home-screen icon Pixel 3D, provisionally. The final version is undecided. Each variant can be saved from the [6-varia…",
@@ -538,8 +538,8 @@
         "standard-library"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-11T20:01:09Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:17Z",
+      "homepage": "https://myon-bioinformatics.github.io/markdown/",
       "pages": "https://myon-bioinformatics.github.io/markdown/",
       "readmeHeading": "markdown",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -565,8 +565,8 @@
         "tool-calling"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-13T11:21:13Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:19Z",
+      "homepage": "https://myon-bioinformatics.github.io/mcp-toolcall-lab/",
       "pages": "https://myon-bioinformatics.github.io/mcp-toolcall-lab/",
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "**Explore what needs to run, what can be reused, and how to verify the difference.**",
@@ -606,8 +606,8 @@
         "introduction"
       ],
       "stars": 3,
-      "updatedAt": "2026-11-14T11:52:01Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:21Z",
+      "homepage": "https://myon-bioinformatics.github.io/myon-bioinformatics/",
       "pages": "https://myon-bioinformatics.github.io/myon-bioinformatics/",
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
@@ -655,8 +655,8 @@
         "toml"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-12T01:20:15Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:23Z",
+      "homepage": "https://myon-bioinformatics.github.io/NagoyAction/",
       "pages": "https://myon-bioinformatics.github.io/NagoyAction/",
       "readmeHeading": "NagoyAction",
       "readmeSummary": "📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/NagoyAction/) (GitHub Pages)",
@@ -782,8 +782,8 @@
         "unittest"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-19T13:19:06Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:24Z",
+      "homepage": "https://myon-bioinformatics.github.io/OnTautoLogy/",
       "pages": "https://myon-bioinformatics.github.io/OnTautoLogy/",
       "readmeHeading": "OnTautoLogy",
       "readmeSummary": "オントロジーをトートロジーの水準まで持っていく、小さなナレッジグラフです。主張は 🤔 候補 → 🧮 規則で導出 → 👀 観測 → ✅ 証明 の段を上り、最上段は「見ていない場合も含めて常に成り立つ」＝トートロジーです。Python 3.11 以降の標準ライブラリだけで動き、取得・書き込み・マージ・CI 起動・LLM 呼び出しは行いません。",
@@ -796,8 +796,8 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-11-21T05:33:31Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:26Z",
+      "homepage": "https://myon-bioinformatics.github.io/ONTO/",
       "pages": "https://myon-bioinformatics.github.io/ONTO/",
       "readmeHeading": "<img src=\"docs/assets/onto-icon.png\" width=\"64\" height=\"64\" alt=\"\"> ONTO",
       "readmeSummary": "オントロジーに絡むリポジトリを紐付ける、索引と、横断して使う Python API。",
@@ -826,7 +826,7 @@
       "homepage": "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
       "pages": "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
       "readmeHeading": "PySaiyanWeBoo",
-      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
+      "readmeSummary": "🌐 [GitHub Pages](https://myon-bioinformatics.github.io/PySaiyanWeBoo/) · 🏠 [Portfolio](https://myon-bioinformatics.github.io/)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/PySaiyanWeBoo/main/README.md"
     },
     {
@@ -853,11 +853,11 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-11T20:00:58Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:27Z",
+      "homepage": "https://myon-bioinformatics.github.io/PythDRagoras/",
       "pages": "https://myon-bioinformatics.github.io/PythDRagoras/",
       "readmeHeading": "PythDRagoras",
-      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
+      "readmeSummary": "🌐 [GitHub Pages](https://myon-bioinformatics.github.io/PythDRagoras/) · 🏠 [Portfolio](https://myon-bioinformatics.github.io/)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/PythDRagoras/main/README.md"
     },
     {
@@ -927,11 +927,11 @@
         "web-scraping"
       ],
       "stars": 2,
-      "updatedAt": "2026-11-14T14:22:00Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:29Z",
+      "homepage": "https://myon-bioinformatics.github.io/QueRyu/",
       "pages": "https://myon-bioinformatics.github.io/QueRyu/",
       "readmeHeading": "QueRyu",
-      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
+      "readmeSummary": "🌐 [GitHub Pages](https://myon-bioinformatics.github.io/QueRyu/) · 🏠 [Portfolio](https://myon-bioinformatics.github.io/)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/QueRyu/main/README.md"
     },
     {
@@ -955,11 +955,11 @@
         "synthetic-data"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-21T12:27:53Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:31Z",
+      "homepage": "https://myon-bioinformatics.github.io/SakAnalytics/",
       "pages": "https://myon-bioinformatics.github.io/SakAnalytics/",
       "readmeHeading": "SakAnalytics",
-      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
+      "readmeSummary": "🌐 [GitHub Pages](https://myon-bioinformatics.github.io/SakAnalytics/) · 🏠 [Portfolio](https://myon-bioinformatics.github.io/)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/SakAnalytics/main/README.md"
     },
     {
@@ -1006,11 +1006,11 @@
         "string-search"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-10T23:24:24Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:33Z",
+      "homepage": "https://myon-bioinformatics.github.io/search_seq_including_spaces/",
       "pages": "https://myon-bioinformatics.github.io/search_seq_including_spaces/",
       "readmeHeading": "search_seq_including_spaces",
-      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
+      "readmeSummary": "🌐 [GitHub Pages](https://myon-bioinformatics.github.io/search_seq_including_spaces/) · 🏠 [Portfolio](https://myon-bioinformatics.github.io/)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/search_seq_including_spaces/main/README.md"
     },
     {
@@ -1041,11 +1041,11 @@
         "tokenizer"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-10T14:33:04Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:35Z",
+      "homepage": "https://myon-bioinformatics.github.io/TalkCompress/",
       "pages": "https://myon-bioinformatics.github.io/TalkCompress/",
       "readmeHeading": "TalkCompress",
-      "readmeSummary": "TalkCompress は、**誰が、どの共有知識・規則を持てば理解できるかを条件に、意味を保てる短い表現を探す**実験リポジトリです。文字数・通信バイト数・LLM のトークン数を測り、人と機械が扱える表現の幅を広げます。",
+      "readmeSummary": "🌐 [GitHub Pages](https://myon-bioinformatics.github.io/TalkCompress/) · 🏠 [Portfolio](https://myon-bioinformatics.github.io/)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/TalkCompress/main/README.md"
     },
     {
@@ -1055,11 +1055,11 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-11-21T06:32:02Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:36Z",
+      "homepage": "https://myon-bioinformatics.github.io/TaxOntOy/",
       "pages": "https://myon-bioinformatics.github.io/TaxOntOy/",
       "readmeHeading": "TaxOntOy",
-      "readmeSummary": "[otl-relations.json](otl-relations.json) は OnTautoLogy の第一弾（監査）、第二弾（概念）、第三弾（事例）の関係を、分析したい意味に対応づける最小の分類表です。キーは OTL のグラフ JSON に現れる関係名です。元の辺の向きと ID を保持します。",
+      "readmeSummary": "🌐 [GitHub Pages](https://myon-bioinformatics.github.io/TaxOntOy/) · 🏠 [Portfolio](https://myon-bioinformatics.github.io/)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/TaxOntOy/main/README.md"
     },
     {
@@ -1069,11 +1069,11 @@
       "language": "Python",
       "topics": [],
       "stars": 1,
-      "updatedAt": "2026-11-21T05:33:20Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:38Z",
+      "homepage": "https://myon-bioinformatics.github.io/TopOntoLogy/",
       "pages": "https://myon-bioinformatics.github.io/TopOntoLogy/",
       "readmeHeading": "TopOntoLogy",
-      "readmeSummary": "**TopOntoLogy** は、Topology（トポロジー）と Ontology（オントロジー）を組み合わせた造語。",
+      "readmeSummary": "🌐 [GitHub Pages](https://myon-bioinformatics.github.io/TopOntoLogy/) · 🏠 [Portfolio](https://myon-bioinformatics.github.io/)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/TopOntoLogy/main/README.md"
     },
     {
@@ -1166,8 +1166,8 @@
         "typescript"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-11T20:01:48Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:39Z",
+      "homepage": "https://myon-bioinformatics.github.io/xprobe/",
       "pages": "https://myon-bioinformatics.github.io/xprobe/",
       "readmeHeading": "xprobe",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
@@ -1192,8 +1192,8 @@
         "troubleshooting"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-11T20:01:42Z",
-      "homepage": null,
+      "updatedAt": "2026-11-23T08:51:41Z",
+      "homepage": "https://myon-bioinformatics.github.io/yourself/",
       "pages": "https://myon-bioinformatics.github.io/yourself/",
       "readmeHeading": "yourself",
       "readmeSummary": "Single-file, standard-library Python tool for read-only inspection of host, OS, and runtime facts. Produces concise, copyable environment reports for troubleshooting and AI context.",

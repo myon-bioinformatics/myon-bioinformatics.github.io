@@ -12,7 +12,7 @@
     "showcase": {
       "label": "🧬 配列検索",
       "repository": "myon-bioinformatics/search_seq_including_spaces",
-      "commit": "2da3d3c66d277790779c1983582f89bf16a6377c",
+      "commit": "5c6941e2b61f11986b03c50774f4c3fab38472c7",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -281,7 +281,7 @@
     "showcase": {
       "label": "🐦 Err-o-RR",
       "repository": "myon-bioinformatics/Err-o-RoadRunner",
-      "commit": "4f07b0a23fb6c57db1160008d46f40f869ec57ac",
+      "commit": "218cf668786bafc8cb3013100008d28f42dd6689",
       "icon": "docs/assets/icon.png",
       "media": [
         {
@@ -318,7 +318,7 @@
     "showcase": {
       "label": "🛡️ NVD",
       "repository": "myon-bioinformatics/nvd_nist_known_vulns",
-      "commit": "192154e74c2cbf68e1690d146eef40a2337a7ccd",
+      "commit": "b41ae25927b513770a9321f394f915ea45df377f",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -350,7 +350,7 @@
     "showcase": {
       "label": "🧪 BTK",
       "repository": "myon-bioinformatics/BrowserTestKit",
-      "commit": "345dde190083151f037ab25eb04d6db9f01c7568",
+      "commit": "92f20e11d4782da87036b90792ab085a1e685072",
       "icon": "docs/assets/brand/validation-buddy.png",
       "media": [
         {
@@ -568,7 +568,7 @@
     "showcase": {
       "label": "🗜️ 会話圧縮",
       "repository": "myon-bioinformatics/TalkCompress",
-      "commit": "0b5b6f7710acc823bdd1092afc61077ef92c738e",
+      "commit": "682fedbb86ff85a10afd21d1cd8cf4f863c02515",
       "media": [
         {
           "src": "docs/evidence/browser.gif",
