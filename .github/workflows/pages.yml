@@ -62,6 +62,12 @@ jobs:
           uv run --locked --only-group samples python -m playwright install --with-deps chromium
           uv run --locked --only-group samples python scripts/project_pages.py --record-samples _site | tee -a "$GITHUB_STEP_SUMMARY"
 
+      # 🌊 FFSS's demo GIFs and DRAgoWing's figures from the same FFSS records (media/flow/, not kept in git).
+      - name: Record the flow lab (best effort)
+        continue-on-error: true
+        timeout-minutes: 10
+        run: uv run --locked --only-group pages python scripts/project_pages.py --record-flow _site | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Generate verified shared browser assets with the pinned generator (PySaiyanWeBoo)
         run: uv run --locked --only-group pages python scripts/project_pages.py --output _site
 
