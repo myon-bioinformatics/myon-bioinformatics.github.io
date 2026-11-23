@@ -20,5 +20,5 @@ package = false
 default-groups = ["test"]
 
 [tool.uv.sources]
-pysaiyanweboo = { git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo", rev = "acf53d8f0eee8fff28f9e395c0e02dc65ae4f1e2" }
+pysaiyanweboo = { git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo", rev = "a821355536a65b035c5780b68ca474771386dc29" }
 gh-identity-dev = { git = "https://github.com/myon-bioinformatics/gh_identity", rev = "3111c17213baa0f469500a765d0a59f6de8e1d41" }
