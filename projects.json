@@ -64,7 +64,7 @@
     "showcase": {
       "label": "🐉 QueRyu",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "62eba6e610f81db50cc051abf015dec7a00d0d80",
+      "commit": "657cf56f86a7ccc2fda5a56cd4c8948a8010ff10",
       "path": "queryu/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -73,7 +73,7 @@
           "-c",
           "cd .. && python3 -S aoi.py queryu --source npb_calendar --years 2024 --cache /tmp/queryu-cache --offline --plan"
         ],
-        "output": "観測:\n  日付: 2026-11-22\n  凍結シーズン: なし\n  再確認の対象年: なし\n  キャッシュ済み（再確認しない）: 0\n  条件付きGET: 0\n  再確認（条件なし）: 0\n  新規: 9\n  未来の月（取得しない）: 0\n  オフラインで不足するページ: 9\n解釈:\n  待ち時間の見積もり: 0 秒（間隔 3 秒を 0 回足した値）",
+        "output": "観測:\n  日付: 2026-11-23\n  凍結シーズン: なし\n  再確認の対象年: なし\n  キャッシュ済み（再確認しない）: 0\n  条件付きGET: 0\n  再確認（条件なし）: 0\n  新規: 9\n  未来の月（取得しない）: 0\n  オフラインで不足するページ: 9\n解釈:\n  待ち時間の見積もり: 0 秒（間隔 3 秒を 0 回足した値）",
         "exit": 0
       }
     }
@@ -90,7 +90,7 @@
     "showcase": {
       "label": "🔵 BlueProbe",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "62eba6e610f81db50cc051abf015dec7a00d0d80",
+      "commit": "657cf56f86a7ccc2fda5a56cd4c8948a8010ff10",
       "path": "blueprobe/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -119,7 +119,7 @@
     "showcase": {
       "label": "📊 SakAna",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "62eba6e610f81db50cc051abf015dec7a00d0d80",
+      "commit": "657cf56f86a7ccc2fda5a56cd4c8948a8010ff10",
       "path": "sakanalytics/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -149,7 +149,7 @@
     "showcase": {
       "label": "📐 PythDR",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "62eba6e610f81db50cc051abf015dec7a00d0d80",
+      "commit": "657cf56f86a7ccc2fda5a56cd4c8948a8010ff10",
       "path": "pythdragoras/",
       "icon": "docs/brand/icon.png",
       "run": {
@@ -185,7 +185,7 @@
     "showcase": {
       "label": "🪽 DRAgo",
       "repository": "myon-bioinformatics/Aoi",
-      "commit": "62eba6e610f81db50cc051abf015dec7a00d0d80",
+      "commit": "657cf56f86a7ccc2fda5a56cd4c8948a8010ff10",
       "path": "",
       "icon": "dragowing/docs/brand/icon.png",
       "run": {
@@ -281,7 +281,7 @@
     "showcase": {
       "label": "🐦 Err-o-RR",
       "repository": "myon-bioinformatics/Err-o-RoadRunner",
-      "commit": "9ebc5154f807fab18a53a660f39d95b3eb29e4cd",
+      "commit": "90c62ea96afac636fab5ecc36c5cce10a0402e21",
       "icon": "docs/assets/icon.png",
       "media": [
         {
