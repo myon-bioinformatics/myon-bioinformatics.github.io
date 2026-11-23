@@ -53,6 +53,15 @@ jobs:
           python-version: "3.15"
           enable-cache: false
 
+      # 🎥 A two-frame GIF of every repository's Pages for its card (media/pages/, not kept in git); a Pages that fails is
+      # listed as ⏸ in the summary, and a failed step only leaves the cards without samples.
+      - name: Record a moving sample of every repository's Pages (best effort)
+        continue-on-error: true
+        timeout-minutes: 10
+        run: |
+          uv run --locked --only-group samples python -m playwright install --with-deps chromium
+          uv run --locked --only-group samples python scripts/project_pages.py --record-samples _site | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Generate verified shared browser assets with the pinned generator (PySaiyanWeBoo)
         run: uv run --locked --only-group pages python scripts/project_pages.py --output _site
 

@@ -69,6 +69,45 @@ def browser():
             chromium.close()
 
 
+def _png(width, height, rgb):
+    """A solid-colour PNG (stdlib only) for the GIF tests."""
+    import struct
+    import zlib
+    chunk = lambda kind, data: struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+    rows = b"".join(b"\x00" + bytes(rgb) * width for _ in range(height))
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b""))
+
+
+# ═══ 🎞 GIF工房 and 🎥 moving samples (PySaiyanWeBoo gif.js) ═══════════════════════════════════════════════════
+
+def test_gif_workshop_turns_picked_images_into_one_gif(page, tmp_path):
+    (tmp_path / "red.png").write_bytes(_png(64, 48, (229, 57, 53)))
+    (tmp_path / "blue.png").write_bytes(_png(48, 64, (30, 136, 229)))
+    requests = []
+    page.on("request", lambda request: requests.append(request.url))
+    page.goto("/tools/gif/")
+    page.set_input_files("#gif-files", [str(tmp_path / "red.png"), str(tmp_path / "blue.png")])
+    page.check("#gif-names")
+    page.click("#gif-make")
+    expect(page.locator("#gif-status")).to_contain_text("✅ 2枚")
+    assert page.locator("#gif-save").get_attribute("href").startswith("blob:")
+    head = page.evaluate("async () => [...new Uint8Array(await (await fetch(document.getElementById('gif-preview').src)).arrayBuffer()).slice(0, 6)]")
+    assert bytes(head) == b"GIF89a"
+    assert all(url.startswith(page.url.split("/tools/")[0]) or url.startswith("blob:") for url in requests)   # nothing leaves the site
+
+
+def test_moving_sample_is_recorded_for_a_pages_url(site, browser, tmp_path):
+    spec = importlib.util.spec_from_file_location("project_pages_samples", ROOT / "scripts/project_pages.py")
+    pages = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pages)
+    lines = pages.record_samples(tmp_path, {"Portfolio": site[1] + "/index.html", "Gone": site[1] + "/no-such-page/"}, browser=browser)
+    gif = (tmp_path / "media/pages/portfolio.gif").read_bytes()
+    assert gif[:6] == b"GIF89a" and lines[0].startswith("🎥 Portfolio: 2 frames")
+    assert lines[1] == "⏸ Gone: RuntimeError: HTTP 404"                                   # an error page is not a sample
+    assert pages.recorded_samples(tmp_path) == {"portfolio"}
+
+
 def write_config(site, mode):
     site[0].joinpath("site.config.json").write_text(json.dumps({"defaultViewMode": mode}), encoding="utf-8")
 

@@ -156,11 +156,11 @@ def add_home_label(page: str, label: str, *, icons_from: str | None = None) -> s
     raise ValueError('page has no </title> or </head>')
 
 
-def render_front(root: Path = ROOT) -> dict[str, bytes]:
+def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
     """The portfolio's own front page (scripts/front_page.py), built from profile.json, api/repos.json and projects.json.
 
     It is not in the lock: api/repos.json is refreshed by a workflow, and the page must follow it without a lock refresh."""
-    return {'index.html': load_module('front_page', 'scripts/front_page.py').document(root).encode('utf-8')}
+    return {'index.html': load_module('front_page', 'scripts/front_page.py').document(root, samples=samples).encode('utf-8')}
 
 
 def render_demos(ui) -> dict[str, bytes]:
@@ -251,11 +251,122 @@ def render_projects(ui, root: Path = ROOT) -> dict[str, bytes]:
     return result
 
 
+# ── 🎞 GIF工房 and 🎥 the moving samples: both draw with PySaiyanWeBoo's gif.js (window.UiGif) ──────────────────────────
+GIF_PAGE = 'tools/gif/index.html'
+SAMPLES = 'media/pages/'          # 🎥 one moving sample per repository's Pages, recorded at deploy time (not kept in git)
+GIF_SIZES = ('240x432', '320x240', '480x360', '640x480', '392x704')   # canvas below the caption, multiples of 8
+GIF_SCRIPT = r"""(() => {
+  const $ = id => document.getElementById(id);
+  let url = null;
+  // 🖼 any image the browser can open → PNG, so the encoder sees one format (nothing leaves the page)
+  const png = async file => {
+    const bitmap = await createImageBitmap(file), canvas = document.createElement("canvas");
+    canvas.width = bitmap.width; canvas.height = bitmap.height;
+    canvas.getContext("2d").drawImage(bitmap, 0, 0);
+    return canvas.toDataURL("image/png").split(",")[1];
+  };
+  $("gif-files").addEventListener("change", () => {
+    $("gif-status").textContent = `🖼 ${$("gif-files").files.length}枚`;
+  });
+  $("gif-make").addEventListener("click", async () => {
+    const files = [...$("gif-files").files];
+    if (!files.length) { $("gif-status").textContent = "📂 画像を選んでください"; return; }
+    const [width, height] = $("gif-size").value.split("x").map(Number);
+    const delay = Number($("gif-delay").value), named = $("gif-names").checked;
+    $("gif-status").textContent = `⏳ ${files.length}枚…`;
+    try {
+      const recorder = new UiGif.Recorder({width, height, caption: named ? 32 : 0});
+      const frames = [];
+      for (const file of files) frames.push({png: await png(file), caption: named ? file.name : "", ok: true, delay});
+      await recorder.add(frames);
+      const bytes = Uint8Array.from(atob(recorder.encodeBase64({}).gif), c => c.charCodeAt(0));
+      if (url) URL.revokeObjectURL(url);
+      url = URL.createObjectURL(new Blob([bytes], {type: "image/gif"}));
+      $("gif-preview").src = url; $("gif-preview").hidden = false;
+      $("gif-save").href = url; $("gif-save").hidden = false;
+      $("gif-status").textContent = `✅ ${files.length}枚 · ${Math.max(1, Math.round(bytes.length / 1024))} KiB`;
+    } catch (error) {
+      $("gif-status").textContent = "⛔ " + error.message;
+    }
+  });
+})();"""
+
+
+def render_gif_tool(ui) -> dict[str, bytes]:
+    """🎞 GIF工房: images the visitor picks become one looping GIF in the page (gif.js); nothing is sent or stored."""
+    option = lambda value, label, chosen=False: f'<option value="{value}"{" selected" if chosen else ""}>{label}</option>'
+    body = ('<main class="ui-page"><h1 class="ui-title">🎞 GIF工房</h1>'
+            '<p class="ui-muted">🖼 画像を選ぶ → ▶ つくる → ⬇ 保存。端末の中だけで作り、画像はどこにも送らず、残しもしない。</p>'
+            '<p><label>📂 <input id="gif-files" type="file" accept="image/*" multiple></label></p>'
+            '<p><label>📐 <select id="gif-size">' + ''.join(option(s, s.replace('x', '×'), s == '480x360') for s in GIF_SIZES) + '</select></label> '
+            '<label>⏱ <select id="gif-delay">' + ''.join(option(ms, f'{ms} ms', ms == 600) for ms in (200, 400, 600, 1000, 1500)) + '</select></label> '
+            '<label>🏷 <input id="gif-names" type="checkbox"> ファイル名</label></p>'
+            '<p><button id="gif-make" type="button" class="ui-button">▶ つくる</button> '
+            '<a id="gif-save" class="ui-button" download="gif-kobo.gif" hidden>⬇ 保存</a> <span id="gif-status" role="status"></span></p>'
+            '<p><img id="gif-preview" alt="🎞 できた GIF" hidden style="max-width:100%;height:auto"></p></main>')
+    page = ui.render_document(trusted_html=body + ui.classic_script(ui.js_source('gif.js')) + ui.classic_script(GIF_SCRIPT),
+                              title='🎞 GIF工房', css=ui.bundled_css())       # the shared sheet (render_pages links it as css/bundle.css)
+    return {GIF_PAGE: add_home_label(add_back_nav(page), '🎞 GIF工房', icons_from='../../').encode('utf-8')}
+
+
+def recorded_samples(output: Path) -> frozenset[str]:
+    """The lower-case names whose 🎥 sample is under ``output`` (the front page shows only those)."""
+    return frozenset(path.stem for path in (Path(output) / SAMPLES).glob('*.gif'))
+
+
+def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), size=(240, 432), max_bytes=300_000,
+                   browser=None) -> list[str]:
+    """🎥 Open each Pages in Chromium at phone size, keep the top and one screen further down, and write a two-frame GIF
+    per repository as ``output/media/pages/<name>.gif`` with gif.js. Best effort: one line per repository (🎥 / ⏸).
+    ``browser``: a launched Playwright browser to use (a caller already inside Playwright); otherwise Chromium is started."""
+    if browser is None:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as playwright:
+            chromium = playwright.chromium.launch()
+            try:
+                return record_samples(output, pages, viewport=viewport, size=size, max_bytes=max_bytes, browser=chromium)
+            finally:
+                chromium.close()
+    import base64
+    import pysaiyanweboo as ui
+    folder = Path(output) / SAMPLES
+    folder.mkdir(parents=True, exist_ok=True)
+    lines = []
+    site_context, encoder_context = browser.new_context(viewport={'width': viewport[0], 'height': viewport[1]}, is_mobile=True,
+                                                        has_touch=True), browser.new_context()
+    try:
+        site, encoder = site_context.new_page(), encoder_context.new_page()
+        encoder.set_content(ui.gif_recorder_document())
+        for name, url in pages.items():
+            try:
+                response = site.goto(url, wait_until='load', timeout=30_000)
+                if response is None or response.status >= 400:
+                    raise RuntimeError(f'HTTP {response.status if response else "no response"}')
+                site.wait_for_timeout(800)
+                frames = [site.screenshot()]
+                site.evaluate('h => window.scrollBy(0, h)', viewport[1])
+                site.wait_for_timeout(500)
+                if (lower := site.screenshot()) != frames[0]:
+                    frames.append(lower)
+                encoder.evaluate('o => { window.rec = new UiGif.Recorder(o); }', {'width': size[0], 'height': size[1], 'caption': 24})
+                encoder.evaluate('items => rec.add(items)', [{'png': base64.b64encode(png).decode('ascii'), 'caption': f'🌐 {name}',
+                                                             'ok': True, 'delay': 1500} for png in frames])
+                gif = base64.b64decode(encoder.evaluate('o => rec.encodeBase64(o)', {'maxBytes': max_bytes})['gif'])
+                (folder / f'{name.lower()}.gif').write_bytes(gif)
+                lines.append(f'🎥 {name}: {len(frames)} frames · {len(gif) // 1024} KiB')
+            except Exception as exc:                       # one Pages failing keeps the rest (and the deploy) going
+                lines.append(f'⏸ {name}: {type(exc).__name__}: {str(exc).splitlines()[0][:120] if str(exc) else ""}')
+    finally:
+        site_context.close()
+        encoder_context.close()
+    return lines
+
+
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
-    """Every hash-locked page: demos, projects, HTML import and map tools, keyed by published path."""
+    """Every hash-locked page: demos, projects, HTML import, map tools and the GIF workshop, keyed by published path."""
     maps = {path: add_home_label(add_back_nav(document), '地図・ピン', icons_from='../../').encode('utf-8')
             for path, document in load_module('map_tool', 'scripts/map_tool.py').render(ui).items()}
-    pages = {**render_demos(ui), **render_projects(ui, root), **render_html_import(ui), **maps}
+    pages = {**render_demos(ui), **render_projects(ui, root), **render_html_import(ui), **maps, **render_gif_tool(ui)}
     for sheet, builder in STYLESHEET_BUNDLES.items():
         prefix = b'<style>' + getattr(ui, builder)().encode()
         for path, page in pages.items():
@@ -380,7 +491,7 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
     if set(lock['outputs']) != {HTML_IMPORT_MODULE, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
-    expected = ({DEMO_BASE + 'index.html', PROJECT_BASE + 'index.html', HTML_IMPORT_PAGE} | MAP_PAGES | {DEMO_BASE + name + '.html' for name in DEMOS}
+    expected = ({DEMO_BASE + 'index.html', PROJECT_BASE + 'index.html', HTML_IMPORT_PAGE, GIF_PAGE} | MAP_PAGES | {DEMO_BASE + name + '.html' for name in DEMOS}
                 | {_project_file(p) for p in showcases(root)})
     if set(lock.get('pages', {})) != expected:
         raise ValueError('generated page paths differ from the demo list, projects.json showcases and the HTML import page')
@@ -405,7 +516,7 @@ def validate_output(output: Path, root: Path = ROOT) -> None:
 
 def build(output: Path, root: Path = ROOT) -> None:
     validate_output(output, root)
-    payload = {**generate(root), **render_front(root)}  # Fail closed before touching any output.
+    payload = {**generate(root), **render_front(root, recorded_samples(output))}  # Fail closed before touching any output.
     for name, data in payload.items():
         path = output / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -458,6 +569,8 @@ def main(argv=None):
                         help='rewrite web-ui-assets.lock.json from the installed generator')
     parser.add_argument('--record', action='append', default=[], metavar='NAME=CHECKOUT', type=_name_checkout,
                         help="rerun NAME's showcase command and catalog its scripts in CHECKOUT (at the showcase commit), stored in projects.json; repeatable")
+    parser.add_argument('--record-samples', type=Path, metavar='DIR',
+                        help="🎥 record a moving sample of every repository's Pages under DIR/media/pages/ (Chromium; best effort)")
     parser.add_argument('--advance', action='store_true',
                         help="move every showcase to its repository's newest commit and record it there (keeps the pin when that would break the page)")
     args = parser.parse_args(argv)
@@ -473,14 +586,17 @@ def main(argv=None):
         if 'scripts' in show:
             items = show['scripts']['items']
             print(f"🧰 {name}: {len(items)} scripts, ❔ {sum(not i['summary'] for i in items)} without a description", file=sys.stderr)
+    if args.record_samples:
+        pages = {name: url for name, url in pages_urls().items() if url != 'https://myon-bioinformatics.github.io/'}
+        print('\n'.join(record_samples(args.record_samples, pages)))
     if args.refresh_lock:
         print(json.dumps(refresh_lock(), indent=2))
     if args.output:
         build(args.output)
     if args.stage:
         stage(args.stage)
-    if not args.refresh_lock and not args.output and not args.stage and not args.record and not args.advance:
-        parser.error('give --output DIR, --stage DIR, --refresh-lock, --advance and/or --record NAME=CHECKOUT')
+    if not (args.refresh_lock or args.output or args.stage or args.record or args.advance or args.record_samples):
+        parser.error('give --output DIR, --stage DIR, --refresh-lock, --advance, --record-samples DIR and/or --record NAME=CHECKOUT')
 
 
 if __name__ == '__main__':

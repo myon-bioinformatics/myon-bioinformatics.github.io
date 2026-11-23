@@ -32,7 +32,8 @@ def test_browser_lane_installs_locked_python_playwright():
     assert 'npm ci' not in browser and 'npx ' not in browser            # the front page lane needs no Node
     assert 'activate-environment: true' in browser
     groups = tomllib.loads((ROOT / 'pyproject.toml').read_text())['dependency-groups']
-    assert any(isinstance(item, str) and item.startswith('playwright>=') for item in groups['browser'])
+    assert {'include-group': 'samples'} in groups['browser']                         # Playwright comes with the 🎥 samples group
+    assert any(isinstance(item, str) and item.startswith('playwright>=') for item in groups['samples'])
 
 
 def test_vendor_asset_checks_use_installed_pinned_generator():

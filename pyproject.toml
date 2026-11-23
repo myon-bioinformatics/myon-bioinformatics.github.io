@@ -11,7 +11,9 @@ dependencies = []
 pages = ["pysaiyanweboo"]
 docker-test = ["pytest>=9.1.1", { include-group = "pages" }, "gh-identity-dev"]
 test = [{ include-group = "docker-test" }, "stagehand>=4.2.1"]
-browser = [{ include-group = "test" }, "playwright>=1.64.0"]
+# 🎥 project_pages.py --record-samples: the generator plus Playwright, nothing else (pages.yml records at deploy time).
+samples = [{ include-group = "pages" }, "playwright>=1.64.0"]
+browser = [{ include-group = "test" }, { include-group = "samples" }]
 
 [tool.uv]
 package = false
