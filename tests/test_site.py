@@ -94,6 +94,35 @@ def test_front_page_shows_only_the_moving_samples_this_build_recorded(tmp_path):
     assert PAGES.recorded_samples(tmp_path) == {with_pages[1].lower()}
 
 
+def test_flow_lab_pairs_one_ffss_run_with_its_dragowing_figure(tmp_path):
+    """🌊 collect_flow runs both tools on the same records and keeps a pair only when both of its files were made."""
+    import pysaiyanweboo as ui
+    ffss, dragowing = tmp_path / "ffss", tmp_path / "dragowing"
+    ffss.mkdir(); dragowing.mkdir()
+    (ffss / "fluidfullspeedsimulation.py").write_text(
+        "import sys, pathlib\n"
+        "a = sys.argv[1:]\n"
+        "if a[0] == 'run': pathlib.Path(a[a.index('--jsonl') + 1]).write_text('{\"id\": \"%s\", \"run\": \"x\"}\\n' % a[1])\n"
+        "else:\n"
+        "    out = pathlib.Path(a[a.index('--out-dir') + 1]); out.mkdir(parents=True)\n"
+        "    for d in a[a.index('--only') + 1:]: (out / (d + '_scene_water.gif')).write_bytes(b'GIF89a' + d.encode())\n")
+    made = [pair[3] for pair in PAGES.FLOW_PAIRS[1:]]                       # the first pair's figure is not drawn
+    (dragowing / "dragowing.py").write_text(
+        "import sys, pathlib\n"
+        "a = sys.argv[1:]\n"
+        "assert pathlib.Path(a[a.index('--ffss') + 1]).read_text().count('\\n') == 3   # E30, E31 and E32 records\n"
+        "svg = pathlib.Path(a[a.index('--out') + 1]) / 'svg'; svg.mkdir(parents=True)\n"
+        f"for f in {made!r}: (svg / (f + '.svg')).write_text('<svg/>')\n")
+    receipt = PAGES.collect_flow(tmp_path / "site", ffss, dragowing, {"ffss": "a" * 40, "dragowing": "b" * 40})
+    assert receipt["made"] == [pair[2] for pair in PAGES.FLOW_PAIRS[1:]]
+    assert (tmp_path / "site/media/flow" / f"{PAGES.FLOW_PAIRS[1][2]}.gif").read_bytes() == b"GIF89a" + PAGES.FLOW_PAIRS[1][2].encode()
+    page = PAGES.render_flow(ui, tmp_path / "site")[PAGES.FLOW_PAGE].decode()
+    assert page.count('src="../../media/flow/') == 2 * len(made) and page.count("⏸") == 1
+    assert "FFSS aaaaaaa" in page and "/tree/" + "b" * 40 in page
+    staged = (SITE / "tools/flow/index.html").read_text(encoding="utf-8")                # nothing recorded: every pair says ⏸
+    assert staged.count("⏸") == len(PAGES.FLOW_PAIRS) and "media/flow/" not in staged
+
+
 def test_gif_workshop_page_keeps_images_in_the_browser():
     page = (SITE / "tools/gif/index.html").read_text(encoding="utf-8")
     assert 'id="gif-files"' in page and 'accept="image/*"' in page and "UiGif.Recorder" in page
@@ -173,7 +202,7 @@ def test_lab_pages_are_hosted_by_portfolio():
 
 # The demos (DEMOS) and project pages (projects.json showcases) come from scripts/project_pages.py; they are tool pages too.
 TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp-toolcall-lab/index.html", "tools/mcp-toolcall-lab/repository-diagnostics.html",
-              "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html",
+              "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html", "tools/flow/index.html",
               *sorted(str(path.relative_to(SITE)) for folder in ("demos", "projects") for path in (SITE / "tools" / folder).glob("*.html")))
 
 

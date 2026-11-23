@@ -362,6 +362,84 @@ def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), 
     return lines
 
 
+# ── 🌊 流れの実験室: one FFSS run, seen twice — 🌊 how it moves (FFSS's demo GIF) and 📊 where it ends up (DRAgoWing) ──
+FLOW_PAGE = 'tools/flow/index.html'
+FLOW = 'media/flow/'                     # recorded at deploy time (pages.yml), with receipt.json; not kept in git
+FLOW_REPOSITORIES = {'ffss': 'myon-bioinformatics/FluidFullSpeedSimulation', 'dragowing': 'myon-bioinformatics/DRAgoWing'}
+FLOW_EXPERIMENTS = ('E30', 'E31', 'E32')
+# (icon, title, FFSS demo, DRAgoWing figure, the FFSS record behind both)
+FLOW_PAIRS = (('🫀', '血液の循環', 'D24', 'F09_blood-flow', 'E30 · blood'),
+              ('🪨', '石炭火力', 'D25', 'F01_energy-coal', 'E31 · energy:coal'),
+              ('🌀', 'LNG 複合（GTCC）', 'D26', 'F02_energy-gtcc', 'E31 · energy:lng'),
+              ('❄️', 'ヒートポンプ', 'D27', 'F05_balance-point', 'E32 · balance'),
+              ('🌅', '起動', 'D32', 'F06_startup', 'E31 · startup'))
+
+
+def collect_flow(output: Path, ffss: Path, dragowing: Path, commits: dict[str, str]) -> dict:
+    """Run FFSS's experiments and demos in ``ffss`` and DRAgoWing's figures from those same records in ``dragowing``
+    (both ``python -S``, standard library only), copy each pair's GIF and SVG to ``output/media/flow/`` and write the
+    receipt (commits and the pairs made) there; returns the receipt."""
+    folder = Path(output) / FLOW
+    folder.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        run = lambda cwd, *args: subprocess.run([sys.executable, '-S', *args], cwd=cwd, check=True, capture_output=True, timeout=900)
+        for experiment in FLOW_EXPERIMENTS:
+            run(ffss, 'fluidfullspeedsimulation.py', 'run', experiment, '--jsonl', str(tmp / f'{experiment}.jsonl'))
+        (tmp / 'records.jsonl').write_bytes(b''.join((tmp / f'{e}.jsonl').read_bytes() for e in FLOW_EXPERIMENTS))
+        run(ffss, 'fluidfullspeedsimulation.py', 'demos', '--out-dir', str(tmp / 'demos'), '--only', *(p[2] for p in FLOW_PAIRS))
+        run(dragowing, 'dragowing.py', '--ffss', str(tmp / 'records.jsonl'), '--out', str(tmp / 'figures'))
+        made = []
+        for icon, title, demo, figure, record in FLOW_PAIRS:
+            gif, svg = next(iter((tmp / 'demos').glob(f'{demo}_*.gif')), None), tmp / 'figures' / 'svg' / f'{figure}.svg'
+            if gif and svg.is_file():
+                shutil.copyfile(gif, folder / f'{demo}.gif')
+                shutil.copyfile(svg, folder / f'{figure}.svg')
+                made.append(demo)
+    receipt = {'schema': 'flow-lab/1', 'commits': commits, 'made': made}
+    (folder / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
+    return receipt
+
+
+def record_flow(output: Path, remote: str = 'https://github.com/') -> list[str]:
+    """🌊 Clone FFSS and DRAgoWing at their default branches and ``collect_flow``; one log line each (best effort)."""
+    with tempfile.TemporaryDirectory() as tmp:
+        dirs, commits = {}, {}
+        for key, repository in FLOW_REPOSITORIES.items():
+            dirs[key] = Path(tmp) / key
+            subprocess.run(['git', 'clone', '--quiet', '--depth', '1', remote + repository, str(dirs[key])], check=True, timeout=300)
+            commits[key] = subprocess.run(['git', '-C', str(dirs[key]), 'rev-parse', 'HEAD'], check=True, capture_output=True,
+                                          text=True).stdout.strip()
+        receipt = collect_flow(output, dirs['ffss'], dirs['dragowing'], commits)
+    return [f"🌊 FFSS @ {commits['ffss'][:7]} · 📊 DRAgoWing @ {commits['dragowing'][:7]}",
+            *(f"{'✅' if p[2] in receipt['made'] else '⏸'} {p[0]} {p[1]}: {p[2]} × {p[3]}" for p in FLOW_PAIRS)]
+
+
+def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
+    """The 🌊 lab page from what this build recorded under ``output/media/flow/`` (not in the lock, like the front page:
+    the media change with the two repositories); a pair that was not recorded says ⏸."""
+    path = Path(output) / FLOW / 'receipt.json' if output else None
+    receipt = json.loads(path.read_text(encoding='utf-8')) if path and path.is_file() else {'commits': {}, 'made': []}
+    link = lambda key: (f"https://github.com/{FLOW_REPOSITORIES[key]}/tree/{receipt['commits'][key]}"
+                        if key in receipt['commits'] else f"https://github.com/{FLOW_REPOSITORIES[key]}")
+    blocks = [{'type': 'text', 'text': '同じ FFSS の実験記録を2回見る：🌊 流れと遅れの時間変化（FFSS の動く像）と、'
+                                       '📊 流れた先の内訳（DRAgoWing の静止図）。どちらも公開のたびに、そのとき最新のコミットで作り直す。'},
+              {'type': 'kv', 'rows': [['🌊', 'FFSS ' + receipt['commits'].get('ffss', '—')[:7]],
+                                      ['📊', 'DRAgoWing ' + receipt['commits'].get('dragowing', '—')[:7]]]}]
+    for icon, title, demo, figure, record in FLOW_PAIRS:
+        inner = [{'type': 'kv', 'rows': [['🔢', record], ['🌊', f'FFSS {demo}'], ['📊', f'DRAgoWing {figure}']]}]
+        if demo in receipt['made']:
+            inner += [{'type': 'image', 'src': f'../../{FLOW}{demo}.gif', 'alt': f'🌊 FFSS {demo}: {title}'},
+                      {'type': 'image', 'src': f'../../{FLOW}{figure}.svg', 'alt': f'📊 DRAgoWing {figure}: {title}'}]
+        else:
+            inner.append({'type': 'text', 'text': '⏸ このビルドでは記録していない'})
+        blocks.append({'type': 'section', 'title': f'{icon} {title}', 'blocks': inner})
+    blocks.append({'type': 'links', 'items': [{'label': '🌊 FFSS', 'href': link('ffss')}, {'label': '📊 DRAgoWing', 'href': link('dragowing')}]})
+    page = ui.page_document({'schema': 'web-ui-page/1', 'title': '🌊 流れの実験室', 'blocks': blocks}).replace(
+        '</head>', '<style>.ui-page img{max-width:100%;height:auto}</style></head>', 1)       # 📱 the GIF and SVG fit a phone
+    return {FLOW_PAGE: add_home_label(add_back_nav(page), '🌊 流れの実験室', icons_from='../../').encode('utf-8')}
+
+
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     """Every hash-locked page: demos, projects, HTML import, map tools and the GIF workshop, keyed by published path."""
     maps = {path: add_home_label(add_back_nav(document), '地図・ピン', icons_from='../../').encode('utf-8')
@@ -516,7 +594,8 @@ def validate_output(output: Path, root: Path = ROOT) -> None:
 
 def build(output: Path, root: Path = ROOT) -> None:
     validate_output(output, root)
-    payload = {**generate(root), **render_front(root, recorded_samples(output))}  # Fail closed before touching any output.
+    import pysaiyanweboo as ui
+    payload = {**generate(root), **render_front(root, recorded_samples(output)), **render_flow(ui, output)}  # Fail closed first.
     for name, data in payload.items():
         path = output / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -571,6 +650,8 @@ def main(argv=None):
                         help="rerun NAME's showcase command and catalog its scripts in CHECKOUT (at the showcase commit), stored in projects.json; repeatable")
     parser.add_argument('--record-samples', type=Path, metavar='DIR',
                         help="🎥 record a moving sample of every repository's Pages under DIR/media/pages/ (Chromium; best effort)")
+    parser.add_argument('--record-flow', type=Path, metavar='DIR',
+                        help='🌊 run FFSS and DRAgoWing (their default branches) and put the flow lab media under DIR/media/flow/')
     parser.add_argument('--advance', action='store_true',
                         help="move every showcase to its repository's newest commit and record it there (keeps the pin when that would break the page)")
     args = parser.parse_args(argv)
@@ -589,13 +670,15 @@ def main(argv=None):
     if args.record_samples:
         pages = {name: url for name, url in pages_urls().items() if url != 'https://myon-bioinformatics.github.io/'}
         print('\n'.join(record_samples(args.record_samples, pages)))
+    if args.record_flow:
+        print('\n'.join(record_flow(args.record_flow)))
     if args.refresh_lock:
         print(json.dumps(refresh_lock(), indent=2))
     if args.output:
         build(args.output)
     if args.stage:
         stage(args.stage)
-    if not (args.refresh_lock or args.output or args.stage or args.record or args.advance or args.record_samples):
+    if not (args.refresh_lock or args.output or args.stage or args.record or args.advance or args.record_samples or args.record_flow):
         parser.error('give --output DIR, --stage DIR, --refresh-lock, --advance, --record-samples DIR and/or --record NAME=CHECKOUT')
 
 
