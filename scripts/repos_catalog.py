@@ -115,6 +115,14 @@ def extract_heading_and_summary(readme_text):
     return title, summary or None
 
 
+def pages_url(owner, repo):
+    """The repository's GitHub Pages root when it has one (``has_pages``); the user site is the owner's root."""
+    if not repo.get("has_pages"):
+        return None
+    name = repo["name"]
+    return f"https://{owner}.github.io/" if name.lower() == f"{owner}.github.io".lower() else f"https://{owner}.github.io/{name}/"
+
+
 def build(owner):
     entries = []
     for repo in fetch_all_repos(owner):
@@ -132,6 +140,7 @@ def build(owner):
             "stars": repo.get("stargazers_count", 0),
             "updatedAt": repo.get("updated_at"),
             "homepage": repo.get("homepage") or None,
+            "pages": pages_url(owner, repo),
             "readmeHeading": heading,
             "readmeSummary": summary,
             "readmeUrl": readme_url,

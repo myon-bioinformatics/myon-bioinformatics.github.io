@@ -35,7 +35,6 @@ SITE, PAGES = _staged_site()
 # ═══ 🔗 portal links ══════════════════════════════════════════════════════════════════════════════════════
 
 EXPECTED_PAGES = {
-    "https://myon-bioinformatics.github.io/flutter_navigation_basic/",
     "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
     "https://myon-bioinformatics.github.io/Ironmate/",
     "https://myon-bioinformatics.github.io/Ironmate/tools/",
@@ -65,6 +64,31 @@ def test_portal_exposes_expected_pages():
     parser.feed((SITE / "index.html").read_text(encoding="utf-8"))
     assert "tools" in parser.ids
     assert EXPECTED_PAGES <= set(parser.links)
+
+def test_every_active_repository_with_pages_is_one_tap_away():
+    """🌐 api/repos.json (has_pages) owns the Pages roots: the 🌐 Pages card and each project card link every one."""
+    catalog = json.loads((ROOT / "api/repos.json").read_text())
+    pages = {repo["name"]: repo["pages"] for repo in catalog["repos"] if repo.get("pages") and not repo.get("archived")}
+    assert len(pages) >= 20 and all(url.startswith("https://myon-bioinformatics.github.io/") and url.endswith("/") for url in pages.values())
+    page = (SITE / "index.html").read_text(encoding="utf-8")
+    portal = page[page.index('<h3 id="guides">'):]
+    parser = LinkParser()
+    parser.feed(portal[:portal.index("</article>")])
+    assert set(parser.links) == set(pages.values()) - {"https://myon-bioinformatics.github.io/"}   # the portfolio does not link itself
+    assert page.count('class="ui-button project-pages"') == len(pages)                         # one 🌐 on each project card
+    archived = [repo["name"] for repo in catalog["repos"] if repo.get("archived")]
+    assert not any(f"github.io/{name}/" in page for name in archived)                          # archived repositories leave the portal
+
+
+def test_catalog_pages_come_from_has_pages():
+    spec = importlib.util.spec_from_file_location("repos_catalog_pages", ROOT / "scripts" / "repos_catalog.py")
+    catalog = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(catalog)
+    owner = "myon-bioinformatics"
+    assert catalog.pages_url(owner, {"name": "Aoi", "has_pages": True}) == "https://myon-bioinformatics.github.io/Aoi/"
+    assert catalog.pages_url(owner, {"name": "myon-bioinformatics.github.io", "has_pages": True}) == "https://myon-bioinformatics.github.io/"
+    assert catalog.pages_url(owner, {"name": "Aoi", "has_pages": False}) is None
+
 
 def test_portal_pages_stay_under_owned_pages_host():
     for url in EXPECTED_PAGES:
@@ -202,7 +226,8 @@ def test_front_page_notations_carry_the_same_profile_and_projects():
     projects = front.project_catalog(json.loads((ROOT / 'api/repos.json').read_text(encoding='utf-8')),
                                      json.loads((ROOT / 'projects.json').read_text(encoding='utf-8')))
     assert json.loads(_read(front.profile_html(profile, 'json'))[0]) == profile          # the JSON notation is the data itself
-    names, urls = [p['name'] for p in projects], sorted(p['url'] for p in projects)
+    names = [p['name'] for p in projects]
+    urls = sorted({p[key] for p in projects for key in ('url', 'pages', 'page') if p.get(key)})   # 🐙 repository · 🌐 Pages · 📄 portfolio page
     for notation in ('web', 'xml', 'json', 'markdown'):
         text, links, units = _read(front.projects_html(projects, notation))
         assert units == names, notation                                                  # one removable unit per project

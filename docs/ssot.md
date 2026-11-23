@@ -7,7 +7,7 @@ This repository owns canonical public data that is shared across the myon-bioinf
 | Domain | Canonical source | Responsibility |
 | --- | --- | --- |
 | Person / skills / career | `profile.json` | Human profile facts and curated profile text |
-| Repository facts | `api/repos.json` | Generated GitHub repository metadata; do not hand-edit |
+| Repository facts | `api/repos.json` | Generated GitHub repository metadata, including `pages` (the GitHub Pages root, from `has_pages`); do not hand-edit |
 | Portfolio curation | `projects.json` | Optional descriptions and extra topics for repository presentation; an optional `showcase` (label, repository, commit, icon, media, recorded run, recorded script catalog) gives the project a page under `tools/projects/` |
 | Public service endpoints | `services.json` | GitHub Pages, API/static data, MCP stub, repository and other public URLs |
 
@@ -19,6 +19,8 @@ This repository owns canonical public data that is shared across the myon-bioinf
 4. `api/repos.json` is generated from GitHub and is the source of truth for repository facts such as repository URL, description, language, topics, stars, and update time.
 5. `projects.json` is intentionally curated. `name` identifies the repository and `url` is a transitional compatibility field that must match `api/repos.json`. Projects membership comes from the `api/repos.json` catalog, excluding archived repositories; the candidate pool is shuffled on each page load. Curated `desc` overrides the catalog description; curated topics are combined with catalog topics. Stale curation cannot add a repository absent from the public catalog. The existing daily repos API workflow updates membership without manual card registration. A pinned-repository GraphQL dump is not a source and must not overwrite this file.
 6. `services.json` owns public endpoints. README files and demos should consume service entries rather than inventing new canonical URLs.
+   A repository's Pages root is a repository fact (`api/repos.json` `pages`, refreshed daily), so the portfolio links every one from there;
+   `services.json` keeps the endpoints that cannot be derived (sub-pages such as Ironmate's tools and slides, MCP stubs, static data).
 7. `profile.json` may temporarily keep URL fields required by current renderers/generators, but CI must enforce that those compatibility values match the canonical entries in `services.json`.
 
 ## `services.json` schema
