@@ -25,6 +25,11 @@ MODES = ("modern", "github-like", "xml-like", "json", "markdown")
 PROFILE = json.loads((ROOT / "profile.json").read_text(encoding="utf-8"))
 CURATED = json.loads((ROOT / "projects.json").read_text(encoding="utf-8"))
 ACTIVE = [repo for repo in json.loads((ROOT / "api/repos.json").read_text(encoding="utf-8"))["repos"] if not repo.get("archived")]
+# 🐙 every repository · 🌐 its Pages (api/repos.json) · 📄 its portfolio page (a projects.json showcase)
+LINKED = sorted({repo["url"] for repo in ACTIVE} | {repo["pages"] for repo in ACTIVE if repo.get("pages")}
+                | {f"https://myon-bioinformatics.github.io/tools/projects/{project['name'].lower()}.html"
+                   for project in json.loads((ROOT / "projects.json").read_text(encoding="utf-8"))
+                   if "showcase" in project and project["name"] in {repo["name"] for repo in ACTIVE}})
 COUNT = len(ACTIVE)                                     # only public, non-archived repositories are displayed
 SHOWING_ALL = f"Showing all {COUNT} projects"
 ONE_OF = f"Showing 1 of {COUNT} projects"
@@ -112,7 +117,7 @@ def test_every_active_repository_is_reachable_in_every_display_mode(page):
         expect(count(page)).to_have_text(SHOWING_ALL)
         urls = page.locator("#projects-render-root a").evaluate_all(
             "links => [...new Set(links.map(link => link.getAttribute('href')))].sort()")
-        assert urls == sorted(repo["url"] for repo in ACTIVE), mode
+        assert urls == LINKED, mode
 
 
 def test_only_active_repositories_are_displayed_and_curated_descriptions_survive(page):
