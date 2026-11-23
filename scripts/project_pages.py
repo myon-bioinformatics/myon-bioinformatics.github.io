@@ -314,42 +314,51 @@ def recorded_samples(output: Path) -> frozenset[str]:
     return frozenset(path.stem for path in (Path(output) / SAMPLES).glob('*.gif'))
 
 
-def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), size=(240, 432), max_bytes=300_000) -> list[str]:
+def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), size=(240, 432), max_bytes=300_000,
+                   browser=None) -> list[str]:
     """🎥 Open each Pages in Chromium at phone size, keep the top and one screen further down, and write a two-frame GIF
-    per repository as ``output/media/pages/<name>.gif`` with gif.js. Best effort: one line per repository (🎥 / ⏸)."""
+    per repository as ``output/media/pages/<name>.gif`` with gif.js. Best effort: one line per repository (🎥 / ⏸).
+    ``browser``: a launched Playwright browser to use (a caller already inside Playwright); otherwise Chromium is started."""
+    if browser is None:
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as playwright:
+            chromium = playwright.chromium.launch()
+            try:
+                return record_samples(output, pages, viewport=viewport, size=size, max_bytes=max_bytes, browser=chromium)
+            finally:
+                chromium.close()
     import base64
     import pysaiyanweboo as ui
-    from playwright.sync_api import sync_playwright
     folder = Path(output) / SAMPLES
     folder.mkdir(parents=True, exist_ok=True)
     lines = []
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch()
-        try:
-            site = browser.new_page(viewport={'width': viewport[0], 'height': viewport[1]}, is_mobile=True, has_touch=True)
-            encoder = browser.new_context().new_page()
-            encoder.set_content(ui.gif_recorder_document())
-            for name, url in pages.items():
-                try:
-                    response = site.goto(url, wait_until='load', timeout=30_000)
-                    if response is None or response.status >= 400:
-                        raise RuntimeError(f'HTTP {response.status if response else "no response"}')
-                    site.wait_for_timeout(800)
-                    frames = [site.screenshot()]
-                    site.evaluate('h => window.scrollBy(0, h)', viewport[1])
-                    site.wait_for_timeout(500)
-                    if (lower := site.screenshot()) != frames[0]:
-                        frames.append(lower)
-                    encoder.evaluate('o => { window.rec = new UiGif.Recorder(o); }', {'width': size[0], 'height': size[1], 'caption': 24})
-                    encoder.evaluate('items => rec.add(items)', [{'png': base64.b64encode(png).decode('ascii'), 'caption': f'🌐 {name}',
-                                                                 'ok': True, 'delay': 1500} for png in frames])
-                    gif = base64.b64decode(encoder.evaluate('o => rec.encodeBase64(o)', {'maxBytes': max_bytes})['gif'])
-                    (folder / f'{name.lower()}.gif').write_bytes(gif)
-                    lines.append(f'🎥 {name}: {len(frames)} frames · {len(gif) // 1024} KiB')
-                except Exception as exc:                       # one Pages failing keeps the rest (and the deploy) going
-                    lines.append(f'⏸ {name}: {type(exc).__name__}: {str(exc).splitlines()[0][:120] if str(exc) else ""}')
-        finally:
-            browser.close()
+    site_context, encoder_context = browser.new_context(viewport={'width': viewport[0], 'height': viewport[1]}, is_mobile=True,
+                                                        has_touch=True), browser.new_context()
+    try:
+        site, encoder = site_context.new_page(), encoder_context.new_page()
+        encoder.set_content(ui.gif_recorder_document())
+        for name, url in pages.items():
+            try:
+                response = site.goto(url, wait_until='load', timeout=30_000)
+                if response is None or response.status >= 400:
+                    raise RuntimeError(f'HTTP {response.status if response else "no response"}')
+                site.wait_for_timeout(800)
+                frames = [site.screenshot()]
+                site.evaluate('h => window.scrollBy(0, h)', viewport[1])
+                site.wait_for_timeout(500)
+                if (lower := site.screenshot()) != frames[0]:
+                    frames.append(lower)
+                encoder.evaluate('o => { window.rec = new UiGif.Recorder(o); }', {'width': size[0], 'height': size[1], 'caption': 24})
+                encoder.evaluate('items => rec.add(items)', [{'png': base64.b64encode(png).decode('ascii'), 'caption': f'🌐 {name}',
+                                                             'ok': True, 'delay': 1500} for png in frames])
+                gif = base64.b64decode(encoder.evaluate('o => rec.encodeBase64(o)', {'maxBytes': max_bytes})['gif'])
+                (folder / f'{name.lower()}.gif').write_bytes(gif)
+                lines.append(f'🎥 {name}: {len(frames)} frames · {len(gif) // 1024} KiB')
+            except Exception as exc:                       # one Pages failing keeps the rest (and the deploy) going
+                lines.append(f'⏸ {name}: {type(exc).__name__}: {str(exc).splitlines()[0][:120] if str(exc) else ""}')
+    finally:
+        site_context.close()
+        encoder_context.close()
     return lines
 
 

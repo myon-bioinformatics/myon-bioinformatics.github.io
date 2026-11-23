@@ -97,11 +97,11 @@ def test_gif_workshop_turns_picked_images_into_one_gif(page, tmp_path):
     assert all(url.startswith(page.url.split("/tools/")[0]) or url.startswith("blob:") for url in requests)   # nothing leaves the site
 
 
-def test_moving_sample_is_recorded_for_a_pages_url(site, tmp_path):
+def test_moving_sample_is_recorded_for_a_pages_url(site, browser, tmp_path):
     spec = importlib.util.spec_from_file_location("project_pages_samples", ROOT / "scripts/project_pages.py")
     pages = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(pages)
-    lines = pages.record_samples(tmp_path, {"Portfolio": site[1] + "/index.html", "Gone": site[1] + "/no-such-page/"})
+    lines = pages.record_samples(tmp_path, {"Portfolio": site[1] + "/index.html", "Gone": site[1] + "/no-such-page/"}, browser=browser)
     gif = (tmp_path / "media/pages/portfolio.gif").read_bytes()
     assert gif[:6] == b"GIF89a" and lines[0].startswith("🎥 Portfolio: 2 frames")
     assert lines[1] == "⏸ Gone: RuntimeError: HTTP 404"                                   # an error page is not a sample
