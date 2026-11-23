@@ -36,10 +36,6 @@
           "kind": "pages",
           "url": "https://myon-bioinformatics.github.io/Ironmate/"
         },
-        "mcpStub": {
-          "kind": "mcp-stub",
-          "url": "https://myon-bioinformatics.github.io/Ironmate/mcp-stub.html"
-        },
         "browserTools": {
           "kind": "pages",
           "url": "https://myon-bioinformatics.github.io/Ironmate/tools/"
@@ -47,22 +43,6 @@
         "slides": {
           "kind": "pages",
           "url": "https://myon-bioinformatics.github.io/Ironmate/slides/"
-        }
-      },
-      "flutter_navigation_basic": {
-        "repository": {
-          "kind": "repository",
-          "url": "https://github.com/myon-bioinformatics/flutter_navigation_basic"
-        },
-        "pages": {
-          "kind": "pages",
-          "url": "https://myon-bioinformatics.github.io/flutter_navigation_basic/"
-        }
-      },
-      "mock_server_JS": {
-        "repository": {
-          "kind": "repository",
-          "url": "https://github.com/myon-bioinformatics/mock_server_JS"
         }
       },
       "mcp-toolcall-lab": {

@@ -63,9 +63,8 @@
     ],
     "showcase": {
       "label": "🐉 QueRyu",
-      "repository": "myon-bioinformatics/Aoi",
-      "commit": "87ec9a442c9b538bdef93fa3ad4015fc3d06b4da",
-      "path": "queryu/",
+      "repository": "myon-bioinformatics/QueRyu",
+      "commit": "8ffc4a3702868ffb36d2b9aae08648f7d048905d",
       "icon": "docs/brand/icon.png",
       "run": {
         "command": [
@@ -89,9 +88,8 @@
     ],
     "showcase": {
       "label": "🔵 BlueProbe",
-      "repository": "myon-bioinformatics/Aoi",
-      "commit": "87ec9a442c9b538bdef93fa3ad4015fc3d06b4da",
-      "path": "blueprobe/",
+      "repository": "myon-bioinformatics/BlueProbe",
+      "commit": "89138d3f49b3b70dc60780755061233f8b6ad63a",
       "icon": "docs/brand/icon.png",
       "run": {
         "command": [
@@ -118,9 +116,8 @@
     ],
     "showcase": {
       "label": "📊 SakAna",
-      "repository": "myon-bioinformatics/Aoi",
-      "commit": "87ec9a442c9b538bdef93fa3ad4015fc3d06b4da",
-      "path": "sakanalytics/",
+      "repository": "myon-bioinformatics/SakAnalytics",
+      "commit": "44e5bfdeca49184c21b1f7c3713ea1cd35f83958",
       "icon": "docs/brand/icon.png",
       "run": {
         "command": [
@@ -148,9 +145,8 @@
     ],
     "showcase": {
       "label": "📐 PythDR",
-      "repository": "myon-bioinformatics/Aoi",
-      "commit": "87ec9a442c9b538bdef93fa3ad4015fc3d06b4da",
-      "path": "pythdragoras/",
+      "repository": "myon-bioinformatics/PythDRagoras",
+      "commit": "999f98c61be6ecd9781b010461685da41c8f1246",
       "icon": "docs/brand/icon.png",
       "run": {
         "command": [
@@ -184,10 +180,9 @@
     ],
     "showcase": {
       "label": "🪽 DRAgo",
-      "repository": "myon-bioinformatics/Aoi",
-      "commit": "87ec9a442c9b538bdef93fa3ad4015fc3d06b4da",
-      "path": "",
-      "icon": "dragowing/docs/brand/icon.png",
+      "repository": "myon-bioinformatics/DRAgoWing",
+      "commit": "a0a9d1358660fcf7f9d118a44f2d7febe6e79f93",
+      "icon": "docs/brand/icon.png",
       "run": {
         "command": [
           "sh",
@@ -523,16 +518,6 @@
       "css",
       "ui-components",
       "static-site"
-    ]
-  },
-  {
-    "name": "flutter_navigation_basic",
-    "desc": "Multi-platform Flutter app (Web, iOS, Android, macOS) with 198 routed screens on a reusable foundation (themes, routes, shared widgets, URL parameters); the Flutter Web build is published on GitHub Pages and checked with Playwright screenshots.",
-    "url": "https://github.com/myon-bioinformatics/flutter_navigation_basic",
-    "topics": [
-      "flutter",
-      "dart",
-      "multi-platform"
     ]
   },
   {
