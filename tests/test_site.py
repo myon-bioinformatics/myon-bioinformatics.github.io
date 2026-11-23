@@ -123,6 +123,37 @@ def test_flow_lab_pairs_one_ffss_run_with_its_dragowing_figure(tmp_path):
     assert staged.count("⏸") == len(PAGES.FLOW_PAIRS) and "media/flow/" not in staged
 
 
+def test_repository_map_reads_each_lock_and_aois_subtrees(tmp_path):
+    """🧠 Edges come from each repository's own vendor.lock.json rows and Aoi's child-heads.json; an unreadable one is ⏸."""
+    import pysaiyanweboo as ui
+    root = tmp_path / "root"
+    (root / "api").mkdir(parents=True)
+    (root / "api/repos.json").write_text(json.dumps({"repos": [{"name": n} for n in ("Aoi", "markdown", "xprobe", "Broken")]
+                                                     + [{"name": "Old", "archived": True}]}))
+    row = lambda repo, dest: {"repository": f"myon-bioinformatics/{repo}", "source": "x.py", "destination": dest}
+    files = {("markdown", "vendor.lock.json"): {"files": [row("xprobe", "vendor/xprobe.py"), row("xprobe", "vendor/xprobe-LICENSE"),
+                                                          row("markdown", "vendor/self.py")]},
+             ("Aoi", "vendor.lock.json"): {"files": [row("markdown", "vendor/markdown.py")]},
+             ("Aoi", "child-heads.json"): {"heads": {"myon-bioinformatics/QueRyu": {"optional": {"subtree_prefix": "queryu"}}}}}
+    def head(repository):
+        if repository.endswith("Broken"):
+            raise OSError("unreachable")
+        return "c" * 40
+    raw = lambda repository, commit, path: (json.dumps(files[(repository.split("/")[1], path)]).encode()
+                                            if (repository.split("/")[1], path) in files else None)
+    lines = PAGES.record_map(tmp_path / "site", root, head=head, raw=raw)
+    assert lines == ["🧠 3 repositories · 3 edges · 4 files", "⏸ Broken: OSError"]
+    graph = json.loads((tmp_path / "site/media/map/graph.json").read_text())
+    assert [(e["from"], e["to"], e["kind"], len(e["files"])) for e in graph["edges"]] == [
+        ("Aoi", "QueRyu", "subtree", 1), ("markdown", "Aoi", "vendor", 1), ("xprobe", "markdown", "vendor", 2)]   # no self-edge
+    svg = (tmp_path / "site/media/map/map.svg").read_text()
+    assert svg.startswith("<svg") and svg.count("<path") == 3 and "Meiryo" in svg
+    assert "🗄 Old" in PAGES.map_svg([{"from": "Old", "to": "Aoi", "kind": "vendor", "files": ["LICENSE"]}], {"Old"})   # archived is marked
+    page = PAGES.render_map(ui, tmp_path / "site")[PAGES.MAP_PAGE].decode()
+    assert 'src="../../media/map/map.svg"' in page and "📥 xprobe" in page and "⏸" not in page
+    assert "⏸" in (SITE / "tools/repo-map/index.html").read_text(encoding="utf-8")        # nothing recorded in the staged site
+
+
 def test_gif_workshop_page_keeps_images_in_the_browser():
     page = (SITE / "tools/gif/index.html").read_text(encoding="utf-8")
     assert 'id="gif-files"' in page and 'accept="image/*"' in page and "UiGif.Recorder" in page
@@ -203,6 +234,7 @@ def test_lab_pages_are_hosted_by_portfolio():
 # The demos (DEMOS) and project pages (projects.json showcases) come from scripts/project_pages.py; they are tool pages too.
 TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp-toolcall-lab/index.html", "tools/mcp-toolcall-lab/repository-diagnostics.html",
               "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html", "tools/flow/index.html",
+              "tools/repo-map/index.html",
               *sorted(str(path.relative_to(SITE)) for folder in ("demos", "projects") for path in (SITE / "tools" / folder).glob("*.html")))
 
 
