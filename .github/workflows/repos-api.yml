@@ -5,7 +5,6 @@ name: Update repos API
 on:
   schedule:
     - cron: "0 21 * * *" # 06:00 JST
-  workflow_dispatch:
   push:
     branches: [main]
     paths:

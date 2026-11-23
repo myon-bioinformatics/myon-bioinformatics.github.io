@@ -3,7 +3,6 @@ name: Stagehand v4 dual-SDK reference
 on:
   push:
   pull_request:
-  workflow_dispatch:
 
 jobs:
   changes:
