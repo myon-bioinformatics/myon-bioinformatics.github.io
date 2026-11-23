@@ -245,9 +245,9 @@ def test_every_tool_page_has_the_same_back_link_first_in_main():
         main = re.search(r"<main[^>]*>", html)
         assert main, page
         after = html[main.end():]
-        assert after.startswith('<nav class="portfolio-back" aria-label="Portfolio">'
-                                '<a href="../../index.html#tools" data-testid="portfolio-back">'), page
-        assert html.count('data-testid="portfolio-back"') == 1, page
+        assert after.startswith('<nav class="ui-back" aria-label="関連リンク" data-ui-back data-testid="portfolio-back">'
+                                '<p class="ui-links"><a href="../../index.html#tools">← 🧭 Tools &amp; Demos</a>'), page
+        assert html.count('data-ui-back') == 1, page
         assert "Back to portfolio" not in html, page
 
 
@@ -621,9 +621,9 @@ def test_home_screen_in_chromium_with_a_gif():
             assert probe.evaluate(load, icons) == ["32x32", "170x170"]  # the CSP (img-src 'self') lets both load
             page.goto(base + "tools/html-import/")
             frames.append((page.screenshot(), "📄 " + page.title() + " · no manifest · icons 32x32 170x170"))
-            page.get_by_test_id("portfolio-back").click()
+            page.get_by_test_id("portfolio-back").get_by_role("link").click()
             page.wait_for_url(base + "index.html#tools")
-            frames.append((page.screenshot(), "↩️ ← Tools & Demos → index.html#tools"))
+            frames.append((page.screenshot(), "↩️ ← 🧭 Tools & Demos → index.html#tools"))
 
             # 🧰📚 Every demo and project page opens without a script error, keeps its own shortcut, shows the portfolio icons and has the way back.
             demos = browser.new_page(viewport={"width": 392, "height": 840}, is_mobile=True, has_touch=True)
@@ -635,7 +635,7 @@ def test_home_screen_in_chromium_with_a_gif():
                 assert demo_cdp.send("Page.getAppManifest")["url"] == "", name
                 icons = demos.evaluate("""() => [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')].map(l => l.href)""")
                 assert demos.evaluate(load, icons) == ["32x32", "170x170"], name
-                assert demos.get_by_test_id("portfolio-back").get_attribute("href") == "../../index.html#tools", name
+                assert demos.get_by_test_id("portfolio-back").get_by_role("link").get_attribute("href") == "../../index.html#tools", name
                 assert errors == [], (name, errors)
                 frames.append((demos.screenshot(), f"🧰 {demos.title()} · {parse_page(SITE / name).metas['apple-mobile-web-app-title']}"))
                 run = demos.get_by_role("heading", name="▶ 実行例")

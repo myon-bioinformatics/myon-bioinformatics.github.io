@@ -52,8 +52,6 @@ PROJECT_BASE = 'tools/projects/'
 HTML_IMPORT_PAGE = 'tools/html-import/index.html'
 HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
 MAP_PAGES = {'tools/maps/index.html', 'tools/maps/tokyo.html'}
-BACK_NAV = ('<nav class="portfolio-back" aria-label="Portfolio">'
-            '<a href="../../index.html#tools" data-testid="portfolio-back">← Tools &amp; Demos</a></nav>')
 
 # 🧰 name -> (how pysaiyanweboo builds it, shortcut label, title, summary): the only list of demos.
 DEMOS = {
@@ -125,15 +123,10 @@ def load_module(name: str, relative_path: str | Path) -> ModuleType:
 
 
 def add_back_nav(page: str) -> str:
-    """Insert BACK_NAV right after the opening <main> tag, else <body> (idempotent)."""
-    if 'data-testid="portfolio-back"' in page:
-        return page
-    for tag in ('<main', '<body'):
-        start = page.find(tag)
-        end = page.find('>', start)
-        if start >= 0 and end >= 0:
-            return page[:end + 1] + BACK_NAV + page[end + 1:]
-    raise ValueError('tool page has no <main> or <body> element')
+    """🏠 PySaiyanWeBoo's way back (``back_nav_html``) to the 🧭 Tools & Demos cards, right after <main> (else <body>);
+    a page that already has one keeps it."""
+    import pysaiyanweboo as ui
+    return ui.add_back_nav(page, [{'label': '← 🧭 Tools & Demos', 'href': '../../index.html#tools'}], test_id='portfolio-back')
 
 
 def add_home_label(page: str, label: str, *, icons_from: str | None = None) -> str:
