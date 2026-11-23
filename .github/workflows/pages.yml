@@ -68,6 +68,12 @@ jobs:
         timeout-minutes: 10
         run: uv run --locked --only-group pages python scripts/project_pages.py --record-flow _site | tee -a "$GITHUB_STEP_SUMMARY"
 
+      # 🧠 Each repository's vendor.lock.json (and Aoi's subtrees) at its current commit (media/map/, not kept in git).
+      - name: Record the repository map (best effort)
+        continue-on-error: true
+        timeout-minutes: 5
+        run: uv run --locked --only-group pages python scripts/project_pages.py --record-map _site | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Generate verified shared browser assets with the pinned generator (PySaiyanWeBoo)
         run: uv run --locked --only-group pages python scripts/project_pages.py --output _site
 

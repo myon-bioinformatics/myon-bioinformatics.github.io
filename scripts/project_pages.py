@@ -440,6 +440,120 @@ def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
     return {FLOW_PAGE: add_home_label(add_back_nav(page), '🌊 流れ実験', icons_from='../../').encode('utf-8')}   # fits an 80 px tile
 
 
+# ── 🧠 リポジトリ地図: who copies what from whom, read from each repository's own vendor.lock.json (and Aoi's subtrees) ──
+MAP_PAGE = 'tools/repo-map/index.html'
+MAP = 'media/map/'                       # graph.json and map.svg, recorded at deploy time (pages.yml); not kept in git
+OWNER = 'myon-bioinformatics'
+
+
+def _ls_remote(repository: str) -> str:
+    out = subprocess.run(['git', 'ls-remote', f'https://github.com/{repository}', 'HEAD'], check=True, capture_output=True,
+                         text=True, timeout=60).stdout.split()
+    return out[0]
+
+
+def _raw(repository: str, commit: str, path: str) -> bytes | None:
+    import urllib.error
+    import urllib.request
+    try:
+        with urllib.request.urlopen(f'https://raw.githubusercontent.com/{repository}/{commit}/{path}', timeout=30) as response:
+            return response.read()
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return None
+        raise
+
+
+def map_edges(locks: dict[str, dict | None], subtrees: dict | None) -> list[dict]:
+    """📤 → 📥 edges: one per (source repository, consumer) from the locks' rows, and Aoi → each subtree child."""
+    edges = {}
+    for consumer, lock in locks.items():
+        for row in (lock or {}).get('files', []):
+            source = row['repository'].split('/')[-1]
+            if source != consumer:
+                edges.setdefault((source, consumer, 'vendor'), []).append(row['destination'])
+    for child, head in ((subtrees or {}).get('heads') or {}).items():
+        edges[('Aoi', child.split('/')[-1], 'subtree')] = [head.get('optional', {}).get('subtree_prefix', '') + '/']
+    return [{'from': a, 'to': b, 'kind': kind, 'files': sorted(files)} for (a, b, kind), files in sorted(edges.items())]
+
+
+def map_svg(edges: list[dict], archived=frozenset()) -> str:
+    """The edges as one SVG: suppliers on the left, users on the right (most connected first), Meiryo, sizes in 8s;
+    an ``archived`` repository is marked 🗄."""
+    out_deg, in_deg = {}, {}
+    for e in edges:
+        out_deg[e['from']] = out_deg.get(e['from'], 0) + 1
+        in_deg[e['to']] = in_deg.get(e['to'], 0) + 1
+    left = sorted(out_deg, key=lambda n: (-out_deg[n], n.lower()))
+    right = sorted(in_deg, key=lambda n: (-in_deg[n], n.lower()))
+    row, top, width = 24, 48, 720
+    height = top + row * max(len(left), len(right), 1) + 16
+    y = lambda side, name: top + row * side.index(name) + row // 2
+    esc = lambda text: html.escape(text, quote=True)
+    mark = lambda name: ('🗄 ' if name in archived else '') + name
+    color = {'vendor': '#19d3f3', 'subtree': '#00cc96'}
+    paths = ''.join(f'<path d="M232 {y(left, e["from"])} C360 {y(left, e["from"])} 360 {y(right, e["to"])} 488 {y(right, e["to"])}" '
+                    f'stroke="{color[e["kind"]]}" stroke-width="{1 + min(4, len(e["files"]))}" fill="none" opacity=".55">'
+                    f'<title>{esc(e["from"])} → {esc(e["to"])}: {esc(", ".join(e["files"]))}</title></path>' for e in edges)
+    labels = (''.join(f'<text x="224" y="{y(left, n) + 4}" text-anchor="end">{esc(mark(n))} ({out_deg[n]})</text>' for n in left)
+              + ''.join(f'<text x="496" y="{y(right, n) + 4}">{esc(mark(n))} ({in_deg[n]})</text>' for n in right))
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" width="{width}" height="{height}" '
+            'font-family="Meiryo, \'メイリオ\', sans-serif" font-size="13" fill="#e6edf3">'
+            f'<rect width="{width}" height="{height}" fill="#0d1117"/>'
+            '<text x="224" y="24" text-anchor="end" font-size="15">📤 写す元</text><text x="496" y="24" font-size="15">📥 写す先</text>'
+            f'{paths}{labels}</svg>')
+
+
+def record_map(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw) -> list[str]:
+    """🧠 Read every active repository's vendor.lock.json (and Aoi's child-heads.json) at its current commit and write
+    ``output/media/map/graph.json`` and ``map.svg``. Best effort: a repository that cannot be read is listed and skipped."""
+    catalog = json.loads((root / 'api/repos.json').read_text(encoding='utf-8'))
+    names = [repo['name'] for repo in catalog['repos'] if not repo.get('archived')]
+    commits, locks, missed, subtrees = {}, {}, [], None
+    for name in names:
+        try:
+            commits[name] = head(f'{OWNER}/{name}')
+            data = raw(f'{OWNER}/{name}', commits[name], 'vendor.lock.json')
+            locks[name] = json.loads(data) if data else None
+            if name == 'Aoi' and (heads := raw(f'{OWNER}/Aoi', commits[name], 'child-heads.json')):
+                subtrees = json.loads(heads)
+        except Exception as exc:
+            missed.append(f'⏸ {name}: {type(exc).__name__}')
+    edges = map_edges(locks, subtrees)
+    folder = Path(output) / MAP
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / 'graph.json').write_text(json.dumps({'schema': 'repo-map/1', 'commits': commits, 'edges': edges},
+                                                  indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
+    archived = frozenset(repo['name'] for repo in catalog['repos'] if repo.get('archived'))
+    (folder / 'map.svg').write_text(map_svg(edges, archived), encoding='utf-8')
+    return [f'🧠 {len(commits)} repositories · {len(edges)} edges · {sum(len(e["files"]) for e in edges)} files', *missed]
+
+
+def render_map(ui, output: Path | None = None) -> dict[str, bytes]:
+    """The 🧠 map page from this build's graph.json (not in the lock, like the front page); ⏸ when nothing was read."""
+    path = Path(output) / MAP / 'graph.json' if output else None
+    graph = json.loads(path.read_text(encoding='utf-8')) if path and path.is_file() else None
+    blocks = [{'type': 'text', 'text': 'どのリポジトリが、どのリポジトリのファイルを写して使っているか。各リポジトリの vendor.lock.json と、'
+                                       'Aoi の subtree（child-heads.json）を、公開のたびにそのときのコミットで読む。線の太さはファイルの数。'}]
+    if graph:
+        users, uses = {}, {}
+        for e in graph['edges']:
+            users.setdefault(e['from'], []).append(e['to'])
+            uses.setdefault(e['to'], []).append(e['from'])
+        blocks += [{'type': 'kv', 'rows': [['🔗', f"{len(graph['edges'])} 本"], ['📦', f"{len(graph['commits'])} リポジトリ"],
+                                           ['🟦', 'vendor（ファイルを写す）'], ['🟩', 'subtree（Aoi の子）']]},
+                   {'type': 'image', 'src': f'../../{MAP}map.svg', 'alt': '🧠 写す元 → 写す先の地図'},
+                   {'type': 'section', 'title': '📋 リポジトリごと', 'blocks': [{'type': 'kv', 'rows': [
+                       [name, ' · '.join(part for part in (('📥 ' + ', '.join(sorted(uses[name]))) if name in uses else '',
+                                                          ('📤 ' + ', '.join(sorted(users[name]))) if name in users else '') if part)]
+                       for name in sorted(set(users) | set(uses), key=str.lower)]}]}]
+    else:
+        blocks.append({'type': 'text', 'text': '⏸ このビルドでは記録していない'})
+    page = ui.page_document({'schema': 'web-ui-page/1', 'title': '🧠 リポジトリ地図', 'blocks': blocks}).replace(
+        '</head>', '<style>.ui-page img{max-width:100%;height:auto}.ui-kv dd{overflow-wrap:anywhere}</style></head>', 1)
+    return {MAP_PAGE: add_home_label(add_back_nav(page), '🧠 地図', icons_from='../../').encode('utf-8')}
+
+
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     """Every hash-locked page: demos, projects, HTML import, map tools and the GIF workshop, keyed by published path."""
     maps = {path: add_home_label(add_back_nav(document), '地図・ピン', icons_from='../../').encode('utf-8')
@@ -595,7 +709,7 @@ def validate_output(output: Path, root: Path = ROOT) -> None:
 def build(output: Path, root: Path = ROOT) -> None:
     validate_output(output, root)
     import pysaiyanweboo as ui
-    payload = {**generate(root), **render_front(root, recorded_samples(output)), **render_flow(ui, output)}  # Fail closed first.
+    payload = {**generate(root), **render_front(root, recorded_samples(output)), **render_flow(ui, output), **render_map(ui, output)}  # Fail closed first.
     for name, data in payload.items():
         path = output / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -652,6 +766,8 @@ def main(argv=None):
                         help="🎥 record a moving sample of every repository's Pages under DIR/media/pages/ (Chromium; best effort)")
     parser.add_argument('--record-flow', type=Path, metavar='DIR',
                         help='🌊 run FFSS and DRAgoWing (their default branches) and put the flow lab media under DIR/media/flow/')
+    parser.add_argument('--record-map', type=Path, metavar='DIR',
+                        help="🧠 read every repository's vendor.lock.json (and Aoi's subtrees) and draw the map under DIR/media/map/")
     parser.add_argument('--advance', action='store_true',
                         help="move every showcase to its repository's newest commit and record it there (keeps the pin when that would break the page)")
     args = parser.parse_args(argv)
@@ -670,6 +786,8 @@ def main(argv=None):
     if args.record_samples:
         pages = {name: url for name, url in pages_urls().items() if url != 'https://myon-bioinformatics.github.io/'}
         print('\n'.join(record_samples(args.record_samples, pages)))
+    if args.record_map:
+        print('\n'.join(record_map(args.record_map)))
     if args.record_flow:
         print('\n'.join(record_flow(args.record_flow)))
     if args.refresh_lock:
@@ -678,7 +796,7 @@ def main(argv=None):
         build(args.output)
     if args.stage:
         stage(args.stage)
-    if not (args.refresh_lock or args.output or args.stage or args.record or args.advance or args.record_samples or args.record_flow):
+    if not (args.refresh_lock or args.output or args.stage or args.record or args.advance or args.record_samples or args.record_flow or args.record_map):
         parser.error('give --output DIR, --stage DIR, --refresh-lock, --advance, --record-samples DIR and/or --record NAME=CHECKOUT')
 
 
