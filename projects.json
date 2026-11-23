@@ -12,7 +12,7 @@
     "showcase": {
       "label": "🧬 配列検索",
       "repository": "myon-bioinformatics/search_seq_including_spaces",
-      "commit": "9c62ca88b23793136832016c625daa536f92914e",
+      "commit": "ea3b35373c3ed45907abbd86ea730e9f065ba783",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -89,7 +89,7 @@
     "showcase": {
       "label": "🔵 BlueProbe",
       "repository": "myon-bioinformatics/BlueProbe",
-      "commit": "556e3eae0ef01b1209f074a8f91e7a53209dcdb1",
+      "commit": "6517bd1e42bbd7abd03d393b450bffae788a1f93",
       "icon": "docs/brand/icon.png",
       "run": {
         "command": [
@@ -276,7 +276,7 @@
     "showcase": {
       "label": "🐦 Err-o-RR",
       "repository": "myon-bioinformatics/Err-o-RoadRunner",
-      "commit": "f0a4c9649b184970914b289f07694864d9db4dbc",
+      "commit": "0ad22a73a1688735a62c7c178dce60b1623ac53f",
       "icon": "docs/assets/icon.png",
       "media": [
         {
@@ -313,7 +313,7 @@
     "showcase": {
       "label": "🛡️ NVD",
       "repository": "myon-bioinformatics/nvd_nist_known_vulns",
-      "commit": "b9206a649e5c4c127c756f965b056689dab371ad",
+      "commit": "b9947a3ca977e5489060c5b787a43d2f2ad86641",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -345,7 +345,7 @@
     "showcase": {
       "label": "🧪 BTK",
       "repository": "myon-bioinformatics/BrowserTestKit",
-      "commit": "60002a8303cabbc46d04f6170068aa060a96788f",
+      "commit": "283e7117e302818b5a41846479817a0069408001",
       "icon": "docs/assets/brand/validation-buddy.png",
       "media": [
         {
@@ -377,9 +377,9 @@
             "usage": "usage: capture_browser_dom.py [-h] [--selector SELECTOR] --output OUTPUT [--timeout-ms TIMEOUT_MS] [--max-bytes MAX_BYTES] [--headed] [--aria-snapshot] [--same-origin-only] url"
           },
           {
-            "path": "examples/replay_dom_with_blueprobe_min.py",
-            "summary": "Reinspect a saved BTK DOM capture with an explicitly supplied BlueProbe min.",
-            "usage": "usage: replay_dom_with_blueprobe_min.py [-h] --blueprobe-min BLUEPROBE_MIN [--find FIND] snapshot"
+            "path": "examples/replay_dom_with_blueprobe.py",
+            "summary": "Reinspect a saved BTK DOM capture with an explicitly supplied blueprobe.py.",
+            "usage": "usage: replay_dom_with_blueprobe.py [-h] --blueprobe BLUEPROBE [--find FIND] snapshot"
           },
           {
             "path": "tools/app_comparison.py",
@@ -553,7 +553,7 @@
     "showcase": {
       "label": "🗜️ 会話圧縮",
       "repository": "myon-bioinformatics/TalkCompress",
-      "commit": "f84c5251cac14142e3b10c34ec6c13f406307e54",
+      "commit": "60eecc239ea4a2b6676566e18a5d1d5bed1c6ef6",
       "media": [
         {
           "src": "docs/evidence/browser.gif",
