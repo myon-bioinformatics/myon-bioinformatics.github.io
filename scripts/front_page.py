@@ -30,9 +30,6 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'id': 'mcp-toolcall-lab',
   'links': [('Open Tool Lab →', './tools/mcp-toolcall-lab/'),
             ('Open Execution Lab →', 'https://myon-bioinformatics.github.io/mcp-toolcall-lab/execution/')]},
- {'title': 'flutter_navigation_basic',
-  'text': 'Browser-accessible Flutter utility collection.',
-  'links': [('Open Flutter Tools →', 'https://myon-bioinformatics.github.io/flutter_navigation_basic/')]},
  {'title': '🧰 Stubs & mocks',
   'text': '通信しない MCP / API のスタブ、ページ内で動く MCP サーバーのモック、JUnit 結果の読み取り。PySaiyanWeBoo が Python で生成し、このポートフォリオに置いています。',
   'id': 'demos',
@@ -48,8 +45,8 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
              '版の固定：<code>pyproject.toml</code> で commit を固定し、生成した CSS/JS の SHA-256 を <code>web-ui-assets.lock.json</code> に記録'],
   'links': [('Open UI Catalog →', 'https://myon-bioinformatics.github.io/PySaiyanWeBoo/')]},
  {'title': '📚 Project pages',
-  'text': 'GitHub Pages を持たないプロジェクトにも1ページずつ：アイコン、図や GIF、固定したコミットで記録した実行例（Err-o-RoadRunner・search_seq・TalkCompress・BrowserTestKit・NVD、Aoi '
-          'の各サブプロジェクト）。',
+  'text': '固定したコミットで記録した実行例・図や GIF・スクリプト一覧を1ページずつ（Err-o-RoadRunner・search_seq・TalkCompress・BrowserTestKit・NVD、Aoi '
+          'の各サブプロジェクト）。各ページから 🌐 そのリポジトリの Pages へ。',
   'id': 'projects-pages',
   'links': [('Open Project pages →', './tools/projects/')]},
  {'title': '📝 markdown.py',
@@ -61,22 +58,17 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'text': 'リポジトリ横断の運用ダッシュボード：CI の失敗・競合・未解決レビューの優先確認、監査と依存、実行手順、記録と差分。',
   'id': 'operations',
   'links': [('Open Dashboard →', 'https://myon-bioinformatics.github.io/myon-bioinformatics/')]},
- {'title': '📘 利用ガイド',
-  'text': '単一ファイル・標準ライブラリ中心の CLI と研究基盤の使い方。',
+ {'title': '🌐 Pages',
+  'text': '各リポジトリの GitHub Pages：動かし方・利用ガイド・デモ。一覧は api/repos.json（GitHub の has_pages）から毎日つくり直す。',
   'id': 'guides',
-  'links': [('Aoi →', 'https://myon-bioinformatics.github.io/Aoi/'),
-            ('NagoyAction →', 'https://myon-bioinformatics.github.io/NagoyAction/'),
-            ('FluidFullSpeedSimulation →', 'https://myon-bioinformatics.github.io/FluidFullSpeedSimulation/'),
-            ('xprobe →', 'https://myon-bioinformatics.github.io/xprobe/'),
-            ('gh_identity →', 'https://myon-bioinformatics.github.io/gh_identity/'),
-            ('yourself →', 'https://myon-bioinformatics.github.io/yourself/'),
-            ('cli_args →', 'https://myon-bioinformatics.github.io/cli_args/'),
-            ('ascii_artist →', 'https://myon-bioinformatics.github.io/ascii_artist/')]}]
+  'links': 'pages'}]   # 'pages': one link per active repository with Pages, from the catalog (portal_cards)
 
 
-def portal_cards() -> str:
+def portal_cards(pages: list[tuple[str, str]] = ()) -> str:
+    """The Tools & Demos cards; ``pages`` (name, Pages URL) fills the card whose links are ``'pages'``."""
     out = []
     for card in PORTAL:
+        card = card | {'links': [(f'{name} →', url) for name, url in pages]} if card['links'] == 'pages' else card
         heading = f'<h3 id="{html.escape(card["id"], quote=True)}">' if 'id' in card else '<h3>'
         parts = [heading + html.escape(card['title'], quote=False) + '</h3>', '<p>' + html.escape(card['text'], quote=False) + '</p>']
         if 'points' in card:
@@ -123,6 +115,9 @@ def project_catalog(catalog: dict, curated: list) -> list[dict]:
             'url': repo['url'],
             'topics': list(dict.fromkeys([*(project.get('topics') or []), *(repo.get('topics') or [])])),
             'archived': False,
+            **({'pages': repo['pages']} if repo.get('pages') else {}),                     # 🌐 the repository's own Pages
+            **({'page': f"https://myon-bioinformatics.github.io/tools/projects/{repo['name'].lower()}.html"}   # 📄 its portfolio page
+               if 'showcase' in project else {}),
         })
     return projects
 
@@ -228,6 +223,8 @@ def projects_html(projects: list[dict], notation: str) -> str:
             *([_xml(2, _tag('<Status>'), 'Archived', _tag('</Status>'))] if p['archived'] else []),
             _xml(2, _tag('<Description>'), _e(p['desc']), _tag('</Description>')),
             _xml(2, _tag('<Url>'), _link(p['url']), _tag('</Url>')),
+            *([_xml(2, _tag('<Pages>'), _link(p['pages']), _tag('</Pages>'))] if p.get('pages') else []),
+            *([_xml(2, _tag('<Page>'), _link(p['page']), _tag('</Page>'))] if p.get('page') else []),
             _xml(2, _tag('<Topics>')), *[_xml(3, _tag('<Topic>'), _e(topic), _tag('</Topic>')) for topic in p['topics']], _xml(2, _tag('</Topics>')),
             _xml(1, _tag('</Project>'))])) for p in projects)
         return (_xml(0, _tag('<Projects>')) + _xml(1, _e('<!-- No projects match your filter -->'), attrs=' data-empty')
@@ -240,13 +237,18 @@ def projects_html(projects: list[dict], notation: str) -> str:
         return '<p data-empty>No projects match your filter.</p>' + ''.join(unit(p, (
             f'<h3 class="md-heading">### {_link(p["url"], p["name"])}</h3><p>{_e(p["desc"])}</p><ul class="md-list">'
             + ('<li>Status: Archived</li>' if p['archived'] else '') + f'<li>Topics: {_e(", ".join(p["topics"]))}</li>'
-            f'<li>Source: {_link(p["url"])}</li></ul>')) for p in projects)
+            + (f'<li>Pages: {_link(p["pages"])}</li>' if p.get('pages') else '')
+            + (f'<li>Page: {_link(p["page"])}</li>' if p.get('page') else '')
+            + f'<li>Source: {_link(p["url"])}</li></ul>')) for p in projects)
     cards = ''.join(unit(p, (
         f'<h3 class="ui-title">{_link(p["url"], p["name"])}</h3>' + ('<span class="ui-tag project-status">Archived</span>' if p['archived'] else '')
         + f'<p class="ui-muted">{_e(p["desc"])}</p><div class="project-topics">' + ''.join(
             f'<span class="ui-tag" data-topic="{_a(topic)}" style="cursor: pointer" title="Filter by {_a(topic)}">{_e(topic)}</span>'
             for topic in p['topics'][:6])
-        + '</div><div class="project-card-actions"><img loading="lazy" alt="GitHub stars" '
+        + '</div><div class="project-card-actions">'
+        + (f'<a class="ui-button project-pages" href="{_a(p["pages"])}" aria-label="Open the GitHub Pages of {_a(p["name"])}">🌐 Pages</a>' if p.get('pages') else '')
+        + (f'<a class="ui-button" href="{_a(p["page"])}" aria-label="Portfolio page of {_a(p["name"])}">📄</a>' if p.get('page') else '')
+        + '<img loading="lazy" alt="GitHub stars" '
           f'src="https://img.shields.io/github/stars/myon-bioinformatics/{_a(quote(p["name"], safe=""))}?style=social">'
           f'<button type="button" class="ui-button project-copy" data-copy="{_a(p["url"])}" aria-label="Copy repository URL for {_a(p["name"])}">Copy URL</button></div>'
     ), 'article', ' class="ui-card"') for p in projects)
@@ -322,7 +324,8 @@ def document(root: Path | None = None, ui=None) -> str:
     avatar = ui.component_parts("gaze-avatar")
     script = ui.module_script('\n'.join((ui.js_source('collection.js'), avatar['js'], SCRIPT)))
     page = SHELL
-    for mark, value in (('@@PORTAL@@', portal_cards()), ('@@THEMES@@', theme_options(ui)), ('@@TOPICS@@', topic_buttons(projects)),
+    pages = [(p['name'], p['pages']) for p in projects if p.get('pages') and p['pages'] != 'https://myon-bioinformatics.github.io/']
+    for mark, value in (('@@PORTAL@@', portal_cards(pages)), ('@@THEMES@@', theme_options(ui)), ('@@TOPICS@@', topic_buttons(projects)),
                         ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + STYLE + avatar['css'] + '\n  '),
                         ('@@AVATAR@@', avatar['html']), ('@@SCRIPT@@', script)):
         assert page.count(mark) == 1, mark

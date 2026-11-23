@@ -24,6 +24,7 @@
       "stars": 2,
       "updatedAt": "2026-11-17T02:45:57Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/Aoi/",
       "readmeHeading": "Aoi",
       "readmeSummary": "📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/Aoi/) (GitHub Pages)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/Aoi/main/README.md"
@@ -49,6 +50,7 @@
       "stars": 1,
       "updatedAt": "2026-11-11T20:01:36Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/ascii_artist/",
       "readmeHeading": "ascii_artist",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/ascii_artist/main/README.md"
@@ -80,6 +82,7 @@
       "stars": 1,
       "updatedAt": "2026-09-28T11:53:27Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "😎Summary😎",
       "readmeSummary": null,
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/AttentionToJapaneseBeginners/main/README.md",
@@ -107,6 +110,7 @@
       "stars": 2,
       "updatedAt": "2026-10-14T02:02:28Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "audio_any2any_gui",
       "readmeSummary": "audio_any2any_gui",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/audio_any2any_gui/main/README.md",
@@ -136,6 +140,7 @@
       "stars": 1,
       "updatedAt": "2026-11-11T13:44:57Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/BlueProbe/",
       "readmeHeading": "BlueProbe",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/BlueProbe/main/README.md"
@@ -161,6 +166,7 @@
       "stars": 1,
       "updatedAt": "2026-11-21T12:27:19Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/BrowserTestKit/",
       "readmeHeading": "BrowserTestKit",
       "readmeSummary": "Cross-browser testing reference kit for Playwright Node/Python, screenshots, mobile web, and GitHub Actions. Stagehand and Replay lanes are planned but not yet implemented.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/BrowserTestKit/main/README.md"
@@ -184,6 +190,7 @@
       "stars": 1,
       "updatedAt": "2026-11-10T06:13:19Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/cli_args/",
       "readmeHeading": "cli_args",
       "readmeSummary": "📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/cli_args/) (GitHub Pages)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/cli_args/main/README.md"
@@ -206,6 +213,7 @@
       "stars": 3,
       "updatedAt": "2026-10-14T02:02:26Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "convert_img_fmt_to_webp-CUI-",
       "readmeSummary": null,
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/convert_img_fmt_to_webp-CUI-/main/README.md",
@@ -228,6 +236,7 @@
       "stars": 1,
       "updatedAt": "2026-09-28T11:53:32Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "convert_img_fmt_to_webp-GUI-",
       "readmeSummary": "[!IMPORTANT] **Archived / superseded.** This repository preserves the original GUI-only WebP conversion implementation. It is no longer actively maintained.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/convert_img_fmt_to_webp-GUI-/main/README.md",
@@ -249,6 +258,7 @@
       "stars": 1,
       "updatedAt": "2026-09-28T11:53:33Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "cumlative_usage",
       "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a small historical example of fitting an exponential model to cumulative cloud-storage usage. No further feature development or compatibility maintenance is planned.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/cumlative_usage/main/README.md",
@@ -278,6 +288,7 @@
       "stars": 1,
       "updatedAt": "2026-11-11T13:42:28Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/DRAgoWing/",
       "readmeHeading": "DRAgoWing",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/DRAgoWing/main/README.md"
@@ -305,6 +316,7 @@
       "stars": 1,
       "updatedAt": "2026-11-12T07:35:40Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/Err-o-RoadRunner/",
       "readmeHeading": "Err-o-RoadRunner",
       "readmeSummary": "Err-o-RoadRunner is a tool that does nothing in normal times. It starts working only after an error has happened. The name combines \"Error\" and \"Road Runner\".",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/Err-o-RoadRunner/main/README.md"
@@ -318,6 +330,7 @@
       "stars": 1,
       "updatedAt": "2026-11-12T11:12:55Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/FluidFullSpeedSimulation/",
       "readmeHeading": "🌊 FluidFullSpeedSimulation",
       "readmeSummary": "📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/FluidFullSpeedSimulation/) (GitHub Pages)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/FluidFullSpeedSimulation/main/README.md"
@@ -341,6 +354,7 @@
       "stars": 2,
       "updatedAt": "2026-11-21T06:28:57Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "flutter_navigation_basic",
       "readmeSummary": "Dart / Flutter で書いた、画面遷移・ルーティング・共通UIの検証用の基盤アプリです。リポジトリには Web・iOS・Android のターゲット構成を含みます。",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/flutter_navigation_basic/main/README.md",
@@ -365,6 +379,7 @@
       "stars": 1,
       "updatedAt": "2026-11-11T20:01:56Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/gh_identity/",
       "readmeHeading": "<img src=\"assets/branding/concept-c.svg\" width=\"40\" height=\"40\" alt=\"GHI search icon\"> gh_identity (GHI)",
       "readmeSummary": "Single-file, stdlib-only Python interface for portable GitHub identity and operations.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/gh_identity/main/README.md"
@@ -385,6 +400,7 @@
       "stars": 1,
       "updatedAt": "2026-09-28T11:53:28Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "GitHub_api_Template",
       "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a historical Python example for querying GitHub REST API repository search results. No further feature or compatibility maintenance is planned.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/GitHub_api_Template/main/README.md",
@@ -415,6 +431,7 @@
       "stars": 1,
       "updatedAt": "2026-09-28T11:53:29Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "Help You Build Server",
       "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a historical beginner-oriented collection of tiny localhost HTTP server examples in several languages. It is not actively maintained or used as a production server framework.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/HelpYouBuildServer/main/README.md",
@@ -444,6 +461,7 @@
       "stars": 1,
       "updatedAt": "2026-10-14T02:02:29Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "Image Extension Converter GUI",
       "readmeSummary": "A lightweight GUI to **batch-convert images to another file extension**.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/image_ext_converter_gui/main/README.md",
@@ -474,6 +492,7 @@
       "stars": 2,
       "updatedAt": "2026-11-11T08:12:16Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/Ironmate/",
       "readmeHeading": "Ironmate",
       "readmeSummary": "The logo is **I’m with a 🔰 apostrophe**. The 6 variants are used by purpose; for now the favicon uses dark green, the README the Famicom style, the web UI the heatmap palette and the home-screen icon Pixel 3D, provisionally. The final version is undecided. Each variant can be saved from the [6-varia…",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/Ironmate/main/README.md"
@@ -495,6 +514,7 @@
       "stars": 1,
       "updatedAt": "2026-09-28T11:53:30Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "LINE Notify API Template for Python 3",
       "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** LINE Notify was discontinued on **March 31, 2025**. From April 1, 2025, the LINE Notify APIs, including `notify-api.line.me`, are no longer available. This repository is preserved as a historical Python example and is not expected to work ag…",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/LINENotifyAPI_Template/main/README.md",
@@ -520,6 +540,7 @@
       "stars": 1,
       "updatedAt": "2026-11-11T20:01:09Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/markdown/",
       "readmeHeading": "markdown",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/markdown/main/README.md"
@@ -546,6 +567,7 @@
       "stars": 2,
       "updatedAt": "2026-11-13T11:21:13Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/mcp-toolcall-lab/",
       "readmeHeading": "mcp-toolcall-lab",
       "readmeSummary": "**Explore what needs to run, what can be reused, and how to verify the difference.**",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/mcp-toolcall-lab/main/README.md"
@@ -568,6 +590,7 @@
       "stars": 1,
       "updatedAt": "2026-10-14T02:02:30Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "Vue.js Mock Server Project",
       "readmeSummary": "This project provides a small browser demo and a Node.js mock API that can be used by other clients such as Flutter Web.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/mock_server_JS/main/README.md",
@@ -585,6 +608,7 @@
       "stars": 3,
       "updatedAt": "2026-11-14T11:52:01Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/myon-bioinformatics/",
       "readmeHeading": "👋 Summary / 自己紹介",
       "readmeSummary": "Bioinformatics → Security / Backend engineer. I design and build practical CLI and browser tools: mostly single-file, standard-library Python, with Node.js for JavaScript libraries and Dart/Flutter for multi-platform apps. Each tool is verified in CI (cross-browser tests, JUnit evidence) and shared…",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/myon-bioinformatics/main/README.md"
@@ -603,6 +627,7 @@
       "stars": 1,
       "updatedAt": "2026-11-15T11:59:13Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/",
       "readmeHeading": "🗺️ Concept map",
       "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/myon-bioinformatics.github.io/main/README.md"
@@ -632,6 +657,7 @@
       "stars": 1,
       "updatedAt": "2026-11-12T01:20:15Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/NagoyAction/",
       "readmeHeading": "NagoyAction",
       "readmeSummary": "📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/NagoyAction/) (GitHub Pages)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/NagoyAction/main/README.md"
@@ -652,6 +678,7 @@
       "stars": 2,
       "updatedAt": "2026-09-28T11:44:15Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "niconico Snapshot Search API v2 Template",
       "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a small historical example of calling the niconico Snapshot Search API v2 from Python. No further feature or compatibility maintenance is planned.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/niconicoSearchAPI_Template/main/README.md",
@@ -679,6 +706,7 @@
       "stars": 1,
       "updatedAt": "2026-11-09T23:22:38Z",
       "homepage": "https://nvd.nist.gov/vuln",
+      "pages": "https://myon-bioinformatics.github.io/nvd_nist_known_vulns/",
       "readmeHeading": "NVD NIST known vulnerabilities",
       "readmeSummary": "📘 [利用ガイド / Usage guide](https://myon-bioinformatics.github.io/nvd_nist_known_vulns/) (GitHub Pages)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/nvd_nist_known_vulns/main/README.md"
@@ -700,6 +728,7 @@
       "stars": 1,
       "updatedAt": "2026-09-28T11:54:35Z",
       "homepage": "https://www.oracle.com/cloud/cost-management-and-governance/",
+      "pages": null,
       "readmeHeading": "oci-cost-analysis",
       "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a historical one-off Python example for processing an exported Oracle Cloud Infrastructure (OCI) Cost Analysis CSV. No further feature or compatibility maintenance is planned.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/oci-cost-analysis/main/README.md",
@@ -727,6 +756,7 @@
       "stars": 1,
       "updatedAt": "2026-11-23T03:24:20Z",
       "homepage": "https://myon-bioinformatics.github.io/OneLaunchNumerousModules/",
+      "pages": "https://myon-bioinformatics.github.io/OneLaunchNumerousModules/",
       "readmeHeading": "🧷 OneLaunchNumerousModules (olnm)",
       "readmeSummary": "bash/zsh 用の **251 個のシェル関数**と、それを Python・Node から名前で呼べる **30 個の Python API**。 ローカル GitHub（Gitea / Forgejo）とワークフロー検査は NagoyAction（`nagoyaction hub` / `nagoyaction actionlint`）へ転送する。 実装は `olnm.py` 1 ファイル、実行時の Python 外部依存はゼロ。 Python 3.11 以降、Linux（Ubuntu / WSL の Ubuntu）の bash/zsh を対象とする。 macOS では GNU コマンド…",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/OneLaunchNumerousModules/main/README.md"
@@ -754,6 +784,7 @@
       "stars": 1,
       "updatedAt": "2026-11-19T13:19:06Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/OnTautoLogy/",
       "readmeHeading": "OnTautoLogy",
       "readmeSummary": "オントロジーをトートロジーの水準まで持っていく、小さなナレッジグラフです。主張は 🤔 候補 → 🧮 規則で導出 → 👀 観測 → ✅ 証明 の段を上り、最上段は「見ていない場合も含めて常に成り立つ」＝トートロジーです。Python 3.11 以降の標準ライブラリだけで動き、取得・書き込み・マージ・CI 起動・LLM 呼び出しは行いません。",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/OnTautoLogy/main/README.md"
@@ -767,6 +798,7 @@
       "stars": 1,
       "updatedAt": "2026-11-21T05:33:31Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/ONTO/",
       "readmeHeading": "<img src=\"docs/assets/onto-icon.png\" width=\"64\" height=\"64\" alt=\"\"> ONTO",
       "readmeSummary": "オントロジーに絡むリポジトリを紐付ける、索引と、横断して使う Python API。",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/ONTO/main/README.md"
@@ -792,6 +824,7 @@
       "stars": 2,
       "updatedAt": "2026-11-13T11:21:14Z",
       "homepage": "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
+      "pages": "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
       "readmeHeading": "PySaiyanWeBoo",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/PySaiyanWeBoo/main/README.md"
@@ -822,6 +855,7 @@
       "stars": 1,
       "updatedAt": "2026-11-11T20:00:58Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/PythDRagoras/",
       "readmeHeading": "PythDRagoras",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/PythDRagoras/main/README.md"
@@ -843,6 +877,7 @@
       "stars": 2,
       "updatedAt": "2026-09-28T11:53:55Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "python3-nmap GUI for Beginners",
       "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a historical beginner-oriented example of wrapping Nmap with Python and a desktop GUI. No further feature development or compatibility maintenance is planned.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/python3nmap_GUI_for_Beginners/main/README.md",
@@ -863,6 +898,7 @@
       "stars": 1,
       "updatedAt": "2026-09-28T11:53:31Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "Qiita_API_Template",
       "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a historical Python example for retrieving articles through the Qiita API v2. No further feature or compatibility maintenance is planned.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/Qiita_API_Template/main/README.md",
@@ -893,6 +929,7 @@
       "stars": 2,
       "updatedAt": "2026-11-14T14:22:00Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/QueRyu/",
       "readmeHeading": "QueRyu",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/QueRyu/main/README.md"
@@ -920,6 +957,7 @@
       "stars": 1,
       "updatedAt": "2026-11-21T12:27:53Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/SakAnalytics/",
       "readmeHeading": "SakAnalytics",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/SakAnalytics/main/README.md"
@@ -944,6 +982,7 @@
       "stars": 3,
       "updatedAt": "2026-09-28T11:53:34Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "Scapy L2/L3 Toolkit",
       "readmeSummary": "[!IMPORTANT] **Archived / no longer actively maintained.** This repository is preserved as a historical standalone Scapy GUI/networking toolkit. Repository-wide search found no implementation dependency from the owner's other repositories, so it is not maintained as a shared module. No further featu…",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/scapy_GUI_for_Beginners/main/README.md",
@@ -969,6 +1008,7 @@
       "stars": 1,
       "updatedAt": "2026-11-10T23:24:24Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/search_seq_including_spaces/",
       "readmeHeading": "search_seq_including_spaces",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/search_seq_including_spaces/main/README.md"
@@ -1003,6 +1043,7 @@
       "stars": 1,
       "updatedAt": "2026-11-10T14:33:04Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/TalkCompress/",
       "readmeHeading": "TalkCompress",
       "readmeSummary": "TalkCompress は、**誰が、どの共有知識・規則を持てば理解できるかを条件に、意味を保てる短い表現を探す**実験リポジトリです。文字数・通信バイト数・LLM のトークン数を測り、人と機械が扱える表現の幅を広げます。",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/TalkCompress/main/README.md"
@@ -1016,6 +1057,7 @@
       "stars": 1,
       "updatedAt": "2026-11-21T06:32:02Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/TaxOntOy/",
       "readmeHeading": "TaxOntOy",
       "readmeSummary": "[otl-relations.json](otl-relations.json) は OnTautoLogy の第一弾（監査）、第二弾（概念）、第三弾（事例）の関係を、分析したい意味に対応づける最小の分類表です。キーは OTL のグラフ JSON に現れる関係名です。元の辺の向きと ID を保持します。",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/TaxOntOy/main/README.md"
@@ -1029,6 +1071,7 @@
       "stars": 1,
       "updatedAt": "2026-11-21T05:33:20Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/TopOntoLogy/",
       "readmeHeading": "TopOntoLogy",
       "readmeSummary": "**TopOntoLogy** は、Topology（トポロジー）と Ontology（オントロジー）を組み合わせた造語。",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/TopOntoLogy/main/README.md"
@@ -1054,6 +1097,7 @@
       "stars": 1,
       "updatedAt": "2026-10-14T02:02:27Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "video2audio_gui",
       "readmeSummary": "A small desktop GUI for extracting audio tracks from video files with FFmpeg.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/video2audio_gui/main/README.md",
@@ -1080,6 +1124,7 @@
       "stars": 1,
       "updatedAt": "2026-10-14T02:02:27Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "video_to_image_gui",
       "readmeSummary": null,
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/video_to_image_gui/main/README.md",
@@ -1094,6 +1139,7 @@
       "stars": 1,
       "updatedAt": "2026-09-28T11:53:35Z",
       "homepage": null,
+      "pages": null,
       "readmeHeading": "vlm_ocr_jp_gui",
       "readmeSummary": null,
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/vlm_ocr_jp_gui/main/README.md",
@@ -1122,6 +1168,7 @@
       "stars": 1,
       "updatedAt": "2026-11-11T20:01:48Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/xprobe/",
       "readmeHeading": "xprobe",
       "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/xprobe/main/README.md"
@@ -1147,6 +1194,7 @@
       "stars": 1,
       "updatedAt": "2026-11-11T20:01:42Z",
       "homepage": null,
+      "pages": "https://myon-bioinformatics.github.io/yourself/",
       "readmeHeading": "yourself",
       "readmeSummary": "Single-file, standard-library Python tool for read-only inspection of host, OS, and runtime facts. Produces concise, copyable environment reports for troubleshooting and AI context.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/yourself/main/README.md"

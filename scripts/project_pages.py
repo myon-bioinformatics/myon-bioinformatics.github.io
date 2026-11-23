@@ -195,9 +195,17 @@ def _project_file(project: dict) -> str:
     return PROJECT_BASE + project['name'].lower() + '.html'
 
 
+def pages_urls(root: Path = ROOT) -> dict[str, str]:
+    """Repository name → its GitHub Pages root, from api/repos.json (generated from GitHub's ``has_pages``)."""
+    path = root / 'api/repos.json'
+    repos = json.loads(path.read_text(encoding='utf-8'))['repos'] if path.is_file() else []
+    return {repo['name']: repo['pages'] for repo in repos if repo.get('pages') and not repo.get('archived')}
+
+
 def render_projects(ui, root: Path = ROOT) -> dict[str, bytes]:
     """A page per showcased project (icon, description, media, the recorded run, links) and their catalog, by published path."""
     result = {}
+    pages = pages_urls(root)
     for project in showcases(root):
         show = project['showcase']
         raw = lambda path: f"https://raw.githubusercontent.com/{show['repository']}/{show['commit']}/{show.get('path', '')}{path}"
@@ -223,7 +231,8 @@ def render_projects(ui, root: Path = ROOT) -> dict[str, bytes]:
                 *[block for item in items for block in (     # 📱 stacked, not a table: paths stay whole on a phone
                     {'type': 'heading', 'level': 3, 'text': '📄 ' + item['path']},
                     {'type': 'kv', 'rows': [['📝', item['summary'] or '❔'], ['⌨️', item['usage'] or '—']]})]]})
-        blocks.append({'type': 'links', 'items': [{'label': '🐙 GitHub', 'href': project['url']},
+        blocks.append({'type': 'links', 'items': [*([{'label': '🌐 Pages', 'href': pages[project['name']]}] if project['name'] in pages else []),
+                                                  {'label': '🐙 GitHub', 'href': project['url']},
                                                   {'label': '📄 README', 'href': project['url'] + '#readme'}]})
         if project.get('topics'):
             blocks.append({'type': 'badges', 'items': project['topics']})
@@ -232,9 +241,11 @@ def render_projects(ui, root: Path = ROOT) -> dict[str, bytes]:
         result[_project_file(project)] = add_home_label(add_back_nav(page), show['label'], icons_from='../../').encode('utf-8')
     catalog = ui.catalog_document({
         'schema': 'web-ui-catalog/1', 'title': '📚 Projects',
-        'description': 'GitHub Pages を持たないプロジェクトにも、ここに1ページずつ：アイコン、図や GIF、記録した実行例。',
+        'description': '固定したコミットで記録した実行例・図や GIF・スクリプト一覧を1ページずつ。🌐 はそのリポジトリの Pages。',
         'items': [{'id': p['name'].lower(), 'title': p['name'], 'summary': p['desc'],
-                   'links': [{'label': 'Open →', 'href': './' + p['name'].lower() + '.html'}, {'label': 'GitHub', 'href': p['url']}]}
+                   'links': [{'label': 'Open →', 'href': './' + p['name'].lower() + '.html'},
+                             *([{'label': '🌐 Pages', 'href': pages[p['name']]}] if p['name'] in pages else []),
+                             {'label': 'GitHub', 'href': p['url']}]}
                   for p in showcases(root)]})
     result[PROJECT_BASE + 'index.html'] = add_home_label(add_back_nav(catalog), '📚 Projects', icons_from='../../').encode('utf-8')
     return result
