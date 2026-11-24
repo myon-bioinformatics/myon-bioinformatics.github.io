@@ -16,9 +16,13 @@
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/index.html": "45f782455c05d0f995796e95f2d08f92940ed6614c3fc947a5ed7f9f4fcfde6c",
-    "tools/demos/mcp-stub.html": "10241752485e6196a8917c45b689f83c46c461c5f8d3a1d3d2a88de01c23fd28",
-    "tools/demos/api-stub.html": "be304b51d62e0d9444a8894390e81304ce36c1b0ed0c02e091f33ef700c958c1",
+    "tools/demos/index.html": "32b8d80228ffc0a551224962edf99dfb6ea0a2fb6504f575d3dd3085b301c5cc",
+    "tools/demos/world.html": "97336d8d5563064ae678ebb2d47feedcb8a7230a2f20560ab723dbb3bc1d9504",
+    "tools/demos/school.html": "c477c8e9501e589c8d03756d4189154d6c61d90c3b35a36e157bc43d3f13a131",
+    "tools/demos/cities.html": "36c8ccd4b9108c0e60a860646ed9c774fec83c8996f1cca1bdc0008126b42db0",
+    "tools/demos/world-shots.html": "33ea4b49962f25d82ae83a9c36d167d7502780598d191e182d1f76a30e4afd44",
+    "tools/demos/mcp-stub.html": "d428c24e74038613ec2d11f8fd64663cd19a5b4051b5be1bde32a3851b41b1d5",
+    "tools/demos/api-stub.html": "29965fe57b7283c12da29bbfffa09ffeef13f67ea17917e7ce038be56eef5f76",
     "tools/demos/mcp-lab.html": "6db9f11a85ccfe36798781c64a62af42faabd8fc7ce8cc00a892be95779c62e4",
     "tools/demos/test-report.html": "eaf6ea0911d7dfebc9a62c2eaa860e6623ed118f90206cf62303b52b7b810469",
     "tools/projects/search_seq_including_spaces.html": "d5ced544e0c570edbda51afa8708564645b20ad31edceac2fbc8713aae3543ac",
