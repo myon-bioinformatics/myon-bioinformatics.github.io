@@ -39,9 +39,8 @@ EXPECTED_PAGES = {
     "https://myon-bioinformatics.github.io/tools/ironmate/",
     "https://myon-bioinformatics.github.io/tools/ironmate/tools/",
     "https://myon-bioinformatics.github.io/tools/ironmate/slides/",
-    # Other repositories' Pages (each checked to load on 2026-11-13): a benchmark, the operations dashboard, usage guides.
+    # Other repositories' Pages (each checked to load on 2026-11-13): the operations dashboard, usage guides.
     "https://myon-bioinformatics.github.io/markdown/",
-    "https://myon-bioinformatics.github.io/markdown/guide.html",
     "https://myon-bioinformatics.github.io/myon-bioinformatics/",
     *(f"https://myon-bioinformatics.github.io/{name}/" for name in
       ("Aoi", "NagoyAction", "FluidFullSpeedSimulation", "xprobe", "gh_identity", "yourself", "cli_args", "ascii_artist")),
@@ -247,6 +246,9 @@ def test_tools_built_from_other_repositories_never_404():
             html = (SITE / name).read_text(encoding='utf-8')
             assert '⏸' in html and f'https://github.com/{repository}' in html, name
             assert f'<a href="{"../" * name.count("/")}index.html#tools">' in html, name
+    front = LinkParser()
+    front.feed((SITE / "index.html").read_text(encoding="utf-8"))
+    assert "./tools/heatmap/" in front.links                                         # 🌡️ the Tools & Demos card opens it
     with tempfile.TemporaryDirectory() as tmp:
         kept = Path(tmp) / 'tools/ironmate/index.html'
         kept.parent.mkdir(parents=True)

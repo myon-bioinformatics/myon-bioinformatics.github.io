@@ -60,7 +60,7 @@ the JSON-driven repository cards: adding a new live tool requires updating both
 `index.html` and `tests/test_site.py`, so the destination and its HTTPS
 Pages-host contract are reviewed together.
 
-🧰 Ironmate's Image Studio, Browser Tools and Slide Studio (`tools/ironmate/`) and mcp-toolcall-lab's execution lab (`tools/mcp-toolcall-lab/execution/`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ page in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Live destinations include Ironmate (Image Studio, Browser Tools, and Slide Studio), mcp-toolcall-lab, and PySaiyanWeBoo.
+🧰 Ironmate's Image Studio, Browser Tools and Slide Studio (`tools/ironmate/`), mcp-toolcall-lab's execution lab (`tools/mcp-toolcall-lab/execution/`) and DRAgoWing's 🌡️ heatmap (`tools/heatmap/`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ page in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Live destinations include Ironmate (Image Studio, Browser Tools, and Slide Studio), mcp-toolcall-lab, and PySaiyanWeBoo.
 
 ## 🚀 Projects
 The Projects section on the [site](https://myon-bioinformatics.github.io) is a hub of every public, non-archived repository.
