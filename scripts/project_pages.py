@@ -687,7 +687,8 @@ def render_map(ui, output: Path | None = None) -> dict[str, bytes]:
 TOOLS = 'media/tools/receipt.json'       # what this build recorded; the pages live under their folders (not kept in git)
 # key: (repository, folder under the site, entry pages inside it)
 TOOL_SOURCES = {'ironmate': ('myon-bioinformatics/Ironmate', 'tools/ironmate', ('', 'tools/', 'slides/')),
-                'mcp-toolcall-lab': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp-toolcall-lab/execution', ('',))}
+                'mcp-toolcall-lab': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp-toolcall-lab/execution', ('',)),
+                'dragowing': ('myon-bioinformatics/DRAgoWing', 'tools/heatmap', ('',))}
 
 
 def _back_to_tools(page: str, path: str) -> str:
@@ -712,6 +713,9 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                                                              capture_output=True, timeout=900, env=env)
                 if key == 'ironmate':
                     run('image_studio.py', '--build-site', str(built))
+                elif key == 'dragowing':                          # 🌡️ one page on stdout; its scenes open in Image Studio
+                    built.mkdir()
+                    (built / 'index.html').write_bytes(run('scripts/build_heatmap_page.py').stdout)
                 else:
                     run('scripts/build_portable_pages.py', '--source-sha', commits[key], '--out', str(Path(tmp) / 'lab'),
                         env={**os.environ, 'PYTHONPATH': 'src'})
@@ -734,7 +738,7 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
 
 
 def record_tools(output: Path, remote: str = 'https://github.com/') -> list[str]:
-    """🧰 Clone Ironmate and mcp-toolcall-lab at their default branches and ``collect_tools``; one log line each (best effort)."""
+    """🧰 Clone each TOOL_SOURCES repository at its default branch and ``collect_tools``; one log line each (best effort)."""
     checkouts, commits, lines = {}, {}, []
     with tempfile.TemporaryDirectory() as tmp:
         for key, (repository, _, _) in TOOL_SOURCES.items():
