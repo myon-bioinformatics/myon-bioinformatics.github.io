@@ -1,4 +1,4 @@
-"""Portfolio map links and local pins, using the pinned PSWB coordinate and city data."""
+"""Portfolio map links and local pins: PySaiyanWeBoo's coordinates, and Parallel Tokyo from scripts/world.py."""
 import html
 import json
 import re
@@ -164,8 +164,9 @@ try{const radius=readRadius(query.get('radius_m')??'100');
 COORDINATES_MODULE = '<script type="module" src="../vendor/web-ui/js/coordinates.js"></script>'
 
 
-def render(ui) -> dict[str, str]:
-    cities = ui.example_data('cities')
+def render(ui, worlds) -> dict[str, str]:
+    """The map tool and Parallel Tokyo; ``worlds`` is scripts/world.py."""
+    cities = worlds.example_data('cities')
     tokyo = next(f for f in cities['floors'] if f['id'] == 'tokyo')
     points = [dict(id='tokyo-' + p['id'], label=p['label'], lat=p['lat'], lon=p['lon'])
               for p in tokyo['place']['points']]
@@ -178,7 +179,7 @@ def render(ui) -> dict[str, str]:
     page = ui.render_document(title='地図URL・ピン留め', trusted_html=body, css=ui.bundled_css() + CSS)
     cities['title'], cities['floors'] = 'パラレル東京', [tokyo]
     cities['tools'] = {k: v for k, v in cities['tools'].items() if v.get('floor', 'tokyo') == 'tokyo'}
-    world = ui.world_document(cities)
+    world = worlds.world_document(cities)
     # Keep PSWB's world behaviour and favorites; add a real-coordinate link to each existing sheet.
     for p in points:
         href = './?' + urlencode({'lat': ui.fixed(p['lat'], 6), 'lon': ui.fixed(p['lon'], 6), 'name': p['label']})

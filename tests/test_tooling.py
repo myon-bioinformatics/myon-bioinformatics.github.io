@@ -284,6 +284,7 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     shutil.copyfile(ROOT / 'scripts/project_pages.py', root / 'scripts/project_pages.py')
     shutil.copyfile(ROOT / 'scripts/front_page.py', root / 'scripts/front_page.py')         # the front page is generated too
     shutil.copyfile(ROOT / 'scripts/map_tool.py', root / 'scripts/map_tool.py')
+    shutil.copyfile(ROOT / 'scripts/world.py', root / 'scripts/world.py')                 # 🌍 the world pages and Parallel Tokyo
     (root / 'api').mkdir()
     for name in ('profile.json', 'api/repos.json'):                                       # ... from these and projects.json
         shutil.copyfile(ROOT / name, root / name)
@@ -483,3 +484,52 @@ def test_advance_moves_each_showcase_to_the_tip_unless_that_breaks_its_page(tmp_
     assert after['Moved']['scripts']['items'] == [{'path': 'show.py', 'summary': 'Show.', 'usage': ''}]
     assert (after['Lost']['commit'], after['Broke']['commit']) == (lost[0], broke[0])      # 📌 kept where the page works
     assert after['Broke']['run']['output'] == 'old' and after['Plain'] is None
+
+
+# 🤖🔁 the stubs (moved here from PySaiyanWeBoo with their tests)
+class StubTests(unittest.TestCase):
+    """MCP/API stubs and mocks are one function call; the mock is declarative and evaluated the same in Python and the page."""
+
+    def test_stub_spec_is_validated(self):
+        mcp = assets.EXAMPLE_STUBS["mcp"]
+        self.assertEqual(assets.stub_validate(assets.stub_validate(mcp)), assets.stub_validate(mcp))
+        for bad in ({**mcp, "schema": "x"}, {**mcp, "extra": 1}, {**mcp, "id": "1a"}, {**mcp, "tags": ["t"] * 7},
+                    {**mcp, "field": {"placeholder": "no label"}}, {**mcp, "field": {"label": "x", "extra": 1}},
+                    {**mcp, "heading": ""}, {**mcp, "mock": {"k": "x" * 4001}}):
+            with self.assertRaises(ValueError):
+                assets.stub_validate(bad)
+
+    def test_mock_template_substitutes_the_query_everywhere(self):
+        template = {"path": "/api/$input", "list": ["$input", 1, None, True], "nested": {"q": "$input$input"}}
+        self.assertEqual(assets.stub_response(template, "a$&b"),
+                         {"path": "/api/a$&b", "list": ["a$&b", 1, None, True], "nested": {"q": "a$&ba$&b"}})
+        self.assertEqual(template["path"], "/api/$input")
+
+    def test_html_is_escaped_ids_are_prefixed_and_the_mock_cannot_close_the_script(self):
+        spec = {**assets.EXAMPLE_STUBS["api"], "id": "x", "heading": "<b>h</b>", "evidence": "<i>e</i>",
+                "mock": {"note": "</script><script>1</script>"}}
+        html = assets.stub_html(spec, heading_level=2)
+        for raw in ("<b>h</b>", "<i>e</i>", "</script><script>"):
+            self.assertNotIn(raw, html)
+        for ident in ("x-query", "x-run", "x-output", "x-form", "x-mock"):
+            self.assertIn(f'id="{ident}"', html)
+        self.assertIn('<h2 class="ui-title">', html)
+        self.assertIn('value="/api/example"', html)
+
+    def test_stub_document_is_a_single_file_page(self):
+        import pysaiyanweboo as ui
+        page = assets.stub_document(ui, assets.EXAMPLE_STUBS["mcp"], theme="github-like")
+        self.assertNotIn('rel="stylesheet"', page)
+        self.assertEqual(page.count('<script type="module">'), 1)
+        self.assertIn('bindStub({input:"#mcp-query"', page)
+
+
+@pytest.mark.parametrize('mock', [float('nan'), float('inf'), {'nested': [float('-inf')]}, {1, 2}])
+def test_stub_rejects_non_json_mock(mock):
+    with pytest.raises(ValueError, match='finite JSON'):
+        assets.stub_validate({**assets.EXAMPLE_STUBS['api'], 'mock': mock})
+
+
+def test_stub_normalizes_json_keys_consistently():
+    spec = assets.stub_validate({**assets.EXAMPLE_STUBS['api'], 'mock': {1: '$input'}})
+    assert assets.stub_response(spec['mock'], 'hello') == {'1': 'hello'}

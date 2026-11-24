@@ -7,7 +7,8 @@ pinned commit or when its output drifted from the lock. The generated files are 
 writes them (Pages overlays them on its build), ``--stage DIR`` writes the whole site for tests and local previews,
 and ``--refresh-lock`` rewrites the lock after the pin moves.
 
-The demos are PySaiyanWeBoo's stubs and mocks (MCP / API stubs, an in-page MCP server, a JUnit reader), published here
+The demos are the 🌍 world (scripts/world.py: the travel world, 🏫 the school, 🗼 the parallel cities, 🎬 the camera), the 🤖 MCP / 🔁 API
+stubs (below; both moved here from PySaiyanWeBoo) and PySaiyanWeBoo's mocks (an in-page MCP server, a JUnit reader), published
 with the portfolio's way back, shortcut label and icons. ``tools/projects/`` gives every project in ``projects.json`` that
 has a ``showcase`` a page of its own, Pages or not: its icon and media at a fixed commit, and one recorded run.
 ``--record NAME=CHECKOUT`` reruns that command in a checkout of exactly that commit and stores the output. A showcase
@@ -26,6 +27,7 @@ repository by path (a sibling script or a vendored module) without touching ``sy
 from __future__ import annotations
 
 import argparse
+import functools
 import hashlib
 import html
 import importlib.util
@@ -53,12 +55,146 @@ HTML_IMPORT_PAGE = 'tools/html-import/index.html'
 HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
 MAP_PAGES = {'tools/maps/index.html', 'tools/maps/tokyo.html'}
 
-# 🧰 name -> (how pysaiyanweboo builds it, shortcut label, title, summary): the only list of demos.
+# 🧰 name -> (how it is built from pysaiyanweboo, shortcut label, title, summary): the only list of demos.
 DEMOS = {
-    'mcp-stub': (lambda ui: ui.stub_document(ui.EXAMPLE_STUBS['mcp']), '🤖 MCP stub', 'MCP stub', '通信しない MCP のスタブ：ツール名を入れて結果と証跡を見る'),
-    'api-stub': (lambda ui: ui.stub_document(ui.EXAMPLE_STUBS['api']), '🔁 API stub', 'API stub', '通信しない API のスタブ：パスを送って結果と証跡を見る'),
+    'world': (lambda ui: world_page('overworld'), '🌍 ワールド', 'World',
+              '🚪 で土地をわたる旅のワールド：絵文字のキャラで歩き、時刻・お気に入り・地図・言語を切り替える'),
+    'school': (lambda ui: world_page('school'), '🏫 スクール', 'School',
+               '教室を歩く：絵文字を選び、タップ・矢印キー・パッドで机のあいだを移動（机・黒板・棚には入らない）'),
+    'cities': (lambda ui: world_page('cities'), '🗼 パラレル', 'Parallel cities',
+               'パラレル東京・リバースロンドン・フェイクパリ：緯度・経度から、駅から駅へ歩く'),
+    'world-shots': (lambda ui: world_page('world'), '🎬 カメラ', 'World camera',
+                    'ページ遷移なしの1ページ：スクロールで場面、ドラッグ・ホイール・ピンチで地図を動かしスポットを開く'),
+    'mcp-stub': (lambda ui: stub_document(ui, EXAMPLE_STUBS['mcp']), '🤖 MCP stub', 'MCP stub', '通信しない MCP のスタブ：ツール名を入れて結果と証跡を見る'),
+    'api-stub': (lambda ui: stub_document(ui, EXAMPLE_STUBS['api']), '🔁 API stub', 'API stub', '通信しない API のスタブ：パスを送って結果と証跡を見る'),
     'mcp-lab': (lambda ui: ui.mcp_document(), '🔌 MCP試験', 'MCP lab', 'ページ内で動く MCP サーバーのモック：新旧の protocol、PKCE、ヘッダー名、Bearer、OAuth メタデータ'),
     'test-report': (lambda ui: ui.report_document(), '🧾 JUnit', 'Test report', 'JUnit の結果を貼るか開いて読み、前回と比べて新規・再発・解消を分ける'),
+}
+
+
+@functools.lru_cache(maxsize=None)
+def _world() -> ModuleType:
+    """🌍 scripts/world.py (the world engine and its specs), loaded once."""
+    return load_module('world', 'scripts/world.py')
+
+
+def world_page(name: str) -> str:
+    """🌍 A world spec of scripts/world.py as one page, its body in <main> so the way back has its place (as in Parallel Tokyo)."""
+    page = _world().world_document(_world().example_data(name))
+    body = '<body data-ui-theme="modern">'
+    if page.count(body) != 1 or page.count('</body>') != 1:
+        raise ValueError(f'world page {name} has no single body')
+    return page.replace(body, body + '<main>', 1).replace('</body>', '</main></body>', 1)
+
+
+# --- 🤖 MCP stub · 🔁 API stub (moved from PySaiyanWeBoo): a request bar, a result, evidence and history; nothing is sent -----
+STUB_SCHEMA = 'web-ui-stub/1'
+# bindStub: one text input to a handler (needs setText / prettyJson from PySaiyanWeBoo's ui.js), then the mock evaluator ($input -> the query).
+STUB_JS = r"""export function bindStub({input="#query",run="#run",output="#output",form="#stub-form",handler}){const q=document.querySelector(input),b=document.querySelector(run),f=document.querySelector(form);if(!q||!b)return;const execute=async event=>{event?.preventDefault();b.disabled=true;try{const result=await handler(q.value);setText(output,typeof result==="string"?result:prettyJson(result))}catch(error){setText(output,`Error: ${error?.message??error}`)}finally{b.disabled=false}};(f??b).addEventListener(f?"submit":"click",execute)}
+const fill=(t,q)=>typeof t==="string"?t.replaceAll("$input",()=>q):Array.isArray(t)?t.map(x=>fill(x,q)):t&&typeof t==="object"?Object.fromEntries(Object.entries(t).map(([k,v])=>[k,fill(v,q)])):t;
+"""
+
+
+def stub_response(template, query: str):
+    """What the mock answers for ``query``: ``template`` with every "$input" replaced by the query (same rule as the page)."""
+    if isinstance(template, str):
+        return template.replace('$input', query)
+    if isinstance(template, list):
+        return [stub_response(item, query) for item in template]
+    if isinstance(template, dict):
+        return {key: stub_response(value, query) for key, value in template.items()}
+    return template
+
+
+def stub_validate(spec) -> dict:
+    """Checked ``web-ui-stub/1`` spec: id, title, heading, lead, tags, field, run, evidence, history and the mock template."""
+    text, token = _world()._world_text, _world()._WORLD_ID
+    keys = {'schema', 'id', 'title', 'heading', 'lead', 'tags', 'field', 'run', 'evidence', 'history', 'mock'}
+    if not isinstance(spec, dict) or spec.get('schema') != STUB_SCHEMA or set(spec) - keys:
+        raise ValueError(f'expected schema {STUB_SCHEMA} with keys {sorted(keys)}')
+    stub_id = spec.get('id', 'stub')
+    if not isinstance(stub_id, str) or not token.fullmatch(stub_id):
+        raise ValueError('id must be a lowercase token that starts with a letter')
+    tags = spec.get('tags', [])
+    if not isinstance(tags, list) or len(tags) > 6:
+        raise ValueError('tags must list at most 6 entries')
+    field = spec.get('field')
+    if not isinstance(field, dict) or set(field) - {'label', 'placeholder', 'value'} or 'label' not in field:
+        raise ValueError('field has a label and optionally a placeholder or a value')
+    mock = spec.get('mock', {'status': 'stub', 'query': '$input'})
+    try:
+        encoded_mock = json.dumps(mock, allow_nan=False)
+        mock = json.loads(encoded_mock)
+    except (TypeError, ValueError, RecursionError) as exc:
+        raise ValueError('mock must be finite JSON data') from exc
+    if len(encoded_mock) > 4000:
+        raise ValueError('mock must be at most 4000 characters of JSON')
+    return {'schema': STUB_SCHEMA, 'id': stub_id, 'title': text(spec.get('title', 'Stub'), 'title', 80),
+            'heading': text(spec.get('heading', 'Stub Explorer'), 'heading', 80),
+            'lead': text(spec.get('lead', ''), 'lead', 200, required=False),
+            'tags': [text(tag, 'tag', 24) for tag in tags],
+            'field': {'label': text(field['label'], 'field label', 40),
+                      'placeholder': text(field.get('placeholder', ''), 'placeholder', 120, required=False),
+                      'value': text(field.get('value', ''), 'value', 120, required=False)},
+            'run': text(spec.get('run', 'Run'), 'run', 24),
+            'evidence': text(spec.get('evidence', ''), 'evidence', 200, required=False),
+            'history': text(spec.get('history', ''), 'history', 200, required=False), 'mock': mock}
+
+
+def stub_html(spec, *, heading_level: int = 1) -> str:
+    """The stub workspace (request bar, result, evidence, history) with ids prefixed by the spec's id; text is escaped."""
+    s = stub_validate(spec)
+    esc = html.escape
+    level = heading_level if type(heading_level) is int and 1 <= heading_level <= 6 else 1
+    sid, field = s['id'], s['field']
+    attrs = (f' placeholder="{esc(field["placeholder"], quote=True)}"' if field['placeholder'] else '') + \
+            (f' value="{esc(field["value"], quote=True)}"' if field['value'] else '')
+    tags = ''.join(f'<span class="ui-tag">{esc(tag)}</span>' for tag in s['tags'])
+    mock = json.dumps(s['mock'], ensure_ascii=False).replace('</', '<\\/')
+    return (f'<div class="stub-shell" id="{sid}"><header class="stub-header"><div><h{level} class="ui-title">{esc(s["heading"])}</h{level}>'
+            f'<p class="ui-muted">{esc(s["lead"])}</p></div><div class="stub-meta">{tags}</div></header>'
+            f'<section class="ui-panel"><form class="stub-toolbar" id="{sid}-form"><fieldset><legend>Stub request</legend>'
+            f'<label for="{sid}-query">{esc(field["label"])}</label><input class="ui-input" id="{sid}-query"{attrs}>'
+            f'<button class="ui-button" id="{sid}-run" type="submit">{esc(s["run"])}</button></fieldset></form>'
+            '<p class="stub-status ui-muted">Endpoint: <span class="stub-endpoint">consumer-owned</span></p></section>'
+            f'<div class="stub-workspace"><section class="ui-panel stub-result"><h2>Result</h2>'
+            f'<pre class="ui-output" id="{sid}-output" aria-live="polite">Ready.</pre></section>'
+            '<aside aria-label="Supporting information"><section class="ui-card stub-evidence"><h2>Evidence</h2>'
+            f'<p class="ui-muted">{esc(s["evidence"])}</p></section><section class="ui-card stub-history"><h2>History</h2>'
+            f'<p class="ui-muted">{esc(s["history"])}</p><div class="stub-actions"><button class="ui-button" type="button">Export</button>'
+            f'<button class="ui-button" type="button">Clear</button></div></section></aside></div>'
+            f'<script type="application/json" id="{sid}-mock">{mock}</script></div>')
+
+
+def stub_script(ui, *specs) -> str:
+    """One inline module for any number of stubs on a page: PySaiyanWeBoo's ui.js, STUB_JS and one bind per stub."""
+    binds = ''.join(
+        f'bindStub({{input:"#{s["id"]}-query",run:"#{s["id"]}-run",output:"#{s["id"]}-output",form:"#{s["id"]}-form",'
+        f'handler:q=>fill(JSON.parse(document.getElementById("{s["id"]}-mock").textContent),q)}});\n'
+        for s in (stub_validate(spec) for spec in specs))
+    return ui.EMBEDDED_UI_JS + STUB_JS + binds
+
+
+def stub_document(ui, spec, *, theme: str = 'modern') -> str:
+    """A single-file page for one stub."""
+    s = stub_validate(spec)
+    return ui.render_document(trusted_html='<main class="ui-page">' + stub_html(s) + '</main>'
+                              + ui.module_script(stub_script(ui, s)), title=s['title'], theme=theme, css=ui.bundled_css())
+
+
+EXAMPLE_STUBS = {
+    'mcp': {'schema': STUB_SCHEMA, 'id': 'mcp', 'title': 'MCP Stub', 'heading': 'MCP Stub Explorer',
+            'lead': 'Protocol behavior stays with the consumer; web-ui supplies presentation and generic interaction.',
+            'tags': ['mcp', 'ready'], 'field': {'label': 'Tool or filter', 'placeholder': 'tools/list'}, 'run': 'Run',
+            'evidence': 'Trace, source, SHA, or request metadata can be rendered here by the consumer.',
+            'history': 'Consumer-owned history/export controls.',
+            'mock': {'kind': 'mcp', 'query': '$input', 'status': 'stub'}},
+    'api': {'schema': STUB_SCHEMA, 'id': 'api', 'title': 'API Stub', 'heading': 'API Stub Explorer',
+            'lead': 'A generic request/result surface without API-specific logic in web-ui.',
+            'tags': ['api', 'ready'], 'field': {'label': 'Path', 'value': '/api/example'}, 'run': 'Send',
+            'evidence': 'Status, headers, provenance, or timing metadata belongs here.',
+            'history': 'Consumer-owned request history and export actions.',
+            'mock': {'method': 'GET', 'path': '$input', 'status': 200, 'body': {'stub': True}}},
 }
 
 
@@ -160,7 +296,7 @@ def render_demos(ui) -> dict[str, bytes]:
     """Every demo page, plus their catalog as tools/demos/index.html, keyed by published path (two levels below the site root)."""
     result = {DEMO_BASE + 'index.html': add_home_label(add_back_nav(ui.catalog_document({
         'schema': 'web-ui-catalog/1', 'title': '🧰 Demos',
-        'description': 'PySaiyanWeBoo が Python で生成したスタブとモック。どれも通信せず、このページの中で動きます。',
+        'description': '🌍 ワールドと 🤖🔁 スタブ、PySaiyanWeBoo のモック。どれも Python で生成し、通信せずこのページの中で動きます。',
         'items': [{'id': name, 'title': title, 'summary': summary, 'links': [{'label': 'Open →', 'href': f'./{name}.html'}]}
                   for name, (_, _, title, summary) in DEMOS.items()]})), '🧰 Demos', icons_from='../../').encode('utf-8')}
     for name, (build, label, _, _) in DEMOS.items():
@@ -636,7 +772,7 @@ def render_tools(ui, output: Path | None = None) -> dict[str, bytes]:
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     """Every hash-locked page: demos, projects, HTML import, map tools and the GIF workshop, keyed by published path."""
     maps = {path: add_home_label(add_back_nav(document), '地図・ピン', icons_from='../../').encode('utf-8')
-            for path, document in load_module('map_tool', 'scripts/map_tool.py').render(ui).items()}
+            for path, document in load_module('map_tool', 'scripts/map_tool.py').render(ui, _world()).items()}
     pages = {**render_demos(ui), **render_projects(ui, root), **render_html_import(ui), **maps, **render_gif_tool(ui)}
     for sheet, builder in STYLESHEET_BUNDLES.items():
         prefix = b'<style>' + getattr(ui, builder)().encode()
