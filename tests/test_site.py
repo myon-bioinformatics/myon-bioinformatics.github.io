@@ -933,3 +933,10 @@ def test_prose_extract_adapter_preserves_whitespace_hooks_and_code_blocks():
     published = (PUBLIC / 'index.html').read_text()
     assert '<div data-testid="pages-pixiv-extract" hidden class="ui-output"></div>' in published
     assert '<div data-testid="pages-wiki-extract" hidden class="ui-output"></div>' in published
+
+
+def test_a_showcase_icon_may_be_its_pages_url():
+    """♻️ Err-o-RoadRunner keeps no icon copy (CaChereCyCle publishes it on its Pages), so its showcase links the Pages URL."""
+    page = (SITE / "tools/projects/err-o-roadrunner.html").read_text(encoding="utf-8")
+    assert 'src="https://myon-bioinformatics.github.io/Err-o-RoadRunner/icon.png"' in page
+    assert "raw.githubusercontent.com/myon-bioinformatics/Err-o-RoadRunner/" in page   # the media still come from its pin
