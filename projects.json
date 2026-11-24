@@ -12,7 +12,7 @@
     "showcase": {
       "label": "🧬 配列検索",
       "repository": "myon-bioinformatics/search_seq_including_spaces",
-      "commit": "ea3b35373c3ed45907abbd86ea730e9f065ba783",
+      "commit": "198ceee8a2a8a52eabedb6ba97ba9179c567104f",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -89,7 +89,7 @@
     "showcase": {
       "label": "🔵 BlueProbe",
       "repository": "myon-bioinformatics/BlueProbe",
-      "commit": "6517bd1e42bbd7abd03d393b450bffae788a1f93",
+      "commit": "efd3bc4547a076c87d4112732d266da3dbd33248",
       "icon": "docs/brand/icon.png",
       "run": {
         "command": [
@@ -276,7 +276,7 @@
     "showcase": {
       "label": "🐦 Err-o-RR",
       "repository": "myon-bioinformatics/Err-o-RoadRunner",
-      "commit": "f036eaf4e8ce7185aa3f2a59fed0c1999a9fe157",
+      "commit": "ee9ddf929216705c41dab8c82a4bac89a82cc7af",
       "icon": "https://myon-bioinformatics.github.io/Err-o-RoadRunner/icon.png",
       "media": [
         {
@@ -296,7 +296,7 @@
           "--project-root",
           "tests/fixtures/readme/empty_root"
         ],
-        "output": "FOUND: exit code: 1\nFOUND: python exception type: ModuleNotFoundError\nFOUND: python exception message: No module named 'totally_missing_pkg_xyz'\nFOUND: python traceback frame (first): <string>:1 in <module>\nFOUND: python traceback frame (last): <string>:1 in <module>\nFOUND: python traceback frame count: 1\nFOUND: python version: 3.14.10 (cpython)\nFOUND: node version: v22.23.5\nFOUND: gh version: gh version 2.89.0 (2026-03-26)\nFOUND: environment variable count: 3\nFOUND: environment variable names: HOME, LANG, PATH\nNOT FOUND: lock files in project root\nHINT: web search keywords: ModuleNotFoundError No module named 'totally_missing_pkg_xyz'",
+        "output": "FOUND: exit code: 1\nFOUND: python exception type: ModuleNotFoundError\nFOUND: python exception message: No module named 'totally_missing_pkg_xyz'\nFOUND: python traceback frame (first): <string>:1 in <module>\nFOUND: python traceback frame (last): <string>:1 in <module>\nFOUND: python traceback frame count: 1\nFOUND: python version: 3.15.2 (cpython)\nFOUND: node version: v24.22.3\nFOUND: gh version: gh version 2.104.0 (2026-11-12)\nFOUND: environment variable count: 3\nFOUND: environment variable names: HOME, LANG, PATH\nNOT FOUND: lock files in project root\nHINT: web search keywords: ModuleNotFoundError No module named 'totally_missing_pkg_xyz'",
         "exit": 0
       }
     }
@@ -313,7 +313,7 @@
     "showcase": {
       "label": "🛡️ NVD",
       "repository": "myon-bioinformatics/nvd_nist_known_vulns",
-      "commit": "8bdc715dbf8c62e9e6188a370c50221a7ee70c42",
+      "commit": "ed287755d150e63800ac76f067c9482b82371f8e",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -345,7 +345,7 @@
     "showcase": {
       "label": "🧪 BTK",
       "repository": "myon-bioinformatics/BrowserTestKit",
-      "commit": "283e7117e302818b5a41846479817a0069408001",
+      "commit": "5a7bde858a52e50f41bfb70ebb0a2f63e2eb8550",
       "icon": "docs/assets/brand/validation-buddy.png",
       "media": [
         {
@@ -361,7 +361,7 @@
           "plan",
           "."
         ],
-        "output": "ok      .github/workflows/ci.yml:211 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:215 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:345 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:349 --only-shell (job runs headless only)\nok      .github/workflows/platform-matrix.yml:50 full + shell (job uses both the full build and the shell)",
+        "output": "ok      .github/workflows/ci.yml:216 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:220 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:352 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:356 --only-shell (job runs headless only)\nok      .github/workflows/platform-matrix.yml:53 full + shell (job uses both the full build and the shell)",
         "exit": 0
       },
       "scripts": {
@@ -553,7 +553,7 @@
     "showcase": {
       "label": "🗜️ 会話圧縮",
       "repository": "myon-bioinformatics/TalkCompress",
-      "commit": "60eecc239ea4a2b6676566e18a5d1d5bed1c6ef6",
+      "commit": "092e87f85904976b810f8382f0b334fead473c3e",
       "media": [
         {
           "src": "docs/evidence/browser.gif",
