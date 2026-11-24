@@ -36,9 +36,9 @@ SITE, PAGES = _staged_site()
 
 EXPECTED_PAGES = {
     "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
-    "https://myon-bioinformatics.github.io/tools/ironmate/",
-    "https://myon-bioinformatics.github.io/tools/ironmate/tools/",
-    "https://myon-bioinformatics.github.io/tools/ironmate/slides/",
+    "https://myon-bioinformatics.github.io/tools/image-studio/",
+    "https://myon-bioinformatics.github.io/tools/browser-tools/",
+    "https://myon-bioinformatics.github.io/tools/slide-studio/",
     # Other repositories' Pages (each checked to load on 2026-11-13): the operations dashboard, usage guides.
     "https://myon-bioinformatics.github.io/markdown/",
     "https://myon-bioinformatics.github.io/myon-bioinformatics/",
@@ -219,7 +219,7 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
     assert "試作実装" in card
     assert "ブラウザでスライドを作成" in card
     assert "Open Repository" not in card
-    assert "tools/ironmate/slides/" in card
+    assert "tools/slide-studio/" in card
 
 
 def test_lab_pages_are_hosted_by_portfolio():
@@ -250,11 +250,45 @@ def test_tools_built_from_other_repositories_never_404():
     front.feed((SITE / "index.html").read_text(encoding="utf-8"))
     assert "./tools/heatmap/" in front.links                                         # 🌡️ the Tools & Demos card opens it
     with tempfile.TemporaryDirectory() as tmp:
-        kept = Path(tmp) / 'tools/ironmate/index.html'
+        kept = Path(tmp) / 'tools/image-studio/index.html'
         kept.parent.mkdir(parents=True)
         kept.write_text('kept', encoding='utf-8')
         receipt = PAGES.collect_tools(Path(tmp), {'ironmate': Path(tmp) / 'no-checkout'}, {'ironmate': '0' * 40})
         assert receipt['made'] == [] and 'ironmate' in receipt['failed'] and kept.read_text(encoding='utf-8') == 'kept'
+
+
+def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path):
+    checkout = tmp_path / 'checkout'
+    checkout.mkdir()
+    (checkout / 'image_studio.py').write_text(
+        "import pathlib,sys\n"
+        "root = pathlib.Path(sys.argv[2])\n"
+        "pages = {'index.html': '<a href=\\\"slides/phone/\\\">phone</a><script src=\\\"studio.js\\\"></script>',\n"
+        " 'tools/index.html': '<a href=\\\"../slides/#target\\\">slides</a>',\n"
+        " 'slides/index.html': '<a href=\\\"../tools/\\\">tools</a>',\n"
+        " 'slides/phone/index.html': '<a href=\\\"../../\\\">image</a><script src=\\\"../../studio.js\\\"></script>'}\n"
+        "for name, text in pages.items():\n"
+        " p = root / name; p.parent.mkdir(parents=True, exist_ok=True); p.write_text('<main>' + text + '</main>')\n"
+        "(root / 'studio.js').write_text('shared')\n"
+        "(root / 'brand').mkdir()\n"
+        "(root / 'brand/manifest.webmanifest').write_text('{\\\"shortcuts\\\":[{\\\"url\\\":\\\"../slides/\\\"}]}')\n",
+        encoding='utf-8',
+    )
+    out = tmp_path / 'site'
+    receipt = PAGES.collect_tools(out, {'ironmate': checkout}, {'ironmate': '0' * 40})
+    assert receipt['made'] == ['ironmate']
+    assert not (out / 'tools/ironmate').exists()
+    tools = out / 'tools'
+    assert 'href="../slide-studio/phone/"' in (tools / 'image-studio/index.html').read_text()
+    assert 'href="../slide-studio/#target"' in (tools / 'browser-tools/index.html').read_text()
+    assert 'href="../browser-tools/"' in (tools / 'slide-studio/index.html').read_text()
+    phone = (tools / 'slide-studio/phone/index.html').read_text()
+    assert 'href="../../image-studio/"' in phone and 'src="../../image-studio/studio.js"' in phone
+    assert 'href="../../../index.html#tools"' in phone
+    assert (tools / 'image-studio/studio.js').read_text() == 'shared'
+    manifest = json.loads((tools / 'image-studio/brand/manifest.webmanifest').read_text())
+    assert manifest['scope'] == '../../'
+    assert manifest['shortcuts'] == [{'url': '../../slide-studio/'}]
 
 
 def test_every_tool_page_has_the_same_back_link_first_in_main():
@@ -424,11 +458,13 @@ def canonical_data_errors(profile: dict, projects: list, catalog: dict, registry
         if repository_url and repository_url != repo['url']:
             errors.append(f"repository service URL drift for {name}: {repository_url} != {repo['url']}")
         prefix = f'https://myon-bioinformatics.github.io/{name}/'
-        built_here = f'https://myon-bioinformatics.github.io/tools/{name.lower()}/'   # 🧰 built by this site from it (--record-tools)
+        routes = (('tools/' + route for route in PAGES.TOOL_SOURCES['ironmate'][2])
+                  if name == 'Ironmate' else (f'tools/{name.lower()}/',))
+        built_here = tuple('https://myon-bioinformatics.github.io/' + route for route in routes)
         for service_name, service in group.items():
             if not isinstance(service, dict):
                 errors.append(f'invalid service entry at services.projects.{name}.{service_name}')
-            elif service.get('kind') in ('pages', 'mcp-stub') and service.get('url') and not service['url'].startswith((prefix, built_here)):
+            elif service.get('kind') in ('pages', 'mcp-stub') and service.get('url') and not service['url'].startswith((prefix, *built_here)):
                 errors.append(f'{service_name} URL for {name} must be under {prefix}')
     return errors
 

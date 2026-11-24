@@ -22,14 +22,14 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'text': 'ブラウザでスライドを作成し、文字・図形・矢印を編集可能なPPTXへ出力。Image Studio はレイヤー、数値行列のヒートマップ、作業履歴、クリップボード棚、PNG Base64 の受け渡しに対応し、Browser Tools '
           'ではドット絵・比較用の一枚・容量確認ができます。Markdown→PPTX変換と既存PPTXの属性編集はローカルCLIの試作実装です。',
   'id': 'ironmate',
-  'links': [('Open Image Studio →', 'https://myon-bioinformatics.github.io/tools/ironmate/'),
-            ('Open Browser Tools →', 'https://myon-bioinformatics.github.io/tools/ironmate/tools/'),
-            ('Open Slide Studio →', 'https://myon-bioinformatics.github.io/tools/ironmate/slides/')]},
+  'links': [('Open Image Studio →', 'https://myon-bioinformatics.github.io/tools/image-studio/'),
+            ('Open Browser Tools →', 'https://myon-bioinformatics.github.io/tools/browser-tools/'),
+            ('Open Slide Studio →', 'https://myon-bioinformatics.github.io/tools/slide-studio/')]},
  {'title': '🌡️ ヒートマップ',
   'text': '数値行列か Plotly の heatmap を貼って描き、色の段階・値の表示を変えて SVG・PNG・シーン JSON に。'
           'シーンは Ironmate の Image Studio でレイヤーとして編集できます（DRAgoWing と Ironmate を横断）。',
   'id': 'heatmap',
-  'links': [('ヒートマップを描く →', './tools/heatmap/'), ('Image Studio で編集 →', './tools/ironmate/')]},
+  'links': [('ヒートマップを描く →', './tools/heatmap/'), ('Image Studio で編集 →', './tools/image-studio/')]},
  {'title': 'mcp-toolcall-lab',
   'text': 'Wikipedia表示・Pixiv原文抽出と、ラボの検証結果スナップショット。',
   'id': 'mcp-toolcall-lab',
