@@ -12,7 +12,7 @@ GitHub account-avatar settings are unchanged. No PWA/installability claim is add
 - `assets/brand/myon-favicon-source.png`: exact 77×77 RGB crop.
 - `assets/brand/favicon-{16,32,48}x{16,32,48}.png`: Pillow LANCZOS downscales of the supplied favicon crop.
 - `/favicon.ico`: the same PNG bytes embedded as 16×16, 32×32 and 48×48 frames.
-- `assets/brand/myon-concept-diagram.jpg`: earlier supplied 1536×1024 JPEG preserved without any change, SHA-256 `4b5f4673e1eabe737913828fa54ec101c12d7fb1e4883581b9e8cd96a3f00964`.
+- `assets/brand/repository-concept.jpg`: earlier supplied 1536×1024 JPEG preserved without any change, SHA-256 `4b5f4673e1eabe737913828fa54ec101c12d7fb1e4883581b9e8cd96a3f00964`.
 
 The new source sheet is 1536×1024 pixels, SHA-256
 `5b01ec2dcf793ffc28335e2da1ce6842b8767aa6c1727ceec4a72f983ae98c50`.
