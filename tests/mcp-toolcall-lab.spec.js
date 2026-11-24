@@ -92,7 +92,7 @@ test.describe('MCP Tool Call Lab - Publication, navigation, and extraction', () 
   }
 
   test('execution links and empty Wiki examples remain usable', async ({ page }) => {
-    const execution = 'https://myon-bioinformatics.github.io/mcp-toolcall-lab/execution/';
+    const execution = 'https://myon-bioinformatics.github.io/tools/mcp-toolcall-lab/execution/';
     await page.goto('/');
     await expect(page.getByRole('link', { name: 'Open Execution Lab →' })).toHaveAttribute('href', execution);
     await page.goto('/tools/mcp-toolcall-lab/#wiki');
