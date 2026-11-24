@@ -291,7 +291,7 @@
       "url": "/tools/mcp-toolcall-lab/#wiki",
       "viewport": "1280x800",
       "allow": [
-        "/mcp-toolcall-lab/execution/assets/"
+        "/tools/mcp-toolcall-lab/execution/assets/"
       ]
     },
     {
@@ -299,7 +299,7 @@
       "url": "/tools/mcp-toolcall-lab/#pixiv",
       "viewport": "1280x800",
       "allow": [
-        "/mcp-toolcall-lab/execution/assets/"
+        "/tools/mcp-toolcall-lab/execution/assets/"
       ]
     },
     {
@@ -307,7 +307,7 @@
       "url": "/tools/mcp-toolcall-lab/repository-diagnostics.html",
       "viewport": "1280x800",
       "allow": [
-        "/mcp-toolcall-lab/execution/assets/"
+        "/tools/mcp-toolcall-lab/execution/assets/"
       ]
     },
     {
@@ -320,7 +320,7 @@
       "url": "/tools/mcp-toolcall-lab/#niconico",
       "viewport": "1280x800",
       "allow": [
-        "/mcp-toolcall-lab/execution/assets/"
+        "/tools/mcp-toolcall-lab/execution/assets/"
       ]
     },
     {
@@ -328,7 +328,7 @@
       "url": "/tools/mcp-toolcall-lab/#wiki",
       "viewport": "392x848",
       "allow": [
-        "/mcp-toolcall-lab/execution/assets/"
+        "/tools/mcp-toolcall-lab/execution/assets/"
       ]
     }
   ]

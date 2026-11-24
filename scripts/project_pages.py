@@ -683,6 +683,92 @@ def render_map(ui, output: Path | None = None) -> dict[str, bytes]:
     return {MAP_PAGE: add_home_label(add_back_nav(page), '🧠 地図', icons_from='../../').encode('utf-8')}
 
 
+# ── 🧰 道具: Ironmate's studios and mcp-toolcall-lab's execution lab, built from their default branches at deploy time ──
+TOOLS = 'media/tools/receipt.json'       # what this build recorded; the pages live under their folders (not kept in git)
+# key: (repository, folder under the site, entry pages inside it)
+TOOL_SOURCES = {'ironmate': ('myon-bioinformatics/Ironmate', 'tools/ironmate', ('', 'tools/', 'slides/')),
+                'mcp-toolcall-lab': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp-toolcall-lab/execution', ('',))}
+
+
+def _back_to_tools(page: str, path: str) -> str:
+    """The way back to 🧭 Tools & Demos from ``path`` (any depth), right after <main> (else <body>)."""
+    import pysaiyanweboo as ui
+    return ui.add_back_nav(page, [{'label': '← 🧭 Tools & Demos', 'href': '../' * path.count('/') + 'index.html#tools'}],
+                           test_id='portfolio-back')
+
+
+def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, str]) -> dict:
+    """Build each tool from its checkout with ``python -S`` (the lab's build also runs Node) into ``output/<folder>/``,
+    give each entry page the way back, and write the receipt; a tool that fails is left out. Returns the receipt."""
+    made, failed = [], {}
+    for key, (repository, folder, entries) in TOOL_SOURCES.items():
+        if key not in checkouts:
+            continue
+        dest = Path(output) / folder
+        try:
+            with tempfile.TemporaryDirectory() as tmp:       # build aside; the ⏸ page stays unless the whole tool built
+                built = Path(tmp) / 'site'
+                run = lambda *args, env=None: subprocess.run([sys.executable, '-S', *args], cwd=checkouts[key], check=True,
+                                                             capture_output=True, timeout=900, env=env)
+                if key == 'ironmate':
+                    run('image_studio.py', '--build-site', str(built))
+                else:
+                    run('scripts/build_portable_pages.py', '--source-sha', commits[key], '--out', str(Path(tmp) / 'lab'),
+                        env={**os.environ, 'PYTHONPATH': 'src'})
+                    shutil.move(str(Path(tmp) / 'lab' / 'execution'), str(built))
+                for entry in entries:
+                    page = built / entry / 'index.html'
+                    page.write_text(_back_to_tools(page.read_text(encoding='utf-8'), f'{folder}/{entry}index.html'), encoding='utf-8')
+                if dest.exists():
+                    shutil.rmtree(dest)
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(built), str(dest))
+            made.append(key)
+        except (OSError, subprocess.SubprocessError, ValueError) as exc:
+            failed[key] = type(exc).__name__
+    receipt = {'schema': 'portfolio-tools/1', 'commits': commits, 'made': made, 'failed': failed}
+    path = Path(output) / TOOLS
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
+    return receipt
+
+
+def record_tools(output: Path, remote: str = 'https://github.com/') -> list[str]:
+    """🧰 Clone Ironmate and mcp-toolcall-lab at their default branches and ``collect_tools``; one log line each (best effort)."""
+    checkouts, commits, lines = {}, {}, []
+    with tempfile.TemporaryDirectory() as tmp:
+        for key, (repository, _, _) in TOOL_SOURCES.items():
+            try:
+                checkout = Path(tmp) / key
+                subprocess.run(['git', 'clone', '--quiet', '--depth', '1', remote + repository, str(checkout)], check=True, timeout=300)
+                commits[key] = subprocess.run(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], check=True, capture_output=True,
+                                              text=True).stdout.strip()
+                checkouts[key] = checkout
+            except (OSError, subprocess.SubprocessError) as exc:
+                lines.append(f'⏸ {key}: clone failed ({type(exc).__name__})')
+        receipt = collect_tools(output, checkouts, commits)
+    return lines + [f"✅ {key} @ {commits[key][:7]} → {TOOL_SOURCES[key][1]}/" if key in receipt['made'] else
+                    f"⏸ {key}: {receipt['failed'][key]}" for key in checkouts]
+
+
+def render_tools(ui, output: Path | None = None) -> dict[str, bytes]:
+    """⏸ A short page at every entry of a tool this build did not record (tests, a failed clone), so a 🧭 link never 404s;
+    a recorded tool is left as built."""
+    path = Path(output) / TOOLS if output else None
+    made = json.loads(path.read_text(encoding='utf-8'))['made'] if path and path.is_file() else []
+    pages = {}
+    for key, (repository, folder, entries) in TOOL_SOURCES.items():
+        if key in made:
+            continue
+        for entry in entries:
+            name = f'{folder}/{entry}index.html'
+            page = ui.page_document({'schema': 'web-ui-page/1', 'title': f'🧰 {repository.split("/")[1]}', 'blocks': [
+                {'type': 'text', 'text': f'⏸ この道具は、公開のたびに {repository} の最新のコミットから作り直す。このビルドでは作っていない。'},
+                {'type': 'links', 'items': [{'label': '🐙 GitHub リポジトリ', 'href': f'https://github.com/{repository}'}]}]})
+            pages[name] = _back_to_tools(page, name).encode('utf-8')
+    return pages
+
+
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     """Every hash-locked page: demos, projects, HTML import, map tools and the GIF workshop, keyed by published path."""
     maps = {path: add_home_label(add_back_nav(document), '地図・ピン', icons_from='../../').encode('utf-8')
@@ -838,7 +924,8 @@ def validate_output(output: Path, root: Path = ROOT) -> None:
 def build(output: Path, root: Path = ROOT) -> None:
     validate_output(output, root)
     import pysaiyanweboo as ui
-    payload = {**generate(root), **render_front(root, recorded_samples(output)), **render_flow(ui, output), **render_map(ui, output)}  # Fail closed first.
+    payload = {**generate(root), **render_front(root, recorded_samples(output)), **render_flow(ui, output), **render_map(ui, output),
+               **render_tools(ui, output)}  # Fail closed first.
     for name, data in payload.items():
         path = output / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -895,6 +982,8 @@ def main(argv=None):
                         help="🎥 record a moving sample of every repository's Pages under DIR/media/pages/ (Chromium; best effort)")
     parser.add_argument('--record-flow', type=Path, metavar='DIR',
                         help='🌊 run FFSS and DRAgoWing (their default branches) and put the flow lab media under DIR/media/flow/')
+    parser.add_argument('--record-tools', type=Path, metavar='DIR',
+                        help='🧰 build Ironmate\'s studios and mcp-toolcall-lab\'s execution lab (their default branches) under DIR/tools/')
     parser.add_argument('--record-map', type=Path, metavar='DIR',
                         help="🧠 read every repository's vendor.lock.json (and Aoi's subtrees) and draw the map under DIR/media/map/")
     parser.add_argument('--advance', action='store_true',
@@ -919,13 +1008,16 @@ def main(argv=None):
         print('\n'.join(record_map(args.record_map)))
     if args.record_flow:
         print('\n'.join(record_flow(args.record_flow)))
+    if args.record_tools:
+        print('\n'.join(record_tools(args.record_tools)))
     if args.refresh_lock:
         print(json.dumps(refresh_lock(), indent=2))
     if args.output:
         build(args.output)
     if args.stage:
         stage(args.stage)
-    if not (args.refresh_lock or args.output or args.stage or args.record or args.advance or args.record_samples or args.record_flow or args.record_map):
+    if not (args.refresh_lock or args.output or args.stage or args.record or args.advance or args.record_samples or args.record_flow or args.record_map
+            or args.record_tools):
         parser.error('give --output DIR, --stage DIR, --refresh-lock, --advance, --record-samples DIR and/or --record NAME=CHECKOUT')
 
 

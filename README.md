@@ -60,7 +60,7 @@ the JSON-driven repository cards: adding a new live tool requires updating both
 `index.html` and `tests/test_site.py`, so the destination and its HTTPS
 Pages-host contract are reviewed together.
 
-Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Live destinations include Ironmate (Image Studio, Browser Tools, and Slide Studio), mcp-toolcall-lab, and PySaiyanWeBoo.
+🧰 Ironmate's Image Studio, Browser Tools and Slide Studio (`tools/ironmate/`) and mcp-toolcall-lab's execution lab (`tools/mcp-toolcall-lab/execution/`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ page in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Live destinations include Ironmate (Image Studio, Browser Tools, and Slide Studio), mcp-toolcall-lab, and PySaiyanWeBoo.
 
 ## 🚀 Projects
 The Projects section on the [site](https://myon-bioinformatics.github.io) is a hub of every public, non-archived repository.
@@ -131,7 +131,7 @@ scheduled card-update workflow.
 | `tools/portable_playwright.py` / `.mjs` (project catalog) | 11 + 11 | | |
 | 🎞️ evidence GIF shots | 9 | | |
 
-🌐 Avatars and badges are external and were refused (listed per shot in the receipt). `/mcp-toolcall-lab/execution/assets/…` is served by the mcp-toolcall-lab Pages site, so it is allowed rather than counted as a 404.
+🌐 Avatars and badges are external and were refused (listed per shot in the receipt). `/tools/mcp-toolcall-lab/execution/assets/…` comes from the execution lab this site builds at deploy time (`--record-tools`), so it is allowed rather than counted as a 404.
 🔄 `tools/mcp-toolcall-lab/` is the lab's public export re-imported from its `main` (`6af885d9`); the earlier copy was a 2026-10-24 branch build.
 📦 The shared Web UI is one pinned git dependency (the `pages` group in `pyproject.toml` → PySaiyanWeBoo; `uv run --locked --only-group pages` installs it); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated file (`tools/vendor/web-ui/`, `tools/demos/`, `tools/projects/`). The front page (`index.html`) is built by `scripts/front_page.py` from `profile.json`, `api/repos.json` and `projects.json`: the profile and projects in each display mode (cards, XML-like, JSON, Markdown) are rendered in Python, and the colour themes are PySaiyanWeBoo's palettes. It is not in the lock, because the repository catalog is refreshed by a workflow. None of these files are kept in git: the Pages build writes them, `uv run --locked python scripts/project_pages.py --stage .generated-site` writes the whole site for tests and local previews, and `--refresh-lock` rewrites the lock after the pin moves. To move the pin, change the full commit in `[tool.uv.sources]` in `pyproject.toml`, run `uv lock`, and refresh. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
 
@@ -227,7 +227,7 @@ Actions report under `tools/mcp-toolcall-lab/` (`#wiki`, `#pixiv` and `#pokemon`
 Docker execution, raw traces, and test generation remain in mcp-toolcall-lab.
 Flutter's working Pages application is unchanged.
 
-The [Execution Lab](https://myon-bioinformatics.github.io/mcp-toolcall-lab/execution/) is the lab-hosted browser execution interface, separate from this imported report.
+The [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp-toolcall-lab/execution/) is the browser execution interface, built here from mcp-toolcall-lab's default branch at deploy time (`--record-tools`) and separate from this imported report.
 The portfolio Wiki form starts empty: examples do not prefill a personal location.
 
 The initial import is the public export observed on 2026-10-08, with source

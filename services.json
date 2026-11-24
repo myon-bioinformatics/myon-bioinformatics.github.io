@@ -34,15 +34,15 @@
         },
         "pages": {
           "kind": "pages",
-          "url": "https://myon-bioinformatics.github.io/Ironmate/"
+          "url": "https://myon-bioinformatics.github.io/tools/ironmate/"
         },
         "browserTools": {
           "kind": "pages",
-          "url": "https://myon-bioinformatics.github.io/Ironmate/tools/"
+          "url": "https://myon-bioinformatics.github.io/tools/ironmate/tools/"
         },
         "slides": {
           "kind": "pages",
-          "url": "https://myon-bioinformatics.github.io/Ironmate/slides/"
+          "url": "https://myon-bioinformatics.github.io/tools/ironmate/slides/"
         }
       },
       "mcp-toolcall-lab": {
@@ -52,7 +52,7 @@
         },
         "execution": {
           "kind": "pages",
-          "url": "https://myon-bioinformatics.github.io/mcp-toolcall-lab/execution/"
+          "url": "https://myon-bioinformatics.github.io/tools/mcp-toolcall-lab/execution/"
         }
       }
     }

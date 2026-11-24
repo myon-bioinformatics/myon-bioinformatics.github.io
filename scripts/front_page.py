@@ -22,14 +22,14 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'text': 'ブラウザでスライドを作成し、文字・図形・矢印を編集可能なPPTXへ出力。Image Studio はレイヤー、数値行列のヒートマップ、作業履歴、クリップボード棚、PNG Base64 の受け渡しに対応し、Browser Tools '
           'ではドット絵・比較用の一枚・容量確認ができます。Markdown→PPTX変換と既存PPTXの属性編集はローカルCLIの試作実装です。',
   'id': 'ironmate',
-  'links': [('Open Image Studio →', 'https://myon-bioinformatics.github.io/Ironmate/'),
-            ('Open Browser Tools →', 'https://myon-bioinformatics.github.io/Ironmate/tools/'),
-            ('Open Slide Studio →', 'https://myon-bioinformatics.github.io/Ironmate/slides/')]},
+  'links': [('Open Image Studio →', 'https://myon-bioinformatics.github.io/tools/ironmate/'),
+            ('Open Browser Tools →', 'https://myon-bioinformatics.github.io/tools/ironmate/tools/'),
+            ('Open Slide Studio →', 'https://myon-bioinformatics.github.io/tools/ironmate/slides/')]},
  {'title': 'mcp-toolcall-lab',
   'text': 'Wikipedia表示・Pixiv原文抽出と、ラボの検証結果スナップショット。',
   'id': 'mcp-toolcall-lab',
   'links': [('Open Tool Lab →', './tools/mcp-toolcall-lab/'),
-            ('Open Execution Lab →', 'https://myon-bioinformatics.github.io/mcp-toolcall-lab/execution/')]},
+            ('Open Execution Lab →', 'https://myon-bioinformatics.github.io/tools/mcp-toolcall-lab/execution/')]},
  {'title': '🌍 ワールド',
   'text': '1ページの中を絵文字のキャラで歩くワールド。🚪 で土地をわたる旅、机のあいだを歩くスクール、緯度・経度から駅をつなぐパラレル東京・リバースロンドン・フェイクパリ。'
           'ページ遷移もリロードもなく、Python が HTML・CSS・小さなスクリプトを書きます（scripts/world.py）。',

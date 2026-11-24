@@ -36,9 +36,9 @@ SITE, PAGES = _staged_site()
 
 EXPECTED_PAGES = {
     "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
-    "https://myon-bioinformatics.github.io/Ironmate/",
-    "https://myon-bioinformatics.github.io/Ironmate/tools/",
-    "https://myon-bioinformatics.github.io/Ironmate/slides/",
+    "https://myon-bioinformatics.github.io/tools/ironmate/",
+    "https://myon-bioinformatics.github.io/tools/ironmate/tools/",
+    "https://myon-bioinformatics.github.io/tools/ironmate/slides/",
     # Other repositories' Pages (each checked to load on 2026-11-13): a benchmark, the operations dashboard, usage guides.
     "https://myon-bioinformatics.github.io/markdown/",
     "https://myon-bioinformatics.github.io/markdown/guide.html",
@@ -220,7 +220,7 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
     assert "試作実装" in card
     assert "ブラウザでスライドを作成" in card
     assert "Open Repository" not in card
-    assert "Ironmate/slides/" in card
+    assert "tools/ironmate/slides/" in card
 
 
 def test_lab_pages_are_hosted_by_portfolio():
@@ -236,6 +236,23 @@ TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp-toolcall-lab/index.html
               "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html", "tools/flow/index.html",
               "tools/repo-map/index.html",
               *sorted(str(path.relative_to(SITE)) for folder in ("demos", "projects") for path in (SITE / "tools" / folder).glob("*.html")))
+
+
+def test_tools_built_from_other_repositories_never_404():
+    """🧰 Without a recording (tests, a failed clone) every entry of a tool built from another repository is a ⏸ page with
+    the way back at its own depth; a failed rebuild keeps what was there."""
+    for key, (repository, folder, entries) in PAGES.TOOL_SOURCES.items():
+        for entry in entries:
+            name = f'{folder}/{entry}index.html'
+            html = (SITE / name).read_text(encoding='utf-8')
+            assert '⏸' in html and f'https://github.com/{repository}' in html, name
+            assert f'<a href="{"../" * name.count("/")}index.html#tools">' in html, name
+    with tempfile.TemporaryDirectory() as tmp:
+        kept = Path(tmp) / 'tools/ironmate/index.html'
+        kept.parent.mkdir(parents=True)
+        kept.write_text('kept', encoding='utf-8')
+        receipt = PAGES.collect_tools(Path(tmp), {'ironmate': Path(tmp) / 'no-checkout'}, {'ironmate': '0' * 40})
+        assert receipt['made'] == [] and 'ironmate' in receipt['failed'] and kept.read_text(encoding='utf-8') == 'kept'
 
 
 def test_every_tool_page_has_the_same_back_link_first_in_main():
@@ -405,10 +422,11 @@ def canonical_data_errors(profile: dict, projects: list, catalog: dict, registry
         if repository_url and repository_url != repo['url']:
             errors.append(f"repository service URL drift for {name}: {repository_url} != {repo['url']}")
         prefix = f'https://myon-bioinformatics.github.io/{name}/'
+        built_here = f'https://myon-bioinformatics.github.io/tools/{name.lower()}/'   # 🧰 built by this site from it (--record-tools)
         for service_name, service in group.items():
             if not isinstance(service, dict):
                 errors.append(f'invalid service entry at services.projects.{name}.{service_name}')
-            elif service.get('kind') in ('pages', 'mcp-stub') and service.get('url') and not service['url'].startswith(prefix):
+            elif service.get('kind') in ('pages', 'mcp-stub') and service.get('url') and not service['url'].startswith((prefix, built_here)):
                 errors.append(f'{service_name} URL for {name} must be under {prefix}')
     return errors
 
@@ -515,7 +533,7 @@ def test_home_screen_tool_page_shortcuts_open_that_page_and_show_an_icon():
         assert label == page.metas["application-name"] and len(label) <= 12, (name, label)
         for rel in ("icon", "apple-touch-icon"):
             [icon] = rel_links(page, rel)
-            if icon["href"].startswith("/mcp-toolcall-lab/"):      # the lab's own artwork, served by its Pages on this host
+            if icon["href"].startswith("/tools/mcp-toolcall-lab/execution/"):   # the lab artwork, built here at deploy time (--record-tools)
                 continue
             png_size((SITE / name).parent / icon["href"])
     assert "img-src 'self'" in (SITE / TOOL_PAGES[0]).read_text(encoding="utf-8")   # its CSP lets the icons load
@@ -527,7 +545,7 @@ def test_home_screen_every_local_link_and_asset_resolves():
         for ref in page.refs:
             url = urlparse(ref)
             if url.scheme or ref.startswith("/"):                   # 🌐 other sites, or the lab's Pages on this host
-                assert url.scheme == "https" or ref.startswith("/mcp-toolcall-lab/"), (name, ref)
+                assert url.scheme == "https" or ref.startswith("/tools/mcp-toolcall-lab/execution/"), (name, ref)
                 continue
             target = ((SITE / name).parent / url.path).resolve() if url.path else SITE / name
             target = target / "index.html" if target.is_dir() else target
