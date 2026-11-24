@@ -33,7 +33,6 @@ import html
 import importlib.util
 import json
 import os
-import posixpath
 import re
 import shlex
 import shutil
@@ -687,7 +686,8 @@ def render_map(ui, output: Path | None = None) -> dict[str, bytes]:
 # ── 🧰 道具: Ironmate's studios and mcp-toolcall-lab's execution lab, built from their default branches at deploy time ──
 TOOLS = 'media/tools/receipt.json'       # what this build recorded; the pages live under their folders (not kept in git)
 # key: (repository, folder under the site, entry pages inside it)
-TOOL_SOURCES = {'ironmate': ('myon-bioinformatics/Ironmate', 'tools', ('image-studio/', 'browser-tools/', 'slide-studio/', 'slide-studio/phone/')),
+_STUDIO_ROUTES = load_module('studio_routes', '_src/tools/studio_routes.py')
+TOOL_SOURCES = {'ironmate': ('myon-bioinformatics/Ironmate', 'tools', _STUDIO_ROUTES.PUBLIC_STUDIO_ENTRIES),
                 'mcp-toolcall-lab': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp-toolcall-lab/execution', ('',)),
                 'dragowing': ('myon-bioinformatics/DRAgoWing', 'tools/heatmap', ('',))}
 
@@ -698,64 +698,6 @@ def _back_to_tools(page: str, path: str) -> str:
     return ui.add_back_nav(page, [{'label': '← 🧭 Tools & Demos', 'href': '../' * path.count('/') + 'index.html#tools'}],
                            test_id='portfolio-back')
 
-
-_IRONMATE_ROUTES = {'tools/': 'browser-tools/', 'slides/': 'slide-studio/'}
-
-
-def _studio_path(path: str) -> str:
-    for source, target in _IRONMATE_ROUTES.items():
-        if path.startswith(source):
-            return target + path[len(source):]
-    return 'image-studio/' + path
-
-
-_STUDIO_LINK = re.compile(r'(?P<attr>\b(?:href|src)=)(?P<quote>["\'])(?P<url>[^"\']+)(?P=quote)')
-
-
-def _studio_href(source: str, url: str) -> str:
-    from urllib.parse import urlsplit, urlunsplit
-    parts = urlsplit(url)
-    if not parts.path or parts.scheme or parts.netloc or parts.path.startswith('/'):
-        return url
-    directory = posixpath.dirname(source)
-    old_target = posixpath.normpath(posixpath.join(directory, parts.path))
-    if parts.path.endswith('/'):
-        old_target = '' if old_target == '.' else old_target + '/'
-    if old_target.startswith('../') or old_target == '..':
-        return url
-    target = _studio_path(old_target)
-    new_path = posixpath.relpath(target, posixpath.dirname(_studio_path(source)))
-    if parts.path.endswith('/'):
-        new_path += '/'
-    return urlunsplit(('', '', new_path, parts.query, parts.fragment))
-
-
-def _stage_studios(built: Path, mapped: Path) -> None:
-    """Relocate Ironmate's generated pages and keep their shared assets and cross-links working."""
-    for page in ('index.html', 'tools/index.html', 'slides/index.html', 'slides/phone/index.html'):
-        if not (built / page).is_file():
-            raise FileNotFoundError(page)
-    for path in built.rglob('*'):
-        if not path.is_file() or path.name == '.nojekyll':
-            continue
-        source = path.relative_to(built).as_posix()
-        target = mapped / _studio_path(source)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        if path.suffix == '.html':
-            page = _STUDIO_LINK.sub(lambda m: m['attr'] + m['quote'] + _studio_href(source, m['url']) + m['quote'],
-                                    path.read_text(encoding='utf-8'))
-            if source != 'brand/index.html':
-                page = _back_to_tools(page, 'tools/' + _studio_path(source))
-            target.write_text(page, encoding='utf-8')
-        elif source == 'brand/manifest.webmanifest':
-            manifest = json.loads(path.read_text(encoding='utf-8'))
-            # One shared app can open its two sibling tools under /tools/.
-            manifest['scope'] = '../../'
-            for shortcut in manifest.get('shortcuts', []):
-                shortcut['url'] = _studio_href(source, shortcut['url'])
-            target.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-        else:
-            shutil.copyfile(path, target)
 
 def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, str]) -> dict:
     """Build each tool from its checkout with ``python -S`` (the lab's build also runs Node) into ``output/<folder>/``,
@@ -781,7 +723,7 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                     shutil.move(str(Path(tmp) / 'lab' / 'execution'), str(built))
                 if key == 'ironmate':
                     mapped = Path(tmp) / 'mapped'
-                    _stage_studios(built, mapped)
+                    _STUDIO_ROUTES.stage_ironmate_studios(built, mapped, _back_to_tools)
                     for entry in sorted(child.name for child in mapped.iterdir()):
                         target = dest / entry
                         if target.exists():
@@ -1013,7 +955,7 @@ def stage(output: Path, root: Path = ROOT) -> None:
     """The site as Pages serves it: the source tree plus the generated files. Tests and local previews serve this."""
     validate_output(output, root)
     generate(root)  # Fail closed before copying anything.
-    skip = ['.git', 'node_modules', '.venv', 'test-results', 'reports', '__pycache__', '.pytest_cache']
+    skip = ['.git', 'node_modules', '.venv', 'test-results', 'reports', '__pycache__', '.pytest_cache', '_src']
     if output.resolve().is_relative_to(root.resolve()):
         skip.append(output.resolve().relative_to(root.resolve()).parts[0])
     shutil.copytree(root, output, ignore=shutil.ignore_patterns(*skip), dirs_exist_ok=True)

@@ -278,6 +278,7 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
     receipt = PAGES.collect_tools(out, {'ironmate': checkout}, {'ironmate': '0' * 40})
     assert receipt['made'] == ['ironmate']
     assert not (out / 'tools/ironmate').exists()
+    assert not (SITE / '_src/tools/studio_routes.py').exists()  # source is not a public artifact
     tools = out / 'tools'
     assert 'href="../slide-studio/phone/"' in (tools / 'image-studio/index.html').read_text()
     assert 'href="../slide-studio/#target"' in (tools / 'browser-tools/index.html').read_text()
