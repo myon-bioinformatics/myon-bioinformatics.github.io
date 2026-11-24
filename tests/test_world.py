@@ -6,8 +6,10 @@ import io
 import json
 import math
 import random
+import re
 import subprocess
 import sys
+import unittest
 from pathlib import Path
 
 import pytest
@@ -1415,3 +1417,402 @@ def test_standalone_bulletin_reader_and_issue_transport():
       console.log('standalone bulletin passed');
     """
     assert 'standalone bulletin passed' in node_js(W.ISSUE_BULLETIN_JS + harness).stdout
+
+
+# ═══ 🎥 the camera page, the board and the catalogue (from PySaiyanWeBoo's tests/test_pages.py) ═══
+WORLD = W.example_data("world")
+
+
+def _has_tzdata() -> bool:
+    try:
+        import zoneinfo
+        zoneinfo.ZoneInfo("Europe/London")
+        return True
+    except Exception:
+        return False
+
+
+class WorldPageTests(unittest.TestCase):
+    """One page, a camera: Python validates, does the arithmetic and writes HTML, CSS and a thin JS module."""
+
+    def test_demo_world_is_valid_and_validation_is_idempotent(self):
+        world = W.world_validate(WORLD)
+        self.assertEqual(W.world_validate(world), world)
+        self.assertEqual([f["id"] for f in world["floors"]], ["1f", "2f"])
+
+    def test_invalid_worlds_are_rejected(self):
+        spot = {"id": "a", "x": 8, "y": 8, "label": "A"}
+        floor = {"id": "f", "label": "F", "width": 64, "height": 64, "spots": [spot]}
+        bad = [
+            {"schema": "other"}, {**WORLD, "extra": 1}, {"schema": W.WORLD_SCHEMA},
+            {**WORLD, "id": "1bad"}, {**WORLD, "zoom_max": 9},
+            {**WORLD, "shots": [{"id": "A", "label": "x", "title": "t"}]},
+            {**WORLD, "shots": [{"id": "a", "label": "x", "title": "t", "bg": "red"}]},
+            {**WORLD, "shots": [{"id": "a", "label": "x", "title": ""}]},
+            {**WORLD, "floors": [{**floor, "spots": [{**spot, "x": 65}]}]},
+            {**WORLD, "floors": [{**floor, "spots": [{**spot, "x": 1.5}]}]},
+            {**WORLD, "floors": [{**floor, "spots": [spot, spot]}]},
+            {**WORLD, "floors": [{**floor, "spots": []}]},
+            {**WORLD, "floors": [{**floor, "width": 63}]},
+            {**WORLD, "floors": [{**floor, "spots": [{**spot, "category": "Bad Cat"}]}]},
+        ]
+        for spec in bad:
+            with self.subTest(spec=str(spec)[:80]), self.assertRaises(ValueError):
+                W.world_validate(spec)
+
+    def test_camera_math(self):
+        self.assertAlmostEqual(W.fit_zoom(960, 640, 400, 300), 0.41666, places=4)
+        self.assertEqual(W.clamp_focus(10, 10, 2, 960, 640, 400, 300), (100, 75))          # held inside the map
+        self.assertEqual(W.clamp_focus(950, 630, 2, 960, 640, 400, 300), (860, 565))
+        self.assertEqual(W.clamp_focus(0, 0, 0.25, 960, 640, 400, 300), (480, 320))        # smaller than the view: centered
+        self.assertEqual(W.clamp_focus(480, 320, 1, 960, 640, 400, 300), (480, 320))
+
+    def test_html_is_semantic_escaped_and_works_without_js(self):
+        hostile = {**WORLD, "title": '<img src=x onerror=1>', "floors": [{**WORLD["floors"][0], "spots": [
+            {"id": "a", "x": 8, "y": 8, "label": "<b>x</b>", "category": "info", "body": "<script>1</script>"}]}]}
+        html = W.world_html(hostile)
+        for raw in ("<b>x</b>", "<script>", "<img src=x"):
+            self.assertNotIn(raw, html)
+        self.assertEqual(html.count('class="ui-spot"'), 1)
+        self.assertIn('href="#demo-spot-a"', html)
+        self.assertIn('id="demo-spot-a"', html)
+        full = W.world_html(WORLD)
+        self.assertEqual(full.count('type="radio" name="demo-floor"'), 2)
+        self.assertEqual(full.count('class="ui-spot"'), 6)
+        self.assertEqual(full.count('class="ui-shot-mark"'), 4)
+        self.assertEqual(full.count('class="ui-actor"'), 5)
+        self.assertEqual(full.count('class="ui-sheet-item"'), 11)  # a sheet for every spot and every villager
+
+    def test_css_has_one_rule_per_floor_category_and_shot(self):
+        css = W.world_css(WORLD)
+        self.assertTrue(css.startswith("@layer components{") and css.endswith("}"))
+        for fragment in ('#demo-floor-2f:checked) .ui-floor[data-floor="2f"]{display:block}',
+                         '#demo-cat-value-food:checked) .ui-spot:not([data-category="food"]){display:none}',
+                         '.ui-shot-mark[data-i="3"][data-lit])'):
+            self.assertIn(fragment, css)
+        for shot in WORLD["shots"]:
+            self.assertGreaterEqual(W.contrast_ratio(W.ink_for(shot["bg"]), shot["bg"]), 4.5)
+            self.assertIn(shot["bg"], css)
+
+    def test_single_file_world_page(self):
+        html = W.world_document(WORLD, theme="github-like")
+        self.assertNotIn('rel="stylesheet"', html)
+        self.assertEqual(html.count('<script type="module">'), 1)
+        self.assertIn("globalThis.webUiWorld", html)
+        self.assertEqual(ui.module_asset("world.js")[0].decode(), W.WORLD_JS)
+
+    def test_villagers_walk_straight_at_constant_speed_pause_at_random_and_loop_seamlessly(self):
+        for seed in range(60):
+            for width, height, speed in ((960, 640, 48), (640, 640, 32), (320, 480, 64)):
+                path = W.villager_path(seed, width, height, speed=speed)
+                keys = path["keys"]
+                self.assertEqual((keys[0][0], keys[-1][0]), (0.0, 100.0))
+                self.assertEqual(keys[0][1:], keys[-1][1:])                       # the loop closes
+                self.assertEqual(path, W.villager_path(seed, width, height, speed=speed))
+                pauses = moves = 0
+                for (p0, x0, y0), (p1, x1, y1) in zip(keys, keys[1:]):
+                    self.assertGreaterEqual(p1, p0)
+                    self.assertTrue(32 <= x1 <= width - 32 and 32 <= y1 <= height - 32, (seed, x1, y1))
+                    seconds, dist = (p1 - p0) / 100 * path["duration"], math.hypot(x1 - x0, y1 - y0)
+                    if dist == 0:
+                        pauses += 1
+                        self.assertTrue(0.9 <= seconds <= 4.1, (seed, seconds))   # a random stop of 1..4 s
+                    else:
+                        moves += 1
+                        self.assertAlmostEqual(dist / seconds, speed, delta=speed * 0.02)   # constant speed
+                self.assertEqual((moves, pauses), (5, 4))
+        self.assertNotEqual(W.villager_path(1, 960, 640), W.villager_path(2, 960, 640))
+
+    def test_travel_clock_and_board_math(self):
+        self.assertEqual(W.travel_seconds(0, 0, 3, 4, 5), 1.0)
+        self.assertEqual(W.travel_seconds(10, 10, 10, 10, 96), 0.0)
+        self.assertEqual([W.minutes_until(*case) for case in ((600, 630), (600, 600), (1430, 10), (0, 1439))], [30, 0, 20, 1439])
+        self.assertEqual([W.board_seconds(n) for n in (1, 64, 160, 400)], [8.0, 8.0, 20.0, 50.0])
+
+    def test_gauge_clock_and_zone_rules(self):
+        # 09:00..18:00 in ten cells at 10:00: one hour of nine has passed.
+        self.assertEqual(W.gauge_state(600, 540, 1080, 10), (1, 11, "active"))
+        self.assertEqual(W.gauge_state(540, 540, 1080, 10), (0, 0, "active"))              # the first minute is empty, not "before"
+        self.assertEqual(W.gauge_state(1080, 540, 1080, 10), (10, 100, "after"))           # the end is full
+        self.assertEqual(W.gauge_state(180, 540, 1080, 10), (0, 0, "before"))              # 03:00: the start is nearer than the end
+        self.assertEqual(W.gauge_state(1260, 540, 1080, 10), (10, 100, "after"))           # 21:00: the end is nearer
+        self.assertEqual(W.gauge_state(180, 540, 1260, 10)[2], "before")                   # equidistant: a tie counts as before
+        self.assertEqual(W.gauge_state(60, 1320, 120, 8), (6, 75, "active"))               # 22:00..02:00 runs past midnight: 01:00 is 3 h of 4
+        for start, end, cells in ((540, 1080, 10), (1320, 120, 8), (0, 1439, 20), (1439, 0, 3)):
+            seen = [W.gauge_state(now, start, end, cells) for now in range(1440)]
+            for filled, percent, phase in seen:
+                self.assertTrue(0 <= filled <= cells and 0 <= percent <= 100 and phase in ("before", "active", "after"))
+            active = [s for s in seen if s[2] == "active"]
+            self.assertEqual(len(active), (end - start) % 1440)                                  # exactly the window is active
+        self.assertEqual(W.gauge_cells(3, 5, ("A", "b")), "AAAbb")
+        self.assertEqual(W.gauge_cells(0, 3, ui.GAUGE_GLYPHS["hourglass"]), "⏳⏳⏳")
+        self.assertEqual([W.clock_label(m) for m in (0, 9, 600, 1439)], ["00:00", "00:09", "10:00", "23:59"])
+        self.assertEqual([W.utc_offset_label(m) for m in (0, 540, 330, -300, -210, 765, -720)],
+                         ["UTC", "UTC+9", "UTC+5:30", "UTC-5", "UTC-3:30", "UTC+12:45", "UTC-12"])
+
+    def test_gauge_is_validated_normalized_and_escaped(self):
+        def board(*items, **flags):
+            return {**WORLD, "board": {"title": "T", "items": list(items), **flags}}
+        window = {"from": "09:00", "to": "18:00"}
+        for bad in (
+            {"text": "x", "gauge": {**window, "from": "9:00"}}, {"text": "x", "gauge": {**window, "to": "24:00"}},
+            {"text": "x", "gauge": {"from": "09:00", "to": "09:00"}},                              # no window
+            {"text": "x", "gauge": {**window, "cells": 2}}, {"text": "x", "gauge": {**window, "cells": 21}},
+            {"text": "x", "gauge": {**window, "cells": True}}, {"text": "x", "gauge": {**window, "cells": "10"}},
+            {"text": "x", "gauge": {**window, "glyphs": "sand"}},                                  # unknown preset
+            {"text": "x", "gauge": {**window, "glyphs": ["A"]}}, {"text": "x", "gauge": {**window, "glyphs": ["A", "B", "C"]}},
+            {"text": "x", "gauge": {**window, "glyphs": ["A", " "]}}, {"text": "x", "gauge": {**window, "glyphs": ["A", ""]}},
+            {"text": "x", "gauge": {**window, "glyphs": ["A", "\x07"]}}, {"text": "x", "gauge": {**window, "glyphs": ["A", "B" * 9]}},
+            {"text": "x", "gauge": {**window, "glyphs": ["A", 5]}}, {"text": "x", "gauge": {**window, "extra": 1}},
+            {"text": "x", "gauge": "09:00-18:00"}, {"text": "x", "at": "10:00", "gauge": window},  # at and gauge are exclusive
+        ):
+            with self.subTest(bad=str(bad)[-70:]), self.assertRaises(ValueError):
+                W.world_validate(board(bad))
+        with self.assertRaises(ValueError):
+            W.world_validate(board({"text": "x"}, offset_label="yes"))
+        # Every preset works, defaults are filled in, and a custom pair keeps its own glyphs.
+        for name, pair in ui.GAUGE_GLYPHS.items():
+            got = W.world_validate(board({"text": "x", "gauge": {**window, "glyphs": name}}))["board"]["items"][0]["gauge"]
+            self.assertEqual(got["glyphs"], list(pair), name)
+        plain = W.world_validate(board({"text": "x", "gauge": window}))
+        self.assertEqual(plain["board"]["items"][0]["gauge"], {**window, "cells": 10, "glyphs": ["⌛", "⏳"]})
+        self.assertEqual((plain["board"]["offset_label"], plain["board"]["zones"]), (False, []))
+        self.assertEqual(W.world_validate(plain), plain)                                      # normalizing twice changes nothing
+        custom = W.world_validate(board({"text": "x", "gauge": {**window, "glyphs": ["🔥", "🪵"], "cells": 5}}))
+        self.assertEqual(custom["board"]["items"][0]["gauge"]["glyphs"], ["🔥", "🪵"])
+        # Markup: the window and glyphs are data attributes (escaped), the cells start empty so the page works before its script runs.
+        html = W.world_html(board({"text": "<b>Open</b>", "gauge": {**window, "glyphs": ['"<', "&>"], "cells": 3}}, offset_label=True))
+        for raw in ("<b>Open</b>", 'data-done=""<"', 'data-todo="&>"'):
+            self.assertNotIn(raw, html)
+        self.assertIn('data-done="&quot;&lt;" data-todo="&amp;&gt;"', html)
+        self.assertIn('data-from="09:00" data-to="18:00" data-cells="3"', html)
+        self.assertIn('<span class="ui-board-cells" aria-hidden="true">&amp;&gt;&amp;&gt;&amp;&gt;</span> <span class="ui-board-pct">0%</span>', html)
+        self.assertIn(" data-offset-label>", html)
+        self.assertNotIn("data-offset-label", W.world_html(board({"text": "x"})))
+
+    def test_gauge_unicode_visibility_and_scroll_budget(self):
+        for glyph in ("\u200d", "\ufe0f", "\u0301", "\u200d\ufe0f", "\u3164", "\uffa0"):
+            with self.subTest(glyph=repr(glyph)), self.assertRaises(ValueError):
+                W._gauge_glyph(glyph)
+        for glyph in ("👩\u200d💻", "🇯🇵", "1️⃣", "ABCDEFGH"):
+            self.assertEqual(W._gauge_glyph(glyph), glyph)
+        with self.assertRaisesRegex(ValueError, "requires from and to; cells and glyphs are optional"):
+            W._world_gauge({"extra": 1})
+        gauge = W._world_gauge({"from": "09:00", "to": "18:00", "cells": 3,
+                                     "glyphs": ["ABCDEFGH", "👩\u200d💻"]})
+        html = W._board_html({"title": "test", "items": [{"text": "x", "at": None, "zone": None, "gauge": gauge}],
+                                   "post": False, "offset_label": False, "offset_minutes": None, "zones": []})
+        self.assertIn('data-chars="31"', html)  # text + space + longest cells + " 100%"
+
+    @unittest.skipUnless(_has_tzdata(), "needs the system tz database")
+    def test_zone_table_follows_the_tz_database_and_known_transitions(self):
+        import datetime as dt
+        import zoneinfo
+        utc = lambda *a: int(dt.datetime(*a, tzinfo=dt.timezone.utc).timestamp())
+        # Golden instants written down by hand (the first second of the new offset), not read back from zoneinfo.
+        golden = {"Europe/London": [(utc(2026, 3, 29, 1), 0, 60), (utc(2026, 10, 25, 1), 60, 0)],
+                  "America/New_York": [(utc(2026, 3, 8, 7), -300, -240), (utc(2026, 11, 1, 6), -240, -300)],
+                  "Australia/Sydney": [(utc(2026, 4, 4, 16), 660, 600), (utc(2026, 10, 3, 16), 600, 660)]}
+        for tz, cases in golden.items():
+            rows = W.zone_rows(tz)
+            for at, before, after in cases:
+                with self.subTest(tz=tz, at=at):
+                    self.assertEqual((W.zone_offset(rows, at - 1), W.zone_offset(rows, at)), (before, after))
+        self.assertEqual(W.zone_rows("Asia/Tokyo"), (utc(2020, 1, 1), 540))               # no changes: the start row only
+        self.assertEqual(W.zone_offset(W.zone_rows("Asia/Kathmandu"), utc(2026, 6, 1)), 345)
+        # Every row is exact against the database, and so are thousands of random instants (reproducible seed).
+        rng = random.Random(20261103)
+        lo, hi = utc(2020, 1, 1), utc(2040, 1, 1)
+        for tz in ("Europe/London", "America/New_York", "Australia/Sydney", "Asia/Kolkata", "America/Sao_Paulo", "Pacific/Auckland", "Africa/Cairo"):
+            rows, zone = W.zone_rows(tz), zoneinfo.ZoneInfo(tz)
+            oracle = lambda t: int(dt.datetime.fromtimestamp(t, dt.timezone.utc).astimezone(zone).utcoffset().total_seconds() // 60)
+            for t, offset in zip(rows[2::2], rows[3::2]):
+                self.assertEqual((oracle(t - 1) == offset, oracle(t) == offset), (False, True), (tz, t))
+            for _ in range(1500):
+                t = rng.randrange(lo, hi)
+                self.assertEqual(W.zone_offset(rows, t), oracle(t), (tz, t))
+        london = W.zone_rows("Europe/London")
+        self.assertEqual((W.zone_offset(london, 0), W.zone_offset(london, 4_000_000_000)), (0, 0))   # outside the window: nearest end
+        for bad in ("Mars/Base", "../etc/passwd", "Asia//Tokyo", "", "Asia/Tokyo ", 5, None):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                W.zone_rows(bad)
+
+    @unittest.skipUnless(_has_tzdata(), "needs the system tz database")
+    def test_board_zones_are_validated_and_rendered_with_their_tables(self):
+        zones = [{"id": "tokyo", "label": "Tokyo", "tz": "Asia/Tokyo"}, {"id": "london", "label": "<b>London</b>", "tz": "Europe/London"}]
+        def board(*items, zones=zones):
+            return {**WORLD, "board": {"title": "T", "items": list(items), "zones": zones}}
+        for bad in (board({"text": "x"}, zones=[{**zones[0], "tz": "Mars/Base"}]), board({"text": "x"}, zones=[zones[0], zones[0]]),
+                    board({"text": "x"}, zones=[{**zones[0], "id": "Tokyo"}]), board({"text": "x"}, zones=[{**zones[0], "extra": 1}]),
+                    board({"text": "x"}, zones=[{**zones[0], "id": f"z{i}"} for i in range(7)]), board({"text": "x"}, zones="Asia/Tokyo"),
+                    board({"text": "x", "at": "10:00", "zone": "paris"}),                        # a zone the board does not have
+                    board({"text": "x", "zone": "tokyo"}),                                       # a zone needs at or gauge
+                    board({"text": "x", "at": "10:00", "zone": 5})):
+            with self.subTest(bad=str(bad["board"])[-70:]), self.assertRaises(ValueError):
+                W.world_validate(bad)
+        spec = board({"text": "Opens", "at": "09:00", "zone": "tokyo"}, {"text": "Open", "gauge": {"from": "09:00", "to": "18:00"}, "zone": "london"},
+                     {"text": "Local", "at": "09:00"})
+        world = W.world_validate(spec)
+        self.assertEqual(W.world_validate(world), world)
+        self.assertEqual([i["zone"] for i in world["board"]["items"]], ["tokyo", "london", None])
+        html = W.world_html(spec)
+        self.assertNotIn("<b>London</b>", html)
+        for z in world["board"]["zones"]:
+            match = re.search(rf'data-zone-id="{z["id"]}" data-rows="([^"]*)"', html)
+            self.assertEqual(json.loads(match.group(1)), list(W.zone_rows(z["tz"])))
+        self.assertEqual(html.count('data-at="09:00" data-zone="tokyo"'), 2)                    # the visible line and its twin
+        self.assertEqual(html.count('data-cells="10" data-zone="london"'), 2)
+        self.assertEqual(html.count('data-at="09:00"></span>'), 2)                              # no zone: the viewer's own clock
+        self.assertEqual(html.count('class="ui-board-zones"'), 1)                                # the clocks share one row
+        self.assertNotIn("ui-board-zone", W.world_html({**WORLD, "board": {"title": "T", "items": [{"text": "x"}]}}))
+
+    def test_world_script_caches_only_display_preferences_favorites_and_item_ids_and_requests_only_for_the_opt_in_shared_section(self):
+        # What a visitor writes stays in the page: no cookies, beacons or sockets, no place names. The one thing kept is a small cache of the
+        # chosen language, name-layer preference, starred places and collected item IDs in this browser (localStorage, key "ui-world:<id>"; the emoji and board messages are never written).
+        # The one network call is the shared section's refresh button (opt in with shared_issue): an anonymous GET without credentials, cache or referrer.
+        for word in ("sessionStorage", "indexedDB", "cookie", "XMLHttpRequest", "sendBeacon", "WebSocket",
+                     "caches", "Intl", "timeZone", "geolocation", "pushState", "postMessage", "Worker"):
+            self.assertTrue(word not in W.WORLD_JS, word)                                # (replaceState only edits the #spot fragment)
+        # The one thing asked of the browser is a camera stream, shown on a <video> and nothing else: a chosen photo is an object URL on an <img>.
+        # Neither is drawn to a canvas, read back, recorded, stored or sent.
+        self.assertEqual(re.findall(r"navigator\.(\w+)", W.WORLD_JS), ["mediaDevices"])
+        self.assertEqual(W.WORLD_JS.count("getUserMedia"), 1)
+        for word in ("canvas", "drawImage", "FileReader", "ImageCapture", "MediaRecorder", "toDataURL", "toBlob", "createImageBitmap", "arrayBuffer", "readAsDataURL"):
+            self.assertTrue(word not in W.WORLD_JS, word)
+        self.assertEqual(sorted(re.findall(r"localStorage\.(\w+)", W.WORLD_JS)), ["getItem", "setItem"])
+        self.assertEqual(re.findall(r"save\(\{(\w+)", W.WORLD_JS), ["alpha", "lang", "fav", "bag", "names"])  # only these five fields are written
+        self.assertIn("'ui-world:'+el.id", W.WORLD_JS)
+        self.assertEqual(W.WORLD_JS.count("fetch("), 1)
+        for needle in ('method:"GET"', 'credentials:"omit"', 'cache:"no-store"', 'referrerPolicy:"no-referrer"'):
+            self.assertIn(needle, W.WORLD_SHARED_JS)
+        self.assertIn("fetch(", W.WORLD_SHARED_JS)
+        plain = {**WORLD, "board": {**WORLD["board"], "shared_issue": None}}
+        for needle in ("api.github.com", "data-shared-refresh", "ui-board-shared"):
+            self.assertNotIn(needle, W.world_html(plain))
+            self.assertIn(needle, W.world_html(WORLD))
+
+    def test_actors_player_and_board_are_validated_and_escaped(self):
+        floor = WORLD["floors"][0]
+        actor = {"id": "x", "emoji": "🐈", "label": "L"}
+        bad = [
+            {**WORLD, "floors": [{**floor, "actors": [{**actor, "emoji": "A"}]}]},                     # plain text is not a character
+            {**WORLD, "floors": [{**floor, "actors": [{**actor, "emoji": "<b>"}]}]},
+            {**WORLD, "floors": [{**floor, "actors": [{**actor, "speed": 1}]}]},
+            {**WORLD, "floors": [{**floor, "actors": [{**actor, "id": "gate"}]}]},                     # ids are shared with spots
+            {**WORLD, "floors": [{**floor, "actors": [{**actor, "id": f"a{i}"} for i in range(17)]}]},
+            {**WORLD, "floors": [{**floor, "player": {"emoji": "🧙", "x": 9999, "y": 0}}]},
+            {**WORLD, "floors": [{**floor, "player": {"emoji": "x" * 17, "x": 0, "y": 0}}]},                # a visitor's label is at most 16 characters
+            {**WORLD, "board": {"title": "T", "items": []}},
+            {**WORLD, "board": {"title": "T", "items": [{"text": "x", "at": "25:00"}]}},
+            {**WORLD, "board": {"title": "T", "items": [{"text": "x", "at": "9:00"}]}},
+        ]
+        for spec in bad:
+            with self.subTest(spec=str(spec)[-80:]), self.assertRaises(ValueError):
+                W.world_validate(spec)
+        hostile = {**WORLD, "board": {"title": "<i>", "items": [{"text": "<script>1</script>", "at": "10:30"}]},
+                   "floors": [{**floor, "actors": [{**actor, "label": "<b>x</b>", "body": "<img src=x>"}]}]}
+        html = W.world_html(hostile)
+        for raw in ("<script>", "<b>x</b>", "<img src=x>", "<i>"):
+            self.assertNotIn(raw, html)
+        css = W.world_css(hostile)
+        self.assertIn("@keyframes ui-walk-demo-x{0.0%{transform:translate(", css)
+        self.assertIn("#demo-actor-x{animation:ui-walk-demo-x ", css)
+        self.assertIn("prefers-reduced-motion", css)
+
+    def test_visitor_lines_are_cleaned_to_plain_text_and_the_form_is_opt_in(self):
+        cases = {"  hello   world  ": "hello world", "a\tb\nc": "a b c", "\x00\x07x": "x", "": None, "   ": None, 5: None,
+                 "x" * 100: "x" * 60, "\U0001f600 ok": "\U0001f600 ok", "\U0001f9d1\u200d\U0001f33e hi": "\U0001f9d1\u200d\U0001f33e hi",
+                 "a\u3000b\u00a0c": "a b c", "z\u200bz": "zz", "p\x85q": "pq", "<b>x</b>": "<b>x</b>"}
+        for raw, expected in cases.items():
+            self.assertEqual(W.clean_message(raw), expected, repr(raw))
+        self.assertEqual(W.clean_message("abcdef", limit=3), "abc")
+        self.assertIn('class="ui-board-post"', W.world_html(WORLD))
+        quiet = {**WORLD, "board": {**WORLD["board"], "post": False}}
+        self.assertNotIn("ui-board-post", W.world_html(quiet))
+        with self.assertRaises(ValueError):
+            W.world_validate({**WORLD, "board": {**WORLD["board"], "post": "yes"}})
+
+
+def screens_like(count: int = 198) -> list[dict]:
+    """A catalogue shaped like flutter_navigation_basic's screens.json (5 categories of 40, 40, 40, 39, 39), after mapping its fields."""
+    groups = ["navigation", "api", "ui", "data", "advanced"]
+    per = [40, 40, 40, 39, 39]
+    out, n = [], 0
+    for group, size in zip(groups, per):
+        for _ in range(size):
+            n += 1
+            out.append({"id": f"Screen{n}", "label": f"Pattern{n} <b>x</b>", "emoji": "🌍" if n % 2 else "🧭", "group": group,
+                        "category": ["integration", "display", "state"][n % 3], "body": f"Screen {n}: <i>about</i> {group}"})
+    return out[:count]
+
+
+class CatalogueTests(unittest.TestCase):
+    """A flat catalogue becomes a map: a floor per group, spots on a grid of multiples of 8, all validated and escaped."""
+
+    def test_a_198_screen_catalogue_fits_five_floors(self):
+        world = W.catalogue_world(screens_like(), title="Screens")
+        self.assertEqual(W.world_validate(world), world)
+        self.assertEqual([len(f["spots"]) for f in world["floors"]], [40, 40, 40, 39, 39])
+        self.assertEqual([f["label"] for f in world["floors"]], ["navigation", "api", "ui", "data", "advanced"])
+        ids = [spot["id"] for f in world["floors"] for spot in f["spots"]]
+        self.assertEqual(len(ids), len(set(ids)))
+        self.assertEqual(ids[0], "screen1")
+        for floor in world["floors"]:
+            points = [(s["x"], s["y"]) for s in floor["spots"]]
+            self.assertEqual(len(points), len(set(points)))                                     # no two spots on the same cell
+            self.assertTrue(all(0 <= x <= floor["width"] and 0 <= y <= floor["height"] for x, y in points))
+            self.assertEqual((floor["width"] % 8, floor["height"] % 8), (0, 0))                 # the 8 px grid, by default
+            # Neighbours in a row are a cell apart, wide enough for a pill, and rows are a cell apart.
+            xs = sorted({x for x, _ in points})
+            self.assertTrue(all(b - a >= 160 for a, b in zip(xs, xs[1:])))
+        self.assertEqual(world["floors"][0]["spots"][0]["label"], "🌍 Pattern1 <b>x</b>")        # stored as text; escaped when written
+        html = W.world_html(world)
+        self.assertNotIn("<b>x</b>", html)
+        self.assertNotIn("<i>about</i>", html)
+        self.assertEqual(html.count('class="ui-spot"'), 198)
+
+    def test_groups_of_more_than_64_continue_and_limits_are_kept(self):
+        many = [{"id": f"a{i}", "label": f"A{i}", "group": "all"} for i in range(130)]
+        world = W.catalogue_world(many)
+        self.assertEqual([(f["label"], len(f["spots"])) for f in world["floors"]], [("all", 64), ("all 2", 64), ("all 3", 2)])
+        for bad in ([], "x", [{"id": "a", "label": "A"}], [{"id": "a", "label": "", "group": "g"}], [{"id": "a", "label": "A", "group": "g", "x": 1}],
+                    [{"id": f"a{i}", "label": "A", "group": f"g{i}"} for i in range(9)], [5], [{"id": "a", "label": "A", "group": ""}]):
+            with self.subTest(bad=str(bad)[:50]), self.assertRaises(ValueError):
+                W.catalogue_world(bad)
+        with self.assertRaises(ValueError):
+            W.catalogue_world(many, columns=0)
+        same = W.catalogue_world([{"id": "Screen 1", "label": "A", "group": "g"}, {"id": "screen-1", "label": "B", "group": "g"},
+                                       {"id": "!!", "label": "C", "group": "g"}])
+        self.assertEqual([s["id"] for s in same["floors"][0]["spots"]], ["screen-1", "screen-1-2", "x"])   # ids stay unique
+        long = W.catalogue_world([{"id": "a", "label": "L" * 80, "emoji": "🌍", "group": "g"}])
+        self.assertEqual(len(long["floors"][0]["spots"][0]["label"]), 40)
+
+
+class WorldRepairTests(unittest.TestCase):
+    def test_all_category_has_unique_ids(self):
+        import copy
+        from html.parser import HTMLParser
+        spec = copy.deepcopy(WORLD)
+        spec['floors'][0]['spots'][0]['category'] = 'all'
+        class Ids(HTMLParser):
+            def __init__(self):
+                super().__init__(); self.ids = []
+            def handle_starttag(self, tag, attrs):
+                self.ids.extend(v for k, v in attrs if k == 'id')
+        parser = Ids(); parser.feed(W.world_html(spec))
+        self.assertEqual(len(parser.ids), len(set(parser.ids)))
+        self.assertIn('demo-cat-value-all', parser.ids)
+        self.assertIn('#demo-cat-value-all:checked', W.world_css(spec))
+
+
+def test_shot_color_rules_are_scoped_to_each_world():
+    one = {'schema': 'web-ui-world/1', 'id': 'one', 'shots': [{'id': 'a', 'label': 'A', 'title': 'A', 'bg': '#112233'}]}
+    two = {**one, 'id': 'two', 'shots': [{**one['shots'][0], 'bg': '#334455'}]}
+    css_one, css_two = W.world_css(one), W.world_css(two)
+    assert '#one-shots:has' in css_one
+    assert '#two-shots:has' in css_two
+    assert '.ui-world-shots:has' not in css_one + css_two
+
+
+def test_board_duration_rounding_matches_browser_half_up():
+    assert W.board_seconds(66) == 8.3
