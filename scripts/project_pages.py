@@ -491,23 +491,20 @@ def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), 
     return lines
 
 
-# ── 🌊 流れの実験室: one FFSS run, seen twice — 🌊 how it moves (FFSS's demo GIF) and 📊 where it ends up (DRAgoWing) ──
+# ── 🌊 流れの実験室: every FFSS scene as it moves (FFSS's demo GIFs) and every DRAgoWing figure from the same records ──
 FLOW_PAGE = 'tools/flow/index.html'
 FLOW = 'media/flow/'                     # recorded at deploy time (pages.yml), with receipt.json; not kept in git
 FLOW_REPOSITORIES = {'ffss': 'myon-bioinformatics/FluidFullSpeedSimulation', 'dragowing': 'myon-bioinformatics/DRAgoWing'}
 FLOW_EXPERIMENTS = ('E30', 'E31', 'E32')
-# (icon, title, FFSS demo, DRAgoWing figure, the FFSS record behind both)
-FLOW_PAIRS = (('🫀', '血液の循環', 'D24', 'F09_blood-flow', 'E30 · blood'),
-              ('🪨', '石炭火力', 'D25', 'F01_energy-coal', 'E31 · energy:coal'),
-              ('🌀', 'LNG 複合（GTCC）', 'D26', 'F02_energy-gtcc', 'E31 · energy:lng'),
-              ('❄️', 'ヒートポンプ', 'D27', 'F05_balance-point', 'E32 · balance'),
-              ('🌅', '起動', 'D32', 'F06_startup', 'E31 · startup'))
+# 📊 which DRAgoWing figure sits with which FFSS scene; a figure not named here still shows, after the scenes
+FLOW_FIGURES = {'circulation': ('blood-flow',), 'coal-power': ('energy-coal',), 'combined-cycle': ('energy-gtcc',),
+                'heat-pump': ('balance-point',), 'hrsg-loop': ('pinch-tq',), 'startup': ('startup',), 'metal': ('rate-window',)}
 
 
 def collect_flow(output: Path, ffss: Path, dragowing: Path, commits: dict[str, str]) -> dict:
-    """Run FFSS's experiments and demos in ``ffss`` and DRAgoWing's figures from those same records in ``dragowing``
-    (both ``python -S``, standard library only), copy each pair's GIF and SVG to ``output/media/flow/`` and write the
-    receipt (commits and the pairs made) there; returns the receipt."""
+    """Run FFSS's experiments and every demo in ``ffss`` and DRAgoWing's figures from those same records in ``dragowing``
+    (both ``python -S``, standard library only), copy each GIF and SVG to ``output/media/flow/`` and write the receipt
+    (commits, the demos as FFSS lists them in demos.json, and the figures made) there; returns the receipt."""
     folder = Path(output) / FLOW
     folder.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
@@ -516,17 +513,21 @@ def collect_flow(output: Path, ffss: Path, dragowing: Path, commits: dict[str, s
         for experiment in FLOW_EXPERIMENTS:
             run(ffss, 'fluidfullspeedsimulation.py', 'run', experiment, '--jsonl', str(tmp / f'{experiment}.jsonl'))
         (tmp / 'records.jsonl').write_bytes(b''.join((tmp / f'{e}.jsonl').read_bytes() for e in FLOW_EXPERIMENTS))
-        run(ffss, 'fluidfullspeedsimulation.py', 'demos', '--out-dir', str(tmp / 'demos'), '--only', *(p[2] for p in FLOW_PAIRS))
+        run(ffss, 'fluidfullspeedsimulation.py', 'demos', '--out-dir', str(tmp / 'demos'))      # 🎞 all of them, none picked
         run(dragowing, 'dragowing.py', '--ffss', str(tmp / 'records.jsonl'), '--out', str(tmp / 'figures'))
-        made = []
-        for icon, title, demo, figure, record in FLOW_PAIRS:
-            gif, svg = next(iter((tmp / 'demos').glob(f'{demo}_*.gif')), None), tmp / 'figures' / 'svg' / f'{figure}.svg'
-            if gif and svg.is_file():
-                shutil.copyfile(gif, folder / f'{demo}.gif')
-                shutil.copyfile(svg, folder / f'{figure}.svg')
-                made.append(demo)
-    receipt = {'schema': 'flow-lab/1', 'commits': commits, 'made': made}
-    (folder / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
+        listed = json.loads((tmp / 'demos' / 'demos.json').read_text(encoding='utf-8'))['demos']
+        demos = []
+        for demo in listed:
+            gif = tmp / 'demos' / demo['file']
+            if gif.is_file():
+                shutil.copyfile(gif, folder / f"{demo['id']}.gif")
+                demos.append({key: demo[key] for key in ('id', 'icon', 'scene', 'fluid')})
+        figures = []
+        for svg in sorted((tmp / 'figures' / 'svg').glob('F*_*.svg')):
+            shutil.copyfile(svg, folder / svg.name)
+            figures.append(svg.stem)
+    receipt = {'schema': 'flow-lab/2', 'commits': commits, 'demos': demos, 'figures': figures}
+    (folder / 'receipt.json').write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     return receipt
 
 
@@ -541,31 +542,43 @@ def record_flow(output: Path, remote: str = 'https://github.com/') -> list[str]:
                                           text=True).stdout.strip()
         receipt = collect_flow(output, dirs['ffss'], dirs['dragowing'], commits)
     return [f"🌊 FFSS @ {commits['ffss'][:7]} · 📊 DRAgoWing @ {commits['dragowing'][:7]}",
-            *(f"{'✅' if p[2] in receipt['made'] else '⏸'} {p[0]} {p[1]}: {p[2]} × {p[3]}" for p in FLOW_PAIRS)]
+            f"🎞 {len(receipt['demos'])} 場面: " + ' '.join(f"{d['icon']}{d['id']}" for d in receipt['demos']),
+            f"📊 {len(receipt['figures'])} 図: " + ' '.join(receipt['figures'])]
 
 
 def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
     """The 🌊 lab page from what this build recorded under ``output/media/flow/`` (not in the lock, like the front page:
-    the media change with the two repositories); a pair that was not recorded says ⏸."""
+    the media change with the two repositories): every FFSS scene in FFSS's own order with the DRAgoWing figures that
+    belong to it (FLOW_FIGURES), then every other figure, so nothing that was made is left out."""
     path = Path(output) / FLOW / 'receipt.json' if output else None
-    receipt = json.loads(path.read_text(encoding='utf-8')) if path and path.is_file() else {'commits': {}, 'made': []}
-    link = lambda key: (f"https://github.com/{FLOW_REPOSITORIES[key]}/tree/{receipt['commits'][key]}"
-                        if key in receipt['commits'] else f"https://github.com/{FLOW_REPOSITORIES[key]}")
-    blocks = [{'type': 'text', 'text': '同じ FFSS の実験記録を2回見る：🌊 流れと遅れの時間変化（FFSS の動く像）と、'
-                                       '📊 流れた先の内訳（DRAgoWing の静止図）。どちらも公開のたびに、そのとき最新のコミットで作り直す。'},
-              {'type': 'kv', 'rows': [['🌊', 'FFSS ' + receipt['commits'].get('ffss', '—')[:7]],
-                                      ['📊', 'DRAgoWing ' + receipt['commits'].get('dragowing', '—')[:7]]]}]
-    for icon, title, demo, figure, record in FLOW_PAIRS:
-        inner = [{'type': 'kv', 'rows': [['🔢', record], ['🌊', f'FFSS {demo}'], ['📊', f'DRAgoWing {figure}']]}]
-        if demo in receipt['made']:
-            inner += [{'type': 'image', 'src': f'../../{FLOW}{demo}.gif', 'alt': f'🌊 FFSS {demo}: {title}'},
-                      {'type': 'image', 'src': f'../../{FLOW}{figure}.svg', 'alt': f'📊 DRAgoWing {figure}: {title}'}]
-        else:
-            inner.append({'type': 'text', 'text': '⏸ このビルドでは記録していない'})
-        blocks.append({'type': 'section', 'title': f'{icon} {title}', 'blocks': inner})
+    receipt = json.loads(path.read_text(encoding='utf-8')) if path and path.is_file() else {}
+    commits, demos, figures = receipt.get('commits', {}), receipt.get('demos', []), receipt.get('figures', [])
+    link = lambda key: (f"https://github.com/{FLOW_REPOSITORIES[key]}/tree/{commits[key]}"
+                        if key in commits else f"https://github.com/{FLOW_REPOSITORIES[key]}")
+    named = {figure.split('_', 1)[1]: figure for figure in figures}
+    svg = lambda figure: {'type': 'image', 'src': f'../../{FLOW}{figure}.svg', 'alt': f'📊 DRAgoWing {figure}'}
+    blocks = [{'type': 'text', 'text': 'FFSS の全場面を 🌊 動く像（流れと遅れ）で、その記録から描ける DRAgoWing の全図を 📊 静止図（行き先の内訳）で。'
+                                       'どちらも公開のたびに、そのとき最新のコミットで作り直す。'},
+              {'type': 'kv', 'rows': [['🌊', f"FFSS {commits.get('ffss', '—')[:7]} · 🎞 {len(demos)} 場面"],
+                                      ['📊', f"DRAgoWing {commits.get('dragowing', '—')[:7]} · {len(figures)} 図"]]}]
+    if not demos and not figures:
+        blocks.append({'type': 'text', 'text': '⏸ このビルドでは記録していない'})
+    used = set()
+    for demo in demos:
+        inner = [{'type': 'image', 'src': f"../../{FLOW}{demo['id']}.gif", 'alt': f"🌊 FFSS {demo['id']}: {demo['scene']}"}]
+        for name in FLOW_FIGURES.get(demo['scene'], ()):
+            if name in named:
+                inner.append(svg(named[name]))
+                used.add(named[name])
+        fluid = '' if demo['fluid'] == 'water' else f" · {demo['fluid']}"
+        blocks.append({'type': 'section', 'title': f"{demo['icon']} {demo['id']} {demo['scene']}{fluid}", 'blocks': inner})
+    rest = [figure for figure in figures if figure not in used]
+    if rest:
+        blocks.append({'type': 'section', 'title': '📊 ほかの図', 'blocks': [svg(figure) for figure in rest]})
     blocks.append({'type': 'links', 'items': [{'label': '🌊 FFSS', 'href': link('ffss')}, {'label': '📊 DRAgoWing', 'href': link('dragowing')}]})
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '🌊 流れの実験室', 'blocks': blocks}).replace(
         '</head>', '<style>.ui-page img{max-width:100%;height:auto}</style></head>', 1)       # 📱 the GIF and SVG fit a phone
+    page = page.replace('<img src="../../media/flow/', '<img loading="lazy" src="../../media/flow/')   # 🐢 40-odd GIFs: load on scroll
     return {FLOW_PAGE: add_home_label(add_back_nav(page), '🌊 流れ実験', icons_from='../../').encode('utf-8')}   # fits an 80 px tile
 
 
