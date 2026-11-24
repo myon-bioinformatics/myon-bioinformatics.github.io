@@ -68,6 +68,15 @@ jobs:
       # Writes test-results/home-screen/home-screen-shortcut-<UTC>.gif, uploaded with the evidence below.
       - name: Check home-screen shortcuts in Chromium
         run: python -m pytest tests/test_site.py -k home_screen -q
+      - name: Checkout the verified Ironmate Studio source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: myon-bioinformatics/Ironmate
+          ref: dbacddce72df545b7317cb1dfc6184e8d23d8918
+          path: .test-deps/ironmate-studio
+          persist-credentials: false
+      - name: Check routed Image and Slide Studio file operations in Chromium
+        run: python -m pytest tests/studio_routes_browser.py -q
       # 🌍 scripts/world.py: Node 26 runs the world.js harnesses the Python tests hold; the browser contract walks every world.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
