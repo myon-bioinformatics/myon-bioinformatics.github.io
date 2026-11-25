@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-24T21:07:29Z",
+  "generatedAt": "2026-11-25T06:29:14Z",
   "owner": "myon-bioinformatics",
   "count": 49,
   "repos": [
@@ -52,7 +52,7 @@
       "homepage": "https://myon-bioinformatics.github.io/ascii_artist/",
       "pages": "https://myon-bioinformatics.github.io/ascii_artist/",
       "readmeHeading": "ascii_artist",
-      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
+      "readmeSummary": "[Icon](https://myon-bioinformatics.github.io/ascii_artist/icon.png) · [Favicon](https://myon-bioinformatics.github.io/ascii_artist/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/ascii_artist/main/README.md"
     },
     {
@@ -176,13 +176,28 @@
       "url": "https://github.com/myon-bioinformatics/CaChereCyCle",
       "description": "CaChereCyCle (CaChe × ReCyCle): put, get and materialize public assets such as icons, favicons and concept diagrams as Base64 in a JSONL store, then tidy them up and reuse them.",
       "language": "Python",
-      "topics": [],
+      "topics": [
+        "asset-management",
+        "base64",
+        "cache",
+        "cli",
+        "favicon",
+        "github-actions",
+        "github-pages",
+        "icons",
+        "jsonl",
+        "python",
+        "python3",
+        "single-file",
+        "standard-library",
+        "unittest"
+      ],
       "stars": 1,
-      "updatedAt": "2026-11-24T13:51:02Z",
-      "homepage": null,
-      "pages": null,
+      "updatedAt": "2026-11-25T06:09:50Z",
+      "homepage": "https://myon-bioinformatics.github.io/CaChereCyCle/",
+      "pages": "https://myon-bioinformatics.github.io/CaChereCyCle/",
       "readmeHeading": "♻️ CaChereCyCle",
-      "readmeSummary": "One JSONL store for small assets (icons, favicons, diagrams) kept as Base64 — standard library only. 小さな資産を Base64 で 1 か所に集約し、一次ファイルは入れたら片付け、使う分だけ手元に戻す。",
+      "readmeSummary": "[Icon](https://myon-bioinformatics.github.io/CaChereCyCle/icon.png) · [Favicon](https://myon-bioinformatics.github.io/CaChereCyCle/favicon.png) · 🌐 [Portfolio](https://myon-bioinformatics.github.io/)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/CaChereCyCle/main/README.md"
     },
     {
@@ -304,7 +319,7 @@
       "homepage": "https://myon-bioinformatics.github.io/DRAgoWing/",
       "pages": "https://myon-bioinformatics.github.io/DRAgoWing/",
       "readmeHeading": "DRAgoWing",
-      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
+      "readmeSummary": "[Icon](https://myon-bioinformatics.github.io/DRAgoWing/icon.png) · [Favicon](https://myon-bioinformatics.github.io/DRAgoWing/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/DRAgoWing/main/README.md"
     },
     {
@@ -565,7 +580,7 @@
       "homepage": "https://myon-bioinformatics.github.io/markdown/",
       "pages": "https://myon-bioinformatics.github.io/markdown/",
       "readmeHeading": "markdown",
-      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
+      "readmeSummary": "[Icon](https://myon-bioinformatics.github.io/markdown/icon.png) · [Favicon](https://myon-bioinformatics.github.io/markdown/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/markdown/main/README.md"
     },
     {
@@ -831,7 +846,7 @@
       "updatedAt": "2026-11-24T05:10:03Z",
       "homepage": "https://myon-bioinformatics.github.io/ONTO/",
       "pages": "https://myon-bioinformatics.github.io/ONTO/",
-      "readmeHeading": "<img src=\"docs/assets/onto-icon.png\" width=\"64\" height=\"64\" alt=\"\"> ONTO",
+      "readmeHeading": "<img src=\"https://myon-bioinformatics.github.io/ONTO/icon.png\" width=\"64\" height=\"64\" alt=\"\"> ONTO",
       "readmeSummary": "オントロジーに絡むリポジトリを紐付ける、索引と、横断して使う Python API。",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/ONTO/main/README.md"
     },
@@ -1220,7 +1235,7 @@
       "homepage": "https://myon-bioinformatics.github.io/xprobe/",
       "pages": "https://myon-bioinformatics.github.io/xprobe/",
       "readmeHeading": "xprobe",
-      "readmeSummary": "[Icon](docs/brand/icon.png) · [Favicon](docs/brand/favicon.png)",
+      "readmeSummary": "[Icon](https://myon-bioinformatics.github.io/xprobe/icon.png) · [Favicon](https://myon-bioinformatics.github.io/xprobe/favicon.png)",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/xprobe/main/README.md"
     },
     {

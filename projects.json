@@ -276,7 +276,7 @@
     "showcase": {
       "label": "🐦 Err-o-RR",
       "repository": "myon-bioinformatics/Err-o-RoadRunner",
-      "commit": "ee9ddf929216705c41dab8c82a4bac89a82cc7af",
+      "commit": "e9d257dbb77224c5a43e62fdce3bb6ae72fc2be8",
       "icon": "https://myon-bioinformatics.github.io/Err-o-RoadRunner/icon.png",
       "media": [
         {
@@ -553,7 +553,7 @@
     "showcase": {
       "label": "🗜️ 会話圧縮",
       "repository": "myon-bioinformatics/TalkCompress",
-      "commit": "092e87f85904976b810f8382f0b334fead473c3e",
+      "commit": "264a7e911e3958c47dbc339c7fe2ce25d87c123f",
       "media": [
         {
           "src": "docs/evidence/browser.gif",
