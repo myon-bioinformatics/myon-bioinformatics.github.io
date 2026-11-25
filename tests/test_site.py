@@ -176,7 +176,7 @@ def test_repository_map_reads_each_lock_and_aois_subtrees(tmp_path):
 
 def test_gif_workshop_page_keeps_images_in_the_browser():
     page = (SITE / "tools/gif/index.html").read_text(encoding="utf-8")
-    assert 'id="gif-files"' in page and 'accept="image/*"' in page and "UiGif.Recorder" in page
+    assert 'id="gif-files"' in page and 'accept="image/*"' in page and "function bindMaker" in page   # PySaiyanWeBoo's gif_maker_document
     assert "fetch(" not in page and "XMLHttpRequest" not in page and "localStorage" not in page   # nothing is sent or kept
 
 
@@ -1070,6 +1070,8 @@ def test_chat_answers_every_command_from_the_fleets_modules():
     assert '| markdown | 7284 |' in table and '╭' in table
     assert '#   #' in say('/ascii HI') and '╭────╮' in say('/box hi')
     assert '🧭 見出し 1 · 🔗 リンク 1' in say('/md # A\n\n[x](https://example.com)')
+    asked = CHAT.ask_html('<think>台帳を探す</think>**TaxOntOy**', 8, 2.0)        # 🤖 reasoning, when there is any, is quoted as 💭
+    assert '<blockquote>' in asked and '💭 台帳を探す' in asked and '<strong>TaxOntOy</strong>' in asked and '4.0 tok/s' in asked
     html = CHAT.reply_html('/md <img src=x onerror=alert(1)> **b**')
     assert '<img' not in html and '&lt;img' in html and '<strong>b</strong>' in html
 
@@ -1151,7 +1153,7 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     assert sources == {'chat.py': (ROOT / 'scripts/chat.py').read_text(encoding='utf-8'),
                        **{f'{n}.py': Path(util.find_spec(n).origin).read_text(encoding='utf-8') for n in CHAT.MODULES}}
     config = json.loads(re.search(r'id="chat-config">(.*?)</script>', page).group(1))
-    assert config == {'pyodide': CHAT.PYODIDE, 'index': '../../media/chat/index.json', 'base': '../../media/chat/'}
+    assert config == {'runtime': CHAT.RUNTIME, 'index': '../../media/chat/index.json', 'base': '../../media/chat/'}
     assert all(html_escape(example) in page for _, _, _, examples in CHAT.COMMANDS.values() for example in examples)
     assert page.count('class="ui-card ui-step"') == sum(len(c[3]) for c in CHAT.COMMANDS.values()) + len(CHAT.TYPOS)
     assert 'data-testid="portfolio-back"' in page and '💬chat-slot' not in page
@@ -1164,10 +1166,15 @@ def html_escape(text):
     return escape(text)
 
 
+STORIES = 'https://huggingface.co/ggml-org/models/resolve/main/tinyllamas/stories260K.gguf'   # 🤖 1.2 MB, for /ask in tests
+
+
 def test_chat_in_chromium_with_pyodide_and_a_gif():
     """💬 In Chromium, Pyodide runs chat.py: typed and tapped commands, a typo, MCP, the cross-repo index, /show, the 📇 index's
-    💬 button, and raw HTML stays text. PYODIDE_DIR serves Pyodide from a local copy (else jsDelivr); TALKCOMPRESS_DIR (a checkout)
-    lets /compress run TalkCompress itself. Frames go to test-results/chat/chat-conversation-<UTC>.gif."""
+    💬 button, raw HTML stays text, and 🤖 /ask runs llama.cpp (wllama) in the page — on a 1.2 MB model in place of the real one.
+    Pyodide and wllama come from jsDelivr; CHAT_MIRROR=DIR serves them from DIR/pyodide/ and DIR/wllama/ (the esm folder), the model
+    from DIR/model.gguf and TalkCompress's files from DIR/talkcompress/ (then /compress runs it). Frames go to
+    test-results/chat/chat-conversation-<UTC>.gif."""
     sync_api = pytest.importorskip('playwright.sync_api')
     ui = pytest.importorskip('pysaiyanweboo')
     import base64, functools, os, threading
@@ -1177,29 +1184,36 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
         def log_message(self, *args):
             pass
 
-    local, compressor = os.environ.get('PYODIDE_DIR'), os.environ.get('TALKCOMPRESS_DIR')
+    mirror = Path(os.environ['CHAT_MIRROR']) if os.environ.get('CHAT_MIRROR') else None
     server = ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Quiet, directory=str(SITE)))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     base, frames, errors = f'http://127.0.0.1:{server.server_port}/', [], []
+    cors = {'access-control-allow-origin': '*', 'access-control-expose-headers': 'content-length, content-range, etag'}
+    kinds = {'.mjs': 'text/javascript', '.js': 'text/javascript', '.wasm': 'application/wasm', '.json': 'application/json'}
 
     def route(r):
         url = r.request.url
-        if url.startswith(CHAT.PYODIDE):
-            if not local:
-                return r.continue_()
-            name = url[len(CHAT.PYODIDE):].split('?')[0]
-            kind = {'.mjs': 'text/javascript', '.wasm': 'application/wasm', '.json': 'application/json'}.get(Path(name).suffix, 'application/octet-stream')
-            return r.fulfill(path=str(Path(local) / name), headers={'content-type': kind, 'access-control-allow-origin': '*'})
+        for key in ('pyodide', 'wllama'):
+            if url.startswith(CHAT.RUNTIME[key]):
+                if not mirror:
+                    return r.continue_()
+                name = url[len(CHAT.RUNTIME[key]):].split('?')[0]
+                return r.fulfill(path=str(mirror / key / name), headers={'content-type': kinds.get(Path(name).suffix, 'application/octet-stream'), **cors})
+        if url.startswith(CHAT.RUNTIME['model']):
+            if mirror:
+                return r.fulfill(path=str(mirror / 'model.gguf'), headers={'content-type': 'application/octet-stream', **cors})
+            response = r.fetch(url=STORIES)
+            return r.fulfill(response=response, headers={**response.headers, **cors})
         if url.startswith('https://raw.githubusercontent.com/'):
-            return r.fulfill(body=_chat_fetch(url), headers={'access-control-allow-origin': '*'})
+            return r.fulfill(body=_chat_fetch(url), headers=cors)
         return r.abort()
 
     def local_media(r):
         name = r.request.url.split('/media/chat/', 1)[1]
         if name == 'index.json':
             return r.fulfill(body=json.dumps(CHAT_INDEX), content_type='application/json')
-        if compressor and name.startswith('talkcompress/'):
-            return r.fulfill(path=str(Path(compressor) / name.removeprefix('talkcompress/')))
+        if mirror and name.startswith('talkcompress/') and (mirror / name).is_file():
+            return r.fulfill(path=str(mirror / name))
         return r.fulfill(status=404, body='')
 
     try:
@@ -1208,10 +1222,11 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
                 browser = ui.launch_chromium(playwright)
             except Exception as exc:  # noqa: BLE001 - no browser on this machine
                 pytest.skip(f'Chromium is not installed: {exc}')
-            page = browser.new_page(viewport={'width': 640, 'height': 800})
+            context = browser.new_context(viewport={'width': 640, 'height': 800})
+            context.route(lambda url: url.startswith('https://'), route)      # (a 'https://**' glob misses the dynamic import)
+            context.route(lambda url: '/media/chat/' in url, local_media)      # the context's routes reach wllama's workers too
+            page = context.new_page()
             page.on('pageerror', lambda error: errors.append(str(error)))
-            page.route(lambda url: url.startswith('https://'), route)     # (a 'https://**' glob misses the dynamic import)
-            page.route(lambda url: '/media/chat/' in url, local_media)
             page.goto(base + 'tools/demos/chat.html')
             page.wait_for_function('() => document.documentElement.dataset.chatReady === "true"', timeout=180_000)
             status = page.locator('[data-chat-status]').text_content()
@@ -1219,14 +1234,19 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             frames.append((page.screenshot(), '💬 ' + status))
             bot = page.locator('[data-chat-who="bot"]')
 
-            def say(text, expect, *, tap=None):
+            def say(text, expect, *, tap=None, done=None):
                 count = bot.count()
                 if tap:
                     page.locator(tap).click()
                 else:
                     page.fill('[data-chat-input]', text)
                     page.press('[data-chat-input]', 'Enter')
-                page.wait_for_function(f'n => document.querySelectorAll("[data-chat-who=bot]").length > n', arg=count)
+                # 💬 PySaiyanWeBoo's chat shows ⏳ at once and turns ➤ back on when the answer is in
+                page.wait_for_function('n => document.querySelectorAll("[data-chat-who=bot]").length > n'
+                                       ' && !document.querySelector("[data-chat-send]").disabled', arg=count, timeout=300_000)
+                if done:
+                    page.wait_for_function('t => document.querySelector("[data-chat-who=bot]:last-child").textContent.includes(t)',
+                                           arg=done, timeout=300_000)
                 reply = bot.last.inner_text()
                 assert expect in reply, (text, reply)
                 frames.append((page.screenshot(), f'💬 {text or tap}'[:120]))
@@ -1238,9 +1258,12 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             say('/mcp find_municipalities {"query": "Exampleville"}', 'tools/call')
             say('onto', 'docs/graph.json')
             say('/show onto/docs/graph.json', '🧬 nodes 2')
-            say('/compress As soon as possible, please send me the report.', 'ASAP' if compressor else '⏸ TalkCompress')
+            compress = mirror and (mirror / 'talkcompress').is_dir()
+            say('/compress As soon as possible, please send me the report.', 'ASAP' if compress else '⏸ TalkCompress')
             say('/md <img src=x onerror="window.pwned=1"> **ok**', '<img src=x')
             assert page.evaluate('() => window.pwned') is None and bot.last.locator('img').count() == 0
+            asked = say('/ask TaxOntOy って何？', 'tok/s', done='tok/s')                 # 🤖 llama.cpp answered in the page
+            assert '🤖 ' + CHAT.RUNTIME['model'].rsplit('/', 1)[-1] in asked and ' tokens · ' in asked, asked
             page.click('label[for="ui-tabs-chat-1"]')                      # 📇 index: a step's 💬 button sends it
             page.select_option('select[data-ui-choice]', '1')               # 🎨 ASCII art
             frames.append((page.screenshot(), '📇 索引 · 🎨 ASCII art'))

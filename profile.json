@@ -15,9 +15,10 @@
       "category": "Languages",
       "items": [
         { "name": "Python", "level": 90 },
-        { "name": "Go", "level": 65 },
-        { "name": "TypeScript", "level": 60 },
-        { "name": "Bash", "level": 70 }
+        { "name": "Node.js", "level": 70 },
+        { "name": "Bash", "level": 70 },
+        { "name": "TypeScript", "level": 45 },
+        { "name": "Go", "level": 35 }
       ]
     },
     {
@@ -34,6 +35,8 @@
       "items": [
         { "name": "Linux / CLI", "level": 85 },
         { "name": "Docker", "level": 60 },
+        { "name": "AWS", "level": 70 },
+        { "name": "Azure", "level": 70 },
         { "name": "Git / GitHub", "level": 80 },
         { "name": "Wireshark / Scapy / Ghidra", "level": 70 },
         { "name": "Flutter / Dart", "level": 60 }

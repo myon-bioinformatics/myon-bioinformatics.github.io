@@ -269,23 +269,12 @@ def add_back_nav(page: str) -> str:
 
 
 def add_home_label(page: str, label: str, *, icons_from: str | None = None) -> str:
-    """Name a home-screen shortcut of the page ``label`` (iOS reads apple-mobile-web-app-title, Chrome application-name).
-
-    A long <title> is cut off under the icon; replaces any earlier label, so it is idempotent. ``icons_from`` is the way
-    back to the site root (``'../../'``): it also links the portfolio's tab icon and home-screen icon, replacing any others.
-    """
-    page = re.sub(r'<meta\b[^>]*\bname=["\'](?:apple-mobile-web-app-title|application-name)["\'][^>]*>', '', page, flags=re.I)
-    value = html.escape(label, quote=True)
-    tags = f'<meta name="apple-mobile-web-app-title" content="{value}"><meta name="application-name" content="{value}">'
-    if icons_from is not None:
-        page = re.sub(r'<link\b[^>]*\brel=["\'](?:icon|apple-touch-icon)["\'][^>]*>', '', page, flags=re.I)
-        tags += (f'<link rel="icon" type="image/png" sizes="32x32" href="{icons_from}assets/brand/favicon-32x32.png">'
-                 f'<link rel="apple-touch-icon" sizes="170x170" href="{icons_from}assets/brand/myon-profile-icon.png">')
-    # Right after <title>, the name it shortens, so steps that append to </head> (lab branding) keep their place.
-    for anchor in ('</title>', '</head>'):
-        if anchor in page:
-            return page.replace(anchor, anchor + tags if anchor == '</title>' else tags + anchor, 1)
-    raise ValueError('page has no </title> or </head>')
+    """📱 PySaiyanWeBoo's ``home_label``: the home-screen shortcut is named ``label``; ``icons_from`` (the way back to the site
+    root, ``'../../'``) also gives the page the portfolio's tab icon and home-screen icon. Idempotent."""
+    import pysaiyanweboo as ui
+    icons = {} if icons_from is None else {'icon': f'{icons_from}assets/brand/favicon-32x32.png',
+                                           'touch_icon': f'{icons_from}assets/brand/myon-profile-icon.png'}
+    return ui.home_label(page, label, **icons)
 
 
 def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
@@ -388,58 +377,9 @@ def render_projects(ui, root: Path = ROOT) -> dict[str, bytes]:
 # ── 🎞 GIF工房 and 🎥 the moving samples: both draw with PySaiyanWeBoo's gif.js (window.UiGif) ──────────────────────────
 GIF_PAGE = 'tools/gif/index.html'
 SAMPLES = 'media/pages/'          # 🎥 one moving sample per repository's Pages, recorded at deploy time (not kept in git)
-GIF_SIZES = ('240x432', '320x240', '480x360', '640x480', '392x704')   # canvas below the caption, multiples of 8
-GIF_SCRIPT = r"""(() => {
-  const $ = id => document.getElementById(id);
-  let url = null;
-  // 🖼 any image the browser can open → PNG, so the encoder sees one format (nothing leaves the page)
-  const png = async file => {
-    const bitmap = await createImageBitmap(file), canvas = document.createElement("canvas");
-    canvas.width = bitmap.width; canvas.height = bitmap.height;
-    canvas.getContext("2d").drawImage(bitmap, 0, 0);
-    return canvas.toDataURL("image/png").split(",")[1];
-  };
-  $("gif-files").addEventListener("change", () => {
-    $("gif-status").textContent = `🖼 ${$("gif-files").files.length}枚`;
-  });
-  $("gif-make").addEventListener("click", async () => {
-    const files = [...$("gif-files").files];
-    if (!files.length) { $("gif-status").textContent = "📂 画像を選んでください"; return; }
-    const [width, height] = $("gif-size").value.split("x").map(Number);
-    const delay = Number($("gif-delay").value), named = $("gif-names").checked;
-    $("gif-status").textContent = `⏳ ${files.length}枚…`;
-    try {
-      const recorder = new UiGif.Recorder({width, height, caption: named ? 32 : 0});
-      const frames = [];
-      for (const file of files) frames.push({png: await png(file), caption: named ? file.name : "", ok: true, delay});
-      await recorder.add(frames);
-      const bytes = Uint8Array.from(atob(recorder.encodeBase64({}).gif), c => c.charCodeAt(0));
-      if (url) URL.revokeObjectURL(url);
-      url = URL.createObjectURL(new Blob([bytes], {type: "image/gif"}));
-      $("gif-preview").src = url; $("gif-preview").hidden = false;
-      $("gif-save").href = url; $("gif-save").hidden = false;
-      $("gif-status").textContent = `✅ ${files.length}枚 · ${Math.max(1, Math.round(bytes.length / 1024))} KiB`;
-    } catch (error) {
-      $("gif-status").textContent = "⛔ " + error.message;
-    }
-  });
-})();"""
-
-
 def render_gif_tool(ui) -> dict[str, bytes]:
-    """🎞 GIF工房: images the visitor picks become one looping GIF in the page (gif.js); nothing is sent or stored."""
-    option = lambda value, label, chosen=False: f'<option value="{value}"{" selected" if chosen else ""}>{label}</option>'
-    body = ('<main class="ui-page"><h1 class="ui-title">🎞 GIF工房</h1>'
-            '<p class="ui-muted">🖼 画像を選ぶ → ▶ つくる → ⬇ 保存。端末の中だけで作り、画像はどこにも送らず、残しもしない。</p>'
-            '<p><label>📂 <input id="gif-files" type="file" accept="image/*" multiple></label></p>'
-            '<p><label>📐 <select id="gif-size">' + ''.join(option(s, s.replace('x', '×'), s == '480x360') for s in GIF_SIZES) + '</select></label> '
-            '<label>⏱ <select id="gif-delay">' + ''.join(option(ms, f'{ms} ms', ms == 600) for ms in (200, 400, 600, 1000, 1500)) + '</select></label> '
-            '<label>🏷 <input id="gif-names" type="checkbox"> ファイル名</label></p>'
-            '<p><button id="gif-make" type="button" class="ui-button">▶ つくる</button> '
-            '<a id="gif-save" class="ui-button" download="gif-kobo.gif" hidden>⬇ 保存</a> <span id="gif-status" role="status"></span></p>'
-            '<p><img id="gif-preview" alt="🎞 できた GIF" hidden style="max-width:100%;height:auto"></p></main>')
-    page = ui.render_document(trusted_html=body + ui.classic_script(ui.js_source('gif.js')) + ui.classic_script(GIF_SCRIPT),
-                              title='🎞 GIF工房', css=ui.bundled_css())       # the shared sheet (render_pages links it as css/bundle.css)
+    """🎞 GIF工房: PySaiyanWeBoo's ``gif_maker_document`` — images the visitor picks become one looping GIF in the page."""
+    page = ui.gif_maker_document(filename='gif-kobo.gif', css=ui.bundled_css())   # the shared sheet (render_pages links it as css/bundle.css)
     return {GIF_PAGE: add_home_label(add_back_nav(page), '🎞 GIF工房', icons_from='../../').encode('utf-8')}
 
 
@@ -705,48 +645,40 @@ def render_map(ui, output: Path | None = None) -> dict[str, bytes]:
 # what it knows of the other repositories is recorded at deploy time (media/chat/, not kept in git) ──
 CHAT = 'media/chat/'
 _CHAT_SLOT = '💬chat-slot'
-CHAT_CSS = ('.ui-chat{display:flex;flex-direction:column;gap:8px}.ui-chat-log{display:flex;flex-direction:column;gap:8px;'
-            'height:48vh;min-height:240px;overflow:auto;padding:8px;border:1px solid var(--ui-border);border-radius:var(--ui-radius)}'
-            '.ui-chat-msg{max-width:min(100%,720px);padding:8px 16px;border-radius:var(--ui-radius);overflow-wrap:anywhere}'
-            '.ui-chat-msg pre{overflow:auto;max-width:100%;padding:8px;border-radius:var(--ui-radius);background:var(--ui-panel)}'
-            '.ui-chat-msg table{display:block;overflow:auto;max-width:100%}.ui-chat-msg :is(td,th){white-space:nowrap}'
-            '.ui-chat-you{align-self:flex-end;background:var(--ui-panel);white-space:pre-wrap}'
-            '.ui-chat-bot{align-self:flex-start;border:1px solid var(--ui-border)}'
-            '.ui-chat-form{display:flex;gap:8px;position:sticky;bottom:0;padding:8px 0;background:var(--ui-bg)}'
-            '.ui-chat-form textarea{flex:1;min-height:48px;font:inherit}'
-            '.ui-chat-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0}.ui-step [data-chat-say]{margin-top:8px}')
+CHAT_CSS = '.ui-step [data-chat-say]{margin-top:8px}'    # 📇 the index's "💬 送る"; the chat itself is PySaiyanWeBoo's (chat.css)
+# 💬 the page's part of the chat: the bubbles, Enter, chips and 😀 reactions are PySaiyanWeBoo's chat component (chat.js, webUiChat);
+# here are only the bot (chat.py in Pyodide), 🤖 /ask (wllama) and the index's buttons
 CHAT_JS = r"""const $ = (s) => document.querySelector(s);
-const log = $("[data-chat-log]"), form = $("[data-chat-form]"), input = $("[data-chat-input]"), send = $("[data-chat-send]");
-const status = $("[data-chat-status]"), cfg = JSON.parse($("#chat-config").textContent);
-let bot = null;
-const bubble = (who, html, text) => {
-  const node = document.createElement("div");
-  node.className = `ui-chat-msg ui-chat-${who}`;
-  node.dataset.chatWho = who;
-  if (text === undefined) node.innerHTML = html; else node.textContent = text;
-  log.append(node);
-  log.scrollTop = log.scrollHeight;
-  return node;
-};
-async function say(text) {
-  if (!bot || !text.trim()) return;
-  bubble("you", null, text);
-  send.disabled = true;
-  await new Promise((done) => setTimeout(done, 0));   // paint before a /show or /compress fetch blocks
-  try { bubble("bot", bot.reply_html(text)); } catch (error) { bubble("bot", null, "⚠️ " + (error?.message ?? error)); }
-  send.disabled = false;
-  input.focus();
+const cfg = JSON.parse($("#chat-config").textContent);
+const [chat] = webUiChat.bindChat(document);
+let bot = null, llm = null;
+async function ask(text, reply) {                      // 🤖 /ask: llama.cpp in WebAssembly (wllama), the model loaded once
+  if (!llm) {
+    reply.text("⏳ 🤖 llama.cpp…");
+    const {Wllama} = await import(cfg.runtime.wllama + "index.js");
+    llm = new Wllama({default: cfg.runtime.wllama + "wasm/wllama.wasm"});
+    await llm.loadModelFromUrl(cfg.runtime.model, {n_ctx: 2048, progressCallback: ({loaded, total}) => {
+      reply.text(`⏳ 🤖 ${total ? Math.round(loaded / total * 100) : 0}% · ${Math.round(loaded / 2 ** 20)} / ${Math.round(total / 2 ** 20)} MB`);
+    }});
+  }
+  let output = "", tokens = 0;
+  const started = performance.now();
+  await llm.createChatCompletion({messages: JSON.parse(bot.ask_messages(text)), max_tokens: 256, temperature: 0.3, stream: true,
+    chat_template_kwargs: {enable_thinking: false}, onData: (chunk) => {
+      output += chunk.choices?.[0]?.delta?.content ?? "";
+      tokens += 1;
+      reply.text(output);
+    }});
+  return bot.ask_html.callKwargs(output, tokens, (performance.now() - started) / 1000,
+                                 {threads: llm.isMultithread() ? navigator.hardwareConcurrency : 1, webgpu: llm.isSupportWebGPU()});
 }
-form.addEventListener("submit", (event) => { event.preventDefault(); const text = input.value; input.value = ""; say(text); });
-input.addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && !event.shiftKey && !event.isComposing) { event.preventDefault(); form.requestSubmit(); }
-});
-document.addEventListener("click", (event) => {
-  const chip = event.target.closest("[data-chat-say]");
+chat.respond = (text, reply) => /^\/ask(\s|$)/i.test(text.trim()) ? ask(text, reply) : bot.reply_html(text);
+document.addEventListener("click", (event) => {         // 📇 a step of the index (beside the chat) sends its command there
+  const chip = event.target.closest(".ui-step [data-chat-say]");
   if (!chip) return;
   const tab = $("#ui-tabs-chat-0");
   if (tab) tab.checked = true;
-  say(chip.dataset.chatSay);
+  chat.say(chip.dataset.chatSay);
 });
 for (const step of document.querySelectorAll(".ui-step")) {            // 📇 each step of the index can be sent as it is
   const command = step.querySelector("pre")?.textContent ?? "";
@@ -755,8 +687,8 @@ for (const step of document.querySelectorAll(".ui-step")) {            // 📇 e
   step.querySelector(".ui-code")?.after(button);
 }
 async function boot() {
-  const {loadPyodide} = await import(cfg.pyodide + "pyodide.mjs");
-  const py = await loadPyodide({indexURL: cfg.pyodide});
+  const {loadPyodide} = await import(cfg.runtime.pyodide + "pyodide.mjs");
+  const py = await loadPyodide({indexURL: cfg.runtime.pyodide});
   py.FS.mkdirTree("/chat");
   for (const [name, text] of Object.entries(JSON.parse($("#chat-sources").textContent))) py.FS.writeFile("/chat/" + name, text);
   let index = null;
@@ -765,12 +697,11 @@ async function boot() {
   bot = py.pyimport("chat");
   bot.configure(index, new URL(cfg.base, location.href).href);
   const files = index ? JSON.parse(index).files.length : 0;
-  status.textContent = `✅ 🐍 ${py.runPython("import sys; sys.version.split()[0]")} · ` + (files ? `🔎 ${files} files` : "⏸ 索引なし");
-  send.disabled = false;
-  send.textContent = "➤";
+  chat.status(`✅ 🐍 ${py.runPython("import sys; sys.version.split()[0]")} · ` + (files ? `🔎 ${files} files` : "⏸ 索引なし"));
+  chat.ready();
   document.documentElement.dataset.chatReady = "true";
 }
-boot().catch((error) => { status.textContent = "⚠️ Python を読み込めない: " + (error?.message ?? error); });
+boot().catch((error) => { chat.status("⚠️ Python を読み込めない: " + (error?.message ?? error)); });
 """
 
 
@@ -794,10 +725,11 @@ def chat_books() -> list[dict]:
     step per example; the expected reply is the bot's own where it needs nothing recorded at deploy time."""
     chat = _chat()
     groups = [('📝 Markdown', ('md', 'table', 'help')), ('🎨 ASCII art', ('ascii', 'box', 'flow')), ('🗂 圧縮', ('compress',)),
-              ('🔌 MCP', ('mcp',)), ('🔎 JSON / JSONL', ('find', 'show')), ('⌨️ もしかして', ())]
+              ('🔌 MCP', ('mcp',)), ('🔎 JSON / JSONL', ('find', 'show')), ('🤖 LLM', ('ask',)), ('⌨️ もしかして', ())]
     recorded = {'compress': '🗂 TalkCompress の短い文と 📏 文字数（TalkCompress は公開時に記録）',
                 'mcp': '🔌 mcp-toolcall-lab が広告する道具で判定（✅ 送ってよい／❌ 断る。道具は公開時に記録）',
-                'find': '🔎 全リポジトリの JSON / JSONL から（索引は公開時に記録）', 'show': '👀 そのコミットの raw を読んで表に'}
+                'find': '🔎 全リポジトリの JSON / JSONL から（索引は公開時に記録）', 'show': '👀 そのコミットの raw を読んで表に',
+                'ask': '🤖 初回だけ約 560 MB のモデルを読み、端末の中で答える（⚡ WebGPU があれば GPU、なければ 🧮 CPU 1 スレッド）'}
     books = []
     for label, names in groups:
         examples = [(name, example) for name in names for example in chat.COMMANDS[name][3]] or [('typo', t) for t in chat.TYPOS]
@@ -815,27 +747,25 @@ def chat_document(ui) -> str:
     chat = _chat()
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '💬 横断チャット', 'description':
                              'markdown.py・ascii_artist・cli_args・TalkCompress・mcp-toolcall-lab をページの中の Python で。'
-                             '全リポジトリの JSON / JSONL にも答える。送った文はどこにも送らない（/show は GitHub の raw を読む）。',
+                             '全リポジトリの JSON / JSONL にも答える。🤖 /ask は llama.cpp が端末の中で答える。'
+                             '送った文はどこにも送らない（/show は GitHub の raw を、/ask はモデルを読むだけ）。',
                              'blocks': [{'type': 'tabs', 'id': 'chat', 'tabs': [
                                  {'label': '💬 チャット', 'blocks': [{'type': 'text', 'text': _CHAT_SLOT}]},
                                  {'label': '📇 索引', 'blocks': [{'type': 'runbook', 'id': 'chat-index', 'choice': '📇 道具',
                                                                   'books': chat_books()}]}]}]})
-    chips = ''.join(f'<button class="ui-button" type="button" data-chat-say="{html.escape(example, quote=True)}">'
-                    f'{icon} /{name}</button>' for name, (icon, _, _, (example, *_)) in chat.COMMANDS.items())
-    body = ('<div class="ui-chat" data-chat><div class="ui-chat-log" role="log" aria-live="polite" aria-label="会話" data-chat-log>'
-            '<div class="ui-chat-msg ui-chat-bot" data-chat-status>⏳ 🐍 Python（Pyodide）を読み込み中…</div></div>'
-            '<form class="ui-chat-form" data-chat-form>'
-            '<textarea class="ui-input" rows="2" placeholder="/help · /flow a &gt; b · onto" aria-label="メッセージ" data-chat-input></textarea>'
-            f'<button class="ui-button" type="submit" disabled data-chat-send>⏳</button></form><p class="ui-chat-chips">{chips}</p>'
-            '<noscript><p>⏸ このチャットは JavaScript と Pyodide で動く。📇 索引のコマンドは scripts/chat.py でも試せる。</p></noscript></div>')
+    parts = ui.component_parts('chat', chat_id='chat', placeholder='/help · /flow a > b · onto', ready=False,     # 💬 PySaiyanWeBoo's chat
+                               chips=[(f'{icon} /{name}', example) for name, (icon, _, _, (example, *_)) in chat.COMMANDS.items()],
+                               status='⏳ 🐍 Python（Pyodide）を読み込み中…')
+    body = (parts['html'] + '<noscript><p>⏸ このチャットは JavaScript と Pyodide で動く。📇 索引のコマンドは scripts/chat.py でも試せる。</p></noscript>')
     data = lambda value: json.dumps(value, ensure_ascii=False).replace('<', '\\u003c')
-    config = {'pyodide': chat.PYODIDE, 'index': f'../../{CHAT}index.json', 'base': f'../../{CHAT}'}
+    config = {'runtime': chat.RUNTIME, 'index': f'../../{CHAT}index.json', 'base': f'../../{CHAT}'}
     body += (f'<script type="application/json" id="chat-config">{data(config)}</script>'
-             f'<script type="application/json" id="chat-sources">{data(chat_sources())}</script>' + ui.module_script(CHAT_JS))
+             f'<script type="application/json" id="chat-sources">{data(chat_sources())}</script>'
+             + ui.module_script(parts['js']) + ui.module_script(CHAT_JS))
     slot = f'<p>{_CHAT_SLOT}</p>'
     if page.count(slot) != 1:
         raise ValueError('chat page has no single slot')
-    return page.replace(slot, body, 1).replace('</head>', f'<style>{CHAT_CSS}</style></head>', 1)
+    return page.replace(slot, body, 1).replace('</head>', f'<style>{parts["css"]}{CHAT_CSS}</style></head>', 1)
 
 
 def _tree(repository: str, commit: str) -> list[tuple[str, int]]:
