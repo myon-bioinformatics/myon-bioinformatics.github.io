@@ -705,37 +705,20 @@ def render_map(ui, output: Path | None = None) -> dict[str, bytes]:
 # what it knows of the other repositories is recorded at deploy time (media/chat/, not kept in git) ──
 CHAT = 'media/chat/'
 _CHAT_SLOT = '💬chat-slot'
-CHAT_CSS = ('.ui-chat{display:flex;flex-direction:column;gap:8px}.ui-chat-log{display:flex;flex-direction:column;gap:8px;'
-            'height:48vh;min-height:240px;overflow:auto;padding:8px;border:1px solid var(--ui-border);border-radius:var(--ui-radius)}'
-            '.ui-chat-msg{max-width:min(100%,720px);padding:8px 16px;border-radius:var(--ui-radius);overflow-wrap:anywhere}'
-            '.ui-chat-msg pre{overflow:auto;max-width:100%;padding:8px;border-radius:var(--ui-radius);background:var(--ui-panel)}'
-            '.ui-chat-msg table{display:block;overflow:auto;max-width:100%}.ui-chat-msg :is(td,th){white-space:nowrap}'
-            '.ui-chat-you{align-self:flex-end;background:var(--ui-panel);white-space:pre-wrap}'
-            '.ui-chat-bot{align-self:flex-start;border:1px solid var(--ui-border)}'
-            '.ui-chat-form{display:flex;gap:8px;position:sticky;bottom:0;padding:8px 0;background:var(--ui-bg)}'
-            '.ui-chat-form textarea{flex:1;min-height:48px;font:inherit}'
-            '.ui-chat-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0}.ui-step [data-chat-say]{margin-top:8px}')
+CHAT_CSS = '.ui-step [data-chat-say]{margin-top:8px}'    # 📇 the index's "💬 送る"; the chat itself is PySaiyanWeBoo's (chat.css)
+# 💬 the page's part of the chat: the bubbles, Enter, chips and 😀 reactions are PySaiyanWeBoo's chat component (chat.js, webUiChat);
+# here are only the bot (chat.py in Pyodide), 🤖 /ask (wllama) and the index's buttons
 CHAT_JS = r"""const $ = (s) => document.querySelector(s);
-const log = $("[data-chat-log]"), form = $("[data-chat-form]"), input = $("[data-chat-input]"), send = $("[data-chat-send]");
-const status = $("[data-chat-status]"), cfg = JSON.parse($("#chat-config").textContent);
-let bot = null;
-const bubble = (who, html, text) => {
-  const node = document.createElement("div");
-  node.className = `ui-chat-msg ui-chat-${who}`;
-  node.dataset.chatWho = who;
-  if (text === undefined) node.innerHTML = html; else node.textContent = text;
-  log.append(node);
-  log.scrollTop = log.scrollHeight;
-  return node;
-};
-let llm = null;
-async function ask(text, node) {                       // 🤖 /ask: llama.cpp in WebAssembly (wllama), the model loaded once
+const cfg = JSON.parse($("#chat-config").textContent);
+const [chat] = webUiChat.bindChat(document);
+let bot = null, llm = null;
+async function ask(text, reply) {                      // 🤖 /ask: llama.cpp in WebAssembly (wllama), the model loaded once
   if (!llm) {
-    node.textContent = "⏳ 🤖 llama.cpp…";
+    reply.text("⏳ 🤖 llama.cpp…");
     const {Wllama} = await import(cfg.runtime.wllama + "index.js");
     llm = new Wllama({default: cfg.runtime.wllama + "wasm/wllama.wasm"});
     await llm.loadModelFromUrl(cfg.runtime.model, {n_ctx: 2048, progressCallback: ({loaded, total}) => {
-      node.textContent = `⏳ 🤖 ${total ? Math.round(loaded / total * 100) : 0}% · ${Math.round(loaded / 2 ** 20)} / ${Math.round(total / 2 ** 20)} MB`;
+      reply.text(`⏳ 🤖 ${total ? Math.round(loaded / total * 100) : 0}% · ${Math.round(loaded / 2 ** 20)} / ${Math.round(total / 2 ** 20)} MB`);
     }});
   }
   let output = "", tokens = 0;
@@ -744,35 +727,18 @@ async function ask(text, node) {                       // 🤖 /ask: llama.cpp i
     chat_template_kwargs: {enable_thinking: false}, onData: (chunk) => {
       output += chunk.choices?.[0]?.delta?.content ?? "";
       tokens += 1;
-      node.textContent = output;
-      log.scrollTop = log.scrollHeight;
+      reply.text(output);
     }});
-  node.innerHTML = bot.ask_html.callKwargs(output, tokens, (performance.now() - started) / 1000,
-                                           {threads: llm.isMultithread() ? navigator.hardwareConcurrency : 1, webgpu: llm.isSupportWebGPU()});
-  log.scrollTop = log.scrollHeight;
+  return bot.ask_html.callKwargs(output, tokens, (performance.now() - started) / 1000,
+                                 {threads: llm.isMultithread() ? navigator.hardwareConcurrency : 1, webgpu: llm.isSupportWebGPU()});
 }
-async function say(text) {
-  if (!bot || !text.trim()) return;
-  bubble("you", null, text);
-  send.disabled = true;
-  await new Promise((done) => setTimeout(done, 0));   // paint before a /show or /compress fetch blocks
-  try {
-    if (/^\/ask(\s|$)/i.test(text.trim())) await ask(text, bubble("bot", null, "⏳"));
-    else bubble("bot", bot.reply_html(text));
-  } catch (error) { bubble("bot", null, "⚠️ " + (error?.message ?? error)); }
-  send.disabled = false;
-  input.focus();
-}
-form.addEventListener("submit", (event) => { event.preventDefault(); const text = input.value; input.value = ""; say(text); });
-input.addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && !event.shiftKey && !event.isComposing) { event.preventDefault(); form.requestSubmit(); }
-});
-document.addEventListener("click", (event) => {
-  const chip = event.target.closest("[data-chat-say]");
+chat.respond = (text, reply) => /^\/ask(\s|$)/i.test(text.trim()) ? ask(text, reply) : bot.reply_html(text);
+document.addEventListener("click", (event) => {         // 📇 a step of the index (beside the chat) sends its command there
+  const chip = event.target.closest(".ui-step [data-chat-say]");
   if (!chip) return;
   const tab = $("#ui-tabs-chat-0");
   if (tab) tab.checked = true;
-  say(chip.dataset.chatSay);
+  chat.say(chip.dataset.chatSay);
 });
 for (const step of document.querySelectorAll(".ui-step")) {            // 📇 each step of the index can be sent as it is
   const command = step.querySelector("pre")?.textContent ?? "";
@@ -791,12 +757,11 @@ async function boot() {
   bot = py.pyimport("chat");
   bot.configure(index, new URL(cfg.base, location.href).href);
   const files = index ? JSON.parse(index).files.length : 0;
-  status.textContent = `✅ 🐍 ${py.runPython("import sys; sys.version.split()[0]")} · ` + (files ? `🔎 ${files} files` : "⏸ 索引なし");
-  send.disabled = false;
-  send.textContent = "➤";
+  chat.status(`✅ 🐍 ${py.runPython("import sys; sys.version.split()[0]")} · ` + (files ? `🔎 ${files} files` : "⏸ 索引なし"));
+  chat.ready();
   document.documentElement.dataset.chatReady = "true";
 }
-boot().catch((error) => { status.textContent = "⚠️ Python を読み込めない: " + (error?.message ?? error); });
+boot().catch((error) => { chat.status("⚠️ Python を読み込めない: " + (error?.message ?? error)); });
 """
 
 
@@ -848,22 +813,19 @@ def chat_document(ui) -> str:
                                  {'label': '💬 チャット', 'blocks': [{'type': 'text', 'text': _CHAT_SLOT}]},
                                  {'label': '📇 索引', 'blocks': [{'type': 'runbook', 'id': 'chat-index', 'choice': '📇 道具',
                                                                   'books': chat_books()}]}]}]})
-    chips = ''.join(f'<button class="ui-button" type="button" data-chat-say="{html.escape(example, quote=True)}">'
-                    f'{icon} /{name}</button>' for name, (icon, _, _, (example, *_)) in chat.COMMANDS.items())
-    body = ('<div class="ui-chat" data-chat><div class="ui-chat-log" role="log" aria-live="polite" aria-label="会話" data-chat-log>'
-            '<div class="ui-chat-msg ui-chat-bot" data-chat-status>⏳ 🐍 Python（Pyodide）を読み込み中…</div></div>'
-            '<form class="ui-chat-form" data-chat-form>'
-            '<textarea class="ui-input" rows="2" placeholder="/help · /flow a &gt; b · onto" aria-label="メッセージ" data-chat-input></textarea>'
-            f'<button class="ui-button" type="submit" disabled data-chat-send>⏳</button></form><p class="ui-chat-chips">{chips}</p>'
-            '<noscript><p>⏸ このチャットは JavaScript と Pyodide で動く。📇 索引のコマンドは scripts/chat.py でも試せる。</p></noscript></div>')
+    parts = ui.component_parts('chat', chat_id='chat', placeholder='/help · /flow a > b · onto', ready=False,     # 💬 PySaiyanWeBoo's chat
+                               chips=[(f'{icon} /{name}', example) for name, (icon, _, _, (example, *_)) in chat.COMMANDS.items()],
+                               status='⏳ 🐍 Python（Pyodide）を読み込み中…')
+    body = (parts['html'] + '<noscript><p>⏸ このチャットは JavaScript と Pyodide で動く。📇 索引のコマンドは scripts/chat.py でも試せる。</p></noscript>')
     data = lambda value: json.dumps(value, ensure_ascii=False).replace('<', '\\u003c')
     config = {'runtime': chat.RUNTIME, 'index': f'../../{CHAT}index.json', 'base': f'../../{CHAT}'}
     body += (f'<script type="application/json" id="chat-config">{data(config)}</script>'
-             f'<script type="application/json" id="chat-sources">{data(chat_sources())}</script>' + ui.module_script(CHAT_JS))
+             f'<script type="application/json" id="chat-sources">{data(chat_sources())}</script>'
+             + ui.module_script(parts['js']) + ui.module_script(CHAT_JS))
     slot = f'<p>{_CHAT_SLOT}</p>'
     if page.count(slot) != 1:
         raise ValueError('chat page has no single slot')
-    return page.replace(slot, body, 1).replace('</head>', f'<style>{CHAT_CSS}</style></head>', 1)
+    return page.replace(slot, body, 1).replace('</head>', f'<style>{parts["css"]}{CHAT_CSS}</style></head>', 1)
 
 
 def _tree(repository: str, commit: str) -> list[tuple[str, int]]:
