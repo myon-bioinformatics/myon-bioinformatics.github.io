@@ -84,7 +84,7 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'from': ('PySaiyanWeBoo',),
   'links': [('GIF をつくる →', './tools/gif/')]},
  {'title': '🌊 流れの実験室',
-  'text': '同じ FFSS の実験記録を、🌊 FFSS の動く像（流れと遅れ）と 📊 DRAgoWing の静止図（行き先の内訳）で並べて見る。血液の循環・火力・ヒートポンプ・起動。',
+  'text': 'FFSS の全場面を 🌊 動く像（流れと遅れ）で、その記録から描ける DRAgoWing の全図を 📊 静止図（行き先の内訳）で。水回り・流しそうめん・お金・からだ・火力・ヒートポンプまで。',
   'id': 'flow',
   'from': ('FluidFullSpeedSimulation', 'DRAgoWing'),
   'links': [('実験室へ →', './tools/flow/')]},

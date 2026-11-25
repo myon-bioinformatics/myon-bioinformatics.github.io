@@ -96,35 +96,51 @@ def test_front_page_shows_only_the_moving_samples_this_build_recorded(tmp_path):
     (tmp_path / "media/pages").mkdir(parents=True)
     (tmp_path / "media/pages" / f"{with_pages[1].lower()}.gif").write_bytes(b"GIF89a")
     assert PAGES.recorded_samples(tmp_path) == {with_pages[1].lower()}
+    # 🧭 this portfolio's own card too (--record-samples records every Pages of api/repos.json, this one included)
+    assert PAGES.pages_urls(ROOT)["myon-bioinformatics.github.io"] == "https://myon-bioinformatics.github.io/"
+    own = front.document(ROOT, samples=frozenset({"myon-bioinformatics.github.io"}))
+    assert ('<a class="project-sample" href="https://myon-bioinformatics.github.io/">'
+            '<img src="./media/pages/myon-bioinformatics.github.io.gif"') in own
+    (tmp_path / "media/pages/myon-bioinformatics.github.io.gif").write_bytes(b"GIF89a")           # the dots stay in the name
+    assert "myon-bioinformatics.github.io" in PAGES.recorded_samples(tmp_path)
 
 
-def test_flow_lab_pairs_one_ffss_run_with_its_dragowing_figure(tmp_path):
-    """🌊 collect_flow runs both tools on the same records and keeps a pair only when both of its files were made."""
+def test_flow_lab_shows_every_ffss_scene_and_every_dragowing_figure(tmp_path):
+    """🌊 collect_flow keeps every demo FFSS lists (whose GIF was made) and every figure; render_flow puts each figure
+    with its scene and the rest after the scenes, so nothing that was made is left out."""
     import pysaiyanweboo as ui
     ffss, dragowing = tmp_path / "ffss", tmp_path / "dragowing"
     ffss.mkdir(); dragowing.mkdir()
+    listed = [{"id": "D01", "icon": "🏛️", "scene": "moniac-rig", "fluid": "water", "file": "D01_moniac-rig_water.gif"},
+              {"id": "D13", "icon": "🍷", "scene": "pythagorean-cup", "fluid": "poison-water", "file": "D13_pythagorean-cup_poison-water.gif"},
+              {"id": "D24", "icon": "🫀", "scene": "circulation", "fluid": "water", "file": "D24_circulation_water.gif"},
+              {"id": "D99", "icon": "🫥", "scene": "missing", "fluid": "water", "file": "D99_missing_water.gif"}]   # not written
     (ffss / "fluidfullspeedsimulation.py").write_text(
-        "import sys, pathlib\n"
+        "import sys, pathlib, json\n"
         "a = sys.argv[1:]\n"
         "if a[0] == 'run': pathlib.Path(a[a.index('--jsonl') + 1]).write_text('{\"id\": \"%s\", \"run\": \"x\"}\\n' % a[1])\n"
         "else:\n"
+        "    assert '--only' not in a                                   # every demo, none picked\n"
         "    out = pathlib.Path(a[a.index('--out-dir') + 1]); out.mkdir(parents=True)\n"
-        "    for d in a[a.index('--only') + 1:]: (out / (d + '_scene_water.gif')).write_bytes(b'GIF89a' + d.encode())\n")
-    made = [pair[3] for pair in PAGES.FLOW_PAIRS[1:]]                       # the first pair's figure is not drawn
+        f"    listed = {listed!r}\n"
+        "    for d in listed[:3]: (out / d['file']).write_bytes(b'GIF89a' + d['id'].encode())\n"
+        "    (out / 'demos.json').write_text(json.dumps({'schema': 'x', 'demos': listed}))\n", encoding="utf-8")
     (dragowing / "dragowing.py").write_text(
         "import sys, pathlib\n"
         "a = sys.argv[1:]\n"
         "assert pathlib.Path(a[a.index('--ffss') + 1]).read_text().count('\\n') == 3   # E30, E31 and E32 records\n"
         "svg = pathlib.Path(a[a.index('--out') + 1]) / 'svg'; svg.mkdir(parents=True)\n"
-        f"for f in {made!r}: (svg / (f + '.svg')).write_text('<svg/>')\n")
+        "for f in ('F03_losses', 'F09_blood-flow'): (svg / (f + '.svg')).write_text('<svg/>')\n", encoding="utf-8")
     receipt = PAGES.collect_flow(tmp_path / "site", ffss, dragowing, {"ffss": "a" * 40, "dragowing": "b" * 40})
-    assert receipt["made"] == [pair[2] for pair in PAGES.FLOW_PAIRS[1:]]
-    assert (tmp_path / "site/media/flow" / f"{PAGES.FLOW_PAIRS[1][2]}.gif").read_bytes() == b"GIF89a" + PAGES.FLOW_PAIRS[1][2].encode()
+    assert [d["id"] for d in receipt["demos"]] == ["D01", "D13", "D24"] and receipt["figures"] == ["F03_losses", "F09_blood-flow"]
+    assert (tmp_path / "site/media/flow/D13.gif").read_bytes() == b"GIF89aD13"
     page = PAGES.render_flow(ui, tmp_path / "site")[PAGES.FLOW_PAGE].decode()
-    assert page.count('src="../../media/flow/') == 2 * len(made) and page.count("⏸") == 1
+    assert page.count('<img loading="lazy" src="../../media/flow/') == 3 + 2 and "⏸" not in page
+    assert page.index("D24.gif") < page.index("F09_blood-flow.svg") < page.index("📊 ほかの図") < page.index("F03_losses.svg")
+    assert "🍷 D13 pythagorean-cup · poison-water" in page and "🎞 3 場面" in page and "2 図" in page
     assert "FFSS aaaaaaa" in page and "/tree/" + "b" * 40 in page
-    staged = (SITE / "tools/flow/index.html").read_text(encoding="utf-8")                # nothing recorded: every pair says ⏸
-    assert staged.count("⏸") == len(PAGES.FLOW_PAIRS) and "media/flow/" not in staged
+    staged = (SITE / "tools/flow/index.html").read_text(encoding="utf-8")                # nothing recorded: one ⏸
+    assert staged.count("⏸") == 1 and "media/flow/" not in staged
 
 
 def test_repository_map_reads_each_lock_and_aois_subtrees(tmp_path):
@@ -1013,3 +1029,10 @@ def test_prose_extract_adapter_preserves_whitespace_hooks_and_code_blocks():
         published = (PUBLIC / 'index.html').read_text()
         assert '<div data-testid="pages-pixiv-extract" hidden class="ui-output"></div>' in published
         assert '<div data-testid="pages-wiki-extract" hidden class="ui-output"></div>' in published
+
+
+def test_a_showcase_icon_may_be_its_pages_url():
+    """♻️ Err-o-RoadRunner keeps no icon copy (CaChereCyCle publishes it on its Pages), so its showcase links the Pages URL."""
+    page = (SITE / "tools/projects/err-o-roadrunner.html").read_text(encoding="utf-8")
+    assert 'src="https://myon-bioinformatics.github.io/Err-o-RoadRunner/icon.png"' in page
+    assert "raw.githubusercontent.com/myon-bioinformatics/Err-o-RoadRunner/" in page   # the media still come from its pin

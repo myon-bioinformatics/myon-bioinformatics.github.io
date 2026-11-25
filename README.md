@@ -18,7 +18,7 @@ See [brand assets and concept-review notes](docs/brand-assets.md).
 
 ## 🗺️ Concept map
 
-[![Concept map: biological data and practical challenges flow through development and verification to tools, public work and intended social impact](assets/brand/myon-concept-diagram.jpg)](assets/brand/myon-concept-diagram.jpg)
+[![Concept map: biological data and practical challenges flow through development and verification to tools, public work and intended social impact](assets/brand/repository-concept.jpg)](assets/brand/repository-concept.jpg)
 
 Concept artwork supplied on 2026-10-22, preserved without modification. It shows
 the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.

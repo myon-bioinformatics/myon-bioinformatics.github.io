@@ -99,12 +99,12 @@ def test_readme_uses_the_same_profile_artwork():
 
 
 def test_replacement_concept_diagram_is_preserved_and_linked():
-    diagram = ASSETS / "myon-concept-diagram.jpg"
+    diagram = ASSETS / "repository-concept.jpg"
     # Full-file integrity also preserves the supplied JPEG's format/dimensions;
     # JPEG decoding is outside the PNG-only vendored helper's contract.
     assert hashlib.sha256(diagram.read_bytes()).hexdigest() == "4b5f4673e1eabe737913828fa54ec101c12d7fb1e4883581b9e8cd96a3f00964"
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert "](assets/brand/myon-concept-diagram.jpg)" in readme
+    assert "](assets/brand/repository-concept.jpg)" in readme
 
 
 def test_brand_manifest_matches_exported_bytes_and_assignment():
