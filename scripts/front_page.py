@@ -352,13 +352,20 @@ def theme_options(ui) -> str:
         f'<option value="{_a(name)}">{mark.get(name, "🎨")} {_e(name)}</option>' for name in ui.theme_palettes())
 
 
+_MARKDOWN_HTML_CACHE: dict[str, str] = {}
+
+
 def markdown_fragment(root: Path, relative: str) -> str:
     """Build-time Markdown from a reviewed repository file, not visitor-supplied HTML."""
     import markdown as md_market
+    from markdown_transport import encode_markdown, decode_markdown, render_cached
     path = (root / relative).resolve()
     if not path.is_relative_to(root.resolve()) or not path.is_file() or path.suffix.lower() != '.md':
         raise ValueError('Markdown source must be an existing repository .md file')
-    return md_market.markdown_to_html(path.read_text(encoding='utf-8'))
+    raw = path.read_bytes()
+    encoded = encode_markdown(raw)
+    return render_cached(decode_markdown(encoded), md_market.markdown_to_html,
+                         'md-market@a2331c28:default', _MARKDOWN_HTML_CACHE)
 
 
 def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
