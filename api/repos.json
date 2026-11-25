@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-25T06:29:14Z",
+  "generatedAt": "2026-11-25T08:25:07Z",
   "owner": "myon-bioinformatics",
   "count": 49,
   "repos": [
@@ -654,20 +654,21 @@
     {
       "name": "myon-bioinformatics.github.io",
       "url": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io",
-      "description": "I create for showing you guys about me in detail. Thus, for begginers or recruiters or.., it may not be friendly😅 if it is, instead of this please check the introduction🫡",
+      "description": "公開リポジトリのポートフォリオとプロジェクトハブ（GitHub Pages） / Portfolio and project hub for public myon-bioinformatics repositories",
       "language": "Python",
       "topics": [
         "about-me",
         "github-pages",
         "introduction",
+        "portfolio",
         "skillset"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-15T11:59:13Z",
-      "homepage": null,
+      "updatedAt": "2026-11-25T07:44:38Z",
+      "homepage": "https://myon-bioinformatics.github.io/",
       "pages": "https://myon-bioinformatics.github.io/",
-      "readmeHeading": "🗺️ Concept map",
-      "readmeSummary": "Concept artwork supplied on 2026-10-22, preserved without modification. It shows the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.",
+      "readmeHeading": "🗺️ 概念図",
+      "readmeSummary": "2026-10-22 にいただいた概念図を、加工せず掲載しています。全体の方向を示すもので、[いまの技術の主軸や図との差分](docs/brand-assets.md#概念図の確認メモ2026-10-22)は別に記録しています。",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/myon-bioinformatics.github.io/main/README.md"
     },
     {
