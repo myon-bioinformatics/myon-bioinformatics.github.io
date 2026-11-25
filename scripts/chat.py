@@ -414,8 +414,10 @@ def ask_messages(text: str, index: dict | None = None) -> str:
 
 
 def ask_html(output: str, tokens: int, seconds: float, *, threads: int = 1, webgpu: bool = False) -> str:
-    """🤖 The model's answer as HTML (its reasoning dropped by markdown.py), with what produced it and how fast."""
-    answer = md.compact_llm_output(output).strip() or '…'
+    """🤖 The model's answer as HTML, with its reasoning (if it wrote any) quoted as 💭 above it, what produced it and how fast."""
+    parts = md.split_reasoning(output)
+    thought = '\n'.join(parts['reasoning']).strip()
+    answer = ('> 💭 ' + thought.replace('\n', '\n> ') + '\n\n' if thought else '') + (parts['answer'].strip() or '…')
     speed = f'{tokens / seconds:.1f} tok/s' if seconds > 0 else ''
     where = '⚡ WebGPU' if webgpu else f'🧮 CPU 🧵{threads}'
     model = RUNTIME['model'].rsplit('/', 1)[-1]

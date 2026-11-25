@@ -1070,6 +1070,8 @@ def test_chat_answers_every_command_from_the_fleets_modules():
     assert '| markdown | 7284 |' in table and '╭' in table
     assert '#   #' in say('/ascii HI') and '╭────╮' in say('/box hi')
     assert '🧭 見出し 1 · 🔗 リンク 1' in say('/md # A\n\n[x](https://example.com)')
+    asked = CHAT.ask_html('<think>台帳を探す</think>**TaxOntOy**', 8, 2.0)        # 🤖 reasoning, when there is any, is quoted as 💭
+    assert '<blockquote>' in asked and '💭 台帳を探す' in asked and '<strong>TaxOntOy</strong>' in asked and '4.0 tok/s' in asked
     html = CHAT.reply_html('/md <img src=x onerror=alert(1)> **b**')
     assert '<img' not in html and '&lt;img' in html and '<strong>b</strong>' in html
 

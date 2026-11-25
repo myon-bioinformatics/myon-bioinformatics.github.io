@@ -272,7 +272,7 @@ Tools & Demos → **💬 横断チャット**（`tools/demos/chat.html`）は、
 | 🔌 | `/mcp 道具 {JSON}` | mcp-toolcall-lab のプロンプト実験が広告する道具（✅ tools/call／❌ 断る） |
 | 🔎👀 | `onto` `/find --kind jsonl` `/show REPO/PATH` | 全リポジトリの JSON / JSONL（公開時に `--record-chat` が `media/chat/index.json` へ）と、そのコミットの raw |
 | ⌨️ | `/flwo` → `/flow` | cli_args の「もしかして」 |
-| 🤖 | `/ask 質問` | llama.cpp（wllama 4.0.0、jsDelivr）が Qwen3.5-0.8B（Q4_0、約 560 MB、Hugging Face）を端末の中で動かす。初回だけ読み、あとはブラウザが保存。GitHub Pages は COOP/COEP を返せないので CPU は 1 スレッド、WebGPU があれば GPU |
+| 🤖 | `/ask 質問` | llama.cpp（wllama 4.0.0、jsDelivr）が Qwen3.5-0.8B（Q4_0、約 560 MB、Hugging Face）を端末の中で動かす。初回だけ読み、あとはブラウザが保存。GitHub Pages は COOP/COEP を返せないので CPU は 1 スレッド、WebGPU があれば GPU。考えた過程（reasoning）を書いたときは 💭 で引用して見せる |
 
 📇 索引タブは olnm の検証ガイドと同じ PySaiyanWeBoo の runbook（検索・状態の絞り込み・記録の JSON 保存）で、各例の 💬 送る でチャットに送れます。
 
