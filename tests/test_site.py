@@ -176,7 +176,7 @@ def test_repository_map_reads_each_lock_and_aois_subtrees(tmp_path):
 
 def test_gif_workshop_page_keeps_images_in_the_browser():
     page = (SITE / "tools/gif/index.html").read_text(encoding="utf-8")
-    assert 'id="gif-files"' in page and 'accept="image/*"' in page and "UiGif.Recorder" in page
+    assert 'id="gif-files"' in page and 'accept="image/*"' in page and "function bindMaker" in page   # PySaiyanWeBoo's gif_maker_document
     assert "fetch(" not in page and "XMLHttpRequest" not in page and "localStorage" not in page   # nothing is sent or kept
 
 
