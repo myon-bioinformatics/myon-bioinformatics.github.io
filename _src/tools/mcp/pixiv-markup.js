@@ -1,4 +1,4 @@
-/* Pixiv-only adapter; mirror scripts/pixiv_markup.py using shared fixtures. */
+/* Pixiv-only adapter; mirror markdown.py's pixiv_to_markdown and scripts/pixiv_markup.py using shared fixtures. */
 (function(root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;

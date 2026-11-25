@@ -1,9 +1,10 @@
 # Pixiv source → Markdown → heading dropdown
 
-The portfolio wraps the imported lab Pixiv URL and HTML helpers. It owns the
-source-grammar adapter in `scripts/pixiv_markup.py` and `_src/tools/mcp/pixiv-markup.js`.
-Shared fixtures compare the Python and browser outputs. Generic controls belong
-to pinned `web-ui`; Markdown rendering belongs to `markdown.py`.
+The portfolio wraps the imported lab Pixiv URL and HTML helpers. The conversion is
+`markdown.py`'s `pixiv_to_markdown` (md-market, pinned in `pyproject.toml`); the portfolio
+keeps the panel's `Title:` / `Body:` envelope and sections in `scripts/pixiv_markup.py` and the
+browser mirror in `_src/tools/mcp/pixiv-markup.js`. Shared fixtures compare the Python and
+browser outputs. Generic controls belong to pinned `web-ui`; Markdown belongs to `markdown.py`.
 
 The Pixiv tab accepts the original source or a copied `Title: … / Body: …`
 extract. Choose a heading after Extract to switch the cached body locally.
@@ -43,12 +44,10 @@ Serve the repository root over HTTP and open `pixiv.html`. On Windows, set
 `PYTHONPATH` to `scripts`. Once the environment is synced, generation needs no
 network. The browser module must be served alongside the output.
 
-For HTML rendering, make the separately pinned
-[myon-bioinformatics/markdown.py](https://github.com/myon-bioinformatics/markdown/blob/aa5bccfcaf11f17473c7f1ff502509dfa1547660/markdown.py)
-available on the Python import path, then compose the existing APIs:
+For HTML rendering, the pinned `markdown.py` has both halves:
 
 ```sh
-uv run --locked python -c 'import sys; from pixiv_markup import pixiv_to_markdown; from markdown import markdown_to_html; from pysaiyanweboo import render_document; print(render_document(trusted_html=markdown_to_html(pixiv_to_markdown(sys.stdin.read())))))' < source.txt > article.html
+uv run --locked python -c 'import sys; from markdown import pixiv_to_markdown, markdown_to_html; from pysaiyanweboo import render_document; print(render_document(trusted_html=markdown_to_html(pixiv_to_markdown(sys.stdin.read()))))' < source.txt > article.html
 ```
 
 `markdown.py` is neither forked nor patched. Do not feed arbitrary HTML directly

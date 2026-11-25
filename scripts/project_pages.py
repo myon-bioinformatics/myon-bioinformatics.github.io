@@ -16,7 +16,7 @@ has a ``showcase`` a page of its own, Pages or not: its icon and media at a fixe
 with ``scripts`` also gets a 🧰 table of the scripts its globs match there: each one's own description (module docstring,
 or the leading ``//`` comment of a JS module) and, for a script that declares argparse / cli_args, the usage line of
 its ``--help``, recorded by the same ``--record``
-so the list follows the code instead of being written by hand. ``--advance`` (run daily by repos-api.yml) moves every
+so the list follows the code instead of being written by hand (the parent's ``fleet_check.script_catalog``). ``--advance`` (run daily by repos-api.yml) moves every
 showcase to the newest commit of its repository and records it there, keeping the old pin when that commit lacks the
 icon or media, or when the run that used to succeed now fails.
 
@@ -970,30 +970,6 @@ def _minimal_run(command: list[str], cwd: Path, timeout: int) -> subprocess.Comp
                               env={'PATH': os.environ.get('PATH', ''), 'HOME': home, 'LANG': 'C.UTF-8'})
 
 
-def script_catalog(base: Path, patterns: list[str]) -> list[dict]:
-    """``{path, summary, usage}`` for every file the globs match under ``base``, from what each one declares.
-
-    The summary and whether it declares its arguments come from the parent's ``fleet_check.script_facts`` (read with
-    ``ast``, never run). Only a script that imports argparse or cli_args is asked for ``--help`` (``python3 -S``, minimal
-    environment); usage is the first line of that and its indented continuations. Nothing else is executed, so a
-    script that would just run cannot answer for itself. Best effort, never raises."""
-    facts_of = load_module('portfolio_fleet_check', 'vendor/fleet_check.py').script_facts
-    items = []
-    for path in sorted({p for pattern in patterns for p in base.glob(pattern) if p.is_file()}):
-        relative, facts, lines = path.relative_to(base).as_posix(), facts_of(path), []
-        if facts['argparse']:
-            try:
-                done = _minimal_run(['python3', '-S', relative, '--help'], base, 20)
-                lines = done.stdout.strip().splitlines() if done.returncode == 0 else []
-            except (OSError, subprocess.TimeoutExpired):
-                pass
-        lines = lines if lines and lines[0].lower().startswith('usage') else []
-        end = next((i for i, line in enumerate(lines[1:], 1) if not line[:1].isspace() or not line.strip()), len(lines))
-        usage = ' '.join(' '.join(line.split()) for line in lines[:end])  # the first line and its indented continuations
-        items.append({'path': relative, 'summary': facts['summary'], 'usage': usage[:300] + ('…' if len(usage) > 300 else '')})
-    return items
-
-
 def record(name: str, checkout: Path, root: Path = ROOT) -> dict:
     """Rerun ``name``'s showcase command and catalog its ``scripts`` in ``checkout`` (which must be at its commit) with a
     minimal environment; store both in projects.json and return the showcase."""
@@ -1011,7 +987,7 @@ def record(name: str, checkout: Path, root: Path = ROOT) -> dict:
         done = _minimal_run(show['run']['command'], base, 120)
         show['run']['output'], show['run']['exit'] = (done.stdout + done.stderr).rstrip('\n'), done.returncode
     if 'scripts' in show:
-        show['scripts']['items'] = script_catalog(base, show['scripts']['match'])
+        show['scripts']['items'] = load_module('portfolio_fleet_check', 'vendor/fleet_check.py').script_catalog(base, show['scripts']['match'])  # 📜 the parent's
     path.write_text(json.dumps(projects, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
     return show
 
