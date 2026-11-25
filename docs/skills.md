@@ -29,6 +29,23 @@ Domain と Tools & Infra は自己評価です（経験に基づく）。Languag
 | TypeScript | 79,007 | 2（mcp-toolcall-lab の deploy、BrowserTestKit の Playwright 試験） |
 | Bash (Shell) | 12,707 | 2 |
 | Go | 0 | 0 |
+| HTML（数えるだけ） | 5,151,974 | 7（96% は Aoi の 44 ファイル） |
+| CSS（数えるだけ） | 1,755 | 2（mcp-toolcall-lab、OnTautoLogy） |
+
+HTML と CSS は Skills のバーに入れません。画面は PySaiyanWeBoo を通して Python から組むので、HTML・CSS・JS は「書いた量」より「ファイルが増えていないか」を見ます（下のファイル数）。
+
+### 🧮 JS・CSS・HTML のファイル数（2026-11-25、現行 30 件）
+
+| 種類 | git のファイル（vendor 抜き） | リポジトリ数（vendor 抜き） | Pages で公開 | 公開リポジトリ数 |
+| --- | ---: | ---: | ---: | ---: |
+| JS（`.js` / `.mjs` / `.cjs`） | 95（75） | 20（10） | 51 | 4 |
+| TS（`.ts`） | 16 | 2 | 0 | 0 |
+| CSS | 11 | 5 | 19 | 3 |
+| HTML | 86 | 10 | 91 | 30 |
+
+- git: 既定ブランチのツリー（REST `git/trees`）。vendor 抜きは `vendor/`・`node_modules/`・`third_party/` を除いた数（子リポジトリの `vendor/py_launch.cjs` などで JS が 20 件に見える）。
+- 公開: 各リポジトリの最新の github-pages デプロイで、`upload-pages-artifact` が固めたファイルの一覧。ほとんどは生成物で、git には入っていない（ポートフォリオは HTML 41 を公開、git の HTML は 0）。
+- HTML の git 側は Aoi 44・BrowserTestKit 11・BlueProbe 9・親 7、公開側はポートフォリオ 41・親 11・OnTautoLogy 6・ascii_artist 5、残りは利用ガイドの 1 ページずつ。
 
 換算（Python を現行どおり 90 に固定）:
 
