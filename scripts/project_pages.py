@@ -687,7 +687,8 @@ def render_map(ui, output: Path | None = None) -> dict[str, bytes]:
 # ── 🧰 道具: Ironmate's studios and mcp-toolcall-lab's execution lab, built from their default branches at deploy time ──
 TOOLS = 'media/tools/receipt.json'       # what this build recorded; the pages live under their folders (not kept in git)
 # key: (repository, folder under the site, entry pages inside it)
-TOOL_SOURCES = {'ironmate': ('myon-bioinformatics/Ironmate', 'tools/ironmate', ('', 'tools/', 'slides/')),
+_STUDIO_ROUTES = load_module('studio_routes', '_src/tools/studio_routes.py')
+TOOL_SOURCES = {'ironmate': ('myon-bioinformatics/Ironmate', 'tools', _STUDIO_ROUTES.PUBLIC_STUDIO_ENTRIES),
                 'mcp-toolcall-lab': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp-toolcall-lab/execution', ('',)),
                 'dragowing': ('myon-bioinformatics/DRAgoWing', 'tools/heatmap', ('',))}
 
@@ -721,6 +722,17 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                     run('scripts/build_portable_pages.py', '--source-sha', commits[key], '--out', str(Path(tmp) / 'lab'),
                         env={**os.environ, 'PYTHONPATH': 'src'})
                     shutil.move(str(Path(tmp) / 'lab' / 'execution'), str(built))
+                if key == 'ironmate':
+                    mapped = Path(tmp) / 'mapped'
+                    _STUDIO_ROUTES.stage_ironmate_studios(built, mapped, _back_to_tools)
+                    for entry in sorted(child.name for child in mapped.iterdir()):
+                        target = dest / entry
+                        if target.exists():
+                            shutil.rmtree(target)
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.move(str(mapped / entry), str(target))
+                    made.append(key)
+                    continue
                 for entry in entries:
                     page = built / entry / 'index.html'
                     page.write_text(_back_to_tools(page.read_text(encoding='utf-8'), f'{folder}/{entry}index.html'), encoding='utf-8')
@@ -945,7 +957,7 @@ def stage(output: Path, root: Path = ROOT) -> None:
     """The site as Pages serves it: the source tree plus the generated files. Tests and local previews serve this."""
     validate_output(output, root)
     generate(root)  # Fail closed before copying anything.
-    skip = ['.git', 'node_modules', '.venv', 'test-results', 'reports', '__pycache__', '.pytest_cache']
+    skip = ['.git', 'node_modules', '.venv', 'test-results', 'reports', '__pycache__', '.pytest_cache', '_src']
     if output.resolve().is_relative_to(root.resolve()):
         skip.append(output.resolve().relative_to(root.resolve()).parts[0])
     shutil.copytree(root, output, ignore=shutil.ignore_patterns(*skip), dirs_exist_ok=True)
