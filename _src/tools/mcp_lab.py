@@ -1,24 +1,16 @@
-"""Import an explicitly supplied trusted lab public export, never raw test logs.
+"""🔌 MCP 実験室 (tools/mcp/): the portfolio's publication of mcp-toolcall-lab's tools; the lab supplies the built pages.
 
-One file for the whole lab import: the import itself, the shared-UI adoption (a thin consumer adapter around the
-pinned PySaiyanWeBoo; report ownership stays in lab) and the approved lab artwork (presentation, not report data).
+A build-time adapter like studio_routes.py, run by ``scripts/project_pages.py --record-tools`` on the lab's default
+branch: the shared-UI adoption (a thin consumer adapter around the pinned PySaiyanWeBoo; report ownership stays in the
+lab), the portfolio's own additions (the Niconico tab, the Pixiv wrapper in ``mcp/``) and the approved lab artwork.
+No Docker runs here, so the page records no run: its test results are the lab's Actions.
 """
 from __future__ import annotations
-import argparse, hashlib, json, re, sys
-from datetime import datetime, timezone; from pathlib import Path
+import hashlib, re
+from collections.abc import Callable
+from pathlib import Path
 
 import pysaiyanweboo as ui
-
-# project_pages (the site builder) sits beside this file; importing this module must leave sys.path as it found it.
-_scripts = str(Path(__file__).resolve().parent)
-sys.path.insert(0, _scripts)
-try:
-    from project_pages import add_back_nav, add_home_label
-finally:
-    if sys.path and sys.path[0] == _scripts:
-        sys.path.pop(0)
-
-ROOT = Path(__file__).resolve().parents[1]
 
 # ── shared UI adoption ──
 
@@ -40,16 +32,6 @@ NAVIGATION_BINDING = (
 )
 # The Niconico tab the portfolio adds before the Pixiv view; its behaviour is tools/niconico/search.js.
 NICONICO_PANEL = '''<section id="niconico" data-pages-view="niconico" data-testid="pages-niconico" hidden><h2>Niconico Search: Snapshot Search API v2</h2><p>Try the official Niconico Snapshot Search API v2. Direct browser requests may be blocked by CORS. If results cannot be loaded, use the official search below.</p><div id="pages-niconico-app" data-testid="pages-niconico-app"><form id="pages-niconico-form" data-testid="pages-niconico-form"><p><label for="pages-niconico-query">Keyword</label> <input id="pages-niconico-query" name="q" value="初音ミク" placeholder="Search query" data-testid="pages-niconico-query" class="ui-input"></p><p><label for="pages-niconico-sort">Sort</label> <select id="pages-niconico-sort" name="sort" data-testid="pages-niconico-sort" class="ui-input"><option value="-viewCounter" selected>Views (High to Low)</option><option value="-startTime">Newest</option><option value="-likeCounter">Likes (High to Low)</option><option value="-mylistCounter">Mylists (High to Low)</option></select> <button type="submit" data-testid="pages-niconico-search" class="ui-button">Search</button></p></form><p><a id="pages-niconico-official" data-testid="pages-niconico-official" href="https://www.nicovideo.jp/search/%E5%88%9D%E9%9F%B3%E3%83%9F%E3%82%AF?sort=v&amp;order=d" target="_blank" rel="noopener noreferrer">Search on Niconico ↗</a></p><p id="pages-niconico-status" data-testid="pages-niconico-status" class="ui-muted"></p><p role="alert" id="pages-niconico-error" data-testid="pages-niconico-error" hidden></p><div id="pages-niconico-results" data-testid="pages-niconico-results"></div></div><script src="../niconico/search.js"></script><p><a href="#" data-pages-nav="home" data-testid="pages-nav-back">Back to report</a></p></section>'''
-
-
-def presentation_identity() -> dict:
-    lock = json.loads((ROOT / 'web-ui-assets.lock.json').read_text(encoding='utf-8'))
-    return {
-        'owner': 'myon-bioinformatics/PySaiyanWeBoo',
-        'theme': 'modern',
-        'commit': lock['commit'],
-        'assets': [{'path': path, 'sha256': digest} for path, digest in sorted(lock['outputs'].items())],
-    }
 
 
 def apply_shared_ui(page: str) -> str:
@@ -75,10 +57,9 @@ def apply_shared_ui(page: str) -> str:
         anchor = re.search(r'<section\b[^>]*data-pages-view="pixiv"[^>]*>', page)
         if anchor:
             page = page[:anchor.start()] + NICONICO_PANEL + page[anchor.start():]
-    return page.replace(
-        'Styling: single lab-owned <code>terminal.css</code> (no external stylesheet chain).',
-        'Styling: pinned local <code>web-ui</code> modern theme; imported report and lab tool behavior retain their source identity.',
-    )
+    # The lab's own styling note (its terminal.css is not published here), in whichever wording the lab uses.
+    return re.sub(r'Styling: (?:(?!</p>).)*?\(no external stylesheet chain\)\.',
+                  'Styling: pinned local <code>web-ui</code> modern theme; the lab tools keep their source behavior.', page)
 
 
 def apply_prose_extracts(page: str) -> str:
@@ -106,9 +87,9 @@ def apply_shared_navigation(payload: dict) -> None:
     # The consumer wrapper owns mounting; retain the imported URL/HTML helpers.
     pixiv = pixiv.replace('api.autoMount(root);', '/* Portfolio wrapper owns mounting. */')
     payload['pages-pixiv.js'] = pixiv.encode('utf-8')
-    # The portfolio's own Pixiv wrapper is kept once, where it is published (no second copy under tools/pixiv/).
-    payload['pixiv-markup.js'] = (DESTINATION / 'pixiv-markup.js').read_bytes()
-    payload['pixiv-panel.js'] = (DESTINATION / 'pixiv-panel.js').read_bytes()
+    # The portfolio's own Pixiv wrapper is kept once, beside this file (mcp/), and published with the lab's pages.
+    payload['pixiv-markup.js'] = (WRAPPER / 'pixiv-markup.js').read_bytes()
+    payload['pixiv-panel.js'] = (WRAPPER / 'pixiv-panel.js').read_bytes()
     payload['shared-navigation.mjs'] = NAVIGATION_BINDING
 
 
@@ -143,7 +124,7 @@ def apply_pixiv_controls(page: str) -> str:
 
 # ── lab artwork ──
 # Same-origin published lab assets. Absolute paths resolve from both nested pages.
-ASSET_BASE = '/tools/mcp-toolcall-lab/execution/assets/'
+ASSET_BASE = '/tools/mcp/execution/assets/'
 FAVICON = ASSET_BASE + 'mcp-toolcall-lab-favicon-artwork.png'
 LOGO = ASSET_BASE + 'mcp-toolcall-lab-logo.png'
 
@@ -171,13 +152,31 @@ def apply_lab_branding(page: str) -> str:
     return page
 
 
-# ── import ──
-FILES = ('index.html', 'terminal.css', 'pages-hash.js', 'pages-wiki.js',
-         'pages-pixiv.js', 'summary.json', 'build_meta.json')
-OPTIONAL = ('repository-diagnostics.html', 'repository-diagnostics.json', 'repository-diagnostics.jsonl', 'source.js')
-DESTINATION = ROOT / 'tools' / 'mcp-toolcall-lab'
+# ── 🧪 the report: no run here, the lab's Actions instead ──
+ACTIONS = 'https://github.com/myon-bioinformatics/mcp-toolcall-lab/actions/workflows/stub-pages.yml'
+_SUMMARY = re.compile(r'<h2>Last Actions summary</h2>\s*<p>.*?</p>\s*<pre><code\b[^>]*>.*?</code></pre>', re.DOTALL)
 
-EXECUTION_URL = "https://myon-bioinformatics.github.io/tools/mcp-toolcall-lab/execution/"
+
+def apply_actions_report(page: str) -> str:
+    """The lab's "Last Actions summary" needs a Docker run (stub + MCP mock + CPU-class model) that this build does not
+    make, so its empty snapshot becomes a link to the lab's stub-pages runs; the local / Actions / MCP notes stay."""
+    if 'Last Actions summary' not in page:
+        return page
+    page, count = _SUMMARY.subn('<h2>🧪 Test results</h2><p data-testid="lab-actions-report">Built here at deploy time without Docker, '
+                                'so this page records no run. The stub + MCP mock + CPU-class model round-trip runs in the '
+                                f'lab\'s <a href="{ACTIONS}">stub-pages Actions</a>.</p>', page, count=1)
+    if not count:
+        raise ValueError('the lab summary changed shape; update apply_actions_report')
+    return page.replace('the actual round-trip is the "Last Actions summary" below.',
+                        'the actual round-trip runs in the lab\'s Actions (🧪 Test results below).')
+
+
+# ── the stage ──
+FILES = ('index.html', 'pages-hash.js', 'pages-wiki.js', 'pages-pixiv.js', 'source.js', 'build_meta.json')
+OPTIONAL = ('repository-diagnostics.html', 'repository-diagnostics.json', 'repository-diagnostics.jsonl')
+WRAPPER = Path(__file__).with_name('mcp')     # the portfolio's Pixiv wrapper (pixiv-markup.js, pixiv-panel.js)
+EXECUTION_URL = "https://myon-bioinformatics.github.io/tools/mcp/execution/"
+LABELS = {'index.html': '🧪 MCP Lab', 'repository-diagnostics.html': '🩺 Lab診断'}   # home-screen shortcut names
 
 
 def apply_public_examples(payload: dict) -> None:
@@ -201,56 +200,34 @@ def apply_public_examples(payload: dict) -> None:
     )
 
 
-def import_export(source: Path, destination: Path = DESTINATION) -> dict:
-    # All reads/validation precede writes. The source must be a trusted public
-    # export from the lab; this is not an arbitrary HTML/JS sanitizer.
-    payload = {name: (source / name).read_bytes() for name in FILES}
-    payload.update({name: (source / name).read_bytes() for name in OPTIONAL if (source / name).is_file()})
-    meta = json.loads(payload['build_meta.json'])
-    json.loads(payload['summary.json'])
-    if not re.fullmatch(r'[0-9a-f]{40}', meta.get('sha', '')):
-        raise ValueError('public export requires a full source commit SHA')
+def stage_lab_tools(built: Path, source_sha: str, checkout: Path, add_navigation: Callable[[str, str], str],
+                    add_label: Callable[[str, str], str], folder: str = 'tools/mcp') -> None:
+    """Turn the lab's built pages in ``built`` (``stub_front pages`` and its repository diagnostics, at ``source_sha``)
+    into the 🔌 MCP 実験室 in place: only the allowlisted files stay (no raw logs, no empty summary), each page gets the
+    shared UI, the portfolio's additions, the artwork, the way back (``add_navigation(page, path)``) and its home-screen
+    name (``add_label``). Everything is read and checked before anything is written."""
+    if not re.fullmatch(r'[0-9a-f]{40}', source_sha or ''):
+        raise ValueError('the lab tools need the full source commit SHA')
+    payload = {name: (built / name).read_bytes() for name in FILES}
+    payload.update({name: (built / name).read_bytes() for name in OPTIONAL if (built / name).is_file()})
     page = payload['index.html'].decode('utf-8')
     if any(name in page and name not in payload for name in OPTIONAL):
-        raise ValueError('referenced diagnostics must be included in public export')
-    banner = ('<aside aria-label="Publication ownership"><p>Portfolio-hosted lab tools. '
-              'The report below is an imported Actions snapshot, not a live run or a claim '
-              'of the latest result. See <a href="publication.json">import identity</a> and '
-              '<a href="https://github.com/myon-bioinformatics/mcp-toolcall-lab/actions/workflows/stub-pages.yml">lab Actions</a>.</p></aside>')
+        raise ValueError('referenced diagnostics must be built beside the page')
     if '</header>' not in page:
-        raise ValueError('public export has no page header')
-    source_digests = {name: hashlib.sha256(data).hexdigest() for name, data in payload.items()}
-    payload['index.html'] = page.replace('</header>', '</header>' + banner, 1).encode('utf-8')
+        raise ValueError('the lab page has no header')
+    banner = ('<aside aria-label="Publication ownership"><p>🔌 Portfolio-hosted lab tools, built here at deploy time from '
+              f'<a href="https://github.com/myon-bioinformatics/mcp-toolcall-lab/commit/{source_sha}">mcp-toolcall-lab@{source_sha[:7]}</a>. '
+              f'🧪 Test results: <a href="{ACTIONS}">lab Actions</a>.</p></aside>')
+    payload['index.html'] = apply_actions_report(page.replace('</header>', '</header>' + banner, 1)).encode('utf-8')
     apply_public_examples(payload)
     apply_shared_navigation(payload)
-    # Same back link, same place, as every other portfolio tool page, and a shortcut label that fits under the icon.
-    for name, label in (('index.html', '🧪 MCP Lab'), ('repository-diagnostics.html', '🩺 Lab診断')):
+    for name, label in LABELS.items():
         if name in payload:
-            page = apply_lab_branding(add_back_nav(payload[name].decode('utf-8')))
-            payload[name] = add_home_label(page, label).encode('utf-8')
-    manifest = {'schema': 'portfolio-lab-publication/1', 'source_repository': 'myon-bioinformatics/mcp-toolcall-lab',
-                'source_sha': meta['sha'], 'source_dirty': meta.get('dirty'),
-                'imported_at': datetime.now(timezone.utc).isoformat(),
-                'report_status': 'imported_snapshot', 'presentation': presentation_identity(),
-                'source_sha256': source_digests,
-                'published_sha256': {name: hashlib.sha256(data).hexdigest() for name, data in payload.items()}}
-    destination.mkdir(parents=True, exist_ok=True)
-    for name in OPTIONAL:
-        if name not in payload:
-            (destination / name).unlink(missing_ok=True)
+            page = apply_lab_branding(add_navigation(payload[name].decode('utf-8'), f'{folder}/{name}'))
+            payload[name] = add_label(page, label).encode('utf-8')
+    payload['LICENSE'] = (checkout / 'LICENSE').read_bytes()
+    for leftover in built.iterdir():                # e.g. summary.json, terminal.css: not published
+        if leftover.is_file() and leftover.name not in payload:
+            leftover.unlink()
     for name, data in payload.items():
-        (destination / name).write_bytes(data)
-    (destination / 'publication.json').write_text(json.dumps(manifest, indent=2) + '\n')
-    return manifest
-
-
-def main(argv=None):
-    argv = sys.argv[1:] if argv is None else list(argv)
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--source', type=Path, required=True, help='trusted extracted lab _site public export')
-    args = parser.parse_args(argv)
-    import_export(args.source)
-
-
-if __name__ == '__main__':
-    raise SystemExit(main())
+        (built / name).write_bytes(data)

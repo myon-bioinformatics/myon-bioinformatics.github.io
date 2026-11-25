@@ -67,12 +67,12 @@ def test_load_module_not_found():
     assert 'Vendor module file not found' in str(exc_info.value)
 
 
-def test_lab_import_does_not_mutate_sys_path():
+def test_mcp_lab_adapter_does_not_mutate_sys_path():
     import importlib.util
 
     before = sys.path.copy()
-    path = ROOT / 'scripts' / 'lab_import.py'
-    spec = importlib.util.spec_from_file_location('lab_import_path_test', path)
+    path = ROOT / '_src' / 'tools' / 'mcp_lab.py'
+    spec = importlib.util.spec_from_file_location('mcp_lab_path_test', path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -84,7 +84,6 @@ def test_lab_import_does_not_mutate_sys_path():
 
 PARSERS = [
     'scripts/project_pages.py',
-    'scripts/lab_import.py',
     'scripts/probe_niconico_live.py',
     'scripts/repos_catalog.py',
 ]

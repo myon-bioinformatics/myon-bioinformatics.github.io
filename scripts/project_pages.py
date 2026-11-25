@@ -21,7 +21,7 @@ icon or media, or when the run that used to succeed now fails.
 
 ``tools/html-import/index.html`` (the HTML import tool page) is built here too and hash-locked with the other pages.
 Every generated or imported tool page gets the same way back and shortcut label: ``add_back_nav()`` and
-``add_home_label()`` (scripts/lab_import.py calls them for the lab pages). ``load_module()`` loads a file of this
+``add_home_label()`` (_src/tools/mcp_lab.py gets them for the lab pages). ``load_module()`` loads a file of this
 repository by path (a sibling script or a vendored module) without touching ``sys.path``.
 """
 from __future__ import annotations
@@ -697,13 +697,17 @@ def render_map(ui, output: Path | None = None) -> dict[str, bytes]:
     return {MAP_PAGE: add_home_label(add_back_nav(page), '🧠 地図', icons_from='../../').encode('utf-8')}
 
 
-# ── 🧰 道具: Ironmate's studios and mcp-toolcall-lab's execution lab, built from their default branches at deploy time ──
+# ── 🧰 道具: Ironmate's studios, mcp-toolcall-lab's tools and execution lab (🔌 MCP 実験室) and DRAgoWing's heatmap, built
+# from their default branches at deploy time; each lives at its feature route, not at the repository's name ──
 TOOLS = 'media/tools/receipt.json'       # what this build recorded; the pages live under their folders (not kept in git)
-# key: (repository, folder under the site, entry pages inside it)
+# key: (repository, folder under the site, entry pages inside it). The lab's tools come before its execution lab, which
+# lives inside them (a tool replaces its whole folder).
 _STUDIO_ROUTES = load_module('studio_routes', '_src/tools/studio_routes.py')
 TOOL_SOURCES = {'ironmate': ('myon-bioinformatics/Ironmate', 'tools', _STUDIO_ROUTES.PUBLIC_STUDIO_ENTRIES),
-                'mcp-toolcall-lab': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp-toolcall-lab/execution', ('',)),
+                'mcp-toolcall-lab': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp', ('',)),
+                'mcp-toolcall-lab-execution': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp/execution', ('',)),
                 'dragowing': ('myon-bioinformatics/DRAgoWing', 'tools/heatmap', ('',))}
+CHECKOUTS = '.test-deps'   # 🧪 local checkouts (CI pins them) that --stage builds the tools from, one folder per repository
 
 
 def _back_to_tools(page: str, path: str) -> str:
@@ -731,6 +735,12 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                 elif key == 'dragowing':                          # 🌡️ one page on stdout; its scenes open in Image Studio
                     built.mkdir()
                     (built / 'index.html').write_bytes(run('scripts/build_heatmap_page.py').stdout)
+                elif key == 'mcp-toolcall-lab':                   # 🔌 Wiki · Pixiv · Pokémon and the diagnostics (Python only)
+                    env = {**os.environ, 'PYTHONPATH': os.pathsep.join(('src', 'vendor'))}
+                    run('-m', 'mcp_toolcall_lab.stub_front', 'pages', '--out', str(built), env=env)
+                    run('-m', 'mcp_toolcall_lab.mcp_toolcall_lab_repository_diagnostics', str(built), env=env)
+                    load_module('mcp_lab', '_src/tools/mcp_lab.py').stage_lab_tools(
+                        built, commits[key], checkouts[key], _back_to_tools, add_home_label, folder)
                 else:
                     run('scripts/build_portable_pages.py', '--source-sha', commits[key], '--out', str(Path(tmp) / 'lab'),
                         env={**os.environ, 'PYTHONPATH': 'src'})
@@ -746,15 +756,20 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                         shutil.move(str(mapped / entry), str(target))
                     made.append(key)
                     continue
-                for entry in entries:
+                for entry in entries:                             # the way back (a page that has one keeps it)
                     page = built / entry / 'index.html'
                     page.write_text(_back_to_tools(page.read_text(encoding='utf-8'), f'{folder}/{entry}index.html'), encoding='utf-8')
+                for _, inner, _ in TOOL_SOURCES.values():      # a tool inside this one (the execution lab) stays as it was
+                    nested = inner[len(folder) + 1:] if inner.startswith(folder + '/') else ''
+                    if nested and (dest / nested).exists() and not (built / nested).exists():
+                        (built / nested).parent.mkdir(parents=True, exist_ok=True)
+                        shutil.move(str(dest / nested), str(built / nested))
                 if dest.exists():
                     shutil.rmtree(dest)
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.move(str(built), str(dest))
             made.append(key)
-        except (OSError, subprocess.SubprocessError, ValueError) as exc:
+        except (OSError, subprocess.SubprocessError, ValueError, ImportError) as exc:
             failed[key] = type(exc).__name__
     receipt = {'schema': 'portfolio-tools/1', 'commits': commits, 'made': made, 'failed': failed}
     path = Path(output) / TOOLS
@@ -765,20 +780,35 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
 
 def record_tools(output: Path, remote: str = 'https://github.com/') -> list[str]:
     """🧰 Clone each TOOL_SOURCES repository at its default branch and ``collect_tools``; one log line each (best effort)."""
-    checkouts, commits, lines = {}, {}, []
+    checkouts, commits, lines, cloned = {}, {}, [], {}
     with tempfile.TemporaryDirectory() as tmp:
         for key, (repository, _, _) in TOOL_SOURCES.items():
             try:
-                checkout = Path(tmp) / key
-                subprocess.run(['git', 'clone', '--quiet', '--depth', '1', remote + repository, str(checkout)], check=True, timeout=300)
-                commits[key] = subprocess.run(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], check=True, capture_output=True,
-                                              text=True).stdout.strip()
-                checkouts[key] = checkout
+                if repository not in cloned:                      # one clone per repository (the lab has two tools)
+                    checkout = Path(tmp) / repository.split('/')[1]
+                    subprocess.run(['git', 'clone', '--quiet', '--depth', '1', remote + repository, str(checkout)], check=True,
+                                   timeout=300)
+                    cloned[repository] = checkout, _checkout_commit(checkout)
+                checkouts[key], commits[key] = cloned[repository]
             except (OSError, subprocess.SubprocessError) as exc:
                 lines.append(f'⏸ {key}: clone failed ({type(exc).__name__})')
         receipt = collect_tools(output, checkouts, commits)
     return lines + [f"✅ {key} @ {commits[key][:7]} → {TOOL_SOURCES[key][1]}/" if key in receipt['made'] else
                     f"⏸ {key}: {receipt['failed'][key]}" for key in checkouts]
+
+
+def _checkout_commit(checkout: Path) -> str:
+    return subprocess.run(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], check=True, capture_output=True, text=True).stdout.strip()
+
+
+def stage_tools(output: Path, root: Path = ROOT) -> dict | None:
+    """🧪 Build the tools whose repository is checked out under ``root/.test-deps/<name>`` (CI pins the commit) into the
+    staged ``output``, so tests and previews see them as Pages does; None when there is none."""
+    found = {key: root / CHECKOUTS / repository.split('/')[1] for key, (repository, _, _) in TOOL_SOURCES.items()}
+    checkouts = {key: path for key, path in found.items() if (path / '.git').exists()}
+    if not checkouts:
+        return None
+    return collect_tools(output, checkouts, {key: _checkout_commit(path) for key, path in checkouts.items()})
 
 
 def render_tools(ui, output: Path | None = None) -> dict[str, bytes]:
@@ -970,11 +1000,12 @@ def stage(output: Path, root: Path = ROOT) -> None:
     """The site as Pages serves it: the source tree plus the generated files. Tests and local previews serve this."""
     validate_output(output, root)
     generate(root)  # Fail closed before copying anything.
-    skip = ['.git', 'node_modules', '.venv', 'test-results', 'reports', '__pycache__', '.pytest_cache', '_src']
+    skip = ['.git', 'node_modules', '.venv', 'test-results', 'reports', '__pycache__', '.pytest_cache', '_src', CHECKOUTS]
     if output.resolve().is_relative_to(root.resolve()):
         skip.append(output.resolve().relative_to(root.resolve()).parts[0])
     shutil.copytree(root, output, ignore=shutil.ignore_patterns(*skip), dirs_exist_ok=True)
     build(output, root)
+    stage_tools(output, root)
 
 
 def refresh_lock(root: Path = ROOT) -> dict:
@@ -1014,7 +1045,7 @@ def main(argv=None):
     parser.add_argument('--record-flow', type=Path, metavar='DIR',
                         help='🌊 run FFSS and DRAgoWing (their default branches) and put the flow lab media under DIR/media/flow/')
     parser.add_argument('--record-tools', type=Path, metavar='DIR',
-                        help='🧰 build Ironmate\'s studios and mcp-toolcall-lab\'s execution lab (their default branches) under DIR/tools/')
+                        help='🧰 build the tools of TOOL_SOURCES (Ironmate, mcp-toolcall-lab, DRAgoWing; their default branches) under DIR/tools/')
     parser.add_argument('--record-map', type=Path, metavar='DIR',
                         help="🧠 read every repository's vendor.lock.json (and Aoi's subtrees) and draw the map under DIR/media/map/")
     parser.add_argument('--advance', action='store_true',

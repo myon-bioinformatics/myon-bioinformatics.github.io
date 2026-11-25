@@ -86,4 +86,4 @@ JUnitとscreenshotsをartifactとして残す。合成ケースのみで実利�
 
 ボタンのHTML生成はweb-ui `source_link("source-url")`、URL検証と更新は `navigation.js`。独自のURL導線処理をconsumerに複製しない。Wikipedia/Pixiv公開画面のテーマとフォントは同じweb-uiの `adopt_document`、切替は `bindViews`、Pixivの既存article/historyボタンは `openExternalURL` に接続する。記事URLの組立や原文抽出はlabに残す。
 
-`lab_import.py`も同じ変換を再適用し、source_sha/source_sha256とpublished_sha256、presentationのweb-ui pinを分けて記録する。レポートの再実行・新しい取得結果とは表示しない。公開後CIもlab-publication specを実行し、プロバイダーAPI応答は明示した合成fixtureをブラウザrouteで再生する。WikipediaのライブAPI成功とは数えない。
+🔌 MCP 実験室は公開のたびにlabのmainから組み、`_src/tools/mcp_lab.py`が同じ変換を当てる（組んだcommitは`media/tools/receipt.json`）。Dockerを動かさないので実行結果は載せず、labのActionsへリンクする。公開後CIもlab-publication specを実行し、プロバイダーAPI応答は明示した合成fixtureをブラウザrouteで再生する。WikipediaのライブAPI成功とは数えない。

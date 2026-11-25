@@ -30,3 +30,6 @@ tools/vendor/web-ui/css/
 tools/vendor/web-ui/js/
 tools/vendor/web-ui/generated.lock.json
 tools/html-import/extract.mjs
+
+# 🧪 Pinned checkouts of the repositories whose tools --stage builds (CI checks them out).
+.test-deps/

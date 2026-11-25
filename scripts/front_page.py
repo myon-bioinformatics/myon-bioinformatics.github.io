@@ -12,29 +12,35 @@ import re
 from pathlib import Path
 from urllib.parse import quote
 
-# 🧭 Tools & Demos: one card each. ``points`` are trusted HTML (they carry <code>); everything else is escaped.
+# 🧭 Tools & Demos: one card each, named for what it does. ``from`` names the repositories a card is built from (🧩, plain
+# text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. ``points`` are trusted HTML (they carry <code>);
+# everything else is escaped.
 PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル選択から、端末内で本文・見出し・リンクを抽出。', 'links': [('Open HTML Import →', './tools/html-import/')]},
  {'title': '地図URL・ピン留め',
   'text': '緯度・経度からApple MapsとGoogle MapsのURLを作成。地点のピン留め・共有と、パラレル東京の対応地点へ。',
   'id': 'maps',
   'links': [('地図URLを作成 →', './tools/maps/'), ('パラレル東京 →', './tools/maps/tokyo.html')]},
- {'title': 'Ironmate',
+ {'title': '🖼️ スライド・画像工房',
   'text': 'ブラウザでスライドを作成し、文字・図形・矢印を編集可能なPPTXへ出力。Image Studio はレイヤー、数値行列のヒートマップ、作業履歴、クリップボード棚、PNG Base64 の受け渡しに対応し、Browser Tools '
           'ではドット絵・比較用の一枚・容量確認ができます。Markdown→PPTX変換と既存PPTXの属性編集はローカルCLIの試作実装です。',
-  'id': 'ironmate',
+  'id': 'studios',
+  'from': ('Ironmate',),
   'links': [('Open Image Studio →', 'https://myon-bioinformatics.github.io/tools/image-studio/'),
             ('Open Browser Tools →', 'https://myon-bioinformatics.github.io/tools/browser-tools/'),
             ('Open Slide Studio →', 'https://myon-bioinformatics.github.io/tools/slide-studio/')]},
  {'title': '🌡️ ヒートマップ',
   'text': '数値行列か Plotly の heatmap を貼って描き、色の段階・値の表示を変えて SVG・PNG・シーン JSON に。'
-          'シーンは Ironmate の Image Studio でレイヤーとして編集できます（DRAgoWing と Ironmate を横断）。',
+          'シーンは Ironmate の Image Studio でレイヤーとして編集できます。',
   'id': 'heatmap',
+  'from': ('DRAgoWing', 'Ironmate'),
   'links': [('ヒートマップを描く →', './tools/heatmap/'), ('Image Studio で編集 →', './tools/image-studio/')]},
- {'title': 'mcp-toolcall-lab',
-  'text': 'Wikipedia表示・Pixiv原文抽出と、ラボの検証結果スナップショット。',
-  'id': 'mcp-toolcall-lab',
-  'links': [('Open Tool Lab →', './tools/mcp-toolcall-lab/'),
-            ('Open Execution Lab →', 'https://myon-bioinformatics.github.io/tools/mcp-toolcall-lab/execution/')]},
+ {'title': '🔌 MCP 実験室',
+  'text': 'AI が MCP で呼ぶ道具（Wikipedia 表示・Pixiv 原文抽出・ニコニコ検索・ポケモン）をブラウザで試し、ツール呼び出しの記録（JSONL）を集計。'
+          '検証の結果は、ラボの Actions の写し。',
+  'id': 'mcp',
+  'from': ('mcp-toolcall-lab',),
+  'links': [('Open Tool Lab →', './tools/mcp/'),
+            ('Open Execution Lab →', 'https://myon-bioinformatics.github.io/tools/mcp/execution/')]},
  {'title': '🌍 ワールド',
   'text': '1ページの中を絵文字のキャラで歩くワールド。🚪 で土地をわたる旅、机のあいだを歩くスクール、緯度・経度から駅をつなぐパラレル東京・リバースロンドン・フェイクパリ。'
           'ページ遷移もリロードもなく、Python が HTML・CSS・小さなスクリプトを書きます（scripts/world.py）。',
@@ -45,9 +51,10 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'text': '通信しない MCP / API のスタブ、ページ内で動く MCP サーバーのモック、JUnit 結果の読み取り。Python で生成し、このポートフォリオに置いています。',
   'id': 'demos',
   'links': [('Open Demos →', './tools/demos/')]},
- {'title': 'PySaiyanWeBoo',
+ {'title': '🎨 共通UI部品・テーマ',
   'text': 'このポートフォリオのツールページの見た目と表示部品を、ビルド不要の共通UI部品でそろえています。',
-  'id': 'web-ui',
+  'id': 'ui',
+  'from': ('PySaiyanWeBoo',),
   'points': ['見た目の統一：<code>tokens → base → components → themes/modern</code> の CSS 層と <code>ui-*</code> クラス',
              '静的ページ生成：<code>pysaiyanweboo.py</code> の <code>render_document</code>（HTML文書取込をこれで生成）',
              '他リポジトリのページ取り込み：<code>adopt_document</code> で lab 独自クラスを <code>ui-*</code> に置換し、挙動は元のまま',
@@ -60,22 +67,26 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
           'QueRyu・BlueProbe・SakAnalytics・PythDRagoras・DRAgoWing）。各ページから 🌐 そのリポジトリの Pages へ。',
   'id': 'projects-pages',
   'links': [('Open Project pages →', './tools/projects/')]},
- {'title': '📝 markdown.py',
+ {'title': '📝 Markdown 道具箱',
   'text': '標準ライブラリだけで動く Markdown ユーティリティ（読み書き・目次・HTML↔Markdown）。実在のページでの変換の結果は README のベンチマークに（構成の数と元のページへのリンク）。',
-  'id': 'markdown',
+  'id': 'md',
+  'from': ('markdown',),
   'links': [('Open Guide →', 'https://myon-bioinformatics.github.io/markdown/'),
             ('Benchmark (README) →', 'https://github.com/myon-bioinformatics/markdown#benchmark-how-far-does-this-get-on-real-markdown')]},
  {'title': '🧭 統合運用',
   'text': 'リポジトリ横断の運用ダッシュボード：CI の失敗・競合・未解決レビューの優先確認、監査と依存、実行手順、記録と差分。',
   'id': 'operations',
+  'from': ('myon-bioinformatics',),
   'links': [('Open Dashboard →', 'https://myon-bioinformatics.github.io/myon-bioinformatics/')]},
  {'title': '🎞 GIF工房',
   'text': '手持ちの画像を並べて GIF に。端末の中で完結し、画像はどこにも送らず保存もしない（PySaiyanWeBoo の gif.js）。',
   'id': 'gif',
+  'from': ('PySaiyanWeBoo',),
   'links': [('GIF をつくる →', './tools/gif/')]},
  {'title': '🌊 流れの実験室',
   'text': 'FFSS の全場面を 🌊 動く像（流れと遅れ）で、その記録から描ける DRAgoWing の全図を 📊 静止図（行き先の内訳）で。水回り・流しそうめん・お金・からだ・火力・ヒートポンプまで。',
   'id': 'flow',
+  'from': ('FluidFullSpeedSimulation', 'DRAgoWing'),
   'links': [('実験室へ →', './tools/flow/')]},
  {'title': '🧠 リポジトリ地図',
   'text': 'どのリポジトリが、どのリポジトリのファイルを写して使っているか。各リポジトリの vendor.lock.json と Aoi の subtree から、公開のたびに描き直す。',
@@ -94,6 +105,8 @@ def portal_cards(pages: list[tuple[str, str]] = ()) -> str:
         card = card | {'links': [(f'{name} →', url) for name, url in pages]} if card['links'] == 'pages' else card
         heading = f'<h3 id="{html.escape(card["id"], quote=True)}">' if 'id' in card else '<h3>'
         parts = [heading + html.escape(card['title'], quote=False) + '</h3>', '<p>' + html.escape(card['text'], quote=False) + '</p>']
+        if 'from' in card:
+            parts.append('<p class="portal-from">🧩 出どころ: ' + ' · '.join(html.escape(name, quote=False) for name in card['from']) + '</p>')
         if 'points' in card:
             parts.append('<ul class="portal-points">' + ''.join(f'<li>{point}</li>' for point in card['points']) + '</ul>')
         parts += [f'<a href="{html.escape(href, quote=True)}">{html.escape(label, quote=False)}</a>' for label, href in card['links']]
@@ -1131,6 +1144,7 @@ body[data-view-mode="modern"] #projects .section-sub { color: var(--terminal-mut
   overflow-wrap: anywhere;
 }
 .portal-points li + li { margin-top: 4px; }
+.portal-from { margin: 0 0 8px; font-size: 0.8em; color: var(--ui-muted); overflow-wrap: anywhere; }
 
 /* Dedicated notation renderers. Layout lives here; content still comes from profile.json/projects.json. */
 .notation-root {

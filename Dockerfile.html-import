@@ -19,6 +19,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts && npx playwright install --with-deps --only-shell chromium webkit
 
 FROM browser-env AS acceptance
+# git reads the commit of the pinned checkouts under .test-deps/ that --stage builds the tools from.
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 COPY --from=tests-venv /opt/tests /opt/tests
 COPY . .
 RUN /opt/tests/bin/python scripts/project_pages.py --stage .generated-site

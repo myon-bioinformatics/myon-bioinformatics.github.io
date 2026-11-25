@@ -552,9 +552,9 @@ def test_brand_assets_resolve_when_the_page_is_served_below_a_subpath(page, site
         assert href.startswith(site[1] + "/preview/"), href
 
 
-@pytest.mark.parametrize("path", ["/", "/tools/html-import/", "/tools/mcp-toolcall-lab/#home", "/tools/mcp-toolcall-lab/#wiki",
-                                  "/tools/mcp-toolcall-lab/#pixiv", "/tools/mcp-toolcall-lab/#niconico", "/tools/mcp-toolcall-lab/#pokemon",
-                                  "/tools/mcp-toolcall-lab/repository-diagnostics.html"])
+@pytest.mark.parametrize("path", ["/", "/tools/html-import/", "/tools/mcp/#home", "/tools/mcp/#wiki",
+                                  "/tools/mcp/#pixiv", "/tools/mcp/#niconico", "/tools/mcp/#pokemon",
+                                  "/tools/mcp/repository-diagnostics.html"])
 def test_each_hosted_page_loads_and_draws(page, path):
     response = page.goto(path)
     assert response.status == 200
