@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">🧭 myon-bioinformatics.github.io</h1>
-<p align="center">Personal site & portfolio — built and maintained by <a href="https://github.com/myon-bioinformatics">myon</a></p>
+<p align="center">公開リポジトリのポートフォリオ / project hub — <a href="https://github.com/myon-bioinformatics">myon</a></p>
 
 <p align="center">
   <img alt="Last commit" src="https://img.shields.io/github/last-commit/myon-bioinformatics/myon-bioinformatics.github.io">
@@ -12,20 +12,24 @@
   <a href="https://twitter.com/myonitbusiness"><img alt="Twitter Follow" src="https://img.shields.io/twitter/follow/myonitbusiness?style=social"></a>
 </p>
 
+このリポジトリは [GitHub Pages](https://myon-bioinformatics.github.io/) で公開している、myon-bioinformatics の**公開リポジトリ向けポートフォリオ / プロジェクトハブ**です。トップページでは公開・非アーカイブのリポジトリをカードで一覧し、🌐 各リポジトリの利用ガイド（GitHub Pages）や、このサイト上の Tools & Demos へ案内します。
+
+はじめての方や採用の方向けの短い自己紹介は、下の **Intro/Profile** が早いです。
+
 Artwork: the supplied cat/code/plant icon and favicon are cropped from the new project brand sheet.
 The pair labelled `yourself` is assigned here to the portfolio; the parent and Yourself repository icons remain unchanged.
 See [brand assets and concept-review notes](docs/brand-assets.md).
 
-## 🗺️ Concept map
+## 🗺️ 概念図
 
 [![Concept map: biological data and practical challenges flow through development and verification to tools, public work and intended social impact](assets/brand/repository-concept.jpg)](assets/brand/repository-concept.jpg)
 
-Concept artwork supplied on 2026-10-22, preserved without modification. It shows
-the overall direction; [current technology focus and remaining differences](docs/brand-assets.md#概念図の確認メモ2026-10-22) are recorded separately.
+2026-10-22 にいただいた概念図を、加工せず掲載しています。全体の方向を示すもので、[いまの技術の主軸や図との差分](docs/brand-assets.md#概念図の確認メモ2026-10-22)は別に記録しています。
 
 ---
 
-## 📍 Live
+## 📍 公開サイト
+
 - **Site:** https://myon-bioinformatics.github.io
 - **Intro/Profile:** https://github.com/myon-bioinformatics
 - **Links:** <a href="https://lit.link/myon123">lit.link</a> / <a href="https://linktr.ee/myon123">Linktree</a>
@@ -34,10 +38,9 @@ the overall direction; [current technology focus and remaining differences](docs
 
 ---
 
-## 🖼️ Latest successful render
+## 🖼️ 最新の公開画面
 
-The latest successful GitHub Pages deployment publishes deterministic Chromium
-screenshots at stable URLs:
+Latest successful render — GitHub Pages のデプロイが成功したときだけ、次の安定 URL に Chromium のスクリーンショットが置き換わります。実行ごとのアーカイブではなく、人間向けの `latest` です。
 
 - [Desktop 1440×900](https://myon-bioinformatics.github.io/evidence/latest/desktop.png)
 - [Mobile 390×844](https://myon-bioinformatics.github.io/evidence/latest/mobile.png)
@@ -45,79 +48,184 @@ screenshots at stable URLs:
 
 [![Latest desktop render](https://myon-bioinformatics.github.io/evidence/latest/desktop.png?v=25e9697c)](https://myon-bioinformatics.github.io/evidence/latest/desktop.png)
 
-These URLs are replaced only by a **successful Pages deployment**, so they act as
-a human-readable `latest` view rather than a per-run artifact archive.
-
 The inline README preview uses a cache-busting query only for GitHub's image
 proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 
 ---
 
-## 🧭 Tools & Demos portal
-The top page also contains a hand-maintained **Tools & Demos** discovery catalog
-for selected live GitHub Pages applications. This is intentionally separate from
-the JSON-driven repository cards: adding a new live tool requires updating both
-`index.html` and `tests/test_site.py`, so the destination and its HTTPS
-Pages-host contract are reviewed together.
+## 🔄 サイトの作り方と更新
 
-🧰 Ironmate's Image Studio, Browser Tools and Slide Studio (`tools/image-studio/`, `tools/browser-tools/`, `tools/slide-studio/`), mcp-toolcall-lab's tools and execution lab (`tools/mcp/`, `tools/mcp/execution/`) and DRAgoWing's 🌡️ heatmap (`tools/heatmap/`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ page in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Studio route mapping is build source in `_src/tools/studio_routes.py`; the rendered pages live only in the Pages output tree. Ironmate still owns the generated editor and data formats, and the shared back navigation comes from PySaiyanWeBoo. Live destinations include Ironmate (Image Studio, Browser Tools, and Slide Studio), mcp-toolcall-lab, and PySaiyanWeBoo.
+トップページの `index.html` は git に置かず、公開のたびに Python が書きます。`scripts/front_page.py` が `profile.json`・`api/repos.json`・`projects.json` からページを組み立て、`scripts/project_pages.py` がピン留めした [PySaiyanWeBoo](https://github.com/myon-bioinformatics/PySaiyanWeBoo) で共有 UI や道具ページを生成します。正本の役割は [docs/ssot.md](docs/ssot.md) を参照してください。
 
-🏷 Each card is named for what it does, not for a repository, and a 🧩 出どころ line links the repositories it is built from (`from` in `PORTAL`): 🖼️ スライド・画像工房 ← Ironmate · 🔌 MCP 実験室 (`tools/mcp/`) ← mcp-toolcall-lab · 🎨 共通UI部品・テーマ ← PySaiyanWeBoo. The cards are tools made of those repositories' parts, not the projects themselves (those are in 🚀 Projects).
+| 正本 | 役割 |
+| --- | --- |
+| `profile.json` | 短い自己紹介・スキル・経歴・いまの関心 |
+| `api/repos.json` | GitHub から生成した公開リポジトリの事実（URL・説明・トピック・⭐・Pages の有無）。手編集しない |
+| `projects.json` | 任意の説明の上書き・追加トピック・showcase（`tools/projects/` の記録ページ）。カタログにないリポジトリは足せない |
+| `services.json` | このサイトが持つ公開エンドポイント（サブページなど、カタログから導けない URL） |
+| `site.config.json` | プロジェクト一覧の初期表示。いまは `defaultViewMode: modern` |
 
-## 🚀 Projects
-The Projects section on the [site](https://myon-bioinformatics.github.io) is a hub of every public, non-archived repository.
+主な workflow（いずれもイベントまたは定期実行あり）:
 
-- Each card states what the project is.
-- The project name opens the GitHub repository. **Copy URL** copies that same address.
-- **🌐 Pages** opens the project's live GitHub Pages site, when it has one.
-- **📄** opens a portfolio page with a recorded example, when the project has a showcase.
+- **Update repos API**（[`.github/workflows/repos-api.yml`](.github/workflows/repos-api.yml)）— 毎日 06:00 JST（`cron: "0 21 * * *"`）と、カタログ用スクリプト / Pages workflow の変更時。`api/repos.json` を更新する。`GITHUB_TOKEN` による commit は `push` workflow を起こさないため、成功時だけ **Pages** を `workflow_run` で起動する。失敗・キャンセルではサイトを出し直さない。
+- **Pages**（[`.github/workflows/pages.yml`](.github/workflows/pages.yml)）— `main` への push、および上記の成功後。Jekyll で組み立てたあと、動く見本 GIF・流れの実験室・リポジトリ地図・他リポジトリから組む道具をベストエフォートで足し、検証済みの共有資産を書いて公開する。
+- **CI** など — 変更の検証。[HTML import published](.github/workflows/html-import-published.yml) は Pages 完了後に、公開済みの HTML 取込をブラウザで確認する。
 
-Search and topic filters work together across all five display modes. Topic controls expand on demand so the full catalog remains easy to reach on mobile. The candidate pool is shuffled on each page load. Cards, tags, inputs and copy buttons use the same pinned web-ui stylesheets already used by this portfolio’s tool pages (`tools/vendor/web-ui/`, source identity in `vendor.lock.json`). Local CSS only adds catalog layout, mode mapping and filter state; no second component stylesheet is vendored.
+カードの検索・トピック絞り込みは 5 つの表示モードで共通です。候補の並びはページを開くたびにシャッフルされます。アーカイブ済みの公開リポジトリはカタログに残っても、サイトの Projects には出しません。
 
-`api/repos.json` is the source of truth for membership and repository URLs; archived repositories are not shown. `projects.json` may add a curated description, extra topics, and an optional showcase; it cannot add a repository that is absent from the catalog. If curation is unavailable, the catalog description (then the README summary) is used. A missing catalog shows a load error instead of a misleading partial list.
+## 🧭 Tools & Demos
 
-The catalog refresh runs daily at 06:00 JST. A successful `Update repos API` run on `main` triggers the existing Pages deployment through `workflow_run`, which checks out the refreshed `main`. This explicit handoff is required because catalog commits pushed with `GITHUB_TOKEN` do not trigger `push` workflows. Failed or cancelled refreshes do not publish a new site.
+トップの **Tools & Demos** は、選んだブラウザ道具の案内です（リポジトリカードとは別に手で管理）。カード名は用途、🧩 出どころはその部品のリポジトリです。公開時に他リポジトリの default branch から組むもの（Ironmate のスタジオ、mcp-toolcall-lab、DRAgoWing のヒートマップなど）は、組み立てに失敗すると ⏸ ページになります。コード本体は各リポジトリに残します。
 
-Changes to the Pages workflow also trigger a catalog refresh to exercise this handoff. Render evidence records the actual checked-out commit, including when the refresh or a concurrent update has advanced `main` beyond the event's original SHA.
+| 案内 | リンク |
+| --- | --- |
+| HTML文書取込 | [tools/html-import/](https://myon-bioinformatics.github.io/tools/html-import/) |
+| 地図URL・ピン留め | [tools/maps/](https://myon-bioinformatics.github.io/tools/maps/) · [パラレル東京](https://myon-bioinformatics.github.io/tools/maps/tokyo.html) |
+| 🖼️ スライド・画像工房（Ironmate） | [Image Studio](https://myon-bioinformatics.github.io/tools/image-studio/) · [Browser Tools](https://myon-bioinformatics.github.io/tools/browser-tools/) · [Slide Studio](https://myon-bioinformatics.github.io/tools/slide-studio/) |
+| 🌡️ ヒートマップ（DRAgoWing · Ironmate） | [tools/heatmap/](https://myon-bioinformatics.github.io/tools/heatmap/) |
+| 🔌 MCP 実験室（mcp-toolcall-lab） | [Tool Lab](https://myon-bioinformatics.github.io/tools/mcp/) · [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) |
+| 🌍 ワールド | [旅](https://myon-bioinformatics.github.io/tools/demos/world.html) · [スクール](https://myon-bioinformatics.github.io/tools/demos/school.html) · [パラレルシティ](https://myon-bioinformatics.github.io/tools/demos/cities.html) · [カメラ](https://myon-bioinformatics.github.io/tools/demos/world-shots.html) |
+| 🧰 Stubs & mocks | [tools/demos/](https://myon-bioinformatics.github.io/tools/demos/) |
+| 🎨 共通UI部品・テーマ（PySaiyanWeBoo） | [UI Catalog](https://myon-bioinformatics.github.io/PySaiyanWeBoo/) |
+| 📚 Project pages（記録した実行例） | [tools/projects/](https://myon-bioinformatics.github.io/tools/projects/) |
+| 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab） | [tools/demos/chat.html](https://myon-bioinformatics.github.io/tools/demos/chat.html) |
+| 🧭 統合運用 | [Dashboard](https://myon-bioinformatics.github.io/myon-bioinformatics/) |
+| 🎞 GIF工房（PySaiyanWeBoo） | [tools/gif/](https://myon-bioinformatics.github.io/tools/gif/) |
+| 🌊 流れの実験室（FluidFullSpeedSimulation · DRAgoWing） | [tools/flow/](https://myon-bioinformatics.github.io/tools/flow/) |
+| 🧠 リポジトリ地図 | [tools/repo-map/](https://myon-bioinformatics.github.io/tools/repo-map/) |
+| 🌐 各リポジトリの Pages | トップページの一覧（`api/repos.json` の `has_pages` から毎日作り直し） |
 
-The header gets its animated face from PSWB’s Python `component_parts("gaze-avatar")` API. Project URL buttons use the same pinned PSWB release’s `copyText` helper. Reusable interaction changes belong in PSWB; the portfolio owns placement, labels and project data.
+新しい道具を足すときは、生成元の `scripts/front_page.py`（`PORTAL`）と `tests/test_site.py` をいっしょに直し、行き先と HTTPS の Pages 契約を同じ変更で確認します。
+
+🧰 Ironmate's Image Studio, Browser Tools and Slide Studio (`tools/image-studio/`, `tools/browser-tools/`, `tools/slide-studio/`), mcp-toolcall-lab's tools and execution lab (`tools/mcp/`, `tools/mcp/execution/`) and DRAgoWing's 🌡️ heatmap (`tools/heatmap/`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ page in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Studio route mapping is build source in `_src/tools/studio_routes.py`; the rendered pages live only in the Pages output tree. Ironmate still owns the generated editor and data formats, and the shared back navigation comes from PySaiyanWeBoo.
+
+## 🚀 公開リポジトリ
+
+サイトの Projects は、公開・非アーカイブのリポジトリが対象です。名前は GitHub、**🌐 Pages** はその利用ガイド、**📄** があるものはこのポートフォリオ上の記録ページです。下は同じ公開リポジトリをテーマ別にしたもので、説明は各リポジトリの GitHub 説明（またはこのリポジトリのキュレーション）に沿っています。最新の所属・URL は `api/repos.json` が正本です。
+
+### このサイト・紹介
+
+| リポジトリ | 一言 | 🌐 Pages |
+| --- | --- | --- |
+| [myon-bioinformatics.github.io](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io) | このポートフォリオ | https://myon-bioinformatics.github.io/ |
+| [myon-bioinformatics](https://github.com/myon-bioinformatics/myon-bioinformatics) | プロフィール（About me for everyone）と横断の運用ダッシュボード | https://myon-bioinformatics.github.io/myon-bioinformatics/ |
+
+### 野球データ研究（Aoi 系）
+
+| リポジトリ | 一言 | 🌐 Pages |
+| --- | --- | --- |
+| [Aoi](https://github.com/myon-bioinformatics/Aoi) | 答えより、より良い問いを探す野球（NPB）研究の枠組み | https://myon-bioinformatics.github.io/Aoi/ |
+| [QueRyu](https://github.com/myon-bioinformatics/QueRyu) | NPB ページの、礼儀正しく再現可能な取得 | https://myon-bioinformatics.github.io/QueRyu/ |
+| [BlueProbe](https://github.com/myon-bioinformatics/BlueProbe) | 解釈の前に、NPB ページの HTML/CSS/DOM を観察して取り出す | https://myon-bioinformatics.github.io/BlueProbe/ |
+| [SakAnalytics](https://github.com/myon-bioinformatics/SakAnalytics) | シーズン指標・マジックナンバーシミュレーション | https://myon-bioinformatics.github.io/SakAnalytics/ |
+| [PythDRagoras](https://github.com/myon-bioinformatics/PythDRagoras) | 説明を命題として反例と突き合わせ、規則を探す | https://myon-bioinformatics.github.io/PythDRagoras/ |
+| [DRAgoWing](https://github.com/myon-bioinformatics/DRAgoWing) | 研究記録を再判定せず、Plotly.js の報告や図にする | https://myon-bioinformatics.github.io/DRAgoWing/ |
+| [NagoyAction](https://github.com/myon-bioinformatics/NagoyAction) | 研究パイプラインを TOML で一度定義し、手元と Actions で同じコマンドを回す | https://myon-bioinformatics.github.io/NagoyAction/ |
+
+### 生命科学
+
+| リポジトリ | 一言 | 🌐 Pages |
+| --- | --- | --- |
+| [search_seq_including_spaces](https://github.com/myon-bioinformatics/search_seq_including_spaces) | DNA / タンパク質配列向けの、標準ライブラリだけの Python CLI | https://myon-bioinformatics.github.io/search_seq_including_spaces/ |
+
+### 単一ファイルのツール
+
+| リポジトリ | 一言 | 🌐 Pages |
+| --- | --- | --- |
+| [gh_identity](https://github.com/myon-bioinformatics/gh_identity) | GitHub CLI を観察する、標準ライブラリだけの単一ファイル | https://myon-bioinformatics.github.io/gh_identity/ |
+| [xprobe](https://github.com/myon-bioinformatics/xprobe) | テキスト検索・境界ケース・失敗寄りのテスト支援 | https://myon-bioinformatics.github.io/xprobe/ |
+| [yourself](https://github.com/myon-bioinformatics/yourself) | ホスト・OS・ランタイムの事実を読み取り専用で出す | https://myon-bioinformatics.github.io/yourself/ |
+| [cli_args](https://github.com/myon-bioinformatics/cli_args) | CLI 引数の定義・検証・実行・出力の再利用部品 | https://myon-bioinformatics.github.io/cli_args/ |
+| [markdown](https://github.com/myon-bioinformatics/markdown) | 標準ライブラリだけの Markdown ユーティリティ | https://myon-bioinformatics.github.io/markdown/ |
+| [ascii_artist](https://github.com/myon-bioinformatics/ascii_artist) | ASCII アートとテキスト図の生成・変換・配置 | https://myon-bioinformatics.github.io/ascii_artist/ |
+| [Err-o-RoadRunner](https://github.com/myon-bioinformatics/Err-o-RoadRunner) | 失敗が起きるまで待ってから、FOUND / NOT FOUND / HINT を出す | https://myon-bioinformatics.github.io/Err-o-RoadRunner/ |
+| [nvd_nist_known_vulns](https://github.com/myon-bioinformatics/nvd_nist_known_vulns) | NVD CVE API 2.0 の、標準ライブラリだけのクライアント | https://myon-bioinformatics.github.io/nvd_nist_known_vulns/ |
+| [OneLaunchNumerousModules](https://github.com/myon-bioinformatics/OneLaunchNumerousModules) | bash/zsh のワンライナーと、標準ライブラリのツール起動、閉じたネットワーク向けのダイヤル | https://myon-bioinformatics.github.io/OneLaunchNumerousModules/ |
+
+### 文書・画像・UI・資産
+
+| リポジトリ | 一言 | 🌐 Pages |
+| --- | --- | --- |
+| [Ironmate](https://github.com/myon-bioinformatics/Ironmate) | Markdown→PPTX、既存 PPTX の編集、Image / Slide Studio | https://myon-bioinformatics.github.io/Ironmate/ |
+| [PySaiyanWeBoo](https://github.com/myon-bioinformatics/PySaiyanWeBoo) | 静的ページ向けの共有 CSS テーマと UI 部品（標準ライブラリの 1 モジュール） | https://myon-bioinformatics.github.io/PySaiyanWeBoo/ |
+| [CaChereCyCle](https://github.com/myon-bioinformatics/CaChereCyCle) | アイコンや概念図などの公開資産を JSONL にまとめ、片付けて再利用する | https://myon-bioinformatics.github.io/CaChereCyCle/ |
+
+### LLM / MCP
+
+| リポジトリ | 一言 | 🌐 Pages |
+| --- | --- | --- |
+| [mcp-toolcall-lab](https://github.com/myon-bioinformatics/mcp-toolcall-lab) | LLM が MCP ツールを見つけて呼ぶ過程の、再現可能な実験 | https://myon-bioinformatics.github.io/mcp-toolcall-lab/ |
+| [TalkCompress](https://github.com/myon-bioinformatics/TalkCompress) | 読む相手にとって意味が残る、短い表現の実験 | https://myon-bioinformatics.github.io/TalkCompress/ |
+
+### 検証・シミュレーション
+
+| リポジトリ | 一言 | 🌐 Pages |
+| --- | --- | --- |
+| [BrowserTestKit](https://github.com/myon-bioinformatics/BrowserTestKit) | Playwright のクロスブラウザ検証と、スクリーンショット証拠 | https://myon-bioinformatics.github.io/BrowserTestKit/ |
+| [FluidFullSpeedSimulation](https://github.com/myon-bioinformatics/FluidFullSpeedSimulation) | このポートフォリオの「流れの実験室」でも記録を使う公開リポジトリ（GitHub 説明文は未設定） | https://myon-bioinformatics.github.io/FluidFullSpeedSimulation/ |
+
+### オントロジー
+
+| リポジトリ | 一言 | 🌐 Pages |
+| --- | --- | --- |
+| [ONTO](https://github.com/myon-bioinformatics/ONTO) | オントロジー関連リポジトリをつなぐ索引 | https://myon-bioinformatics.github.io/ONTO/ |
+| [TaxOntOy](https://github.com/myon-bioinformatics/TaxOntOy) | Taxonomy × Ontology | https://myon-bioinformatics.github.io/TaxOntOy/ |
+| [TopOntoLogy](https://github.com/myon-bioinformatics/TopOntoLogy) | Topology × Ontology | https://myon-bioinformatics.github.io/TopOntoLogy/ |
+| [OnTautoLogy](https://github.com/myon-bioinformatics/OnTautoLogy) | 標準ライブラリの graphlib による知識グラフ（順序・閉路・オントロジー検査） | https://myon-bioinformatics.github.io/OnTautoLogy/ |
+
+## 🎨 見た目とブランド
+
+ツールページの見た目は、ピン留めした PySaiyanWeBoo の CSS 層（`tokens → base → components → themes/modern`）と `ui-*` クラスでそろえています。プロジェクト一覧の初期表示も `modern`（`site.config.json`）で、ヘッダーから `xml-like` / `json` / `markdown` / `github-like` に切り替えでき、選択はブラウザの local storage に残ります。色テーマも PySaiyanWeBoo のパレットです。
+
+このサイト自身のアイコンとファビコンは `assets/brand/` です（プロフィールアイコン、16 / 32 / 48 の PNG、`favicon.ico`、`manifest.webmanifest`）。記録と切り出しの注記は [docs/brand-assets.md](docs/brand-assets.md) にあります。
+
+他の公開リポジトリの利用ガイドからは、🏠 ポートフォリオとしてこのサイトへ戻るリンクが置かれているものがあります。ガイド側の `docs/guide.page.json` や favicon 一式は各リポジトリが持っており、このリポジトリがそれらを配布しているわけではありません。
 
 ## 🎛️ Display mode
+
 - Default mode is **modern**
 - Repository default can be changed via `site.config.json`:
   - `defaultViewMode`: `modern`, `xml-like`, `json`, `markdown`, or `github-like`
 - Users can switch mode from the page header, and their choice is saved in browser local storage.
 
+The header gets its animated face from PSWB’s Python `component_parts("gaze-avatar")` API. Project URL buttons use the same pinned PSWB release’s `copyText` helper. Reusable interaction changes belong in PSWB; the portfolio owns placement, labels and project data.
+
 ---
 
-## 🚀 Quick start (Local)
+## 🚀 ローカルで見る
+
+`index.html` はリポジトリに含まれないので、先にサイトを生成してから公開します。
+
 ```bash
 git clone https://github.com/myon-bioinformatics/myon-bioinformatics.github.io
 cd myon-bioinformatics.github.io
-python -m http.server 8080
+uv run --locked python scripts/project_pages.py --stage .generated-site
+python -m http.server 8080 --directory .generated-site
 # → http://localhost:8080
 ```
+
+他リポジトリから組む道具（mcp-toolcall-lab など）を同じ形で見るには、そのリポジトリを `.test-deps/<name>` に置いてから `--stage` します。置けないときは ⏸ ページのままです。生成コマンドの詳細は下の Shared asset generator entry points を参照してください。
 
 ---
 
 ## 🧑‍🎤 About me (short)
+
 I started coding through **Bioinformatics**. Main tools: **Python** (mostly single-file, standard-library tools), plus **Node.js** and **Dart/Flutter**.  
 I like building **GUI/CLI tools** for security & backend.
 
-- Skills (JP): https://myon-bioinformatics.github.io  
-- Tips (JP): https://qiita.com/myon-bioinformatics  
-- Career (JP): https://job-draft.jp/users/58541  
-- Composer Portfolio: https://www.youtube.com/@freez-myon  
+- Skills (JP): https://myon-bioinformatics.github.io
+- Tips (JP): https://qiita.com/myon-bioinformatics
+- Career (JP): https://job-draft.jp/users/58541
+- Composer Portfolio: https://www.youtube.com/@freez-myon
 - Wantedly: https://www.wantedly.com/id/myon123
 
 ---
 
-## 🔄 Maintaining project cards
+## 🔄 カードの手入れ
 
-Edit `projects.json` for curated descriptions and extra topics, then validate
-the canonical shape using [docs/ssot.md](docs/ssot.md). Catalog membership
-comes from `api/repos.json`. There is no pinned-repository generator and no
-scheduled card-update workflow.
+掲載対象は `api/repos.json`（毎日の Update repos API）が決めます。説明文・追加トピック・showcase を足すときは `projects.json` を編集し、形は [docs/ssot.md](docs/ssot.md) で確認します。ピン留めリポジトリからカードを自動生成する処理はなく、`projects.json` を定期更新する workflow もありません。
+
+---
 
 ## 🎞️ Browser evidence
 
@@ -151,6 +259,29 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 ![Portfolio home-screen manifest and icons, tile labels, start_url, the HTML import page, the demos and every project page with its recorded run, in Chromium at 392×840](docs/evidence/home-screen.gif)
 
 🗓️ 2026-11-13 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k home_screen` writes `test-results/home-screen/home-screen-shortcut-<UTC>.gif` (CI keeps it in the browser evidence artifact); copy the newest one to `docs/evidence/home-screen.gif` to update this.
+
+### 💬 横断チャット
+
+Tools & Demos → **💬 横断チャット**（`tools/demos/chat.html`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。
+
+| | コマンド | 出どころ |
+| --- | --- | --- |
+| 📝📊 | `/md` `/table` | markdown.py（表示・数え上げ・CSV→表） |
+| 🎨📦🔀 | `/ascii` `/box` `/flow A, B > C` | ascii_artist（banner・枠・流れ図と Mermaid） |
+| 🗂 | `/compress` | TalkCompress の ShorthandSessionEdge（公開時に記録）と markdown.py の compact_llm_output |
+| 🔌 | `/mcp 道具 {JSON}` | mcp-toolcall-lab のプロンプト実験が広告する道具（✅ tools/call／❌ 断る） |
+| 🔎👀 | `onto` `/find --kind jsonl` `/show REPO/PATH` | 全リポジトリの JSON / JSONL（公開時に `--record-chat` が `media/chat/index.json` へ）と、そのコミットの raw |
+| ⌨️ | `/flwo` → `/flow` | cli_args の「もしかして」 |
+
+📇 索引タブは olnm の検証ガイドと同じ PySaiyanWeBoo の runbook（検索・状態の絞り込み・記録の JSON 保存）で、各例の 💬 送る でチャットに送れます。
+
+![The cross-repo chat in Chromium: Pyodide runs scripts/chat.py — a flow, a typo, MCP checks, the onto index, /show, /compress, raw HTML kept as text, and a step sent from the index](docs/evidence/chat.gif)
+
+```sh
+uv run --locked --only-group pages python scripts/chat.py "/flow 入力, 履歴 > 圧縮 > 出力"      # 💬 the same reply in the shell
+uv run --locked --only-group pages python scripts/project_pages.py --record-chat .generated-site  # 🔎 the cross-repo index (GITHUB_TOKEN)
+PYODIDE_DIR=… uv run --locked --only-group browser python -m pytest tests/test_site.py -k chat_in_chromium   # 🎞 test-results/chat/chat-conversation-<UTC>.gif
+```
 
 ### 🌍 ワールド
 
@@ -212,15 +343,6 @@ The Stagehand reference checks SDK surfaces. Its separate screenshot job uses
 Playwright Chromium; it does not demonstrate Stagehand agent execution. See
 [docs/stagehand-v4-reference.md](docs/stagehand-v4-reference.md) for the reference scope. Pages deployment owns the
 stable `evidence/latest/` screenshots described above.
-
----
-
-<details>
-<summary>🇯🇵 日本語版 (クリックで展開)</summary>
-
-このリポジトリは**GitHub Pagesサイト**です。説明文と追加トピックは `projects.json`、掲載対象は `api/repos.json` です。  
-ローカル確認は `python -m http.server` でOK。ピン留めリポジトリからカードを作る処理や、その定期workflowはありません。編集・検証手順は [docs/ssot.md](docs/ssot.md) を参照してください。
-</details>
 
 ## 🔌 MCP 実験室: lab public tools and reports
 
@@ -291,3 +413,7 @@ list after import. Both `--output` and `--refresh-lock` may be supplied together
 Normal generation verifies the installed git commit, dependency pin and all asset hashes
 before writing output. Refresh only accepts the installed commit specified in the pin;
 rendering or provenance failures leave the previous lock and checked-in assets intact.
+
+## 📄 License
+
+[MIT](license)（Copyright (c) 2023 myon）.

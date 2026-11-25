@@ -7,8 +7,9 @@ requires-python = ">=3.11"
 dependencies = []
 
 [dependency-groups]
-# The shared Web UI generator (scripts/project_pages.py); its commit is pinned once, in [tool.uv.sources] below.
-pages = ["pysaiyanweboo"]
+# The shared Web UI generator (scripts/project_pages.py), and the single-file modules the 💬 chat page runs in Pyodide
+# (scripts/chat.py: markdown.py, ascii_artist.py, cli_args.py); each commit is pinned once, in [tool.uv.sources] below.
+pages = ["pysaiyanweboo", "md-market", "ascii-artist-dev", "cli-args-dev"]
 docker-test = ["pytest>=9.1.1", { include-group = "pages" }, "gh-identity-dev"]
 test = [{ include-group = "docker-test" }, "stagehand>=4.2.1"]
 # 🎥 project_pages.py --record-samples and 🌍 world.py record: the generator, Playwright and Pillow (the GIF encoder).
@@ -21,4 +22,7 @@ default-groups = ["test"]
 
 [tool.uv.sources]
 pysaiyanweboo = { git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo", rev = "901b790f14ad7a04a4280409bfd274d8f6926fa7" }
+md-market = { git = "https://github.com/myon-bioinformatics/markdown", rev = "a2331c28c0c5c67b4e8bd2388eb56d081d4990a0" }
+ascii-artist-dev = { git = "https://github.com/myon-bioinformatics/ascii_artist", rev = "8942ebde6e449c09ff23a8e8fccde3e778e4e809" }
+cli-args-dev = { git = "https://github.com/myon-bioinformatics/cli_args", rev = "6305b47c717068d6470a41b8a983247e1cc5d4f8" }
 gh-identity-dev = { git = "https://github.com/myon-bioinformatics/gh_identity", rev = "3111c17213baa0f469500a765d0a59f6de8e1d41" }
