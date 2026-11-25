@@ -13,15 +13,26 @@ function trackExternalRequests(page, baseURL) {
   return external;
 }
 
+// 🔌 The lab's place: /tools/mcp/ in this source; the published run (HTML_TOOL_BASE_URL) goes wherever the deployed front
+// page's 'Open Tool Lab →' points, since a pull request that moves the lab is published only after it merges.
+let LAB = '/tools/mcp/';
+test.beforeAll(async ({ browser }) => {
+  if (!process.env.HTML_TOOL_BASE_URL) return;
+  const page = await browser.newPage();
+  await page.goto(new URL('/', process.env.HTML_TOOL_BASE_URL).href);
+  LAB = new URL(await page.getByRole('link', { name: 'Open Tool Lab →' }).getAttribute('href') || LAB, page.url()).pathname;
+  await page.close();
+});
+
 test.describe('MCP Tool Call Lab - Publication, navigation, and extraction', () => {
   test('transferred Pixiv extraction remains functional without upstream fetch', async ({ page }) => {
-    await page.goto('/tools/mcp-toolcall-lab/#pixiv');
+    await page.goto(LAB + '#pixiv');
     await expect(page.locator('[data-pages-view="pixiv"]')).toBeVisible();
     await page.locator('#pages-pixiv-title').fill('Demo');
     await page.locator('#pages-pixiv-source-text').fill('Example original source text');
     await page.locator('[data-testid="pages-pixiv-extract-submit"]').click();
     await expect(page.locator('[data-testid="pages-pixiv-extract"]')).toContainText('Example original source text');
-    await page.goto('/tools/mcp-toolcall-lab/#wiki');
+    await page.goto(LAB + '#wiki');
     await expect(page.locator('#pages-wiki-form')).toBeVisible();
     await expect(page.locator('[data-pages-view="pixiv"]')).toBeHidden();
   });
@@ -49,7 +60,7 @@ test.describe('MCP Tool Call Lab - Publication, navigation, and extraction', () 
             body: JSON.stringify({ query: { pages: { 1: { title: 'Demo', extract: 'Introduction\n== History ==\nHistory body\n== Geography ==\nGeography body' } } } }),
           });
         });
-        await page.goto('/tools/mcp-toolcall-lab/#pixiv');
+        await page.goto(LAB + '#pixiv');
         await expect(page.locator('[data-pages-view="pixiv"]')).toBeVisible();
         const actual = await page.locator('body').evaluate(e => {
           const s = getComputedStyle(e);
@@ -84,7 +95,7 @@ test.describe('MCP Tool Call Lab - Publication, navigation, and extraction', () 
         await expect(page.getByTestId('pages-pixiv-extract')).toContainText('Example original source text');
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
         await page.screenshot({ path: info.outputPath('shared-lab-ui.png'), fullPage: true });
-        await page.goto('/tools/mcp-toolcall-lab/?view=wiki');
+        await page.goto(LAB + '?view=wiki');
         await expect(page.locator('[data-pages-view="wiki"]')).toBeVisible();
         await expect(page).toHaveURL(/#wiki$/);
       });
@@ -94,12 +105,12 @@ test.describe('MCP Tool Call Lab - Publication, navigation, and extraction', () 
   test('execution links and empty Wiki examples remain usable', async ({ page }) => {
     // The source pins the place (/tools/, built by --record-tools); the published run (HTML_TOOL_BASE_URL) checks the
     // deployed pages agree with each other, since a pull request that moves the lab is published only after it merges.
-    let execution = 'https://myon-bioinformatics.github.io/tools/mcp-toolcall-lab/execution/';
+    let execution = 'https://myon-bioinformatics.github.io/tools/mcp/execution/';
     await page.goto('/');
     const front = page.getByRole('link', { name: 'Open Execution Lab →' });
     if (process.env.HTML_TOOL_BASE_URL) execution = await front.getAttribute('href') || execution;
     await expect(front).toHaveAttribute('href', execution);
-    await page.goto('/tools/mcp-toolcall-lab/#wiki');
+    await page.goto(LAB + '#wiki');
     await expect(page.getByTestId('lab-execution-link')).toHaveAttribute('href', execution);
     await expect(page.getByTestId('pages-wiki-title')).toHaveValue('');
     await page.getByTestId('pages-wiki-fetch').click();
@@ -130,7 +141,7 @@ test.describe('MCP Tool Call Lab - Publication, navigation, and extraction', () 
     await page.route('https://pokeapi.co/api/v2/pokemon/*', route =>
       route.fulfill({ contentType: 'application/json', body: JSON.stringify(ditto) })
     );
-    await page.goto('/tools/mcp-toolcall-lab/#pokemon');
+    await page.goto(LAB + '#pokemon');
     await expect(page.locator('[data-pages-view="pokemon"]')).toBeVisible();
     await page.locator('#pokemon-name').fill('ditto');
     await page.locator('[data-source-fetch]').click();
@@ -153,7 +164,7 @@ test.describe('MCP Tool Call Lab - Pixiv heading navigation', () => {
         for (const baseURL of ['http://localhost:8080', 'https://myon-bioinformatics.github.io']) {
           const probe = new EventEmitter();
           const external = trackExternalRequests(probe, baseURL), site = new URL(baseURL);
-          for (const path of ['/tools/mcp-toolcall-lab/#pixiv', '/assets/style.css?v=1', '/assets/app.js', '/assets/logo.png']) {
+          for (const path of ['/tools/mcp/#pixiv', '/assets/style.css?v=1', '/assets/app.js', '/assets/logo.png']) {
             probe.emit('request', { url: () => new URL(path, baseURL).href });
           }
           probe.emit('request', { url: () => `${baseURL.toUpperCase()}/probe` });
@@ -174,7 +185,7 @@ test.describe('MCP Tool Call Lab - Pixiv heading navigation', () => {
       test('source headings select cached body and reset safely', async ({ page, baseURL }, info) => {
         const external = trackExternalRequests(page, baseURL), errors = [];
         page.on('pageerror', error => errors.push(error.message));
-        await page.goto('/tools/mcp-toolcall-lab/#pixiv');
+        await page.goto(LAB + '#pixiv');
         await page.getByTestId('pages-pixiv-source-text').fill(fixtures[0].source);
         await page.getByTestId('pages-pixiv-extract-submit').click();
         const select = page.locator('#pages-pixiv-heading'), output = page.getByTestId('pages-pixiv-extract');
@@ -212,7 +223,7 @@ test.describe('MCP Tool Call Lab - Pixiv heading navigation', () => {
 
 test.describe('MCP Tool Call Lab - Niconico search and error handling', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/tools/mcp-toolcall-lab/#niconico');
+    await page.goto(LAB + '#niconico');
     await expect(page.getByTestId('pages-niconico')).toBeVisible();
   });
 
@@ -399,7 +410,7 @@ test.describe('MCP Tool Call Lab - Niconico search and error handling', () => {
     await page.getByTestId('pages-nav-wiki').click();
     await expect(page.locator('[data-pages-view="wiki"]')).toBeVisible();
     await expect(page.getByTestId('pages-niconico')).toBeHidden();
-    await page.goto('/tools/mcp-toolcall-lab/?view=niconico');
+    await page.goto(LAB + '?view=niconico');
     await expect(page.getByTestId('pages-niconico')).toBeVisible();
   });
 });

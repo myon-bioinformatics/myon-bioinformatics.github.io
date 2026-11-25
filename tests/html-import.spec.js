@@ -57,7 +57,7 @@ test('size, UTF-8, URL and depth failures clear stale downloads',async({page})=>
  await page.locator('#source-url').fill(source);await page.locator('#html-input').fill('<div>'.repeat(129)+'text'+'</div>'.repeat(129));await page.locator('#paste-load').click();await expect(page.locator('#status')).toContainText('128');
 });
 test('portfolio still exposes old tools and the new independent tool',async({page})=>{
- await page.goto('/');await expect(page.locator('a[href="./tools/html-import/"]')).toBeVisible();await expect(page.locator('a[href="./tools/mcp-toolcall-lab/"]')).toBeVisible();await expect(page.locator('#ironmate')).toBeVisible();
+ await page.goto('/');await expect(page.locator('a[href="./tools/html-import/"]')).toBeVisible();await expect(page.getByRole('link',{name:'Open Tool Lab →'})).toBeVisible();await expect(page.getByRole('link',{name:'Open Slide Studio →'})).toBeVisible();
 });
 for(const mobile of [false,true]){
  test.describe(mobile?'mobile source navigation':'desktop source navigation',()=>{

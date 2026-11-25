@@ -1,62 +1,5 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>@layer markdown,base,components,theme;@layer markdown{.markdown-alert {
-  padding: 0.75em 1em;
-  margin: 1em 0;
-  border-left: 0.25em solid #57606a;
-  background: #f6f8fa;
-}
-.markdown-alert-title {
-  font-weight: 700;
-  margin: 0 0 0.35em;
-}
-.markdown-alert-note,
-.markdown-alert-info,
-.markdown-alert-message { border-left-color: #0969da; }
-.markdown-alert-tip { border-left-color: #1a7f37; }
-.markdown-alert-important { border-left-color: #8250df; }
-.markdown-alert-warning,
-.markdown-alert-warn { border-left-color: #9a6700; }
-.markdown-alert-caution,
-.markdown-alert-alert { border-left-color: #cf222e; }
-.markdown-alert[data-alert-flavor="github"] { background: #f6f8fa; }
-.markdown-alert[data-alert-flavor="obsidian"] { border-radius: 0.25em; }
-.markdown-alert[data-alert-flavor="qiita"] { border-left-width: 0.35em; }
-.markdown-alert[data-alert-flavor="zenn"] { background: #fff8f0; }
-table { border-collapse: collapse; margin: 1em 0; }
-th, td { border: 1px solid #d0d7de; padding: 0.4em 0.8em; }
-th { background: #f6f8fa; font-weight: 600; }
-blockquote {
-  margin: 1em 0;
-  padding: 0 1em;
-  border-left: 0.25em solid #d0d7de;
-  color: #656d76;
-}
-pre, code { font-family: inherit; }
-pre {
-  padding: 0.8em;
-  overflow: auto;
-  background: #f6f8fa;
-  border-radius: 0.25em;
-}
-h1, h2, h3, h4, h5, h6 { margin-top: 1.25em; margin-bottom: 0.5em; }
-del { text-decoration: line-through; }
-li input[type="checkbox"] { margin: 0 0.35em 0 0; vertical-align: middle; }
-details {
-  margin: 1em 0;
-  border: 1px solid #d0d7de;
-  border-radius: 0.25em;
-  padding: 0.5em 0.8em;
-}
-summary { cursor: pointer; font-weight: 600; }
-.footnotes {
-  margin-top: 2em;
-  padding-top: 0.75em;
-  border-top: 1px solid #d0d7de;
-  font-size: 0.9em;
-}
-.footnotes ol { padding-left: 1.5em; }
-sup.footnote-ref { font-size: 0.75em; line-height: 0; }
-.footnote-backref { text-decoration: none; }
-}</style><style>@layer components{.ui-source label{display:block;margin:8px 0 4px}.ui-source-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.ui-source-row .ui-input{flex:1 1 192px;min-width:0}.ui-source>textarea.ui-input{width:100%;box-sizing:border-box;margin-bottom:8px}.ui-source-error{margin:8px 0;color:var(--ui-danger);font-weight:600;overflow-wrap:anywhere}.ui-source-error[hidden],.ui-source .ui-output[hidden]{display:none}}</style><title>mcp-toolcall-lab stub</title><meta name="apple-mobile-web-app-title" content="🧪 MCP Lab"><meta name="application-name" content="🧪 MCP Lab"><style data-shared-ui="web-ui">@layer base,components,theme;
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="generator" content="web_ui bbe5c0b0087f40ff3fffd53bec5111c2ba2d747d"><title>myon-bioinformatics/mcp-toolcall-lab repository diagnostics</title><meta name="apple-mobile-web-app-title" content="🩺 Lab診断"><meta name="application-name" content="🩺 Lab診断"><style>@layer base,components,theme;
 /* css/tokens.css */
 :root{--ui-bg:#0d1117;--ui-panel:#101820;--ui-fg:#d1f7c4;--ui-muted:#8b949e;--ui-border:#58a6ff;--ui-accent:#7ee787;--ui-danger:#cf222e;--ui-radius:0;--ui-text:16px;--ui-space:1rem;--ui-max:960px;--ui-font:Meiryo,メイリオ,sans-serif;--ui-font-mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
 /* auto: dark (the :root palette) unless the browser prefers light, then the github-like palette. */
@@ -160,37 +103,86 @@ body[data-ui-theme="github-like"] .ui-tag{
 /* css/themes/terminal.css */
 /* terminal: glyphs for the token-only terminal palette in tokens.css (# titles, [tags], > buttons, dark output). */
 @layer theme{body[data-ui-theme="terminal"] .ui-title::before{content:"# ";color:var(--ui-accent)}body[data-ui-theme="terminal"] .ui-tag:not(.ui-pass,.ui-fail)::before{content:"["}body[data-ui-theme="terminal"] .ui-tag:not(.ui-pass,.ui-fail)::after{content:"]"}body[data-ui-theme="terminal"] .ui-button::before{content:"> ";color:var(--ui-accent)}body[data-ui-theme="terminal"] .ui-button:hover{border-color:var(--ui-accent)}body[data-ui-theme="terminal"] .ui-output{background:#05080a;color:var(--ui-fg);border:1px solid var(--ui-border);border-radius:0}body[data-ui-theme="terminal"] .ui-panel,body[data-ui-theme="terminal"] .ui-card{box-shadow:none}}
-</style><script src="../vendor/web-ui/js/navigation.js"></script><link rel="icon" type="image/png" sizes="180x180" href="/tools/mcp-toolcall-lab/execution/assets/mcp-toolcall-lab-favicon-artwork.png" data-lab-brand="favicon"><link rel="apple-touch-icon" sizes="180x180" href="/tools/mcp-toolcall-lab/execution/assets/mcp-toolcall-lab-favicon-artwork.png" data-lab-brand="touch-icon"></head><body data-ui-theme="modern"><main class="ui-page term-shell"><nav class="ui-back" aria-label="関連リンク" data-ui-back data-testid="portfolio-back"><p class="ui-links"><a href="../../index.html#tools">← 🧭 Tools &amp; Demos</a></p></nav><header class="term-header"><img data-lab-brand="logo" src="/tools/mcp-toolcall-lab/execution/assets/mcp-toolcall-lab-logo.png" alt="mcp-toolcall-lab logo: a robot and MCP flask, with the tagline Explore · Test · Trust" width="138" height="150"><div><h1 class="ui-title">mcp-toolcall-lab stub</h1><p class="ui-muted">Static Pages evidence for MCP tool-call experiments.</p></div><div class="term-meta"><span class="ui-tag">mcp</span><span class="ui-tag">7 tools</span></div></header><p><a data-testid="lab-execution-link" href="https://myon-bioinformatics.github.io/tools/mcp-toolcall-lab/execution/">Open Execution Lab →</a> (lab-hosted browser interface)</p><aside aria-label="Publication ownership"><p>Portfolio-hosted lab tools. The report below is an imported Actions snapshot, not a live run or a claim of the latest result. See <a href="publication.json">import identity</a> and <a href="https://github.com/myon-bioinformatics/mcp-toolcall-lab/actions/workflows/stub-pages.yml">lab Actions</a>.</p></aside><p id="pages-nav"><a href="#" data-pages-nav="home" data-testid="pages-nav-home">Home</a> · <a href="#wiki" data-pages-nav="wiki" data-testid="pages-nav-wiki">Wiki</a> · <a href="#pixiv" data-pages-nav="pixiv" data-testid="pages-nav-pixiv">Pixiv</a> <a href="#niconico" data-pages-nav="niconico" data-testid="pages-nav-niconico">Niconico</a> · <a href="#pokemon" data-pages-nav="pokemon" data-testid="pages-nav-pokemon">Pokémon</a></p><div class="term-workspace"><section class="ui-panel term-result"><section id="home" data-pages-view="home" data-testid="pages-home"><p id="build-meta"><a href="https://github.com/myon-bioinformatics/mcp-toolcall-lab/commit/6af885d90f7f0b04ab5a29759404130fece946e2" title="6af885d90f7f0b04ab5a29759404130fece946e2">Commit 6af885d9</a> · main · 2026-11-14T19:35:50+09:00 · Merge pull request #217 from myon-bioinformatics/dependabot/uv/dnspython-2.9.2 · (dirty)</p><p>This host's <a href="#wiki">Wiki</a> panel fetches Wikipedia directly in the browser by default. An optionally configured endpoint selects Streamable HTTP MCP (<code>POST /mcp</code>, JSON-RPC 2.0, SSE, <code>Mcp-Session-Id</code>). No hosted Deno service is required. Local <code>GET /wiki</code> still needs compose or <code>stub_front serve</code>.</p>
-<p><a href="repository-diagnostics.html">Repository diagnostics</a> · <a href="repository-diagnostics.json">JSON</a> · <a href="repository-diagnostics.jsonl">JSONL</a></p>
-<h2>Last Actions summary</h2>
-<p>Allowlisted snapshot from the last <code>stub-pages</code> GitHub Actions run (stub + MCP mock + CPU-class model on one compose network). Raw MCP logs are not on Pages. This host cannot keep Docker running.</p>
-<pre class="ui-output"><code class="language-json">{
-  "source": "stub-pages",
-  "verdict": "PASS",
-  "antipattern_id": null,
-  "case": "MCP_SUCCESS",
-  "cpu_llm_ok": true,
-  "cpu_llm_backend": "lite-stub",
-  "cpu_llm_completion_ok": true,
-  "stub_ok": true,
-  "turn_http": 200,
-  "showed_expected_fragment": true,
-  "observation_n": 1,
-  "antipattern_ids": []
-}
-</code></pre>
-<ul>
-<li>Local: <code>docker compose -f docker/stub-pages/docker-compose.yml up --build</code></li>
-<li>Actions: workflow <code>stub-pages</code> (<code>workflow_dispatch</code>)</li>
-<li>MCP: <code>http://mcp-mock:8000/mcp</code> · CPU model: <code>http://cpu-llm:8080/v1</code></li>
-</ul>
-</section><section id="wiki" data-pages-view="wiki" data-testid="pages-wiki" hidden><h2>Wikipedia extract (direct browser / optional MCP)</h2>
-<p>This <code>#wiki</code> panel defaults to direct MediaWiki access. With an optional endpoint it speaks MCP Streamable HTTP (<code>initialize</code> → <code>notifications/initialized</code> → <code>tools/list</code> → <code>tools/call</code> <code>fetch_wikipedia_article</code>). Heading switches reuse the in-memory extract (no second fetch). github.io <code>/wiki</code> stays 404; that path is the local stdlib stub. Local MCP / stub form:</p>
-<pre class="ui-output"><code class="language-bash">python -m mcp_toolcall_lab.stub_front serve --port 8765
-# then open /wiki  (http://127.0.0.1:8765/wiki)
-cd deploy/wikipedia-mcp &amp;&amp; deno task start
-# Pages #wiki POSTs to the MCP URL (MCP_TOOLCALL_LAB_PAGES_MCP_URL)
-</code></pre>
-<p>CI screenshots of the local stub still use <code>fixtures/wikipedia/exampleville_extract.json</code>.</p>
-<p data-testid="pages-wiki-disclaimer">Browser → Wikipedia directly by default (MediaWiki origin=*). An optional configured endpoint uses Streamable HTTP MCP instead. No API key or hosted Deno service is required. Not OpenAI tool_calls.</p><p data-testid="pages-wiki-mcp-endpoint">MCP: disabled (direct browser → Wikipedia)</p><div id="pages-wiki-app" data-testid="pages-wiki-app" data-mcp-url=""><form id="pages-wiki-form" data-testid="pages-wiki-form"><p><label for="pages-wiki-title">Wikipedia title</label> <input id="pages-wiki-title" name="title" value="" placeholder="Article title" data-testid="pages-wiki-title" class="ui-input"></p><p><label for="pages-wiki-lang">Language</label> <select id="pages-wiki-lang" name="lang" data-testid="pages-wiki-lang" class="ui-input"><option value="en" selected>en</option><option value="ja">ja</option></select> <button type="submit" data-testid="pages-wiki-fetch" class="ui-button">Fetch</button></p><p><label for="pages-wiki-heading">Heading</label> <select id="pages-wiki-heading" name="heading" data-testid="pages-wiki-heading" class="ui-input"><option value="">(full extract)</option></select></p></form><p data-testid="pages-wiki-error" hidden></p><p data-testid="pages-wiki-canonical" hidden></p><p data-testid="pages-wiki-extract-note">MediaWiki plaintext extract, HTML-escaped. This page does not scrape Wikipedia HTML or run it through markdown.py.</p><div data-testid="pages-wiki-extract" hidden class="ui-output"></div></div><script src="pages-wiki.js?v=9d179d5a8b"></script><p><a href="#" data-pages-nav="home" data-testid="pages-nav-back">Back to report</a></p></section><section id="niconico" data-pages-view="niconico" data-testid="pages-niconico" hidden><h2>Niconico Search: Snapshot Search API v2</h2><p>Try the official Niconico Snapshot Search API v2. Direct browser requests may be blocked by CORS. If results cannot be loaded, use the official search below.</p><div id="pages-niconico-app" data-testid="pages-niconico-app"><form id="pages-niconico-form" data-testid="pages-niconico-form"><p><label for="pages-niconico-query">Keyword</label> <input id="pages-niconico-query" name="q" value="初音ミク" placeholder="Search query" data-testid="pages-niconico-query" class="ui-input"></p><p><label for="pages-niconico-sort">Sort</label> <select id="pages-niconico-sort" name="sort" data-testid="pages-niconico-sort" class="ui-input"><option value="-viewCounter" selected>Views (High to Low)</option><option value="-startTime">Newest</option><option value="-likeCounter">Likes (High to Low)</option><option value="-mylistCounter">Mylists (High to Low)</option></select> <button type="submit" data-testid="pages-niconico-search" class="ui-button">Search</button></p></form><p><a id="pages-niconico-official" data-testid="pages-niconico-official" href="https://www.nicovideo.jp/search/%E5%88%9D%E9%9F%B3%E3%83%9F%E3%82%AF?sort=v&amp;order=d" target="_blank" rel="noopener noreferrer">Search on Niconico ↗</a></p><p id="pages-niconico-status" data-testid="pages-niconico-status" class="ui-muted"></p><p role="alert" id="pages-niconico-error" data-testid="pages-niconico-error" hidden></p><div id="pages-niconico-results" data-testid="pages-niconico-results"></div></div><script src="../niconico/search.js"></script><p><a href="#" data-pages-nav="home" data-testid="pages-nav-back">Back to report</a></p></section><section id="pixiv" data-pages-view="pixiv" data-testid="pages-pixiv" hidden><h2>Pixiv Encyclopedia: Open → Source → Extract</h2><p>GitHub Pages is a static host with no server-side proxy, and <code>dic.pixiv.net</code> does not opt in to cross-origin browser requests the way Wikipedia does -- so this panel no longer searches or fetches dic.pixiv.net from your browser. Open the article or its history in a new tab, open a revision's <strong>原文表示</strong> (view source) page there, copy its text, and paste it below to Extract a stable title / reading / overview / headings / body locally. Plain Pixiv source is normalized by the portfolio wrapper: star headings, wiki links, row-header tables, media links, and unspaced list items are converted to Markdown-compatible forms without inventing unsupported semantics.</p><div id="pages-pixiv-app" data-testid="pages-pixiv-app"><p><label for="pages-pixiv-title">Pixiv Encyclopedia title</label> <input id="pages-pixiv-title" name="title" value="" placeholder="Article title" data-testid="pages-pixiv-title" class="ui-input"></p><p><button type="button" data-testid="pages-pixiv-open-article" class="ui-button">Open article</button> <button type="button" data-testid="pages-pixiv-open-history" class="ui-button">Open history</button></p><form id="pages-pixiv-source-form" data-testid="pages-pixiv-source-form"><p><label for="pages-pixiv-source-url">Revision source URL (optional)</label> <input id="pages-pixiv-source-url" name="source-url" value="" placeholder="https://dic.pixiv.net/history/&lt;title&gt;/&lt;revision_id&gt;/source" data-testid="pages-pixiv-source-url" class="ui-input"></p><p><label for="pages-pixiv-source-text">Pasted 原文表示 source text</label><br><textarea id="pages-pixiv-source-text" name="source-text" rows="8" data-testid="pages-pixiv-source-text" class="ui-input"></textarea></p><p><button type="submit" data-testid="pages-pixiv-extract-submit" class="ui-button">Extract</button></p></form><p><label for="pages-pixiv-heading">見出し</label> <select class="ui-input" id="pages-pixiv-heading" name="pages-pixiv-heading" disabled><option value="">(全文)</option></select></p><p data-testid="pages-pixiv-status" class="ui-muted"></p><p role="alert" data-testid="pages-pixiv-error" hidden></p><div data-testid="pages-pixiv-extract" hidden class="ui-output"></div></div><p class="ui-muted">Want an automatic fetch instead of a manual paste? The local/MCP path already resolves <code>/a/&lt;title&gt;</code> directly and normalizes it with the vendored markdown.py:</p><pre class="ui-output">python -m mcp_toolcall_lab.stub_front serve --port 8765
-# then open /pixiv?title=&lt;title&gt;</pre><ul><li><code>fetch_pixiv_dictionary_section</code> — Fetch one public pixiv Encyclopedia article HTML page, normalize it through vendored markdown.py, and return its hierarchical heading list or one selected section. The cached article is reused when only the heading changes.</li><li><code>fetch_pixiv_dictionary_article</code> — Fetch one public pixiv Encyclopedia article HTML page and normalize it through vendored markdown.py. Returns canonical_title, Markdown, hierarchical headings and source_url.</li></ul><script src="../vendor/web-ui/js/controls.js"></script><script src="pixiv-markup.js"></script><script src="pages-pixiv.js?v=c19d6a41df"></script><script src="pixiv-panel.js"></script><p><a href="#" data-pages-nav="home" data-testid="pages-nav-back">Back to report</a></p></section><section id="pokemon" data-pages-view="pokemon" data-testid="pages-pokemon" hidden><section id="source-pokemon" data-ui-source data-source-spec="{&quot;id&quot;:&quot;pokemon&quot;,&quot;label&quot;:&quot;Pokémon name or number&quot;,&quot;heading&quot;:&quot;Pokémon&quot;,&quot;note&quot;:&quot;One GET to PokéAPI per press, never retried. If the browser blocks it, open the JSON and paste it below.&quot;,&quot;placeholder&quot;:&quot;ditto&quot;,&quot;name&quot;:&quot;[a-z0-9][a-z0-9-]{0,39}&quot;,&quot;url&quot;:&quot;https://pokeapi.co/api/v2/pokemon/{name}&quot;,&quot;title&quot;:&quot;{name} (#{id})&quot;,&quot;missing&quot;:&quot;Enter a Pokémon name or number (a-z, 0-9, -).&quot;,&quot;error&quot;:&quot;not a PokéAPI pokemon response&quot;,&quot;tables&quot;:[{&quot;headers&quot;:[&quot;type&quot;,&quot;height m&quot;,&quot;weight kg&quot;],&quot;rows&quot;:[[{&quot;key&quot;:&quot;types&quot;,&quot;sort&quot;:&quot;slot&quot;,&quot;pick&quot;:&quot;type.name&quot;},{&quot;key&quot;:&quot;height&quot;,&quot;div&quot;:10},{&quot;key&quot;:&quot;weight&quot;,&quot;div&quot;:10}]]},{&quot;headers&quot;:[&quot;stat&quot;,&quot;base&quot;],&quot;each&quot;:&quot;stats&quot;,&quot;cells&quot;:[{&quot;key&quot;:&quot;stat.name&quot;},{&quot;key&quot;:&quot;base_stat&quot;}]},{&quot;headers&quot;:[&quot;ability&quot;,&quot;hidden&quot;],&quot;each&quot;:&quot;abilities&quot;,&quot;sort&quot;:&quot;slot&quot;,&quot;cells&quot;:[{&quot;key&quot;:&quot;ability.name&quot;},{&quot;key&quot;:&quot;is_hidden&quot;,&quot;yes&quot;:&quot;yes&quot;}]}]}" class="ui-panel ui-source"><h2>Pokémon</h2><p class="ui-muted">One GET to PokéAPI per press, never retried. If the browser blocks it, open the JSON and paste it below.</p><label for="pokemon-name">Pokémon name or number</label><div class="ui-source-row"><input id="pokemon-name" data-source-name placeholder="ditto" autocomplete="off" class="ui-input"> <button type="button" data-source-fetch class="ui-button">Fetch</button> <button type="button" data-source-open class="ui-button">Open JSON</button></div><label for="pokemon-text">Pasted JSON</label><textarea id="pokemon-text" data-source-text rows="8" class="ui-input"></textarea><button type="button" data-source-extract class="ui-button">Extract</button><p role="status" aria-live="polite" data-source-status class="ui-muted"></p><p role="alert" data-source-error hidden class="ui-source-error"></p><pre data-source-output hidden class="ui-output"></pre></section><p class="ui-muted">Same tables as the MCP/local <code>pokeapi/pokemon</code> and <code>pokeapi/source</code> operations.</p><script src="source.js?v=77a2388184"></script><p><a href="#" data-pages-nav="home" data-testid="pages-nav-back">Back to report</a></p></section></section><aside aria-label="Supporting information"><section class="ui-card term-evidence"><h2>Tool catalog</h2><ul id="tool-catalog"><li><code>find_municipalities</code> — Find mock municipalities by name or prefecture.</li><li><code>find_transaction_prices</code> — Return mock property transaction prices. This never calls a live API.</li><li><code>find_stations</code> — Find mock stations in a municipality.</li><li><code>fetch_wikipedia_section</code> — Fetch a real Wikipedia article&#x27;s sections over HTTP (the one family here that is not a mock). Omit `heading` to list section titles (a pulldown); pass one to get that section&#x27;s body. Unmatched heading is an empty result, not an error. Same article is cached in-process so heading switches do not refetch.</li><li><code>fetch_wikipedia_article</code> — Fetch a real Wikipedia article as a MediaWiki plaintext extract (not HTML). Returns canonical_title, extract, and headings from that same fetch. In-process TTL/LRU cache reuses the extract when only the heading changes.</li><li><code>fetch_pixiv_dictionary_section</code> — Fetch one public pixiv Encyclopedia article HTML page, normalize it through vendored markdown.py, and return its hierarchical heading list or one selected section. The cached article is reused when only the heading changes.</li><li><code>fetch_pixiv_dictionary_article</code> — Fetch one public pixiv Encyclopedia article HTML page and normalize it through vendored markdown.py. Returns canonical_title, Markdown, hierarchical headings and source_url.</li></ul></section><section class="ui-card term-history"><h2>Workspace provenance</h2><p>Styling: PySaiyanWeBoo <code>pysaiyanweboo.core_css("terminal")</code> generated into the local <code>terminal.css</code> (no external stylesheet chain).</p></section></aside></div></main><script type="module" src="shared-navigation.mjs"></script></body></html>
+</style><link rel="icon" type="image/png" sizes="180x180" href="/tools/mcp/execution/assets/mcp-toolcall-lab-favicon-artwork.png" data-lab-brand="favicon"><link rel="apple-touch-icon" sizes="180x180" href="/tools/mcp/execution/assets/mcp-toolcall-lab-favicon-artwork.png" data-lab-brand="touch-icon"></head><body data-ui-theme="github-like"><main class="ui-page"><nav class="ui-back" aria-label="関連リンク" data-ui-back data-testid="portfolio-back"><p class="ui-links"><a href="../../index.html#tools">← 🧭 Tools &amp; Demos</a></p></nav><header><img data-lab-brand="logo" src="/tools/mcp/execution/assets/mcp-toolcall-lab-logo.png" alt="mcp-toolcall-lab logo: a robot and MCP flask, with the tagline Explore · Test · Trust" width="138" height="150"><h1 class="ui-title">myon-bioinformatics/mcp-toolcall-lab repository diagnostics</h1><p class="ui-muted">Canonical public metadata plus anonymous GitHub URL observations.</p></header><div id="metadata"></div><section class="ui-panel"><h2>Public URL observations</h2><p id="summary" class="ui-muted">Loading…</p><div id="observations" class="ui-grid"></div></section><p><a href="./repository-diagnostics.json">JSON</a> · <a href="./repository-diagnostics.jsonl">JSONL</a></p></main><script>(function (global) {
+  "use strict";
+
+  function esc(value) {
+    return String(value).replace(/[&<>"']/g, function (c) {
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  function bytes(value) {
+    if (value === null || value === undefined) return "not measured";
+    if (!Number.isInteger(value) || value < 0) throw new Error("invalid byte measurement");
+    var units = ["B", "KiB", "MiB", "GiB"], n = value, i = 0;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i += 1; }
+    return (i === 0 ? String(n) : n.toFixed(2)) + " " + units[i];
+  }
+
+  function validate(record) {
+    if (!record || record.schema_version !== "1.0") throw new Error("unsupported metadata schema");
+    if (!record.head || !record.repository || !record.measurements) throw new Error("incomplete metadata");
+    if (typeof record.repository.full_name !== "string" || !record.repository.full_name) throw new Error("invalid repository");
+    if (record.head.short_sha !== record.head.sha.slice(0, 8)) throw new Error("invalid short sha");
+    return record;
+  }
+
+  function commitLine(record) {
+    validate(record);
+    var h = record.head;
+    return "Commit " + h.short_sha + " · " + h.branch + " · " + h.timestamp + " · " + h.subject;
+  }
+
+  function render(record) {
+    validate(record);
+    var m = record.measurements;
+    return '<section class="repo-diagnostics" data-schema-version="' + esc(record.schema_version) + '">' +
+      '<h2>Repository diagnostics</h2>' +
+      '<p class="repo-diagnostics__repository">' + esc(record.repository.full_name) + '</p>' +
+      '<p class="repo-diagnostics__commit">' + esc(commitLine(record)) + '</p>' +
+      '<dl class="repo-diagnostics__measurements">' +
+      '<dt>GitHub reported</dt><dd>' + esc(bytes(m.github_reported_size_bytes)) + '</dd>' +
+      '<dt>Working tree</dt><dd>' + esc(bytes(m.working_tree_bytes)) + '</dd>' +
+      '<dt>Release artifact</dt><dd>' + esc(bytes(m.release_artifact_bytes)) + '</dd>' +
+      '</dl></section>';
+  }
+
+  function observationCard(item) {
+    var status = item && item.http_status != null ? "HTTP: " + esc(item.http_status) : "HTTP: not observed";
+    var url = item && typeof item.url === "string" ? item.url : "";
+    return '<article class="ui-card"><h3>' + esc(item && item.kind || "resource") + '</h3>' +
+      '<p class="ui-tag">' + esc(item && item.status || "unknown") + '</p>' +
+      '<p class="ui-muted">' + status + '</p>' +
+      // A link only for an https:// address; anything else is shown as text.
+      (/^https:\/\//.test(url) ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(url) + '</a>' : url ? '<span>' + esc(url) + '</span>' : '') + '</article>';
+  }
+  function summaryLine(resolver) {
+    return "Auth: " + (resolver && resolver.auth || "unknown") + " \u00b7 Status: " + (resolver && resolver.status || "unknown");
+  }
+  function renderObservations(resolver) {
+    var items = resolver && Array.isArray(resolver.observations) ? resolver.observations : [];
+    return items.map(observationCard).join("");
+  }
+  function mount(doc, url) {
+    // The diagnostics page: metadata, summary line and observation cards from one JSON next to the page.
+    var root = doc.getElementById("metadata"), summary = doc.getElementById("summary"), list = doc.getElementById("observations");
+    return fetch(url, {cache: "no-store"}).then(function (response) {
+      if (!response.ok) throw new Error("fetch failed");
+      return response.json();
+    }).then(function (payload) {
+      root.innerHTML = render(payload.metadata);
+      summary.textContent = summaryLine(payload.resolver);
+      list.innerHTML = renderObservations(payload.resolver);
+    }).catch(function () {
+      summary.textContent = "Diagnostics could not be loaded.";
+      list.innerHTML = "";
+    });
+  }
+
+  var api = {validate: validate, formatBytes: bytes, commitLine: commitLine, render: render,
+             observationCard: observationCard, summaryLine: summaryLine, renderObservations: renderObservations, mount: mount};
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  global.RepositoryDiagnostics = api;
+})(typeof globalThis !== "undefined" ? globalThis : this);
+</script><script>RepositoryDiagnostics.mount(document, "./repository-diagnostics.json");</script></body></html>

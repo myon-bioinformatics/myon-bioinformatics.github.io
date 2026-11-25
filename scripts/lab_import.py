@@ -143,7 +143,7 @@ def apply_pixiv_controls(page: str) -> str:
 
 # ── lab artwork ──
 # Same-origin published lab assets. Absolute paths resolve from both nested pages.
-ASSET_BASE = '/tools/mcp-toolcall-lab/execution/assets/'
+ASSET_BASE = '/tools/mcp/execution/assets/'
 FAVICON = ASSET_BASE + 'mcp-toolcall-lab-favicon-artwork.png'
 LOGO = ASSET_BASE + 'mcp-toolcall-lab-logo.png'
 
@@ -175,9 +175,9 @@ def apply_lab_branding(page: str) -> str:
 FILES = ('index.html', 'terminal.css', 'pages-hash.js', 'pages-wiki.js',
          'pages-pixiv.js', 'summary.json', 'build_meta.json')
 OPTIONAL = ('repository-diagnostics.html', 'repository-diagnostics.json', 'repository-diagnostics.jsonl', 'source.js')
-DESTINATION = ROOT / 'tools' / 'mcp-toolcall-lab'
+DESTINATION = ROOT / 'tools' / 'mcp'
 
-EXECUTION_URL = "https://myon-bioinformatics.github.io/tools/mcp-toolcall-lab/execution/"
+EXECUTION_URL = "https://myon-bioinformatics.github.io/tools/mcp/execution/"
 
 
 def apply_public_examples(payload: dict) -> None:

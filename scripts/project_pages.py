@@ -688,7 +688,7 @@ TOOLS = 'media/tools/receipt.json'       # what this build recorded; the pages l
 # key: (repository, folder under the site, entry pages inside it)
 _STUDIO_ROUTES = load_module('studio_routes', '_src/tools/studio_routes.py')
 TOOL_SOURCES = {'ironmate': ('myon-bioinformatics/Ironmate', 'tools', _STUDIO_ROUTES.PUBLIC_STUDIO_ENTRIES),
-                'mcp-toolcall-lab': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp-toolcall-lab/execution', ('',)),
+                'mcp-toolcall-lab': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp/execution', ('',)),
                 'dragowing': ('myon-bioinformatics/DRAgoWing', 'tools/heatmap', ('',))}
 
 

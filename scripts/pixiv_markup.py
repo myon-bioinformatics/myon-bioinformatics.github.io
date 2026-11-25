@@ -1,7 +1,7 @@
 """Conservative Pixiv-source wrapper. Stdlib only; Markdown rendering stays external.
 
 Use only for known Pixiv source, not for autodetecting arbitrary Markdown.
-The browser mirror is tools/mcp-toolcall-lab/pixiv-markup.js; shared fixtures enforce parity.
+The browser mirror is tools/mcp/pixiv-markup.js; shared fixtures enforce parity.
 """
 from __future__ import annotations
 import re

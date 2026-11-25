@@ -212,7 +212,7 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
     assert "arrow attributes and advanced formatting" in editing["unsupported"]
 
     html = (SITE / "index.html").read_text(encoding="utf-8")
-    card_start = html.index('<h3 id="ironmate">Ironmate</h3>')
+    card_start = html.index('<h3 id="studios">🖼️ スライド・画像工房</h3>')
     card = html[card_start:html.index("</article>", card_start)]
     assert "PPTX対応は計画段階" not in card
     assert "Markdown→PPTX" in card
@@ -225,13 +225,29 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
 def test_lab_pages_are_hosted_by_portfolio():
     parser = LinkParser()
     parser.feed((SITE / "index.html").read_text())
-    assert "mcp-toolcall-lab" in parser.ids
-    assert "./tools/mcp-toolcall-lab/" in parser.links
-    assert (ROOT / "tools/mcp-toolcall-lab/index.html").is_file()
+    assert "mcp" in parser.ids
+    assert "./tools/mcp/" in parser.links
+    assert (ROOT / "tools/mcp/index.html").is_file()
+
+
+def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
+    """🏷 A card built from other repositories is a tool, not those projects: its title, id and paths are not a repository
+    name, and a 🧩 line names where it comes from (every ``from`` is a real repository)."""
+    front = _front()
+    names = {repo['name'].lower() for repo in json.loads((ROOT / 'api/repos.json').read_text(encoding='utf-8'))['repos']}
+    page = (SITE / "index.html").read_text()
+    for card in front.PORTAL:
+        assert card['title'].lower() not in names and card.get('id', '').lower() not in names, card['title']
+        for name in card.get('from', ()):
+            assert name.lower() in names, name
+        if 'from' in card:
+            assert '🧩 出どころ: ' + ' · '.join(card['from']) in page, card['title']
+        links = card['links'] if isinstance(card['links'], list) else []
+        assert not any(f'/tools/{name}/' in href.lower() for _, href in links for name in names), card['title']
 
 
 # The demos (DEMOS) and project pages (projects.json showcases) come from scripts/project_pages.py; they are tool pages too.
-TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp-toolcall-lab/index.html", "tools/mcp-toolcall-lab/repository-diagnostics.html",
+TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp/index.html", "tools/mcp/repository-diagnostics.html",
               "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html", "tools/flow/index.html",
               "tools/repo-map/index.html",
               *sorted(str(path.relative_to(SITE)) for folder in ("demos", "projects") for path in (SITE / "tools" / folder).glob("*.html")))
@@ -459,9 +475,9 @@ def canonical_data_errors(profile: dict, projects: list, catalog: dict, registry
         if repository_url and repository_url != repo['url']:
             errors.append(f"repository service URL drift for {name}: {repository_url} != {repo['url']}")
         prefix = f'https://myon-bioinformatics.github.io/{name}/'
-        routes = (('tools/' + route for route in PAGES.TOOL_SOURCES['ironmate'][2])
-                  if name == 'Ironmate' else (f'tools/{name.lower()}/',))
-        built_here = tuple('https://myon-bioinformatics.github.io/' + route for route in routes)
+        # 🧰 a tool built here from this repository lives at its feature route (TOOL_SOURCES), not at the repository's name
+        built_here = tuple(f'https://myon-bioinformatics.github.io/{folder}/{entry}' for repository, folder, entries
+                           in PAGES.TOOL_SOURCES.values() if repository == f'myon-bioinformatics/{name}' for entry in entries)
         for service_name, service in group.items():
             if not isinstance(service, dict):
                 errors.append(f'invalid service entry at services.projects.{name}.{service_name}')
@@ -572,7 +588,7 @@ def test_home_screen_tool_page_shortcuts_open_that_page_and_show_an_icon():
         assert label == page.metas["application-name"] and len(label) <= 12, (name, label)
         for rel in ("icon", "apple-touch-icon"):
             [icon] = rel_links(page, rel)
-            if icon["href"].startswith("/tools/mcp-toolcall-lab/execution/"):   # the lab artwork, built here at deploy time (--record-tools)
+            if icon["href"].startswith("/tools/mcp/execution/"):   # the lab artwork, built here at deploy time (--record-tools)
                 continue
             png_size((SITE / name).parent / icon["href"])
     assert "img-src 'self'" in (SITE / TOOL_PAGES[0]).read_text(encoding="utf-8")   # its CSP lets the icons load
@@ -584,7 +600,7 @@ def test_home_screen_every_local_link_and_asset_resolves():
         for ref in page.refs:
             url = urlparse(ref)
             if url.scheme or ref.startswith("/"):                   # 🌐 other sites, or the lab's Pages on this host
-                assert url.scheme == "https" or ref.startswith("/tools/mcp-toolcall-lab/execution/"), (name, ref)
+                assert url.scheme == "https" or ref.startswith("/tools/mcp/execution/"), (name, ref)
                 continue
             target = ((SITE / name).parent / url.path).resolve() if url.path else SITE / name
             target = target / "index.html" if target.is_dir() else target
@@ -768,7 +784,7 @@ spec = importlib.util.spec_from_file_location('lab_import', ROOT / 'scripts/lab_
 module = importlib.util.module_from_spec(spec)
 sys.modules['lab_import'] = module  # the tests below import names from it; loading it leaves sys.path alone
 spec.loader.exec_module(module)
-PUBLIC = ROOT / 'tools/mcp-toolcall-lab'
+PUBLIC = ROOT / 'tools/mcp'
 
 
 def test_published_identity_assets_and_real_tool_controls():
@@ -811,8 +827,8 @@ def test_transferred_javascript_extracts_source_and_preserves_view_routes():
     import subprocess
     js = r'''
 const assert = require('node:assert/strict');
-const pixiv = require('./tools/mcp-toolcall-lab/pages-pixiv.js');
-const route = require('./tools/mcp-toolcall-lab/pages-hash.js');
+const pixiv = require('./tools/mcp/pages-pixiv.js');
+const route = require('./tools/mcp/pages-hash.js');
 const result = pixiv.extractSource({title:'Demo',sourceText:'Example original source text'});
 assert.equal(result.ok,true);
 assert.equal(result.title,'Demo');
@@ -901,7 +917,7 @@ def test_example_defaults_are_blank_and_execution_is_linked():
         assert module.EXECUTION_URL in path.read_text()
     services = json.loads((ROOT / 'services.json').read_text())
     assert services['services']['projects']['mcp-toolcall-lab']['execution']['url'] == module.EXECUTION_URL
-    subprocess.run(['node', '-e', "require('node:assert/strict').equal(require('./tools/mcp-toolcall-lab/pages-wiki.js').DEFAULT_TITLE, '')"], cwd=ROOT, check=True)
+    subprocess.run(['node', '-e', "require('node:assert/strict').equal(require('./tools/mcp/pages-wiki.js').DEFAULT_TITLE, '')"], cwd=ROOT, check=True)
 
 
 def test_import_clears_only_example_controls_and_preserves_original_evidence():
@@ -928,7 +944,7 @@ def test_lab_branding_is_idempotent_and_uses_published_absolute_paths():
         assert page.count('mcp-toolcall-lab-logo.png') == 1
         for asset in (FAVICON, LOGO):
             assert asset in page
-            assert urljoin('https://myon-bioinformatics.github.io/tools/mcp-toolcall-lab/' + name, asset) == 'https://myon-bioinformatics.github.io' + asset
+            assert urljoin('https://myon-bioinformatics.github.io/tools/mcp/' + name, asset) == 'https://myon-bioinformatics.github.io' + asset
     upstream = '<html><head><link rel="icon" href="assets/old.png"></head><body><header><img src="assets/mcp-toolcall-lab-logo.png"></header></body></html>'
     branded = apply_lab_branding(upstream)
     assert apply_lab_branding(branded) == branded
