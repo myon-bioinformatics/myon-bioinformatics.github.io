@@ -320,26 +320,13 @@ def theme_options(ui) -> str:
         f'<option value="{_a(name)}">{mark.get(name, "🎨")} {_e(name)}</option>' for name in ui.theme_palettes())
 
 
-_MARKDOWN_HTML_CACHE: dict[str, str] = {}
-
-
 def markdown_fragment(root: Path, relative: str) -> str:
-    """Build-time Markdown from a reviewed repository file, not visitor-supplied HTML."""
+    """🗓️ A reviewed repository .md file (never visitor-supplied HTML) as HTML at build time, by the pinned markdown.py."""
     import markdown as md_market
-    import importlib.util
-    spec = importlib.util.spec_from_file_location('markdown_transport', Path(__file__).with_name('markdown_transport.py'))
-    transport = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(transport)
     path = (root / relative).resolve()
     if not path.is_relative_to(root.resolve()) or not path.is_file() or path.suffix.lower() != '.md':
         raise ValueError('Markdown source must be an existing repository .md file')
-    raw = path.read_bytes()
-    encoded = transport.encode_markdown(raw)
-    import tomllib
-    with (root / 'pyproject.toml').open('rb') as manifest:
-        rev = tomllib.load(manifest)['tool']['uv']['sources']['md-market']['rev']
-    return transport.render_cached(transport.decode_markdown(encoded), md_market.markdown_to_html,
-                         f'md-market@{rev}:default', _MARKDOWN_HTML_CACHE)
+    return md_market.markdown_to_html(path.read_text(encoding='utf-8'))
 
 
 def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:

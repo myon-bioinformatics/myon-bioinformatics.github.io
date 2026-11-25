@@ -288,7 +288,6 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     shutil.copyfile(ROOT / 'scripts/map_tool.py', root / 'scripts/map_tool.py')
     shutil.copyfile(ROOT / 'scripts/world.py', root / 'scripts/world.py')                 # 🌍 the world pages and Parallel Tokyo
     shutil.copyfile(ROOT / 'scripts/chat.py', root / 'scripts/chat.py')                   # 💬 the chat page runs it in Pyodide
-    shutil.copyfile(ROOT / 'scripts/markdown_transport.py', root / 'scripts/markdown_transport.py')   # 🗓️ the weekly fragment
     (root / 'docs').mkdir()
     shutil.copyfile(ROOT / 'docs/weekly-view.md', root / 'docs/weekly-view.md')
     (root / 'api').mkdir()
