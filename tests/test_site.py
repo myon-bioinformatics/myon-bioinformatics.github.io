@@ -1241,7 +1241,9 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
                 else:
                     page.fill('[data-chat-input]', text)
                     page.press('[data-chat-input]', 'Enter')
-                page.wait_for_function(f'n => document.querySelectorAll("[data-chat-who=bot]").length > n', arg=count)
+                # 💬 PySaiyanWeBoo's chat shows ⏳ at once and turns ➤ back on when the answer is in
+                page.wait_for_function('n => document.querySelectorAll("[data-chat-who=bot]").length > n'
+                                       ' && !document.querySelector("[data-chat-send]").disabled', arg=count, timeout=300_000)
                 if done:
                     page.wait_for_function('t => document.querySelector("[data-chat-who=bot]:last-child").textContent.includes(t)',
                                            arg=done, timeout=300_000)
