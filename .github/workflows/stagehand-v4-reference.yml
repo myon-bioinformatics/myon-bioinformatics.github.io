@@ -2,8 +2,12 @@ name: Stagehand v4 dual-SDK reference
 
 on:
   push:
+    branches: [main]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   changes:
     permissions:
@@ -11,6 +15,7 @@ jobs:
     uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@9e3da7ae1846e9604ebc24bb5178f7de094a4e77
 
   node:
+    timeout-minutes: 30
     if: needs.changes.outputs.product_changed == 'true'
     needs: changes
     runs-on: ubuntu-latest
@@ -23,6 +28,7 @@ jobs:
       - run: npm run stagehand:surface
 
   python:
+    timeout-minutes: 30
     if: needs.changes.outputs.product_changed == 'true'
     needs: changes
     runs-on: ubuntu-latest
@@ -49,6 +55,7 @@ jobs:
           retention-days: 14
 
   metadata:
+    timeout-minutes: 30
     if: needs.changes.outputs.product_changed == 'true'
     needs: changes
     runs-on: ubuntu-latest
@@ -77,6 +84,7 @@ jobs:
 
 
   screenshots:
+    timeout-minutes: 30
     if: needs.changes.outputs.product_changed == 'true'
     needs: changes
     runs-on: ubuntu-latest
