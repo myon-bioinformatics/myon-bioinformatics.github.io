@@ -269,23 +269,12 @@ def add_back_nav(page: str) -> str:
 
 
 def add_home_label(page: str, label: str, *, icons_from: str | None = None) -> str:
-    """Name a home-screen shortcut of the page ``label`` (iOS reads apple-mobile-web-app-title, Chrome application-name).
-
-    A long <title> is cut off under the icon; replaces any earlier label, so it is idempotent. ``icons_from`` is the way
-    back to the site root (``'../../'``): it also links the portfolio's tab icon and home-screen icon, replacing any others.
-    """
-    page = re.sub(r'<meta\b[^>]*\bname=["\'](?:apple-mobile-web-app-title|application-name)["\'][^>]*>', '', page, flags=re.I)
-    value = html.escape(label, quote=True)
-    tags = f'<meta name="apple-mobile-web-app-title" content="{value}"><meta name="application-name" content="{value}">'
-    if icons_from is not None:
-        page = re.sub(r'<link\b[^>]*\brel=["\'](?:icon|apple-touch-icon)["\'][^>]*>', '', page, flags=re.I)
-        tags += (f'<link rel="icon" type="image/png" sizes="32x32" href="{icons_from}assets/brand/favicon-32x32.png">'
-                 f'<link rel="apple-touch-icon" sizes="170x170" href="{icons_from}assets/brand/myon-profile-icon.png">')
-    # Right after <title>, the name it shortens, so steps that append to </head> (lab branding) keep their place.
-    for anchor in ('</title>', '</head>'):
-        if anchor in page:
-            return page.replace(anchor, anchor + tags if anchor == '</title>' else tags + anchor, 1)
-    raise ValueError('page has no </title> or </head>')
+    """📱 PySaiyanWeBoo's ``home_label``: the home-screen shortcut is named ``label``; ``icons_from`` (the way back to the site
+    root, ``'../../'``) also gives the page the portfolio's tab icon and home-screen icon. Idempotent."""
+    import pysaiyanweboo as ui
+    icons = {} if icons_from is None else {'icon': f'{icons_from}assets/brand/favicon-32x32.png',
+                                           'touch_icon': f'{icons_from}assets/brand/myon-profile-icon.png'}
+    return ui.home_label(page, label, **icons)
 
 
 def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
@@ -388,58 +377,9 @@ def render_projects(ui, root: Path = ROOT) -> dict[str, bytes]:
 # ── 🎞 GIF工房 and 🎥 the moving samples: both draw with PySaiyanWeBoo's gif.js (window.UiGif) ──────────────────────────
 GIF_PAGE = 'tools/gif/index.html'
 SAMPLES = 'media/pages/'          # 🎥 one moving sample per repository's Pages, recorded at deploy time (not kept in git)
-GIF_SIZES = ('240x432', '320x240', '480x360', '640x480', '392x704')   # canvas below the caption, multiples of 8
-GIF_SCRIPT = r"""(() => {
-  const $ = id => document.getElementById(id);
-  let url = null;
-  // 🖼 any image the browser can open → PNG, so the encoder sees one format (nothing leaves the page)
-  const png = async file => {
-    const bitmap = await createImageBitmap(file), canvas = document.createElement("canvas");
-    canvas.width = bitmap.width; canvas.height = bitmap.height;
-    canvas.getContext("2d").drawImage(bitmap, 0, 0);
-    return canvas.toDataURL("image/png").split(",")[1];
-  };
-  $("gif-files").addEventListener("change", () => {
-    $("gif-status").textContent = `🖼 ${$("gif-files").files.length}枚`;
-  });
-  $("gif-make").addEventListener("click", async () => {
-    const files = [...$("gif-files").files];
-    if (!files.length) { $("gif-status").textContent = "📂 画像を選んでください"; return; }
-    const [width, height] = $("gif-size").value.split("x").map(Number);
-    const delay = Number($("gif-delay").value), named = $("gif-names").checked;
-    $("gif-status").textContent = `⏳ ${files.length}枚…`;
-    try {
-      const recorder = new UiGif.Recorder({width, height, caption: named ? 32 : 0});
-      const frames = [];
-      for (const file of files) frames.push({png: await png(file), caption: named ? file.name : "", ok: true, delay});
-      await recorder.add(frames);
-      const bytes = Uint8Array.from(atob(recorder.encodeBase64({}).gif), c => c.charCodeAt(0));
-      if (url) URL.revokeObjectURL(url);
-      url = URL.createObjectURL(new Blob([bytes], {type: "image/gif"}));
-      $("gif-preview").src = url; $("gif-preview").hidden = false;
-      $("gif-save").href = url; $("gif-save").hidden = false;
-      $("gif-status").textContent = `✅ ${files.length}枚 · ${Math.max(1, Math.round(bytes.length / 1024))} KiB`;
-    } catch (error) {
-      $("gif-status").textContent = "⛔ " + error.message;
-    }
-  });
-})();"""
-
-
 def render_gif_tool(ui) -> dict[str, bytes]:
-    """🎞 GIF工房: images the visitor picks become one looping GIF in the page (gif.js); nothing is sent or stored."""
-    option = lambda value, label, chosen=False: f'<option value="{value}"{" selected" if chosen else ""}>{label}</option>'
-    body = ('<main class="ui-page"><h1 class="ui-title">🎞 GIF工房</h1>'
-            '<p class="ui-muted">🖼 画像を選ぶ → ▶ つくる → ⬇ 保存。端末の中だけで作り、画像はどこにも送らず、残しもしない。</p>'
-            '<p><label>📂 <input id="gif-files" type="file" accept="image/*" multiple></label></p>'
-            '<p><label>📐 <select id="gif-size">' + ''.join(option(s, s.replace('x', '×'), s == '480x360') for s in GIF_SIZES) + '</select></label> '
-            '<label>⏱ <select id="gif-delay">' + ''.join(option(ms, f'{ms} ms', ms == 600) for ms in (200, 400, 600, 1000, 1500)) + '</select></label> '
-            '<label>🏷 <input id="gif-names" type="checkbox"> ファイル名</label></p>'
-            '<p><button id="gif-make" type="button" class="ui-button">▶ つくる</button> '
-            '<a id="gif-save" class="ui-button" download="gif-kobo.gif" hidden>⬇ 保存</a> <span id="gif-status" role="status"></span></p>'
-            '<p><img id="gif-preview" alt="🎞 できた GIF" hidden style="max-width:100%;height:auto"></p></main>')
-    page = ui.render_document(trusted_html=body + ui.classic_script(ui.js_source('gif.js')) + ui.classic_script(GIF_SCRIPT),
-                              title='🎞 GIF工房', css=ui.bundled_css())       # the shared sheet (render_pages links it as css/bundle.css)
+    """🎞 GIF工房: PySaiyanWeBoo's ``gif_maker_document`` — images the visitor picks become one looping GIF in the page."""
+    page = ui.gif_maker_document(filename='gif-kobo.gif', css=ui.bundled_css())   # the shared sheet (render_pages links it as css/bundle.css)
     return {GIF_PAGE: add_home_label(add_back_nav(page), '🎞 GIF工房', icons_from='../../').encode('utf-8')}
 
 
