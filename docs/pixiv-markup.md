@@ -1,7 +1,7 @@
 # Pixiv source → Markdown → heading dropdown
 
 The portfolio wraps the imported lab Pixiv URL and HTML helpers. It owns the
-source-grammar adapter in `scripts/pixiv_markup.py` and `tools/mcp/pixiv-markup.js`.
+source-grammar adapter in `scripts/pixiv_markup.py` and `_src/tools/mcp/pixiv-markup.js`.
 Shared fixtures compare the Python and browser outputs. Generic controls belong
 to pinned `web-ui`; Markdown rendering belongs to `markdown.py`.
 
@@ -56,10 +56,9 @@ to `trusted_html`; use the Markdown renderer's escaping and URL policy. The
 interactive dropdown intentionally displays text; this command creates a
 rendered article instead.
 
-## Reimport and provenance
+## Deploy-time build
 
-`scripts/lab_import.py` generates the select with `pysaiyanweboo.select()`, suppresses
-only the imported Pixiv auto-mount, and adds the consumer wrapper assets.
-`lab_import.py` reapplies this on future lab imports. `publication.json`
-retains the original source hashes and records new published hashes. The lab
-report snapshot is unchanged. No CI/deployment workflow is modified.
+`_src/tools/mcp_lab.py` generates the select with `pysaiyanweboo.select()`, suppresses
+only the lab's Pixiv auto-mount, and adds the consumer wrapper assets each time the
+🔌 MCP 実験室 is built from the lab's default branch (`project_pages.py --record-tools`).
+The build receipt (`media/tools/receipt.json`) records the lab commit.

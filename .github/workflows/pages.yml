@@ -81,8 +81,8 @@ jobs:
         with:
           node-version: "26"
 
-      # 🧰 Ironmate's studios and mcp-toolcall-lab's execution lab from their default branches (tools/…, not kept in git);
-      # the lab's build runs Node. A tool that fails keeps the ⏸ page the build above wrote.
+      # 🧰 Ironmate's studios, mcp-toolcall-lab's tools and execution lab (🔌 tools/mcp/) and DRAgoWing's heatmap from their
+      # default branches (tools/…, not kept in git); the execution lab's build runs Node. A tool that fails keeps the ⏸ page the build above wrote.
       - name: Record the tools built from other repositories (best effort)
         continue-on-error: true
         timeout-minutes: 10

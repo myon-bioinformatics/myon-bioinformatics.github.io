@@ -18,6 +18,14 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # 🔌 The lab whose tools --stage builds into tools/mcp/ (the same pin in ci.yml and html-import.yml).
+      - name: Checkout the verified mcp-toolcall-lab source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: myon-bioinformatics/mcp-toolcall-lab
+          ref: fcda9fd9d38eee7892e991fc6fe83e3b6f441763
+          path: .test-deps/mcp-toolcall-lab
+          persist-credentials: false
       - name: Build reusable Python and browser environment
         uses: ./.github/actions/html-import-image
       - name: Run offline fixture and desktop/mobile browser tests

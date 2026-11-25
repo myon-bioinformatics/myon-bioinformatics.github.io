@@ -31,6 +31,11 @@ def _staged_site() -> tuple:
 
 
 SITE, PAGES = _staged_site()
+# 🧰 the tools stage() built from the pinned checkouts under .test-deps/ (CI checks out mcp-toolcall-lab there)
+_RECEIPT = SITE / PAGES.TOOLS
+MADE = json.loads(_RECEIPT.read_text(encoding='utf-8'))['made'] if _RECEIPT.is_file() else []
+LAB_BUILT = 'mcp-toolcall-lab' in MADE
+needs_lab = pytest.mark.skipif(not LAB_BUILT, reason='🔌 clone mcp-toolcall-lab (the CI pin) into .test-deps/mcp-toolcall-lab')
 
 # ═══ 🔗 portal links ══════════════════════════════════════════════════════════════════════════════════════
 
@@ -227,7 +232,7 @@ def test_lab_pages_are_hosted_by_portfolio():
     parser.feed((SITE / "index.html").read_text())
     assert "mcp" in parser.ids
     assert "./tools/mcp/" in parser.links
-    assert (ROOT / "tools/mcp/index.html").is_file()
+    assert (SITE / "tools/mcp/index.html").is_file() and (SITE / "tools/mcp/execution/index.html").is_file()
 
 
 def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
@@ -247,7 +252,8 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
 
 
 # The demos (DEMOS) and project pages (projects.json showcases) come from scripts/project_pages.py; they are tool pages too.
-TOOL_PAGES = ("tools/html-import/index.html", "tools/mcp/index.html", "tools/mcp/repository-diagnostics.html",
+TOOL_PAGES = ("tools/html-import/index.html",
+              *(("tools/mcp/index.html", "tools/mcp/repository-diagnostics.html") if LAB_BUILT else ()),
               "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html", "tools/flow/index.html",
               "tools/repo-map/index.html",
               *sorted(str(path.relative_to(SITE)) for folder in ("demos", "projects") for path in (SITE / "tools" / folder).glob("*.html")))
@@ -260,6 +266,9 @@ def test_tools_built_from_other_repositories_never_404():
         for entry in entries:
             name = f'{folder}/{entry}index.html'
             html = (SITE / name).read_text(encoding='utf-8')
+            if key in MADE:                                   # built from a pinned checkout: the way back, no ⏸
+                assert 'data-testid="portfolio-back"' in html and '⏸' not in html, name
+                continue
             assert '⏸' in html and f'https://github.com/{repository}' in html, name
             assert f'<a href="{"../" * name.count("/")}index.html#tools">' in html, name
     front = LinkParser()
@@ -780,55 +789,81 @@ def test_fixture_oracles_are_explicit():
 
 # ═══ 🧪 lab publication ═══════════════════════════════════════════════════════════════════════════════════
 
-spec = importlib.util.spec_from_file_location('lab_import', ROOT / 'scripts/lab_import.py')
+spec = importlib.util.spec_from_file_location('mcp_lab', ROOT / '_src/tools/mcp_lab.py')
 module = importlib.util.module_from_spec(spec)
-sys.modules['lab_import'] = module  # the tests below import names from it; loading it leaves sys.path alone
+sys.modules['mcp_lab'] = module  # the tests below import names from it
 spec.loader.exec_module(module)
-PUBLIC = ROOT / 'tools/mcp'
+PUBLIC = SITE / 'tools/mcp'      # 🔌 built from the pinned lab checkout (.test-deps/mcp-toolcall-lab) when it is there
 
 
-def test_published_identity_assets_and_real_tool_controls():
-    meta = json.loads((PUBLIC / 'publication.json').read_text())
-    assert meta['report_status'] == 'imported_snapshot'
-    assert len(meta['source_sha']) == 40
-    for name, digest in meta['published_sha256'].items():
-        assert hashlib.sha256((PUBLIC / name).read_bytes()).hexdigest() == digest
+@needs_lab
+def test_lab_tools_are_built_from_the_lab_commit_with_actions_as_the_report():
+    commit = json.loads(_RECEIPT.read_text(encoding='utf-8'))['commits']['mcp-toolcall-lab']
     page = (PUBLIC / 'index.html').read_text()
     for control in ('pages-wiki-form', 'pages-pixiv-source-form', 'pages-pixiv-extract-submit'):
         assert control in page
-    assert 'not a live run' in page
-    assert 'mcp-toolcalls.jsonl' not in meta['published_sha256']
-    assert 'antipatterns.jsonl' not in meta['published_sha256']
+    assert f'mcp-toolcall-lab/commit/{commit}' in page and f'mcp-toolcall-lab@{commit[:7]}' in page
+    assert page.count(module.ACTIONS) >= 2 and 'data-testid="lab-actions-report"' in page   # 🧪 the banner and the report
+    assert 'Last Actions summary' not in page and '"verdict"' not in page
+    assert (PUBLIC / 'LICENSE').is_file()
+    published = {path.name for path in PUBLIC.iterdir() if path.is_file()}
+    assert published == {*module.FILES, *module.OPTIONAL, 'LICENSE', 'pixiv-markup.js', 'pixiv-panel.js', 'shared-navigation.mjs'}
+    assert not (ROOT / 'tools/mcp').exists()          # nothing of the lab is kept in git; the wrapper is _src/tools/mcp/
 
 
-def test_import_is_allowlisted_and_rejects_incomplete_source_before_writing():
-    import pytest
-    with tempfile.TemporaryDirectory() as directory:
-        source = Path(directory) / 'source'; source.mkdir()
-        destination = Path(directory) / 'destination'
-        for name in module.FILES:
-            content = (PUBLIC / name).read_bytes()
-            if name == 'index.html':
-                content = b'<html><head></head><body><header>Demo</header></body></html>'
-            (source / name).write_bytes(content)
-        (source / 'mcp-toolcalls.jsonl').write_text('private log')
-        (source / 'antipatterns.jsonl').write_text('private log')
-        module.import_export(source, destination)
-        assert not (destination / 'mcp-toolcalls.jsonl').exists()
-        assert not (destination / 'antipatterns.jsonl').exists()
-        before = (destination / 'index.html').read_bytes()
-        (source / 'build_meta.json').write_text('{"sha":"main"}')
-        with pytest.raises(ValueError):
-            module.import_export(source, destination)
-        assert (destination / 'index.html').read_bytes() == before
+def test_lab_pin_is_one_commit_across_workflows():
+    """🔌 ci.yml (static, browser) and html-import.yml (Docker) check out the same lab commit for --stage."""
+    refs = [ref for name in ('ci.yml', 'html-import.yml') for ref in re.findall(
+        r'repository: myon-bioinformatics/mcp-toolcall-lab\n\s+ref: ([0-9a-f]{40})', (ROOT / '.github/workflows' / name).read_text())]
+    assert len(refs) == 3 and len(set(refs)) == 1, refs
 
 
+def test_lab_rebuild_keeps_the_execution_lab_inside_it(tmp_path):
+    """🧮 The Tool Lab replaces tools/mcp/ but keeps tools/mcp/execution/ (its own tool, built or ⏸) as it was."""
+    package = tmp_path / 'lab/src/mcp_toolcall_lab'
+    package.mkdir(parents=True)
+    (package / '__init__.py').write_text('')
+    (package / 'stub_front.py').write_text(
+        "import pathlib, sys\nout = pathlib.Path(sys.argv[3]); out.mkdir(parents=True, exist_ok=True)\n"
+        "for name in ('pages-hash.js', 'pages-pixiv.js', 'source.js', 'build_meta.json', 'summary.json'): (out / name).write_text('{}')\n"
+        "(out / 'pages-wiki.js').write_text('var DEFAULT_TITLE = \"\";')\n"
+        "(out / 'index.html').write_text('<html><head></head><body><header>Lab</header><main></main></body></html>')\n")
+    (package / 'mcp_toolcall_lab_repository_diagnostics.py').write_text('')
+    (tmp_path / 'lab/LICENSE').write_text('MIT')
+    site = tmp_path / 'site'
+    kept = site / 'tools/mcp/execution/index.html'
+    kept.parent.mkdir(parents=True)
+    kept.write_text('execution')
+    receipt = PAGES.collect_tools(site, {'mcp-toolcall-lab': tmp_path / 'lab'}, {'mcp-toolcall-lab': '0' * 40})
+    assert receipt['made'] == ['mcp-toolcall-lab'], receipt
+    assert kept.read_text() == 'execution' and not (site / 'tools/mcp/summary.json').exists()
+    page = (site / 'tools/mcp/index.html').read_text()
+    assert page.count('data-testid="portfolio-back"') == 1 and 'mcp-toolcall-lab@0000000' in page and '🧪 MCP Lab' in page
+
+
+def test_lab_stage_checks_everything_before_writing(tmp_path):
+    built = tmp_path / 'built'; built.mkdir()
+    (built / 'index.html').write_text('<html><head></head><body><header>Lab</header></body></html>')
+    for name in module.FILES[1:]:
+        (built / name).write_text('var DEFAULT_TITLE = "x";' if name == 'pages-wiki.js' else '{}')
+    (built / 'mcp-toolcalls.jsonl').write_text('private log')
+    (tmp_path / 'LICENSE').write_text('MIT')
+    keep = lambda page, path: page
+    before = {path.name: path.read_bytes() for path in built.iterdir()}
+    with pytest.raises(ValueError):
+        module.stage_lab_tools(built, 'main', tmp_path, keep, lambda page, label: page)
+    assert {path.name: path.read_bytes() for path in built.iterdir()} == before
+    module.stage_lab_tools(built, '0' * 40, tmp_path, keep, lambda page, label: page)
+    assert not (built / 'mcp-toolcalls.jsonl').exists() and (built / 'LICENSE').read_text() == 'MIT'
+
+
+@needs_lab
 def test_transferred_javascript_extracts_source_and_preserves_view_routes():
     import subprocess
     js = r'''
 const assert = require('node:assert/strict');
-const pixiv = require('./tools/mcp/pages-pixiv.js');
-const route = require('./tools/mcp/pages-hash.js');
+const pixiv = require(process.argv[1] + '/pages-pixiv.js');
+const route = require(process.argv[1] + '/pages-hash.js');
 const result = pixiv.extractSource({title:'Demo',sourceText:'Example original source text'});
 assert.equal(result.ok,true);
 assert.equal(result.title,'Demo');
@@ -840,45 +875,36 @@ assert.equal(route.viewFromLocation('#pixiv',''),'pixiv');
 assert.equal(route.viewFromLocation('#pokemon',''),'pokemon');
 assert.equal(route.viewFromLocation('',''),'home');
 '''
-    subprocess.run(['node', '-e', js], cwd=ROOT, check=True)
+    subprocess.run(['node', '-e', js, str(PUBLIC)], cwd=ROOT, check=True)
 
 
-def test_shared_presentation_keeps_original_report_identity():
-    meta=json.loads((PUBLIC/'publication.json').read_text())
-    assert meta['source_sha']=='6af885d90f7f0b04ab5a29759404130fece946e2'
-    assert meta['source_sha256']['pages-wiki.js']=='9d179d5a8baf64096227db9694b2cf11a1c486d59cf5984444a29a563fd187f5'
-    assert meta['source_sha256']['pages-pixiv.js']=='c19d6a41df02ed6e2ca33d0b9f0291e8db92cbbdc48c2208adcda9b4b3848ff1'
-    assert meta['presentation']['owner']=='myon-bioinformatics/PySaiyanWeBoo'
-    assert meta['source_sha256']['index.html']!=meta['published_sha256']['index.html']
-    assert 'shared-navigation.mjs' not in meta['source_sha256']
-    assert 'shared-navigation.mjs' in meta['published_sha256']
-    page=(PUBLIC/'index.html').read_text()
+@needs_lab
+def test_shared_presentation_replaces_the_lab_styling():
+    page = (PUBLIC / 'index.html').read_text()
     assert 'data-ui-theme="modern"' in page
-    assert 'href="terminal.css' not in page
+    assert 'href="terminal.css' not in page and not (PUBLIC / 'terminal.css').exists()
     assert 'src="pages-hash.js' not in page
     assert 'data-shared-ui="web-ui"' in page
     assert 'font-family: inherit;' in page
+    assert 'generated into the local <code>terminal.css</code>' not in page and 'modern theme' in page
 
 
-def test_reimport_reapplies_shared_runtime_and_records_both_hashes():
-    with tempfile.TemporaryDirectory() as directory:
-        source=Path(directory)/'source';source.mkdir()
-        destination=Path(directory)/'publication'
-        for name in module.FILES:
-            content=(PUBLIC/name).read_bytes()
-            if name=='index.html':
-                content=b'<html><head><link rel="stylesheet" href="terminal.css?v=1"></head><body><header>Demo</header><main class="term-page"><pre>Original report</pre></main><script src="pages-hash.js"></script></body></html>'
-            (source/name).write_bytes(content)
-        manifest=module.import_export(source,destination)
-        assert manifest['source_sha256']['index.html']==hashlib.sha256((source/'index.html').read_bytes()).hexdigest()
-        assert 'data-ui-theme="modern"' in (destination/'index.html').read_text()
-        assert '<pre class="ui-output">Original report</pre>' in (destination/'index.html').read_text()
-        assert (destination/'shared-navigation.mjs').is_file()
-        assert manifest['presentation']['owner']=='myon-bioinformatics/PySaiyanWeBoo'
+def test_stage_reapplies_shared_runtime(tmp_path):
+    built = tmp_path / 'built'; built.mkdir()
+    (built / 'index.html').write_text('<html><head><link rel="stylesheet" href="terminal.css?v=1"></head><body><header>Demo</header>'
+                                      '<main class="term-page"><pre>Original report</pre></main><script src="pages-hash.js"></script></body></html>')
+    for name in module.FILES[1:]:
+        (built / name).write_text('var DEFAULT_TITLE = "";' if name == 'pages-wiki.js' else '{}')
+    (tmp_path / 'LICENSE').write_text('MIT')
+    module.stage_lab_tools(built, '0' * 40, tmp_path, lambda page, path: page, lambda page, label: page)
+    page = (built / 'index.html').read_text()
+    assert 'data-ui-theme="modern"' in page
+    assert '<pre class="ui-output">Original report</pre>' in page
+    assert (built / 'shared-navigation.mjs').is_file()
 
 
-def test_reimport_preserves_consumer_niconico_panel_and_routes():
-    from lab_import import apply_shared_ui, NAVIGATION_BINDING
+def test_stage_preserves_consumer_niconico_panel_and_routes():
+    from mcp_lab import apply_shared_ui, NAVIGATION_BINDING
     source = '''<html><head></head><body><header>Lab</header>
     <a href="#pixiv" data-pages-nav="pixiv">Pixiv</a>
     <section data-pages-view="pixiv"></section></body></html>'''
@@ -890,8 +916,9 @@ def test_reimport_preserves_consumer_niconico_panel_and_routes():
     assert b"niconico:'niconico'" in NAVIGATION_BINDING
 
 
-def test_reimport_preserves_consumer_pokemon_panel_and_routes():
-    from lab_import import NAVIGATION_BINDING
+@needs_lab
+def test_built_lab_keeps_pokemon_panel_and_routes():
+    from mcp_lab import NAVIGATION_BINDING
     page = (PUBLIC / 'index.html').read_text()
     assert 'data-pages-nav="pokemon"' in page
     assert 'data-pages-view="pokemon"' in page
@@ -902,9 +929,16 @@ def test_reimport_preserves_consumer_pokemon_panel_and_routes():
     assert b"pokemon:'pokemon'" in NAVIGATION_BINDING
 
 
-def test_example_defaults_are_blank_and_execution_is_linked():
+def test_execution_is_linked_from_the_card_readme_and_services():
+    for path in (SITE / 'index.html', ROOT / 'README.md'):
+        assert module.EXECUTION_URL in path.read_text()
+    services = json.loads((ROOT / 'services.json').read_text())
+    assert services['services']['projects']['mcp-toolcall-lab']['execution']['url'] == module.EXECUTION_URL
+
+
+@needs_lab
+def test_built_lab_example_defaults_are_blank_and_execution_is_linked():
     import subprocess
-    from html.parser import HTMLParser
 
     class Inputs(HTMLParser):
         def handle_starttag(self, tag, attrs):
@@ -913,14 +947,12 @@ def test_example_defaults_are_blank_and_execution_is_linked():
                 assert attrs.get('value') == ''
 
     Inputs().feed((PUBLIC / 'index.html').read_text())
-    for path in (SITE / 'index.html', ROOT / 'README.md', PUBLIC / 'index.html'):
-        assert module.EXECUTION_URL in path.read_text()
-    services = json.loads((ROOT / 'services.json').read_text())
-    assert services['services']['projects']['mcp-toolcall-lab']['execution']['url'] == module.EXECUTION_URL
-    subprocess.run(['node', '-e', "require('node:assert/strict').equal(require('./tools/mcp/pages-wiki.js').DEFAULT_TITLE, '')"], cwd=ROOT, check=True)
+    assert module.EXECUTION_URL in (PUBLIC / 'index.html').read_text()
+    subprocess.run(['node', '-e', "require('node:assert/strict').equal(require(process.argv[1]).DEFAULT_TITLE, '')",
+                    str(PUBLIC / 'pages-wiki.js')], cwd=ROOT, check=True)
 
 
-def test_import_clears_only_example_controls_and_preserves_original_evidence():
+def test_stage_clears_only_example_controls_and_preserves_original_evidence():
     original = b'<header>Demo</header><input id="pages-wiki-title" value="Example City"><p>Article about Example City</p>'
     payload = {'index.html': original, 'pages-wiki.js': b'var DEFAULT_TITLE = "Example City";\nvar content = "Example City";'}
     module.apply_public_examples(payload)
@@ -933,8 +965,20 @@ def test_import_clears_only_example_controls_and_preserves_original_evidence():
     assert payload == before
 
 
+def test_actions_report_replaces_only_the_empty_summary():
+    page = ('<p>the actual round-trip is the "Last Actions summary" below.</p><h2>Last Actions summary</h2><p>Allowlisted.</p>'
+            '<pre><code class="language-json">{"verdict": null}</code></pre><ul><li>Local: docker</li></ul>')
+    report = module.apply_actions_report(page)
+    assert 'Last Actions summary' not in report and 'verdict' not in report
+    assert module.ACTIONS in report and '<li>Local: docker</li>' in report and 'Test results below' in report
+    assert module.apply_actions_report(report) == report
+    with pytest.raises(ValueError):
+        module.apply_actions_report('<h2>Last Actions summary</h2><table></table>')
+
+
+@needs_lab
 def test_lab_branding_is_idempotent_and_uses_published_absolute_paths():
-    from lab_import import apply_lab_branding, FAVICON, LOGO
+    from mcp_lab import apply_lab_branding, FAVICON, LOGO
     from urllib.parse import urljoin
     for name in ('index.html', 'repository-diagnostics.html'):
         page = (PUBLIC / name).read_text()
@@ -953,26 +997,8 @@ def test_lab_branding_is_idempotent_and_uses_published_absolute_paths():
     assert LOGO in branded
 
 
-def test_reimport_applies_branding_without_changing_source_identity():
-    from lab_import import FAVICON, LOGO
-    with tempfile.TemporaryDirectory() as directory:
-        source = Path(directory) / 'source'; source.mkdir()
-        destination = Path(directory) / 'publication'
-        for name in (*module.FILES, *module.OPTIONAL):
-            (source / name).write_bytes((PUBLIC / name).read_bytes())
-        before = {name: (source / name).read_bytes() for name in (*module.FILES, *module.OPTIONAL)}
-        manifest = module.import_export(source, destination)
-        for name in ('index.html', 'repository-diagnostics.html'):
-            page = (destination / name).read_text()
-            assert page.count(FAVICON) == 2 and page.count(LOGO) == 1
-            assert manifest['source_sha256'][name] == hashlib.sha256(before[name]).hexdigest()
-            assert manifest['published_sha256'][name] == hashlib.sha256((destination / name).read_bytes()).hexdigest()
-        assert all((source / name).read_bytes() == content for name, content in before.items())
-        assert manifest['source_sha'] == json.loads(before['build_meta.json'])['sha']
-
-
 def test_prose_extract_adapter_preserves_whitespace_hooks_and_code_blocks():
-    from lab_import import apply_prose_extracts, apply_shared_ui
+    from mcp_lab import apply_prose_extracts, apply_shared_ui
     source = ('<html><head></head><body>'
               '<pre data-testid="pages-pixiv-extract" hidden class="ui-output">A\nB &lt;C&gt;</pre>'
               '<pre class="ui-output" data-testid="pages-wiki-extract">Wiki\ntext</pre>'
@@ -983,6 +1009,7 @@ def test_prose_extract_adapter_preserves_whitespace_hooks_and_code_blocks():
     assert '<pre class="ui-output"><code>print(1)</code></pre>' in converted
     assert apply_prose_extracts(converted) == converted
     assert apply_shared_ui(source) == apply_shared_ui(converted)
-    published = (PUBLIC / 'index.html').read_text()
-    assert '<div data-testid="pages-pixiv-extract" hidden class="ui-output"></div>' in published
-    assert '<div data-testid="pages-wiki-extract" hidden class="ui-output"></div>' in published
+    if LAB_BUILT:
+        published = (PUBLIC / 'index.html').read_text()
+        assert '<div data-testid="pages-pixiv-extract" hidden class="ui-output"></div>' in published
+        assert '<div data-testid="pages-wiki-extract" hidden class="ui-output"></div>' in published

@@ -60,7 +60,7 @@ the JSON-driven repository cards: adding a new live tool requires updating both
 `index.html` and `tests/test_site.py`, so the destination and its HTTPS
 Pages-host contract are reviewed together.
 
-🧰 Ironmate's Image Studio, Browser Tools and Slide Studio (`tools/image-studio/`, `tools/browser-tools/`, `tools/slide-studio/`), mcp-toolcall-lab's execution lab (`tools/mcp/execution/`) and DRAgoWing's 🌡️ heatmap (`tools/heatmap/`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ page in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Studio route mapping is build source in `_src/tools/studio_routes.py`; the rendered pages live only in the Pages output tree. Ironmate still owns the generated editor and data formats, and the shared back navigation comes from PySaiyanWeBoo. Live destinations include Ironmate (Image Studio, Browser Tools, and Slide Studio), mcp-toolcall-lab, and PySaiyanWeBoo.
+🧰 Ironmate's Image Studio, Browser Tools and Slide Studio (`tools/image-studio/`, `tools/browser-tools/`, `tools/slide-studio/`), mcp-toolcall-lab's tools and execution lab (`tools/mcp/`, `tools/mcp/execution/`) and DRAgoWing's 🌡️ heatmap (`tools/heatmap/`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ page in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Studio route mapping is build source in `_src/tools/studio_routes.py`; the rendered pages live only in the Pages output tree. Ironmate still owns the generated editor and data formats, and the shared back navigation comes from PySaiyanWeBoo. Live destinations include Ironmate (Image Studio, Browser Tools, and Slide Studio), mcp-toolcall-lab, and PySaiyanWeBoo.
 
 🏷 Each card is named for what it does, not for a repository, and a 🧩 出どころ line links the repositories it is built from (`from` in `PORTAL`): 🖼️ スライド・画像工房 ← Ironmate · 🔌 MCP 実験室 (`tools/mcp/`) ← mcp-toolcall-lab · 🎨 共通UI部品・テーマ ← PySaiyanWeBoo. The cards are tools made of those repositories' parts, not the projects themselves (those are in 🚀 Projects).
 
@@ -134,7 +134,7 @@ scheduled card-update workflow.
 | 🎞️ evidence GIF shots | 9 | | |
 
 🌐 Avatars and badges are external and were refused (listed per shot in the receipt). `/tools/mcp/execution/assets/…` comes from the execution lab this site builds at deploy time (`--record-tools`), so it is allowed rather than counted as a 404.
-🔄 `tools/mcp/` is the lab's public export re-imported from its `main` (`6af885d9`); the earlier copy was a 2026-10-24 branch build.
+🔄 `tools/mcp/` is built from the lab at deploy time (`--record-tools`); this receipt predates that move.
 📦 The shared Web UI is one pinned git dependency (the `pages` group in `pyproject.toml` → PySaiyanWeBoo; `uv run --locked --only-group pages` installs it); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated file (`tools/vendor/web-ui/`, `tools/demos/`, `tools/projects/`). The front page (`index.html`) is built by `scripts/front_page.py` from `profile.json`, `api/repos.json` and `projects.json`: the profile and projects in each display mode (cards, XML-like, JSON, Markdown) are rendered in Python, and the colour themes are PySaiyanWeBoo's palettes. It is not in the lock, because the repository catalog is refreshed by a workflow. None of these files are kept in git: the Pages build writes them, `uv run --locked python scripts/project_pages.py --stage .generated-site` writes the whole site for tests and local previews, and `--refresh-lock` rewrites the lock after the pin moves. To move the pin, change the full commit in `[tool.uv.sources]` in `pyproject.toml`, run `uv lock`, and refresh. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
 
 🔁 Re-record (after building `.generated-site` as in CI; `$WEBUI` is a PySaiyanWeBoo checkout at `adb23d7`):
@@ -224,34 +224,31 @@ stable `evidence/latest/` screenshots described above.
 
 ## 🔌 MCP 実験室: lab public tools and reports
 
-The portfolio now receives the lab's public Wiki/Pixiv interfaces and exported
-Actions report under `tools/mcp/` (`#wiki`, `#pixiv` and `#pokemon`). MCP servers,
-Docker execution, raw traces, and test generation remain in mcp-toolcall-lab.
-Flutter's working Pages application is unchanged.
+🔌 Like Ironmate's studios and DRAgoWing's heatmap, the lab's tools are built here at deploy time from mcp-toolcall-lab's
+default branch (`scripts/project_pages.py --record-tools`), and nothing of the lab is kept in git:
 
-The [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) is the browser execution interface, built here from mcp-toolcall-lab's default branch at deploy time (`--record-tools`) and separate from this imported report.
+| 🔗 Page | 🧰 Built from the lab with | 🔀 Path |
+| --- | --- | --- |
+| 🔎 Tool Lab: `#wiki` · `#pixiv` · `#pokemon` (+ the portfolio's `#niconico`) | `python -m mcp_toolcall_lab.stub_front pages` | `tools/mcp/` |
+| 🩺 Repository diagnostics | `python -m mcp_toolcall_lab.mcp_toolcall_lab_repository_diagnostics` | `tools/mcp/repository-diagnostics.html` |
+| 🧮 [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) | `scripts/build_portable_pages.py` (Node 26) | `tools/mcp/execution/` |
+
+The portfolio's side is one build-time adapter, `_src/tools/mcp_lab.py` (beside Ironmate's `_src/tools/studio_routes.py`):
+the shared UI, the Niconico tab, the Pixiv wrapper (`_src/tools/mcp/`), the lab artwork, the way back and the
+home-screen names. 🧪 This build runs no Docker, so the page records no run: its report links the lab's
+[stub-pages Actions](https://github.com/myon-bioinformatics/mcp-toolcall-lab/actions/workflows/stub-pages.yml) instead.
+Only the allowlisted files are published (no raw MCP / anti-pattern logs), with the lab's LICENSE.
+MCP servers, Docker execution, raw traces and test generation remain in mcp-toolcall-lab; its own Pages is its usage guide.
 The portfolio Wiki form starts empty: examples do not prefill a personal location.
 
-The initial import is the public export observed on 2026-10-08, with source
-identity `3b15b7911695fc76fa8cd01f514e57133fb02d83` (2026-10-05).
-Its original `dirty: true` observation is preserved, not silently corrected.
-It is explicitly labelled an imported snapshot, not the latest Actions result.
-`publication.json` records source and published file hashes and import time.
-Only public report files are admitted; raw MCP/anti-pattern logs are excluded.
-Existing source copyright and repository LICENSE apply to transferred assets.
-
-To update, obtain a trusted lab `stub-pages-observations` artifact, extract its
-`_site/` public export, then run:
+🧪 Tests and previews: `--stage` also builds the tools whose repository is checked out under `.test-deps/<name>`
+(CI checks out mcp-toolcall-lab there at a pinned commit; a tool that cannot build keeps its ⏸ page):
 
 ```sh
-uv run --locked python scripts/lab_import.py --source /path/to/export/_site
+git clone https://github.com/myon-bioinformatics/mcp-toolcall-lab .test-deps/mcp-toolcall-lab
+uv run --locked python scripts/project_pages.py --stage .generated-site
 uv run --locked pytest tests/test_site.py
 ```
-
-Review and commit the imported output in a PR. No untrusted archive is extracted
-by this helper; it receives an already extracted trusted directory. There is no
-automatic claim that an imported snapshot equals the newest run. The lab-side
-legacy redirect must land only after this portfolio receiving change is deployed.
 
 ### Shared browser controls
 

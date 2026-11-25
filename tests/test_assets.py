@@ -127,7 +127,7 @@ FIXTURES = json.loads((ROOT / 'tests/fixtures/pixiv-markup.json').read_text())
 
 
 def test_python_and_browser_share_one_narrow_contract():
-    js = "const m=require('./tools/mcp/pixiv-markup.js');const fs=require('fs');console.log(JSON.stringify(JSON.parse(fs.readFileSync(0,'utf8')).map(x=>m.extractSource(x.source,x.title||''))))"
+    js = "const m=require('./_src/tools/mcp/pixiv-markup.js');const fs=require('fs');console.log(JSON.stringify(JSON.parse(fs.readFileSync(0,'utf8')).map(x=>m.extractSource(x.source,x.title||''))))"
     run = subprocess.run(['node', '-e', js], input=json.dumps(FIXTURES), text=True, capture_output=True, cwd=ROOT, check=True)
     assert json.loads(run.stdout) == [markup.extract_source(item['source'], item.get('title', '')) for item in FIXTURES]
 
@@ -170,8 +170,8 @@ def test_normalization_is_idempotent_and_rejects_oversize_input():
 
 
 def test_import_reapplies_wrapper_and_generated_select():
-    sys.path.insert(0, str(ROOT / 'scripts'))
-    from lab_import import apply_shared_navigation
+    sys.path.insert(0, str(ROOT / '_src/tools'))
+    from mcp_lab import apply_shared_navigation
     source = '<html><head></head><body><div data-testid="pages-pixiv-app"><p data-testid="pages-pixiv-status"></p></div><script src="pages-pixiv.js?v=old"></script></body></html>'
     payload = {'index.html': source.encode(), 'pages-pixiv.js': b'api.autoMount(root);'}
     apply_shared_navigation(payload)
@@ -180,5 +180,5 @@ def test_import_reapplies_wrapper_and_generated_select():
     assert html.count('id="pages-pixiv-heading"') == 1
     assert html.count('src="pixiv-panel.js"') == 1
     assert b'api.autoMount(root);' not in payload['pages-pixiv.js']
-    assert payload['pixiv-markup.js'] == (ROOT / 'tools/mcp/pixiv-markup.js').read_bytes()   # kept once, where it is published
-    assert payload['pixiv-panel.js'] == (ROOT / 'tools/mcp/pixiv-panel.js').read_bytes()
+    assert payload['pixiv-markup.js'] == (ROOT / '_src/tools/mcp/pixiv-markup.js').read_bytes()   # kept once, beside the adapter
+    assert payload['pixiv-panel.js'] == (ROOT / '_src/tools/mcp/pixiv-panel.js').read_bytes()
