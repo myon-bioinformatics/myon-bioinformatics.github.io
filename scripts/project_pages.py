@@ -655,8 +655,8 @@ async function boot() {
   py.runPython("import sys; sys.path.insert(0, '/chat')");
   bot = py.pyimport("chat");
   bot.configure(index, new URL(cfg.base, location.href).href);
-  const files = index ? JSON.parse(index).files.length : 0;
-  chat.status(`✅ 🐍 ${py.runPython("import sys; sys.version.split()[0]")} · ` + (files ? `🔎 ${files} files` : "⏸ 索引なし"));
+  const files = index ? JSON.parse(index).files?.length : undefined;
+  chat.status(`✅ 🐍 ${py.runPython("import sys; sys.version.split()[0]")} · ` + (files === undefined ? "⏸ 索引なし" : `🔎 ${files} files`));
   chat.ready();
   document.documentElement.dataset.chatReady = "true";
 }
@@ -687,7 +687,7 @@ def chat_books() -> list[dict]:
               ('🔌 MCP', ('mcp',)), ('🔎 JSON / JSONL', ('find', 'show')), ('🤖 LLM', ('ask',)), ('⌨️ もしかして', ())]
     recorded = {'compress': '🗂 TalkCompress の短い文と 📏 文字数（TalkCompress は公開時に記録）',
                 'mcp': '🔌 mcp-toolcall-lab が広告する道具で判定（✅ 送ってよい／❌ 断る。道具は公開時に記録）',
-                'find': '🔎 全リポジトリの JSON / JSONL から（索引は公開時に記録）', 'show': '👀 そのコミットの raw を読んで表に',
+                'find': '🔎 公開時に取得できた JSON / JSONL の索引から検索', 'show': '👀 そのコミットの raw を読んで表に',
                 'ask': '🤖 初回だけ約 560 MB のモデルを読み、端末の中で答える（⚡ WebGPU があれば GPU、なければ 🧮 CPU 1 スレッド）'}
     books = []
     for label, names in groups:
@@ -706,7 +706,7 @@ def chat_document(ui) -> str:
     chat = _chat()
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '💬 横断チャット', 'description':
                              'markdown.py・ascii_artist・cli_args・TalkCompress・mcp-toolcall-lab をページの中の Python で。'
-                             '全リポジトリの JSON / JSONL にも答える。🤖 /ask は llama.cpp が端末の中で答える。'
+                             '公開リポジトリの JSON / JSONL を索引から検索できる。🤖 /ask は llama.cpp が端末の中で答える。'
                              '送った文はどこにも送らない（/show は GitHub の raw を、/ask はモデルを読むだけ）。',
                              'blocks': [{'type': 'tabs', 'id': 'chat', 'tabs': [
                                  {'label': '💬 チャット', 'blocks': [{'type': 'text', 'text': _CHAT_SLOT}]},
@@ -727,27 +727,34 @@ def chat_document(ui) -> str:
     return page.replace(slot, body, 1).replace('</head>', f'<style>{parts["css"]}{CHAT_CSS}</style></head>', 1)
 
 
-def _tree(repository: str, commit: str) -> list[tuple[str, int]]:
-    """Every file (path, size) of ``repository`` at ``commit``, from the GitHub API (GITHUB_TOKEN when set)."""
-    data = load_module('repos_catalog', 'scripts/repos_catalog.py')._get_json(
-        f'https://api.github.com/repos/{repository}/git/trees/{commit}?recursive=1')
-    return [(item['path'], item.get('size', 0)) for item in data.get('tree', []) if item.get('type') == 'blob']
+def _tree(repository: str, commit: str) -> tuple[list[tuple[str, int]], bool]:
+    """Return the API's blob paths and sizes at ``commit``, plus its truncation flag."""
+    github = load_module('repos_catalog', 'scripts/repos_catalog.py')
+    data = github._get_json(f'{github.API_ROOT}/repos/{repository}/git/trees/{commit}?recursive=1')
+    if not isinstance(data, dict) or not isinstance(data.get('tree'), list) or type(data.get('truncated')) is not bool:
+        raise ValueError('invalid tree response')
+    blobs = [(item['path'], item.get('size', 0)) for item in data['tree'] if item.get('type') == 'blob']
+    return blobs, data['truncated']
 
 
 def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, tree=_tree) -> list[str]:
     """💬 What the chat knows of the other repositories, at their current commits, under ``output/media/chat/``: index.json
-    (every JSON / JSONL file with its size, the tools mcp-toolcall-lab's prompt fixtures advertise) and TalkCompress's
-    shorthand compressor (talkcompress/). Best effort: a repository that cannot be read is listed and skipped."""
+    (observed JSON / JSONL paths and sizes, repository scan errors, and mcp-toolcall-lab's advertised tools) and
+    TalkCompress's shorthand compressor (talkcompress/). Repositories in commits without a scan error were fully listed."""
     catalog = json.loads((root / 'api/repos.json').read_text(encoding='utf-8'))
     folder = Path(output) / CHAT
-    commits, files, tools, missed, compressor = {}, [], {}, [], '⏸'
+    commits, files, tools, scan_errors, missed, compressor = {}, [], {}, {}, [], '⏸'
     for name in [repo['name'] for repo in catalog['repos'] if not repo.get('archived')]:
         try:
             commit = head(f'{OWNER}/{name}')
-            blobs = tree(f'{OWNER}/{name}', commit)
+            blobs, truncated = tree(f'{OWNER}/{name}', commit)
         except Exception as exc:
+            scan_errors[name] = 'unavailable'
             missed.append(f'⏸ {name}: {type(exc).__name__}')
             continue
+        if truncated:
+            scan_errors[name] = 'truncated_tree'
+            missed.append(f'⚠️ {name}: truncated_tree')
         commits[name] = commit
         files += [[name, path, size] for path, size in blobs if path.lower().endswith(('.json', '.jsonl', '.ndjson'))]
         try:
@@ -768,7 +775,8 @@ def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, t
         except Exception as exc:
             missed.append(f'⏸ {name}: {type(exc).__name__}')
     folder.mkdir(parents=True, exist_ok=True)
-    index = {'schema': 'chat-index/1', 'owner': OWNER, 'commits': commits, 'files': files, 'tools': list(tools.values())}
+    index = {'schema': 'chat-index/1', 'owner': OWNER, 'commits': commits, 'files': files, 'tools': list(tools.values()),
+             'scan_errors': scan_errors}
     (folder / 'index.json').write_text(json.dumps(index, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
     return [f'💬 {len(commits)} repositories · {len(files)} JSON/JSONL · 🔌 {len(tools)} tools · 🗂 TalkCompress {compressor}', *missed]
 
