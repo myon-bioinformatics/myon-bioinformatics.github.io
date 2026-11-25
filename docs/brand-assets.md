@@ -36,7 +36,7 @@ CI・再利用、テスト／レンダリング／記録、GitHub Pages での�
 更新中の README・`profile.json`・`projects.json` の内容と対応しています。
 そのうえで、残る確認点だけを記録します。図や本文は勝手に修正していません。
 
-- **主な言語**：新しい図も Python / Go / TypeScript の表記です。このブランチの現在の紹介は Python / Node.js / Dart (Flutter)。Go / TypeScript はスキル自己評価や過去の経歴にも残るので、「今の主軸」と「経験あり」の区別が確認点です。スキル点数や職歴をリポジトリの比率だけから変えるものではありません。
+- **主な言語**：新しい図も Python / Go / TypeScript の表記です。このブランチの現在の紹介は Python / Node.js / Dart (Flutter)。Languages のバーは公開・非アーカイブの Linguist バイトに基づく正規化（[skills.md](skills.md)）で、Go / TypeScript は現行の分量より経歴の残差として低めに残しています。Domain・Tools、職歴の本文はリポジトリの比率だけでは変えません。
 - **扱う対象**：図は生命科学を起点にしていますが、現在の活動には Aoi 系の野球データ研究、開発者向けの単一ファイルツール、LLM / MCP の実験も含まれます。README の短い About も GUI/CLI・security & backend 中心のため、詳しい現状は `profile.json.currentFocus` と `projects.json` を参照してください。
 - **成果と目標**：「医療・創薬への貢献」などの Impact は、確認済みの実装実績と同一視せず、目指す方向として読むのが安全です。
 

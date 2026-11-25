@@ -27,7 +27,11 @@ import markdown as md
 
 OWNER = 'myon-bioinformatics'
 MODULES = ('markdown', 'ascii_artist', 'cli_args')            # 📦 the page writes these next to this file in Pyodide
-PYODIDE = 'https://cdn.jsdelivr.net/npm/pyodide@314.0.8/'     # 🐍 the page's Python (CPython 3.14, stdlib only)
+# 🐍 the page's Python (Pyodide, CPython 3.14, stdlib only), 🤖 llama.cpp in WebAssembly (wllama; WebGPU when the browser has it)
+# and the GGUF /ask loads once (then the browser keeps it): GitHub Pages sends no COOP/COEP, so the CPU runs one thread
+RUNTIME = {'pyodide': 'https://cdn.jsdelivr.net/npm/pyodide@314.0.8/',
+           'wllama': 'https://cdn.jsdelivr.net/npm/@wllama/wllama@4.0.0/esm/',
+           'model': 'https://huggingface.co/ggml-org/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_0.gguf'}
 SHOW_MAX = 2 * 1024 ** 2   # 👀 bytes /show reads
 FIND_ROWS = 20
 # 🗂 TalkCompress's shorthand compressor (layer 3) and the files it imports or reads, in the repository's layout
@@ -55,6 +59,7 @@ COMMANDS = {
     'find': ('🔎', 'WORDS [--repo R] [--kind K]', 'リポジトリ横断で JSON / JSONL を探す（K: ' + ' '.join(KINDS) + '）',
              ('onto', '/find --kind onto', '/find --kind jsonl --repo Aoi', 'TaxOntOy')),
     'show': ('👀', 'REPO/PATH', 'JSON / JSONL の中身を表にまとめる（そのコミットの raw を読む）', ('/show TaxOntOy/otl-relations.json',)),
+    'ask': ('🤖', 'TEXT', '小さな LLM に聞く（llama.cpp をページの中で。初回だけモデルを読む）', ('/ask オントロジーの台帳はどのリポジトリにある？',)),
 }
 TYPOS = ('/flwo a > b', '/find --kidn onto', '/find --kind ont')    # ⌨️ what cli_args answers with "maybe you meant"
 _STATE = {'index': None, 'base': '', 'fetch': None, 'talkcompress': None}
@@ -393,6 +398,32 @@ def chat_reply(text: str, index: dict | None) -> str:
     return reply
 
 
+def ask_messages(text: str, index: dict | None = None) -> str:
+    """🤖 The chat messages /ask sends to the model (JSON): who it is, the commands, and the recorded files its words find."""
+    index = _STATE['index'] if index is None else index
+    question = re.sub(r'^/ask\s*', '', text.strip(), flags=re.I) or 'こんにちは'
+    words = re.findall(r'[A-Za-z0-9_.@-]{3,}', question)
+    kind = 'onto' if re.search(r'onto|オントロジー', question, re.I) else None
+    hits = [f'{name}/{path}' for word in (words if words else [''] if kind else [])
+            for name, path, _ in find(index or {}, [word] if word else [], None, kind)[:6]]
+    hits = list(dict.fromkeys(hits))[:12]
+    system = ('あなたは myon-bioinformatics のポートフォリオにある横断チャットの案内役。日本語で、短く、Markdown で答える。'
+              '分からないことは分からないと言う。道具はコマンドで: ' + ' '.join(f'/{n}' for n in COMMANDS if n != 'ask') + '。'
+              + ('記録にあるファイル: ' + ', '.join(hits) if hits else ''))
+    return json.dumps([{'role': 'system', 'content': system}, {'role': 'user', 'content': question}], ensure_ascii=False)
+
+
+def ask_html(output: str, tokens: int, seconds: float, *, threads: int = 1, webgpu: bool = False) -> str:
+    """🤖 The model's answer as HTML, with its reasoning (if it wrote any) quoted as 💭 above it, what produced it and how fast."""
+    parts = md.split_reasoning(output)
+    thought = '\n'.join(parts['reasoning']).strip()
+    answer = ('> 💭 ' + thought.replace('\n', '\n> ') + '\n\n' if thought else '') + (parts['answer'].strip() or '…')
+    speed = f'{tokens / seconds:.1f} tok/s' if seconds > 0 else ''
+    where = '⚡ WebGPU' if webgpu else f'🧮 CPU 🧵{threads}'
+    model = RUNTIME['model'].rsplit('/', 1)[-1]
+    return md.markdown_to_html(answer + f'\n\n---\n\n🤖 {model} · {where} · {tokens} tokens · {speed}')
+
+
 def respond(text: str, *, index: dict | None = None, fetch=None) -> str:
     """💬 One reply in Markdown for one message."""
     index = _STATE['index'] if index is None else index
@@ -414,6 +445,8 @@ def respond(text: str, *, index: dict | None = None, fetch=None) -> str:
         return mcp_reply(rest, index)
     if name == 'compress':
         return compress_reply(rest, fetch, commit=(index or {}).get('commits', {}).get('TalkCompress'))
+    if name == 'ask':                                   # the page answers it with wllama; here there is no model
+        return '🤖 `/ask` はチャットのページで、ブラウザの中の llama.cpp（wllama）が答える'
     return {'md': md_reply, 'table': table_reply, 'ascii': ascii_reply, 'box': box_reply, 'flow': flow_reply}[name](rest)
 
 
