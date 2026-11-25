@@ -35,8 +35,8 @@ uv run --locked python scripts/project_pages.py --stage .generated-site
 npx playwright test --config playwright/html-import.config.js
 ```
 
-The front page tests stage the site themselves; the Node specs (HTML import, MCP lab) serve `.generated-site`, so stage it first. Pages overlays the same verified
-assets after the Jekyll build. The public CSS/JS URLs remain unchanged.
+The front page tests stage the site themselves; the Node specs (HTML import, MCP lab) serve `.generated-site`, so stage it first. Pages writes the same verified
+assets over the copied source tree (`--copy-source`; no Jekyll). The public CSS/JS URLs remain unchanged.
 
 ## Move the generator pin
 

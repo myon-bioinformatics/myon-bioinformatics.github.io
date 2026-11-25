@@ -947,14 +947,21 @@ def build(output: Path, root: Path = ROOT) -> None:
         (root / 'web-ui-assets.lock.json').read_bytes())
 
 
-def stage(output: Path, root: Path = ROOT) -> None:
-    """The site as Pages serves it: the source tree plus the generated files. Tests and local previews serve this."""
-    validate_output(output, root)
-    generate(root)  # Fail closed before copying anything.
+def copy_source(output: Path, root: Path = ROOT) -> None:
+    """📁 The source tree as Pages serves it, before anything is generated: every file as it is (a .md stays a .md; nothing
+    is rendered, so no page appears that this build did not write), without git, Node and Python caches, test output,
+    ``_src`` and the tool checkouts. Pages starts from this (``--copy-source``); ``stage`` adds the generated files."""
     skip = ['.git', 'node_modules', '.venv', 'test-results', 'reports', '__pycache__', '.pytest_cache', '_src', CHECKOUTS]
     if output.resolve().is_relative_to(root.resolve()):
         skip.append(output.resolve().relative_to(root.resolve()).parts[0])
     shutil.copytree(root, output, ignore=shutil.ignore_patterns(*skip), dirs_exist_ok=True)
+
+
+def stage(output: Path, root: Path = ROOT) -> None:
+    """The site as Pages serves it: the source tree plus the generated files. Tests and local previews serve this."""
+    validate_output(output, root)
+    generate(root)  # Fail closed before copying anything.
+    copy_source(output, root)
     build(output, root)
     stage_tools(output, root)
 
@@ -979,6 +986,7 @@ def refresh_lock(root: Path = ROOT) -> dict:
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, help='write the generated assets under this directory')
+    parser.add_argument('--copy-source', type=Path, metavar='DIR', help='📁 copy the source tree as Pages serves it, nothing generated (the Pages build starts here)')
     parser.add_argument('--stage', type=Path, help='write the whole site (source tree plus generated assets) under this directory')
     parser.add_argument('--refresh-lock', action='store_true',
                         help='rewrite web-ui-assets.lock.json from the installed generator')
@@ -993,9 +1001,11 @@ def main(argv=None):
     parser.add_argument('--record-chat', type=Path, metavar='DIR',
                         help="💬 index every repository's JSON / JSONL, mcp-toolcall-lab's tools and TalkCompress's compressor under DIR/media/chat/")
     args = parser.parse_args(argv)
-    for target in (args.output, args.stage):
+    for target in (args.output, args.stage, args.copy_source):
         if target:
             validate_output(target)
+    if args.copy_source:
+        copy_source(args.copy_source)
     if args.record_samples:
         # 🎥 this portfolio too: its card shows the front page as Pages serves it now (the deploy before this one)
         print('\n'.join(record_samples(args.record_samples, pages_urls())))
@@ -1013,7 +1023,7 @@ def main(argv=None):
         build(args.output)
     if args.stage:
         stage(args.stage)
-    if not (args.refresh_lock or args.output or args.stage or args.record_samples or args.record_flow or args.record_map
+    if not (args.refresh_lock or args.output or args.stage or args.copy_source or args.record_samples or args.record_flow or args.record_map
             or args.record_tools or args.record_chat):
         parser.error('give --output DIR, --stage DIR, --refresh-lock and/or a --record-… DIR')
 
