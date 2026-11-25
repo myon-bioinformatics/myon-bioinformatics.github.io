@@ -718,7 +718,8 @@ def _back_to_tools(page: str, path: str) -> str:
 
 
 def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, str]) -> dict:
-    """Build each tool from its checkout with ``python -S`` (the lab's build also runs Node) into ``output/<folder>/``,
+    """Build each tool from its checkout with this ``python`` (📦 its pages group carries the pinned PySaiyanWeBoo the tools
+    render through; the lab's build also runs Node) into ``output/<folder>/``,
     give each entry page the way back, and write the receipt; a tool that fails is left out. Returns the receipt."""
     made, failed = [], {}
     for key, (repository, folder, entries) in TOOL_SOURCES.items():
@@ -728,7 +729,7 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
         try:
             with tempfile.TemporaryDirectory() as tmp:       # build aside; the ⏸ page stays unless the whole tool built
                 built = Path(tmp) / 'site'
-                run = lambda *args, env=None: subprocess.run([sys.executable, '-S', *args], cwd=checkouts[key], check=True,
+                run = lambda *args, env=None: subprocess.run([sys.executable, *args], cwd=checkouts[key], check=True,
                                                              capture_output=True, timeout=900, env=env)
                 if key == 'ironmate':
                     run('image_studio.py', '--build-site', str(built))

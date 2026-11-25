@@ -1499,7 +1499,9 @@ class WorldPageTests(unittest.TestCase):
         self.assertNotIn('rel="stylesheet"', html)
         self.assertEqual(html.count('<script type="module">'), 1)
         self.assertIn("globalThis.webUiWorld", html)
-        self.assertEqual(ui.module_asset("world.js")[0].decode(), W.WORLD_JS)
+        self.assertIn(W.WORLD_JS, html)                       # 🌍 world.js is this repository's (scripts/world.py), inline
+        with self.assertRaises(ValueError):
+            ui.module_asset("world.js")                         # PySaiyanWeBoo no longer carries it
 
     def test_villagers_walk_straight_at_constant_speed_pause_at_random_and_loop_seamlessly(self):
         for seed in range(60):
@@ -1545,7 +1547,7 @@ class WorldPageTests(unittest.TestCase):
             active = [s for s in seen if s[2] == "active"]
             self.assertEqual(len(active), (end - start) % 1440)                                  # exactly the window is active
         self.assertEqual(W.gauge_cells(3, 5, ("A", "b")), "AAAbb")
-        self.assertEqual(W.gauge_cells(0, 3, ui.GAUGE_GLYPHS["hourglass"]), "⏳⏳⏳")
+        self.assertEqual(W.gauge_cells(0, 3, W.GAUGE_GLYPHS["hourglass"]), "⏳⏳⏳")
         self.assertEqual([W.clock_label(m) for m in (0, 9, 600, 1439)], ["00:00", "00:09", "10:00", "23:59"])
         self.assertEqual([W.utc_offset_label(m) for m in (0, 540, 330, -300, -210, 765, -720)],
                          ["UTC", "UTC+9", "UTC+5:30", "UTC-5", "UTC-3:30", "UTC+12:45", "UTC-12"])
@@ -1571,7 +1573,7 @@ class WorldPageTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             W.world_validate(board({"text": "x"}, offset_label="yes"))
         # Every preset works, defaults are filled in, and a custom pair keeps its own glyphs.
-        for name, pair in ui.GAUGE_GLYPHS.items():
+        for name, pair in W.GAUGE_GLYPHS.items():
             got = W.world_validate(board({"text": "x", "gauge": {**window, "glyphs": name}}))["board"]["items"][0]["gauge"]
             self.assertEqual(got["glyphs"], list(pair), name)
         plain = W.world_validate(board({"text": "x", "gauge": window}))
