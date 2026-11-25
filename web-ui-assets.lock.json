@@ -16,7 +16,8 @@
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/index.html": "7bdef133ef7ed0cbb4766338f54d36324bc834d3074f0fb99b382faa2267a37d",
+    "tools/demos/index.html": "76b4ad5696abe1d54cee2740c5560ef8f1095aa475e61635792a1e64b8ac4f2c",
+    "tools/demos/chat.html": "2c4901d10e0d25908bfebb19d21196b0bfc157241247c13e3c09e01ed10f4a07",
     "tools/demos/world.html": "3bb817b85ed76f6f53459a4db14ee1212b736432e5d55d9cd82ec1cc20a48170",
     "tools/demos/school.html": "0ae2753ff6b8c495522ef4a946416d397c6ee1a2b0f1bf438814713cdc309753",
     "tools/demos/cities.html": "fbe2cd68c11930a08ee212ce7b37ae2a0232892d38bd114af4e3160c5341dad5",

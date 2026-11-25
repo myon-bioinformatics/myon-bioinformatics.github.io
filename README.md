@@ -88,7 +88,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 | 🧰 Stubs & mocks | [tools/demos/](https://myon-bioinformatics.github.io/tools/demos/) |
 | 🎨 共通UI部品・テーマ（PySaiyanWeBoo） | [UI Catalog](https://myon-bioinformatics.github.io/PySaiyanWeBoo/) |
 | 📚 Project pages（記録した実行例） | [tools/projects/](https://myon-bioinformatics.github.io/tools/projects/) |
-| 📝 Markdown 道具箱 | [利用ガイド](https://myon-bioinformatics.github.io/markdown/) |
+| 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab） | [tools/demos/chat.html](https://myon-bioinformatics.github.io/tools/demos/chat.html) |
 | 🧭 統合運用 | [Dashboard](https://myon-bioinformatics.github.io/myon-bioinformatics/) |
 | 🎞 GIF工房（PySaiyanWeBoo） | [tools/gif/](https://myon-bioinformatics.github.io/tools/gif/) |
 | 🌊 流れの実験室（FluidFullSpeedSimulation · DRAgoWing） | [tools/flow/](https://myon-bioinformatics.github.io/tools/flow/) |
@@ -259,6 +259,29 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 ![Portfolio home-screen manifest and icons, tile labels, start_url, the HTML import page, the demos and every project page with its recorded run, in Chromium at 392×840](docs/evidence/home-screen.gif)
 
 🗓️ 2026-11-13 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k home_screen` writes `test-results/home-screen/home-screen-shortcut-<UTC>.gif` (CI keeps it in the browser evidence artifact); copy the newest one to `docs/evidence/home-screen.gif` to update this.
+
+### 💬 横断チャット
+
+Tools & Demos → **💬 横断チャット**（`tools/demos/chat.html`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。
+
+| | コマンド | 出どころ |
+| --- | --- | --- |
+| 📝📊 | `/md` `/table` | markdown.py（表示・数え上げ・CSV→表） |
+| 🎨📦🔀 | `/ascii` `/box` `/flow A, B > C` | ascii_artist（banner・枠・流れ図と Mermaid） |
+| 🗂 | `/compress` | TalkCompress の ShorthandSessionEdge（公開時に記録）と markdown.py の compact_llm_output |
+| 🔌 | `/mcp 道具 {JSON}` | mcp-toolcall-lab のプロンプト実験が広告する道具（✅ tools/call／❌ 断る） |
+| 🔎👀 | `onto` `/find --kind jsonl` `/show REPO/PATH` | 全リポジトリの JSON / JSONL（公開時に `--record-chat` が `media/chat/index.json` へ）と、そのコミットの raw |
+| ⌨️ | `/flwo` → `/flow` | cli_args の「もしかして」 |
+
+📇 索引タブは olnm の検証ガイドと同じ PySaiyanWeBoo の runbook（検索・状態の絞り込み・記録の JSON 保存）で、各例の 💬 送る でチャットに送れます。
+
+![The cross-repo chat in Chromium: Pyodide runs scripts/chat.py — a flow, a typo, MCP checks, the onto index, /show, /compress, raw HTML kept as text, and a step sent from the index](docs/evidence/chat.gif)
+
+```sh
+uv run --locked --only-group pages python scripts/chat.py "/flow 入力, 履歴 > 圧縮 > 出力"      # 💬 the same reply in the shell
+uv run --locked --only-group pages python scripts/project_pages.py --record-chat .generated-site  # 🔎 the cross-repo index (GITHUB_TOKEN)
+PYODIDE_DIR=… uv run --locked --only-group browser python -m pytest tests/test_site.py -k chat_in_chromium   # 🎞 test-results/chat/chat-conversation-<UTC>.gif
+```
 
 ### 🌍 ワールド
 
