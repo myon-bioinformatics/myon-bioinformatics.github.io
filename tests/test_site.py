@@ -1036,3 +1036,225 @@ def test_a_showcase_icon_may_be_its_pages_url():
     page = (SITE / "tools/projects/err-o-roadrunner.html").read_text(encoding="utf-8")
     assert 'src="https://myon-bioinformatics.github.io/Err-o-RoadRunner/icon.png"' in page
     assert "raw.githubusercontent.com/myon-bioinformatics/Err-o-RoadRunner/" in page   # the media still come from its pin
+
+
+# ═══ 💬 cross-repo chat (scripts/chat.py; the page runs it in Pyodide) ═══════════════════════════════════════
+
+CHAT = PAGES._chat()
+CHAT_INDEX = {'schema': 'chat-index/1', 'owner': 'myon-bioinformatics',
+              'commits': {'onto': 'a' * 40, 'Aoi': 'b' * 40, 'TaxOntOy': 'c' * 40},
+              'files': [['onto', 'docs/graph.json', 120], ['Aoi', 'cycles/c001/outputs/allocation.jsonl', 80],
+                        ['Aoi', 'cycles/c003/units.jsonl', 40 * 1024 ** 2], ['TaxOntOy', 'package.json', 30],
+                        ['TaxOntOy', 'otl-relations.json', 64]],
+              'tools': [{'name': 'find_municipalities', 'description': 'Find mock municipalities.',
+                         'parameters': {'type': 'object', 'properties': {'query': {'type': 'string'}}, 'required': ['query'],
+                                        'additionalProperties': False}}]}
+CHAT_RAW = {'onto/docs/graph.json': json.dumps({'schema': 'graph/1', 'nodes': [{'id': 'a'}, {'id': 'b'}], 'edges': [['a', 'b']]}),
+            'Aoi/cycles/c001/outputs/allocation.jsonl': '{"team": "d", "z": -0.7}\n{"team": "s", "z": 0.2}\n'}
+
+
+def _chat_fetch(url):
+    path = url.split('raw.githubusercontent.com/myon-bioinformatics/', 1)[1]
+    name, _, rest = path.partition('/')
+    return CHAT_RAW[f'{name}/{rest.split("/", 1)[1]}']
+
+
+def test_chat_answers_every_command_from_the_fleets_modules():
+    """💬 Each command is one Markdown reply built by markdown.py, ascii_artist or cli_args; /help lists them all."""
+    say = lambda text: CHAT.respond(text, index={})
+    assert all(f'`/{name}' in say('/help') for name in CHAT.COMMANDS)
+    assert say('こんにちは') == say('/help')
+    flow = say('/flow 入力, 履歴 > 圧縮 > 出力')
+    assert '入力 + 履歴\n ↓\n圧縮' in flow and '```mermaid' in flow and 'S1 --> T0' in flow
+    table = say('/table 道具,行数;markdown,7284')
+    assert '| markdown | 7284 |' in table and '╭' in table
+    assert '#   #' in say('/ascii HI') and '╭────╮' in say('/box hi')
+    assert '🧭 見出し 1 · 🔗 リンク 1' in say('/md # A\n\n[x](https://example.com)')
+    html = CHAT.reply_html('/md <img src=x onerror=alert(1)> **b**')
+    assert '<img' not in html and '&lt;img' in html and '<strong>b</strong>' in html
+
+
+def test_chat_typos_get_what_cli_args_suggests():
+    """⌨️ A mistyped command, option or --kind gets "maybe you meant" from cli_args, shown as what to type."""
+    assert '⌨️ もしかして `/flow`' in CHAT.respond('/flwo a > b', index={})
+    assert '⌨️ もしかして `--kind`' in CHAT.respond('/find --kidn onto', index={})
+    assert '⌨️ もしかして `--kind onto`' in CHAT.respond('/find --kind ont', index={})
+
+
+def test_chat_finds_and_shows_json_and_jsonl_across_repositories():
+    """🔎👀 /find (and plain words) search every recorded repository; /show reads the file at its commit into tables."""
+    found = CHAT.respond('onto', index=CHAT_INDEX)
+    assert 'docs/graph.json' in found and 'otl-relations.json' in found and '/blob/' + 'a' * 40 in found
+    assert CHAT.kinds_of('TaxOntOy', 'package.json') == ['onto', 'config'] and CHAT.kinds_of('Aoi', 'x/units.jsonl') == ['jsonl']
+    assert [path for _, path, _ in CHAT.find(CHAT_INDEX, kind='jsonl')] == ['cycles/c003/units.jsonl', 'cycles/c001/outputs/allocation.jsonl']
+    assert 'Aoi' in CHAT.respond('Aoi jsonl', index=CHAT_INDEX) and 'onto' not in CHAT.respond('/find --repo Aoi', index=CHAT_INDEX).split('|', 5)[-1]
+    graph = CHAT.respond('/show onto/docs/graph.json', index=CHAT_INDEX, fetch=_chat_fetch)
+    assert '🧬 nodes **2**' in graph and '🧬 edges **1**' in graph and '`schema`' in graph
+    jsonl = CHAT.respond('/show Aoi/cycles/c001/outputs/allocation.jsonl', index=CHAT_INDEX, fetch=_chat_fetch)
+    assert '🧾 行 **2**' in jsonl and '| team | z |' in jsonl
+    assert '🐘' in CHAT.respond('/show Aoi/cycles/c003/units.jsonl', index=CHAT_INDEX, fetch=lambda url: pytest.fail(url))
+    assert '❓ 記録にない' in CHAT.respond('/show Aoi/nope.json', index=CHAT_INDEX)
+    assert '⏸' in CHAT.respond('onto', index={}) and '⏸' in CHAT.respond('/mcp', index={})
+
+
+def test_chat_checks_mcp_tool_calls_against_what_the_lab_advertises():
+    """🔌 Only an advertised tool with arguments that fit its schema becomes a tools/call; anything else is refused."""
+    say = lambda text: CHAT.respond(text, index=CHAT_INDEX)
+    assert '`find_municipalities`' in say('/mcp')
+    ok = say('/mcp find_municipalities {"query": "Exampleville"}')
+    assert ok.startswith('✅') and '"method": "tools/call"' in ok
+    assert '❌' in say('/mcp find_municipalities {"query": 3, "x": 1}') and 'arguments.x' in say('/mcp find_municipalities {"x": 1}')
+    refused = say('/mcp find_municipalitis {}')
+    assert refused.startswith('❌') and '`find_municipalities`' in refused
+    assert 'JSON ではない' in say('/mcp find_municipalities {query}')
+
+
+def test_chat_compresses_with_talkcompress_and_markdown(monkeypatch):
+    """🗂 TalkCompress's compressor (fetched once, here a stand-in) and markdown.py's compact_llm_output."""
+    import types
+    monkeypatch.setitem(CHAT._STATE, 'talkcompress', types.SimpleNamespace(compress=lambda text: text.replace('As soon as possible', 'ASAP')))
+    reply = CHAT.respond('/compress As soon as possible, please.', index={'commits': {'TalkCompress': 'd' * 40}})
+    assert 'ASAP, please.' in reply and 'ShorthandSessionEdge @ ddddddd' in reply and '📏 **' in reply
+    monkeypatch.setitem(CHAT._STATE, 'talkcompress', None)
+    monkeypatch.setitem(CHAT._STATE, 'fetch', lambda url: (_ for _ in ()).throw(OSError(url)))
+    monkeypatch.setitem(sys.modules, 'shorthand_session_edge', None)          # not importable here
+    assert '⏸ TalkCompress を読めない（OSError）' in CHAT.respond('/compress a\n\n\n\nb', index={})
+
+
+def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modules(tmp_path):
+    """💬 --record-chat lists each repository's JSON / JSONL at its commit, the lab's advertised tools and TalkCompress's files;
+    the page carries chat.py and exactly the installed markdown / ascii_artist / cli_args, and an index of every example."""
+    root = tmp_path / 'root'
+    (root / 'api').mkdir(parents=True)
+    (root / 'api/repos.json').write_text(json.dumps({'repos': [{'name': n} for n in ('TalkCompress', 'mcp-toolcall-lab', 'onto', 'Broken')]
+                                                     + [{'name': 'Old', 'archived': True}]}))
+    trees = {'onto': [('docs/graph.json', 120), ('README.md', 9)], 'TalkCompress': [('x.jsonl', 3)],
+             'mcp-toolcall-lab': [('fixtures/prompt_experiments/a.json', 50), ('fixtures/other.json', 2)]}
+    fixture = {'openai': {'request': {'tools': [{'type': 'function', 'function': CHAT_INDEX['tools'][0]}]}}}
+
+    def head(repository):
+        if repository.endswith('Broken'):
+            raise OSError('unreachable')
+        return 'e' * 40
+    raw = lambda repository, commit, path: json.dumps(fixture).encode() if path.endswith('a.json') else f'# {path}'.encode()
+    lines = PAGES.record_chat(tmp_path / 'site', root, head=head, raw=raw, tree=lambda repository, commit: trees[repository.split('/')[1]])
+    assert lines == ['💬 3 repositories · 4 JSON/JSONL · 🔌 1 tools · 🗂 TalkCompress ✅ eeeeeee', '⏸ Broken: OSError']
+    index = json.loads((tmp_path / 'site/media/chat/index.json').read_text())
+    assert [row[:2] for row in index['files']] == [['TalkCompress', 'x.jsonl'], ['mcp-toolcall-lab', 'fixtures/prompt_experiments/a.json'],
+                                                   ['mcp-toolcall-lab', 'fixtures/other.json'], ['onto', 'docs/graph.json']]
+    assert [tool['name'] for tool in index['tools']] == ['find_municipalities'] and set(index['commits']) == {'TalkCompress', 'mcp-toolcall-lab', 'onto'}
+    assert all((tmp_path / 'site/media/chat/talkcompress' / name).is_file() for name in CHAT.TALKCOMPRESS)
+
+    page = (SITE / 'tools/demos/chat.html').read_text(encoding='utf-8')
+    sources = json.loads(re.search(r'<script type="application/json" id="chat-sources">(.*?)</script>', page, re.S).group(1))
+    import importlib.util as util
+    assert sources == {'chat.py': (ROOT / 'scripts/chat.py').read_text(encoding='utf-8'),
+                       **{f'{n}.py': Path(util.find_spec(n).origin).read_text(encoding='utf-8') for n in CHAT.MODULES}}
+    config = json.loads(re.search(r'id="chat-config">(.*?)</script>', page).group(1))
+    assert config == {'pyodide': CHAT.PYODIDE, 'index': '../../media/chat/index.json', 'base': '../../media/chat/'}
+    assert all(html_escape(example) in page for _, _, _, examples in CHAT.COMMANDS.values() for example in examples)
+    assert page.count('class="ui-card ui-step"') == sum(len(c[3]) for c in CHAT.COMMANDS.values()) + len(CHAT.TYPOS)
+    assert 'data-testid="portfolio-back"' in page and '💬chat-slot' not in page
+    front = (SITE / 'index.html').read_text(encoding='utf-8')
+    assert 'id="chat"' in front and './tools/demos/chat.html' in front and 'Markdown 道具箱' not in front
+
+
+def html_escape(text):
+    from html import escape
+    return escape(text)
+
+
+def test_chat_in_chromium_with_pyodide_and_a_gif():
+    """💬 In Chromium, Pyodide runs chat.py: typed and tapped commands, a typo, MCP, the cross-repo index, /show, the 📇 index's
+    💬 button, and raw HTML stays text. PYODIDE_DIR serves Pyodide from a local copy (else jsDelivr); TALKCOMPRESS_DIR (a checkout)
+    lets /compress run TalkCompress itself. Frames go to test-results/chat/chat-conversation-<UTC>.gif."""
+    sync_api = pytest.importorskip('playwright.sync_api')
+    ui = pytest.importorskip('pysaiyanweboo')
+    import base64, functools, os, threading
+    from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+    class Quiet(SimpleHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+    local, compressor = os.environ.get('PYODIDE_DIR'), os.environ.get('TALKCOMPRESS_DIR')
+    server = ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Quiet, directory=str(SITE)))
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base, frames, errors = f'http://127.0.0.1:{server.server_port}/', [], []
+
+    def route(r):
+        url = r.request.url
+        if url.startswith(CHAT.PYODIDE):
+            if not local:
+                return r.continue_()
+            name = url[len(CHAT.PYODIDE):].split('?')[0]
+            kind = {'.mjs': 'text/javascript', '.wasm': 'application/wasm', '.json': 'application/json'}.get(Path(name).suffix, 'application/octet-stream')
+            return r.fulfill(path=str(Path(local) / name), headers={'content-type': kind, 'access-control-allow-origin': '*'})
+        if url.startswith('https://raw.githubusercontent.com/'):
+            return r.fulfill(body=_chat_fetch(url), headers={'access-control-allow-origin': '*'})
+        return r.abort()
+
+    def local_media(r):
+        name = r.request.url.split('/media/chat/', 1)[1]
+        if name == 'index.json':
+            return r.fulfill(body=json.dumps(CHAT_INDEX), content_type='application/json')
+        if compressor and name.startswith('talkcompress/'):
+            return r.fulfill(path=str(Path(compressor) / name.removeprefix('talkcompress/')))
+        return r.fulfill(status=404, body='')
+
+    try:
+        with sync_api.sync_playwright() as playwright:
+            try:
+                browser = ui.launch_chromium(playwright)
+            except Exception as exc:  # noqa: BLE001 - no browser on this machine
+                pytest.skip(f'Chromium is not installed: {exc}')
+            page = browser.new_page(viewport={'width': 640, 'height': 800})
+            page.on('pageerror', lambda error: errors.append(str(error)))
+            page.route(lambda url: url.startswith('https://'), route)     # (a 'https://**' glob misses the dynamic import)
+            page.route(lambda url: '/media/chat/' in url, local_media)
+            page.goto(base + 'tools/demos/chat.html')
+            page.wait_for_function('() => document.documentElement.dataset.chatReady === "true"', timeout=180_000)
+            status = page.locator('[data-chat-status]').text_content()
+            assert status.startswith('✅ 🐍 3.') and '🔎 5 files' in status, status
+            frames.append((page.screenshot(), '💬 ' + status))
+            bot = page.locator('[data-chat-who="bot"]')
+
+            def say(text, expect, *, tap=None):
+                count = bot.count()
+                if tap:
+                    page.locator(tap).click()
+                else:
+                    page.fill('[data-chat-input]', text)
+                    page.press('[data-chat-input]', 'Enter')
+                page.wait_for_function(f'n => document.querySelectorAll("[data-chat-who=bot]").length > n', arg=count)
+                reply = bot.last.inner_text()
+                assert expect in reply, (text, reply)
+                frames.append((page.screenshot(), f'💬 {text or tap}'[:120]))
+                return reply
+
+            say('/flow 入力 > 圧縮 > 出力', 'flowchart TB')
+            say('/flwo a', 'もしかして /flow')
+            say('', 'find_municipalities', tap='.ui-chat-chips [data-chat-say="/mcp"]')
+            say('/mcp find_municipalities {"query": "Exampleville"}', 'tools/call')
+            say('onto', 'docs/graph.json')
+            say('/show onto/docs/graph.json', '🧬 nodes 2')
+            say('/compress As soon as possible, please send me the report.', 'ASAP' if compressor else '⏸ TalkCompress')
+            say('/md <img src=x onerror="window.pwned=1"> **ok**', '<img src=x')
+            assert page.evaluate('() => window.pwned') is None and bot.last.locator('img').count() == 0
+            page.click('label[for="ui-tabs-chat-1"]')                      # 📇 index: a step's 💬 button sends it
+            page.select_option('select[data-ui-choice]', '1')               # 🎨 ASCII art
+            frames.append((page.screenshot(), '📇 索引 · 🎨 ASCII art'))
+            say('', '╭', tap='.ui-step [data-chat-say^="/box"]')
+            assert page.locator('#ui-tabs-chat-0').is_checked() and errors == [], errors
+            recorder = browser.new_page()
+            recorder.set_content(ui.gif_recorder_document())
+            recorder.evaluate('o => { window.rec = new UiGif.Recorder(o); }', {'width': 640, 'height': 800, 'caption': 32})
+            recorder.evaluate('items => rec.add(items)', [{'png': base64.b64encode(png).decode('ascii'), 'caption': caption,
+                                                           'ok': True, 'delay': 1200} for png, caption in frames])
+            gif = base64.b64decode(recorder.evaluate('() => rec.encodeBase64({})')['gif'])
+            browser.close()
+    finally:
+        server.shutdown()
+    target = ui.gif_targets(ROOT / 'test-results' / 'chat', ['chat-conversation'], run_details=['timestamp'])
+    target['chat-conversation'].write_bytes(gif)
+    assert gif[:6] == b'GIF89a'

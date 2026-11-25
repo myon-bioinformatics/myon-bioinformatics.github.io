@@ -89,6 +89,9 @@ jobs:
       # Writes test-results/home-screen/home-screen-shortcut-<UTC>.gif, uploaded with the evidence below.
       - name: Check home-screen shortcuts in Chromium
         run: python -m pytest tests/test_site.py -k home_screen -q
+      # 💬 Pyodide (jsDelivr) runs scripts/chat.py with the pinned modules; writes test-results/chat/chat-conversation-<UTC>.gif.
+      - name: Check the cross-repo chat in Chromium
+        run: python -m pytest tests/test_site.py -k chat_in_chromium -q
       - name: Checkout the verified Ironmate Studio source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

@@ -7,7 +7,8 @@ pinned commit or when its output drifted from the lock. The generated files are 
 writes them (Pages overlays them on its build), ``--stage DIR`` writes the whole site for tests and local previews,
 and ``--refresh-lock`` rewrites the lock after the pin moves.
 
-The demos are the 🌍 world (scripts/world.py: the travel world, 🏫 the school, 🗼 the parallel cities, 🎬 the camera), the 🤖 MCP / 🔁 API
+The demos are the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in the page; ``--record-chat`` indexes the other
+repositories at deploy time), the 🌍 world (scripts/world.py: the travel world, 🏫 the school, 🗼 the parallel cities, 🎬 the camera), the 🤖 MCP / 🔁 API
 stubs (below; both moved here from PySaiyanWeBoo) and PySaiyanWeBoo's mocks (an in-page MCP server, a JUnit reader), published
 with the portfolio's way back, shortcut label and icons. ``tools/projects/`` gives every project in ``projects.json`` that
 has a ``showcase`` a page of its own, Pages or not: its icon and media at a fixed commit, and one recorded run.
@@ -57,6 +58,8 @@ MAP_PAGES = {'tools/maps/index.html', 'tools/maps/tokyo.html'}
 
 # 🧰 name -> (how it is built from pysaiyanweboo, shortcut label, title, summary): the only list of demos.
 DEMOS = {
+    'chat': (lambda ui: chat_document(ui), '💬 チャット', 'Cross-repo chat',
+             'リポジトリ横断のチャット：Markdown・ASCII アート・会話の圧縮・MCP 呼び出しの確認・JSON / JSONL の索引を、ページの中の Python（Pyodide）で'),
     'world': (lambda ui: world_page('overworld'), '🌍 ワールド', 'World',
               '🚪 で土地をわたる旅のワールド：絵文字のキャラで歩き、時刻・お気に入り・地図・言語を切り替える'),
     'school': (lambda ui: world_page('school'), '🏫 スクール', 'School',
@@ -296,7 +299,8 @@ def render_demos(ui) -> dict[str, bytes]:
     """Every demo page, plus their catalog as tools/demos/index.html, keyed by published path (two levels below the site root)."""
     result = {DEMO_BASE + 'index.html': add_home_label(add_back_nav(ui.catalog_document({
         'schema': 'web-ui-catalog/1', 'title': '🧰 Demos',
-        'description': '🌍 ワールドと 🤖🔁 スタブ、PySaiyanWeBoo のモック。どれも Python で生成し、通信せずこのページの中で動きます。',
+        'description': '💬 チャット、🌍 ワールド、🤖🔁 スタブ、PySaiyanWeBoo のモック。どれも Python で生成し、このページの中で動きます'
+                       '（💬 は Pyodide を CDN から読む。ほかは通信しない）。',
         'items': [{'id': name, 'title': title, 'summary': summary, 'links': [{'label': 'Open →', 'href': f'./{name}.html'}]}
                   for name, (_, _, title, summary) in DEMOS.items()]})), '🧰 Demos', icons_from='../../').encode('utf-8')}
     for name, (build, label, _, _) in DEMOS.items():
@@ -697,6 +701,189 @@ def render_map(ui, output: Path | None = None) -> dict[str, bytes]:
     return {MAP_PAGE: add_home_label(add_back_nav(page), '🧠 地図', icons_from='../../').encode('utf-8')}
 
 
+# ── 💬 横断チャット: scripts/chat.py in Pyodide with the pinned markdown.py · ascii_artist.py · cli_args.py (pages group);
+# what it knows of the other repositories is recorded at deploy time (media/chat/, not kept in git) ──
+CHAT = 'media/chat/'
+_CHAT_SLOT = '💬chat-slot'
+CHAT_CSS = ('.ui-chat{display:flex;flex-direction:column;gap:8px}.ui-chat-log{display:flex;flex-direction:column;gap:8px;'
+            'height:48vh;min-height:240px;overflow:auto;padding:8px;border:1px solid var(--ui-border);border-radius:var(--ui-radius)}'
+            '.ui-chat-msg{max-width:min(100%,720px);padding:8px 16px;border-radius:var(--ui-radius);overflow-wrap:anywhere}'
+            '.ui-chat-msg pre{overflow:auto;max-width:100%;padding:8px;border-radius:var(--ui-radius);background:var(--ui-panel)}'
+            '.ui-chat-msg table{display:block;overflow:auto;max-width:100%}.ui-chat-msg :is(td,th){white-space:nowrap}'
+            '.ui-chat-you{align-self:flex-end;background:var(--ui-panel);white-space:pre-wrap}'
+            '.ui-chat-bot{align-self:flex-start;border:1px solid var(--ui-border)}'
+            '.ui-chat-form{display:flex;gap:8px;position:sticky;bottom:0;padding:8px 0;background:var(--ui-bg)}'
+            '.ui-chat-form textarea{flex:1;min-height:48px;font:inherit}'
+            '.ui-chat-chips{display:flex;flex-wrap:wrap;gap:8px;margin:0}.ui-step [data-chat-say]{margin-top:8px}')
+CHAT_JS = r"""const $ = (s) => document.querySelector(s);
+const log = $("[data-chat-log]"), form = $("[data-chat-form]"), input = $("[data-chat-input]"), send = $("[data-chat-send]");
+const status = $("[data-chat-status]"), cfg = JSON.parse($("#chat-config").textContent);
+let bot = null;
+const bubble = (who, html, text) => {
+  const node = document.createElement("div");
+  node.className = `ui-chat-msg ui-chat-${who}`;
+  node.dataset.chatWho = who;
+  if (text === undefined) node.innerHTML = html; else node.textContent = text;
+  log.append(node);
+  log.scrollTop = log.scrollHeight;
+  return node;
+};
+async function say(text) {
+  if (!bot || !text.trim()) return;
+  bubble("you", null, text);
+  send.disabled = true;
+  await new Promise((done) => setTimeout(done, 0));   // paint before a /show or /compress fetch blocks
+  try { bubble("bot", bot.reply_html(text)); } catch (error) { bubble("bot", null, "⚠️ " + (error?.message ?? error)); }
+  send.disabled = false;
+  input.focus();
+}
+form.addEventListener("submit", (event) => { event.preventDefault(); const text = input.value; input.value = ""; say(text); });
+input.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey && !event.isComposing) { event.preventDefault(); form.requestSubmit(); }
+});
+document.addEventListener("click", (event) => {
+  const chip = event.target.closest("[data-chat-say]");
+  if (!chip) return;
+  const tab = $("#ui-tabs-chat-0");
+  if (tab) tab.checked = true;
+  say(chip.dataset.chatSay);
+});
+for (const step of document.querySelectorAll(".ui-step")) {            // 📇 each step of the index can be sent as it is
+  const command = step.querySelector("pre")?.textContent ?? "";
+  const button = Object.assign(document.createElement("button"), {type: "button", className: "ui-button", textContent: "💬 送る"});
+  button.dataset.chatSay = command;
+  step.querySelector(".ui-code")?.after(button);
+}
+async function boot() {
+  const {loadPyodide} = await import(cfg.pyodide + "pyodide.mjs");
+  const py = await loadPyodide({indexURL: cfg.pyodide});
+  py.FS.mkdirTree("/chat");
+  for (const [name, text] of Object.entries(JSON.parse($("#chat-sources").textContent))) py.FS.writeFile("/chat/" + name, text);
+  let index = null;
+  try { const response = await fetch(cfg.index); if (response.ok) index = await response.text(); } catch {}
+  py.runPython("import sys; sys.path.insert(0, '/chat')");
+  bot = py.pyimport("chat");
+  bot.configure(index, new URL(cfg.base, location.href).href);
+  const files = index ? JSON.parse(index).files.length : 0;
+  status.textContent = `✅ 🐍 ${py.runPython("import sys; sys.version.split()[0]")} · ` + (files ? `🔎 ${files} files` : "⏸ 索引なし");
+  send.disabled = false;
+  send.textContent = "➤";
+  document.documentElement.dataset.chatReady = "true";
+}
+boot().catch((error) => { status.textContent = "⚠️ Python を読み込めない: " + (error?.message ?? error); });
+"""
+
+
+@functools.lru_cache(maxsize=None)
+def _chat() -> ModuleType:
+    """💬 scripts/chat.py, loaded once (it imports the pinned markdown, ascii_artist and cli_args)."""
+    return load_module('chat', 'scripts/chat.py')
+
+
+def chat_sources() -> dict[str, str]:
+    """The Python the page writes into Pyodide: chat.py and the pinned modules it imports, by file name."""
+    chat = _chat()
+    sources = {'chat.py': (ROOT / 'scripts/chat.py').read_text(encoding='utf-8')}
+    for name in chat.MODULES:
+        sources[f'{name}.py'] = Path(importlib.util.find_spec(name).origin).read_text(encoding='utf-8')
+    return sources
+
+
+def chat_books() -> list[dict]:
+    """📇 The index as a runbook (records, search and state filter, as in olnm's guide): one book per kind of tool, one
+    step per example; the expected reply is the bot's own where it needs nothing recorded at deploy time."""
+    chat = _chat()
+    groups = [('📝 Markdown', ('md', 'table', 'help')), ('🎨 ASCII art', ('ascii', 'box', 'flow')), ('🗂 圧縮', ('compress',)),
+              ('🔌 MCP', ('mcp',)), ('🔎 JSON / JSONL', ('find', 'show')), ('⌨️ もしかして', ())]
+    recorded = {'compress': '🗂 TalkCompress の短い文と 📏 文字数（TalkCompress は公開時に記録）',
+                'mcp': '🔌 mcp-toolcall-lab が広告する道具で判定（✅ 送ってよい／❌ 断る。道具は公開時に記録）',
+                'find': '🔎 全リポジトリの JSON / JSONL から（索引は公開時に記録）', 'show': '👀 そのコミットの raw を読んで表に'}
+    books = []
+    for label, names in groups:
+        examples = [(name, example) for name in names for example in chat.COMMANDS[name][3]] or [('typo', t) for t in chat.TYPOS]
+        steps = []
+        for i, (name, example) in enumerate(examples):
+            expect = recorded.get(name) or chat.respond(example, index={})
+            steps.append({'id': f'{name}-{i}', 'title': f'{chat.COMMANDS.get(name, ("⌨️",))[0]} {example.splitlines()[0][:60]}',
+                          'command': example, 'expect': expect if len(expect) <= 1000 else expect[:999] + '…'})
+        books.append({'label': label, 'runbook': {'key': f'portfolio/chat/{names[0] if names else "typo"}', 'steps': steps}})
+    return books
+
+
+def chat_document(ui) -> str:
+    """💬 The chat page: 💬 the conversation (Pyodide runs chat.py in the page) and 📇 the index of what it answers."""
+    chat = _chat()
+    page = ui.page_document({'schema': 'web-ui-page/1', 'title': '💬 横断チャット', 'description':
+                             'markdown.py・ascii_artist・cli_args・TalkCompress・mcp-toolcall-lab をページの中の Python で。'
+                             '全リポジトリの JSON / JSONL にも答える。送った文はどこにも送らない（/show は GitHub の raw を読む）。',
+                             'blocks': [{'type': 'tabs', 'id': 'chat', 'tabs': [
+                                 {'label': '💬 チャット', 'blocks': [{'type': 'text', 'text': _CHAT_SLOT}]},
+                                 {'label': '📇 索引', 'blocks': [{'type': 'runbook', 'id': 'chat-index', 'choice': '📇 道具',
+                                                                  'books': chat_books()}]}]}]})
+    chips = ''.join(f'<button class="ui-button" type="button" data-chat-say="{html.escape(example, quote=True)}">'
+                    f'{icon} /{name}</button>' for name, (icon, _, _, (example, *_)) in chat.COMMANDS.items())
+    body = ('<div class="ui-chat" data-chat><div class="ui-chat-log" role="log" aria-live="polite" aria-label="会話" data-chat-log>'
+            '<div class="ui-chat-msg ui-chat-bot" data-chat-status>⏳ 🐍 Python（Pyodide）を読み込み中…</div></div>'
+            '<form class="ui-chat-form" data-chat-form>'
+            '<textarea class="ui-input" rows="2" placeholder="/help · /flow a &gt; b · onto" aria-label="メッセージ" data-chat-input></textarea>'
+            f'<button class="ui-button" type="submit" disabled data-chat-send>⏳</button></form><p class="ui-chat-chips">{chips}</p>'
+            '<noscript><p>⏸ このチャットは JavaScript と Pyodide で動く。📇 索引のコマンドは scripts/chat.py でも試せる。</p></noscript></div>')
+    data = lambda value: json.dumps(value, ensure_ascii=False).replace('<', '\\u003c')
+    config = {'pyodide': chat.PYODIDE, 'index': f'../../{CHAT}index.json', 'base': f'../../{CHAT}'}
+    body += (f'<script type="application/json" id="chat-config">{data(config)}</script>'
+             f'<script type="application/json" id="chat-sources">{data(chat_sources())}</script>' + ui.module_script(CHAT_JS))
+    slot = f'<p>{_CHAT_SLOT}</p>'
+    if page.count(slot) != 1:
+        raise ValueError('chat page has no single slot')
+    return page.replace(slot, body, 1).replace('</head>', f'<style>{CHAT_CSS}</style></head>', 1)
+
+
+def _tree(repository: str, commit: str) -> list[tuple[str, int]]:
+    """Every file (path, size) of ``repository`` at ``commit``, from the GitHub API (GITHUB_TOKEN when set)."""
+    data = load_module('repos_catalog', 'scripts/repos_catalog.py')._get_json(
+        f'https://api.github.com/repos/{repository}/git/trees/{commit}?recursive=1')
+    return [(item['path'], item.get('size', 0)) for item in data.get('tree', []) if item.get('type') == 'blob']
+
+
+def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, tree=_tree) -> list[str]:
+    """💬 What the chat knows of the other repositories, at their current commits, under ``output/media/chat/``: index.json
+    (every JSON / JSONL file with its size, the tools mcp-toolcall-lab's prompt fixtures advertise) and TalkCompress's
+    shorthand compressor (talkcompress/). Best effort: a repository that cannot be read is listed and skipped."""
+    catalog = json.loads((root / 'api/repos.json').read_text(encoding='utf-8'))
+    folder = Path(output) / CHAT
+    commits, files, tools, missed, compressor = {}, [], {}, [], '⏸'
+    for name in [repo['name'] for repo in catalog['repos'] if not repo.get('archived')]:
+        try:
+            commit = head(f'{OWNER}/{name}')
+            blobs = tree(f'{OWNER}/{name}', commit)
+        except Exception as exc:
+            missed.append(f'⏸ {name}: {type(exc).__name__}')
+            continue
+        commits[name] = commit
+        files += [[name, path, size] for path, size in blobs if path.lower().endswith(('.json', '.jsonl', '.ndjson'))]
+        try:
+            if name == 'mcp-toolcall-lab':
+                for path, _ in blobs:
+                    if path.startswith('fixtures/prompt_experiments/') and path.endswith('.json'):
+                        fixture = json.loads(raw(f'{OWNER}/{name}', commit, path) or b'{}')
+                        for tool in fixture.get('openai', {}).get('request', {}).get('tools', []):
+                            tools.setdefault(tool['function']['name'], tool['function'])
+            if name == 'TalkCompress':
+                for path in _chat().TALKCOMPRESS:
+                    data = raw(f'{OWNER}/{name}', commit, path)
+                    if data is None:
+                        raise FileNotFoundError(path)
+                    (folder / 'talkcompress' / path).parent.mkdir(parents=True, exist_ok=True)
+                    (folder / 'talkcompress' / path).write_bytes(data)
+                compressor = f'✅ {commit[:7]}'
+        except Exception as exc:
+            missed.append(f'⏸ {name}: {type(exc).__name__}')
+    folder.mkdir(parents=True, exist_ok=True)
+    index = {'schema': 'chat-index/1', 'owner': OWNER, 'commits': commits, 'files': files, 'tools': list(tools.values())}
+    (folder / 'index.json').write_text(json.dumps(index, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
+    return [f'💬 {len(commits)} repositories · {len(files)} JSON/JSONL · 🔌 {len(tools)} tools · 🗂 TalkCompress {compressor}', *missed]
+
+
 # ── 🧰 道具: Ironmate's studios, mcp-toolcall-lab's tools and execution lab (🔌 MCP 実験室) and DRAgoWing's heatmap, built
 # from their default branches at deploy time; each lives at its feature route, not at the repository's name ──
 TOOLS = 'media/tools/receipt.json'       # what this build recorded; the pages live under their folders (not kept in git)
@@ -1049,6 +1236,8 @@ def main(argv=None):
                         help='🧰 build the tools of TOOL_SOURCES (Ironmate, mcp-toolcall-lab, DRAgoWing; their default branches) under DIR/tools/')
     parser.add_argument('--record-map', type=Path, metavar='DIR',
                         help="🧠 read every repository's vendor.lock.json (and Aoi's subtrees) and draw the map under DIR/media/map/")
+    parser.add_argument('--record-chat', type=Path, metavar='DIR',
+                        help="💬 index every repository's JSON / JSONL, mcp-toolcall-lab's tools and TalkCompress's compressor under DIR/media/chat/")
     parser.add_argument('--advance', action='store_true',
                         help="move every showcase to its repository's newest commit and record it there (keeps the pin when that would break the page)")
     args = parser.parse_args(argv)
@@ -1069,6 +1258,8 @@ def main(argv=None):
         print('\n'.join(record_samples(args.record_samples, pages_urls())))
     if args.record_map:
         print('\n'.join(record_map(args.record_map)))
+    if args.record_chat:
+        print('\n'.join(record_chat(args.record_chat)))
     if args.record_flow:
         print('\n'.join(record_flow(args.record_flow)))
     if args.record_tools:
@@ -1080,7 +1271,7 @@ def main(argv=None):
     if args.stage:
         stage(args.stage)
     if not (args.refresh_lock or args.output or args.stage or args.record or args.advance or args.record_samples or args.record_flow or args.record_map
-            or args.record_tools):
+            or args.record_tools or args.record_chat):
         parser.error('give --output DIR, --stage DIR, --refresh-lock, --advance, --record-samples DIR and/or --record NAME=CHECKOUT')
 
 

@@ -74,6 +74,15 @@ jobs:
         timeout-minutes: 5
         run: uv run --locked --only-group pages python scripts/project_pages.py --record-map _site | tee -a "$GITHUB_STEP_SUMMARY"
 
+      # 💬 What the chat answers about the other repositories: every JSON / JSONL file at its current commit (GitHub's tree
+      # API, one call each), mcp-toolcall-lab's advertised tools and TalkCompress's compressor (media/chat/, not kept in git).
+      - name: Record the chat's cross-repo index (best effort)
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: uv run --locked --only-group pages python scripts/project_pages.py --record-chat _site | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: Generate verified shared browser assets with the pinned generator (PySaiyanWeBoo)
         run: uv run --locked --only-group pages python scripts/project_pages.py --output _site
 
