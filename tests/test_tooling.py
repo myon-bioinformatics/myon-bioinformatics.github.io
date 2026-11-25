@@ -288,10 +288,13 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     shutil.copyfile(ROOT / 'scripts/map_tool.py', root / 'scripts/map_tool.py')
     shutil.copyfile(ROOT / 'scripts/world.py', root / 'scripts/world.py')                 # 🌍 the world pages and Parallel Tokyo
     shutil.copyfile(ROOT / 'scripts/chat.py', root / 'scripts/chat.py')                   # 💬 the chat page runs it in Pyodide
+    shutil.copyfile(ROOT / 'scripts/markdown_transport.py', root / 'scripts/markdown_transport.py')   # 🗓️ the weekly fragment
+    (root / 'docs').mkdir()
+    shutil.copyfile(ROOT / 'docs/weekly-view.md', root / 'docs/weekly-view.md')
     (root / 'api').mkdir()
     for name in ('profile.json', 'api/repos.json'):                                       # ... from these and projects.json
         shutil.copyfile(ROOT / name, root / name)
-    shutil.copyfile(ROOT / 'projects.json', root / 'projects.json')                       # the project pages come from it
+    shutil.copyfile(ROOT / 'projects.json', root / 'projects.json')                       # the project cards' curation
     output = tmp_path / 'cli-output'
     result = subprocess.run([sys.executable, str(root / 'scripts/project_pages.py'),
                              '--refresh-lock', '--output', str(output)], capture_output=True, text=True)
@@ -404,109 +407,6 @@ class ReposApiPythonSelectionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-def test_record_reruns_the_showcase_at_its_commit_with_a_minimal_environment(tmp_path, monkeypatch):
-    import subprocess
-    checkout = tmp_path / 'tool'
-    checkout.mkdir()
-    (checkout / 'show.py').write_text('import os, sys\nprint(sorted(os.environ))\nsys.exit(3)\n')
-    git = ['git', '-C', str(checkout), '-c', 'user.name=t', '-c', 'user.email=t@example.invalid']
-    subprocess.run(['git', 'init', '-q', str(checkout)], check=True)
-    subprocess.run(git + ['add', 'show.py'], check=True)
-    subprocess.run(git + ['commit', '-q', '-m', 'x'], check=True)
-    head = subprocess.run(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], capture_output=True, text=True, check=True).stdout.strip()
-    root = tmp_path / 'site'
-    root.mkdir()
-    entry = {'name': 'Tool', 'desc': 'd', 'url': 'https://github.com/o/Tool',
-             'showcase': {'label': 'T', 'repository': 'o/Tool', 'commit': '0' * 40, 'run': {'command': [sys.executable, '-S', 'show.py']}}}
-    (root / 'projects.json').write_text(json.dumps([entry]))
-    with pytest.raises(ValueError, match='showcase records 0000000'):
-        assets.record('Tool', checkout, root)                    # 📌 only the commit the page names
-    entry['showcase']['commit'] = head
-    (root / 'projects.json').write_text(json.dumps([entry]))
-    monkeypatch.setenv('SECRET_LOOKING_NAME', 'value')
-    run = assets.record('Tool', checkout, root)['run']
-    assert run['exit'] == 3
-    assert run['output'] == "['HOME', 'LANG', 'PATH']"            # 🔒 no other variable of this machine
-    assert json.loads((root / 'projects.json').read_text())[0]['showcase']['run'] == run
-
-
-def test_advance_moves_each_showcase_to_the_tip_unless_that_breaks_its_page(tmp_path):
-    git = lambda repo, *args: subprocess.run(['git', '-C', str(repo), *args], check=True, capture_output=True, text=True).stdout.strip()
-    def repository(name, files):
-        repo = tmp_path / 'o' / name
-        repo.mkdir(parents=True)
-        git(repo, 'init', '-q')
-        commits = []
-        for step in files:                                  # one commit per dict: path -> text (None deletes)
-            for path, text in step.items():
-                (repo / path).unlink() if text is None else (repo / path).write_text(text)
-            git(repo, 'add', '-A')
-            git(repo, '-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'x')
-            commits.append(git(repo, 'rev-parse', 'HEAD'))
-        return commits
-    run = {'command': [sys.executable, '-S', 'show.py'], 'exit': 0, 'output': 'old'}
-    moved = repository('Moved', [{'show.py': 'print("v1")', 'icon.png': 'i'}, {'show.py': '"""Show."""\nprint("v2")'}])
-    lost = repository('Lost', [{'show.py': 'print(1)', 'icon.png': 'i'}, {'icon.png': None}])
-    broke = repository('Broke', [{'show.py': 'print(1)'}, {'show.py': 'raise SystemExit(3)'}])
-    same = repository('Same', [{'show.py': 'print(1)'}])
-    showcase = lambda repo, commit, **extra: {'label': repo, 'repository': f'o/{repo}', 'commit': commit,
-                                               'run': dict(run), **extra}
-    projects = [{'name': 'Moved', 'desc': 'd', 'showcase': showcase('Moved', moved[0], icon='icon.png', scripts={'match': ['*.py']})},
-                {'name': 'Lost', 'desc': 'd', 'showcase': showcase('Lost', lost[0], icon='icon.png')},
-                {'name': 'Broke', 'desc': 'd', 'showcase': showcase('Broke', broke[0])},
-                {'name': 'Same', 'desc': 'd', 'showcase': showcase('Same', same[0])},
-                {'name': 'Plain', 'desc': 'no showcase'}]
-    root = tmp_path / 'site'
-    root.mkdir()
-    (root / 'projects.json').write_text(json.dumps(projects))
-    log = assets.advance(root, remote=str(tmp_path) + '/')
-    assert [line.split()[0] for line in log] == ['⏩', '⏸', '⏸', '=']
-    assert 'icon.png missing' in log[1] and 'run exit 3' in log[2]
-    after = {p['name']: p.get('showcase') for p in json.loads((root / 'projects.json').read_text())}
-    assert after['Moved']['commit'] == moved[1] and after['Moved']['run']['output'] == 'v2'
-    assert after['Moved']['scripts']['items'] == [{'path': 'show.py', 'summary': 'Show.', 'usage': ''}]
-    assert (after['Lost']['commit'], after['Broke']['commit']) == (lost[0], broke[0])      # 📌 kept where the page works
-    assert after['Broke']['run']['output'] == 'old' and after['Plain'] is None
-
-
-# 🤖🔁 the stubs (moved here from PySaiyanWeBoo with their tests)
-class StubTests(unittest.TestCase):
-    """MCP/API stubs and mocks are one function call; the mock is declarative and evaluated the same in Python and the page."""
-
-    def test_stub_spec_is_validated(self):
-        mcp = assets.EXAMPLE_STUBS["mcp"]
-        self.assertEqual(assets.stub_validate(assets.stub_validate(mcp)), assets.stub_validate(mcp))
-        for bad in ({**mcp, "schema": "x"}, {**mcp, "extra": 1}, {**mcp, "id": "1a"}, {**mcp, "tags": ["t"] * 7},
-                    {**mcp, "field": {"placeholder": "no label"}}, {**mcp, "field": {"label": "x", "extra": 1}},
-                    {**mcp, "heading": ""}, {**mcp, "mock": {"k": "x" * 4001}}):
-            with self.assertRaises(ValueError):
-                assets.stub_validate(bad)
-
-    def test_mock_template_substitutes_the_query_everywhere(self):
-        template = {"path": "/api/$input", "list": ["$input", 1, None, True], "nested": {"q": "$input$input"}}
-        self.assertEqual(assets.stub_response(template, "a$&b"),
-                         {"path": "/api/a$&b", "list": ["a$&b", 1, None, True], "nested": {"q": "a$&ba$&b"}})
-        self.assertEqual(template["path"], "/api/$input")
-
-    def test_html_is_escaped_ids_are_prefixed_and_the_mock_cannot_close_the_script(self):
-        spec = {**assets.EXAMPLE_STUBS["api"], "id": "x", "heading": "<b>h</b>", "evidence": "<i>e</i>",
-                "mock": {"note": "</script><script>1</script>"}}
-        html = assets.stub_html(spec, heading_level=2)
-        for raw in ("<b>h</b>", "<i>e</i>", "</script><script>"):
-            self.assertNotIn(raw, html)
-        for ident in ("x-query", "x-run", "x-output", "x-form", "x-mock"):
-            self.assertIn(f'id="{ident}"', html)
-        self.assertIn('<h2 class="ui-title">', html)
-        self.assertIn('value="/api/example"', html)
-
-    def test_stub_document_is_a_single_file_page(self):
-        import pysaiyanweboo as ui
-        page = assets.stub_document(ui, assets.EXAMPLE_STUBS["mcp"], theme="github-like")
-        self.assertNotIn('rel="stylesheet"', page)
-        self.assertEqual(page.count('<script type="module">'), 1)
-        self.assertIn('bindStub({input:"#mcp-query"', page)
 
 
 @pytest.mark.parametrize('mock', [float('nan'), float('inf'), {'nested': [float('-inf')]}, {1, 2}])

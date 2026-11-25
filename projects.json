@@ -8,39 +8,7 @@
       "dna",
       "protein",
       "cli"
-    ],
-    "showcase": {
-      "label": "🧬 配列検索",
-      "repository": "myon-bioinformatics/search_seq_including_spaces",
-      "commit": "198ceee8a2a8a52eabedb6ba97ba9179c567104f",
-      "icon": "docs/brand/icon.png",
-      "media": [
-        {
-          "src": "line_dna_short.webp",
-          "alt": "DNA"
-        }
-      ],
-      "run": {
-        "command": [
-          "python3",
-          "-S",
-          "sequence_tool.py",
-          "match",
-          "tests/fixtures/P37840.fasta",
-          "--left",
-          "KT",
-          "--right",
-          "GV",
-          "--min-gap",
-          "2",
-          "--max-gap",
-          "2"
-        ],
-        "pretty_json": true,
-        "output": "{\"pattern_id\":\"inline\",\"record\":{\"description\":\"Alpha-synuclein\",\"id\":\"sp|P37840|SYUA_HUMAN\",\"metadata\":{},\"provenance\":{\"compression\":null,\"end_line\":4,\"format\":\"fasta\",\"record_index\":1,\"start_line\":1},\"source\":\"tests/fixtures/P37840.fasta\"},\"result\":{\"complete\":true,\"coordinate_convention\":\"1-based-inclusive\",\"iupac\":false,\"matches\":[{\"gap\":2,\"left\":\"KT\",\"left_span\":[21,22],\"middle\":\"KQ\",\"middle_source_span\":[23,24],\"middle_span\":[23,24],\"right\":\"GV\",\"right_span\":[25,26],\"source_span\":[21,26],\"span\":[21,26],\"strand\":\"+\"},{\"gap\":2,\"left\":\"KT\",\"left_span\":[32,33],\"middle\":\"KE\",\"middle_source_span\":[34,35],\"middle_span\":[34,35],\"right\":\"GV\",\"right_span\":[36,37],\"source_span\":[32,37],\"span\":[32,37],\"strand\":\"+\"},{\"gap\":2,\"left\":\"KT\",\"left_span\":[43,44],\"middle\":\"KE\",\"middle_source_span\":[45,46],\"middle_span\":[45,46],\"right\":\"GV\",\"right_span\":[47,48],\"source_span\":[43,48],\"span\":[43,48],\"strand\":\"+\"}],\"provenance\":{\"left_anchor\":\"KT\",\"max_gap\":2,\"min_gap\":2,\"right_anchor\":\"GV\",\"source_length\":140,\"source_sha256\":\"9a06387610edd099466d614941c42a433f444feb6a8f25375bb0b6ad8ec9c6f4\",\"strand\":\"+\"},\"schema\":\"anchor-gap/1\",\"sequence_length\":140,\"source_coordinate_unit\":\"python-string-character\"},\"schema\":\"sequence-matches/1\"}",
-        "exit": 0
-      }
-    }
+    ]
   },
   {
     "name": "Aoi",
@@ -60,22 +28,7 @@
       "baseball",
       "data-acquisition",
       "reproducibility"
-    ],
-    "showcase": {
-      "label": "🐉 QueRyu",
-      "repository": "myon-bioinformatics/QueRyu",
-      "commit": "8ffc4a3702868ffb36d2b9aae08648f7d048905d",
-      "icon": "docs/brand/icon.png",
-      "run": {
-        "command": [
-          "sh",
-          "-c",
-          "cd .. && python3 -S aoi.py queryu --source npb_calendar --years 2024 --cache /tmp/queryu-cache --offline --plan"
-        ],
-        "output": "観測:\n  日付: 2026-11-23\n  凍結シーズン: なし\n  再確認の対象年: なし\n  キャッシュ済み（再確認しない）: 0\n  条件付きGET: 0\n  再確認（条件なし）: 0\n  新規: 9\n  未来の月（取得しない）: 0\n  オフラインで不足するページ: 9\n解釈:\n  待ち時間の見積もり: 0 秒（間隔 3 秒を 0 回足した値）",
-        "exit": 0
-      }
-    }
+    ]
   },
   {
     "name": "BlueProbe",
@@ -85,25 +38,7 @@
       "baseball",
       "html",
       "data-extraction"
-    ],
-    "showcase": {
-      "label": "🔵 BlueProbe",
-      "repository": "myon-bioinformatics/BlueProbe",
-      "commit": "efd3bc4547a076c87d4112732d266da3dbd33248",
-      "icon": "docs/brand/icon.png",
-      "run": {
-        "command": [
-          "python3",
-          "-S",
-          "blueprobe.py",
-          "--classify",
-          "tests/fixtures/npb_annual/2005_c_std.html"
-        ],
-        "pretty_json": true,
-        "output": "{\n  \"schema\": \"blueprobe-dom-classification/1\",\n  \"status\": \"fallback\",\n  \"patterns\": [],\n  \"signals\": [\n    \"layout_tables\",\n    \"fallback:body\"\n  ],\n  \"landmarks\": {},\n  \"articles\": {\n    \"total\": 0,\n    \"top_level\": 0,\n    \"nested\": 0\n  },\n  \"structured_data\": {\n    \"json_ld_types\": [],\n    \"json_ld_invalid\": 0,\n    \"microdata_types\": [],\n    \"itemprops\": [],\n    \"opengraph\": {}\n  },\n  \"shadow_roots\": {\n    \"open\": 0,\n    \"closed\": 0\n  },\n  \"tables\": [\n    {\n      \"index\": 0,\n      \"kind\": \"layout\",\n      \"reasons\": [\n        \"contains_table\"\n      ],\n      \"rows\": 7,\n      \"nested\": false\n    },\n    {\n      \"index\": 1,\n      \"kind\": \"layout\",\n      \"reasons\": [\n        \"single_row\"\n      ],\n      \"rows\": 1,\n      \"nested\": true\n    },\n    {\n      \"index\": 2,\n      \"kind\": \"layout\",\n      \"reasons\": [\n        \"single_row\"\n      ],\n      \"rows\": 1,\n      \"nested\": true\n    },\n    {\n      \"index\": 3,\n      \"kind\": \"layout\",\n      \"reasons\": [\n        \"single_row\"\n      ],\n      \"rows\": 1,\n      \"nested\": true\n    },\n    {\n      \"index\": 4,\n      \"kind\": \"layout\",\n      \"reasons\": [\n        \"single_row\"\n      ],\n      \"rows\": 1,\n      \"nested\": true\n    },\n    {\n      \"index\": 5,\n      \"kind\": \"layout\",\n      \"reasons\": [\n        \"single_row\"\n      ],\n      \"rows\": 1,\n      \"nested\": true\n    },\n    {\n      \"index\": 6,\n      \"kind\": \"layout\",\n      \"reasons\": [\n        \"single_row\"\n      ],\n      \"rows\": 1,\n      \"nested\": true\n    },\n    {\n      \"index\": 7,\n      \"kind\": \"layout\",\n      \"reasons\": [\n        \"contains_table\"\n      ],\n      \"rows\": 7,\n      \"nested\": false\n    },\n    {\n      \"index\": 8,\n      \"kind\": \"layout\",\n      \"reasons\": [\n        \"single_row\"\n      ],\n      \"rows\": 1,\n      \"nested\": true\n    },\n    {\n      \"index\": 9,\n      \"kind\": \"layout\",\n      \"reasons\": [\n        \"single_row\"\n      ],\n      \"rows\": 1,\n      \"nested\": true\n    },\n    {\n      \"index\": 10,\n      \"kind\": \"layout\",\n      \"reasons\": [\n        \"single_row\"\n      ],\n      \"rows\": 1,\n      \"nested\": true\n    },\n    {\n      \"index\": 11,\n      \"kind\": \"layout\",\n      \"reasons\": [\n        \"single_row\"\n      ],\n      \"rows\": 1,\n      \"nested\": true\n    },\n    {\n      \"index\": 12,\n      \"kind\": \"layout\",\n      \"reasons\": [\n        \"single_row\"\n      ],\n      \"rows\": 1,\n      \"nested\": true\n    },\n    {\n      \"index\": 13,\n      \"kind\": \"layout\",\n      \"reasons\": [\n        \"single_row\"\n      ],\n      \"rows\": 1,\n      \"nested\": true\n    }\n  ],\n  \"text_chars\": 827,\n  \"hashed_class_ratio\": 0.0\n}",
-        "exit": 0
-      }
-    }
+    ]
   },
   {
     "name": "SakAnalytics",
@@ -113,26 +48,7 @@
       "baseball",
       "simulation",
       "statistics"
-    ],
-    "showcase": {
-      "label": "📊 SakAna",
-      "repository": "myon-bioinformatics/SakAnalytics",
-      "commit": "44e5bfdeca49184c21b1f7c3713ea1cd35f83958",
-      "icon": "docs/brand/icon.png",
-      "run": {
-        "command": [
-          "python3",
-          "-S",
-          "npb/moshimo_box.py",
-          "--ledger",
-          "../cycles/c001-chunichi/outputs/propositions.jsonl",
-          "--id",
-          "P1"
-        ],
-        "output": "| n | converse (dial) | inverse (dial) | contrapositive (dial) | a | b | c | d | original (readout) | original exact | J | MK | mcc |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n| 156 | 0.782 | 0.795 | 0.846 | 61 | 12 | 17 | 66 | 0.836 | 0.836 | 0.628 | 0.631 | 0.629 |\n\n| row | original | threshold | gap (logit) | converse at break-even (now) | inverse at break-even (now) | contrapositive at break-even (now) |\n|---|---|---|---|---|---|---|\n| base | 0.836 | 0.750 | +0.527 | 0.679 (0.782) | 0.868 (0.795) | 0.764 (0.846) |",
-        "exit": 0
-      }
-    }
+    ]
   },
   {
     "name": "PythDRagoras",
@@ -142,32 +58,7 @@
       "baseball",
       "hypothesis-testing",
       "rule-search"
-    ],
-    "showcase": {
-      "label": "📐 PythDR",
-      "repository": "myon-bioinformatics/PythDRagoras",
-      "commit": "999f98c61be6ecd9781b010461685da41c8f1246",
-      "icon": "docs/brand/icon.png",
-      "run": {
-        "command": [
-          "python3",
-          "-S",
-          "npb/season_sensitivity.py",
-          "--season",
-          "../cycles/c001-chunichi/outputs/season.jsonl",
-          "--additional-season",
-          "../cycles/c001-chunichi/references/season-2026-central-summary.jsonl",
-          "--config",
-          "../cycles/c001-chunichi/season_sensitivity.toml",
-          "--out",
-          "/dev/null",
-          "--markdown",
-          "/dev/stdout"
-        ],
-        "output": "# 年単位の指標感度探索\n\n探索的な関連。有限差分はグリッド依存、面積は設定区間依存。因果・有意性・CS出場確率を示さない。2026の結果は既知のため完全な盲検ではない。\n\n入力年: 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2021, 2022, 2023, 2024, 2025, 2026\n\n| 指標 | 重み | 閾値 | 探索MCC | 基準からの差 | 正の関連の年 | 別年MCC | 状態 |\n|---|---:|---:|---:|---:|---:|---:|---|\n| run_balance | 1.25 | -0.3 | 0.7172 | 0.0761 | 11/12 | 0.7071 | exploratory_candidate |\n| onbase_power | 0.5 | -0.01 | 0.5195 | 0.2694 | 10/12 | 0.7071 | exploratory_candidate |\n| inning_frequency_size | 1.75 | -0.05 | 0.4627 | 0.1844 | 9/12 | 未定義 | exploratory_candidate |\n\n## run_balance\n\n式: `rf_vs_peers + weight × ra_saved_vs_peers`。以上側が上位半分を予測。\n\n欠損単位: 0。別年の欠損: []。\n\n| 年 | 中日の指標値 | 前年差 | 条件成立 | 上位半分 | 用途 |\n|---|---:|---:|---|---|---|\n| 2013 | -0.4976 | 未定義 | False | False | exploration |\n| 2014 | -0.0281 | 0.4694 | True | False | exploration |\n| 2015 | -0.1374 | -0.1093 | True | False | exploration |\n| 2016 | -0.5192 | -0.3818 | False | False | exploration |\n| 2017 | -1.2042 | -0.6850 | False | False | exploration |\n| 2018 | -0.4185 | 0.7857 | False | False | exploration |\n| 2019 | 0.3266 | 0.7451 | True | False | exploration |\n| 2021 | -0.4269 | 未定義 | False | False | exploration |\n| 2022 | -0.5629 | -0.1360 | False | False | exploration |\n| 2023 | -0.9231 | -0.3601 | False | False | exploration |\n| 2024 | -0.9283 | -0.0052 | False | False | exploration |\n| 2025 | -0.4465 | 0.4818 | False | False | exploration |\n| 2026 | -0.0486 | 0.3979 | True | False | holdout |\n\n別年: P(上位半分 | 条件成立)=0.7500、条件不成立=0.0000。\n\n別年の反例: 2026/d\n\n### 選択点の近傍（片方だけ変更）\n\n| 重み | 閾値 | MCC | 条件付き確率の差 |\n|---|---|---|---|\n| 1 | -0.3 | 0.6482 | 0.6875 |\n| 1.25 | -0.4 | 0.6482 | 0.6875 |\n| 1.25 | -0.2 | 0.6838 | 0.7013 |\n| 1.5 | -0.3 | 0.6940 | 0.7224 |\n\n### 重みを固定した閾値の推移\n\n| 閾値 | MCC | 基準との差 | 条件成立側の確率 | 条件不成立側の確率 |\n|---|---|---|---|---|\n| -1 | 0.2085 | -0.4326 | 0.5217 | 0.0000 |\n| -0.9 | 0.3536 | -0.2876 | 0.5625 | 0.0000 |\n| -0.8 | 0.3780 | -0.2632 | 0.5714 | 0.0000 |\n| -0.7 | 0.3780 | -0.2632 | 0.5714 | 0.0000 |\n| -0.6 | 0.3727 | -0.2684 | 0.5833 | 0.0833 |\n| -0.5 | 0.4906 | -0.1506 | 0.6364 | 0.0588 |\n| -0.4 | 0.6482 | 0.0071 | 0.7292 | 0.0417 |\n| -0.3 | 0.7172 | 0.0761 | 0.7778 | 0.0370 |\n| -0.2 | 0.6838 | 0.0426 | 0.7727 | 0.0714 |\n| -0.1 | 0.6708 | 0.0297 | 0.8000 | 0.1250 |\n| 0 | 0.5590 | -0.0821 | 0.8125 | 0.2500 |\n| 0.1 | 0.6025 | -0.0387 | 0.8889 | 0.2667 |\n| 0.2 | 0.5543 | -0.0868 | 0.8800 | 0.2979 |\n| 0.3 | 0.5303 | -0.1108 | 0.8750 | 0.3125 |\n| 0.4 | 0.5427 | -0.0984 | 0.9091 | 0.3200 |\n| 0.5 | 0.5774 | -0.0638 | 1.0000 | 0.3333 |\n| 0.6 | 0.5130 | -0.1281 | 1.0000 | 0.3684 |\n| 0.7 | 0.4016 | -0.2395 | 1.0000 | 0.4194 |\n| 0.8 | 0.3536 | -0.2876 | 1.0000 | 0.4375 |\n| 0.9 | 0.2732 | -0.3679 | 1.0000 | 0.4627 |\n| 1 | 0.2732 | -0.3679 | 1.0000 | 0.4627 |\n\n### 年全体を外して選び直す検証\n\n| 外した年 | 重み | 閾値 | 外した年のMCC |\n|---|---|---|---|\n| 2013 | 1.2500 | -0.3000 | 1.0000 |\n| 2014 | 1.2500 | -0.3000 | 0.7071 |\n| 2015 | 1.2500 | -0.3000 | 0.0000 |\n| 2016 | 1.2500 | -0.3000 | 0.7071 |\n| 2017 | 1.2500 | -0.3000 | 0.7071 |\n| 2018 | 1.2500 | -0.3000 | 1.0000 |\n| 2019 | 0.7500 | -0.1000 | 0.0000 |\n| 2021 | 1.2500 | -0.3000 | 1.0000 |\n| 2022 | 1.0000 | -0.2000 | 0.3333 |\n| 2023 | 0.7500 | -0.1000 | 0.3333 |\n| 2024 | 1.2500 | -0.3000 | 0.7071 |\n| 2025 | 1.2500 | -0.3000 | 1.0000 |\n\n## onbase_power\n\n式: `bat_d_obp + weight × bat_d_iso`。以上側が上位半分を予測。\n\n欠損単位: 0。別年の欠損: []。\n\n| 年 | 中日の指標値 | 前年差 | 条件成立 | 上位半分 | 用途 |\n|---|---:|---:|---|---|---|\n| 2013 | -0.0136 | 未定義 | False | False | exploration |\n| 2014 | -0.0176 | -0.0040 | False | False | exploration |\n| 2015 | -0.0129 | 0.0047 | False | False | exploration |\n| 2016 | -0.0231 | -0.0101 | False | False | exploration |\n| 2017 | -0.0258 | -0.0027 | False | False | exploration |\n| 2018 | -0.0218 | 0.0040 | False | False | exploration |\n| 2019 | -0.0201 | 0.0017 | False | False | exploration |\n| 2021 | -0.0520 | 未定義 | False | False | exploration |\n| 2022 | -0.0247 | 0.0272 | False | False | exploration |\n| 2023 | -0.0410 | -0.0163 | False | False | exploration |\n| 2024 | -0.0188 | 0.0221 | False | False | exploration |\n| 2025 | -0.0200 | -0.0011 | False | False | exploration |\n| 2026 | 0.0034 | 0.0234 | True | False | holdout |\n\n別年: P(上位半分 | 条件成立)=0.7500、条件不成立=0.0000。\n\n別年の反例: 2026/d\n\n### 選択点の近傍（片方だけ変更）\n\n| 重み | 閾値 | MCC | 条件付き確率の差 |\n|---|---|---|---|\n| 0.25 | -0.01 | 0.4727 | 0.5362 |\n| 0.5 | -0.02 | 0.2981 | 0.4000 |\n| 0.5 | 0 | 0.2509 | 0.2517 |\n| 0.75 | -0.01 | 0.4824 | 0.5236 |\n\n### 重みを固定した閾値の推移\n\n| 閾値 | MCC | 基準との差 | 条件成立側の確率 | 条件不成立側の確率 |\n|---|---|---|---|---|\n| -0.08 | 未定義 | 未定義 | 0.5000 | 未定義 |\n| -0.07 | 未定義 | 未定義 | 0.5000 | 未定義 |\n| -0.06 | 未定義 | 未定義 | 0.5000 | 未定義 |\n| -0.05 | 0.1187 | -0.1314 | 0.5070 | 0.0000 |\n| -0.04 | 0.1690 | -0.0811 | 0.5143 | 0.0000 |\n| -0.03 | 0.2085 | -0.0416 | 0.5217 | 0.0000 |\n| -0.02 | 0.2981 | 0.0480 | 0.5667 | 0.1667 |\n| -0.01 | 0.5195 | 0.2694 | 0.6667 | 0.0952 |\n| 0 | 0.2509 | 0.0008 | 0.6364 | 0.3846 |\n| 0.01 | 0.2085 | -0.0416 | 0.6522 | 0.4286 |\n| 0.02 | 0.2940 | 0.0439 | 0.8889 | 0.4444 |\n| 0.03 | 0.2425 | -0.0076 | 1.0000 | 0.4706 |\n| 0.04 | 0.1690 | -0.0811 | 1.0000 | 0.4857 |\n| 0.05 | 未定義 | 未定義 | 未定義 | 0.5000 |\n| 0.06 | 未定義 | 未定義 | 未定義 | 0.5000 |\n| 0.07 | 未定義 | 未定義 | 未定義 | 0.5000 |\n| 0.08 | 未定義 | 未定義 | 未定義 | 0.5000 |\n\n### 年全体を外して選び直す検証\n\n| 外した年 | 重み | 閾値 | 外した年のMCC |\n|---|---|---|---|\n| 2013 | 0.7500 | -0.0100 | 0.0000 |\n| 2014 | 0.5000 | -0.0100 | 0.7071 |\n| 2015 | 0.5000 | -0.0100 | 0.4472 |\n| 2016 | 0.5000 | -0.0100 | 0.7071 |\n| 2017 | 0.5000 | -0.0100 | 0.7071 |\n| 2018 | 0.5000 | -0.0100 | 1.0000 |\n| 2019 | 0.5000 | -0.0100 | 0.0000 |\n| 2021 | 0.5000 | -0.0100 | 0.4472 |\n| 2022 | 0.5000 | -0.0100 | 0.0000 |\n| 2023 | 0.5000 | -0.0100 | 0.4472 |\n| 2024 | 0.5000 | -0.0100 | 0.7071 |\n| 2025 | 0.5000 | -0.0100 | 0.7071 |\n\n## inning_frequency_size\n\n式: `inn_dlog_freq + weight × inn_dlog_size`。以上側が上位半分を予測。\n\n欠損単位: 6。別年の欠損: [2026]。\n\n| 年 | 中日の指標値 | 前年差 | 条件成立 | 上位半分 | 用途 |\n|---|---:|---:|---|---|---|\n| 2013 | -0.1546 | 未定義 | False | False | exploration |\n| 2014 | -0.0976 | 0.0570 | False | False | exploration |\n| 2015 | -0.1010 | -0.0034 | False | False | exploration |\n| 2016 | -0.1332 | -0.0322 | False | False | exploration |\n| 2017 | -0.2843 | -0.1511 | False | False | exploration |\n| 2018 | -0.0936 | 0.1907 | False | False | exploration |\n| 2019 | -0.1020 | -0.0084 | False | False | exploration |\n| 2021 | -0.4345 | 未定義 | False | False | exploration |\n| 2022 | -0.3794 | 0.0551 | False | False | exploration |\n| 2023 | -0.3747 | 0.0047 | False | False | exploration |\n| 2024 | -0.3257 | 0.0490 | False | False | exploration |\n| 2025 | -0.2199 | 0.1058 | False | False | exploration |\n\n別年: P(上位半分 | 条件成立)=未定義、条件不成立=未定義。\n\n別年の反例: 未検証\n\n### 選択点の近傍（片方だけ変更）\n\n| 重み | 閾値 | MCC | 条件付き確率の差 |\n|---|---|---|---|\n| 1.5 | -0.05 | 0.4376 | 0.4596 |\n| 1.75 | -0.1 | 0.3597 | 0.4235 |\n| 1.75 | 0 | 0.3354 | 0.3375 |\n| 2 | -0.05 | 0.4627 | 0.4816 |\n\n### 重みを固定した閾値の推移\n\n| 閾値 | MCC | 基準との差 | 条件成立側の確率 | 条件不成立側の確率 |\n|---|---|---|---|---|\n| -0.4 | 0.1187 | -0.1595 | 0.5070 | 0.0000 |\n| -0.35 | 0.2085 | -0.0697 | 0.5217 | 0.0000 |\n| -0.3 | 0.2425 | -0.0357 | 0.5294 | 0.0000 |\n| -0.25 | 0.2732 | -0.0050 | 0.5373 | 0.0000 |\n| -0.2 | 0.3282 | 0.0500 | 0.5538 | 0.0000 |\n| -0.15 | 0.3213 | 0.0431 | 0.5645 | 0.1000 |\n| -0.1 | 0.3597 | 0.0815 | 0.6000 | 0.1765 |\n| -0.05 | 0.4627 | 0.1844 | 0.6739 | 0.1923 |\n| 0 | 0.3354 | 0.0572 | 0.6500 | 0.3125 |\n| 0.05 | 0.2849 | 0.0067 | 0.6786 | 0.3864 |\n| 0.1 | 0.2289 | -0.0493 | 0.7059 | 0.4364 |\n| 0.15 | 0.2702 | -0.0080 | 0.8182 | 0.4426 |\n| 0.2 | 0.3015 | 0.0233 | 1.0000 | 0.4545 |\n| 0.25 | 0.1690 | -0.1092 | 1.0000 | 0.4857 |\n| 0.3 | 0.1187 | -0.1595 | 1.0000 | 0.4930 |\n| 0.35 | 0.1187 | -0.1595 | 1.0000 | 0.4930 |\n| 0.4 | 0.1187 | -0.1595 | 1.0000 | 0.4930 |\n\n### 年全体を外して選び直す検証\n\n| 外した年 | 重み | 閾値 | 外した年のMCC |\n|---|---|---|---|\n| 2013 | 1.7500 | -0.0500 | 0.0000 |\n| 2014 | 1.0000 | -0.1000 | 未定義 |\n| 2015 | 1.7500 | -0.0500 | 0.0000 |\n| 2016 | 1.7500 | -0.0500 | 0.3333 |\n| 2017 | 1.7500 | -0.0500 | 1.0000 |\n| 2018 | 1.7500 | -0.0500 | 1.0000 |\n| 2019 | 1.0000 | -0.1000 | -0.4472 |\n| 2021 | 1.7500 | -0.0500 | 0.4472 |\n| 2022 | 1.7500 | -0.0500 | 0.0000 |\n| 2023 | 1.7500 | -0.0500 | 0.4472 |\n| 2024 | 1.7500 | -0.0500 | 0.7071 |\n| 2025 | 1.7500 | -0.0500 | 0.7071 |",
-        "exit": 0
-      }
-    }
+    ]
   },
   {
     "name": "DRAgoWing",
@@ -177,22 +68,7 @@
       "baseball",
       "visualization",
       "plotly"
-    ],
-    "showcase": {
-      "label": "🪽 DRAgo",
-      "repository": "myon-bioinformatics/DRAgoWing",
-      "commit": "a0a9d1358660fcf7f9d118a44f2d7febe6e79f93",
-      "icon": "docs/brand/icon.png",
-      "run": {
-        "command": [
-          "sh",
-          "-c",
-          "python3 -S aoi.py dragowing cycles/c001-chunichi/outputs --out /tmp/dragowing-out && wc -c /tmp/dragowing-out/*.html && grep -o \"<h2>[^<]*\" /tmp/dragowing-out/index.html"
-        ],
-        "output": "📦 markdown.py（vendor/markdown）\n📄 file:///tmp/dragowing-out/index.html 164027 B · 📊 trajectory, heatmap, overlap_grid, overlap_breakdown\n📄 file:///tmp/dragowing-out/propositions.html 2011995 B · 🧾 145\n 164027 /tmp/dragowing-out/index.html\n2011995 /tmp/dragowing-out/propositions.html\n2176022 total\n<h2>得点順位 × 失点順位\n<h2>球団 × 年（\n<h2>条件集合の重なり",
-        "exit": 0
-      }
-    }
+    ]
   },
   {
     "name": "NagoyAction",
@@ -272,34 +148,7 @@
       "debugging",
       "ci",
       "cli"
-    ],
-    "showcase": {
-      "label": "🐦 Err-o-RR",
-      "repository": "myon-bioinformatics/Err-o-RoadRunner",
-      "commit": "e9d257dbb77224c5a43e62fdce3bb6ae72fc2be8",
-      "icon": "https://myon-bioinformatics.github.io/Err-o-RoadRunner/icon.png",
-      "media": [
-        {
-          "src": "docs/images/repository-concept.png",
-          "alt": "Err-o-RoadRunner concept: failure logs are matched against known patterns, then reported as FOUND, NOT FOUND and HINT with examples and tests as evidence"
-        }
-      ],
-      "run": {
-        "command": [
-          "python3",
-          "-S",
-          "triage.py",
-          "--exit-code",
-          "1",
-          "--stderr",
-          "tests/fixtures/readme/inputs/python_module_not_found.stderr",
-          "--project-root",
-          "tests/fixtures/readme/empty_root"
-        ],
-        "output": "FOUND: exit code: 1\nFOUND: python exception type: ModuleNotFoundError\nFOUND: python exception message: No module named 'totally_missing_pkg_xyz'\nFOUND: python traceback frame (first): <string>:1 in <module>\nFOUND: python traceback frame (last): <string>:1 in <module>\nFOUND: python traceback frame count: 1\nFOUND: python version: 3.15.2 (cpython)\nFOUND: node version: v24.22.3\nFOUND: gh version: gh version 2.104.0 (2026-11-12)\nFOUND: environment variable count: 3\nFOUND: environment variable names: HOME, LANG, PATH\nNOT FOUND: lock files in project root\nHINT: web search keywords: ModuleNotFoundError No module named 'totally_missing_pkg_xyz'",
-        "exit": 0
-      }
-    }
+    ]
   },
   {
     "name": "nvd_nist_known_vulns",
@@ -309,29 +158,7 @@
       "security",
       "cve",
       "cli"
-    ],
-    "showcase": {
-      "label": "🛡️ NVD",
-      "repository": "myon-bioinformatics/nvd_nist_known_vulns",
-      "commit": "ed287755d150e63800ac76f067c9482b82371f8e",
-      "icon": "docs/brand/icon.png",
-      "media": [
-        {
-          "src": "docs/images/repository-concept.png",
-          "alt": "CPE inputs pass through NVD CVE API queries and CVSS processing to JSONL output, with offline tests and CI evidence."
-        }
-      ],
-      "run": {
-        "command": [
-          "python3",
-          "-S",
-          "nvd_nist_known_vulns.py",
-          "--help"
-        ],
-        "output": "usage: nvd_nist_known_vulns.py [-h] [--silent] [--config CONFIG] [--cpe CPES]\n                               [--output OUTPUT] [--timeout SECONDS]\n                               [--format {text,json}]\n                               [--cvss-v3-severity {LOW,MEDIUM,HIGH,CRITICAL}]\n                               [--cvss-v3-metrics CVSS_V3_METRICS]\n\nFetch known CVEs from the NVD CVE API 2.0 for CPE 2.3 names and write nvd-cve-summary/1 JSONL.\n\noptions:\n  -h, --help            show this help message and exit\n  --silent              Do not print per-CPE progress lines on stderr. Errors\n                        are still reported.\n  --config CONFIG       UTF-8 INI file with a [cpeName] section, used only\n                        when --cpe is omitted. Default: config.ini. A missing,\n                        unreadable, invalid, or empty CPE list exits 2.\n  --cpe CPES            One CPE 2.3 name to query. Repeat for multiple names.\n                        Values are not split on commas. When any --cpe is\n                        present, --config is not read.\n  --output OUTPUT       Write JSONL to this UTF-8 path, replacing it only\n                        after a finished run. Default: stdout. A failed run\n                        leaves an existing file unchanged. An output path that\n                        cannot be published exits 1.\n  --timeout SECONDS     Positive finite per-request socket timeout in seconds.\n                        Default: 30.\n  --format {text,json}  Failure report on stderr. text (default) prints error:\n                        lines for input and runtime failures. json prints one\n                        nvd-cli-error/1 object and no progress lines. Success\n                        output is always JSONL.\n  --cvss-v3-severity {LOW,MEDIUM,HIGH,CRITICAL}\n                        Optional NVD cvssV3Severity filter on CVE API 2.0:\n                        LOW, MEDIUM, HIGH, or CRITICAL. Filtered output uses\n                        filtered_cve records.\n  --cvss-v3-metrics CVSS_V3_METRICS\n                        Optional NVD cvssV3Metrics filter: a partial or full\n                        CVSS v3 vector. Blank values are rejected. The value\n                        is trimmed and uppercased.\n\nexit status:\n  0  success, including a CPE query that returns zero CVEs\n  1  the NVD request failed, or --output could not be published\n  2  usage or local input error (flags, config file, or CPE list)\n\n--format json writes one nvd-cli-error/1 object to stderr on failure and\nomits progress lines. Success records stay JSONL on stdout or --output.\n--format text (the default) writes error: lines for input and runtime\nfailures. Flag mistakes also include the usage summary.",
-        "exit": 0
-      }
-    }
+    ]
   },
   {
     "name": "BrowserTestKit",
@@ -341,174 +168,7 @@
       "playwright",
       "cross-browser",
       "testing"
-    ],
-    "showcase": {
-      "label": "🧪 BTK",
-      "repository": "myon-bioinformatics/BrowserTestKit",
-      "commit": "5a7bde858a52e50f41bfb70ebb0a2f63e2eb8550",
-      "icon": "docs/assets/brand/validation-buddy.png",
-      "media": [
-        {
-          "src": "docs/evidence/browser.gif",
-          "alt": "BrowserTestKit fixtures, interaction and platform matrix in Chromium"
-        }
-      ],
-      "run": {
-        "command": [
-          "python3",
-          "-S",
-          "tools/btk.py",
-          "plan",
-          "."
-        ],
-        "output": "ok      .github/workflows/ci.yml:216 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:220 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:352 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:356 --only-shell (job runs headless only)\nok      .github/workflows/platform-matrix.yml:53 full + shell (job uses both the full build and the shell)",
-        "exit": 0
-      },
-      "scripts": {
-        "match": [
-          "tools/*.py",
-          "tools/*.mjs",
-          "examples/*.py"
-        ],
-        "items": [
-          {
-            "path": "examples/capture_browser_dom.py",
-            "summary": "Open one URL in optional Playwright Chromium and save a selected DOM snapshot.",
-            "usage": "usage: capture_browser_dom.py [-h] [--selector SELECTOR] --output OUTPUT [--timeout-ms TIMEOUT_MS] [--max-bytes MAX_BYTES] [--headed] [--aria-snapshot] [--same-origin-only] url"
-          },
-          {
-            "path": "examples/replay_dom_with_blueprobe.py",
-            "summary": "Reinspect a saved BTK DOM capture with an explicitly supplied blueprobe.py.",
-            "usage": "usage: replay_dom_with_blueprobe.py [-h] --blueprobe BLUEPROBE [--find FIND] snapshot"
-          },
-          {
-            "path": "tools/app_comparison.py",
-            "summary": "Join published-app screenshots, planned coverage and measured observations.",
-            "usage": "usage: app_comparison.py [-h] [--out OUT] [--ironmate IRONMATE] --runners-json RUNNERS_JSON [--adapters ADAPTERS] [--shot SHOT] [--page PAGE] [--env ENV] [--list] root"
-          },
-          {
-            "path": "tools/app_digest.py",
-            "summary": "One small, self-contained page for reviewing a published-app run: every page x environment.",
-            "usage": "usage: app_digest.py [-h] [--out OUT] [--ironmate IRONMATE] --runners-json RUNNERS_JSON [--adapters ADAPTERS] [--shot SHOT] [--max-bytes MAX_BYTES] [--run-url RUN_URL] [--page PAGE] [--env ENV] [--list] root"
-          },
-          {
-            "path": "tools/browser_execution.mjs",
-            "summary": "Cap browser processes using available CPU and reported memory. This is an",
-            "usage": ""
-          },
-          {
-            "path": "tools/btk.py",
-            "summary": "btk: browser-test-kit's stdlib-only operations in one file.",
-            "usage": "usage: btk.py {fetch,plan,observe,act,pages,scenario,locate,count,describe,compare,operations,check-png,check-evidence,check-capture-evidence,write-capture-evidence,probe-capture-rejections,js-search,pw-test} ..."
-          },
-          {
-            "path": "tools/btk_events.py",
-            "summary": "Read and write btk-event/1 JSONL: one shared event contract for this kit.",
-            "usage": "usage: btk_events [-h]"
-          },
-          {
-            "path": "tools/check_font_family.py",
-            "summary": "Check that generated pages and Plotly figures ask for Meiryo first.",
-            "usage": "usage: check_font_family.py [-h] FILE_OR_DIR [FILE_OR_DIR ...]"
-          },
-          {
-            "path": "tools/element_overlay.py",
-            "summary": "Element annotation overlay, DOM highlight CSS, and TAP element assertions.",
-            "usage": "usage: element_overlay.py [-h] [--file FILE] [--format {json,svg,tap,css}] [--find FIND] [--assert-role ASSERT_ROLE] [--assert-min-count ASSERT_MIN_COUNT] [--viewport VIEWPORT] [--color COLOR] [--shape {rect,ellipse,triangle,arrow}] [--label-field LABEL_FIELD] [--spotlight] [--out OUT]"
-          },
-          {
-            "path": "tools/evidence_board.py",
-            "summary": "Aggregate one or more btk-event/1 JSONL streams into an evidence board.",
-            "usage": "usage: evidence_board [-h] [--json] [--step-summary] [--allow STATUS[,STATUS...]] [--allow-malformed] paths [paths ...]"
-          },
-          {
-            "path": "tools/evidence_gif.py",
-            "summary": "Record browser evidence as one looping GIF for a README: each shot is a page x viewport (x steps), captioned in Meiryo.",
-            "usage": "usage: evidence_gif.py [-h] [--shot LABEL|URL|WxH] [--plan PLAN] [--serve DIR] [--map PREFIX=DIR] [--width WIDTH] [--height HEIGHT] [--sha SHA] [--browser {chromium,firefox,webkit}] [--colors COLORS] [--max-bytes MAX_BYTES] [--max-frames MAX_FRAMES] [--hold HOLD] [--stills DIR] [--stills-prefix STIL…"
-          },
-          {
-            "path": "tools/hit_probe.py",
-            "summary": "Map where a target is hit with few probes, then describe the map with a few binary factors.",
-            "usage": "usage: hit_probe.py [-h] {factorize} ..."
-          },
-          {
-            "path": "tools/html_builder.py",
-            "summary": "Tiny stdlib HTML builder for DRY Playwright/Stagehand test fixtures.",
-            "usage": "usage: html_builder.py [-h] [--page TITLE] TAG[:TEXT] [TAG[:TEXT] ...]"
-          },
-          {
-            "path": "tools/image_diff.py",
-            "summary": "Compare two images (files or zip members) and print one line: size, changed pixels, bbox, max delta.",
-            "usage": "usage: image_diff.py [-h] [--clip X,Y,W,H] [--viewport-width VIEWPORT_WIDTH] [--tolerance TOLERANCE] a b"
-          },
-          {
-            "path": "tools/interaction.py",
-            "summary": "Measured pointer/touch input and side-effect observation for an existing Playwright Page.",
-            "usage": "usage: interaction.py [-h] {check} ..."
-          },
-          {
-            "path": "tools/jsonl_digest.py",
-            "summary": "Digest a JSONL log (events, test or agent transcripts, tool traces) instead of reading it whole.",
-            "usage": "usage: jsonl_digest.py [-h] [--key KEY] [--last LAST] [--width WIDTH] [--show SHOW] [--pairs] [--where FIELD=VALUE] [--count FIELD] [--num FIELD] path"
-          },
-          {
-            "path": "tools/mirror_check.py",
-            "summary": "Mirror tests without a browser: several independent implementations, one answer.",
-            "usage": "usage: mirror_check.py [-h] {compare,facts} ..."
-          },
-          {
-            "path": "tools/mirror_facts.mjs",
-            "summary": "Facts about a document as read by independent JS libraries, without a browser.",
-            "usage": ""
-          },
-          {
-            "path": "tools/nano_bun.py",
-            "summary": "Opt-in, fixed-snapshot Bun installation followed by unchanged Node tests.",
-            "usage": "usage: nano_bun.py [-h] --prepared PREPARED --work-root WORK_ROOT --cache-root CACHE_ROOT --node NODE --bun BUN --python PYTHON [--allow-network]"
-          },
-          {
-            "path": "tools/nano_resources.py",
-            "summary": "Read-only cgroup v2 telemetry and an isolated stdlib child-command meter.",
-            "usage": "usage: nano_resources.py [-h] [--cgroup CGROUP] output ..."
-          },
-          {
-            "path": "tools/page_inspect_scenarios.py",
-            "summary": "Bounded active platform probes for the existing page_inspect evidence contract.",
-            "usage": "usage: page_inspect_scenarios [-h]"
-          },
-          {
-            "path": "tools/page_text.py",
-            "summary": "Read the text of a web page without a browser (#8).",
-            "usage": "usage: page_text.py [-h] [--json] [--max-chars MAX_CHARS] [--max-bytes MAX_BYTES] [--timeout TIMEOUT] [--url URL] [--find QUERY] [--limit LIMIT] [--compare-rendered FILE] source"
-          },
-          {
-            "path": "tools/platform_adapter.py",
-            "summary": "App-owned selectors and postconditions; browser/OS facts stay in platform_facts.js.",
-            "usage": "usage: platform_adapter.py [-h] [adapter]"
-          },
-          {
-            "path": "tools/platform_probe.py",
-            "summary": "Measure how one OS x browser x device sees the same page, and compare them in tabs (platform-matrix).",
-            "usage": "usage: platform_probe.py [-h] {collect,merge,summary,render} ..."
-          },
-          {
-            "path": "tools/pytest_btk_events.py",
-            "summary": "Opt-in pytest plugin: write btk-event/1 JSONL per test result.",
-            "usage": "usage: pytest_btk_events [-h]"
-          },
-          {
-            "path": "tools/route_trail.py",
-            "summary": "Turn an emoji page trail such as '🏠 → 🗺 ↔ 🌍' into the URLs to visit, in order.",
-            "usage": "usage: route_trail.py [-h] --registry REGISTRY [--map MAP_NAME] [--base BASE] [--path-routing] [--json] [--run] [--backend {python,python-async}] [--browser {chromium,firefox,webkit}] [--timeout-ms TIMEOUT_MS] [--run-timeout RUN_TIMEOUT] [--ready-selector READY_SELECTOR] trail"
-          },
-          {
-            "path": "tools/terminal_browser.py",
-            "summary": "Thin, dependency-free launcher for terminal-browser.",
-            "usage": "usage: terminal_browser.py [-h] [--check] [--log LOG] ..."
-          }
-        ]
-      }
-    }
+    ]
   },
   {
     "name": "PySaiyanWeBoo",
@@ -549,29 +209,6 @@
       "compression",
       "tokenizer",
       "multilingual"
-    ],
-    "showcase": {
-      "label": "🗜️ 会話圧縮",
-      "repository": "myon-bioinformatics/TalkCompress",
-      "commit": "264a7e911e3958c47dbc339c7fe2ce25d87c123f",
-      "media": [
-        {
-          "src": "docs/evidence/browser.gif",
-          "alt": "examples/figures の SVG 6 枚を Chromium で表示（PC 720×480・スマホ 392×848）"
-        }
-      ],
-      "run": {
-        "command": [
-          "python3",
-          "-S",
-          "DensityFacadeRoute/density_facade_route.py",
-          "--compare",
-          "--text",
-          "I have 3 animals and 2 people"
-        ],
-        "output": "{\"layer\": \"C\", \"name\": \"ShorthandSessionEdge\", \"chars_before\": 29, \"chars_after\": 24, \"ratio\": 0.8276, \"preview\": \"I've 3 animals and 2 ppl\"}\n{\"layer\": \"E\", \"name\": \"MorphoGrammarMinimal\", \"chars_before\": 29, \"chars_after\": 14, \"ratio\": 0.4828, \"preview\": \"I have 3匹 & 2人\"}\n{\"layer\": \"B\", \"name\": \"SentenceCalibratedMosaic\", \"chars_before\": 29, \"chars_after\": 32, \"ratio\": 1.1034, \"preview\": \"en:I have 3 animals and 2 people\"}\n{\"layer\": \"C,E\", \"name\": \"pipeline\", \"chars_before\": 29, \"chars_after\": 15, \"ratio\": 0.5172, \"preview\": \"I've 3匹 & 2 ppl\"}",
-        "exit": 0
-      }
-    }
+    ]
   }
 ]

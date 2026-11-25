@@ -70,16 +70,14 @@ def test_portal_exposes_expected_pages():
     assert EXPECTED_PAGES <= set(parser.links)
 
 def test_every_active_repository_with_pages_is_one_tap_away():
-    """🌐 api/repos.json (has_pages) owns the Pages roots: the 🌐 Pages card and each project card link every one."""
+    """🌐 api/repos.json (has_pages) owns the Pages roots: each project card links its repository's own Pages (🧰 Tools has no
+    list of them, and no portfolio copy of a repository's page)."""
     catalog = json.loads((ROOT / "api/repos.json").read_text())
     pages = {repo["name"]: repo["pages"] for repo in catalog["repos"] if repo.get("pages") and not repo.get("archived")}
     assert len(pages) >= 20 and all(url.startswith("https://myon-bioinformatics.github.io/") and url.endswith("/") for url in pages.values())
     page = (SITE / "index.html").read_text(encoding="utf-8")
-    portal = page[page.index('<h3 id="guides">'):]
-    parser = LinkParser()
-    parser.feed(portal[:portal.index("</article>")])
-    assert set(parser.links) == set(pages.values()) - {"https://myon-bioinformatics.github.io/"}   # the portfolio does not link itself
     assert page.count('class="ui-button project-pages"') == len(pages)                         # one 🌐 on each project card
+    assert 'id="guides"' not in page and "tools/projects/" not in page and not (SITE / "tools/projects").exists()
     archived = [repo["name"] for repo in catalog["repos"] if repo.get("archived")]
     assert not any(f"github.io/{name}/" in page for name in archived)                          # archived repositories leave the portal
 
@@ -206,7 +204,7 @@ def test_ironmate_metadata_lives_with_the_portfolio():
     parser = LinkParser()
     page = (SITE / "index.html").read_text()
     tools = page[page.index('<section id="tools"'):]
-    parser.feed(tools[:tools.index("</section>")])          # the Tools & Demos cards; the project list links every repository
+    parser.feed(tools[:tools.index("</section>")])          # the 🧰 Tools cards; the project list links every repository
     assert parser.links and metadata["repository"] not in parser.links
     # The former repository fallback is removed; metadata remains machine-readable.
     assert "./project-ironmate.json" not in parser.links
@@ -267,12 +265,12 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
         assert not any(f'/tools/{name}/' in href.lower() for _, href in links for name in names), card['title']
 
 
-# The demos (DEMOS) and project pages (projects.json showcases) come from scripts/project_pages.py; they are tool pages too.
+# The demos (DEMOS) and the 🌍 world pages (WORLD_PAGES) come from scripts/project_pages.py; they are tool pages too.
 TOOL_PAGES = ("tools/html-import/index.html",
               *(("tools/mcp/index.html", "tools/mcp/repository-diagnostics.html") if LAB_BUILT else ()),
               "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html", "tools/flow/index.html",
               "tools/repo-map/index.html",
-              *sorted(str(path.relative_to(SITE)) for folder in ("demos", "projects") for path in (SITE / "tools" / folder).glob("*.html")))
+              *sorted(str(path.relative_to(SITE)) for path in (SITE / "tools/demos").glob("*.html")))
 
 
 def test_tools_built_from_other_repositories_never_404():
@@ -289,7 +287,7 @@ def test_tools_built_from_other_repositories_never_404():
             assert f'<a href="{"../" * name.count("/")}index.html#tools">' in html, name
     front = LinkParser()
     front.feed((SITE / "index.html").read_text(encoding="utf-8"))
-    assert "./tools/heatmap/" in front.links                                         # 🌡️ the Tools & Demos card opens it
+    assert "./tools/heatmap/" in front.links                                         # 🌡️ the 🧰 Tools card opens it
     with tempfile.TemporaryDirectory() as tmp:
         kept = Path(tmp) / 'tools/image-studio/index.html'
         kept.parent.mkdir(parents=True)
@@ -341,7 +339,7 @@ def test_every_tool_page_has_the_same_back_link_first_in_main():
         assert main, page
         after = html[main.end():]
         assert after.startswith('<nav class="ui-back" aria-label="関連リンク" data-ui-back data-testid="portfolio-back">'
-                                '<p class="ui-links"><a href="../../index.html#tools">← 🧭 Tools &amp; Demos</a>'), page
+                                '<p class="ui-links"><a href="../../index.html#tools">← 🧰 Tools</a>'), page
         assert html.count('data-ui-back') == 1, page
         assert "Back to portfolio" not in html, page
 
@@ -721,14 +719,14 @@ def test_home_screen_in_chromium_with_a_gif():
             frames.append((page.screenshot(), "📄 " + page.title() + " · no manifest · icons 32x32 170x170"))
             page.get_by_test_id("portfolio-back").get_by_role("link").click()
             page.wait_for_url(base + "index.html#tools")
-            frames.append((page.screenshot(), "↩️ ← 🧭 Tools & Demos → index.html#tools"))
+            frames.append((page.screenshot(), "↩️ ← 🧰 Tools → index.html#tools"))
 
             # 🧰📚 Every demo and project page opens without a script error, keeps its own shortcut, shows the portfolio icons and has the way back.
             demos = browser.new_page(viewport={"width": 392, "height": 840}, is_mobile=True, has_touch=True)
             errors = []
             demos.on("pageerror", lambda error: errors.append(str(error)))
             demo_cdp = demos.context.new_cdp_session(demos)
-            for name in [n for n in TOOL_PAGES if n.startswith(("tools/demos/", "tools/projects/"))]:
+            for name in [n for n in TOOL_PAGES if n.startswith("tools/demos/")]:
                 demos.goto(base + name)
                 assert demo_cdp.send("Page.getAppManifest")["url"] == "", name
                 icons = demos.evaluate("""() => [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')].map(l => l.href)""")
@@ -1031,13 +1029,6 @@ def test_prose_extract_adapter_preserves_whitespace_hooks_and_code_blocks():
         assert '<div data-testid="pages-wiki-extract" hidden class="ui-output"></div>' in published
 
 
-def test_a_showcase_icon_may_be_its_pages_url():
-    """♻️ Err-o-RoadRunner keeps no icon copy (CaChereCyCle publishes it on its Pages), so its showcase links the Pages URL."""
-    page = (SITE / "tools/projects/err-o-roadrunner.html").read_text(encoding="utf-8")
-    assert 'src="https://myon-bioinformatics.github.io/Err-o-RoadRunner/icon.png"' in page
-    assert "raw.githubusercontent.com/myon-bioinformatics/Err-o-RoadRunner/" in page   # the media still come from its pin
-
-
 # ═══ 💬 cross-repo chat (scripts/chat.py; the page runs it in Pyodide) ═══════════════════════════════════════
 
 CHAT = PAGES._chat()
@@ -1281,3 +1272,19 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
     target = ui.gif_targets(ROOT / 'test-results' / 'chat', ['chat-conversation'], run_details=['timestamp'])
     target['chat-conversation'].write_bytes(gif)
     assert gif[:6] == b'GIF89a'
+
+def test_weekly_markdown_fragment_and_hash_link():
+    front = _front()
+    page = front.document()
+    assert 'href="#weekly"' in page
+    assert 'id="weekly"' in page
+    assert '公開用週次台帳ビュー' in page
+    assert '@@WEEKLY@@' not in page
+
+
+def test_weekly_markdown_fragment_rejects_invalid_paths():
+    front = _front()
+    with pytest.raises(ValueError):
+        front.markdown_fragment(ROOT, '../README.md')
+    with pytest.raises(ValueError):
+        front.markdown_fragment(ROOT, 'docs/not-found.md')
