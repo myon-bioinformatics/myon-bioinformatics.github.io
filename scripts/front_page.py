@@ -1,7 +1,7 @@
 """The portfolio's front page (index.html), built in Python: no index.html, index.js, style.css or renderer.css in the repository.
 
 ``document()`` returns the one page that ``scripts/project_pages.py`` writes at build time. Everything a visitor reads is
-made here from ``profile.json``, ``api/repos.json`` and ``projects.json``: the page shell, the Tools & Demos cards
+made here from ``profile.json``, ``api/repos.json`` and ``projects.json``: the page shell, the 🧰 Tools cards
 (``PORTAL``), and the profile and projects in each notation (cards, XML-like, JSON, Markdown). The colour themes are
 PySaiyanWeBoo's palettes. The page script only switches between what Python built, filters projects and fills the AI
 highlight slots with what the public GitHub API returns in the browser.
@@ -12,7 +12,7 @@ import re
 from pathlib import Path
 from urllib.parse import quote
 
-# 🧭 Tools & Demos: one card each, named for what it does. ``from`` names the repositories a card is built from (🧩, plain
+# 🧰 Tools: one card each, named for what it does — practical tools only. ``from`` names the repositories a card is built from (🧩, plain
 # text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. ``points`` are trusted HTML (they carry <code>);
 # everything else is escaped.
 PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル選択から、端末内で本文・見出し・リンクを抽出。', 'links': [('Open HTML Import →', './tools/html-import/')]},
@@ -41,32 +41,10 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'from': ('mcp-toolcall-lab',),
   'links': [('Open Tool Lab →', './tools/mcp/'),
             ('Open Execution Lab →', 'https://myon-bioinformatics.github.io/tools/mcp/execution/')]},
- {'title': '🌍 ワールド',
-  'text': '1ページの中を絵文字のキャラで歩くワールド。🚪 で土地をわたる旅、机のあいだを歩くスクール、緯度・経度から駅をつなぐパラレル東京・リバースロンドン・フェイクパリ。'
-          'ページ遷移もリロードもなく、Python が HTML・CSS・小さなスクリプトを書きます（scripts/world.py）。',
-  'id': 'world',
-  'links': [('🌍 旅 →', './tools/demos/world.html'), ('🏫 スクール →', './tools/demos/school.html'),
-            ('🗼 パラレルシティ →', './tools/demos/cities.html'), ('🎬 カメラ →', './tools/demos/world-shots.html')]},
- {'title': '🧰 Stubs & mocks',
+ {'title': '🤖 Stubs & mocks',
   'text': '通信しない MCP / API のスタブ、ページ内で動く MCP サーバーのモック、JUnit 結果の読み取り。Python で生成し、このポートフォリオに置いています。',
   'id': 'demos',
-  'links': [('Open Demos →', './tools/demos/')]},
- {'title': '🎨 共通UI部品・テーマ',
-  'text': 'このポートフォリオのツールページの見た目と表示部品を、ビルド不要の共通UI部品でそろえています。',
-  'id': 'ui',
-  'from': ('PySaiyanWeBoo',),
-  'points': ['見た目の統一：<code>tokens → base → components → themes/modern</code> の CSS 層と <code>ui-*</code> クラス',
-             '静的ページ生成：<code>pysaiyanweboo.py</code> の <code>render_document</code>（HTML文書取込をこれで生成）',
-             '他リポジトリのページ取り込み：<code>adopt_document</code> で lab 独自クラスを <code>ui-*</code> に置換し、挙動は元のまま',
-             '安全な表示：<code>ui.js</code> の <code>setText</code>（textContent のみ）と <code>prettyJson</code>',
-             '画面切替と外部リンク：<code>navigation.js</code> の <code>bindViews</code>（Home / Wiki / Pixiv）と <code>openExternalURL</code>',
-             '版の固定：<code>pyproject.toml</code> で commit を固定し、生成した CSS/JS の SHA-256 を <code>web-ui-assets.lock.json</code> に記録'],
-  'links': [('Open UI Catalog →', 'https://myon-bioinformatics.github.io/PySaiyanWeBoo/')]},
- {'title': '📚 Project pages',
-  'text': '固定したコミットで記録した実行例・図や GIF・スクリプト一覧を1ページずつ（Err-o-RoadRunner・search_seq・TalkCompress・BrowserTestKit・NVD、'
-          'QueRyu・BlueProbe・SakAnalytics・PythDRagoras・DRAgoWing）。各ページから 🌐 そのリポジトリの Pages へ。',
-  'id': 'projects-pages',
-  'links': [('Open Project pages →', './tools/projects/')]},
+  'links': [('🤖 スタブを開く →', './tools/demos/')]},
  {'title': '💬 横断チャット',
   'text': 'リポジトリ横断の道具をチャットで：Markdown の表示・表、ASCII アートと流れ図、会話の圧縮、MCP の道具呼び出しの確認、'
           '全リポジトリの JSON / JSONL（オントロジーの台帳も）の索引と中身。ページの中の Python（Pyodide）で、それぞれのリポジトリのコードがそのまま動く。',
@@ -91,18 +69,13 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
  {'title': '🧠 リポジトリ地図',
   'text': 'どのリポジトリが、どのリポジトリのファイルを写して使っているか。各リポジトリの vendor.lock.json と Aoi の subtree から、公開のたびに描き直す。',
   'id': 'repo-map',
-  'links': [('地図へ →', './tools/repo-map/')]},
- {'title': '🌐 Pages',
-  'text': '各リポジトリの GitHub Pages：動かし方・利用ガイド・デモ。一覧は api/repos.json（GitHub の has_pages）から毎日つくり直す。',
-  'id': 'guides',
-  'links': 'pages'}]   # 'pages': one link per active repository with Pages, from the catalog (portal_cards)
+  'links': [('地図へ →', './tools/repo-map/')]}]
 
 
-def portal_cards(pages: list[tuple[str, str]] = ()) -> str:
-    """The Tools & Demos cards; ``pages`` (name, Pages URL) fills the card whose links are ``'pages'``."""
+def portal_cards() -> str:
+    """The 🧰 Tools cards (each repository's own Pages are linked from its 🚀 Projects card)."""
     out = []
     for card in PORTAL:
-        card = card | {'links': [(f'{name} →', url) for name, url in pages]} if card['links'] == 'pages' else card
         heading = f'<h3 id="{html.escape(card["id"], quote=True)}">' if 'id' in card else '<h3>'
         parts = [heading + html.escape(card['title'], quote=False) + '</h3>', '<p>' + html.escape(card['text'], quote=False) + '</p>']
         if 'from' in card:
@@ -153,8 +126,6 @@ def project_catalog(catalog: dict, curated: list, samples=frozenset()) -> list[d
             'topics': list(dict.fromkeys([*(project.get('topics') or []), *(repo.get('topics') or [])])),
             'archived': False,
             **({'pages': repo['pages']} if repo.get('pages') else {}),                     # 🌐 the repository's own Pages
-            **({'page': f"https://myon-bioinformatics.github.io/tools/projects/{repo['name'].lower()}.html"}   # 📄 its portfolio page
-               if 'showcase' in project else {}),
             **({'sample': f"./media/pages/{repo['name'].lower()}.gif"} if repo.get('pages') and repo['name'].lower() in samples else {}),
         })
     return projects
@@ -262,7 +233,6 @@ def projects_html(projects: list[dict], notation: str) -> str:
             _xml(2, _tag('<Description>'), _e(p['desc']), _tag('</Description>')),
             _xml(2, _tag('<Url>'), _link(p['url']), _tag('</Url>')),
             *([_xml(2, _tag('<Pages>'), _link(p['pages']), _tag('</Pages>'))] if p.get('pages') else []),
-            *([_xml(2, _tag('<Page>'), _link(p['page']), _tag('</Page>'))] if p.get('page') else []),
             _xml(2, _tag('<Topics>')), *[_xml(3, _tag('<Topic>'), _e(topic), _tag('</Topic>')) for topic in p['topics']], _xml(2, _tag('</Topics>')),
             _xml(1, _tag('</Project>'))])) for p in projects)
         return (_xml(0, _tag('<Projects>')) + _xml(1, _e('<!-- No projects match your filter -->'), attrs=' data-empty')
@@ -276,7 +246,6 @@ def projects_html(projects: list[dict], notation: str) -> str:
             f'<h3 class="md-heading">### {_link(p["url"], p["name"])}</h3><p>{_e(p["desc"])}</p><ul class="md-list">'
             + ('<li>Status: Archived</li>' if p['archived'] else '') + f'<li>Topics: {_e(", ".join(p["topics"]))}</li>'
             + (f'<li>Pages: {_link(p["pages"])}</li>' if p.get('pages') else '')
-            + (f'<li>Page: {_link(p["page"])}</li>' if p.get('page') else '')
             + f'<li>Source: {_link(p["url"])}</li></ul>')) for p in projects)
     cards = ''.join(unit(p, (
         f'<h3 class="ui-title">{_link(p["url"], p["name"])}</h3>' + ('<span class="ui-tag project-status">Archived</span>' if p['archived'] else '')
@@ -287,7 +256,6 @@ def projects_html(projects: list[dict], notation: str) -> str:
             for topic in p['topics'][:6])
         + '</div><div class="project-card-actions">'
         + (f'<a class="ui-button project-pages" href="{_a(p["pages"])}" aria-label="Open the GitHub Pages of {_a(p["name"])}">🌐 Pages</a>' if p.get('pages') else '')
-        + (f'<a class="ui-button" href="{_a(p["page"])}" aria-label="Portfolio page of {_a(p["name"])}">📄</a>' if p.get('page') else '')
         + '<img loading="lazy" alt="GitHub stars" '
           f'src="https://img.shields.io/github/stars/myon-bioinformatics/{_a(quote(p["name"], safe=""))}?style=social">'
           f'<button type="button" class="ui-button project-copy" data-copy="{_a(p["url"])}" aria-label="Copy repository URL for {_a(p["name"])}">Copy URL</button></div>'
@@ -387,8 +355,7 @@ def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
     script = ui.module_script('\n'.join((ui.js_source('collection.js'), avatar['js'], SCRIPT)))
     page = SHELL
     weekly = markdown_fragment(root, 'docs/weekly-view.md')
-    pages = [(p['name'], p['pages']) for p in projects if p.get('pages') and p['pages'] != 'https://myon-bioinformatics.github.io/']
-    for mark, value in (('@@PORTAL@@', portal_cards(pages)), ('@@THEMES@@', theme_options(ui)), ('@@TOPICS@@', topic_buttons(projects)),
+    for mark, value in (('@@PORTAL@@', portal_cards()), ('@@THEMES@@', theme_options(ui)), ('@@TOPICS@@', topic_buttons(projects)),
                         ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + STYLE + avatar['css'] + '\n  '),
                         ('@@AVATAR@@', avatar['html']), ('@@WEEKLY@@', weekly), ('@@SCRIPT@@', script)):
         assert page.count(mark) == 1, mark
@@ -488,8 +455,8 @@ SHELL = '''<!doctype html>
     </section>
 
     <section id="tools" class="container">
-      <h2>🧭 Tools &amp; Demos</h2>
-      <p>Open a project below to use its browser tools.</p>
+      <h2>🧰 Tools</h2>
+      <p>ブラウザで使う道具。🧩 は作りに使ったリポジトリ（それぞれの使い方・検証・GIF は 🚀 Projects の 🌐 Pages）。</p>
 @@PORTAL@@      </div>
     </section>
 
@@ -1157,7 +1124,7 @@ body[data-view-mode="modern"] #projects .section-sub { color: var(--terminal-mut
 .project-topic-controls .project-tags-filter { max-height: 12rem; overflow-y: auto; padding: .25rem; }
 .project-status { margin-bottom: .5rem; font-size: .8rem; }
 
-/* ── Tools & Demos portal ──────────────────────────────────────────────── */
+/* ── 🧰 Tools portal ──────────────────────────────────────────────── */
 .portal-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

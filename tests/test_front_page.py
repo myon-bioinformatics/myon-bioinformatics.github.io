@@ -25,11 +25,8 @@ MODES = ("modern", "github-like", "xml-like", "json", "markdown")
 PROFILE = json.loads((ROOT / "profile.json").read_text(encoding="utf-8"))
 CURATED = json.loads((ROOT / "projects.json").read_text(encoding="utf-8"))
 ACTIVE = [repo for repo in json.loads((ROOT / "api/repos.json").read_text(encoding="utf-8"))["repos"] if not repo.get("archived")]
-# 🐙 every repository · 🌐 its Pages (api/repos.json) · 📄 its portfolio page (a projects.json showcase)
-LINKED = sorted({repo["url"] for repo in ACTIVE} | {repo["pages"] for repo in ACTIVE if repo.get("pages")}
-                | {f"https://myon-bioinformatics.github.io/tools/projects/{project['name'].lower()}.html"
-                   for project in json.loads((ROOT / "projects.json").read_text(encoding="utf-8"))
-                   if "showcase" in project and project["name"] in {repo["name"] for repo in ACTIVE}})
+# 🐙 every repository · 🌐 its Pages (api/repos.json)
+LINKED = sorted({repo["url"] for repo in ACTIVE} | {repo["pages"] for repo in ACTIVE if repo.get("pages")})
 COUNT = len(ACTIVE)                                     # only public, non-archived repositories are displayed
 SHOWING_ALL = f"Showing all {COUNT} projects"
 ONE_OF = f"Showing 1 of {COUNT} projects"

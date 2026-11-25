@@ -12,7 +12,7 @@
   <a href="https://twitter.com/myonitbusiness"><img alt="Twitter Follow" src="https://img.shields.io/twitter/follow/myonitbusiness?style=social"></a>
 </p>
 
-このリポジトリは [GitHub Pages](https://myon-bioinformatics.github.io/) で公開している、myon-bioinformatics の**公開リポジトリ向けポートフォリオ / プロジェクトハブ**です。トップページでは公開・非アーカイブのリポジトリをカードで一覧し、🌐 各リポジトリの利用ガイド（GitHub Pages）や、このサイト上の Tools & Demos へ案内します。
+このリポジトリは [GitHub Pages](https://myon-bioinformatics.github.io/) で公開している、myon-bioinformatics の**公開リポジトリ向けポートフォリオ / プロジェクトハブ**です。トップページでは公開・非アーカイブのリポジトリをカードで一覧し、🌐 各リポジトリの利用ガイド（GitHub Pages）や、このサイト上の 🧰 Tools（実用の道具）へ案内します。
 
 はじめての方や採用の方向けの短い自己紹介は、下の **Intro/Profile** が早いです。
 
@@ -61,7 +61,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 | --- | --- |
 | `profile.json` | 短い自己紹介・スキル・経歴・いまの関心 |
 | `api/repos.json` | GitHub から生成した公開リポジトリの事実（URL・説明・トピック・⭐・Pages の有無）。手編集しない |
-| `projects.json` | 任意の説明の上書き・追加トピック・showcase（`tools/projects/` の記録ページ）。カタログにないリポジトリは足せない |
+| `projects.json` | 任意の説明の上書き・追加トピック。カタログにないリポジトリは足せない |
 | `services.json` | このサイトが持つ公開エンドポイント（サブページなど、カタログから導けない URL） |
 | `site.config.json` | プロジェクト一覧の初期表示。いまは `defaultViewMode: modern` |
 
@@ -73,9 +73,9 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 
 カードの検索・トピック絞り込みは 5 つの表示モードで共通です。候補の並びはページを開くたびにシャッフルされます。アーカイブ済みの公開リポジトリはカタログに残っても、サイトの Projects には出しません。
 
-## 🧭 Tools & Demos
+## 🧰 Tools
 
-トップの **Tools & Demos** は、選んだブラウザ道具の案内です（リポジトリカードとは別に手で管理）。カード名は用途、🧩 出どころはその部品のリポジトリです。公開時に他リポジトリの default branch から組むもの（Ironmate のスタジオ、mcp-toolcall-lab、DRAgoWing のヒートマップなど）は、組み立てに失敗すると ⏸ ページになります。コード本体は各リポジトリに残します。
+トップの **🧰 Tools** は、実用の道具だけを置く棚です（リポジトリカードとは別に手で管理）。各リポジトリの使い方・検証・GIF は、そのリポジトリの Pages（🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ）にあり、ここでは写しません。組み立ての要るもの（ビルド）だけをここで作ります。カード名は用途、🧩 出どころはその部品のリポジトリです。公開時に他リポジトリの default branch から組むもの（Ironmate のスタジオ、mcp-toolcall-lab、DRAgoWing のヒートマップなど）は、組み立てに失敗すると ⏸ ページになります。コード本体は各リポジトリに残します。
 
 | 案内 | リンク |
 | --- | --- |
@@ -84,16 +84,12 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 | 🖼️ スライド・画像工房（Ironmate） | [Image Studio](https://myon-bioinformatics.github.io/tools/image-studio/) · [Browser Tools](https://myon-bioinformatics.github.io/tools/browser-tools/) · [Slide Studio](https://myon-bioinformatics.github.io/tools/slide-studio/) |
 | 🌡️ ヒートマップ（DRAgoWing · Ironmate） | [tools/heatmap/](https://myon-bioinformatics.github.io/tools/heatmap/) |
 | 🔌 MCP 実験室（mcp-toolcall-lab） | [Tool Lab](https://myon-bioinformatics.github.io/tools/mcp/) · [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) |
-| 🌍 ワールド | [旅](https://myon-bioinformatics.github.io/tools/demos/world.html) · [スクール](https://myon-bioinformatics.github.io/tools/demos/school.html) · [パラレルシティ](https://myon-bioinformatics.github.io/tools/demos/cities.html) · [カメラ](https://myon-bioinformatics.github.io/tools/demos/world-shots.html) |
-| 🧰 Stubs & mocks | [tools/demos/](https://myon-bioinformatics.github.io/tools/demos/) |
-| 🎨 共通UI部品・テーマ（PySaiyanWeBoo） | [UI Catalog](https://myon-bioinformatics.github.io/PySaiyanWeBoo/) |
-| 📚 Project pages（記録した実行例） | [tools/projects/](https://myon-bioinformatics.github.io/tools/projects/) |
+| 🤖 Stubs & mocks | [tools/demos/](https://myon-bioinformatics.github.io/tools/demos/) |
 | 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab） | [tools/demos/chat.html](https://myon-bioinformatics.github.io/tools/demos/chat.html) |
 | 🧭 統合運用 | [Dashboard](https://myon-bioinformatics.github.io/myon-bioinformatics/) |
 | 🎞 GIF工房（PySaiyanWeBoo） | [tools/gif/](https://myon-bioinformatics.github.io/tools/gif/) |
 | 🌊 流れの実験室（FluidFullSpeedSimulation · DRAgoWing） | [tools/flow/](https://myon-bioinformatics.github.io/tools/flow/) |
 | 🧠 リポジトリ地図 | [tools/repo-map/](https://myon-bioinformatics.github.io/tools/repo-map/) |
-| 🌐 各リポジトリの Pages | トップページの一覧（`api/repos.json` の `has_pages` から毎日作り直し） |
 
 新しい道具を足すときは、生成元の `scripts/front_page.py`（`PORTAL`）と `tests/test_site.py` をいっしょに直し、行き先と HTTPS の Pages 契約を同じ変更で確認します。
 
@@ -223,7 +219,7 @@ I like building **GUI/CLI tools** for security & backend.
 
 ## 🔄 カードの手入れ
 
-掲載対象は `api/repos.json`（毎日の Update repos API）が決めます。説明文・追加トピック・showcase を足すときは `projects.json` を編集し、形は [docs/ssot.md](docs/ssot.md) で確認します。ピン留めリポジトリからカードを自動生成する処理はなく、`projects.json` を定期更新する workflow もありません。
+掲載対象は `api/repos.json`（毎日の Update repos API）が決めます。説明文・追加トピックを足すときは `projects.json` を編集し、形は [docs/ssot.md](docs/ssot.md) で確認します。ピン留めリポジトリからカードを自動生成する処理はなく、`projects.json` を定期更新する workflow もありません。
 
 ---
 
@@ -243,7 +239,7 @@ I like building **GUI/CLI tools** for security & backend.
 
 🌐 Avatars and badges are external and were refused (listed per shot in the receipt). `/tools/mcp/execution/assets/…` comes from the execution lab this site builds at deploy time (`--record-tools`), so it is allowed rather than counted as a 404.
 🔄 `tools/mcp/` is built from the lab at deploy time (`--record-tools`); this receipt predates that move.
-📦 The shared Web UI is one pinned git dependency (the `pages` group in `pyproject.toml` → PySaiyanWeBoo; `uv run --locked --only-group pages` installs it); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated file (`tools/vendor/web-ui/`, `tools/demos/`, `tools/projects/`). The front page (`index.html`) is built by `scripts/front_page.py` from `profile.json`, `api/repos.json` and `projects.json`: the profile and projects in each display mode (cards, XML-like, JSON, Markdown) are rendered in Python, and the colour themes are PySaiyanWeBoo's palettes. It is not in the lock, because the repository catalog is refreshed by a workflow. None of these files are kept in git: the Pages build writes them, `uv run --locked python scripts/project_pages.py --stage .generated-site` writes the whole site for tests and local previews, and `--refresh-lock` rewrites the lock after the pin moves. To move the pin, change the full commit in `[tool.uv.sources]` in `pyproject.toml`, run `uv lock`, and refresh. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
+📦 The shared Web UI is one pinned git dependency (the `pages` group in `pyproject.toml` → PySaiyanWeBoo; `uv run --locked --only-group pages` installs it); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated file (`tools/vendor/web-ui/`, `tools/demos/`). The front page (`index.html`) is built by `scripts/front_page.py` from `profile.json`, `api/repos.json` and `projects.json`: the profile and projects in each display mode (cards, XML-like, JSON, Markdown) are rendered in Python, and the colour themes are PySaiyanWeBoo's palettes. It is not in the lock, because the repository catalog is refreshed by a workflow. None of these files are kept in git: the Pages build writes them, `uv run --locked python scripts/project_pages.py --stage .generated-site` writes the whole site for tests and local previews, and `--refresh-lock` rewrites the lock after the pin moves. To move the pin, change the full commit in `[tool.uv.sources]` in `pyproject.toml`, run `uv lock`, and refresh. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
 
 🔁 Re-record (after building `.generated-site` as in CI; `$WEBUI` is a PySaiyanWeBoo checkout at `adb23d7`):
 
@@ -262,7 +258,7 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 
 ### 💬 横断チャット
 
-Tools & Demos → **💬 横断チャット**（`tools/demos/chat.html`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。
+🧰 Tools → **💬 横断チャット**（`tools/demos/chat.html`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。
 
 | | コマンド | 出どころ |
 | --- | --- | --- |
@@ -286,7 +282,7 @@ uv run --locked --only-group browser python -m pytest tests/test_site.py -k chat
 
 ### 🌍 ワールド
 
-Tools & Demos → **🌍 ワールド** (`tools/demos/`) は、1ページの中を絵文字のキャラで歩くワールドです：🌍 旅（`world.html`、🚪 で土地をわたる）・🏫 スクール（`school.html`）・🗼 パラレルシティ（`cities.html`、パラレル東京・リバースロンドン・フェイクパリ）・🎬 カメラ（`world-shots.html`）。ページ遷移もリロードもなく、HTML・CSS・小さなスクリプトは `scripts/world.py` が書きます（見た目・テーマ・ダイヤル・座標は PySaiyanWeBoo）。
+**🌍 ワールド**（`tools/demos/` の4ページ。🧰 Tools には載せず、PySaiyanWeBoo の 🎞 GIF デモから開く）は、1ページの中を絵文字のキャラで歩くワールドです：🌍 旅（`world.html`、🚪 で土地をわたる）・🏫 スクール（`school.html`）・🗼 パラレルシティ（`cities.html`、パラレル東京・リバースロンドン・フェイクパリ）・🎬 カメラ（`world-shots.html`）。ページ遷移もリロードもなく、HTML・CSS・小さなスクリプトは `scripts/world.py` が書きます（見た目・テーマ・ダイヤル・座標は PySaiyanWeBoo）。
 
 ```sh
 uv run --locked --only-group pages python scripts/world.py example school | uv run --locked --only-group pages python scripts/world.py page - > school.html
@@ -298,7 +294,7 @@ uv run --locked --only-group browser python tests/world_browser.py -v           
 
 ### 地図URL・ピン留め
 
-Tools & Demos → **地図URL・ピン留め** (`tools/maps/`) で、緯度・経度からApple MapsとGoogle MapsのURLを生成できます。地図URLからの座標入力、端末内のピン保存・解除、地点リンクのコピー、端末の共有メニューに対応します。共有先は保存操作なしで同じ座標を開けます。ピンはブラウザごとの保存で、端末間では同期しません。保存やコピーが許可されていない場合は画面に表示します。
+🧰 Tools → **地図URL・ピン留め** (`tools/maps/`) で、緯度・経度からApple MapsとGoogle MapsのURLを生成できます。地図URLからの座標入力、端末内のピン保存・解除、地点リンクのコピー、端末の共有メニューに対応します。共有先は保存操作なしで同じ座標を開けます。ピンはブラウザごとの保存で、端末間では同期しません。保存やコピーが許可されていない場合は画面に表示します。
 
 パラレル東京 (`tools/maps/tokyo.html`) の各地点と相互に移動できます。座標・地図URL生成は固定済みPSWB、ミニチュアは `scripts/world.py` から再利用します。東京の座標はミニチュア用の概略値で、施設の正確な入口を保証するものではありません。URLだけを作るため地図APIキーは不要です。
 

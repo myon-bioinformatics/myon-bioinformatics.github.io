@@ -7,18 +7,12 @@ pinned commit or when its output drifted from the lock. The generated files are 
 writes them (Pages overlays them on its build), ``--stage DIR`` writes the whole site for tests and local previews,
 and ``--refresh-lock`` rewrites the lock after the pin moves.
 
-The demos are the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in the page; ``--record-chat`` indexes the other
-repositories at deploy time), the 🌍 world (scripts/world.py: the travel world, 🏫 the school, 🗼 the parallel cities, 🎬 the camera), the 🤖 MCP / 🔁 API
-stubs (below; both moved here from PySaiyanWeBoo) and PySaiyanWeBoo's mocks (an in-page MCP server, a JUnit reader), published
-with the portfolio's way back, shortcut label and icons. ``tools/projects/`` gives every project in ``projects.json`` that
-has a ``showcase`` a page of its own, Pages or not: its icon and media at a fixed commit, and one recorded run.
-``--record NAME=CHECKOUT`` reruns that command in a checkout of exactly that commit and stores the output. A showcase
-with ``scripts`` also gets a 🧰 table of the scripts its globs match there: each one's own description (module docstring,
-or the leading ``//`` comment of a JS module) and, for a script that declares argparse / cli_args, the usage line of
-its ``--help``, recorded by the same ``--record``
-so the list follows the code instead of being written by hand. ``--advance`` (run daily by repos-api.yml) moves every
-showcase to the newest commit of its repository and records it there, keeping the old pin when that commit lacks the
-icon or media, or when the run that used to succeed now fails.
+The 🧰 Tools catalog (tools/demos/) lists the practical pages: the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in
+the page; ``--record-chat`` indexes the other repositories at deploy time), the 🤖 MCP / 🔁 API stubs (below; both moved here
+from PySaiyanWeBoo) and PySaiyanWeBoo's mocks (an in-page MCP server, a JUnit reader), published with the portfolio's way
+back, shortcut label and icons. The 🌍 world pages (scripts/world.py: the travel world, 🏫 the school, 🗼 the parallel
+cities, 🎬 the camera) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and are not listed there. Each repository's
+own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
 
 ``tools/html-import/index.html`` (the HTML import tool page) is built here too and hash-locked with the other pages.
 Every generated or imported tool page gets the same way back and shortcut label: ``add_back_nav()`` and
@@ -35,7 +29,6 @@ import importlib.util
 import json
 import os
 import re
-import shlex
 import shutil
 import subprocess
 import sys
@@ -51,7 +44,6 @@ ASSETS = ('css/base.css', 'css/components.css', 'css/themes/modern.css',
 STYLESHEET_BUNDLES = {'css/bundle.css': 'bundled_css', 'css/core.css': 'core_css'}
 DISTRIBUTION = 'pysaiyanweboo'
 DEMO_BASE = 'tools/demos/'
-PROJECT_BASE = 'tools/projects/'
 HTML_IMPORT_PAGE = 'tools/html-import/index.html'
 HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
 MAP_PAGES = {'tools/maps/index.html', 'tools/maps/tokyo.html'}
@@ -60,6 +52,13 @@ MAP_PAGES = {'tools/maps/index.html', 'tools/maps/tokyo.html'}
 DEMOS = {
     'chat': (lambda ui: chat_document(ui), '💬 チャット', 'Cross-repo chat',
              'リポジトリ横断のチャット：Markdown・ASCII アート・会話の圧縮・MCP 呼び出しの確認・JSON / JSONL の索引を、ページの中の Python（Pyodide）で'),
+    'mcp-stub': (lambda ui: stub_document(ui, EXAMPLE_STUBS['mcp']), '🤖 MCP stub', 'MCP stub', '通信しない MCP のスタブ：ツール名を入れて結果と証跡を見る'),
+    'api-stub': (lambda ui: stub_document(ui, EXAMPLE_STUBS['api']), '🔁 API stub', 'API stub', '通信しない API のスタブ：パスを送って結果と証跡を見る'),
+    'mcp-lab': (lambda ui: ui.mcp_document(), '🔌 MCP試験', 'MCP lab', 'ページ内で動く MCP サーバーのモック：新旧の protocol、PKCE、ヘッダー名、Bearer、OAuth メタデータ'),
+    'test-report': (lambda ui: ui.report_document(), '🧾 JUnit', 'Test report', 'JUnit の結果を貼るか開いて読み、前回と比べて新規・再発・解消を分ける'),
+}
+# 🌍 built like the demos (same shape) for PySaiyanWeBoo's 🎞 GIF demo, but not in the 🧰 Tools catalog: they show, they are not tools
+WORLD_PAGES = {
     'world': (lambda ui: world_page('overworld'), '🌍 ワールド', 'World',
               '🚪 で土地をわたる旅のワールド：絵文字のキャラで歩き、時刻・お気に入り・地図・言語を切り替える'),
     'school': (lambda ui: world_page('school'), '🏫 スクール', 'School',
@@ -68,10 +67,6 @@ DEMOS = {
                'パラレル東京・リバースロンドン・フェイクパリ：緯度・経度から、駅から駅へ歩く'),
     'world-shots': (lambda ui: world_page('world'), '🎬 カメラ', 'World camera',
                     'ページ遷移なしの1ページ：スクロールで場面、ドラッグ・ホイール・ピンチで地図を動かしスポットを開く'),
-    'mcp-stub': (lambda ui: stub_document(ui, EXAMPLE_STUBS['mcp']), '🤖 MCP stub', 'MCP stub', '通信しない MCP のスタブ：ツール名を入れて結果と証跡を見る'),
-    'api-stub': (lambda ui: stub_document(ui, EXAMPLE_STUBS['api']), '🔁 API stub', 'API stub', '通信しない API のスタブ：パスを送って結果と証跡を見る'),
-    'mcp-lab': (lambda ui: ui.mcp_document(), '🔌 MCP試験', 'MCP lab', 'ページ内で動く MCP サーバーのモック：新旧の protocol、PKCE、ヘッダー名、Bearer、OAuth メタデータ'),
-    'test-report': (lambda ui: ui.report_document(), '🧾 JUnit', 'Test report', 'JUnit の結果を貼るか開いて読み、前回と比べて新規・再発・解消を分ける'),
 }
 
 
@@ -262,10 +257,10 @@ def load_module(name: str, relative_path: str | Path) -> ModuleType:
 
 
 def add_back_nav(page: str) -> str:
-    """🏠 PySaiyanWeBoo's way back (``back_nav_html``) to the 🧭 Tools & Demos cards, right after <main> (else <body>);
+    """🏠 PySaiyanWeBoo's way back (``back_nav_html``) to the 🧰 Tools cards, right after <main> (else <body>);
     a page that already has one keeps it."""
     import pysaiyanweboo as ui
-    return ui.add_back_nav(page, [{'label': '← 🧭 Tools & Demos', 'href': '../../index.html#tools'}], test_id='portfolio-back')
+    return ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': '../../index.html#tools'}], test_id='portfolio-back')
 
 
 def add_home_label(page: str, label: str, *, icons_from: str | None = None) -> str:
@@ -285,14 +280,15 @@ def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
 
 
 def render_demos(ui) -> dict[str, bytes]:
-    """Every demo page, plus their catalog as tools/demos/index.html, keyed by published path (two levels below the site root)."""
+    """Every demo and world page, plus the demos' catalog as tools/demos/index.html, keyed by published path (two levels below
+    the site root)."""
     result = {DEMO_BASE + 'index.html': add_home_label(add_back_nav(ui.catalog_document({
-        'schema': 'web-ui-catalog/1', 'title': '🧰 Demos',
-        'description': '💬 チャット、🌍 ワールド、🤖🔁 スタブ、PySaiyanWeBoo のモック。どれも Python で生成し、このページの中で動きます'
+        'schema': 'web-ui-catalog/1', 'title': '🤖 Stubs & mocks',
+        'description': '💬 チャット、🤖🔁 通信しないスタブ、PySaiyanWeBoo のモック。どれも Python で生成し、このページの中で動きます'
                        '（💬 は Pyodide を CDN から読む。ほかは通信しない）。',
         'items': [{'id': name, 'title': title, 'summary': summary, 'links': [{'label': 'Open →', 'href': f'./{name}.html'}]}
-                  for name, (_, _, title, summary) in DEMOS.items()]})), '🧰 Demos', icons_from='../../').encode('utf-8')}
-    for name, (build, label, _, _) in DEMOS.items():
+                  for name, (_, _, title, summary) in DEMOS.items()]})), '🤖 Stubs', icons_from='../../').encode('utf-8')}
+    for name, (build, label, _, _) in {**DEMOS, **WORLD_PAGES}.items():
         result[DEMO_BASE + name + '.html'] = add_home_label(add_back_nav(build(ui)), label, icons_from='../../').encode('utf-8')
     return result
 
@@ -307,71 +303,11 @@ def render_html_import(ui) -> dict[str, bytes]:
     return {HTML_IMPORT_PAGE: document.encode()}
 
 
-def showcases(root: Path = ROOT) -> list[dict]:
-    """The projects.json entries that have a ``showcase``, in their order there (none without a projects.json)."""
-    path = root / 'projects.json'
-    return [p for p in json.loads(path.read_text(encoding='utf-8')) if 'showcase' in p] if path.is_file() else []
-
-
-def _project_file(project: dict) -> str:
-    return PROJECT_BASE + project['name'].lower() + '.html'
-
-
 def pages_urls(root: Path = ROOT) -> dict[str, str]:
     """Repository name → its GitHub Pages root, from api/repos.json (generated from GitHub's ``has_pages``)."""
     path = root / 'api/repos.json'
     repos = json.loads(path.read_text(encoding='utf-8'))['repos'] if path.is_file() else []
     return {repo['name']: repo['pages'] for repo in repos if repo.get('pages') and not repo.get('archived')}
-
-
-def render_projects(ui, root: Path = ROOT) -> dict[str, bytes]:
-    """A page per showcased project (icon, description, media, the recorded run, links) and their catalog, by published path."""
-    result = {}
-    pages = pages_urls(root)
-    for project in showcases(root):
-        show = project['showcase']
-        raw = lambda path: path if path.startswith('https://') else \
-            f"https://raw.githubusercontent.com/{show['repository']}/{show['commit']}/{show.get('path', '')}{path}"   # ♻️ an icon may be its Pages URL (CaChereCyCle)
-        blocks = [{'type': 'text', 'text': project['desc']}]
-        where = show['repository'] + ('/' + show['path'].rstrip('/') if show.get('path') else '')
-        if show.get('media'):
-            blocks.append({'type': 'section', 'title': '🎞️', 'blocks': [
-                {'type': 'image', 'src': raw(m['src']), 'alt': m['alt']} for m in show['media']]})
-        if 'run' in show:
-            run = show['run']
-            output = json.dumps(json.loads(run['output']), indent=2, ensure_ascii=False) if run.get('pretty_json') else run['output']
-            blocks.append({'type': 'section', 'title': '▶ 実行例', 'blocks': [
-                {'type': 'kv', 'rows': [['📦', f"{where} @ {show['commit'][:7]}"], ['⌨️', shlex.join(run['command'])],
-                                        ['↩️', f"exit {run['exit']}"]]},
-                {'type': 'output', 'text': output}]})
-        if show.get('scripts', {}).get('items'):
-            items = show['scripts']['items']
-            unknown = sum(not item['summary'] for item in items)
-            blocks.append({'type': 'section', 'title': '🧰 スクリプト', 'blocks': [
-                {'type': 'kv', 'rows': [['📦', f"{where} @ {show['commit'][:7]}"],
-                                        ['🔢', f"{len(items)}" + (f" · ❔ {unknown}" if unknown else '')],
-                                        ['🛠️', 'docstring · --help → 自動生成']]},
-                *[block for item in items for block in (     # 📱 stacked, not a table: paths stay whole on a phone
-                    {'type': 'heading', 'level': 3, 'text': '📄 ' + item['path']},
-                    {'type': 'kv', 'rows': [['📝', item['summary'] or '❔'], ['⌨️', item['usage'] or '—']]})]]})
-        blocks.append({'type': 'links', 'items': [*([{'label': '🌐 Pages', 'href': pages[project['name']]}] if project['name'] in pages else []),
-                                                  {'label': '🐙 GitHub', 'href': project['url']},
-                                                  {'label': '📄 README', 'href': project['url'] + '#readme'}]})
-        if project.get('topics'):
-            blocks.append({'type': 'badges', 'items': project['topics']})
-        spec = {'schema': 'web-ui-page/1', 'title': project['name'], 'blocks': blocks} | ({'icon': raw(show['icon'])} if 'icon' in show else {})
-        page = ui.page_document(spec).replace('</head>', '<style>.ui-title,.ui-kv dd,.ui-page h3{overflow-wrap:anywhere}</style></head>', 1)  # long names and commands
-        result[_project_file(project)] = add_home_label(add_back_nav(page), show['label'], icons_from='../../').encode('utf-8')
-    catalog = ui.catalog_document({
-        'schema': 'web-ui-catalog/1', 'title': '📚 Projects',
-        'description': '固定したコミットで記録した実行例・図や GIF・スクリプト一覧を1ページずつ。🌐 はそのリポジトリの Pages。',
-        'items': [{'id': p['name'].lower(), 'title': p['name'], 'summary': p['desc'],
-                   'links': [{'label': 'Open →', 'href': './' + p['name'].lower() + '.html'},
-                             *([{'label': '🌐 Pages', 'href': pages[p['name']]}] if p['name'] in pages else []),
-                             {'label': 'GitHub', 'href': p['url']}]}
-                  for p in showcases(root)]})
-    result[PROJECT_BASE + 'index.html'] = add_home_label(add_back_nav(catalog), '📚 Projects', icons_from='../../').encode('utf-8')
-    return result
 
 
 # ── 🎞 GIF工房 and 🎥 the moving samples: both draw with PySaiyanWeBoo's gif.js (window.UiGif) ──────────────────────────
@@ -828,9 +764,9 @@ CHECKOUTS = '.test-deps'   # 🧪 local checkouts (CI pins them) that --stage bu
 
 
 def _back_to_tools(page: str, path: str) -> str:
-    """The way back to 🧭 Tools & Demos from ``path`` (any depth), right after <main> (else <body>)."""
+    """The way back to 🧰 Tools from ``path`` (any depth), right after <main> (else <body>)."""
     import pysaiyanweboo as ui
-    return ui.add_back_nav(page, [{'label': '← 🧭 Tools & Demos', 'href': '../' * path.count('/') + 'index.html#tools'}],
+    return ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': '../' * path.count('/') + 'index.html#tools'}],
                            test_id='portfolio-back')
 
 
@@ -948,10 +884,10 @@ def render_tools(ui, output: Path | None = None) -> dict[str, bytes]:
 
 
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
-    """Every hash-locked page: demos, projects, HTML import, map tools and the GIF workshop, keyed by published path."""
+    """Every hash-locked page: the demos and world pages, HTML import, map tools and the GIF workshop, keyed by published path."""
     maps = {path: add_home_label(add_back_nav(document), '地図・ピン', icons_from='../../').encode('utf-8')
             for path, document in load_module('map_tool', 'scripts/map_tool.py').render(ui, _world()).items()}
-    pages = {**render_demos(ui), **render_projects(ui, root), **render_html_import(ui), **maps, **render_gif_tool(ui)}
+    pages = {**render_demos(ui), **render_html_import(ui), **maps, **render_gif_tool(ui)}
     for sheet, builder in STYLESHEET_BUNDLES.items():
         prefix = b'<style>' + getattr(ui, builder)().encode()
         for path, page in pages.items():
@@ -964,109 +900,6 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     return pages
 
 
-def _minimal_run(command: list[str], cwd: Path, timeout: int) -> subprocess.CompletedProcess:
-    with tempfile.TemporaryDirectory() as home:      # 🔒 PATH only: no names or values of this machine's other variables
-        return subprocess.run(command, cwd=cwd, capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL,
-                              env={'PATH': os.environ.get('PATH', ''), 'HOME': home, 'LANG': 'C.UTF-8'})
-
-
-def script_catalog(base: Path, patterns: list[str]) -> list[dict]:
-    """``{path, summary, usage}`` for every file the globs match under ``base``, from what each one declares.
-
-    The summary and whether it declares its arguments come from the parent's ``fleet_check.script_facts`` (read with
-    ``ast``, never run). Only a script that imports argparse or cli_args is asked for ``--help`` (``python3 -S``, minimal
-    environment); usage is the first line of that and its indented continuations. Nothing else is executed, so a
-    script that would just run cannot answer for itself. Best effort, never raises."""
-    facts_of = load_module('portfolio_fleet_check', 'vendor/fleet_check.py').script_facts
-    items = []
-    for path in sorted({p for pattern in patterns for p in base.glob(pattern) if p.is_file()}):
-        relative, facts, lines = path.relative_to(base).as_posix(), facts_of(path), []
-        if facts['argparse']:
-            try:
-                done = _minimal_run(['python3', '-S', relative, '--help'], base, 20)
-                lines = done.stdout.strip().splitlines() if done.returncode == 0 else []
-            except (OSError, subprocess.TimeoutExpired):
-                pass
-        lines = lines if lines and lines[0].lower().startswith('usage') else []
-        end = next((i for i, line in enumerate(lines[1:], 1) if not line[:1].isspace() or not line.strip()), len(lines))
-        usage = ' '.join(' '.join(line.split()) for line in lines[:end])  # the first line and its indented continuations
-        items.append({'path': relative, 'summary': facts['summary'], 'usage': usage[:300] + ('…' if len(usage) > 300 else '')})
-    return items
-
-
-def record(name: str, checkout: Path, root: Path = ROOT) -> dict:
-    """Rerun ``name``'s showcase command and catalog its ``scripts`` in ``checkout`` (which must be at its commit) with a
-    minimal environment; store both in projects.json and return the showcase."""
-    path = root / 'projects.json'
-    projects = json.loads(path.read_text(encoding='utf-8'))
-    project = next((p for p in projects if p['name'] == name and 'showcase' in p), None)
-    if project is None:
-        raise ValueError(f'no showcase for {name} in projects.json')
-    show = project['showcase']
-    head = subprocess.run(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], capture_output=True, text=True, check=True).stdout.strip()
-    if head != show['commit']:
-        raise ValueError(f'{checkout} is at {head[:7]}, the showcase records {show["commit"][:7]}')
-    base = Path(checkout) / show.get('path', '')
-    if 'run' in show:
-        done = _minimal_run(show['run']['command'], base, 120)
-        show['run']['output'], show['run']['exit'] = (done.stdout + done.stderr).rstrip('\n'), done.returncode
-    if 'scripts' in show:
-        show['scripts']['items'] = script_catalog(base, show['scripts']['match'])
-    path.write_text(json.dumps(projects, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
-    return show
-
-
-def advance(root: Path = ROOT, remote: str = 'https://github.com/') -> list[str]:
-    """Move each showcase to the tip of its repository's default branch and ``record`` it there; one log line each.
-
-    ⏩ moved · = already there · ⏸ kept at its pin because the new commit lacks the icon or media the page shows, or
-    because its run now fails where it used to succeed (the page keeps a working example; the line says why)."""
-    path, log = root / 'projects.json', []
-    with tempfile.TemporaryDirectory() as tmp:
-        checkouts = {}
-        for project in showcases(root):
-            name, show = project['name'], project['showcase']
-            repository = show['repository']
-            if repository not in checkouts:                    # one shallow fetch per repository (Aoi hosts several)
-                checkout = Path(tmp) / str(len(checkouts))
-                git = ['git', '-C', str(checkout)]
-                checkout.mkdir()
-                try:
-                    for step in (['init', '-q'], ['fetch', '-q', '--depth', '1', remote + repository, 'HEAD'],
-                                 ['-c', 'advice.detachedHead=false', 'checkout', '-q', 'FETCH_HEAD']):
-                        subprocess.run(git + step, check=True, capture_output=True, timeout=300)
-                    checkouts[repository] = checkout
-                except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
-                    checkouts[repository] = None
-            checkout = checkouts[repository]
-            if checkout is None:
-                log.append(f"⏸ {name} {show['commit'][:7]} (✗ fetch {repository})")
-                continue
-            head = subprocess.run(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], capture_output=True, text=True,
-                                  check=True).stdout.strip()
-            old = show['commit']
-            if head == old:
-                log.append(f'= {name} {old[:7]}')
-                continue
-            base = checkout / show.get('path', '')
-            missing = [f for f in [show.get('icon'), *(m['src'] for m in show.get('media', []))]
-                       if f and not f.startswith('https://') and not (base / f).is_file()]
-            if missing:
-                log.append(f"⏸ {name} {old[:7]} (✗ {head[:7]}: {', '.join(missing)} missing)")
-                continue
-            before = path.read_text(encoding='utf-8')
-            projects = json.loads(before)
-            next(p for p in projects if p['name'] == name)['showcase']['commit'] = head
-            path.write_text(json.dumps(projects, indent=2, ensure_ascii=False) + '\n', encoding='utf-8')
-            new = record(name, checkout, root)
-            if 'run' in show and show['run'].get('exit') == 0 and new['run']['exit'] != 0:
-                path.write_text(before, encoding='utf-8')
-                log.append(f"⏸ {name} {old[:7]} (✗ {head[:7]}: run exit {new['run']['exit']})")
-                continue
-            log.append(f'⏩ {name} {old[:7]} → {head[:7]}')
-    return log
-
-
 def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str, bytes]:
     lock = json.loads((root / 'web-ui-assets.lock.json').read_text(encoding='utf-8'))
     if lock['schema'] != 'web-ui-generated/2':
@@ -1077,10 +910,10 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
     if set(lock['outputs']) != {HTML_IMPORT_MODULE, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
-    expected = ({DEMO_BASE + 'index.html', PROJECT_BASE + 'index.html', HTML_IMPORT_PAGE, GIF_PAGE} | MAP_PAGES | {DEMO_BASE + name + '.html' for name in DEMOS}
-                | {_project_file(p) for p in showcases(root)})
+    expected = ({DEMO_BASE + 'index.html', HTML_IMPORT_PAGE, GIF_PAGE} | MAP_PAGES
+                | {DEMO_BASE + name + '.html' for name in (*DEMOS, *WORLD_PAGES)})
     if set(lock.get('pages', {})) != expected:
-        raise ValueError('generated page paths differ from the demo list, projects.json showcases and the HTML import page')
+        raise ValueError('generated page paths differ from the demo and world lists and the HTML import page')
     if ui is None:
         import pysaiyanweboo as ui
     result = render(ui)
@@ -1143,21 +976,12 @@ def refresh_lock(root: Path = ROOT) -> dict:
     return lock
 
 
-def _name_checkout(value: str) -> tuple[str, Path]:
-    name, sep, checkout = value.partition('=')
-    if not sep or not name or not checkout:
-        raise argparse.ArgumentTypeError('NAME=CHECKOUT, e.g. Err-o-RoadRunner=../err-o-roadrunner')
-    return name, Path(checkout)
-
-
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, help='write the generated assets under this directory')
     parser.add_argument('--stage', type=Path, help='write the whole site (source tree plus generated assets) under this directory')
     parser.add_argument('--refresh-lock', action='store_true',
                         help='rewrite web-ui-assets.lock.json from the installed generator')
-    parser.add_argument('--record', action='append', default=[], metavar='NAME=CHECKOUT', type=_name_checkout,
-                        help="rerun NAME's showcase command and catalog its scripts in CHECKOUT (at the showcase commit), stored in projects.json; repeatable")
     parser.add_argument('--record-samples', type=Path, metavar='DIR',
                         help="🎥 record a moving sample of every repository's Pages under DIR/media/pages/ (Chromium; best effort)")
     parser.add_argument('--record-flow', type=Path, metavar='DIR',
@@ -1168,21 +992,10 @@ def main(argv=None):
                         help="🧠 read every repository's vendor.lock.json (and Aoi's subtrees) and draw the map under DIR/media/map/")
     parser.add_argument('--record-chat', type=Path, metavar='DIR',
                         help="💬 index every repository's JSON / JSONL, mcp-toolcall-lab's tools and TalkCompress's compressor under DIR/media/chat/")
-    parser.add_argument('--advance', action='store_true',
-                        help="move every showcase to its repository's newest commit and record it there (keeps the pin when that would break the page)")
     args = parser.parse_args(argv)
     for target in (args.output, args.stage):
         if target:
             validate_output(target)
-    if args.advance:
-        print('\n'.join(advance()), file=sys.stderr)
-    for name, checkout in args.record:
-        show = record(name, checkout)
-        if 'run' in show:
-            print(f"▶ {name}: exit {show['run']['exit']}, {len(show['run']['output'].splitlines())} lines", file=sys.stderr)
-        if 'scripts' in show:
-            items = show['scripts']['items']
-            print(f"🧰 {name}: {len(items)} scripts, ❔ {sum(not i['summary'] for i in items)} without a description", file=sys.stderr)
     if args.record_samples:
         # 🎥 this portfolio too: its card shows the front page as Pages serves it now (the deploy before this one)
         print('\n'.join(record_samples(args.record_samples, pages_urls())))
@@ -1200,9 +1013,9 @@ def main(argv=None):
         build(args.output)
     if args.stage:
         stage(args.stage)
-    if not (args.refresh_lock or args.output or args.stage or args.record or args.advance or args.record_samples or args.record_flow or args.record_map
+    if not (args.refresh_lock or args.output or args.stage or args.record_samples or args.record_flow or args.record_map
             or args.record_tools or args.record_chat):
-        parser.error('give --output DIR, --stage DIR, --refresh-lock, --advance, --record-samples DIR and/or --record NAME=CHECKOUT')
+        parser.error('give --output DIR, --stage DIR, --refresh-lock and/or a --record-… DIR')
 
 
 if __name__ == '__main__':

@@ -1,5 +1,4 @@
-# Daily: refresh api/repos.json and move each projects.json showcase to its repository's newest commit
-# (scripts/project_pages.py --advance). The name is what pages.yml waits on, so it stays.
+# Daily: refresh api/repos.json. The name is what pages.yml waits on, so it stays.
 name: Update repos API
 
 on:
@@ -26,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # 🔒 --advance runs other repositories' scripts; keep the token out of .git/config (pushed explicitly below).
+          # 🔒 keep the token out of .git/config (pushed explicitly below).
           persist-credentials: false
 
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -50,24 +49,15 @@ jobs:
           touch .nojekyll
           python scripts/repos_catalog.py --owner myon-bioinformatics --output api/repos.json
 
-      - name: Advance showcases to their newest commits
-        shell: bash
-        run: |
-          # ⏩ moved · = unchanged · ⏸ kept (reason) — one line per showcase, also in the run summary.
-          uv run --locked --only-group pages python scripts/project_pages.py --advance --refresh-lock 2>&1 >/dev/null | tee -a "$GITHUB_STEP_SUMMARY"
-
-      - name: Commit refreshed API and showcases when they changed
+      - name: Commit the refreshed API when it changed
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          files=(api/repos.json .nojekyll projects.json web-ui-assets.lock.json)
+          files=(api/repos.json .nojekyll)
           if [ -z "$(git status --porcelain -- "${files[@]}")" ]; then
             exit 0
           fi
           message="chore: refresh repos API"
-          if ! git diff --quiet -- projects.json; then
-            message="chore: refresh repos API and advance showcases"
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "${files[@]}"

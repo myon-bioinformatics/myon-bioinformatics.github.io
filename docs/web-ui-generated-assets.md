@@ -2,7 +2,7 @@
 
 The generator is the installed `pysaiyanweboo` dependency (the `pages` group). Its full git commit is
 pinned once, in `[tool.uv.sources]` in `pyproject.toml`.
-`uv.lock` records the same source. The front page (`index.html`, from `scripts/front_page.py`: shell, Tools & Demos
+`uv.lock` records the same source. The front page (`index.html`, from `scripts/front_page.py`: shell, 🧰 Tools
 cards, the profile and projects rendered in every display mode, stylesheet and script in one file; outside the
 lock because it follows the refreshed `api/repos.json`), the generated CSS/JS and the pages are not kept in git
 (`.gitignore`); only the license under `tools/vendor/web-ui/` is. `--output DIR` writes the
@@ -22,32 +22,6 @@ shortcut label and icons (`add_back_nav()` / `add_home_label()` in `scripts/proj
 
 📄 `tools/html-import/index.html` (the HTML import tool page) is built by `render_html_import()` in the same file and locked
 under `pages` as well; it is no longer kept in git.
-
-📚 `tools/projects/` is built the same way from the `showcase` of each `projects.json` entry: icon and media as
-`raw.githubusercontent.com` URLs at the recorded commit, and one recorded run (command, exit code, output). Rerun a
-command after moving its commit, then refresh:
-
-```sh
-uv run --locked python scripts/project_pages.py --record Err-o-RoadRunner=../err-o-roadrunner --refresh-lock
-```
-
-`--record` refuses a checkout that is not at the showcase commit, and runs with only `PATH`, a temporary `HOME` and
-`LANG`, so no other variable of the recording machine reaches the page.
-🧰 A showcase with `"scripts": {"match": ["tools/*.py", …]}` also gets a list of the scripts those globs match at the
-same commit, recorded by the same `--record` into `scripts.items`. What each script declares is read, not run: the
-parent's `fleet_check.script_facts` gives its description (module docstring, or a JS module's leading `//` / `/**`
-comment past the shebang and imports) and whether it imports argparse or cli_args. Only those are asked for `--help`
-(`python3 -S`, same minimal environment) and show its usage line; nothing else is executed. Each project's own
-`tests/test_fleet.py` calls `fleet_check.check_scripts`, so a script without a description, or one that reads
-`sys.argv` without declaring its arguments, fails there first. The project's README links here instead of listing
-scripts by hand; ❔ marks a script without a description.
-
-⏩ `--advance`, run daily by `repos-api.yml` (06:00 JST, before Pages publishes), moves every showcase to the newest
-commit of its repository's default branch and records it there. It keeps the old pin (⏸, with the reason in the log)
-when that commit no longer has the icon or media the page shows, or when the run that used to exit 0 now fails, so the
-page always shows a working example; a repository it cannot fetch is skipped the same way.
-A command that needs packages (DRAgoWing needs Python-Markdown) uses the latest release, as its own build installs it:
-add them with `uv run --locked --with markdown python scripts/project_pages.py --record DRAgoWing=../Aoi`.
 
 ## Reproduce
 
