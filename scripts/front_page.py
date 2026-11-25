@@ -367,8 +367,11 @@ def markdown_fragment(root: Path, relative: str) -> str:
         raise ValueError('Markdown source must be an existing repository .md file')
     raw = path.read_bytes()
     encoded = transport.encode_markdown(raw)
+    import tomllib
+    with (root / 'pyproject.toml').open('rb') as manifest:
+        rev = tomllib.load(manifest)['tool']['uv']['sources']['md-market']['rev']
     return transport.render_cached(transport.decode_markdown(encoded), md_market.markdown_to_html,
-                         'md-market@a2331c28:default', _MARKDOWN_HTML_CACHE)
+                         f'md-market@{rev}:default', _MARKDOWN_HTML_CACHE)
 
 
 def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
