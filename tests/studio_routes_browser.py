@@ -2,15 +2,17 @@
 import functools
 import importlib.util
 import json
+import struct
 import subprocess
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 import threading
 import zipfile
+import zlib
 from xml.etree import ElementTree
 
 import pytest
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 
 @pytest.fixture(scope="module")
@@ -55,6 +57,19 @@ def _page(browser, origin, *, mobile=False):
     return page
 
 
+def _fixture_png():
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+
+    row = b"\x00" + b"\xff\x00\x00" * 9 + b"\x00\x00\xff" * 10
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", 19, 13, 8, 2, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(row * 13))
+        + chunk(b"IEND", b"")
+    )
+
+
 def _download(page, selector):
     with page.expect_download() as pending:
         page.locator(selector).click()
@@ -67,20 +82,11 @@ def test_image_studio_import_edit_and_download(browser, studio_origin, mobile):
     try:
         assert page.goto(studio_origin + "/tools/image-studio/").ok
         assert page.locator('[data-testid="portfolio-back"]').count() == 1
-        page.wait_for_function("!!window.IronmateStudio")
-        png = page.evaluate("""() => {
-            const c = Object.assign(document.createElement('canvas'), {width: 19, height: 13});
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#ff0000'; ctx.fillRect(0, 0, 9, 13);
-            ctx.fillStyle = '#0000ff'; ctx.fillRect(9, 0, 10, 13);
-            return Array.from(atob(c.toDataURL('image/png').split(',')[1]), c => c.charCodeAt(0));
-        }""")
-        page.locator("#image").set_input_files({"name": "fixture.png", "mimeType": "image/png", "buffer": bytes(png)})
-        page.wait_for_function("IronmateStudio.scene.layers.at(-1)?.kind === 'image'")
-        page.evaluate("IronmateStudio.ready")
+        expect(page.locator("#board svg")).to_have_count(1)
+        page.locator("#image").set_input_files({"name": "fixture.png", "mimeType": "image/png", "buffer": _fixture_png()})
+        expect(page.locator("#layers button").filter(has_text="fixture.png")).to_have_count(1)
         page.locator("#cell").fill("7")
         page.locator("#cell").dispatch_event("change")
-        page.evaluate("IronmateStudio.ready")
         scene = json.loads(_download(page, "#save"))
         assert scene["schema"] == "ironmate-image-studio/1"
         assert scene["layers"][-1]["kind"] == "image"
@@ -100,17 +106,17 @@ def test_slide_studio_import_edit_and_export_pptx(browser, studio_origin):
     try:
         assert page.goto(studio_origin + "/tools/slide-studio/").ok
         assert page.locator('[data-testid="portfolio-back"]').count() == 1
-        page.wait_for_function("!!window.IronmateSlideEditor")
+        expect(page.locator("#slide-select option")).to_have_count(1)
         page.locator("#slide-template").click()
-        page.wait_for_function("IronmateStudio.scene.layers.length === 2")
+        expect(page.locator("#layers button")).to_have_count(2)
         deck = json.loads(_download(page, "#deck-save"))
         assert deck["schema"] == "ironmate-slide-deck/1"
         deck["slides"][0]["layers"][0]["text"] = "Imported fixture title"
         page.locator("#deck-open").set_input_files({
             "name": "fixture.json", "mimeType": "application/json", "buffer": json.dumps(deck).encode(),
         })
-        page.wait_for_function("IronmateStudio.scene.layers[0]?.text === 'Imported fixture title'")
-        title_id = page.evaluate("IronmateStudio.scene.layers[0].id")
+        expect(page.locator("#deck-status")).to_have_text("全スライドを読み込みました。")
+        title_id = deck["slides"][0]["layers"][0]["id"]
         page.locator(f'[data-layer-id="{title_id}"]').click()
         page.locator("#text").fill("Edited fixture title")
         page.locator("#apply-text").click()

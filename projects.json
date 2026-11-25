@@ -12,7 +12,7 @@
     "showcase": {
       "label": "🧬 配列検索",
       "repository": "myon-bioinformatics/search_seq_including_spaces",
-      "commit": "ea3b35373c3ed45907abbd86ea730e9f065ba783",
+      "commit": "198ceee8a2a8a52eabedb6ba97ba9179c567104f",
       "icon": "docs/brand/icon.png",
       "media": [
         {
@@ -89,7 +89,7 @@
     "showcase": {
       "label": "🔵 BlueProbe",
       "repository": "myon-bioinformatics/BlueProbe",
-      "commit": "6517bd1e42bbd7abd03d393b450bffae788a1f93",
+      "commit": "efd3bc4547a076c87d4112732d266da3dbd33248",
       "icon": "docs/brand/icon.png",
       "run": {
         "command": [
@@ -276,11 +276,11 @@
     "showcase": {
       "label": "🐦 Err-o-RR",
       "repository": "myon-bioinformatics/Err-o-RoadRunner",
-      "commit": "0ee8b13b455a290709348c0b6a88db7bdf5b5b46",
-      "icon": "docs/assets/icon.png",
+      "commit": "ee9ddf929216705c41dab8c82a4bac89a82cc7af",
+      "icon": "https://myon-bioinformatics.github.io/Err-o-RoadRunner/icon.png",
       "media": [
         {
-          "src": "docs/images/concept-overview.png",
+          "src": "docs/images/repository-concept.png",
           "alt": "Err-o-RoadRunner concept: failure logs are matched against known patterns, then reported as FOUND, NOT FOUND and HINT with examples and tests as evidence"
         }
       ],
@@ -313,11 +313,11 @@
     "showcase": {
       "label": "🛡️ NVD",
       "repository": "myon-bioinformatics/nvd_nist_known_vulns",
-      "commit": "b9947a3ca977e5489060c5b787a43d2f2ad86641",
+      "commit": "ed287755d150e63800ac76f067c9482b82371f8e",
       "icon": "docs/brand/icon.png",
       "media": [
         {
-          "src": "docs/images/nvd_nist_known_vulns-concept.png",
+          "src": "docs/images/repository-concept.png",
           "alt": "CPE inputs pass through NVD CVE API queries and CVSS processing to JSONL output, with offline tests and CI evidence."
         }
       ],
@@ -345,7 +345,7 @@
     "showcase": {
       "label": "🧪 BTK",
       "repository": "myon-bioinformatics/BrowserTestKit",
-      "commit": "283e7117e302818b5a41846479817a0069408001",
+      "commit": "5a7bde858a52e50f41bfb70ebb0a2f63e2eb8550",
       "icon": "docs/assets/brand/validation-buddy.png",
       "media": [
         {
@@ -361,7 +361,7 @@
           "plan",
           "."
         ],
-        "output": "ok      .github/workflows/ci.yml:211 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:215 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:345 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:349 --only-shell (job runs headless only)\nok      .github/workflows/platform-matrix.yml:50 full + shell (job uses both the full build and the shell)",
+        "output": "ok      .github/workflows/ci.yml:216 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:220 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:352 --only-shell (job runs headless only)\nok      .github/workflows/ci.yml:356 --only-shell (job runs headless only)\nok      .github/workflows/platform-matrix.yml:53 full + shell (job uses both the full build and the shell)",
         "exit": 0
       },
       "scripts": {
@@ -553,7 +553,7 @@
     "showcase": {
       "label": "🗜️ 会話圧縮",
       "repository": "myon-bioinformatics/TalkCompress",
-      "commit": "60eecc239ea4a2b6676566e18a5d1d5bed1c6ef6",
+      "commit": "092e87f85904976b810f8382f0b334fead473c3e",
       "media": [
         {
           "src": "docs/evidence/browser.gif",

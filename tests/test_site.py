@@ -91,6 +91,13 @@ def test_front_page_shows_only_the_moving_samples_this_build_recorded(tmp_path):
     (tmp_path / "media/pages").mkdir(parents=True)
     (tmp_path / "media/pages" / f"{with_pages[1].lower()}.gif").write_bytes(b"GIF89a")
     assert PAGES.recorded_samples(tmp_path) == {with_pages[1].lower()}
+    # 🧭 this portfolio's own card too (--record-samples records every Pages of api/repos.json, this one included)
+    assert PAGES.pages_urls(ROOT)["myon-bioinformatics.github.io"] == "https://myon-bioinformatics.github.io/"
+    own = front.document(ROOT, samples=frozenset({"myon-bioinformatics.github.io"}))
+    assert ('<a class="project-sample" href="https://myon-bioinformatics.github.io/">'
+            '<img src="./media/pages/myon-bioinformatics.github.io.gif"') in own
+    (tmp_path / "media/pages/myon-bioinformatics.github.io.gif").write_bytes(b"GIF89a")           # the dots stay in the name
+    assert "myon-bioinformatics.github.io" in PAGES.recorded_samples(tmp_path)
 
 
 def test_flow_lab_shows_every_ffss_scene_and_every_dragowing_figure(tmp_path):
@@ -979,3 +986,10 @@ def test_prose_extract_adapter_preserves_whitespace_hooks_and_code_blocks():
     published = (PUBLIC / 'index.html').read_text()
     assert '<div data-testid="pages-pixiv-extract" hidden class="ui-output"></div>' in published
     assert '<div data-testid="pages-wiki-extract" hidden class="ui-output"></div>' in published
+
+
+def test_a_showcase_icon_may_be_its_pages_url():
+    """♻️ Err-o-RoadRunner keeps no icon copy (CaChereCyCle publishes it on its Pages), so its showcase links the Pages URL."""
+    page = (SITE / "tools/projects/err-o-roadrunner.html").read_text(encoding="utf-8")
+    assert 'src="https://myon-bioinformatics.github.io/Err-o-RoadRunner/icon.png"' in page
+    assert "raw.githubusercontent.com/myon-bioinformatics/Err-o-RoadRunner/" in page   # the media still come from its pin

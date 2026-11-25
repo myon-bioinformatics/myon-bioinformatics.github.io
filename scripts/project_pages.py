@@ -337,7 +337,8 @@ def render_projects(ui, root: Path = ROOT) -> dict[str, bytes]:
     pages = pages_urls(root)
     for project in showcases(root):
         show = project['showcase']
-        raw = lambda path: f"https://raw.githubusercontent.com/{show['repository']}/{show['commit']}/{show.get('path', '')}{path}"
+        raw = lambda path: path if path.startswith('https://') else \
+            f"https://raw.githubusercontent.com/{show['repository']}/{show['commit']}/{show.get('path', '')}{path}"   # ♻️ an icon may be its Pages URL (CaChereCyCle)
         blocks = [{'type': 'text', 'text': project['desc']}]
         where = show['repository'] + ('/' + show['path'].rstrip('/') if show.get('path') else '')
         if show.get('media'):
@@ -900,7 +901,8 @@ def advance(root: Path = ROOT, remote: str = 'https://github.com/') -> list[str]
                 log.append(f'= {name} {old[:7]}')
                 continue
             base = checkout / show.get('path', '')
-            missing = [f for f in [show.get('icon'), *(m['src'] for m in show.get('media', []))] if f and not (base / f).is_file()]
+            missing = [f for f in [show.get('icon'), *(m['src'] for m in show.get('media', []))]
+                       if f and not f.startswith('https://') and not (base / f).is_file()]
             if missing:
                 log.append(f"⏸ {name} {old[:7]} (✗ {head[:7]}: {', '.join(missing)} missing)")
                 continue
@@ -1031,8 +1033,8 @@ def main(argv=None):
             items = show['scripts']['items']
             print(f"🧰 {name}: {len(items)} scripts, ❔ {sum(not i['summary'] for i in items)} without a description", file=sys.stderr)
     if args.record_samples:
-        pages = {name: url for name, url in pages_urls().items() if url != 'https://myon-bioinformatics.github.io/'}
-        print('\n'.join(record_samples(args.record_samples, pages)))
+        # 🎥 this portfolio too: its card shows the front page as Pages serves it now (the deploy before this one)
+        print('\n'.join(record_samples(args.record_samples, pages_urls())))
     if args.record_map:
         print('\n'.join(record_map(args.record_map)))
     if args.record_flow:
