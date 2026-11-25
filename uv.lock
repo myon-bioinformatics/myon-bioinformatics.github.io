@@ -251,24 +251,24 @@ browser = [
     { name = "gh-identity-dev", git = "https://github.com/myon-bioinformatics/gh_identity?rev=3111c17213baa0f469500a765d0a59f6de8e1d41" },
     { name = "pillow", specifier = ">=13.0.0" },
     { name = "playwright", specifier = ">=1.64.0" },
-    { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=a821355536a65b035c5780b68ca474771386dc29" },
+    { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=901b790f14ad7a04a4280409bfd274d8f6926fa7" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "stagehand", specifier = ">=4.2.1" },
 ]
 docker-test = [
     { name = "gh-identity-dev", git = "https://github.com/myon-bioinformatics/gh_identity?rev=3111c17213baa0f469500a765d0a59f6de8e1d41" },
-    { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=a821355536a65b035c5780b68ca474771386dc29" },
+    { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=901b790f14ad7a04a4280409bfd274d8f6926fa7" },
     { name = "pytest", specifier = ">=9.1.1" },
 ]
-pages = [{ name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=a821355536a65b035c5780b68ca474771386dc29" }]
+pages = [{ name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=901b790f14ad7a04a4280409bfd274d8f6926fa7" }]
 samples = [
     { name = "pillow", specifier = ">=13.0.0" },
     { name = "playwright", specifier = ">=1.64.0" },
-    { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=a821355536a65b035c5780b68ca474771386dc29" },
+    { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=901b790f14ad7a04a4280409bfd274d8f6926fa7" },
 ]
 test = [
     { name = "gh-identity-dev", git = "https://github.com/myon-bioinformatics/gh_identity?rev=3111c17213baa0f469500a765d0a59f6de8e1d41" },
-    { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=a821355536a65b035c5780b68ca474771386dc29" },
+    { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=901b790f14ad7a04a4280409bfd274d8f6926fa7" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "stagehand", specifier = ">=4.2.1" },
 ]
@@ -606,7 +606,7 @@ wheels = [
 [[package]]
 name = "pysaiyanweboo"
 version = "0.1.0"
-source = { git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=a821355536a65b035c5780b68ca474771386dc29#a821355536a65b035c5780b68ca474771386dc29" }
+source = { git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=901b790f14ad7a04a4280409bfd274d8f6926fa7#901b790f14ad7a04a4280409bfd274d8f6926fa7" }
 
 [[package]]
 name = "pytest"

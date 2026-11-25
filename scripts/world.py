@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any, Callable, NamedTuple
 from urllib.parse import quote, urlsplit
 
-from pysaiyanweboo import (DIAL_CSS, DIAL_JS, EARTH_RADIUS_M, bundled_css, dial_html, parse_coordinate, render_document,
+from pysaiyanweboo import (DIAL_CSS, DIAL_JS, EARTH_RADIUS_M, bundled_css, dial_html, module_script, parse_coordinate, render_document,
                            tolerance_area, try_parse_maps_url)
 
 # --- World: one page, a camera, no page changes (scrolling "shots" and a pan/zoom map) -----------------
@@ -1829,8 +1829,9 @@ bindWorlds();
 def world_document(spec: Any, *, theme: str = "modern") -> str:
     """A single-file page: bundled CSS, the world's CSS, the world's HTML and one inline module."""
     world = world_validate(spec)
-    return render_document(trusted_html=world_html(world), title=world["title"], theme=theme,
-                           css=bundled_css() + world_css(world), embedded_modules=("world.js",))
+    # 🌍 world.js lives here now (WORLD_JS), not in PySaiyanWeBoo: the same inline module, after the body.
+    return render_document(trusted_html=world_html(world) + module_script(WORLD_JS), title=world["title"], theme=theme,
+                           css=bundled_css() + world_css(world))
 
 
 def catalogue_world(items: Any, *, id: str = "catalogue", title: str = "Catalogue", columns: int = 8,
