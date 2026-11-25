@@ -91,6 +91,13 @@ def test_front_page_shows_only_the_moving_samples_this_build_recorded(tmp_path):
     (tmp_path / "media/pages").mkdir(parents=True)
     (tmp_path / "media/pages" / f"{with_pages[1].lower()}.gif").write_bytes(b"GIF89a")
     assert PAGES.recorded_samples(tmp_path) == {with_pages[1].lower()}
+    # 🧭 this portfolio's own card too (--record-samples records every Pages of api/repos.json, this one included)
+    assert PAGES.pages_urls(ROOT)["myon-bioinformatics.github.io"] == "https://myon-bioinformatics.github.io/"
+    own = front.document(ROOT, samples=frozenset({"myon-bioinformatics.github.io"}))
+    assert ('<a class="project-sample" href="https://myon-bioinformatics.github.io/">'
+            '<img src="./media/pages/myon-bioinformatics.github.io.gif"') in own
+    (tmp_path / "media/pages/myon-bioinformatics.github.io.gif").write_bytes(b"GIF89a")           # the dots stay in the name
+    assert "myon-bioinformatics.github.io" in PAGES.recorded_samples(tmp_path)
 
 
 def test_flow_lab_pairs_one_ffss_run_with_its_dragowing_figure(tmp_path):

@@ -1018,8 +1018,8 @@ def main(argv=None):
             items = show['scripts']['items']
             print(f"🧰 {name}: {len(items)} scripts, ❔ {sum(not i['summary'] for i in items)} without a description", file=sys.stderr)
     if args.record_samples:
-        pages = {name: url for name, url in pages_urls().items() if url != 'https://myon-bioinformatics.github.io/'}
-        print('\n'.join(record_samples(args.record_samples, pages)))
+        # 🎥 this portfolio too: its card shows the front page as Pages serves it now (the deploy before this one)
+        print('\n'.join(record_samples(args.record_samples, pages_urls())))
     if args.record_map:
         print('\n'.join(record_map(args.record_map)))
     if args.record_flow:
