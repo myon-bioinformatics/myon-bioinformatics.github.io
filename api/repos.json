@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-11-25T08:25:07Z",
+  "generatedAt": "2026-11-25T12:31:37Z",
   "owner": "myon-bioinformatics",
   "count": 49,
   "repos": [
     {
       "name": "Aoi",
       "url": "https://github.com/myon-bioinformatics/Aoi",
-      "description": "Most analytics projects attempt to provide answers.  Aoi attempts to discover better questions.  Starting from unexplained long-term outcomes in baseball, Aoi investigates the limits of models, metrics, and evaluation systems through observation, analysis, validation, and hypothesis generation.",
+      "description": "Most analytics projects attempt to provide answers. Aoi attempts to discover better questions. A hypothesis-driven research framework for observation, analysis, validation, and hypothesis generation. It began with long-term patterns in baseball — baseball is the laboratory, not the destination.",
       "language": "HTML",
       "topics": [
         "analytics",
@@ -21,8 +21,8 @@
         "sports-analytics",
         "statistics"
       ],
-      "stars": 2,
-      "updatedAt": "2026-11-23T08:50:59Z",
+      "stars": 1,
+      "updatedAt": "2026-11-25T10:00:50Z",
       "homepage": "https://myon-bioinformatics.github.io/Aoi/",
       "pages": "https://myon-bioinformatics.github.io/Aoi/",
       "readmeHeading": "Aoi",
@@ -119,7 +119,7 @@
     {
       "name": "BlueProbe",
       "url": "https://github.com/myon-bioinformatics/BlueProbe",
-      "description": "Observe first, interpret later. HTML/CSS/DOM structure observation and extraction for NPB baseball pages (split out from Aoi/blueprobe).",
+      "description": "Observe first, interpret later. Generic HTML/CSS/DOM structure observation and extraction (split out from Aoi/blueprobe). Optional NPB sources live in npb/.",
       "language": "Python",
       "topics": [
         "baseball",
@@ -138,7 +138,7 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-23T08:51:02Z",
+      "updatedAt": "2026-11-25T10:00:51Z",
       "homepage": "https://myon-bioinformatics.github.io/BlueProbe/",
       "pages": "https://myon-bioinformatics.github.io/BlueProbe/",
       "readmeHeading": "BlueProbe",
@@ -296,7 +296,7 @@
     {
       "name": "DRAgoWing",
       "url": "https://github.com/myon-bioinformatics/DRAgoWing",
-      "description": "DRAgoWing: lay down the record without re-judging it. Split out from Aoi's dragowing/ (git subtree). Renders baseball research records as Plotly.js HTML reports, proposition tables and optional headless-Chrome PNG/SVG exports without Python plotting libraries.",
+      "description": "DRAgoWing: lay down the record without re-judging it. Split out from Aoi's dragowing/ (git subtree). Renders research records as Plotly.js HTML reports, proposition tables and optional SVG exports, plus FFSS figures and HTML element counts, without Python plotting libraries.",
       "language": "Python",
       "topics": [
         "baseball",
@@ -315,7 +315,7 @@
         "static-html"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-23T08:51:08Z",
+      "updatedAt": "2026-11-25T10:00:59Z",
       "homepage": "https://myon-bioinformatics.github.io/DRAgoWing/",
       "pages": "https://myon-bioinformatics.github.io/DRAgoWing/",
       "readmeHeading": "DRAgoWing",
@@ -602,8 +602,8 @@
         "python3",
         "tool-calling"
       ],
-      "stars": 2,
-      "updatedAt": "2026-11-23T08:51:19Z",
+      "stars": 1,
+      "updatedAt": "2026-11-25T09:50:55Z",
       "homepage": "https://myon-bioinformatics.github.io/mcp-toolcall-lab/",
       "pages": "https://myon-bioinformatics.github.io/mcp-toolcall-lab/",
       "readmeHeading": "mcp-toolcall-lab",
@@ -674,7 +674,7 @@
     {
       "name": "NagoyAction",
       "url": "https://github.com/myon-bioinformatics/NagoyAction",
-      "description": "Turning research into a system you can keep running. Define a research pipeline once in TOML and run it with the same stdlib-only command locally and on GitHub Actions, with run receipts, Markdown link checking and publication gates for Aoi's NPB baseball research (split out from Aoi/nagoyaction).",
+      "description": "Turning research into a system you can keep running. Define a research pipeline once in TOML and run it with the same stdlib-only command locally and on GitHub Actions, with run receipts, Markdown link checking and publication gates (split out from Aoi/nagoyaction).",
       "language": "Python",
       "topics": [
         "baseball",
@@ -694,7 +694,7 @@
         "toml"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-23T08:51:23Z",
+      "updatedAt": "2026-11-25T10:00:58Z",
       "homepage": "https://myon-bioinformatics.github.io/NagoyAction/",
       "pages": "https://myon-bioinformatics.github.io/NagoyAction/",
       "readmeHeading": "NagoyAction",
@@ -869,8 +869,8 @@
         "ui-components",
         "vanilla-js"
       ],
-      "stars": 2,
-      "updatedAt": "2026-11-13T11:21:14Z",
+      "stars": 1,
+      "updatedAt": "2026-11-25T09:51:58Z",
       "homepage": "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
       "pages": "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
       "readmeHeading": "PySaiyanWeBoo",
@@ -880,7 +880,7 @@
     {
       "name": "PythDRagoras",
       "url": "https://github.com/myon-bioinformatics/PythDRagoras",
-      "description": "PythDRagoras: propositions, precedents, objections. Split out from Aoi's pythdragoras/ (git subtree). Tests explanations as propositions with counterexamples, rule search and sensitivity analysis for NPB baseball outcomes.",
+      "description": "PythDRagoras: propositions, precedents, objections. Split out from Aoi's pythdragoras/ (git subtree). Tests explanations as propositions with counterexamples, rule search and sensitivity analysis. Generic metrics and LittleBit in pythdragoras.py and core/; season verification in npb/.",
       "language": "Python",
       "topics": [
         "baseball",
@@ -901,7 +901,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-23T08:51:27Z",
+      "updatedAt": "2026-11-25T10:00:56Z",
       "homepage": "https://myon-bioinformatics.github.io/PythDRagoras/",
       "pages": "https://myon-bioinformatics.github.io/PythDRagoras/",
       "readmeHeading": "PythDRagoras",
@@ -955,7 +955,7 @@
     {
       "name": "QueRyu",
       "url": "https://github.com/myon-bioinformatics/QueRyu",
-      "description": "Reproducible fetching builds reliable understanding. Polite web fetching with conditional-GET caching and provenance for building NPB baseball observation datasets (split out from Aoi/queryu).",
+      "description": "Reproducible fetching builds reliable understanding. Polite web fetching with conditional-GET caching and provenance for building observation datasets (split out from Aoi/queryu).",
       "language": "Python",
       "topics": [
         "baseball",
@@ -975,7 +975,7 @@
         "web-scraping"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-23T23:50:56Z",
+      "updatedAt": "2026-11-25T10:00:53Z",
       "homepage": "https://myon-bioinformatics.github.io/QueRyu/",
       "pages": "https://myon-bioinformatics.github.io/QueRyu/",
       "readmeHeading": "QueRyu",
@@ -985,7 +985,7 @@
     {
       "name": "SakAnalytics",
       "url": "https://github.com/myon-bioinformatics/SakAnalytics",
-      "description": "SakAnalytics: the numbers speak, but they haven't said everything yet. Split out from Aoi's sakanalytics/ (git subtree). Team-season metrics, remaining-game and clinch-magic simulation, and synthetic-league experiments for NPB baseball game records.",
+      "description": "SakAnalytics: the numbers speak, but they haven't said everything yet. Split out from Aoi's sakanalytics/ (git subtree). Generic numerics and log/linear scaling in sakanalytics.py and core/; team-season metrics, remaining-game simulation, and synthetic-league experiments for NPB records in npb/.",
       "language": "Python",
       "topics": [
         "baseball",
@@ -1003,7 +1003,7 @@
         "synthetic-data"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-23T08:51:31Z",
+      "updatedAt": "2026-11-25T10:00:55Z",
       "homepage": "https://myon-bioinformatics.github.io/SakAnalytics/",
       "pages": "https://myon-bioinformatics.github.io/SakAnalytics/",
       "readmeHeading": "SakAnalytics",
