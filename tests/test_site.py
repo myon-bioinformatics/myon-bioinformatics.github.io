@@ -1258,3 +1258,19 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
     target = ui.gif_targets(ROOT / 'test-results' / 'chat', ['chat-conversation'], run_details=['timestamp'])
     target['chat-conversation'].write_bytes(gif)
     assert gif[:6] == b'GIF89a'
+
+def test_weekly_markdown_fragment_and_hash_link():
+    front = _front()
+    page = front.document()
+    assert 'href="#weekly"' in page
+    assert 'id="weekly"' in page
+    assert '公開用週次台帳ビュー' in page
+    assert '@@WEEKLY@@' not in page
+
+
+def test_weekly_markdown_fragment_rejects_invalid_paths():
+    front = _front()
+    with pytest.raises(ValueError):
+        front.markdown_fragment(ROOT, '../README.md')
+    with pytest.raises(ValueError):
+        front.markdown_fragment(ROOT, 'docs/not-found.md')
