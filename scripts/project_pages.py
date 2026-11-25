@@ -668,12 +668,38 @@ const bubble = (who, html, text) => {
   log.scrollTop = log.scrollHeight;
   return node;
 };
+let llm = null;
+async function ask(text, node) {                       // 🤖 /ask: llama.cpp in WebAssembly (wllama), the model loaded once
+  if (!llm) {
+    node.textContent = "⏳ 🤖 llama.cpp…";
+    const {Wllama} = await import(cfg.runtime.wllama + "index.js");
+    llm = new Wllama({default: cfg.runtime.wllama + "wasm/wllama.wasm"});
+    await llm.loadModelFromUrl(cfg.runtime.model, {n_ctx: 2048, progressCallback: ({loaded, total}) => {
+      node.textContent = `⏳ 🤖 ${total ? Math.round(loaded / total * 100) : 0}% · ${Math.round(loaded / 2 ** 20)} / ${Math.round(total / 2 ** 20)} MB`;
+    }});
+  }
+  let output = "", tokens = 0;
+  const started = performance.now();
+  await llm.createChatCompletion({messages: JSON.parse(bot.ask_messages(text)), max_tokens: 256, temperature: 0.3, stream: true,
+    chat_template_kwargs: {enable_thinking: false}, onData: (chunk) => {
+      output += chunk.choices?.[0]?.delta?.content ?? "";
+      tokens += 1;
+      node.textContent = output;
+      log.scrollTop = log.scrollHeight;
+    }});
+  node.innerHTML = bot.ask_html.callKwargs(output, tokens, (performance.now() - started) / 1000,
+                                           {threads: llm.isMultithread() ? navigator.hardwareConcurrency : 1, webgpu: llm.isSupportWebGPU()});
+  log.scrollTop = log.scrollHeight;
+}
 async function say(text) {
   if (!bot || !text.trim()) return;
   bubble("you", null, text);
   send.disabled = true;
   await new Promise((done) => setTimeout(done, 0));   // paint before a /show or /compress fetch blocks
-  try { bubble("bot", bot.reply_html(text)); } catch (error) { bubble("bot", null, "⚠️ " + (error?.message ?? error)); }
+  try {
+    if (/^\/ask(\s|$)/i.test(text.trim())) await ask(text, bubble("bot", null, "⏳"));
+    else bubble("bot", bot.reply_html(text));
+  } catch (error) { bubble("bot", null, "⚠️ " + (error?.message ?? error)); }
   send.disabled = false;
   input.focus();
 }
@@ -695,8 +721,8 @@ for (const step of document.querySelectorAll(".ui-step")) {            // 📇 e
   step.querySelector(".ui-code")?.after(button);
 }
 async function boot() {
-  const {loadPyodide} = await import(cfg.pyodide + "pyodide.mjs");
-  const py = await loadPyodide({indexURL: cfg.pyodide});
+  const {loadPyodide} = await import(cfg.runtime.pyodide + "pyodide.mjs");
+  const py = await loadPyodide({indexURL: cfg.runtime.pyodide});
   py.FS.mkdirTree("/chat");
   for (const [name, text] of Object.entries(JSON.parse($("#chat-sources").textContent))) py.FS.writeFile("/chat/" + name, text);
   let index = null;
@@ -734,10 +760,11 @@ def chat_books() -> list[dict]:
     step per example; the expected reply is the bot's own where it needs nothing recorded at deploy time."""
     chat = _chat()
     groups = [('📝 Markdown', ('md', 'table', 'help')), ('🎨 ASCII art', ('ascii', 'box', 'flow')), ('🗂 圧縮', ('compress',)),
-              ('🔌 MCP', ('mcp',)), ('🔎 JSON / JSONL', ('find', 'show')), ('⌨️ もしかして', ())]
+              ('🔌 MCP', ('mcp',)), ('🔎 JSON / JSONL', ('find', 'show')), ('🤖 LLM', ('ask',)), ('⌨️ もしかして', ())]
     recorded = {'compress': '🗂 TalkCompress の短い文と 📏 文字数（TalkCompress は公開時に記録）',
                 'mcp': '🔌 mcp-toolcall-lab が広告する道具で判定（✅ 送ってよい／❌ 断る。道具は公開時に記録）',
-                'find': '🔎 全リポジトリの JSON / JSONL から（索引は公開時に記録）', 'show': '👀 そのコミットの raw を読んで表に'}
+                'find': '🔎 全リポジトリの JSON / JSONL から（索引は公開時に記録）', 'show': '👀 そのコミットの raw を読んで表に',
+                'ask': '🤖 初回だけ約 560 MB のモデルを読み、端末の中で答える（⚡ WebGPU があれば GPU、なければ 🧮 CPU 1 スレッド）'}
     books = []
     for label, names in groups:
         examples = [(name, example) for name in names for example in chat.COMMANDS[name][3]] or [('typo', t) for t in chat.TYPOS]
@@ -755,7 +782,8 @@ def chat_document(ui) -> str:
     chat = _chat()
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '💬 横断チャット', 'description':
                              'markdown.py・ascii_artist・cli_args・TalkCompress・mcp-toolcall-lab をページの中の Python で。'
-                             '全リポジトリの JSON / JSONL にも答える。送った文はどこにも送らない（/show は GitHub の raw を読む）。',
+                             '全リポジトリの JSON / JSONL にも答える。🤖 /ask は llama.cpp が端末の中で答える。'
+                             '送った文はどこにも送らない（/show は GitHub の raw を、/ask はモデルを読むだけ）。',
                              'blocks': [{'type': 'tabs', 'id': 'chat', 'tabs': [
                                  {'label': '💬 チャット', 'blocks': [{'type': 'text', 'text': _CHAT_SLOT}]},
                                  {'label': '📇 索引', 'blocks': [{'type': 'runbook', 'id': 'chat-index', 'choice': '📇 道具',
@@ -769,7 +797,7 @@ def chat_document(ui) -> str:
             f'<button class="ui-button" type="submit" disabled data-chat-send>⏳</button></form><p class="ui-chat-chips">{chips}</p>'
             '<noscript><p>⏸ このチャットは JavaScript と Pyodide で動く。📇 索引のコマンドは scripts/chat.py でも試せる。</p></noscript></div>')
     data = lambda value: json.dumps(value, ensure_ascii=False).replace('<', '\\u003c')
-    config = {'pyodide': chat.PYODIDE, 'index': f'../../{CHAT}index.json', 'base': f'../../{CHAT}'}
+    config = {'runtime': chat.RUNTIME, 'index': f'../../{CHAT}index.json', 'base': f'../../{CHAT}'}
     body += (f'<script type="application/json" id="chat-config">{data(config)}</script>'
              f'<script type="application/json" id="chat-sources">{data(chat_sources())}</script>' + ui.module_script(CHAT_JS))
     slot = f'<p>{_CHAT_SLOT}</p>'
