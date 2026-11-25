@@ -358,13 +358,16 @@ _MARKDOWN_HTML_CACHE: dict[str, str] = {}
 def markdown_fragment(root: Path, relative: str) -> str:
     """Build-time Markdown from a reviewed repository file, not visitor-supplied HTML."""
     import markdown as md_market
-    from markdown_transport import encode_markdown, decode_markdown, render_cached
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('markdown_transport', Path(__file__).with_name('markdown_transport.py'))
+    transport = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(transport)
     path = (root / relative).resolve()
     if not path.is_relative_to(root.resolve()) or not path.is_file() or path.suffix.lower() != '.md':
         raise ValueError('Markdown source must be an existing repository .md file')
     raw = path.read_bytes()
-    encoded = encode_markdown(raw)
-    return render_cached(decode_markdown(encoded), md_market.markdown_to_html,
+    encoded = transport.encode_markdown(raw)
+    return transport.render_cached(transport.decode_markdown(encoded), md_market.markdown_to_html,
                          'md-market@a2331c28:default', _MARKDOWN_HTML_CACHE)
 
 
