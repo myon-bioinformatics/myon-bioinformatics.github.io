@@ -1,4 +1,4 @@
-# Sample workflow for building and deploying a Jekyll site to GitHub Pages
+# 📁 The source tree as it is, then the pages Python generates (scripts/project_pages.py); no Jekyll, so no .md becomes a page.
 name: Pages
 
 on:
@@ -38,20 +38,15 @@ jobs:
           ref: ${{ github.event_name == 'workflow_run' && 'main' || github.sha }}
       - name: Setup Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-      - name: Build with Jekyll
-        uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697 # v1.0.13
-        with:
-          source: ./
-          destination: ./_site
-
-      - name: Make built site writable for evidence
-        run: sudo chown -R "$USER":"$USER" _site
 
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version: "latest"
           python-version: "3.15"
           enable-cache: false
+
+      - name: Copy the source tree as Pages serves it
+        run: uv run --locked --only-group pages python scripts/project_pages.py --copy-source _site
 
       # 🎥 A two-frame GIF of every repository's Pages for its card (media/pages/, not kept in git); a Pages that fails is
       # listed as ⏸ in the summary, and a failed step only leaves the cards without samples.

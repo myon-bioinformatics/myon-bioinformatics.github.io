@@ -417,3 +417,14 @@ def test_stub_rejects_non_json_mock(mock):
 def test_stub_normalizes_json_keys_consistently():
     spec = assets.stub_validate({**assets.EXAMPLE_STUBS['api'], 'mock': {1: '$input'}})
     assert assets.stub_response(spec['mock'], 'hello') == {'1': 'hello'}
+
+
+def test_copy_source_keeps_files_as_they_are_and_renders_nothing(tmp_path):
+    root, out = tmp_path / 'repo', tmp_path / 'site'
+    for path, text in {'AGENTS.md': '# agents', 'docs/a.md': '# A', 'assets/x.png': 'png', '_src/tools/t.py': 'x', 'node_modules/m.js': 'm',
+                       'tests/__pycache__/c.pyc': 'c', '.git/HEAD': 'h'}.items():
+        (root / path).parent.mkdir(parents=True, exist_ok=True)
+        (root / path).write_text(text)
+    assets.copy_source(out, root)
+    found = sorted(p.relative_to(out).as_posix() for p in out.rglob('*') if p.is_file())
+    assert found == ['AGENTS.md', 'assets/x.png', 'docs/a.md']                  # 📁 no .html made from a .md, no _src or caches
