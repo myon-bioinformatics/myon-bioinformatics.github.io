@@ -352,6 +352,15 @@ def theme_options(ui) -> str:
         f'<option value="{_a(name)}">{mark.get(name, "🎨")} {_e(name)}</option>' for name in ui.theme_palettes())
 
 
+def markdown_fragment(root: Path, relative: str) -> str:
+    """Build-time Markdown from a reviewed repository file, not visitor-supplied HTML."""
+    import markdown as md_market
+    path = (root / relative).resolve()
+    if not path.is_relative_to(root.resolve()) or not path.is_file() or path.suffix.lower() != '.md':
+        raise ValueError('Markdown source must be an existing repository .md file')
+    return md_market.markdown_to_html(path.read_text(encoding='utf-8'))
+
+
 def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
     root = Path(__file__).resolve().parents[1] if root is None else Path(root)
     if ui is None:
@@ -364,10 +373,11 @@ def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
     avatar = ui.component_parts("gaze-avatar")
     script = ui.module_script('\n'.join((ui.js_source('collection.js'), avatar['js'], SCRIPT)))
     page = SHELL
+    weekly = markdown_fragment(root, 'docs/weekly-view.md')
     pages = [(p['name'], p['pages']) for p in projects if p.get('pages') and p['pages'] != 'https://myon-bioinformatics.github.io/']
     for mark, value in (('@@PORTAL@@', portal_cards(pages)), ('@@THEMES@@', theme_options(ui)), ('@@TOPICS@@', topic_buttons(projects)),
                         ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + STYLE + avatar['css'] + '\n  '),
-                        ('@@AVATAR@@', avatar['html']), ('@@SCRIPT@@', script)):
+                        ('@@AVATAR@@', avatar['html']), ('@@WEEKLY@@', weekly), ('@@SCRIPT@@', script)):
         assert page.count(mark) == 1, mark
         page = page.replace(mark, value)
     return page
@@ -401,6 +411,7 @@ SHELL = '''<!doctype html>
       @@AVATAR@@
       <div class="header-actions">
         <nav class="nav">
+          <a href="#weekly">週次台帳</a>
           <a href="https://github.com/myon-bioinformatics" target="_blank" rel="noopener noreferrer">GitHub</a>
           <a href="https://lit.link/myon123" target="_blank" rel="noopener noreferrer">lit.link</a>
           <a href="https://linktr.ee/myon123" target="_blank" rel="noopener noreferrer">Linktree</a>
@@ -467,6 +478,12 @@ SHELL = '''<!doctype html>
       <h2>🧭 Tools &amp; Demos</h2>
       <p>Open a project below to use its browser tools.</p>
 @@PORTAL@@      </div>
+    </section>
+
+    <section id="weekly" class="container" aria-label="週次台帳">
+      <h2>🗓️ 週次台帳</h2>
+      <p class="section-sub">Markdownをビルド時にHTML化し、同じページ内の #weekly で参照します。監査実測値は親リポジトリの監査ページが正本です。</p>
+      <article class="weekly-markdown">@@WEEKLY@@</article>
     </section>
 
     <section class="container outro">
@@ -545,6 +562,11 @@ a{color:inherit}
   font:inherit;
 }
 h2{margin:0 0 .75rem}
+#weekly{scroll-margin-top:1rem}
+.weekly-markdown{border:1px solid var(--border);border-radius:10px;padding:1rem;overflow-wrap:anywhere}
+.weekly-markdown a{overflow-wrap:anywhere}
+.weekly-markdown pre{overflow:auto}
+
 .intro,.outro{padding-top:.5rem}
 
 #projects h2 { margin-bottom: 0.75rem; }
