@@ -68,7 +68,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 主な workflow（いずれもイベントまたは定期実行あり）:
 
 - **Update repos API**（[`.github/workflows/repos-api.yml`](.github/workflows/repos-api.yml)）— 毎日 06:00 JST（`cron: "0 21 * * *"`）と、カタログ用スクリプト / Pages workflow の変更時。`api/repos.json` を更新する。`GITHUB_TOKEN` による commit は `push` workflow を起こさないため、成功時だけ **Pages** を `workflow_run` で起動する。失敗・キャンセルではサイトを出し直さない。
-- **Pages**（[`.github/workflows/pages.yml`](.github/workflows/pages.yml)）— `main` への push、および上記の成功後。ソースをそのまま置き（`--copy-source`、Jekyll は使わないので .md はページにならない）、動く見本 GIF・流れの実験室・リポジトリ地図・他リポジトリから組む道具をベストエフォートで足し、検証済みの共有資産を書いて公開する。
+- **Pages**（[`.github/workflows/pages.yml`](.github/workflows/pages.yml)）— `main` への push、および上記の成功後。公開用に指定した静的ファイルを `--copy-source` で配置し、動く見本 GIF・流れの実験室・リポジトリ地図・他リポジトリから組む道具をベストエフォートで足し、検証済みの共有資産を書いて公開する。
 - **CI** など — 変更の検証。[HTML import published](.github/workflows/html-import-published.yml) は Pages 完了後に、公開済みの HTML 取込をブラウザで確認する。
 
 カードの検索・トピック絞り込みは 5 つの表示モードで共通です。候補の並びはページを開くたびにシャッフルされます。アーカイブ済みの公開リポジトリはカタログに残っても、サイトの Projects には出しません。

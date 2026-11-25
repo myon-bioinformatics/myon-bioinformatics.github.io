@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 # The front page, the demos and the project pages are generated, not committed, so pages are read from the staged site:
-# the source tree plus the generated files (scripts/project_pages.py --stage).
+# the public static and generated files (scripts/project_pages.py --stage).
 def _staged_site() -> tuple:
     import atexit, shutil
     spec = importlib.util.spec_from_file_location('project_pages', ROOT / 'scripts/project_pages.py')
@@ -36,6 +36,15 @@ _RECEIPT = SITE / PAGES.TOOLS
 MADE = json.loads(_RECEIPT.read_text(encoding='utf-8'))['made'] if _RECEIPT.is_file() else []
 LAB_BUILT = 'mcp-toolcall-lab' in MADE
 needs_lab = pytest.mark.skipif(not LAB_BUILT, reason='🔌 clone mcp-toolcall-lab (the CI pin) into .test-deps/mcp-toolcall-lab')
+
+
+def test_stage_serves_published_static_files_verbatim():
+    for name in ('api/repos.json', 'profile.json', 'projects.json', 'site.config.json',
+                 'docs/html-import.md', 'docs/evidence/browser.gif', 'docs/evidence/browser.json',
+                 'docs/evidence/chat.gif', 'docs/evidence/home-screen.gif',
+                 'tools/niconico/search.js', 'tools/vendor/web-ui/LICENSE'):
+        assert (SITE / name).read_bytes() == (ROOT / name).read_bytes(), name
+
 
 # ═══ 🔗 portal links ══════════════════════════════════════════════════════════════════════════════════════
 

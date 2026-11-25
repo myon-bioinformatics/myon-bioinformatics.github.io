@@ -48,6 +48,29 @@ HTML_IMPORT_PAGE = 'tools/html-import/index.html'
 HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
 MAP_PAGES = {'tools/maps/index.html', 'tools/maps/tokyo.html'}
 
+# Files served verbatim. The generators write every other public file to the output tree.
+PUBLIC_SOURCE_FILES = (
+    '.nojekyll',
+    'api/repos.json',
+    'assets/brand/favicon-16x16.png',
+    'assets/brand/favicon-32x32.png',
+    'assets/brand/favicon-48x48.png',
+    'assets/brand/myon-profile-icon.png',
+    'docs/evidence/browser.gif',
+    'docs/evidence/browser.json',
+    'docs/evidence/chat.gif',
+    'docs/evidence/home-screen.gif',
+    'docs/html-import.md',
+    'favicon.ico',
+    'license',
+    'manifest.webmanifest',
+    'profile.json',
+    'projects.json',
+    'site.config.json',
+    'tools/niconico/search.js',
+    'tools/vendor/web-ui/LICENSE',
+)
+
 # 🧰 name -> (how it is built from pysaiyanweboo, shortcut label, title, summary): the only list of demos.
 DEMOS = {
     'chat': (lambda ui: chat_document(ui), '💬 チャット', 'Cross-repo chat',
@@ -948,17 +971,22 @@ def build(output: Path, root: Path = ROOT) -> None:
 
 
 def copy_source(output: Path, root: Path = ROOT) -> None:
-    """📁 The source tree as Pages serves it, before anything is generated: every file as it is (a .md stays a .md; nothing
-    is rendered, so no page appears that this build did not write), without git, Node and Python caches, test output,
-    ``_src`` and the tool checkouts. Pages starts from this (``--copy-source``); ``stage`` adds the generated files."""
-    skip = ['.git', 'node_modules', '.venv', 'test-results', 'reports', '__pycache__', '.pytest_cache', '_src', CHECKOUTS]
-    if output.resolve().is_relative_to(root.resolve()):
-        skip.append(output.resolve().relative_to(root.resolve()).parts[0])
-    shutil.copytree(root, output, ignore=shutil.ignore_patterns(*skip), dirs_exist_ok=True)
+    """Copy the static files served verbatim. Generated and recorded assets can share this output tree."""
+    root = root.resolve()
+    validate_output(output, root)
+    sources = [root / name for name in PUBLIC_SOURCE_FILES]
+    for source in sources:
+        if not source.is_file() or source.resolve() != source:
+            raise ValueError(f'expected a regular public file: {source.relative_to(root)}')
+
+    for source in sources:
+        target = output / source.relative_to(root)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
 
 
 def stage(output: Path, root: Path = ROOT) -> None:
-    """The site as Pages serves it: the source tree plus the generated files. Tests and local previews serve this."""
+    """Stage the public static files and generated files for tests and local previews."""
     validate_output(output, root)
     generate(root)  # Fail closed before copying anything.
     copy_source(output, root)
@@ -986,7 +1014,7 @@ def refresh_lock(root: Path = ROOT) -> dict:
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, help='write the generated assets under this directory')
-    parser.add_argument('--copy-source', type=Path, metavar='DIR', help='📁 copy the source tree as Pages serves it, nothing generated (the Pages build starts here)')
+    parser.add_argument('--copy-source', type=Path, metavar='DIR', help='copy the static files served verbatim by Pages')
     parser.add_argument('--stage', type=Path, help='write the whole site (source tree plus generated assets) under this directory')
     parser.add_argument('--refresh-lock', action='store_true',
                         help='rewrite web-ui-assets.lock.json from the installed generator')
