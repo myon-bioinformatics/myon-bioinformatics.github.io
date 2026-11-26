@@ -36,15 +36,17 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'links': [('ヒートマップを描く →', './tools/heatmap/'), ('Image Studio で編集 →', './tools/image-studio/')]},
  {'title': '🔌 MCP 実験室',
   'text': 'AI が MCP で呼ぶ道具（Wikipedia 表示・Pixiv 原文抽出・ニコニコ検索・ポケモン）をブラウザで試し、ツール呼び出しの記録（JSONL）を集計。'
-          '検証の結果は、ラボの Actions の写し。',
+          '検証の結果は、ラボの Actions の写し。接続試験は、新旧の protocol・PKCE・Bearer・OAuth メタデータを端末の中で確かめる。',
   'id': 'mcp',
   'from': ('mcp-toolcall-lab',),
   'links': [('Open Tool Lab →', './tools/mcp/'),
-            ('Open Execution Lab →', 'https://myon-bioinformatics.github.io/tools/mcp/execution/')]},
- {'title': '🤖 Stubs & mocks',
-  'text': '通信しない MCP / API のスタブ、ページ内で動く MCP サーバーのモック、JUnit 結果の読み取り。Python で生成し、このポートフォリオに置いています。',
-  'id': 'demos',
-  'links': [('🤖 スタブを開く →', './tools/demos/')]},
+            ('Open Execution Lab →', 'https://myon-bioinformatics.github.io/tools/mcp/execution/'),
+            ('MCP 接続試験 →', './tools/mcp-protocol/')]},
+ {'title': '🧾 テスト結果',
+  'text': 'JUnit の結果を貼るか開いて読み、前回と比べて新規・再発・解消を分ける。端末の中で完結し、結果はどこにも送らない。',
+  'id': 'test-report',
+  'from': ('PySaiyanWeBoo',),
+  'links': [('結果を読む →', './tools/test-report/')]},
  {'title': '💬 横断チャット',
   'text': 'リポジトリ横断の道具をチャットで：Markdown の表示・表、ASCII アートと流れ図、会話の圧縮、MCP の道具呼び出しの確認、'
           '全リポジトリの JSON / JSONL（オントロジーの台帳も）の索引と中身。ページの中の Python（Pyodide）で、それぞれのリポジトリのコードがそのまま動く。',
@@ -70,6 +72,12 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'text': 'どのリポジトリが、どのリポジトリのファイルを写して使っているか。各リポジトリの vendor.lock.json と Aoi の subtree から、公開のたびに描き直す。',
   'id': 'repo-map',
   'links': [('地図へ →', './tools/repo-map/')]}]
+
+
+# 🔗 The front page's own emoji in the shared header (scripts/project_pages.py ``add_site_chrome``): where else to find the author.
+LINKS = {'🔗': {'label': 'リンク', 'label_en': 'Links', 'links': [
+    {'label': '🐙 GitHub', 'href': 'https://github.com/myon-bioinformatics'}, {'label': '🔆 lit.link', 'href': 'https://lit.link/myon123'},
+    {'label': '🌳 Linktree', 'href': 'https://linktr.ee/myon123'}, {'label': '🐦 X (Twitter)', 'href': 'https://twitter.com/myonitbusiness'}]}}
 
 
 def portal_cards() -> str:
@@ -321,12 +329,31 @@ def theme_options(ui) -> str:
 
 
 def markdown_fragment(root: Path, relative: str) -> str:
-    """🗓️ A reviewed repository .md file (never visitor-supplied HTML) as HTML at build time, by the pinned markdown.py."""
+    """📄 A reviewed repository .md file (never visitor-supplied HTML) as HTML at build time, by the pinned markdown.py."""
     import markdown as md_market
     path = (root / relative).resolve()
     if not path.is_relative_to(root.resolve()) or not path.is_file() or path.suffix.lower() != '.md':
         raise ValueError('Markdown source must be an existing repository .md file')
     return md_market.markdown_to_html(path.read_text(encoding='utf-8'))
+
+
+def documents_html(root: Path, documents) -> str:
+    """📄 The reviewed .md files site.config.json lists (``documents``: ``[{"id", "title", "source", "note"?}]``), each one a section
+    of this page at ``#id`` (so ☰ lists it), turned into HTML at build time. A new document is a new row there, not a new page."""
+    if not isinstance(documents, list) or len(documents) > 8:
+        raise ValueError('documents lists up to 8 {id, title, source, note}')
+    seen, parts = set(), []
+    for entry in documents:
+        if not isinstance(entry, dict) or set(entry) - {'id', 'title', 'source', 'note'} or not all(
+                isinstance(entry.get(key), str) and entry[key].strip() for key in ('id', 'title', 'source', *(('note',) if 'note' in entry else ()))):
+            raise ValueError('a document has id, title, source and an optional note')
+        if not re.fullmatch(r'[a-z][a-z0-9-]{0,31}', entry['id']) or entry['id'] in seen:
+            raise ValueError('a document id is a unique lowercase token')
+        seen.add(entry['id'])
+        note = f'      <p class="section-sub">{_e(entry["note"])}</p>\n' if 'note' in entry else ''
+        parts.append(f'    <section id="{entry["id"]}" class="container document" aria-label="{_a(entry["title"])}">\n      <h2>{_e(entry["title"])}</h2>\n{note}'
+                     f'      <article class="document-markdown">{markdown_fragment(root, entry["source"])}</article>\n    </section>\n\n')
+    return ''.join(parts)
 
 
 def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
@@ -338,13 +365,12 @@ def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
     palettes = ''.join(ui.theme_css(name, tokens) for name, tokens in ui.theme_palettes().items())
     data = (f'<script type="application/json" id="projects-data">{_inline_json([{k: p[k] for k in ("name", "desc", "topics")} for p in projects])}</script>\n'
             f'<script type="application/json" id="page-data">{_inline_json({"modes": MODES, "fallback": AI_FALLBACK})}</script>\n')
-    avatar = ui.component_parts("gaze-avatar")
-    script = ui.module_script('\n'.join((ui.js_source('collection.js'), avatar['js'], SCRIPT)))
+    script = ui.module_script('\n'.join((ui.js_source('collection.js'), SCRIPT)))
     page = SHELL
-    weekly = markdown_fragment(root, 'docs/weekly-view.md')
+    documents = documents_html(root, read('site.config.json').get('documents', []))
     for mark, value in (('@@PORTAL@@', portal_cards()), ('@@THEMES@@', theme_options(ui)), ('@@TOPICS@@', topic_buttons(projects)),
-                        ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + STYLE + avatar['css'] + '\n  '),
-                        ('@@AVATAR@@', avatar['html']), ('@@WEEKLY@@', weekly), ('@@SCRIPT@@', script)):
+                        ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + STYLE + '\n  '),
+                        ('@@DOCUMENTS@@', documents), ('@@SCRIPT@@', script)):
         assert page.count(mark) == 1, mark
         page = page.replace(mark, value)
     return page
@@ -357,6 +383,7 @@ SHELL = '''<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>myon-bioinformatics — Portfolio</title>
+  <meta name="description" content="Bioinformatics → Security/Backend engineer. Practical CLI and browser tools in Python, plus Node.js and Dart/Flutter.">
   <link rel="icon" href="./favicon.ico" sizes="16x16 32x32 48x48">
   <link rel="icon" type="image/png" sizes="32x32" href="./assets/brand/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="./assets/brand/favicon-16x16.png">
@@ -375,14 +402,7 @@ SHELL = '''<!doctype html>
   <header class="site-header">
     <div class="container">
       <h1><img class="brand-icon" src="./assets/brand/myon-profile-icon.png" alt="" width="40" height="40">myon-bioinformatics</h1>
-      @@AVATAR@@
       <div class="header-actions">
-        <nav class="nav">
-          <a href="#weekly">週次台帳</a>
-          <a href="https://github.com/myon-bioinformatics" target="_blank" rel="noopener noreferrer">GitHub</a>
-          <a href="https://lit.link/myon123" target="_blank" rel="noopener noreferrer">lit.link</a>
-          <a href="https://linktr.ee/myon123" target="_blank" rel="noopener noreferrer">Linktree</a>
-        </nav>
         <div class="view-mode-switch">
           <label for="view-mode-select">Mode</label>
           <select id="view-mode-select" aria-label="Display mode">
@@ -447,23 +467,7 @@ SHELL = '''<!doctype html>
 @@PORTAL@@      </div>
     </section>
 
-    <section id="weekly" class="container" aria-label="週次台帳">
-      <h2>🗓️ 週次台帳</h2>
-      <p class="section-sub">Markdownをビルド時にHTML化し、同じページ内の #weekly で参照します。監査実測値は親リポジトリの監査ページが正本です。</p>
-      <article class="weekly-markdown">@@WEEKLY@@</article>
-    </section>
-
-    <section class="container outro">
-      <h2>📬 Contact</h2>
-      <p>Twitter: <a href="https://twitter.com/myonitbusiness" target="_blank" rel="noopener noreferrer">@myonitbusiness</a></p>
-    </section>
-  </main>
-
-  <footer class="site-footer">
-    <div class="container">
-      <small>© myon-bioinformatics</small>
-    </div>
-  </footer>
+@@DOCUMENTS@@  </main>
 
 @@VIEWS@@  @@SCRIPT@@
 </body>
@@ -508,16 +512,11 @@ STYLE = ''':root {
 *{box-sizing:border-box} body{margin:0;color:var(--fg);background:var(--bg);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial}
 a{color:inherit}
 .container{max-width:960px;margin:0 auto;padding:1.5rem}
-.site-header,.site-footer{border-bottom:1px solid var(--border)}
-.site-footer{border-top:1px solid var(--border);border-bottom:none}
-.site-header .container{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:1rem}
-.site-header .ui-gaze{justify-self:center}
+.site-header{border-bottom:1px solid var(--border)}
+.site-header .container{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:1rem}
 .site-header h1{display:flex;align-items:center;gap:.75rem;margin:0;max-width:100%;font-size:1.25rem;overflow-wrap:anywhere}
 .site-header .brand-icon{display:block;flex:none;width:40px;height:40px}
 .header-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.nav{display:flex;flex-wrap:wrap;gap:8px 12px}
-.nav a{text-decoration:none;border-bottom:1px solid transparent}
-.nav a:hover{border-bottom-color:currentColor}
 .view-mode-switch{display:flex;align-items:center;gap:8px}
 .view-mode-switch label{font-size:.85rem;color:var(--muted)}
 .view-mode-switch select{
@@ -529,12 +528,12 @@ a{color:inherit}
   font:inherit;
 }
 h2{margin:0 0 .75rem}
-#weekly{scroll-margin-top:1rem}
-.weekly-markdown{border:1px solid var(--border);border-radius:10px;padding:1rem;overflow-wrap:anywhere}
-.weekly-markdown a{overflow-wrap:anywhere}
-.weekly-markdown pre{overflow:auto}
+.document{scroll-margin-top:1rem}
+.document-markdown{border:1px solid var(--border);border-radius:10px;padding:1rem;overflow-wrap:anywhere}
+.document-markdown a{overflow-wrap:anywhere}
+.document-markdown pre{overflow:auto}
 
-.intro,.outro{padding-top:.5rem}
+.intro{padding-top:.5rem}
 
 #projects h2 { margin-bottom: 0.75rem; }
 
@@ -768,8 +767,6 @@ body[data-view-mode="modern"] .site-footer {
   border-style: dashed;
 }
 body[data-view-mode="modern"] .site-header h1::before { content: "$ "; color: var(--terminal-accent); }
-body[data-view-mode="modern"] .nav a::before { content: "["; color: var(--terminal-border); }
-body[data-view-mode="modern"] .nav a::after { content: "]"; color: var(--terminal-border); }
 body[data-view-mode="modern"] .view-mode-switch label { color: var(--terminal-muted); }
 body[data-view-mode="modern"] .view-mode-switch select {
   border-radius: 0;
@@ -1021,14 +1018,12 @@ body[data-view-mode="github-like"] .badges .tag {
   .container { padding: 1.25rem; }
   body[data-view-mode="json"] .container { padding-left: 1rem; }
   .site-header .container { grid-template-columns:1fr; }
-  .site-header .ui-gaze { grid-row:1; }
   .header-actions { align-items:flex-start; }
   .header-actions {
     width: 100%;
     flex-direction: column;
     gap: 12px;
   }
-  .nav { width: 100%; }
   .view-mode-switch {
     width: 100%;
     justify-content: space-between;

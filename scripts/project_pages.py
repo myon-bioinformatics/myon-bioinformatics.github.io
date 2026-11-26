@@ -7,12 +7,12 @@ pinned commit or when its output drifted from the lock. The generated files are 
 writes them (Pages overlays them on its build), ``--stage DIR`` writes the whole site for tests and local previews,
 and ``--refresh-lock`` rewrites the lock after the pin moves.
 
-The 🧰 Tools catalog (tools/demos/) lists the practical pages: the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in
-the page; ``--record-chat`` indexes the other repositories at deploy time), the 🤖 MCP / 🔁 API stubs (below; both moved here
-from PySaiyanWeBoo) and PySaiyanWeBoo's mocks (an in-page MCP server, a JUnit reader), published with the portfolio's way
-back, shortcut label and icons. The 🌍 world pages (scripts/world.py: the travel world, 🏫 the school, 🗼 the parallel
-cities, 🎬 the camera) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and are not listed there. Each repository's
-own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
+The 🧰 Tools cards (scripts/front_page.py ``PORTAL``) list the practical pages, each one working on what the visitor brings:
+the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in the page; ``--record-chat`` indexes the other repositories at deploy
+time) and PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``: 🧾 the JUnit reader, 🤝 the MCP connection test), published with
+the portfolio's way back, shortcut label and icons. The 🌍 world pages (scripts/world.py: the travel world, 🏫 the school,
+🗼 the parallel cities, 🎬 the camera; tools/demos/) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and are not among
+the cards. Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
 
 ``tools/html-import/index.html`` (the HTML import tool page) is built here too and hash-locked with the other pages.
 Every generated or imported tool page gets the same way back, chrome and shortcut label: ``add_back_nav()`` (the way back and
@@ -73,14 +73,13 @@ PUBLIC_SOURCE_FILES = (
     'tools/vendor/web-ui/LICENSE',
 )
 
-# 🧰 name -> (how it is built from pysaiyanweboo, shortcut label, title, summary): the only list of demos.
-DEMOS = {
-    'mcp-stub': (lambda ui: stub_document(ui, EXAMPLE_STUBS['mcp']), '🤖 MCP stub', 'MCP stub', '通信しない MCP のスタブ：ツール名を入れて結果と証跡を見る'),
-    'api-stub': (lambda ui: stub_document(ui, EXAMPLE_STUBS['api']), '🔁 API stub', 'API stub', '通信しない API のスタブ：パスを送って結果と証跡を見る'),
-    'mcp-lab': (lambda ui: ui.mcp_document(), '🔌 MCP試験', 'MCP lab', 'ページ内で動く MCP サーバーのモック：新旧の protocol、PKCE、ヘッダー名、Bearer、OAuth メタデータ'),
-    'test-report': (lambda ui: ui.report_document(), '🧾 JUnit', 'Test report', 'JUnit の結果を貼るか開いて読み、前回と比べて新規・再発・解消を分ける'),
+# 🧰 PySaiyanWeBoo's documents that work on what the visitor brings, each a 🧰 Tools link (front_page.py PORTAL):
+# published path -> (how it is built from pysaiyanweboo, the home-screen name)
+PSWB_TOOLS = {
+    'tools/test-report/index.html': (lambda ui: ui.report_document(), '🧾 テスト結果'),
+    'tools/mcp-protocol/index.html': (lambda ui: ui.mcp_document(), '🤝 MCP接続'),
 }
-# 🌍 built like the demos (same shape) for PySaiyanWeBoo's 🎞 GIF demo, but not in the 🧰 Tools catalog: they show, they are not tools
+# 🌍 name -> (how it is built, shortcut label, title, summary), for PySaiyanWeBoo's 🎞 GIF demo; not in the 🧰 Tools cards: they show, they are not tools
 WORLD_PAGES = {
     'world': (lambda ui: world_page('overworld'), '🌍 ワールド', 'World',
               '🚪 で土地をわたる旅のワールド：絵文字のキャラで歩き、時刻・お気に入り・地図・言語を切り替える'),
@@ -106,117 +105,6 @@ def world_page(name: str) -> str:
     if page.count(body) != 1 or page.count('</body>') != 1:
         raise ValueError(f'world page {name} has no single body')
     return page.replace(body, body + '<main>', 1).replace('</body>', '</main></body>', 1)
-
-
-# --- 🤖 MCP stub · 🔁 API stub (moved from PySaiyanWeBoo): a request bar, a result, evidence and history; nothing is sent -----
-STUB_SCHEMA = 'web-ui-stub/1'
-# bindStub: one text input to a handler (needs setText / prettyJson from PySaiyanWeBoo's ui.js), then the mock evaluator ($input -> the query).
-STUB_JS = r"""export function bindStub({input="#query",run="#run",output="#output",form="#stub-form",handler}){const q=document.querySelector(input),b=document.querySelector(run),f=document.querySelector(form);if(!q||!b)return;const execute=async event=>{event?.preventDefault();b.disabled=true;try{const result=await handler(q.value);setText(output,typeof result==="string"?result:prettyJson(result))}catch(error){setText(output,`Error: ${error?.message??error}`)}finally{b.disabled=false}};(f??b).addEventListener(f?"submit":"click",execute)}
-const fill=(t,q)=>typeof t==="string"?t.replaceAll("$input",()=>q):Array.isArray(t)?t.map(x=>fill(x,q)):t&&typeof t==="object"?Object.fromEntries(Object.entries(t).map(([k,v])=>[k,fill(v,q)])):t;
-"""
-
-
-def stub_response(template, query: str):
-    """What the mock answers for ``query``: ``template`` with every "$input" replaced by the query (same rule as the page)."""
-    if isinstance(template, str):
-        return template.replace('$input', query)
-    if isinstance(template, list):
-        return [stub_response(item, query) for item in template]
-    if isinstance(template, dict):
-        return {key: stub_response(value, query) for key, value in template.items()}
-    return template
-
-
-def stub_validate(spec) -> dict:
-    """Checked ``web-ui-stub/1`` spec: id, title, heading, lead, tags, field, run, evidence, history and the mock template."""
-    text, token = _world()._world_text, _world()._WORLD_ID
-    keys = {'schema', 'id', 'title', 'heading', 'lead', 'tags', 'field', 'run', 'evidence', 'history', 'mock'}
-    if not isinstance(spec, dict) or spec.get('schema') != STUB_SCHEMA or set(spec) - keys:
-        raise ValueError(f'expected schema {STUB_SCHEMA} with keys {sorted(keys)}')
-    stub_id = spec.get('id', 'stub')
-    if not isinstance(stub_id, str) or not token.fullmatch(stub_id):
-        raise ValueError('id must be a lowercase token that starts with a letter')
-    tags = spec.get('tags', [])
-    if not isinstance(tags, list) or len(tags) > 6:
-        raise ValueError('tags must list at most 6 entries')
-    field = spec.get('field')
-    if not isinstance(field, dict) or set(field) - {'label', 'placeholder', 'value'} or 'label' not in field:
-        raise ValueError('field has a label and optionally a placeholder or a value')
-    mock = spec.get('mock', {'status': 'stub', 'query': '$input'})
-    try:
-        encoded_mock = json.dumps(mock, allow_nan=False)
-        mock = json.loads(encoded_mock)
-    except (TypeError, ValueError, RecursionError) as exc:
-        raise ValueError('mock must be finite JSON data') from exc
-    if len(encoded_mock) > 4000:
-        raise ValueError('mock must be at most 4000 characters of JSON')
-    return {'schema': STUB_SCHEMA, 'id': stub_id, 'title': text(spec.get('title', 'Stub'), 'title', 80),
-            'heading': text(spec.get('heading', 'Stub Explorer'), 'heading', 80),
-            'lead': text(spec.get('lead', ''), 'lead', 200, required=False),
-            'tags': [text(tag, 'tag', 24) for tag in tags],
-            'field': {'label': text(field['label'], 'field label', 40),
-                      'placeholder': text(field.get('placeholder', ''), 'placeholder', 120, required=False),
-                      'value': text(field.get('value', ''), 'value', 120, required=False)},
-            'run': text(spec.get('run', 'Run'), 'run', 24),
-            'evidence': text(spec.get('evidence', ''), 'evidence', 200, required=False),
-            'history': text(spec.get('history', ''), 'history', 200, required=False), 'mock': mock}
-
-
-def stub_html(spec, *, heading_level: int = 1) -> str:
-    """The stub workspace (request bar, result, evidence, history) with ids prefixed by the spec's id; text is escaped."""
-    s = stub_validate(spec)
-    esc = html.escape
-    level = heading_level if type(heading_level) is int and 1 <= heading_level <= 6 else 1
-    sid, field = s['id'], s['field']
-    attrs = (f' placeholder="{esc(field["placeholder"], quote=True)}"' if field['placeholder'] else '') + \
-            (f' value="{esc(field["value"], quote=True)}"' if field['value'] else '')
-    tags = ''.join(f'<span class="ui-tag">{esc(tag)}</span>' for tag in s['tags'])
-    mock = json.dumps(s['mock'], ensure_ascii=False).replace('</', '<\\/')
-    return (f'<div class="stub-shell" id="{sid}"><header class="stub-header"><div><h{level} class="ui-title">{esc(s["heading"])}</h{level}>'
-            f'<p class="ui-muted">{esc(s["lead"])}</p></div><div class="stub-meta">{tags}</div></header>'
-            f'<section class="ui-panel"><form class="stub-toolbar" id="{sid}-form"><fieldset><legend>Stub request</legend>'
-            f'<label for="{sid}-query">{esc(field["label"])}</label><input class="ui-input" id="{sid}-query"{attrs}>'
-            f'<button class="ui-button" id="{sid}-run" type="submit">{esc(s["run"])}</button></fieldset></form>'
-            '<p class="stub-status ui-muted">Endpoint: <span class="stub-endpoint">consumer-owned</span></p></section>'
-            f'<div class="stub-workspace"><section class="ui-panel stub-result"><h2>Result</h2>'
-            f'<pre class="ui-output" id="{sid}-output" aria-live="polite">Ready.</pre></section>'
-            '<aside aria-label="Supporting information"><section class="ui-card stub-evidence"><h2>Evidence</h2>'
-            f'<p class="ui-muted">{esc(s["evidence"])}</p></section><section class="ui-card stub-history"><h2>History</h2>'
-            f'<p class="ui-muted">{esc(s["history"])}</p><div class="stub-actions"><button class="ui-button" type="button">Export</button>'
-            f'<button class="ui-button" type="button">Clear</button></div></section></aside></div>'
-            f'<script type="application/json" id="{sid}-mock">{mock}</script></div>')
-
-
-def stub_script(ui, *specs) -> str:
-    """One inline module for any number of stubs on a page: PySaiyanWeBoo's ui.js, STUB_JS and one bind per stub."""
-    binds = ''.join(
-        f'bindStub({{input:"#{s["id"]}-query",run:"#{s["id"]}-run",output:"#{s["id"]}-output",form:"#{s["id"]}-form",'
-        f'handler:q=>fill(JSON.parse(document.getElementById("{s["id"]}-mock").textContent),q)}});\n'
-        for s in (stub_validate(spec) for spec in specs))
-    return ui.EMBEDDED_UI_JS + STUB_JS + binds
-
-
-def stub_document(ui, spec, *, theme: str = 'modern') -> str:
-    """A single-file page for one stub."""
-    s = stub_validate(spec)
-    return ui.render_document(trusted_html='<main class="ui-page">' + stub_html(s) + '</main>'
-                              + ui.module_script(stub_script(ui, s)), title=s['title'], theme=theme, css=ui.bundled_css())
-
-
-EXAMPLE_STUBS = {
-    'mcp': {'schema': STUB_SCHEMA, 'id': 'mcp', 'title': 'MCP Stub', 'heading': 'MCP Stub Explorer',
-            'lead': 'Protocol behavior stays with the consumer; web-ui supplies presentation and generic interaction.',
-            'tags': ['mcp', 'ready'], 'field': {'label': 'Tool or filter', 'placeholder': 'tools/list'}, 'run': 'Run',
-            'evidence': 'Trace, source, SHA, or request metadata can be rendered here by the consumer.',
-            'history': 'Consumer-owned history/export controls.',
-            'mock': {'kind': 'mcp', 'query': '$input', 'status': 'stub'}},
-    'api': {'schema': STUB_SCHEMA, 'id': 'api', 'title': 'API Stub', 'heading': 'API Stub Explorer',
-            'lead': 'A generic request/result surface without API-specific logic in web-ui.',
-            'tags': ['api', 'ready'], 'field': {'label': 'Path', 'value': '/api/example'}, 'run': 'Send',
-            'evidence': 'Status, headers, provenance, or timing metadata belongs here.',
-            'history': 'Consumer-owned request history and export actions.',
-            'mock': {'method': 'GET', 'path': '$input', 'status': 200, 'body': {'stub': True}}},
-}
 
 
 def installed_commit(distribution: str = DISTRIBUTION) -> str:
@@ -281,12 +169,12 @@ def load_module(name: str, relative_path: str | Path) -> ModuleType:
 
 def tools_places(prefix: str = '../../') -> list[dict]:
     """🧰 Every link of the 🧰 Tools cards (front_page.py ``PORTAL``, so a new card is a new row) as ``{'id', 'label', 'href'}``, for
-    a page ``prefix`` below the site root: the doors of 🚪 Door-to-Door.
+    a page ``prefix`` below the site root: the doors of 🚪 Door-to-Door. ``text`` is the card's own description (the board shows it).
 
     Every label is ``emoji words``, one emoji per page (the door knows a page by its emoji): the card's own, or the one named here
     for a link that has none or shares its card's."""
     site, places = 'https://myon-bioinformatics.github.io/tools/', {}
-    marks = {'html-import': '📄', 'maps': '🗺️', 'maps-tokyo': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪'}
+    marks = {'html-import': '📄', 'maps': '🗺️', 'maps-tokyo': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'mcp-protocol': '🤝'}
     for card in load_module('front_page', 'scripts/front_page.py').PORTAL:
         mark, _, title = card['title'].partition(' ')
         if not title or any(c.isalnum() for c in mark):                  # a title without an emoji: all of it is words
@@ -295,18 +183,20 @@ def tools_places(prefix: str = '../../') -> list[dict]:
             href = prefix + href[2:] if href.startswith('./') else prefix + 'tools/' + href[len(site):] if href.startswith(site) else href
             name = re.sub(r'[^a-z0-9]+', '-', href.partition('tools/')[2].removesuffix('.html').lower()).strip('-') or card['id']
             words = title if len(card['links']) == 1 else label.removesuffix(' →').removeprefix('Open ')   # several links: each link's own words
-            places.setdefault(href, {'id': name, 'href': href, 'label': f'{marks.get(name, mark)} {words}'})
+            places.setdefault(href, {'id': name, 'href': href, 'label': f'{marks.get(name, mark)} {words}', 'text': card['text']})
     return list(places.values())
 
 
-def tools_chrome(prefix: str = '../../', tools: dict | None = None) -> dict:
-    """🧰 The chrome every tool page carries (scripts/world.py ``chrome_validate``), for a page ``prefix`` below the site root:
-    the board (TOOLS, the clock, the cards' titles), 🏠 back to the cards and ``tools``, the emoji this page adds
-    (``{'🗼': {'label': …, 'href': …}}``). ☰ is each page's own (itself and its sections, listed in the page); the tools
-    themselves are 🚪 Door-to-Door's rows (``tools_places``)."""
+def tools_chrome(prefix: str = '../../', tools: dict | None = None, description: str = '', *, title: str = 'TOOLS', home: bool = True) -> dict:
+    """🧰 The chrome every page of the site carries (scripts/world.py ``chrome_validate``), for a page ``prefix`` below the site root:
+    the board (``title``, the clock, then ``description`` — what this page is, a sentence per item — and the cards' titles), 🏠 back
+    to the cards (``home=False``: the front page itself) and ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``).
+    ☰ is each page's own (itself and its sections, listed in the page); the tools themselves are 🚪 Door-to-Door's rows (``tools_places``)."""
     cards = load_module('front_page', 'scripts/front_page.py').PORTAL
-    return {'id': 'tools', 'home': prefix + 'index.html#tools', 'tools': tools or {},
-            'board': {'title': 'TOOLS', 'items': [{'text': card['title']} for card in cards[:12]]}}
+    about = [{'text': part if len(part) <= 120 else part[:119] + '…'}
+             for part in (p.strip() for p in re.split(r'(?<=[。！？])|(?<=[.!?])\s+', html.unescape(description))) if part][:3]
+    return {'id': 'tools', **({'home': prefix + 'index.html#tools'} if home else {}), 'tools': tools or {},
+            'board': {'title': title, 'items': (about + [{'text': card['title']} for card in cards])[:12]}}
 
 
 def tools_door(ui, prefix: str = '../../', here: str | None = None, title: str = '', tokens: str = '') -> tuple[str, str, str]:
@@ -314,7 +204,8 @@ def tools_door(ui, prefix: str = '../../', here: str | None = None, title: str =
     every tool (``tools_places``); ``here`` (this page's href) is the door you came in by, and a page that is no tool is added as 📌 ``title``.
 
     The part is PySaiyanWeBoo's whole panel; the sheet here shows its pull-down alone, in a 56px row that stays at the window's foot
-    (the label reads 🚪, the rest of the panel is not drawn). The one line after door.js puts the pull-down back on this page when the
+    (the label reads 🚪, the rest of the panel is not drawn), followed by the site's own line: 🐦 the X account and 📦 this page's
+    size (``stamp_size`` writes it once the page is whole). The one line after door.js puts the pull-down back on this page when the
     browser's own way back restores it."""
     pages = [{'emoji': '🏠', 'label': 'Tools', 'href': prefix + 'index.html#tools'},
              *({'emoji': mark, 'label': words, 'href': place['href']} for place in tools_places(prefix) for mark, _, words in [place['label'].partition(' ')])]
@@ -324,6 +215,9 @@ def tools_door(ui, prefix: str = '../../', here: str | None = None, title: str =
     css = ((f'.ui-door-foot{{{tokens}}}' if tokens else '') + ui.css_source('door.css') +
            '.ui-door-foot{position:sticky;bottom:0;z-index:32;margin:0;padding:0;border-top:1px solid var(--ui-border);background:var(--ui-panel);'
            'color:var(--ui-fg);font-family:var(--ui-font);font-size:1rem;line-height:1.5}.ui-door-foot *{box-sizing:border-box}'
+           '.ui-door-foot{display:flex;align-items:center}.ui-door-foot .ui-door{flex:1;min-width:0}'
+           '.ui-foot-info{display:flex;align-items:center;gap:8px;margin:0;padding:0 8px;font-size:.75rem;white-space:nowrap}'
+           '.ui-foot-info a{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;font-size:1.25rem;text-decoration:none}'
            '.ui-door-foot .ui-door{display:flex;align-items:center;gap:8px;min-height:56px;margin:0;padding:8px;border:0;background:none}'
            '.ui-door-foot .ui-door>:not(label[for=door-select],.ui-door-row),.ui-door-foot [data-door-draw]{display:none}'
            '.ui-door-foot label[for=door-select]{margin:0;font-size:0}.ui-door-foot label[for=door-select]::before{content:"🚪";font-size:1.25rem}'
@@ -332,35 +226,62 @@ def tools_door(ui, prefix: str = '../../', here: str | None = None, title: str =
            'background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:var(--ui-radius)}')
     js = (ui.js_source('door.js') + 'addEventListener("pageshow",()=>{for(const s of document.querySelectorAll("[data-door-select]"))'
           's.selectedIndex=Math.max(0,[...s.options].findIndex(o=>o.disabled))});\n')
-    return '<div class="ui-door-foot">' + ui.door_html(door) + '</div>', css, js
+    info = (f'<p class="ui-foot-info"><a href="{X_URL}" target="_blank" rel="noopener noreferrer" title="X (Twitter) @{X_URL.rpartition("/")[2]}" '
+            f'aria-label="X (Twitter) @{X_URL.rpartition("/")[2]}">🐦</a><span class="ui-foot-size" title="このページの HTML の大きさ">📦</span></p>')
+    return '<div class="ui-door-foot">' + ui.door_html(door) + info + '</div>', css, js
 
 
-def add_back_nav(page: str, path: str | None = None, tools: dict | None = None) -> str:
-    """🏠 PySaiyanWeBoo's way back (``back_nav_html``) to the 🧰 Tools cards, right after <main> (else <body>), 🧰 the chrome
-    (``tools_chrome``) at the top of the page and 🚪 Door-to-Door (``tools_door``: every tool, as a pull-down) at its foot, for
-    the page published at ``path`` (``tools/gif/index.html``; left out: two folders below the root, and no door marked as this
-    page); a page that already has them keeps them. A 🌍 world page has its own header and side
-    (the same parts), so it gets the way back only, and so does a fragment without <head> and <body>. A page that is not drawn
-    with the shared sheet's modern theme (another repository's own look: Ironmate's green) gets the chrome's colours with it. A page whose CSP lists its scripts or styles without ``'unsafe-inline'``
-    (HTML import, Ironmate's studios) gets the modules and sheets of the chrome and the door listed too: their hashes, nothing wider."""
+X_URL = 'https://twitter.com/myonitbusiness'
+def stamp_size(page: str) -> str:
+    """📦 The foot's size reads this page's own HTML, in KB (what the browser downloads first; shared sheets, scripts and media are apart).
+    Call it once more after a step that changes the page's size: it rewrites the number."""
+    return re.sub(r'(<span class="ui-foot-size"[^>]*>)[^<]*(</span>)', lambda m: f'{m[1]}📦 {len(page.encode("utf-8")) / 1024:.0f} KB{m[2]}', page)
+
+
+def add_site_chrome(page: str, path: str | None = None, tools: dict | None = None, description: str | None = None, *,
+                    title: str = 'TOOLS', home: bool = True) -> str:
+    """🧰 The parts every page of the site shares, for the page published at ``path`` (``tools/gif/index.html``; left out: two folders
+    below the root, and no door marked as this page): the header (``tools_chrome``: the board with ``description``, 🫧 the round face
+    that follows the pointer, 🏠 ⭐ ⚙️), the side
+    (☰ ⋯) and the foot (``tools_door``: 🚪 every tool as a pull-down, 🐦 X, 📦 the page's size). ``description`` left out is the text
+    of the 🧰 Tools card that leads here, else the page's own ``<meta name="description">``.
+
+    A page that is not drawn with the shared sheet's modern theme (another repository's own look: Ironmate's green) gets the chrome's
+    colours with it. A page whose CSP lists its scripts or styles without ``'unsafe-inline'`` (HTML import, Ironmate's studios) gets
+    the modules and sheets of the chrome and the door listed too: their hashes, nothing wider."""
     import pysaiyanweboo as ui
-    prefix = '../' * path.count('/') if path else '../../'
-    page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': prefix + 'index.html#tools'}], test_id='portfolio-back')
-    if 'data-ui-world="' in page or '<div class="ui-chrome ' in page or '</head>' not in page or '<body' not in page:
-        return page                               # a world, a page that has it, or a fragment with no <head> and <body> to carry it
+    prefix = ('../' * path.count('/') or './') if path else '../../'
+    here = prefix + re.sub(r'index\.html$', '', path) if path else None
+    if description is None:
+        meta = re.search(r'<meta name="description" content="([^"]*)"', page)
+        description = next((place['text'] for place in tools_places(prefix) if place['href'] == here), meta[1] if meta else '')
     world = _world()
     tokens = '' if 'data-ui-theme="modern"' in page else re.search(r':root\{([^}]*)\}', ui.css_source('tokens.css'))[1]
-    chrome, title = tools_chrome(prefix, tools), re.search(r'<title>(.*?)</title>', page, re.S)
-    door, door_css, door_js = tools_door(ui, prefix, prefix + re.sub(r'index\.html$', '', path) if path else None,
-                                         html.unescape(title[1]).strip() if title else '', tokens)
-    for part, css, js in (({'top': world.chrome_html(chrome)}, world.chrome_css(tokens), world.SHELL_JS + 'bindChrome();\n'),
+    chrome, heading = tools_chrome(prefix, tools, description, title=title, home=home), re.search(r'<title>(.*?)</title>', page, re.S)
+    door, door_css, door_js = tools_door(ui, prefix, here if path and '/' in path else None, html.unescape(heading[1]).strip() if heading else '', tokens)
+    face = ui.component_parts('gaze-avatar')      # 🫧 PySaiyanWeBoo's round face that follows the pointer: in the header, after the board
+    head = world.chrome_html(chrome).replace('<nav class="ui-world-tools">', face['html'] + '<nav class="ui-world-tools">', 1)
+    for part, css, js in (({}, face['css'] + '.ui-chrome .ui-gaze{flex:none;margin:0 4px}', face['js']),
+                          ({'top': head}, world.chrome_css(tokens), world.SHELL_JS + 'bindChrome();\n'),
                           ({'bottom': door}, door_css, door_js)):
         page = world.add_part(page, css=css, js=js, **part)
         for directive, block in (('script-src', js), ('style-src', css)):
             listed = re.search(r'Content-Security-Policy"\s+content="[^"]*?\b' + directive + r'([^;"]*)', page.partition('</head>')[0])
             if listed and "'unsafe-inline'" not in listed[1]:
                 page = page[:listed.end()] + ' ' + ui.module_csp_hash(block) + page[listed.end():]
-    return page
+    return stamp_size(page)
+
+
+def add_back_nav(page: str, path: str | None = None, tools: dict | None = None) -> str:
+    """🏠 PySaiyanWeBoo's way back (``back_nav_html``) to the 🧰 Tools cards, right after <main> (else <body>), then the site's
+    shared header, side and foot (``add_site_chrome``); a page that already has them keeps them. A 🌍 world page has its own header
+    and side (the same parts), so it gets the way back only, and so does a fragment without <head> and <body>."""
+    import pysaiyanweboo as ui
+    prefix = '../' * path.count('/') if path else '../../'
+    page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': prefix + 'index.html#tools'}], test_id='portfolio-back')
+    if 'data-ui-world="' in page or '<div class="ui-chrome ' in page or '</head>' not in page or '<body' not in page:
+        return page                               # a world, a page that has it, or a fragment with no <head> and <body> to carry it
+    return add_site_chrome(page, path, tools)
 
 
 def add_home_label(page: str, label: str, *, icons_from: str | None = None) -> str:
@@ -373,23 +294,24 @@ def add_home_label(page: str, label: str, *, icons_from: str | None = None) -> s
 
 
 def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
-    """The portfolio's own front page (scripts/front_page.py), built from profile.json, api/repos.json and projects.json.
+    """The portfolio's own front page (scripts/front_page.py), built from profile.json, api/repos.json and projects.json, with the
+    site's shared header, side and foot (``add_site_chrome``: the board reads the page's description, ☰ lists its sections).
 
     It is not in the lock: api/repos.json is refreshed by a workflow, and the page must follow it without a lock refresh."""
-    return {'index.html': load_module('front_page', 'scripts/front_page.py').document(root, samples=samples).encode('utf-8')}
+    front = load_module('front_page', 'scripts/front_page.py')
+    return {'index.html': add_site_chrome(front.document(root, samples=samples), 'index.html', front.LINKS, title='MYON', home=False).encode('utf-8')}
 
 
 def render_demos(ui) -> dict[str, bytes]:
-    """Every demo and world page, plus the demos' catalog as tools/demos/index.html, keyed by published path (two levels below
-    the site root)."""
-    result = {DEMO_BASE + 'index.html': add_home_label(add_back_nav(ui.catalog_document({
-        'schema': 'web-ui-catalog/1', 'title': '🤖 Stubs & mocks',
-        'description': '🤖🔁 通信しないスタブと、PySaiyanWeBoo のモック。どれも Python で生成し、このページの中で動きます（通信しない）。',
-        'items': [{'id': name, 'title': title, 'summary': summary, 'links': [{'label': 'Open →', 'href': f'./{name}.html'}]}
-                  for name, (_, _, title, summary) in DEMOS.items()]}), DEMO_BASE + 'index.html'), '🤖 Stubs', icons_from='../../').encode('utf-8')}
-    for name, (build, label, _, _) in {**DEMOS, **WORLD_PAGES}.items():
-        result[DEMO_BASE + name + '.html'] = add_home_label(add_back_nav(build(ui), DEMO_BASE + name + '.html'), label, icons_from='../../').encode('utf-8')
-    return result
+    """Every 🌍 world page (``WORLD_PAGES``), keyed by published path (two levels below the site root)."""
+    return {DEMO_BASE + name + '.html': add_home_label(add_back_nav(build(ui), DEMO_BASE + name + '.html'), label, icons_from='../../').encode('utf-8')
+            for name, (build, label, _, _) in WORLD_PAGES.items()}
+
+
+def render_pswb_tools(ui) -> dict[str, bytes]:
+    """🧾 🤝 PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``), each with the way back, the chrome and the home-screen name."""
+    return {path: add_home_label(add_back_nav(build(ui), path), label, icons_from='../../').encode('utf-8')
+            for path, (build, label) in PSWB_TOOLS.items()}
 
 
 def html_import_files(ui):
@@ -1010,7 +932,7 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
         {'label': '🗼 パラレル東京', 'href': './tokyo.html'}, {'label': '🌍 東京・ロンドン・パリ', 'href': '../demos/cities.html'}]}}
     maps = {path: add_home_label(add_back_nav(document, path, cities), '地図・ピン', icons_from='../../').encode('utf-8')
             for path, document in load_module('map_tool', 'scripts/map_tool.py').render(ui, _world()).items()}
-    pages = {**render_demos(ui), **render_html_import(ui), **maps, **render_gif_tool(ui), **render_chat_tool(ui)}
+    pages = {**render_demos(ui), **render_pswb_tools(ui), **render_html_import(ui), **maps, **render_gif_tool(ui), **render_chat_tool(ui)}
     for sheet, builder in STYLESHEET_BUNDLES.items():
         prefix = b'<style>' + getattr(ui, builder)().encode()
         for path, page in pages.items():
@@ -1019,7 +941,7 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
                 href = os.path.relpath(ASSET_BASE + sheet, os.path.dirname(path)).replace(os.sep, '/')
                 link = f'<link rel="stylesheet" href="{href}">'.encode()
                 head = head.replace(prefix, link + b'<style>', 1).replace(link + b'<style></style>', link, 1)
-                pages[path] = head + end + body
+                pages[path] = stamp_size((head + end + body).decode('utf-8')).encode('utf-8')   # 📦 the page is smaller now
     return pages
 
 
@@ -1033,10 +955,9 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
     if set(lock['outputs']) != {HTML_IMPORT_MODULE, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
-    expected = ({DEMO_BASE + 'index.html', HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE} | MAP_PAGES
-                | {DEMO_BASE + name + '.html' for name in (*DEMOS, *WORLD_PAGES)})
+    expected = ({HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, *PSWB_TOOLS} | MAP_PAGES | {DEMO_BASE + name + '.html' for name in WORLD_PAGES})
     if set(lock.get('pages', {})) != expected:
-        raise ValueError('generated page paths differ from the demo and world lists and the HTML import page')
+        raise ValueError('generated page paths differ from the tool and world lists')
     if ui is None:
         import pysaiyanweboo as ui
     result = render(ui)

@@ -291,7 +291,7 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     (root / 'docs').mkdir()
     shutil.copyfile(ROOT / 'docs/weekly-view.md', root / 'docs/weekly-view.md')
     (root / 'api').mkdir()
-    for name in ('profile.json', 'api/repos.json'):                                       # ... from these and projects.json
+    for name in ('profile.json', 'api/repos.json', 'site.config.json'):                                       # ... from these and projects.json
         shutil.copyfile(ROOT / name, root / name)
     shutil.copyfile(ROOT / 'projects.json', root / 'projects.json')                       # the project cards' curation
     output = tmp_path / 'cli-output'
@@ -406,17 +406,6 @@ class ReposApiPythonSelectionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-
-@pytest.mark.parametrize('mock', [float('nan'), float('inf'), {'nested': [float('-inf')]}, {1, 2}])
-def test_stub_rejects_non_json_mock(mock):
-    with pytest.raises(ValueError, match='finite JSON'):
-        assets.stub_validate({**assets.EXAMPLE_STUBS['api'], 'mock': mock})
-
-
-def test_stub_normalizes_json_keys_consistently():
-    spec = assets.stub_validate({**assets.EXAMPLE_STUBS['api'], 'mock': {1: '$input'}})
-    assert assets.stub_response(spec['mock'], 'hello') == {'1': 'hello'}
 
 
 def test_copy_source_copies_only_public_files_verbatim(tmp_path):

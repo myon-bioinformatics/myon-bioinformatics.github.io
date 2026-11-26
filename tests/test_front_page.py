@@ -519,8 +519,8 @@ def test_brand_icon_and_favicons_stay_intact_across_modes(page, width):
         avatar = page.get_by_role("button", name="Blink", exact=True)
         expect(avatar).to_be_visible()
         expect(avatar).to_have_attribute("data-gaze-bound", "")
-        avatar_box = avatar.bounding_box()
-        assert abs(avatar_box["x"] + avatar_box["width"] / 2 - page.evaluate("document.documentElement.clientWidth") / 2) <= 4  # JSON mode has an asymmetric gutter
+        expect(page.locator(".ui-chrome .ui-gaze")).to_have_count(1)                     # 🫧 the shared header's, not the page's own
+        expect(page.locator(".site-header .ui-gaze")).to_have_count(0)
         brand = page.locator(".site-header .brand-icon")
         expect(brand).to_be_visible()
         assert brand.evaluate("image => [image.complete, image.naturalWidth, image.naturalHeight]") == [True, 170, 170]

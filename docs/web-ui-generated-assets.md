@@ -15,9 +15,10 @@ A mismatch fails the build before upload; there is no fallback to stale assets.
 `tools/vendor/web-ui/generated.lock.json` publishes this provenance beside the assets.
 The lab's `publication.json` separately identifies the imported report source.
 
-🧰 The same generator also builds `tools/demos/` (`DEMOS` in `scripts/project_pages.py`): PySaiyanWeBoo's MCP / API
-stubs, its in-page MCP server and its JUnit reader, plus their catalog `index.html`. Each gets the portfolio back link, 🧰 the tools' chrome
-(the board with the clock, 🏠 ⭐ ⚙️ ☰ ⋯: `tools_chrome()` and `scripts/world.py` `add_chrome()`), 🚪 PySaiyanWeBoo's Door-to-Door (`tools_door()`: the same tools as a footer pull-down),
+🧰 The same generator also builds PySaiyanWeBoo's own tool documents (`PSWB_TOOLS` in `scripts/project_pages.py`): 🧾 its JUnit reader
+(`tools/test-report/`) and 🤝 its in-page MCP connection test (`tools/mcp-protocol/`). Each gets the portfolio back link and the parts every page of
+the site shares (`add_site_chrome()`): the header (the board with the clock and the page's description, 🏠 ⭐ ⚙️: `tools_chrome()` and `scripts/world.py`), the side (☰ ⋯)
+and the foot (🚪 PySaiyanWeBoo's Door-to-Door, every tool as a pull-down, then 🐦 X and 📦 the page's own size: `tools_door()`, `stamp_size()`). The front page carries the same parts,
 shortcut label and icons (`add_back_nav()` / `add_home_label()` in `scripts/project_pages.py`). Their SHA-256 values are under `pages` in the same lock, so
 `presentation_identity()` (the shared assets, `outputs`) is unchanged. `--refresh-lock` rewrites their hashes with the assets'.
 
