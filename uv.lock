@@ -293,7 +293,7 @@ browser = [
     { name = "gh-identity-dev", git = "https://github.com/myon-bioinformatics/gh_identity?rev=3111c17213baa0f469500a765d0a59f6de8e1d41" },
     { name = "md-market", git = "https://github.com/myon-bioinformatics/markdown?rev=f454c175972890aa9d66f63952b5054cac4b726d" },
     { name = "one-launch-numerous-modules", git = "https://github.com/myon-bioinformatics/OneLaunchNumerousModules?rev=ceade2335042462dc2f22d0af308b27b32039023" },
-    { name = "ontautology", git = "https://github.com/myon-bioinformatics/OnTautoLogy?rev=0a0fbff34e77c96be647b6f5859a0c6a820964c0" },
+    { name = "ontautology", git = "https://github.com/myon-bioinformatics/OnTautoLogy?rev=348f910b6c759979751dbf65f9644d13c803ab2f" },
     { name = "pillow", specifier = ">=13.0.0" },
     { name = "playwright", specifier = ">=1.64.0" },
     { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=011b69ace8a4c3a1b03bff1637480458da843f2d" },
@@ -306,7 +306,7 @@ docker-test = [
     { name = "gh-identity-dev", git = "https://github.com/myon-bioinformatics/gh_identity?rev=3111c17213baa0f469500a765d0a59f6de8e1d41" },
     { name = "md-market", git = "https://github.com/myon-bioinformatics/markdown?rev=f454c175972890aa9d66f63952b5054cac4b726d" },
     { name = "one-launch-numerous-modules", git = "https://github.com/myon-bioinformatics/OneLaunchNumerousModules?rev=ceade2335042462dc2f22d0af308b27b32039023" },
-    { name = "ontautology", git = "https://github.com/myon-bioinformatics/OnTautoLogy?rev=0a0fbff34e77c96be647b6f5859a0c6a820964c0" },
+    { name = "ontautology", git = "https://github.com/myon-bioinformatics/OnTautoLogy?rev=348f910b6c759979751dbf65f9644d13c803ab2f" },
     { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=011b69ace8a4c3a1b03bff1637480458da843f2d" },
     { name = "pytest", specifier = ">=9.1.1" },
 ]
@@ -315,7 +315,7 @@ pages = [
     { name = "cli-args-dev", git = "https://github.com/myon-bioinformatics/cli_args?rev=6305b47c717068d6470a41b8a983247e1cc5d4f8" },
     { name = "md-market", git = "https://github.com/myon-bioinformatics/markdown?rev=f454c175972890aa9d66f63952b5054cac4b726d" },
     { name = "one-launch-numerous-modules", git = "https://github.com/myon-bioinformatics/OneLaunchNumerousModules?rev=ceade2335042462dc2f22d0af308b27b32039023" },
-    { name = "ontautology", git = "https://github.com/myon-bioinformatics/OnTautoLogy?rev=0a0fbff34e77c96be647b6f5859a0c6a820964c0" },
+    { name = "ontautology", git = "https://github.com/myon-bioinformatics/OnTautoLogy?rev=348f910b6c759979751dbf65f9644d13c803ab2f" },
     { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=011b69ace8a4c3a1b03bff1637480458da843f2d" },
 ]
 samples = [
@@ -323,7 +323,7 @@ samples = [
     { name = "cli-args-dev", git = "https://github.com/myon-bioinformatics/cli_args?rev=6305b47c717068d6470a41b8a983247e1cc5d4f8" },
     { name = "md-market", git = "https://github.com/myon-bioinformatics/markdown?rev=f454c175972890aa9d66f63952b5054cac4b726d" },
     { name = "one-launch-numerous-modules", git = "https://github.com/myon-bioinformatics/OneLaunchNumerousModules?rev=ceade2335042462dc2f22d0af308b27b32039023" },
-    { name = "ontautology", git = "https://github.com/myon-bioinformatics/OnTautoLogy?rev=0a0fbff34e77c96be647b6f5859a0c6a820964c0" },
+    { name = "ontautology", git = "https://github.com/myon-bioinformatics/OnTautoLogy?rev=348f910b6c759979751dbf65f9644d13c803ab2f" },
     { name = "pillow", specifier = ">=13.0.0" },
     { name = "playwright", specifier = ">=1.64.0" },
     { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=011b69ace8a4c3a1b03bff1637480458da843f2d" },
@@ -334,7 +334,7 @@ test = [
     { name = "gh-identity-dev", git = "https://github.com/myon-bioinformatics/gh_identity?rev=3111c17213baa0f469500a765d0a59f6de8e1d41" },
     { name = "md-market", git = "https://github.com/myon-bioinformatics/markdown?rev=f454c175972890aa9d66f63952b5054cac4b726d" },
     { name = "one-launch-numerous-modules", git = "https://github.com/myon-bioinformatics/OneLaunchNumerousModules?rev=ceade2335042462dc2f22d0af308b27b32039023" },
-    { name = "ontautology", git = "https://github.com/myon-bioinformatics/OnTautoLogy?rev=0a0fbff34e77c96be647b6f5859a0c6a820964c0" },
+    { name = "ontautology", git = "https://github.com/myon-bioinformatics/OnTautoLogy?rev=348f910b6c759979751dbf65f9644d13c803ab2f" },
     { name = "pysaiyanweboo", git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?rev=011b69ace8a4c3a1b03bff1637480458da843f2d" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "stagehand", specifier = ">=4.2.1" },
@@ -348,7 +348,7 @@ source = { git = "https://github.com/myon-bioinformatics/OneLaunchNumerousModule
 [[package]]
 name = "ontautology"
 version = "0.1.0"
-source = { git = "https://github.com/myon-bioinformatics/OnTautoLogy?rev=0a0fbff34e77c96be647b6f5859a0c6a820964c0#0a0fbff34e77c96be647b6f5859a0c6a820964c0" }
+source = { git = "https://github.com/myon-bioinformatics/OnTautoLogy?rev=348f910b6c759979751dbf65f9644d13c803ab2f#348f910b6c759979751dbf65f9644d13c803ab2f" }
 
 [[package]]
 name = "opentelemetry-api"
