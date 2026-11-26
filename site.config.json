@@ -5,7 +5,7 @@
       "id": "weekly",
       "title": "🗓️ 週次ノート",
       "source": "docs/weekly-view.md",
-      "note": "docs/weekly-view.md（Markdown）をビルド時に HTML にしています。表の数値の列は 📊 棒になります。"
+      "note": "前の週にマージした PR を、毎週月曜に Markdown（docs/weekly-view.md）へ書き出しています。表の数値の列は 📊 棒になります。"
     }
   ]
 }

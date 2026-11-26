@@ -1,40 +1,39 @@
-# 🧰 Tools がそろった週（2026-11-21 〜 11-26）
+# 🗓️ 2026-11-16（月）〜 11-22（日）
 
-ポートフォリオを「リポジトリの一覧」から「その場で使える道具の入口」へ寄せた 1 週間でした。この期間にマージした PR は 48 本です。
+この週にマージした PR は 10 本です。
 
-## 📊 日ごとのマージ数
+## 📊 日ごと
 
-| 日付（UTC） | PR |
+| 日付（JST） | PR |
 |---|---:|
-| 11-21 | 1 |
-| 11-22 | 6 |
-| 11-23 | 10 |
-| 11-24 | 5 |
-| 11-25 | 14 |
-| 11-26 | 12 |
+| 11-16（月） | 1 |
+| 11-17（火） | 0 |
+| 11-18（水） | 1 |
+| 11-19（木） | 0 |
+| 11-20（金） | 0 |
+| 11-21（土） | 2 |
+| 11-22（日） | 6 |
 
-## 🧰 入った道具
+## 🏷️ ラベルごと
 
-- 🎥 各リポジトリの Pages の動く見本と 🎞 GIF工房（[#139](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/139)）
-- 🌊 流れの実験室：FFSS の全場面と DRAgoWing の全図（[#140](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/140)・[#151](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/151)）
-- 🧠 リポジトリ地図：誰が誰のファイルを写しているか（[#142](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/142)）
-- 🖼️ Ironmate の工房と 🌡️ ヒートマップを `tools/` で組む（[#146](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/146)・[#147](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/147)）
-- 💬 横断チャット：Markdown・ASCII アート・会話の圧縮に、🧬 `/onto` と 🧷 `/olnm`（[#155](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/155)・[#166](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/166)）
-- 🧰 全ページ共通のヘッダー・サイド・フッターと 🚪 ドア to ドア（[#168](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/168)・[#174](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/174)）
+| ラベル | PR |
+|---|---:|
+| （なし） | 5 |
+| enhancement | 4 |
+| documentation | 2 |
+| dependencies | 1 |
 
-## ♻️ 共通の部品へ返したもの
+## 🧾 マージした PR
 
-ポートフォリオで作った部品のうち、ほかのリポジトリでも使えるものは PySaiyanWeBoo へ移し、こちらは呼ぶだけにしました。
+- [#133](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/133) feat: スクリプトの説明と引数の宣言を fleet_check.check_scripts で確かめる
+- [#132](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/132) Apply the advisory probe timeout to the checkout SHA
+- [#131](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/131) feat: プロジェクトページの記録コミットを毎日自動で進める
+- [#130](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/130) Use pinned gh_identity probes for Stagehand advisory metadata
+- [#129](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/129) feat: プロジェクトページにスクリプト一覧をコードから自動生成（まず BrowserTestKit）
+- [#128](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/128) docs: projects.jsonの紹介文を各リポジトリの現状に合わせる
+- [#127](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/127) 失敗したコマンドの診断文をStagehandの公開メタデータから除外
+- [#126](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/126) ポートフォリオのヘッダーとURLコピーにPSWB共通UIを使用
+- [#125](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/125) Fix Pixiv origin checks and reuse browser test image layers
+- [#124](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/124) 📦 pillow_min を親の tools/stdlib_min/ から取る（移管の 2 段目）
 
-| 部品 | PR |
-|---|---|
-| ← 🧰 戻りリンク | [#143](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/143) |
-| 💬 チャットの画面 | [#158](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/158) |
-| 🎞 GIF工房・📱 ホーム画面の名前 | [#159](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/159) |
-| 📣 地図ツールの状態表示 | [#167](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/167) |
-| 🚪 フッターのドア | [#175](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/175) |
-
-## 📁 減らしたもの
-
-- Jekyll を外し、`.md` から勝手にできていた HTML を 14 減らした（[#163](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/163)）
-- Pages に配るファイルを公開資産だけに絞った（[#164](https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/pull/164)）
+🤖 このノートは `scripts/repos_catalog.py --weekly` が、毎週月曜に前の週の分を作り直します。

@@ -133,9 +133,9 @@ def test_a_tools_card_picture_opens_the_tool_and_the_weekly_note_draws_its_bars_
         cam.hold(900)
         page.go_back()
         page.locator("#weekly table").first.scroll_into_view_if_needed()
-        counts = [int(text) for text in page.locator("#weekly td.document-number").all_text_contents()]
-        assert len(counts) >= 2 and sum(counts) == int(re.search(r"PR は (\d+) 本", page.locator("#weekly").text_content())[1])
-        page.wait_for_function("""(counts) => [...document.querySelectorAll('#weekly td.document-number')].every((cell, at) => {
+        counts = [int(text) for text in page.locator("#weekly table").first.locator("td.document-number").all_text_contents()]
+        assert len(counts) == 7 and sum(counts) == int(re.search(r"PR は (\d+) 本", page.locator("#weekly").text_content())[1])   # a day a row
+        page.wait_for_function("""(counts) => [...document.querySelector('#weekly table').querySelectorAll('td.document-number')].every((cell, at) => {
             const track = cell.querySelector('.skill-bar-track').getBoundingClientRect(), bar = cell.querySelector('.skill-bar-fill').getBoundingClientRect();
             return track.width >= 96 && Math.abs(bar.width / track.width - counts[at] / Math.max(...counts)) < 0.02; })""", arg=counts)
         assert page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") == 0

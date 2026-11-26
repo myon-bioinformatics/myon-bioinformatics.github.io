@@ -1673,7 +1673,7 @@ def test_documents_of_the_site_config_become_sections_of_the_front_page():
     front = _front()
     page = front.document()
     assert '<section id="weekly" class="container document" aria-label="🗓️ 週次ノート">' in page and '<h2>🗓️ 週次ノート</h2>' in page
-    assert '<h2>📊 日ごとのマージ数</h2>' in page and '@@DOCUMENTS@@' not in page and 'weekly-markdown' not in page
+    assert '<h2>📊 日ごと</h2>' in page and '@@DOCUMENTS@@' not in page and 'weekly-markdown' not in page
     two = front.documents_html(ROOT, [{'id': 'weekly', 'title': '🗓️ 週次ノート', 'source': 'docs/weekly-view.md'},
                                       {'id': 'ssot', 'title': '📚 SSOT', 'source': 'docs/ssot.md', 'note': 'a <note>'}])
     assert two.count('<article class="document-markdown">') == 2 and '<section id="ssot" class="container document"' in two
@@ -1721,13 +1721,13 @@ def test_a_document_table_draws_its_number_columns_as_bars():
     import markdown as md_market
     front = _front()
     source = (ROOT / 'docs/weekly-view.md').read_text(encoding='utf-8')
-    counts = [int(row['PR']) for row in md_market.markdown_table_to_records(source)]
-    assert sum(counts) == int(re.search(r'マージした PR は (\d+) 本', source)[1]) and 'class=' not in source and '<' not in source
+    counts = [int(row['PR']) for row in md_market.markdown_table_to_records(source)]           # the first table: a day a row
+    assert len(counts) == 7 and sum(counts) == int(re.search(r'マージした PR は (\d+) 本', source)[1]) and 'class=' not in source
     weekly = front.documents_html(ROOT, [{'id': 'weekly', 'title': 't', 'source': 'docs/weekly-view.md'}])
     levels = [int(level) for level in re.findall(r'<td class="document-number">\d+<span class="skill-bar-track" aria-hidden="true">'
                                                  r'<span class="skill-bar-fill" style="--level:(\d+)%"></span></span></td>', weekly)]
-    assert levels == [round(count / max(counts) * 100) for count in counts] and max(levels) == 100
-    assert weekly.count('<table>') == 2 and weekly.count('document-number') == len(counts)          # the table of links keeps its cells
+    assert levels[:7] == [round(count / max(counts) * 100) for count in counts] and levels.count(100) == weekly.count('<table>') == 2
+    assert weekly.count('document-number') == len(levels) and '<td>11-' in weekly                # the dates and labels keep their cells
     body = '<table><tbody>\n<tr><td>a</td><td>1,200</td><td>x</td></tr>\n<tr><td>b</td><td>300</td><td>2</td></tr>\n</tbody></table>'
     drawn = front.table_bars(body)
     assert re.findall(r'--level:(\d+)%', drawn) == ['100', '25'] and '<td>x</td>' in drawn and '<td>2</td>' in drawn   # every cell a number, or none
