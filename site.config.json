@@ -3,9 +3,9 @@
   "documents": [
     {
       "id": "weekly",
-      "title": "🗓️ 週次台帳",
+      "title": "🗓️ 週次ノート",
       "source": "docs/weekly-view.md",
-      "note": "Markdownをビルド時にHTML化し、同じページ内の #weekly で参照します。監査実測値は親リポジトリの監査ページが正本です。"
+      "note": "docs/weekly-view.md（Markdown）をビルド時に HTML にしています。表の数値の列は 📊 棒になります。"
     }
   ]
 }

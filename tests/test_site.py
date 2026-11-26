@@ -139,6 +139,29 @@ def test_front_page_shows_only_the_moving_samples_this_build_recorded(tmp_path):
     assert "myon-bioinformatics.github.io" in PAGES.recorded_samples(tmp_path)
 
 
+def test_a_tools_card_shows_its_moving_sample_and_the_picture_opens_the_tool(tmp_path):
+    """🎥 A 🧰 Tools card carries its sample only when the deploy recorded it (media/pages/tools/<id>.gif); the picture is a link to
+    the card's first page, as on a 🚀 Projects card. Every card has an id, so every card can have one."""
+    front = _front()
+    ids = [card["id"] for card in front.PORTAL]
+    assert len(ids) == len(set(ids)) and all(re.fullmatch(r"[a-z][a-z0-9-]*", key) for key in ids)
+    assert "project-sample" not in front.portal_cards() and "media/pages/tools/" not in (SITE / "index.html").read_text(encoding="utf-8")
+    cards = front.portal_cards(frozenset({"tools/gif", "tools/operations", "gif", "tools/no-such-tool"}))
+    assert cards.count('class="project-sample"') == 2
+    assert ('<h3 id="gif">🎞 GIF工房</h3><a class="project-sample" href="./tools/gif/"><img src="./media/pages/tools/gif.gif" '
+            'alt="🎥 🎞 GIF工房" loading="lazy" width="240" height="456"></a><p>') in cards
+    assert '<a class="project-sample" href="https://myon-bioinformatics.github.io/myon-bioinformatics/"><img src="./media/pages/tools/operations.gif"' in cards
+    samples = PAGES.tools_samples()                                              # what --record-samples opens: the card's first link, on the site
+    assert list(samples) == [f"tools/{key}" for key in ids] and samples["tools/gif"] == ("https://myon-bioinformatics.github.io/tools/gif/", "🎞 GIF工房")
+    assert all(url.startswith("https://myon-bioinformatics.github.io/") for url, _ in samples.values())
+    (tmp_path / "media/pages/tools").mkdir(parents=True)
+    (tmp_path / "media/pages/tools/gif.gif").write_bytes(b"GIF89a")
+    (tmp_path / "media/pages/aoi.gif").write_bytes(b"GIF89a")
+    assert PAGES.recorded_samples(tmp_path) == {"tools/gif", "aoi"}
+    page = PAGES.render_front(ROOT, PAGES.recorded_samples(tmp_path))["index.html"].decode("utf-8")
+    assert page.count('<img src="./media/pages/tools/') == 1 and '<img src="./media/pages/tools/gif.gif"' in page
+
+
 def test_flow_lab_shows_every_ffss_scene_and_every_dragowing_figure(tmp_path):
     """🌊 collect_flow keeps every demo FFSS lists (whose GIF was made) and every figure; render_flow puts each figure
     with its scene and the rest after the scenes, so nothing that was made is left out."""
@@ -1649,9 +1672,9 @@ def test_documents_of_the_site_config_become_sections_of_the_front_page():
     """📄 site.config.json ``documents``: each reviewed .md is a section at ``#id`` (☰ lists it); a new document is a new row, not a new page."""
     front = _front()
     page = front.document()
-    assert '<section id="weekly" class="container document" aria-label="🗓️ 週次台帳">' in page and '<h2>🗓️ 週次台帳</h2>' in page
-    assert '公開用週次台帳ビュー' in page and '@@DOCUMENTS@@' not in page and 'weekly-markdown' not in page
-    two = front.documents_html(ROOT, [{'id': 'weekly', 'title': '🗓️ 週次台帳', 'source': 'docs/weekly-view.md'},
+    assert '<section id="weekly" class="container document" aria-label="🗓️ 週次ノート">' in page and '<h2>🗓️ 週次ノート</h2>' in page
+    assert '<h2>📊 日ごとのマージ数</h2>' in page and '@@DOCUMENTS@@' not in page and 'weekly-markdown' not in page
+    two = front.documents_html(ROOT, [{'id': 'weekly', 'title': '🗓️ 週次ノート', 'source': 'docs/weekly-view.md'},
                                       {'id': 'ssot', 'title': '📚 SSOT', 'source': 'docs/ssot.md', 'note': 'a <note>'}])
     assert two.count('<article class="document-markdown">') == 2 and '<section id="ssot" class="container document"' in two
     assert '<p class="section-sub">a &lt;note&gt;</p>' in two and two.count('section-sub') == 1
@@ -1690,6 +1713,27 @@ def test_a_tool_page_board_reads_its_card():
     card = next(card for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL if card.get('id') == 'gif')
     gif = (SITE / 'tools/gif/index.html').read_text(encoding='utf-8')
     assert card['text'].split('。')[0] + '。' in gif[:gif.index('<nav class="ui-world-tools">')]
+
+
+def test_a_document_table_draws_its_number_columns_as_bars():
+    """📊 table_bars: a column of numbers gets a bar per row against the column's largest; the .md itself is an ordinary table, and
+    the weekly note's counts add up to what its text says."""
+    import markdown as md_market
+    front = _front()
+    source = (ROOT / 'docs/weekly-view.md').read_text(encoding='utf-8')
+    counts = [int(row['PR']) for row in md_market.markdown_table_to_records(source)]
+    assert sum(counts) == int(re.search(r'マージした PR は (\d+) 本', source)[1]) and 'class=' not in source and '<' not in source
+    weekly = front.documents_html(ROOT, [{'id': 'weekly', 'title': 't', 'source': 'docs/weekly-view.md'}])
+    levels = [int(level) for level in re.findall(r'<td class="document-number">\d+<span class="skill-bar-track" aria-hidden="true">'
+                                                 r'<span class="skill-bar-fill" style="--level:(\d+)%"></span></span></td>', weekly)]
+    assert levels == [round(count / max(counts) * 100) for count in counts] and max(levels) == 100
+    assert weekly.count('<table>') == 2 and weekly.count('document-number') == len(counts)          # the table of links keeps its cells
+    body = '<table><tbody>\n<tr><td>a</td><td>1,200</td><td>x</td></tr>\n<tr><td>b</td><td>300</td><td>2</td></tr>\n</tbody></table>'
+    drawn = front.table_bars(body)
+    assert re.findall(r'--level:(\d+)%', drawn) == ['100', '25'] and '<td>x</td>' in drawn and '<td>2</td>' in drawn   # every cell a number, or none
+    for kept in ('<p>no table</p>', '<table><tbody>\n<tr><td>a</td><td>b</td></tr>\n</tbody></table>',
+                 '<table><tbody>\n<tr><td>0</td></tr>\n</tbody></table>', '<table><tbody>\n<tr><td align="right">3</td></tr>\n</tbody></table>'):
+        assert front.table_bars(kept) == kept
 
 
 def test_weekly_markdown_fragment_rejects_invalid_paths():

@@ -98,11 +98,55 @@ def test_moving_sample_is_recorded_for_a_pages_url(site, browser, tmp_path):
     spec = importlib.util.spec_from_file_location("project_pages_samples", ROOT / "scripts/project_pages.py")
     pages = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(pages)
-    lines = pages.record_samples(tmp_path, {"Portfolio": site[1] + "/index.html", "Gone": site[1] + "/no-such-page/"}, browser=browser)
+    lines = pages.record_samples(tmp_path, {"Portfolio": site[1] + "/index.html", "Gone": site[1] + "/no-such-page/",
+                                            "tools/gif": site[1] + "/tools/gif/"}, browser=browser, captions={"tools/gif": "🎞 GIF工房"})
     gif = (tmp_path / "media/pages/portfolio.gif").read_bytes()
     assert gif[:6] == b"GIF89a" and lines[0].startswith("🎥 Portfolio: 2 frames")
     assert lines[1] == "⏸ Gone: RuntimeError: HTTP 404"                                   # an error page is not a sample
-    assert pages.recorded_samples(tmp_path) == {"portfolio"}
+    assert (tmp_path / "media/pages/tools/gif.gif").read_bytes()[:6] == b"GIF89a" and lines[2].startswith("🎥 tools/gif: ")   # 🧰 a Tools card's page
+    assert pages.recorded_samples(tmp_path) == {"portfolio", "tools/gif"}
+
+
+def test_a_tools_card_picture_opens_the_tool_and_the_weekly_note_draws_its_bars_with_a_gif(site, browser, page):
+    """🎥 A 🧰 Tools card's moving sample is a link to the tool, and 🗓️ the weekly note (docs/weekly-view.md) draws its table's numbers
+    as bars. Frames go to test-results/front-page/front-page-tools-sample-weekly-bars-<UTC>.gif."""
+    spec = importlib.util.spec_from_file_location("project_pages_tools_samples", ROOT / "scripts/project_pages.py")
+    pages = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pages)
+    import pysaiyanweboo as ui
+    world, copy = pages._world(), site[0] / "with-samples.html"
+    try:
+        lines = pages.record_samples(site[0], {"tools/gif": site[1] + "/tools/gif/"}, browser=browser, captions={"tools/gif": "🎞 GIF工房"})
+        assert lines[0].startswith("🎥 tools/gif: ")
+        copy.write_bytes(pages.render_front(ROOT, pages.recorded_samples(site[0]))["index.html"])   # the front page as the deploy builds it
+        page.set_viewport_size({"width": 560, "height": 480})
+        page.goto("/with-samples.html")
+        picture = page.locator('.portal-card a.project-sample[href="./tools/gif/"] img')
+        expect(page.locator(".portal-card a.project-sample")).to_have_count(1)                  # only what was recorded
+        picture.scroll_into_view_if_needed()
+        page.wait_for_function("img => img.complete && img.naturalWidth === 240 && img.naturalHeight === 456", arg=picture.element_handle())
+        cam = world.Camera(page)
+        cam.hold(1200)
+        picture.click()                                                                         # 🎥 the picture is the way in
+        page.wait_for_url(site[1] + "/tools/gif/")
+        expect(page.locator("#gif-files")).to_be_visible()
+        cam.hold(900)
+        page.go_back()
+        page.locator("#weekly table").first.scroll_into_view_if_needed()
+        counts = [int(text) for text in page.locator("#weekly td.document-number").all_text_contents()]
+        assert len(counts) >= 2 and sum(counts) == int(re.search(r"PR は (\d+) 本", page.locator("#weekly").text_content())[1])
+        page.wait_for_function("""(counts) => [...document.querySelectorAll('#weekly td.document-number')].every((cell, at) => {
+            const track = cell.querySelector('.skill-bar-track').getBoundingClientRect(), bar = cell.querySelector('.skill-bar-fill').getBoundingClientRect();
+            return track.width >= 96 && Math.abs(bar.width / track.width - counts[at] / Math.max(...counts)) < 0.02; })""", arg=counts)
+        assert page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") == 0
+        cam.hold(1200)
+        gif = world.encode(cam.shots, width=392)
+    finally:
+        copy.unlink(missing_ok=True)
+        shutil.rmtree(site[0] / "media/pages", ignore_errors=True)
+    assert gif[:6] == b"GIF89a"
+    target = ui.gif_targets(ROOT / "test-results" / "front-page", ["front-page-tools-sample-weekly-bars"], run_details=["timestamp"])
+    target["front-page-tools-sample-weekly-bars"].write_bytes(gif)
 
 
 def write_config(site, mode):
@@ -385,7 +429,7 @@ def test_an_invalid_configured_mode_falls_back_to_modern(page, site):
 def test_modern_keeps_the_web_notation_with_a_terminal_look(page, site):
     open_front(page, site)
     expect(page.locator('#profile-render-root[data-renderer="web"] .ui-tabs')).to_be_visible()
-    expect(page.locator(".skill-bar-fill")).to_have_count(sum(len(group["items"]) for group in PROFILE["skills"]))
+    expect(page.locator("#profile .skill-bar-fill")).to_have_count(sum(len(group["items"]) for group in PROFILE["skills"]))   # 🗓️ the weekly note has bars too
     page.click('label[for="ui-tabs-profile-1"]')                    # 🗂️ Skills: the radio shows the panel, the CSS grows each bar to its level
     expect(page.locator(".skill-bar-fill").first).to_be_visible()
     first = PROFILE["skills"][0]["items"][0]["level"]

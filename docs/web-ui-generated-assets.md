@@ -43,7 +43,7 @@ Use a fresh output directory to reproduce a deployment.
 `--copy-source` copies the files in `PUBLIC_SOURCE_FILES` from `scripts/project_pages.py`. Add a path there when a new
 file needs to be served verbatim. The list covers public JSON endpoints and browser settings, icons and the web app
 manifest, the HTML import guide, demo GIFs and their browser receipt, Niconico's browser script, and licenses.
-The weekly view is rendered into `index.html`, and the chat's Python and dependencies are embedded in its HTML for
+The weekly note (`docs/weekly-view.md`; a table's number columns become bars, `table_bars()`) is rendered into `index.html`, and the chat's Python and dependencies are embedded in its HTML for
 Pyodide. The generation and recording steps write those pages, the chat index, and other built assets directly to the
 output directory. Build scripts, development docs, tests, and caches stay in the checkout.
 

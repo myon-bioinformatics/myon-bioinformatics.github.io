@@ -286,6 +286,15 @@ add_back_nav(page, 'tools/maps/index.html', {'🗼': {'label': 'パラレル都�
 🗓️ 2026-11-27 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k door_to_door` writes `test-results/door-to-door/door-to-door-pulldown-<UTC>.gif`（`docs/evidence/door-to-door.gif` へコピー）。
 部品は PySaiyanWeBoo（`component_parts('chrome' | 'door' | 'gaze-avatar')`・`door_html(foot=True)`・`add_part`・`stamp_page_size`）、ポートフォリオ側は指定だけ：`scripts/project_pages.py`（`tools_chrome` / `tools_places` / `tools_door` / `add_back_nav`）。
 
+### 🎥 Tools カードの動く見本と 🗓️ 週次ノート
+
+- 🎥 🧰 Tools の各カードにも、🚀 Projects のカードと同じ動く見本（GIF）が付きます。絵を押すと、その道具が開きます。公開のたびに `--record-samples` が、いま公開中の道具のページを撮ります（`media/pages/tools/<id>.gif`。撮れなかったカードは絵なし）。
+- 🗓️ 週次ノートは `docs/weekly-view.md`（ふつうの Markdown）です。ビルド時に markdown.py で HTML にし、表の数値だけの列は 📊 棒にします（`table_bars`）。別の `.md` を載せるときは `site.config.json` の `documents` に 1 行足します。
+
+![Tools カードの動く見本を押すと 🎞 GIF工房が開き、戻って 🗓️ 週次ノートの表が棒で描かれている（Chromium 560×480）](docs/evidence/tools-sample-weekly-bars.gif)
+
+🗓️ 2026-11-27 · `uv run --locked --group browser python -m pytest tests/test_front_page.py -k tools_card_picture` writes `test-results/front-page/front-page-tools-sample-weekly-bars-<UTC>.gif`（`docs/evidence/tools-sample-weekly-bars.gif` へコピー）。
+
 ### 💬 横断チャット
 
 🧰 Tools → **💬 横断チャット**（`tools/chat/`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args・ontautology.py（OnTautoLogy）・olnm.py（OLNM）は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。

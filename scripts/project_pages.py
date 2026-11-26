@@ -37,6 +37,7 @@ import sys
 import tempfile
 from pathlib import Path
 from types import ModuleType
+from urllib.parse import urljoin
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_BASE = 'tools/vendor/web-ui/'
@@ -323,21 +324,30 @@ def render_gif_tool(ui) -> dict[str, bytes]:
 
 
 def recorded_samples(output: Path) -> frozenset[str]:
-    """The lower-case names whose 🎥 sample is under ``output`` (the front page shows only those)."""
-    return frozenset(path.stem for path in (Path(output) / SAMPLES).glob('*.gif'))
+    """The lower-case names whose 🎥 sample is under ``output`` (the front page shows only those): a repository's name, or
+    ``tools/<id>`` for a 🧰 Tools card."""
+    folder = Path(output) / SAMPLES
+    return frozenset(path.relative_to(folder).as_posix().removesuffix('.gif') for path in folder.rglob('*.gif'))
+
+
+def tools_samples() -> dict[str, tuple[str, str]]:
+    """🧰 ``tools/<id>`` → (the page the card opens first, the card's title): what ``--record-samples`` records for the 🧰 Tools cards."""
+    front = _front_module()
+    return {f'tools/{card["id"]}': (urljoin(front._site_url, card['links'][0][1]), card['title']) for card in front.PORTAL}
 
 
 def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), size=(240, 432), max_bytes=300_000,
-                   browser=None) -> list[str]:
-    """🎥 Open each Pages in Chromium at phone size, keep the top and one screen further down, and write a two-frame GIF
-    per repository as ``output/media/pages/<name>.gif`` with gif.js. Best effort: one line per repository (🎥 / ⏸).
+                   browser=None, captions: dict[str, str] | None = None) -> list[str]:
+    """🎥 Open each page in Chromium at phone size, keep the top and one screen further down, and write a two-frame GIF
+    per name as ``output/media/pages/<name>.gif`` with gif.js (a name may hold a folder: ``tools/gif``). The caption is
+    ``captions[name]``, else ``🌐 name``. Best effort: one line per name (🎥 / ⏸).
     ``browser``: a launched Playwright browser to use (a caller already inside Playwright); otherwise Chromium is started."""
     if browser is None:
         from playwright.sync_api import sync_playwright
         with sync_playwright() as playwright:
             chromium = playwright.chromium.launch()
             try:
-                return record_samples(output, pages, viewport=viewport, size=size, max_bytes=max_bytes, browser=chromium)
+                return record_samples(output, pages, viewport=viewport, size=size, max_bytes=max_bytes, browser=chromium, captions=captions)
             finally:
                 chromium.close()
     import base64
@@ -362,9 +372,10 @@ def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), 
                 if (lower := site.screenshot()) != frames[0]:
                     frames.append(lower)
                 encoder.evaluate('o => { window.rec = new UiGif.Recorder(o); }', {'width': size[0], 'height': size[1], 'caption': 24})
-                encoder.evaluate('items => rec.add(items)', [{'png': base64.b64encode(png).decode('ascii'), 'caption': f'🌐 {name}',
+                encoder.evaluate('items => rec.add(items)', [{'png': base64.b64encode(png).decode('ascii'), 'caption': (captions or {}).get(name, f'🌐 {name}'),
                                                              'ok': True, 'delay': 1500} for png in frames])
                 gif = base64.b64decode(encoder.evaluate('o => rec.encodeBase64(o)', {'maxBytes': max_bytes})['gif'])
+                (folder / f'{name.lower()}.gif').parent.mkdir(parents=True, exist_ok=True)
                 (folder / f'{name.lower()}.gif').write_bytes(gif)
                 lines.append(f'🎥 {name}: {len(frames)} frames · {len(gif) // 1024} KiB')
             except Exception as exc:                       # one Pages failing keeps the rest (and the deploy) going
@@ -1024,7 +1035,7 @@ def main(argv=None):
     parser.add_argument('--refresh-lock', action='store_true',
                         help='rewrite web-ui-assets.lock.json from the installed generator')
     parser.add_argument('--record-samples', type=Path, metavar='DIR',
-                        help="🎥 record a moving sample of every repository's Pages under DIR/media/pages/ (Chromium; best effort)")
+                        help="🎥 record a moving sample of every repository's Pages and of every 🧰 Tools card's page under DIR/media/pages/ (Chromium; best effort)")
     parser.add_argument('--record-flow', type=Path, metavar='DIR',
                         help='🌊 run FFSS and DRAgoWing (their default branches) and put the flow lab media under DIR/media/flow/')
     parser.add_argument('--record-tools', type=Path, metavar='DIR',
@@ -1040,8 +1051,10 @@ def main(argv=None):
     if args.copy_source:
         copy_source(args.copy_source)
     if args.record_samples:
-        # 🎥 this portfolio too: its card shows the front page as Pages serves it now (the deploy before this one)
-        print('\n'.join(record_samples(args.record_samples, pages_urls())))
+        # 🎥 this portfolio too: its card shows the front page as Pages serves it now (the deploy before this one), and so do the 🧰 Tools
+        tools = tools_samples()
+        print('\n'.join(record_samples(args.record_samples, {**pages_urls(), **{name: url for name, (url, _) in tools.items()}},
+                                       captions={name: title for name, (_, title) in tools.items()})))
     if args.record_map:
         print('\n'.join(record_map(args.record_map)))
     if args.record_chat:
