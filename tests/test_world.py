@@ -545,6 +545,131 @@ def test_demo_zoom_goes_in_toward_the_anchor_and_stays_on_the_real_clock():
         W.Camera(Page()).zoom(anchor="x")
 
 
+CHROME = {"board": {"title": "TOOLS", "items": [{"text": "🎞 GIF工房"}]}, "home": "../../index.html#tools",
+          "places": [{"id": "gif", "label": "🎞 GIF工房", "href": "../gif/"}, {"id": "demos-chat", "label": "💬 横断チャット", "href": "./chat.html"}],
+          "tools": {"🗼": {"label": "パラレル都市", "label_en": "Parallel cities", "links": [{"label": "🗼 パラレル東京", "href": "../maps/tokyo.html"}]},
+                    "🧭": {"label": "統合運用", "slot": "side", "href": "https://myon-bioinformatics.github.io/myon-bioinformatics/"}}}
+
+
+def test_a_tool_page_chrome_is_a_world_shell_without_a_map():
+    """🧰 chrome_html: the world's board (HH:MM:SS), 🏠, the page's own emoji, ⭐ ⚙️ in the header and ☰ ⋯ in the side."""
+    html = W.chrome_html(CHROME)
+    assert html.startswith('<header class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="ja"><div class="ui-board"')
+    assert '<span class="ui-board-clock" data-clock>--:--:--</span>' in html and "ui-board-post" not in html
+    head, side = html.split('<div class="ui-world-side">')
+    assert [m for m in ("🏠", "🗼", "⭐", "⚙️") if f">{m}</" in head] == ["🏠", "🗼", "⭐", "⚙️"] and "☰" not in head
+    assert head.index(">🏠<") < head.index(">🗼<") < head.index(">⭐<") < head.index(">⚙️<")
+    assert '<a class="ui-world-home" href="../../index.html#tools"' in head
+    assert side.index(">☰<") < side.index(">🧭<") < side.index(">⋯<")
+    assert '<a class="ui-world-tool" href="https://myon-bioinformatics.github.io/myon-bioinformatics/"' in side     # href: the button is the link
+    assert '<li><a href="../maps/tokyo.html">🗼 パラレル東京</a></li>' in head                                        # links: a panel of rows
+    assert html.count('data-fav="') == 2 and 'data-fav="demos-chat"' in html and html.count('class="ui-world-star"') == 2
+    for waits in ('data-menu="favorites" hidden', 'data-menu="settings" hidden', 'data-menu="more" hidden'):     # shown by the script
+        assert waits in html
+    assert 'data-menu="spots"><summary' in html                                                                # ☰ opens without it
+    assert 'data-pause="⏯️" data-resume="▶️"' in html and "⏸" not in html      # ⏸ marks a page a build did not make (tests/test_site.py)
+    assert html.count("<option ") == len(W.WORLD_LANGS)
+    bare = W.chrome_html({})                                                   # nothing asked: ⚙️ (🌐) and ⋯ only
+    assert "ui-board" not in bare and "ui-world-home" not in bare and "⭐" not in bare and "☰" not in bare and "⏯️" not in bare
+
+
+@pytest.mark.parametrize("spec,word", [
+    ({"extra": 1}, "a chrome has"),
+    ({"home": "javascript:alert(1)"}, "href"), ({"home": "http://example.test/"}, "href"), ({"home": "../x\"y"}, "href"),
+    ({"places": [{"id": "a", "label": "A"}]}, "places"), ({"places": [{"id": "A b", "label": "A", "href": "./"}]}, "place id"),
+    ({"places": [{"id": "a", "label": "A", "href": "./"}] * 2}, "place id"),
+    ({"board": {"items": [{"text": "x"}], "post": True}}, "post and shared_issue"),
+    ({"tools": {"🏠": {"href": "./"}}}, "already used"), ({"tools": {"🗼": {"floor": "1f"}}}, "exactly one of href, links, body"),
+    ({"tools": {"🗼": {"href": "./", "body": "x"}}}, "exactly one of"), ({"tools": {"🗼": {"links": []}}}, "links"),
+    ({"tools": {"🗼": {"links": [{"label": "x", "href": "data:text/html,x"}]}}}, "href"),
+])
+def test_chrome_validation_refuses(spec, word):
+    with pytest.raises(ValueError, match=re.escape(word)):
+        W.chrome_validate(spec)
+
+
+def test_a_world_takes_link_tools_too():
+    """``href`` and ``links`` are tool kinds of a world as well: one validator (tools_validate) and one markup (_tool_html)."""
+    spec = W.example_data("school")
+    spec = {**spec, "tools": {"🧰": {"label": "Tools", "href": "../../index.html#tools"},
+                              "🗼": {"label": "街", "slot": "side", "links": [{"label": "東京", "href": "./tokyo.html"}]}}}
+    html = W.world_html(spec)
+    assert '<a class="ui-world-tool" href="../../index.html#tools"' in html and '<li><a href="./tokyo.html">東京</a></li>' in html
+    with pytest.raises(ValueError, match="exactly one of floor, spots, href, links, body"):
+        W.world_validate({**spec, "tools": {"🧰": {"label": "Tools"}}})
+
+
+def test_chrome_css_is_the_shell_rules_of_the_world_sheet():
+    css = W.chrome_css()
+    assert css.startswith("@layer components{") and css.endswith("}")
+    for kept in (".ui-board-clock{", "@keyframes ui-board-scroll{", ".ui-world-menu>summary{", ".ui-world-panel{", ".ui-world-rows a{", ".ui-chrome .ui-world-side{"):
+        assert kept in css, kept
+    for map_only in (".ui-floor", ".ui-spot", ".ui-player", ".ui-sheet{", ".ui-world-view", ".ui-world-dpad", ".ui-prop"):
+        assert map_only not in css, map_only
+    shared = css[len("@layer components{"):css.index(".ui-chrome{")]
+    assert shared and shared in "".join(rule for rule in re.findall(r"[^{}]+\{(?:[^{}]|\{[^{}]*\})*\}", W._WORLD_CSS) if rule in shared)   # world rules, in order
+    assert len(css) < len(W._WORLD_CSS) / 2
+    own = W.chrome_css("--ui-bg:#000;--ui-fg:#fff")                            # a page without the shared sheet: its own colours, no layer
+    assert own.startswith(".ui-chrome{--ui-bg:#000;--ui-fg:#fff}") and "@layer" not in own
+    assert not [px for px in re.findall(r"(\d+)px", css[css.index(".ui-chrome{"):]) if int(px) % 8 and int(px) not in (1, 4)]   # 8s (4: the header row's own padding)
+
+
+def test_add_chrome_puts_the_three_parts_in_a_built_page_once():
+    page = '<!doctype html><html><head><title>t</title></head><body data-ui-theme="modern"><main><h1>t</h1></main></body></html>'
+    built = W.add_chrome(page, CHROME)
+    assert built.count('<header class="ui-chrome') == 1 and W.add_chrome(built, CHROME) == built
+    assert built.index("<style>@layer components{") < built.index("</head>") < built.index('<body data-ui-theme="modern"><header class="ui-chrome')
+    assert built.endswith("bindChrome();\n</script></body></html>") and built.index("</main>") < built.index('<script type="module">')
+    with pytest.raises(ValueError, match="no single <head> and <body>"):
+        W.add_chrome("<main>fragment</main>", CHROME)
+
+
+def test_the_chrome_module_asks_the_network_for_nothing_and_keeps_two_fields():
+    module = W.SHELL_JS
+    for word in ("fetch(", "XMLHttpRequest", "sendBeacon", "WebSocket", "sessionStorage", "indexedDB", "cookie", "navigator.", "import("):
+        assert word not in module, word
+    assert sorted(re.findall(r"localStorage\.(\w+)", module)) == ["getItem", "setItem"] and "'ui-chrome:'+el.id" in module
+    assert W.WORLD_JS.count(module) == 1                                       # the world runs the very same shell
+
+
+def test_node26_board_clock_has_seconds_and_the_chrome_binds_a_fake_page():
+    _node26()
+    harness = r"""
+import assert from 'node:assert/strict';
+assert.deepEqual(data.map(([n,o])=>boardClock(n,o).clock),data.map(c=>c[2]));
+const node=(extra={})=>({dataset:{},attrs:{},events:{},hidden:true,open:false,textContent:'',addEventListener(n,f){this.events[n]=f},setAttribute(n,v){this.attrs[n]=v},
+ hasAttribute(n){return n in this.attrs},toggleAttribute(n){if(n in this.attrs){delete this.attrs[n];return false}this.attrs[n]='';return true},querySelector(){return null},querySelectorAll(){return[]},contains(){return false},...extra});
+const store={};globalThis.localStorage={getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v}};
+globalThis.location={origin:'https://x.test',pathname:'/tools/gif/index.html'};
+globalThis.setInterval=()=>0;globalThis.clearInterval=()=>{};
+const menus=[node(),node(),node()],clock=node(),pause=node({dataset:{pause:'⏯️',resume:'▶️'}}),more=node(),list=node({replaceChildren(...c){this.kids=c}});
+const arrow=node(),here=node({origin:'https://x.test',pathname:'/tools/gif/',hash:'',querySelector:()=>arrow}),there=node({origin:'https://x.test',pathname:'/tools/flow/',hash:'',querySelector:()=>node()});
+more.querySelector=()=>list;
+const board=node({isConnected:true,querySelector:s=>s==='[data-clock]'?clock:null});board.dataset.offset='540';
+const el=node({id:'tools-chrome',querySelector:s=>s==='.ui-board'?board:s==='.ui-world-pause'?pause:s==='[data-menu="more"]'?more:null,
+ querySelectorAll:s=>s==='.ui-world-menu'?menus:s==='.ui-world-spots a'?[here,there]:[]});
+const heading=node({textContent:' 地点 ',id:''});
+globalThis.document={querySelectorAll:s=>s==='[data-ui-chrome]'?[el]:s==='main h2'?[heading]:[],addEventListener(){},
+ createElement:()=>node({append(...c){this.kids=c}})};
+assert.deepEqual(bindChrome(),[el]);assert.equal(el.dataset.js,'');
+assert.match(clock.textContent,/^\d\d:\d\d:\d\d$/);
+assert.deepEqual(menus.map(m=>m.hidden),[false,false,false]);
+menus[0].open=true;menus[1].open=true;menus[1].events.toggle();assert.deepEqual(menus.map(m=>m.open),[false,true,false]);   // one at a time
+el.events.keydown({key:'Escape'});assert.deepEqual(menus.map(m=>m.open),[false,false,false]);
+assert.equal(here.attrs['aria-current'],'page');assert.equal(arrow.textContent,'📍');assert.equal('aria-current' in there.attrs,false);   // index.html and / are one page
+assert.equal(more.hidden,false);assert.equal(heading.id,'tools-chrome-part-1');assert.equal(list.kids[0].kids[0].textContent,'地点');
+pause.events.click();assert.equal('data-motion-paused' in el.attrs,true);assert.equal(pause.textContent,'▶️');assert.equal(pause.attrs['aria-pressed'],'true');
+pause.events.click();assert.equal('data-motion-paused' in el.attrs,false);assert.equal(pause.textContent,'⏯️');
+assert.deepEqual(Object.keys(store),[]);                                       // nothing is written until ⭐ or 🌐 is used
+assert.deepEqual(bindChrome(),[el]);                                           // bound once
+console.log('ok');
+"""
+    cases = [[0, 0, "00:00:00"], [86399, 540, "08:59:59"], [1800000000.7, -210, W.board_clock(1800000000.7, -210)["clock"]], [59, 0, "00:00:59"]]
+    assert [W.board_clock(n, o)["clock"] for n, o, _ in cases] == [c[2] for c in cases]
+    script = f"{W.SHELL_JS}\nconst data={json.dumps(cases)};\n{harness}"
+    assert node_js(script).stdout.strip() == "ok"
+
+
 def test_the_chrome_speaks_the_eleven_languages_of_flutter_navigation_basic():
     codes = [code for code, _ in W.WORLD_LANGS]
     assert codes == ["ja", "en", "fr", "es", "pt", "ar", "zh", "ru", "id", "de", "sw"]
@@ -811,7 +936,7 @@ def test_daily_countdown_seconds_ceil_exact_target_and_tomorrow(now, at, expecte
     assert W.minutes_until(now, at) == expected
 
 
-@pytest.mark.parametrize('now,offset,clock,minutes', [(0,0,'00:00',0), (0,-60,'23:00',1380), (86399,540,'08:59',539+59/60)])
+@pytest.mark.parametrize('now,offset,clock,minutes', [(0,0,'00:00:00',0), (0,-60,'23:00:00',1380), (86399,540,'08:59:59',539+59/60)])
 def test_clock_explicit_seconds_offset_and_day_rollover(now, offset, clock, minutes):
     result = W.board_clock(now, offset)
     assert result['clock'] == clock
@@ -1682,7 +1807,8 @@ class WorldPageTests(unittest.TestCase):
         for word in ("canvas", "drawImage", "FileReader", "ImageCapture", "MediaRecorder", "toDataURL", "toBlob", "createImageBitmap", "arrayBuffer", "readAsDataURL"):
             self.assertTrue(word not in W.WORLD_JS, word)
         self.assertEqual(sorted(re.findall(r"localStorage\.(\w+)", W.WORLD_JS)), ["getItem", "setItem"])
-        self.assertEqual(re.findall(r"save\(\{(\w+)", W.WORLD_JS), ["alpha", "lang", "fav", "bag", "names"])  # only these five fields are written
+        self.assertEqual(sorted(set(re.findall(r"save\(\{(\w+)", W.WORLD_JS))), ["alpha", "bag", "fav", "lang", "names"])  # only these five fields are written
+        self.assertEqual(sorted(set(re.findall(r"save\(\{(\w+)", W.SHELL_JS))), ["fav", "lang"])              # 🧰 a tool page's chrome writes two of them
         self.assertIn("'ui-world:'+el.id", W.WORLD_JS)
         self.assertEqual(W.WORLD_JS.count("fetch("), 1)
         for needle in ('method:"GET"', 'credentials:"omit"', 'cache:"no-store"', 'referrerPolicy:"no-referrer"'):

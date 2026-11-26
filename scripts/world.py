@@ -4,6 +4,10 @@
 ``web-ui-world/1`` spec: scrolling shots, a pan/zoom map, a tile grid to walk (``classroom_floor``, ``land_floor``,
 ``place_floor`` from latitude/longitude). ``EXAMPLES`` / ``example_data(name)`` hold the world, the school, the overworld
 and the three cities. The CSS, the themes, the dial and the coordinates come from PySaiyanWeBoo (the pinned web UI).
+
+🧰 ``chrome_validate(spec)`` / ``chrome_html(spec)`` / ``chrome_css()`` / ``add_chrome(page, spec)`` give a page that is not a world
+the same header and side (the board with its ``HH:MM:SS`` clock, 🏠, ⭐, ⚙️, ☰, ⋯ and the emoji a page adds): ``SHELL_JS`` is the
+part of the script a world and that chrome share. scripts/project_pages.py puts it on every 🧰 Tools page.
 """
 from __future__ import annotations
 
@@ -224,12 +228,13 @@ def minutes_until(now: float, at: int) -> int:
 
 
 def board_clock(now: float, offset_minutes: int) -> dict[str, Any]:
-    """Injected Unix seconds + fixed UTC-offset minutes, independent of host TZ."""
+    """Injected Unix seconds + fixed UTC-offset minutes, independent of host TZ. ``clock`` is ``HH:MM:SS`` (the board's own clock shows
+    all of it; a zone chip and the stamp on a visitor's line keep ``HH:MM``, its first five characters)."""
     now = _motion_number(now, "now (Unix seconds)", 0, 253402214400)
     offset_minutes = _bounded_int(offset_minutes, "offset_minutes", -840, 840)
     seconds = (now + offset_minutes * 60) % 86400
     whole = math.floor(seconds)
-    return {"clock": f"{whole // 3600:02d}:{whole // 60 % 60:02d}", "minutes": seconds / 60}
+    return {"clock": f"{whole // 3600:02d}:{whole // 60 % 60:02d}:{whole % 60:02d}", "minutes": seconds / 60}
 
 
 def board_seconds(chars: int, chars_per_second: float = 8.0) -> float:
@@ -261,7 +266,7 @@ def gauge_cells(filled: int, cells: int, glyphs: tuple[str, str] | list[str]) ->
 
 
 def clock_label(minutes: int) -> str:
-    """``HH:MM`` for minutes since midnight: the clock and the stamp on a visitor's line."""
+    """``HH:MM`` for minutes since midnight: the stamp on a visitor's line."""
     return f"{minutes // 60 % 24:02d}:{minutes % 60:02d}"
 
 
@@ -487,6 +492,104 @@ def _bounded_int(value: Any, label: str, low: int, high: int) -> int:
     return value
 
 
+def board_validate(board: Any) -> dict[str, Any] | None:
+    """The info board of a world or of a tool page's chrome (``None`` stays ``None``): a title, 1..12 items, optional zone clocks."""
+    if board is None:
+        return None
+    if not isinstance(board, dict) or set(board) - {"title", "items", "post", "offset_label", "offset_minutes", "zones", "shared_issue"} or not isinstance(board.get("items"), list) \
+            or not 1 <= len(board["items"]) <= 12 or not isinstance(board.get("post", False), bool) \
+            or not isinstance(board.get("offset_label", False), bool):
+        raise ValueError("a board has a title, 1..12 items, and optional post, offset_label, offset_minutes, zones and shared_issue")
+    shared_issue = board.get("shared_issue")
+    if shared_issue is not None:
+        issue_bulletin_urls(shared_issue)
+    zones, seen_zones = [], set()
+    zones_in = board.get("zones", [])
+    if not isinstance(zones_in, list) or len(zones_in) > 6:
+        raise ValueError("zones is a list of up to 6 clocks")
+    for entry in zones_in:
+        if not isinstance(entry, dict) or set(entry) - {"id", "label", "tz"}:
+            raise ValueError("a zone has id, label and tz")
+        zone_rows(entry.get("tz"))                                                         # unknown names are refused here
+        zones.append({"id": _world_id(entry.get("id"), "zone id", seen_zones), "label": _world_text(entry.get("label"), "label", 24),
+                      "tz": entry["tz"]})
+    items = []
+    for item in board["items"]:
+        if not isinstance(item, dict) or set(item) - {"text", "at", "gauge", "zone"}:
+            raise ValueError("a board item has text and an optional at or gauge, and an optional zone")
+        at, gauge = item.get("at"), item.get("gauge")
+        if at is not None and gauge is not None:
+            raise ValueError("a board item has either at or gauge, not both")
+        if at is not None:
+            _world_hhmm(at, "at")
+        where = item.get("zone")
+        if where is not None and (at is None and gauge is None or where not in seen_zones):
+            raise ValueError("an item's zone names one of the board's zones and goes with at or gauge")
+        items.append({"text": _world_text(item.get("text"), "text", 120), "at": at,
+                      "gauge": None if gauge is None else _world_gauge(gauge), "zone": where})
+    return {"title": _world_text(board.get("title", "INFO"), "title", 24), "items": items, "post": board.get("post", False),
+            "offset_label": board.get("offset_label", False), "zones": zones, "shared_issue": shared_issue,
+            "offset_minutes": (_bounded_int(board["offset_minutes"], "offset_minutes", -840, 840)
+                               if board.get("offset_minutes") is not None else None)}
+
+
+def _world_href(value: Any) -> str:
+    """Where a tool or a row leads: a path of this site (``./``, ``../``, ``/``), a fragment (``#``) or an ``https://`` address."""
+    if not isinstance(value, str) or not 1 <= len(value) <= 200 or not re.fullmatch(r"(?:https://|\.{1,2}/|/|#)[^\s\"'<>\\]*", value):
+        raise ValueError("href is a ./ ../ / path, a # fragment or an https:// address, up to 200 characters")
+    return value
+
+
+def tools_validate(tools_in: Any, *, floor_ids: Any = (), spot_ids: Any = ()) -> dict[str, dict[str, Any]]:
+    """The emoji a page adds to its header or side (``slot``), key → feature: each emoji does exactly one thing.
+
+    ``floor``  jumps to a floor (a world)          ``spots``  a panel of the world's places
+    ``href``   a link out (🏠 back, 🗼 another city)  ``links``  a panel of links (``[{"label", "href"}]``, up to 16)
+    ``body``   a panel of words
+
+    A world passes its floor and spot ids; a tool page's chrome has neither, so ``floor`` and ``spots`` are refused there."""
+    tools: dict[str, dict[str, Any]] = {}
+    if not isinstance(tools_in, dict) or len(tools_in) > 8:
+        raise ValueError("tools maps up to 8 emoji to a feature")
+    kinds = ("floor", "spots", "href", "links", "body") if floor_ids else ("href", "links", "body")
+    for key, tool in tools_in.items():
+        emoji = _world_emoji(key)
+        if _plain_emoji(emoji) in WORLD_BUILTIN_TOOLS or emoji in tools:
+            raise ValueError(f"{emoji} is already used by the page itself; tools take other emoji")
+        if not isinstance(tool, dict) or set(tool) - _WORLD_TOOL_KEYS - set(kinds) or sum(k in tool for k in kinds) != 1:
+            raise ValueError(f"a tool has label, label_en, labels, slot and exactly one of {', '.join(kinds)}")
+        slot = tool.get("slot", "head")
+        if slot not in ("head", "side"):
+            raise ValueError("slot is head or side")
+        label = _world_text(tool.get("label", emoji), "label", 24)
+        built = {"label": label, "label_en": _world_text(tool.get("label_en", label), "label_en", 24), "slot": slot}
+        more_labels = tool.get("labels", {})                                      # the other languages: {"fr": "Carte", "de": "Karte"}
+        if not isinstance(more_labels, dict) or set(more_labels) - set(_WORLD_LANG_CODES[2:]):
+            raise ValueError(f"labels maps language codes ({', '.join(_WORLD_LANG_CODES[2:])}) to words; ja and en are label and label_en")
+        if more_labels:
+            built["labels"] = {code: _world_text(text, "labels", 24) for code, text in more_labels.items()}
+        if "floor" in tool:
+            if tool["floor"] not in floor_ids:
+                raise ValueError(f"tool floor must be one of {sorted(floor_ids)}")
+            built["floor"] = tool["floor"]
+        elif "spots" in tool:
+            picked = tool["spots"]
+            if not isinstance(picked, list) or not 1 <= len(picked) <= 16 or any(p not in spot_ids for p in picked):
+                raise ValueError("tool spots lists 1..16 spot ids of the world")
+            built["spots"] = list(picked)
+        elif "href" in tool:
+            built["href"] = _world_href(tool["href"])
+        elif "links" in tool:
+            links = tool["links"]
+            if not isinstance(links, list) or not 1 <= len(links) <= 16 or any(not isinstance(l, dict) or set(l) != {"label", "href"} for l in links):
+                raise ValueError("tool links lists 1..16 {label, href}")
+            built["links"] = [{"label": _world_text(l["label"], "label", 40), "href": _world_href(l["href"])} for l in links]
+        else:
+            built["body"] = _world_text(tool["body"], "body", 400)
+        tools[emoji] = built
+    return tools
+
+
 def world_validate(spec: Any) -> dict[str, Any]:
     """Checked copy of a ``web-ui-world/1`` spec: optional ``shots`` (scroll scenes) and ``floors`` (maps with spots)."""
     if not isinstance(spec, dict) or spec.get("schema") != WORLD_SCHEMA:
@@ -609,77 +712,10 @@ def world_validate(spec: Any) -> dict[str, Any]:
         floors.append({"id": _world_id(floor.get("id"), "floor id", ids), "label": _world_text(floor.get("label"), "label", 40),
                        "width": width, "height": height, "spots": spots, "actors": actors, "player": player,
                        **({"tile": tile, "props": props} if tile else {}), **({"real": True} if floor.get("real") else {})})
-    board = spec.get("board")
-    if board is not None:
-        if not isinstance(board, dict) or set(board) - {"title", "items", "post", "offset_label", "offset_minutes", "zones", "shared_issue"} or not isinstance(board.get("items"), list) \
-                or not 1 <= len(board["items"]) <= 12 or not isinstance(board.get("post", False), bool) \
-                or not isinstance(board.get("offset_label", False), bool):
-            raise ValueError("a board has a title, 1..12 items, and optional post, offset_label, offset_minutes, zones and shared_issue")
-        shared_issue = board.get("shared_issue")
-        if shared_issue is not None:
-            issue_bulletin_urls(shared_issue)
-        zones, seen_zones = [], set()
-        zones_in = board.get("zones", [])
-        if not isinstance(zones_in, list) or len(zones_in) > 6:
-            raise ValueError("zones is a list of up to 6 clocks")
-        for entry in zones_in:
-            if not isinstance(entry, dict) or set(entry) - {"id", "label", "tz"}:
-                raise ValueError("a zone has id, label and tz")
-            zone_rows(entry.get("tz"))                                                         # unknown names are refused here
-            zones.append({"id": _world_id(entry.get("id"), "zone id", seen_zones), "label": _world_text(entry.get("label"), "label", 24),
-                          "tz": entry["tz"]})
-        items = []
-        for item in board["items"]:
-            if not isinstance(item, dict) or set(item) - {"text", "at", "gauge", "zone"}:
-                raise ValueError("a board item has text and an optional at or gauge, and an optional zone")
-            at, gauge = item.get("at"), item.get("gauge")
-            if at is not None and gauge is not None:
-                raise ValueError("a board item has either at or gauge, not both")
-            if at is not None:
-                _world_hhmm(at, "at")
-            where = item.get("zone")
-            if where is not None and (at is None and gauge is None or where not in seen_zones):
-                raise ValueError("an item's zone names one of the board's zones and goes with at or gauge")
-            items.append({"text": _world_text(item.get("text"), "text", 120), "at": at,
-                          "gauge": None if gauge is None else _world_gauge(gauge), "zone": where})
-        board = {"title": _world_text(board.get("title", "INFO"), "title", 24), "items": items, "post": board.get("post", False),
-                 "offset_label": board.get("offset_label", False), "zones": zones, "shared_issue": shared_issue,
-                 "offset_minutes": (_bounded_int(board["offset_minutes"], "offset_minutes", -840, 840)
-                                    if board.get("offset_minutes") is not None else None)}
-    tools: dict[str, dict[str, Any]] = {}
-    tools_in = spec.get("tools", {})
-    if not isinstance(tools_in, dict) or len(tools_in) > 8 or (tools_in and not floors):
+    board = board_validate(spec.get("board"))
+    if spec.get("tools") and not floors:
         raise ValueError("tools maps up to 8 emoji to a feature, on a world with floors")
-    floor_ids = {f["id"] for f in floors}
-    spot_ids_all = {s["id"] for f in floors for s in f["spots"]}
-    for key, tool in tools_in.items():
-        emoji = _world_emoji(key)
-        if _plain_emoji(emoji) in WORLD_BUILTIN_TOOLS or emoji in tools:
-            raise ValueError(f"{emoji} is already used by the page itself; tools take other emoji")
-        if not isinstance(tool, dict) or set(tool) - _WORLD_TOOL_KEYS or sum(k in tool for k in ("floor", "spots", "body")) != 1:
-            raise ValueError("a tool has label, label_en, labels, slot and exactly one of floor, spots or body")
-        slot = tool.get("slot", "head")
-        if slot not in ("head", "side"):
-            raise ValueError("slot is head or side")
-        label = _world_text(tool.get("label", emoji), "label", 24)
-        built = {"label": label, "label_en": _world_text(tool.get("label_en", label), "label_en", 24), "slot": slot}
-        more_labels = tool.get("labels", {})                                      # the other languages: {"fr": "Carte", "de": "Karte"}
-        if not isinstance(more_labels, dict) or set(more_labels) - set(_WORLD_LANG_CODES[2:]):
-            raise ValueError(f"labels maps language codes ({', '.join(_WORLD_LANG_CODES[2:])}) to words; ja and en are label and label_en")
-        if more_labels:
-            built["labels"] = {code: _world_text(text, "labels", 24) for code, text in more_labels.items()}
-        if "floor" in tool:
-            if tool["floor"] not in floor_ids:
-                raise ValueError(f"tool floor must be one of {sorted(floor_ids)}")
-            built["floor"] = tool["floor"]
-        elif "spots" in tool:
-            picked = tool["spots"]
-            if not isinstance(picked, list) or not 1 <= len(picked) <= 16 or any(p not in spot_ids_all for p in picked):
-                raise ValueError("tool spots lists 1..16 spot ids of the world")
-            built["spots"] = list(picked)
-        else:
-            built["body"] = _world_text(tool["body"], "body", 400)
-        tools[emoji] = built
+    tools = tools_validate(spec.get("tools", {}), floor_ids={f["id"] for f in floors}, spot_ids={s["id"] for f in floors for s in f["spots"]})
     return {"schema": WORLD_SCHEMA, "id": world_id, "title": _world_text(spec.get("title", "World"), "title", 80),
             "shots": shots, "floors": floors, "zoom_max": zoom_max, "board": board, "names": names, "move": move, "mark_scale": [float(v) for v in mark_scale], **({"avatars": avatars} if avatars else {}),
             **({"shell": True} if shell else {}), **({"tools": tools} if tools else {})}
@@ -1092,8 +1128,9 @@ def issue_bulletin_html(target: str, *, extra_notice: str = "") -> str:
     )
 
 
-def _board_html(board: dict[str, Any] | None) -> str:
-    """The info board: a clock and a constant-speed scrolling line; items with ``at`` get "in N min" from the page's clock."""
+def _board_html(board: dict[str, Any] | None, *, timed: bool = True) -> str:
+    """The info board: a clock (``HH:MM:SS``) and a constant-speed scrolling line; items with ``at`` get "in N min" from the page's clock.
+    ``timed=False`` leaves the lap time off the markup (no ``style`` attribute, for a page whose CSP refuses them): the script sets it."""
     if not board:
         return ""
     def item(entry: dict[str, Any], hidden: bool) -> str:
@@ -1128,8 +1165,8 @@ def _board_html(board: dict[str, Any] | None) -> str:
                     f'{escape(z["label"])} <b data-zone-clock>--:--</b></span>' for z in board["zones"])
     chips = f'<span class="ui-board-zones">{chips}</span>' if chips else ""
     offset = board["offset_minutes"] if board["offset_minutes"] is not None else ""
-    return (f'<div class="ui-board" aria-live="off" data-offset="{offset}" data-chars="{chars}"{label}><strong>{escape(board["title"])}</strong><span class="ui-board-clock" data-clock>--:--</span>{chips}'
-            f'<div class="ui-board-track"><div class="ui-board-run" style="animation-duration:{board_seconds(chars)}s">{run}</div></div>{form}{shared}</div>')
+    return (f'<div class="ui-board" aria-live="off" data-offset="{offset}" data-chars="{chars}"{label}><strong>{escape(board["title"])}</strong><span class="ui-board-clock" data-clock>--:--:--</span>{chips}'
+            f'<div class="ui-board-track"><div class="ui-board-run"{f' style="animation-duration:{board_seconds(chars)}s"' if timed else ""}>{run}</div></div>{form}{shared}</div>')
 
 
 # The words of a shell world's chrome. The page shows icons; these are the aria-label and tooltip. 🌐 picks the language, the same
@@ -1185,7 +1222,7 @@ WORLD_TEXT = {
     "take": ("どうぐに出し入れする", "Add or remove item", "Ajouter ou retirer l'objet", "Añadir o quitar objeto", "Adicionar ou remover item", "إضافة أو إزالة أداة", "放入或取出道具", "Добавить или убрать предмет", "Tambah atau hapus barang", "Gegenstand hinzufügen oder entfernen", "Ongeza au ondoa kifaa"),
 }
 WORLD_BUILTIN_TOOLS = ("🏠", "⭐", "🎒", "⚙", "🌐", "☰", "⋯", "🚪", "🖼", "📷", "🧹")       # emoji the page itself uses; a tool of your own takes another
-_WORLD_TOOL_KEYS = {"label", "label_en", "labels", "slot", "floor", "spots", "body"}
+_WORLD_TOOL_KEYS = {"label", "label_en", "labels", "slot"}
 _WORLD_LANG_CODES = tuple(code for code, _ in WORLD_LANGS)
 # What the page's script needs: the language codes and the words by index (one list per key), written once ahead of the script.
 WORLD_TEXT_JS = ("const WORLD_LANGS=" + json.dumps(list(_WORLD_LANG_CODES)) + ",WORLD_TEXT=" +
@@ -1281,6 +1318,29 @@ def _classic_html(world: dict[str, Any], *, head: str, radios: str, labels: str,
     return f'{head}{radios}<nav class="ui-world-bar">{labels}</nav>{_board_html(world["board"])}{view}{controls}{tail}'
 
 
+def _menu_html(kind: str, glyph: str, attrs: str, panel: str, hidden: bool = False) -> str:
+    """One 48px button whose panel opens over the page: ☰ ⋯ ⭐ ⚙️ and any emoji of your own (``hidden`` until the script shows it)."""
+    return (f'<details class="ui-world-menu" data-menu="{kind}"{" hidden" if hidden else ""}><summary {attrs}>{glyph}</summary>'
+            f'<div class="ui-world-panel">{panel}</div></details>')
+
+
+def _tool_html(emoji: str, tool: dict[str, Any], *, wid: str = "", spot_rows: Callable[[list[str]], str] | None = None) -> str:
+    """An emoji of your own (``tools_validate``): a floor shortcut or a link is the button itself, the other kinds open a panel."""
+    attrs = _wt("", {"ja": tool["label"], "en": tool["label_en"], **tool.get("labels", {})})
+    if "floor" in tool:                                                       # a floor shortcut: its radio, so it works without JS too
+        return f'<label class="ui-world-tool" for="{wid}-floor-{tool["floor"]}" {attrs}>{escape(emoji)}</label>'
+    if "href" in tool:
+        return f'<a class="ui-world-tool" href="{escape(tool["href"], quote=True)}" {attrs}>{escape(emoji)}</a>'
+    if "spots" in tool:
+        panel = spot_rows(tool["spots"])
+    elif "links" in tool:
+        panel = '<ul class="ui-world-rows">' + "".join(
+            f'<li><a href="{escape(l["href"], quote=True)}">{escape(l["label"])}</a></li>' for l in tool["links"]) + '</ul>'
+    else:
+        panel = f'<p>{escape(tool["body"])}</p>'
+    return _menu_html("tool", escape(emoji), attrs, panel)
+
+
 def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tail: str, floor_labels: str) -> str:
     """A shell world keeps the page short and says it with icons (the words are the aria-label and title, in 11 languages):
 
@@ -1290,9 +1350,7 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
     """
     wid, floors, avatars, tools = world["id"], world["floors"], world.get("avatars", []), world.get("tools", {})
     categories, playable, tiled = _world_categories(floors), _world_playable(world), any(f.get("tile") for f in floors)
-    def icon(kind: str, glyph: str, attrs: str, panel: str, hidden: bool = False) -> str:
-        return (f'<details class="ui-world-menu" data-menu="{kind}"{" hidden" if hidden else ""}><summary {attrs}>{glyph}</summary>'
-                f'<div class="ui-world-panel">{panel}</div></details>')
+    icon = _menu_html
     on_floor = {sp["id"]: f["id"] for f in floors for sp in f["spots"]}
     def rows(ul_class: str, spots: list[dict[str, Any]], star: bool = False, data: str = "") -> str:
         return f'<ul class="ui-world-rows {ul_class}"{data}>' + "".join(
@@ -1301,11 +1359,7 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
             + (f'<button type="button" class="ui-world-star" aria-pressed="false" {_wt("star")}>☆</button>' if star else "") + '</li>' for sp in spots) + '</ul>'
     by_id = {sp["id"]: sp for f in floors for sp in f["spots"]}
     def custom(emoji: str, tool: dict[str, Any]) -> str:
-        attrs = _wt("", {"ja": tool["label"], "en": tool["label_en"], **tool.get("labels", {})})
-        if "floor" in tool:                                                       # a floor shortcut: its radio, so it works without JS too
-            return f'<label class="ui-world-tool" for="{wid}-floor-{tool["floor"]}" {attrs}>{escape(emoji)}</label>'
-        panel = rows("", [by_id[i] for i in tool["spots"]]) if "spots" in tool else f'<p>{escape(tool["body"])}</p>'
-        return icon("tool", escape(emoji), attrs, panel)
+        return _tool_html(emoji, tool, wid=wid, spot_rows=lambda ids: rows("", [by_id[i] for i in ids]))
     chips = ("".join(f'<label for="{wid}-cat-{"value-" + c if c else "all"}" data-cat="{c}">{escape(c or "all")}</label>' for c in ["", *categories])
              if categories else "")
     side = icon("spots", "☰", _wt("places"), (f'<nav class="ui-world-chips">{chips}</nav>' if chips else "") +
@@ -1344,6 +1398,59 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
             '</select></label></footer>') if len(floors) > 1 else ""
     return (f'{head}{radios}<header class="ui-world-head">{_board_html(world["board"])}<nav class="ui-world-tools">{header_tools}</nav></header>'
             f'<div class="ui-world-body">{view}{dpad}<div class="ui-world-side">{side}</div></div>{foot}{tail}')
+
+
+# ── 🧰 The chrome of a tool page: a world's header and side with no map ─────────────────────────────────────────────────────────
+# The same board, menus and words as a shell world (``_board_html``, ``_menu_html``, ``_tool_html``, ``WORLD_TEXT``), for a page that is not a
+# world: every tool of the portfolio carries it, so the clock, ☰ ⋯ ⭐ ⚙️ and the emoji a page adds look and behave the same everywhere.
+def chrome_validate(spec: Any) -> dict[str, Any]:
+    """``{"id", "board", "home", "places", "tools"}``: all optional but what the page wants shown.
+
+    ``id``      names the chrome; ⭐ and 🌐 are kept under it in this browser, so pages sharing an id share them (default ``tools``)
+    ``board``   the info board (``board_validate``; it shows, so no ``post`` and no ``shared_issue``)        ``home``   where 🏠 leads (left out: no 🏠)
+    ``places``  the rows of ☰, each ``{"id", "label", "href"}`` with a ☆ (up to 32); the script marks the page you are on with 📍
+    ``tools``   emoji of your own, key → feature (``tools_validate``: ``href``, ``links`` or ``body``, in the header or the side)
+    """
+    if not isinstance(spec, dict) or set(spec) - {"id", "board", "home", "places", "tools"}:
+        raise ValueError("a chrome has id, board, home, places and tools")
+    places, seen = [], set()
+    places_in = spec.get("places", [])
+    if not isinstance(places_in, list) or len(places_in) > 32 or any(not isinstance(p, dict) or set(p) != {"id", "label", "href"} for p in places_in):
+        raise ValueError("places lists up to 32 {id, label, href}")
+    for place in places_in:
+        places.append({"id": _world_id(place["id"], "place id", seen), "label": _world_text(place["label"], "label", 40),
+                       "href": _world_href(place["href"])})
+    board = board_validate(spec.get("board"))
+    if board and (board["post"] or board["shared_issue"]):
+        raise ValueError("a chrome's board shows: post and shared_issue belong to a world")
+    return {"id": _world_id(spec.get("id", "tools"), "chrome id", set()), "board": board,
+            "home": None if spec.get("home") is None else _world_href(spec["home"]), "places": places,
+            "tools": tools_validate(spec.get("tools", {}))}
+
+
+def chrome_html(spec: Any) -> str:
+    """The chrome as one ``<header>``: the board, then 🏠, your header emoji, ⭐ and ⚙️; the side holds ☰, your side emoji and ⋯.
+
+    Without JavaScript the board scrolls (one lap in 24 s; the script sets the lap by its length), 🏠 and the link emoji lead, and ☰ opens (a ``<details>``); ⭐ ⚙️ ⋯ and the ☆ wait for the script.
+    ⚙️ holds ⏯️ (stop the board) and 🌐 (the words of the icons, in eleven languages)."""
+    chrome = chrome_validate(spec)
+    tools = chrome["tools"]
+    rows = "".join(f'<li><a href="{escape(p["href"], quote=True)}" data-fav="{p["id"]}"><span class="ui-world-arrow" aria-hidden="true"></span>{escape(p["label"])}</a>'
+                   f'<button type="button" class="ui-world-star" aria-pressed="false" {_wt("star")}>☆</button></li>' for p in chrome["places"])
+    settings = ((f'<button type="button" class="ui-world-pause" aria-pressed="false" data-pause="⏯️" data-resume="▶️" {_wt("pause")}>⏯️</button>' if chrome["board"] else "") +
+                f'<label class="ui-world-lang">🌐 <select data-lang {_wt("language")}>' +
+                "".join(f'<option value="{code}" lang="{code}"{" selected" if i == 0 else ""}>{name}</option>' for i, (code, name) in enumerate(WORLD_LANGS)) +
+                '</select></label>')
+    head = ((f'<a class="ui-world-home" href="{escape(chrome["home"], quote=True)}" {_wt("home")}>🏠</a>' if chrome["home"] else "") +
+            "".join(_tool_html(e, t) for e, t in tools.items() if t["slot"] == "head") +
+            (_menu_html("favorites", "⭐", _wt("favorites"), '<p class="ui-world-empty" aria-hidden="true">☆</p><ul class="ui-world-rows ui-world-favs"></ul>', hidden=True)
+             if rows else "") +
+            _menu_html("settings", "⚙️", _wt("settings"), settings, hidden=True))
+    side = ((_menu_html("spots", "☰", _wt("places"), f'<ul class="ui-world-rows ui-world-spots">{rows}</ul>') if rows else "") +
+            "".join(_tool_html(e, t) for e, t in tools.items() if t["slot"] == "side") +
+            _menu_html("more", "⋯", _wt("screen"), '<ul class="ui-world-rows"></ul>', hidden=True))
+    return (f'<header class="ui-chrome ui-world-head" id="{chrome["id"]}-chrome" data-ui-chrome lang="ja">{_board_html(chrome["board"], timed=False)}'
+            f'<nav class="ui-world-tools">{head}</nav><div class="ui-world-side">{side}</div></header>')
 
 
 def _map_html(world: dict[str, Any]) -> str:
@@ -1441,7 +1548,7 @@ _WORLD_CSS = (
     ".ui-board{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:4px 8px;border-bottom:1px solid var(--ui-border);background:var(--ui-panel);"
     "font-family:var(--ui-font-mono);font-size:.85rem;overflow:hidden}"
     ".ui-board:has(.ui-board-shared){flex-wrap:wrap}.ui-board-shared{flex-basis:100%;white-space:normal;font-family:var(--ui-font);overflow-wrap:anywhere}.ui-board-shared ul{max-height:14rem;overflow:auto}"
-    ".ui-board-clock{flex:none;white-space:nowrap;border:1px solid var(--ui-accent);padding:0 .5rem;border-radius:var(--ui-radius)}"
+    ".ui-board-clock{flex:none;white-space:nowrap;border:1px solid var(--ui-accent);padding:0 .5rem;border-radius:var(--ui-radius);font-variant-numeric:tabular-nums}"
     ".ui-board-track{flex:4 1 14rem;min-width:0;overflow:hidden;white-space:nowrap}"
     ".ui-board-run{display:inline-flex;animation:ui-board-scroll 24s linear infinite}"
     ".ui-board-item{padding-right:3rem}"
@@ -1582,6 +1689,53 @@ def world_css(spec: Any, *, base: bool = True) -> str:
     return "@layer components{" + "".join(rules) + "}"
 
 
+def chrome_css(tokens: str = "") -> str:
+    """CSS for a tool page's chrome: the rules of ``_WORLD_CSS`` that style the board, the menus, the header and the side (picked by
+    selector, so the two cannot drift apart), then the chrome's own layout.
+
+    The header sits at the top of the page. ☰ ⋯ ride in its row; from 960px they stand at the right edge, mid-height, as in a world.
+    ``tokens`` is a declaration block (``--ui-bg:#0d1117;--ui-fg:…``) for a page that does not load the shared sheet: the chrome then
+    carries its own colours and its rules stay out of ``@layer`` (so that page's plain rules do not outrank them)."""
+    marks = (".ui-board", ".ui-world-menu", ".ui-world-panel", ".ui-world-rows", ".ui-world-star", ".ui-world-head", ".ui-world-tools",
+             ".ui-world-home", ".ui-world-side", ".ui-world-favs", ".ui-world-empty", ".ui-world-arrow", "ui-board-scroll")
+    rules, depth, start = [], 0, 0
+    for i, c in enumerate(_WORLD_CSS):
+        depth += (c == "{") - (c == "}")
+        if c == "}" and depth == 0:
+            rule, start = _WORLD_CSS[start:i + 1], i + 1
+            prelude = rule[:rule.index("{")]
+            if any(m in (rule if prelude.startswith("@media") else prelude) for m in marks):
+                rules.append(rule)
+    own = (".ui-chrome{position:relative;z-index:32;margin:0;padding:0;gap:0;font-family:var(--ui-font);font-size:1rem;line-height:1.5;color:var(--ui-fg);text-align:left}"
+           ".ui-chrome,.ui-chrome *{box-sizing:border-box}"
+           ".ui-chrome[data-js] .ui-world-star{display:inline-flex;align-items:center;justify-content:center}"
+           ".ui-chrome[data-motion-paused] .ui-board-run{animation-play-state:paused!important}"
+           ".ui-chrome .ui-world-panel{top:100%;right:8px;width:min(320px,calc(100% - 16px));max-height:min(60vh,384px)}"
+           ".ui-chrome .ui-world-rows a[aria-current]{font-weight:700}"
+           ".ui-chrome .ui-world-side{flex-direction:row;padding:4px 8px 4px 0;border-left:0;background:none}"
+           ".ui-chrome .ui-world-side .ui-world-menu>summary,.ui-chrome .ui-world-side .ui-world-tool{width:40px;height:40px}"
+           "@media(max-width:600px){.ui-chrome .ui-world-tools{width:auto;flex:1}}"
+           "@media(min-width:960px){.ui-chrome .ui-world-side{position:fixed;right:0;top:50%;transform:translateY(-50%);flex-direction:column;padding:8px;"
+           "border:1px solid var(--ui-border);border-right:0;background:var(--ui-panel)}"
+           ".ui-chrome .ui-world-side .ui-world-menu>summary,.ui-chrome .ui-world-side .ui-world-tool{width:48px;height:48px}"
+           ".ui-chrome .ui-world-side .ui-world-panel{top:50%;right:72px;transform:translateY(-50%);width:min(320px,calc(100vw - 88px));max-height:min(80vh,480px)}}")
+    return f".ui-chrome{{{tokens}}}{''.join(rules)}{own}" if tokens else "@layer components{" + "".join(rules) + own + "}"
+
+
+def add_chrome(page: str, spec: Any, *, tokens: str = "") -> str:
+    """🧰 A built page with the chrome (``chrome_html``) at the top of its ``<body>``, the chrome's CSS in its ``<head>`` and the chrome's
+    module (``SHELL_JS`` and one ``bindChrome()``) before ``</body>``. A page that has a chrome keeps it."""
+    if '<header class="ui-chrome ' in page:
+        return page
+    body = re.search(r"<body[^>]*>", page)
+    if not body or page.count("</head>") != 1 or "</body>" not in page:
+        raise ValueError("page has no single <head> and <body> to put the chrome in")
+    page = page[:body.end()] + chrome_html(spec) + page[body.end():]
+    end = page.rindex("</body>")
+    page = page[:end] + module_script(SHELL_JS + "bindChrome();\n") + page[end:]
+    return page.replace("</head>", f"<style>{chrome_css(tokens)}</style></head>", 1)
+
+
 # Browser arithmetic is a projection of the Python oracle, not Python execution.
 WORLD_MOTION_JS = r"""
 export function motionSample(s,t){const f=s.duration===0?(t>=s.at?1:0):Math.min(1,Math.max(0,(t-s.at)/s.duration));return s.from.map((v,i)=>v+(s.to[i]-v)*f)}
@@ -1683,18 +1837,54 @@ export function bindIssueBulletin(panel){
 WORLD_SHARED_JS = ISSUE_BULLETIN_JS + r"""
 export function bindSharedBoard(board){bindIssueBulletin(board.querySelector(".ui-board-shared"))}
 """
-WORLD_JS = WORLD_MOTION_JS + WORLD_SHARED_JS + WORLD_TEXT_JS + DIAL_JS + r"""/* web-ui world: one page, a camera. Shots: scroll marks light up (data-lit). Map: drag, wheel and pinch move a camera; spots open a sheet. No page changes. */
-const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
-export function fitZoom(w,h,vw,vh){return Math.min(vw/w,vh/h)}
-export function travelSeconds(x0,y0,x1,y1,speed){return Math.hypot(x1-x0,y1-y0)/speed}
+SHELL_JS = WORLD_TEXT_JS + r"""
+// ── The shell: what a world's header and side share with 🧰 the chrome of a tool page (chrome_html) ──
 export function minutesUntil(now,at){return Math.ceil(((at-now)%1440+1440)%1440)}
-export function boardClock(now,offset){const seconds=((now+offset*60)%86400+86400)%86400,whole=Math.floor(seconds);return{clock:[Math.floor(whole/3600),Math.floor(whole/60)%60].map(v=>String(v).padStart(2,"0")).join(":"),minutes:seconds/60}}
+export function boardClock(now,offset){const seconds=((now+offset*60)%86400+86400)%86400,whole=Math.floor(seconds);return{clock:[Math.floor(whole/3600),Math.floor(whole/60)%60,whole%60].map(v=>String(v).padStart(2,"0")).join(":"),minutes:seconds/60}}
 export function boardSeconds(chars,cps=8){return Math.max(8,Math.round(chars/cps*10)/10)}
 export function gaugeState(now,start,end,cells){const m=n=>((n%1440)+1440)%1440,span=m(end-start)||1440,el=m(now-start);if(el<span)return[Math.floor(el*cells/span),Math.floor(el*100/span),"active"];return m(start-now)<=m(now-end)?[0,0,"before"]:[cells,100,"after"]}
 export function gaugeCells(filled,cells,done,todo){return done.repeat(filled)+todo.repeat(cells-filled)}
 export function clockLabel(minutes){const h=Math.floor(minutes/60)%24,m=minutes%60;return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")}
 export function zoneOffset(rows,t){let lo=0,hi=rows.length/2-1;while(lo<hi){const mid=(lo+hi+1)>>1;if(rows[2*mid]<=t)lo=mid;else hi=mid-1}return rows[2*lo+1]}
 export function utcOffsetLabel(offset){if(offset===0)return"UTC";const a=Math.abs(offset),h=Math.floor(a/60),m=a%60;return"UTC"+(offset>0?"+":"-")+h+(m?":"+String(m).padStart(2,"0"):"")}
+// The info board: its clock (HH:MM:SS, once a second), "in N min", gauges and zone clocks (HH:MM). Returns {tick, clockNow}.
+export function bindBoard(board){const hm=t=>{const[h,m]=t.split(":").map(Number);return h*60+m},clockNow=()=>{const d=new Date(),off=board.dataset.offset===""?(-Math.round(d.getTimezoneOffset())||0):Number(board.dataset.offset);return{...boardClock(d.getTime()/1000,off),off}},chips=[...board.querySelectorAll("[data-zone-id]")].map(z=>({id:z.dataset.zoneId,rows:JSON.parse(z.dataset.rows),out:z.querySelector("[data-zone-clock]")})),tick=()=>{const clock=clockNow(),t=new Date().getTime()/1000,zones=new Map(chips.map(z=>{const c=boardClock(t,zoneOffset(z.rows,t));z.out.textContent=c.clock.slice(0,5);return[z.id,c]})),at=m=>(m.dataset.zone?zones.get(m.dataset.zone):clock).minutes,c=board.querySelector("[data-clock]");c.textContent=clock.clock+(board.dataset.offsetLabel!==undefined?" "+utcOffsetLabel(clock.off):"");for(const m of board.querySelectorAll("[data-at]")){const left=minutesUntil(at(m),hm(m.dataset.at));m.textContent=left===0?"いま":"あと"+left+"分"}for(const g of board.querySelectorAll(".ui-board-gauge")){const cells=Number(g.dataset.cells),[filled,pct]=gaugeState(Math.floor(at(g)),hm(g.dataset.from),hm(g.dataset.to),cells);g.querySelector(".ui-board-cells").textContent=gaugeCells(filled,cells,g.dataset.done,g.dataset.todo);g.querySelector(".ui-board-pct").textContent=pct+"%"}};
+const run=board.querySelector(".ui-board-run");if(run)run.style.animationDuration=boardSeconds(Number(board.dataset.chars))+"s";   // also where a strict CSP drops the style attribute
+tick();const timer=setInterval(()=>{if(board.isConnected)tick();else clearInterval(timer)},1000);return{tick,clockNow}}
+// ☰ ⋯ ⭐ ⚙️ and the emoji of your own: the menus show once the script runs, one open at a time; the returned shut() closes them all.
+function bindMenus(el){const menus=[...el.querySelectorAll('.ui-world-menu')];for(const m of menus){m.hidden=false;m.addEventListener('toggle',()=>{if(m.open)for(const o of menus)if(o!==m)o.open=false})}return()=>{for(const m of menus)m.open=false}}
+// A small cache in this browser, one key per world or chrome: [load, save(part)]. Nothing else is written.
+const stored=slot=>{const load=()=>{try{const v=JSON.parse(localStorage.getItem(slot));return v&&typeof v==='object'?v:{}}catch(e){return{}}};return[load,part=>{try{localStorage.setItem(slot,JSON.stringify({...load(),...part}))}catch(e){}}]};
+// 🌐: aria-labels and tooltips in one of eleven languages (data-t names a catalogue word, data-labels carries a tool's own words).
+const sayIn=(root,lang)=>{const i=WORLD_LANGS.indexOf(lang);for(const n of root.querySelectorAll('[data-t],[data-labels]')){const m=n.dataset.labels&&JSON.parse(n.dataset.labels),w=m?m[lang]||m.en||m.ja:WORLD_TEXT[n.dataset.t][i];n.setAttribute('aria-label',w);n.setAttribute('title',w)}};
+// ⭐ the ★ of a row lists it in the header's ⭐ panel: a world's places on any floor, the tools on any tool page. A row is known by its
+// data-fav (the same on every page), else by its href.
+function bindFavs(el,say,kept,save){const favs=el.querySelector('.ui-world-favs');if(!favs)return;const fav=new Set(),rows=()=>[...el.querySelectorAll('.ui-world-spots a')],key=a=>a.dataset.fav||a.getAttribute('href'),
+ show=()=>{for(const a of rows()){const on=fav.has(key(a)),b=a.parentElement.querySelector('.ui-world-star');b.setAttribute('aria-pressed',String(on));b.textContent=on?'★':'☆'}
+  favs.replaceChildren(...rows().filter(a=>fav.has(key(a))).map(a=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.className='ui-world-star';b.setAttribute('aria-pressed','true');b.dataset.t='star';b.textContent='★';li.append(a.cloneNode(true),b);return li}));say(favs)};
+ el.addEventListener('click',e=>{const b=e.target.closest('.ui-world-star');if(!b)return;const h=key(b.parentElement.querySelector('a'));if(fav.has(h))fav.delete(h);else fav.add(h);show();save({fav:[...fav]})});
+ for(const a of rows())if(Array.isArray(kept.fav)&&kept.fav.includes(key(a)))fav.add(key(a));if(fav.size)show()}
+// 🧰 The chrome of a tool page: the board, the menus, ⭐ and 🌐 of a world's shell, with no map. ☰ marks the page you are on (📍),
+// ⋯ lists this page's sections (the h2 of its <main>; none: no ⋯), ⏯️ stops the board. ⭐ and 🌐 are kept per chrome id, so they follow
+// you from tool to tool. Nothing else is kept, and this module asks the network for nothing.
+export function bindChrome(root=document){return[...root.querySelectorAll('[data-ui-chrome]')].map(el=>{if(el.hasAttribute('data-js'))return el;el.dataset.js='';
+ const shut=bindMenus(el),[load,save]=stored('ui-chrome:'+el.id),kept=load(),sel=el.querySelector('[data-lang]'),page=p=>p.replace(/index\.html$/,'');let lang='ja';
+ const say=r=>sayIn(r,lang),setLang=to=>{if(!WORLD_LANGS.includes(to))return;lang=to;el.lang=to;if(sel)sel.value=to;say(el)};
+ sel?.addEventListener('change',()=>{setLang(sel.value);save({lang})});
+ for(const a of el.querySelectorAll('.ui-world-spots a'))if(a.origin===location.origin&&page(a.pathname)===page(location.pathname)&&!a.hash){a.setAttribute('aria-current','page');a.querySelector('.ui-world-arrow').textContent='📍'}
+ bindFavs(el,say,kept,save);if(typeof kept.lang==='string'&&kept.lang!=='ja')setLang(kept.lang);
+ const pause=el.querySelector('.ui-world-pause');pause?.addEventListener('click',()=>{const on=el.toggleAttribute('data-motion-paused');pause.setAttribute('aria-pressed',String(on));pause.textContent=on?pause.dataset.resume:pause.dataset.pause});
+ const more=el.querySelector('[data-menu="more"]'),heads=[...document.querySelectorAll('main h2')].filter(h=>!el.contains(h)&&h.textContent.trim());
+ if(more){more.hidden=!heads.length;more.querySelector('.ui-world-rows').replaceChildren(...heads.map((h,i)=>{if(!h.id)h.id=el.id+'-part-'+(i+1);const li=document.createElement('li'),a=document.createElement('a');a.href='#'+h.id;a.textContent=h.textContent.trim();li.append(a);return li}))}
+ el.addEventListener('click',e=>{if(e.target.closest('.ui-world-rows a'))shut()});
+ el.addEventListener('keydown',e=>{if(e.key==='Escape')shut()});
+ document.addEventListener('pointerdown',e=>{if(!el.contains(e.target))shut()});
+ const board=el.querySelector('.ui-board');if(board)bindBoard(board);return el})}
+"""
+WORLD_JS = WORLD_MOTION_JS + WORLD_SHARED_JS + SHELL_JS + DIAL_JS + r"""/* web-ui world: one page, a camera. Shots: scroll marks light up (data-lit). Map: drag, wheel and pinch move a camera; spots open a sheet. No page changes. */
+const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
+export function fitZoom(w,h,vw,vh){return Math.min(vw/w,vh/h)}
+export function travelSeconds(x0,y0,x1,y1,speed){return Math.hypot(x1-x0,y1-y0)/speed}
 export function clampFocus(fx,fy,z,w,h,vw,vh){const hw=vw/(2*z),hh=vh/(2*z);return[w>2*hw?clamp(fx,hw,w-hw):w/2,h>2*hh?clamp(fy,hh,h-hh):h/2]}
 function bindShots(el){el.dataset.js="";const marks=[...el.querySelectorAll(".ui-shot-mark")];if(typeof IntersectionObserver==="undefined"){marks[0].dataset.lit="";return el}const io=new IntersectionObserver(es=>{for(const e of es){if(e.isIntersecting)e.target.dataset.lit="";else delete e.target.dataset.lit}},{root:el.querySelector(".ui-shots-scroll"),threshold:0.5});for(const m of marks)io.observe(m);return el}
 function bindMap(el){el.dataset.js="";const view=el.querySelector(".ui-world-view"),cam=el.querySelector(".ui-world-cam"),zmax=Number(el.dataset.zoomMax||4),pts=new Map();let fx=0,fy=0,z=1,moved=0,onFloor=()=>{};
@@ -1720,32 +1910,24 @@ const confirmMove=el.dataset.move==='confirm';
 if(confirmMove)for(const b of el.querySelectorAll('.ui-world-go'))b.hidden=false;
 const open=id=>{for(const i of el.querySelectorAll(".ui-sheet-item"))i.toggleAttribute("data-open",i.id===id);for(const s of el.querySelectorAll(".ui-spot"))s.toggleAttribute("data-selected",Boolean(id)&&s.getAttribute("href")==="#"+id)};
 // Side menus (☰ ⋯), the footer pulldown (door to door) and the arrows from the player to each listed spot.
-const menus=[...el.querySelectorAll('.ui-world-menu')],shut=()=>{for(const m of menus)m.open=false},goto=el.querySelector('.ui-world-goto'),rows='.ui-world-rows a';
-for(const m of menus)m.hidden=false;
+const shut=bindMenus(el),goto=el.querySelector('.ui-world-goto'),rows='.ui-world-rows a';
 // The spot the player stands by (the closest within 1.5 tiles) carries data-near: in the dots layer it alone shows its name.
 const near=p=>{const f=floor(),t=(Number(f.dataset.tile)||16)*1.5;let best=null,bd=Infinity;for(const a of f.querySelectorAll(".ui-spot[data-x]")){const d=Math.max(Math.abs(Number(a.dataset.x)-p[0]),Math.abs(Number(a.dataset.y)-p[1]));if(d<=t&&d<bd){best=a;bd=d}}for(const a of f.querySelectorAll(".ui-spot[data-near]"))if(a!==best)a.removeAttribute("data-near");if(best&&!best.hasAttribute("data-near"))best.setAttribute("data-near","")};
 const aim=p=>{near(p);for(const a of el.querySelectorAll(rows)){if(!a.offsetParent)continue;const out=a.querySelector('.ui-world-arrow'),f=floor(),g=a.dataset.floor===f.dataset.floor?direction(p,[Number(a.dataset.x),Number(a.dataset.y)],Number(f.dataset.tile)||16):'🚪';if(out.textContent!==g)out.textContent=g}if(goto){const r=shown();if(r&&goto.value!==r.value)goto.value=r.value}};
 // While a sheet is open the camera aims below the player or the spot, so they stay in the view above the sheet.
 const lift=()=>sheetInset()/(2*z);
 let follow=false,lx,ly;const walk=bindPlayer(el,floor,p=>{if(follow&&(p[0]!==lx||p[1]!==ly)){lx=p[0];ly=p[1];go(p[0],p[1]+lift(),z)}aim(p)});
-for(const m of menus)m.addEventListener('toggle',()=>{if(m.open)for(const o of menus)if(o!==m)o.open=false});
 view.addEventListener('pointerdown',shut);
 // ⭐ favourites, 🌐 language and 🏷️ the name layer are all a world keeps, as a small cache in this browser (one key per world, nothing else is written):
 // the emoji you pick and the board messages you post stay in the page.
-const slot='ui-world:'+el.id,load=()=>{try{const v=JSON.parse(localStorage.getItem(slot));return v&&typeof v==='object'?v:{}}catch(e){return{}}},
- save=part=>{try{localStorage.setItem(slot,JSON.stringify({...load(),...part}))}catch(e){}};
+const[load,save]=stored('ui-world:'+el.id);
 // 🌐: aria-labels and tooltips in one of eleven languages (data-t names a catalogue word, data-labels carries a tool's own words).
 let lang='ja';const sel=el.querySelector('[data-lang]'),
- say=root=>{const i=WORLD_LANGS.indexOf(lang);for(const n of root.querySelectorAll('[data-t],[data-labels]')){const m=n.dataset.labels&&JSON.parse(n.dataset.labels),w=m?m[lang]||m.en||m.ja:WORLD_TEXT[n.dataset.t][i];n.setAttribute('aria-label',w);n.setAttribute('title',w)}},
+ say=root=>sayIn(root,lang),
  setLang=to=>{if(!WORLD_LANGS.includes(to))return;lang=to;el.lang=to;if(sel)sel.value=to;say(el)};
 sel?.addEventListener('change',()=>{setLang(sel.value);save({lang})});
-// ⭐ the ★ of a place lists it in the header's ⭐ panel, on any floor.
-const favs=el.querySelector('.ui-world-favs'),fav=new Set(),spotRows=()=>[...el.querySelectorAll('.ui-world-spots a')],
- showFavs=()=>{for(const a of spotRows()){const on=fav.has(a.getAttribute('href')),b=a.parentElement.querySelector('.ui-world-star');b.setAttribute('aria-pressed',String(on));b.textContent=on?'★':'☆'}
-  favs.replaceChildren(...spotRows().filter(a=>fav.has(a.getAttribute('href'))).map(a=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.className='ui-world-star';b.setAttribute('aria-pressed','true');b.dataset.t='star';b.textContent='★';li.append(a.cloneNode(true),b);return li}));say(favs)};
-if(favs)el.addEventListener('click',e=>{const b=e.target.closest('.ui-world-star');if(!b)return;const h=b.parentElement.querySelector('a').getAttribute('href');if(fav.has(h))fav.delete(h);else fav.add(h);showFavs();save({fav:[...fav]})});
 // 🎒 items collected from spots (kept in localStorage beside fav, lang, names, alpha).
-const bagList=el.querySelector('.ui-world-bag'),bag=new Set(),takeBtns=()=>[...el.querySelectorAll('.ui-sheet-item .ui-world-take')],
+const spotRows=()=>[...el.querySelectorAll('.ui-world-spots a')],bagList=el.querySelector('.ui-world-bag'),bag=new Set(),takeBtns=()=>[...el.querySelectorAll('.ui-sheet-item .ui-world-take')],
  showBag=()=>{for(const b of takeBtns()){const on=bag.has(b.dataset.itemId);b.setAttribute('aria-pressed',String(on));b.querySelector('.ui-world-take-mark').textContent=on?'✓':'＋'}
   if(!bagList)return;
   bagList.replaceChildren(...takeBtns().filter(b=>bag.has(b.dataset.itemId)).map(b=>{
@@ -1758,7 +1940,7 @@ const bagList=el.querySelector('.ui-world-bag'),bag=new Set(),takeBtns=()=>[...e
 if(bagList){for(const b of takeBtns())b.hidden=false;
  el.addEventListener('click',e=>{const b=e.target.closest('.ui-world-take');if(!b)return;const id=b.dataset.itemId;if(bag.has(id))bag.delete(id);else bag.add(id);showBag();save({bag:[...bag]})})}
 const kept=load();
-if(favs){for(const a of spotRows())if(Array.isArray(kept.fav)&&kept.fav.includes(a.getAttribute('href')))fav.add(a.getAttribute('href'));if(fav.size)showFavs()}
+bindFavs(el,say,kept,save);
 if(bagList){for(const b of takeBtns())if(Array.isArray(kept.bag)&&kept.bag.includes(b.dataset.itemId))bag.add(b.dataset.itemId);if(bag.size)showBag()}
 if(typeof kept.lang==='string'&&kept.lang!=='ja')setLang(kept.lang);
 // 🏷️ the name layer (names / dots / off) switches without a reload and is kept with the language.
@@ -1795,13 +1977,13 @@ if(file){file.type='file';file.accept='image/*';file.hidden=true;el.append(file)
 realBtn?.addEventListener('click',()=>{shut();ask('🖼️📷',[{glyph:'📷',t:'camera',value:'camera'},{glyph:'🖼️',t:'photo',value:'photo'},...(back?[{glyph:'🧹',t:'clear',value:'clear'}]:[])],'backdrop').then(v=>{if(v==='camera')camera();else if(v==='photo')file.click();else if(v==='clear')unback()})});
 addEventListener('pagehide',unback);onFloor=syncReal;syncReal();
 el.querySelector('[data-me]')?.addEventListener('click',()=>{const p=walk.where?.();if(p){follow=true;lx=ly=undefined;go(p[0],p[1],Math.max(z,2))}});
-const board=el.querySelector(".ui-board"),hm=t=>{const[h,m]=t.split(":").map(Number);return h*60+m},clockNow=()=>{const d=new Date(),off=board.dataset.offset===""?(-Math.round(d.getTimezoneOffset())||0):Number(board.dataset.offset);return{...boardClock(d.getTime()/1000,off),off}},chips=board?[...board.querySelectorAll("[data-zone-id]")].map(z=>({id:z.dataset.zoneId,rows:JSON.parse(z.dataset.rows),out:z.querySelector("[data-zone-clock]")})):[],tick=()=>{const clock=clockNow(),t=new Date().getTime()/1000,zones=new Map(chips.map(z=>{const c=boardClock(t,zoneOffset(z.rows,t));z.out.textContent=c.clock;return[z.id,c]})),at=m=>(m.dataset.zone?zones.get(m.dataset.zone):clock).minutes,c=board.querySelector("[data-clock]");c.textContent=clock.clock+(board.dataset.offsetLabel!==undefined?" "+utcOffsetLabel(clock.off):"");for(const m of board.querySelectorAll("[data-at]")){const left=minutesUntil(at(m),hm(m.dataset.at));m.textContent=left===0?"いま":"あと"+left+"分"}for(const g of board.querySelectorAll(".ui-board-gauge")){const cells=Number(g.dataset.cells),[filled,pct]=gaugeState(Math.floor(at(g)),hm(g.dataset.from),hm(g.dataset.to),cells);g.querySelector(".ui-board-cells").textContent=gaugeCells(filled,cells,g.dataset.done,g.dataset.todo);g.querySelector(".ui-board-pct").textContent=pct+"%"}};
-if(board){bindSharedBoard(board);tick();const timer=setInterval(()=>{if(el.isConnected)tick();else clearInterval(timer)},1000);const form=board.querySelector(".ui-board-post");if(form){
+
+// A world's board also takes the lines a visitor posts (kept in the page) and, opted in, the shared section.
+const board=el.querySelector(".ui-board");if(board){const{tick,clockNow}=bindBoard(board);bindSharedBoard(board);const form=board.querySelector(".ui-board-post");if(form){
 const run=board.querySelector(".ui-board-run"),items=[...run.querySelectorAll(".ui-board-item")],base=items.slice(0,items.length/2).map(n=>n.cloneNode(true)),baseChars=Number(board.dataset.chars),notes=[];
-form.addEventListener("submit",e=>{e.preventDefault();const input=form.elements.message,text=cleanMessage(input.value);if(!text)return;input.value="";notes.unshift({text,at:clockNow().clock});notes.splice(5);run.replaceChildren();
+form.addEventListener("submit",e=>{e.preventDefault();const input=form.elements.message,text=cleanMessage(input.value);if(!text)return;input.value="";notes.unshift({text,at:clockNow().clock.slice(0,5)});notes.splice(5);run.replaceChildren();
 for(const hidden of [false,true]){for(const note of notes){const span=document.createElement("span");span.className="ui-board-item ui-board-note";if(hidden)span.setAttribute("aria-hidden","true");const stamp=document.createElement("span");stamp.className="ui-board-stamp";stamp.textContent=note.at;span.append(stamp,document.createTextNode(" "+note.text));run.append(span)}for(const item of base){const copy=item.cloneNode(true);if(hidden)copy.setAttribute("aria-hidden","true");run.append(copy)}}
 const chars=baseChars+notes.reduce((n,note)=>n+[...note.text].length+6,0);board.dataset.chars=chars;run.style.animationDuration=boardSeconds(chars)+"s";tick()})}}
-
 // 🏠 asks first (the shared dialog: 🏠 goes, ✖️ stays): home resets the floor, the filter and the sheet.
 const goHome=()=>{shut();close();follow=false;allCategories();setFloor(el.querySelector('input[name$="-floor"]')?.value,true);home()};
 el.querySelector('[data-home]')?.addEventListener('click',e=>{e.preventDefault();shut();ask('🏠❓',[{glyph:'🏠',t:'home',value:true}],'home').then(v=>{if(v)goHome()})});
@@ -1821,7 +2003,7 @@ const fromHash=()=>{const hash=location.hash.slice(1),a=hash&&el.querySelector(`
 addEventListener("hashchange",fromHash);home();fromHash();
 return el}
 export function bindWorlds(root=document){return[...root.querySelectorAll("[data-ui-world]")].map(el=>el.hasAttribute("data-js")?el:el.dataset.uiWorld==="shots"?bindShots(el):bindMap(el))}
-globalThis.webUiWorld={fitZoom,clampFocus,travelSeconds,minutesUntil,boardClock,boardSeconds,gaugeState,gaugeCells,clockLabel,utcOffsetLabel,zoneOffset,cleanMessage,motionWalk,motionSample,motionRoute,routeSample,gridPath,gridRoute,direction,cleanAvatar,bindWorlds};
+globalThis.webUiWorld={fitZoom,clampFocus,travelSeconds,minutesUntil,boardClock,boardSeconds,bindBoard,bindChrome,gaugeState,gaugeCells,clockLabel,utcOffsetLabel,zoneOffset,cleanMessage,motionWalk,motionSample,motionRoute,routeSample,gridPath,gridRoute,direction,cleanAvatar,bindWorlds};
 bindWorlds();
 """
 

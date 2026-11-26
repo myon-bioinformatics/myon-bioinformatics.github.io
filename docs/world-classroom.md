@@ -80,8 +80,9 @@ A catalogue can too: `catalogue_world(items, shell=True)` turns a long list into
 }
 ```
 
-Each entry adds one icon with exactly one feature: `spots` (a panel listing those places, with arrows), `body` (a panel with a note) or `floor` (a shortcut
-to that floor). `slot` is `head` (default) or `side`; `label` (ja) / `label_en` (en) / `labels` (`{"fr": "Carte", "de": "Karte"}`, any of the other nine codes) are the tooltip words. Up to 8; the page's own icons (🏠 ⭐ ⚙️ 🌐 ☰ ⋯ 🚪) are taken.
+Each entry adds one icon with exactly one feature: `spots` (a panel listing those places, with arrows), `body` (a panel with a note), `floor` (a shortcut
+to that floor), `href` (the icon is a link: a `./` `../` `/` path, a `#` fragment or an `https://` address) or `links` (a panel of up to 16 `{"label", "href"}` rows).
+The chrome of a tool page (`chrome_html`, below the world: no floors) takes `href`, `links` and `body`. `slot` is `head` (default) or `side`; `label` (ja) / `label_en` (en) / `labels` (`{"fr": "Carte", "de": "Karte"}`, any of the other nine codes) are the tooltip words. Up to 8; the page's own icons (🏠 ⭐ ⚙️ 🌐 ☰ ⋯ 🚪) are taken.
 Adding an icon is adding a key: nothing else in the page changes, and the key is the emoji itself.
 
 How flutter_navigation_basic's header maps here (so it can be archived): Home → 🏠; Favorite this page / Favorites → ☆ and ⭐ (session only); Menu → ☰ ⚙️;

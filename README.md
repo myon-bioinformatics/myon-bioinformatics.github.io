@@ -256,6 +256,32 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 
 🗓️ 2026-11-13 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k home_screen` writes `test-results/home-screen/home-screen-shortcut-<UTC>.gif` (CI keeps it in the browser evidence artifact); copy the newest one to `docs/evidence/home-screen.gif` to update this.
 
+### 🧰 Tools の共通ヘッダー（電光掲示板・時計・☰ ⋯ ⭐ ⚙️）
+
+🧰 Tools のページは、どれも同じヘッダーとサイドを持ちます（ワールドのページは同じ部品でできた自前のものを使います）。
+
+| | |
+|---|---|
+| 📟 | 電光掲示板：`TOOLS`、時計（`hh:mm:ss`）、🧰 Tools のカード名が流れる |
+| 🏠 | 🧰 Tools のカードへもどる |
+| ⭐ | ☰ の ☆ を付けた道具の一覧（このブラウザに保存。どの道具のページでも同じ） |
+| ⚙️ | ⏯️ 掲示板を止める ・ 🌐 アイコンの言葉（11 言語。保存） |
+| ☰ | 🧰 Tools の全リンク（いまのページに 📍）。`scripts/front_page.py` の `PORTAL` から作るので、カードを足せば行も増える |
+| ⋯ | このページの見出し（`h2`）へ移動。見出しがなければ出ない |
+
+絵文字は用途に応じて key-value で足せます（`href`＝リンク、`links`＝リンクの一覧、`body`＝ひとこと。`slot` は `head` か `side`）。
+地図URL・ピン留めのページは 🗼（パラレル都市）を足しています。
+
+```python
+add_back_nav(page, tools={'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'links': [
+    {'label': '🗼 パラレル東京', 'href': './tokyo.html'}, {'label': '🌍 東京・ロンドン・パリ', 'href': '../demos/cities.html'}]}})
+```
+
+![Tools の共通ヘッダー：☰ で ☆ を付け、⭐ に並び、🌐 を English にして、⭐ から次の道具へ移っても両方が引き継がれる（Chromium 560×480）](docs/evidence/tools-chrome.gif)
+
+🗓️ 2026-11-26 · `python tests/world_browser.py ToolChromeTests` writes `test-results/tools-chrome/tools-chrome-star-and-language-<UTC>.gif`; copy the newest one to `docs/evidence/tools-chrome.gif` to update this.
+作りは `scripts/world.py`（`chrome_html` / `chrome_css` / `add_chrome`、ワールドと共有する `SHELL_JS`）と `scripts/project_pages.py`（`tools_chrome` / `add_back_nav`）。
+
 ### 💬 横断チャット
 
 🧰 Tools → **💬 横断チャット**（`tools/demos/chat.html`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。

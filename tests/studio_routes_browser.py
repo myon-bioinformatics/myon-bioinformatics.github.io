@@ -2,6 +2,7 @@
 import functools
 import importlib.util
 import json
+import re
 import struct
 import subprocess
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -95,6 +96,27 @@ def test_image_studio_import_edit_and_download(browser, studio_origin, mobile):
         assert png[:8] == b"\x89PNG\r\n\x1a\n"
         assert int.from_bytes(png[16:20], "big") == scene["width"]
         assert int.from_bytes(png[20:24], "big") == scene["height"]
+    finally:
+        page.context.close()
+
+
+@pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
+def test_studio_csp_admits_the_tools_chrome(browser, studio_origin, mobile):
+    """🧰 The studios allow neither inline scripts nor inline styles; the chrome's module and sheet are listed by hash, so the
+    board's clock runs and its buttons are drawn (☰: 48px at the edge of a desktop, 40px in a phone's header), with no CSP report."""
+    page = _page(browser, studio_origin, mobile=mobile)
+    try:
+        blocked = []
+        page.on("console", lambda message: blocked.append(message.text) if "Content Security Policy" in message.text else None)
+        assert page.goto(studio_origin + "/tools/image-studio/").ok
+        expect(page.locator(".ui-chrome [data-clock]")).to_have_text(re.compile(r"^\d\d:\d\d:\d\d$"))
+        box = page.locator('.ui-chrome [data-menu="spots"] > summary').bounding_box()
+        assert (box["width"], box["height"]) == ((40, 40) if mobile else (48, 48)), box
+        assert page.evaluate("getComputedStyle(document.querySelector('.ui-chrome .ui-board-run')).animationDuration") != "24s"   # set by the script
+        page.locator('.ui-chrome [data-menu="spots"] > summary').click()
+        expect(page.locator(".ui-chrome a[aria-current=page]")).to_have_count(1)
+        assert page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") == 0
+        assert blocked == [], blocked
     finally:
         page.context.close()
 

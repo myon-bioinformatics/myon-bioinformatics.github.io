@@ -15,7 +15,8 @@ cities, 🎬 the camera) are built the same way for PySaiyanWeBoo's 🎞 GIF dem
 own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
 
 ``tools/html-import/index.html`` (the HTML import tool page) is built here too and hash-locked with the other pages.
-Every generated or imported tool page gets the same way back and shortcut label: ``add_back_nav()`` and
+Every generated or imported tool page gets the same way back, chrome and shortcut label: ``add_back_nav()`` (the way back and
+🧰 the chrome of scripts/world.py: the board with the clock, 🏠 ⭐ ⚙️ ☰ ⋯, built by ``tools_chrome()`` from the 🧰 Tools cards) and
 ``add_home_label()`` (_src/tools/mcp_lab.py gets them for the lab pages). ``load_module()`` loads a file of this
 repository by path (a sibling script or a vendored module) without touching ``sys.path``.
 """
@@ -279,11 +280,41 @@ def load_module(name: str, relative_path: str | Path) -> ModuleType:
     return module
 
 
-def add_back_nav(page: str) -> str:
-    """🏠 PySaiyanWeBoo's way back (``back_nav_html``) to the 🧰 Tools cards, right after <main> (else <body>);
-    a page that already has one keeps it."""
+def tools_chrome(prefix: str = '../../', tools: dict | None = None) -> dict:
+    """🧰 The chrome every tool page carries (scripts/world.py ``chrome_validate``), for a page ``prefix`` below the site root:
+    the board (TOOLS, the clock, the cards' titles), 🏠 back to the cards, ☰ every link of the 🧰 Tools cards (front_page.py
+    ``PORTAL``, so a new card is a new row) and ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``)."""
+    cards, site, places = load_module('front_page', 'scripts/front_page.py').PORTAL, 'https://myon-bioinformatics.github.io/tools/', {}
+    for card in cards:
+        for label, href in card['links']:
+            href = prefix + href[2:] if href.startswith('./') else prefix + 'tools/' + href[len(site):] if href.startswith(site) else href
+            name = re.sub(r'[^a-z0-9]+', '-', href.partition('tools/')[2].removesuffix('.html').lower()).strip('-') or card['id']
+            mark, _, rest = card['title'].partition(' ')                 # a card of several links: its emoji, then each link's own words
+            places.setdefault(href, {'id': name, 'href': href, 'label': card['title'] if len(card['links']) == 1 else
+                                     (mark + ' ' if rest and not any(c.isalnum() for c in mark) else '')
+                                     + label.removesuffix(' →').removeprefix('Open ')})
+    return {'id': 'tools', 'home': prefix + 'index.html#tools', 'places': list(places.values()), 'tools': tools or {},
+            'board': {'title': 'TOOLS', 'items': [{'text': card['title']} for card in cards[:12]]}}
+
+
+def add_back_nav(page: str, prefix: str = '../../', tools: dict | None = None) -> str:
+    """🏠 PySaiyanWeBoo's way back (``back_nav_html``) to the 🧰 Tools cards, right after <main> (else <body>), and 🧰 the chrome
+    (``tools_chrome``) at the top of the page; a page that already has one keeps it. A 🌍 world page has its own header and side
+    (the same parts), so it gets the way back only, and so does a fragment without <head> and <body>. A page that is not drawn
+    with the shared sheet's modern theme (another repository's own look: Ironmate's green) gets the chrome's colours with it. A page whose CSP lists its scripts or styles without ``'unsafe-inline'``
+    (HTML import, Ironmate's studios) gets the chrome's module and sheet listed too: their two hashes, nothing wider."""
     import pysaiyanweboo as ui
-    return ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': '../../index.html#tools'}], test_id='portfolio-back')
+    page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': prefix + 'index.html#tools'}], test_id='portfolio-back')
+    if 'data-ui-world="' in page or '<header class="ui-chrome ' in page or '</head>' not in page or '<body' not in page:
+        return page                               # a world, a page that has it, or a fragment with no <head> and <body> to carry it
+    world = _world()
+    tokens = '' if 'data-ui-theme="modern"' in page else re.search(r':root\{([^}]*)\}', ui.css_source('tokens.css'))[1]
+    page = world.add_chrome(page, tools_chrome(prefix, tools), tokens=tokens)
+    for directive, block in (('script-src', world.SHELL_JS + 'bindChrome();\n'), ('style-src', world.chrome_css(tokens))):
+        listed = re.search(r'Content-Security-Policy"\s+content="[^"]*?\b' + directive + r'([^;"]*)', page.partition('</head>')[0])
+        if listed and "'unsafe-inline'" not in listed[1]:
+            page = page[:listed.end()] + ' ' + ui.module_csp_hash(block) + page[listed.end():]
+    return page
 
 
 def add_home_label(page: str, label: str, *, icons_from: str | None = None) -> str:
@@ -787,10 +818,8 @@ CHECKOUTS = '.test-deps'   # 🧪 local checkouts (CI pins them) that --stage bu
 
 
 def _back_to_tools(page: str, path: str) -> str:
-    """The way back to 🧰 Tools from ``path`` (any depth), right after <main> (else <body>)."""
-    import pysaiyanweboo as ui
-    return ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': '../' * path.count('/') + 'index.html#tools'}],
-                           test_id='portfolio-back')
+    """The way back to 🧰 Tools and the chrome (``add_back_nav``) from ``path`` (any depth)."""
+    return add_back_nav(page, '../' * path.count('/'))
 
 
 def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, str]) -> dict:
@@ -908,7 +937,9 @@ def render_tools(ui, output: Path | None = None) -> dict[str, bytes]:
 
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     """Every hash-locked page: the demos and world pages, HTML import, map tools and the GIF workshop, keyed by published path."""
-    maps = {path: add_home_label(add_back_nav(document), '地図・ピン', icons_from='../../').encode('utf-8')
+    cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'links': [
+        {'label': '🗼 パラレル東京', 'href': './tokyo.html'}, {'label': '🌍 東京・ロンドン・パリ', 'href': '../demos/cities.html'}]}}
+    maps = {path: add_home_label(add_back_nav(document, tools=cities), '地図・ピン', icons_from='../../').encode('utf-8')
             for path, document in load_module('map_tool', 'scripts/map_tool.py').render(ui, _world()).items()}
     pages = {**render_demos(ui), **render_html_import(ui), **maps, **render_gif_tool(ui)}
     for sheet, builder in STYLESHEET_BUNDLES.items():

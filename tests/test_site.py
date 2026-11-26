@@ -184,7 +184,10 @@ def test_repository_map_reads_each_lock_and_aois_subtrees(tmp_path):
 def test_gif_workshop_page_keeps_images_in_the_browser():
     page = (SITE / "tools/gif/index.html").read_text(encoding="utf-8")
     assert 'id="gif-files"' in page and 'accept="image/*"' in page and "function bindMaker" in page   # PySaiyanWeBoo's gif_maker_document
-    assert "fetch(" not in page and "XMLHttpRequest" not in page and "localStorage" not in page   # nothing is sent or kept
+    tool, _, chrome = page.rpartition('<script type="module">')                                  # 🧰 the chrome's module is the last script
+    assert "bindChrome();" in chrome and "fetch(" not in page and "XMLHttpRequest" not in page     # nothing is sent
+    assert "localStorage" not in tool                                                             # the tool keeps nothing: no image, no setting
+    assert sorted(set(re.findall(r"save\(\{(\w+)", chrome))) == ["fav", "lang"]                     # the chrome keeps ⭐ and 🌐 only
 
 
 def test_catalog_pages_come_from_has_pages():
@@ -338,6 +341,59 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
     manifest = json.loads((tools / 'image-studio/brand/manifest.webmanifest').read_text())
     assert manifest['scope'] == '../../'
     assert manifest['shortcuts'] == [{'url': '../../slide-studio/'}]
+
+
+def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
+    """🧰 tools_chrome + scripts/world.py add_chrome: the board with the clock, 🏠, ⭐ ⚙️, ☰ every 🧰 Tools link, ⋯. A 🌍 world page
+    keeps its own header and side (the same parts), and every ☰ row leads to a page of this site."""
+    import html
+    import re
+    world = PAGES._world()
+    module = '<script type="module">' + world.SHELL_JS + 'bindChrome();\n</script></body>'
+    cards = [html.escape(card['title']) for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL]
+    pages = {*TOOL_PAGES, *(f'{folder}/{entry}index.html' for _, folder, entries in PAGES.TOOL_SOURCES.values() for entry in entries)}
+    assert len(pages) > len(TOOL_PAGES)
+    for name in sorted(pages):
+        page = (SITE / name).read_text(encoding='utf-8')
+        if 'data-ui-world="' in page:
+            assert '<header class="ui-chrome ' not in page, name                   # 🌍 its own header and side (or 🎬 none: scenes)
+            continue
+        prefix = '../' * name.count('/')
+        body = re.search(r'<body[^>]*>', page)
+        assert page[body.end():].startswith('<header class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="ja">'), name
+        assert page.count('<header class="ui-chrome') == 1 and module in page and '<span class="ui-board-clock" data-clock>--:--:--</span>' in page, name
+        assert f'<a class="ui-world-home" href="{prefix}index.html#tools"' in page, name
+        chrome = page[body.end():page.index('</header>', body.end())]
+        for title in cards:
+            assert chrome.count(f'>{title}</span>') == 2, (name, title)        # the board says each card twice (the loop)
+        rows = re.findall(r'<li><a href="([^"]+)" data-fav="([a-z0-9-]+)">', chrome)
+        assert len(rows) == len({fav for _, fav in rows}) >= len(cards), name
+        for href, fav in rows:
+            if href.startswith('https://'):
+                assert href == 'https://myon-bioinformatics.github.io/myon-bioinformatics/', href      # 🧭 another repository's Pages
+                continue
+            target = (SITE / name).parent / href
+            assert (target / 'index.html' if href.endswith('/') else target).resolve().is_file(), (name, href)
+    maps = (SITE / 'tools/maps/index.html').read_text(encoding='utf-8')            # 🗼 an emoji a page adds for its own use
+    assert '>🗼</summary>' in maps and '<li><a href="./tokyo.html">🗼 パラレル東京</a></li>' in maps
+    assert '>🗼</summary>' not in (SITE / 'tools/gif/index.html').read_text(encoding='utf-8')
+
+
+def test_html_import_csp_names_the_chrome_module_and_nothing_else():
+    import pysaiyanweboo as ui
+    world = PAGES._world()
+    html = (SITE / PAGES.HTML_IMPORT_PAGE).read_text(encoding='utf-8')
+    chrome = ui.module_csp_hash(world.SHELL_JS + 'bindChrome();\n')
+    assert f"script-src 'self' {chrome}; style-src 'self' 'unsafe-inline';" in html
+    assert html.count("'sha256-") == 1 and "'unsafe-inline'; img-src" in html and "connect-src 'none'" in html
+    strict = ('<!doctype html><html><head><meta\n http-equiv="Content-Security-Policy"\n content="default-src \'none\'; script-src \'self\'; '
+              'style-src \'self\'; img-src \'self\' data:"\n/><title>s</title></head><body data-ui-theme="green"><main><h1>s</h1></main></body></html>')
+    built = PAGES.add_back_nav(strict)                                         # Ironmate's studios: neither inline scripts nor inline styles
+    sheet = re.search(r'<style>(.*?)</style></head>', built, re.S)[1]
+    assert sheet.startswith('.ui-chrome{--ui-bg:#0d1117;') and '@layer' not in sheet     # its own look: the chrome brings its colours
+    assert f"script-src 'self' {chrome}; style-src 'self' {ui.module_csp_hash(sheet)}; img-src 'self' data:\"" in built
+    assert built.count("'sha256-") == 2 and ' style="' not in built and PAGES.add_back_nav(built) == built    # no style attribute to refuse
+    assert html.count('<script') == 2 and '<script type="module" src="./extract.mjs"></script>' in html
 
 
 def test_every_tool_page_has_the_same_back_link_first_in_main():
