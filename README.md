@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/myon-profile-icon.png" alt="Portfolio icon: a white cat beside a code window and a plant" width="160" height="160">
+  <img src="https://myon-bioinformatics.github.io/assets/brand/myon-profile-icon.png" alt="Portfolio icon: a white cat beside a code window and a plant" width="160" height="160">
 </p>
 
 <h1 align="center">🧭 myon-bioinformatics.github.io</h1>
