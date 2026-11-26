@@ -2,7 +2,7 @@
 # uv is a build-time tool here: it creates the pytest environment in its own stage and is not
 # part of the final image (no pip, no python3-venv, no uv).
 # The test interpreter is CPython 3.15.2 (same major as CI static/browser), not Bookworm's apt python3 (3.11).
-FROM ghcr.io/astral-sh/uv:0.13.6 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.10 AS uv
 FROM node:26-bookworm-slim AS base
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 
