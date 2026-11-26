@@ -2,7 +2,7 @@
 """💬 The portfolio's cross-repo chat bot: one Markdown reply per message, made by the fleet's own single-file modules.
 
 The same file runs in CPython (tests, ``python scripts/chat.py "/flow 入力 > 圧縮 > 出力"``) and in the chat page
-(tools/demos/chat.html), where Pyodide loads it next to markdown.py (md-market), ascii_artist.py, cli_args.py,
+(tools/chat/), where Pyodide loads it next to markdown.py (md-market), ascii_artist.py, cli_args.py,
 ontautology.py (🧬 /onto, 🎯 /guess) and olnm.py (🧷 /olnm) — the commits pinned in pyproject.toml's pages group. What it knows about the other repositories is ``media/chat/index.json``,
 written at deploy time by ``project_pages.py --record-chat``: every JSON / JSONL file of every active repository at its
 commit, and the tools mcp-toolcall-lab advertises. TalkCompress's shorthand compressor is fetched on first use.
