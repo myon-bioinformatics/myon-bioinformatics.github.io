@@ -48,7 +48,7 @@ DISTRIBUTION = 'pysaiyanweboo'
 DEMO_BASE = 'tools/demos/'
 HTML_IMPORT_PAGE = 'tools/html-import/index.html'
 HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
-MAP_PAGES = {'tools/maps/index.html', 'tools/maps/tokyo.html'}
+MAP_PINS_PAGE = 'tools/maps/index.html'
 
 # Files served verbatim. The generators write every other public file to the output tree.
 PUBLIC_SOURCE_FILES = (
@@ -939,11 +939,9 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     """Every hash-locked page: the demos and world pages, HTML import, map tools and the GIF workshop, keyed by published path."""
     map_tool = load_module('map_tool', 'scripts/map_tool.py')
     cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': '../demos/cities.html'}}
-    path = 'tools/maps/index.html'
     document = map_tool.map_document(ui, map_tool.tokyo_points(_world().example_data('cities')))
     document = document.replace('<html lang="en">', '<html lang="ja">', 1)
-    maps = {path: add_home_label(add_back_nav(document, path, cities), '地図・ピン', icons_from='../../').encode(),
-            'tools/maps/tokyo.html': map_tool.TOKYO_REDIRECT.encode()}
+    maps = {MAP_PINS_PAGE: add_home_label(add_back_nav(document, MAP_PINS_PAGE, cities), '地図・ピン', icons_from='../../').encode()}
     pages = {**render_demos(ui), **render_pswb_tools(ui), **render_html_import(ui), **maps, **render_gif_tool(ui), **render_chat_tool(ui)}
     for sheet, builder in STYLESHEET_BUNDLES.items():
         prefix = b'<style>' + getattr(ui, builder)().encode()
@@ -967,7 +965,7 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
     if set(lock['outputs']) != {HTML_IMPORT_MODULE, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
-    expected = ({HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, *PSWB_TOOLS} | MAP_PAGES | {DEMO_BASE + name + '.html' for name in WORLD_PAGES})
+    expected = ({HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, MAP_PINS_PAGE, *PSWB_TOOLS} | {DEMO_BASE + name + '.html' for name in WORLD_PAGES})
     if set(lock.get('pages', {})) != expected:
         raise ValueError('generated page paths differ from the tool and world lists')
     if ui is None:

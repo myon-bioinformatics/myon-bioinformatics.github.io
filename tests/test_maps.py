@@ -228,12 +228,12 @@ def test_nearby_city_handoff_preserves_radius_and_original_area(site, browser):
         page.close()
 
 
-def test_old_tokyo_bookmark_restores_spot_and_area(site, browser):
+def test_city_bookmark_restores_spot_and_area(site, browser):
     page = browser.new_page()
     try:
         suffix = '?lat=35.68135&lon=139.7665&name=Centre&radius_m=0#cities-spot-tokyo-kanda'
-        page.goto(site[1] + '/tools/maps/tokyo.html' + suffix)
-        expect(page).to_have_url(site[1] + '/tools/demos/cities.html' + suffix)
+        assert page.request.get(site[1] + '/tools/maps/tokyo.html').status == 404
+        page.goto(site[1] + '/tools/demos/cities.html' + suffix)
         page.locator('.ui-world-pick-grid [data-emoji]').first.click()
         expect(page.locator('#cities-spot-tokyo-kanda')).to_be_visible()
         page.locator('#area-return').click()

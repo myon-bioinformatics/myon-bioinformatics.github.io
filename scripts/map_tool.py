@@ -193,9 +193,3 @@ def add_map_links(ui, world, points):
     world = world.replace('<main>', '<main>' + banner, 1)
     return world.replace('</body>', COORDINATES_MODULE
                          + ui.module_script(TOKYO_SCRIPT.replace('__RANGE_HELPERS__', RANGE_HELPERS)) + '</body>', 1)
-
-
-# Existing shared world URLs can contain both an area query and a spot fragment.
-TOKYO_REDIRECT = """<!doctype html><html lang="ja"><meta charset="utf-8"><title>パラレル都市</title>
-<script>location.replace('../demos/cities.html'+location.search+location.hash)</script>
-<a href="../demos/cities.html">パラレル都市を開く</a></html>"""
