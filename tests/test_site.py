@@ -379,9 +379,9 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
     import re
     world = PAGES._world()
     import pysaiyanweboo as ui
-    module = ('<script type="module">' + world.SHELL_JS + 'bindChrome();\n</script><div class="ui-door-foot"><section class="ui-panel ui-door" id="door" data-ui-door ',
+    module = ('<script type="module">' + world.SHELL_JS + 'bindChrome();\n</script><div class="ui-door-foot"><div class="ui-door ui-door-compact" id="door" data-ui-door ',
               '</span></p></div><script type="module">' + PAGES.tools_door(ui)[2] + '</script></body>')
-    assert module[1].count(ui.js_source('door.js')) == 1 and 'addEventListener("pageshow"' in module[1]      # PySaiyanWeBoo's door.js, and one line
+    assert PAGES.tools_door(ui)[2] == ui.js_source('door.js') and 'addEventListener("pageshow",fill)' in module[1]   # PySaiyanWeBoo's door.js alone
     cards = [html.escape(card['title']) for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL]
     pages = {*TOOL_PAGES, *(f'{folder}/{entry}index.html' for _, folder, entries in PAGES.TOOL_SOURCES.values() for entry in entries)}
     assert len(pages) > len(TOOL_PAGES)
@@ -480,8 +480,8 @@ def test_door_to_door_in_chromium_with_a_gif():
                     foot, select = page.locator('.ui-door-foot').bounding_box(), page.locator('.ui-door-foot [data-door-select]')
                     assert (foot['x'], foot['width'], round(foot['y'] + foot['height'])) == (0, width, height) and foot['height'] <= 64, foot
                     assert select.bounding_box()['height'] == 40 and page.evaluate(shown) == '🗺️ 地図URLを作成 (current)'
-                    visible = page.evaluate("[...document.querySelectorAll('.ui-door-foot .ui-door *')].filter(e => e.offsetParent && e.tagName !== 'OPTION').map(e => e.tagName)")
-                    assert sorted(visible) == ['DIV', 'LABEL', 'SELECT'], visible          # 🚪 the label, the row, the pull-down: no panel
+                    visible = page.evaluate("[...document.querySelectorAll('.ui-door-foot .ui-door *')].filter(e => e.offsetParent && e.tagName !== 'OPTION' && e.getBoundingClientRect().width > 1).map(e => e.tagName)")
+                    assert visible == ['LABEL', 'SPAN', 'SELECT'], visible                 # 🚪 and the pull-down (compact): no panel
                     assert page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth') == 0
                     page.close()
                 page = browser.new_page(viewport={'width': 560, 'height': 480})
