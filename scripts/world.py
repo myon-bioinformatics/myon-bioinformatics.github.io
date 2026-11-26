@@ -1165,8 +1165,9 @@ def _board_html(board: dict[str, Any] | None, *, timed: bool = True) -> str:
                     f'{escape(z["label"])} <b data-zone-clock>--:--</b></span>' for z in board["zones"])
     chips = f'<span class="ui-board-zones">{chips}</span>' if chips else ""
     offset = board["offset_minutes"] if board["offset_minutes"] is not None else ""
+    duration = f' style="animation-duration:{board_seconds(chars)}s"' if timed else ""
     return (f'<div class="ui-board" aria-live="off" data-offset="{offset}" data-chars="{chars}"{label}><strong>{escape(board["title"])}</strong><span class="ui-board-clock" data-clock>--:--:--</span>{chips}'
-            f'<div class="ui-board-track"><div class="ui-board-run"{f' style="animation-duration:{board_seconds(chars)}s"' if timed else ""}>{run}</div></div>{form}{shared}</div>')
+            f'<div class="ui-board-track"><div class="ui-board-run"{duration}>{run}</div></div>{form}{shared}</div>')
 
 
 # The words of a shell world's chrome. The page shows icons; these are the aria-label and tooltip. 🌐 picks the language, the same
