@@ -141,13 +141,24 @@ def test_front_page_shows_only_the_moving_samples_this_build_recorded(tmp_path):
 
 def test_a_tools_card_shows_its_moving_sample_and_the_picture_opens_the_tool(tmp_path):
     """🎥 A 🧰 Tools card carries its sample only when the deploy recorded it (media/pages/tools/<id>.gif); the picture is a link to
-    the card's first page, as on a 🚀 Projects card. Every card has an id, so every card can have one."""
+    the card's first page, as on a 🚀 Projects card. Every card has an id, so every card can have one (🧭 the dashboard on another
+    repository's Pages too). With its picture, a card keeps its links in words only when it opens several pages of a kind."""
+    from html import escape as html_escape
     front = _front()
     ids = [card["id"] for card in front.PORTAL]
     assert len(ids) == len(set(ids)) and all(re.fullmatch(r"[a-z][a-z0-9-]*", key) for key in ids)
     assert "project-sample" not in front.portal_cards() and "media/pages/tools/" not in (SITE / "index.html").read_text(encoding="utf-8")
-    cards = front.portal_cards(frozenset({"tools/gif", "tools/operations", "gif", "tools/no-such-tool"}))
-    assert cards.count('class="project-sample"') == 2
+    plain = front.portal_cards()
+    assert all(f'<a href="{html_escape(href)}">{html_escape(label, quote=False)}</a>' in plain for card in front.PORTAL for label, href in card["links"])
+    cards = front.portal_cards(frozenset({"tools/gif", "tools/operations", "tools/maps", "gif", "tools/no-such-tool"}))
+    assert cards.count('class="project-sample"') == 3
+    assert "GIF をつくる →" not in cards and "Open Dashboard →" not in cards and ">実験室へ →</a>" in cards        # one page: the picture; no picture: the words
+    assert ('<a href="./tools/maps/">地図URLを作成 →</a><a href="./tools/maps/tokyo.html">パラレル東京 →</a>' in cards
+            and '<a class="project-sample" href="./tools/maps/">' in cards)                                    # relatives stay side by side
+    everything = front.portal_cards(frozenset(f"tools/{key}" for key in ids))
+    several = [card for card in front.PORTAL if len(card["links"]) > 1]
+    assert everything.count('class="project-sample"') == len(ids) and several
+    assert everything.count("<a href=") == sum(len(card["links"]) for card in several)
     assert ('<h3 id="gif">🎞 GIF工房</h3><a class="project-sample" href="./tools/gif/"><img src="./media/pages/tools/gif.gif" '
             'alt="🎥 🎞 GIF工房" loading="lazy" width="240" height="456"></a><p>') in cards
     assert '<a class="project-sample" href="https://myon-bioinformatics.github.io/myon-bioinformatics/"><img src="./media/pages/tools/operations.gif"' in cards

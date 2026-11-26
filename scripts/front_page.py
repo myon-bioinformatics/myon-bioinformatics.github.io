@@ -93,12 +93,14 @@ LINKS = {'🔗': {'label': 'リンク', 'label_en': 'Links', 'links': [
 def portal_cards(samples=frozenset()) -> str:
     """The 🧰 Tools cards (each repository's own Pages are linked from its 🚀 Projects card). 🎥 A card whose moving sample this
     build recorded (``tools/<id>`` in ``samples``: media/pages/tools/<id>.gif) shows it, and the picture opens the card's first
-    link, as a 🚀 Projects card's does."""
+    link, as a 🚀 Projects card's does. The picture is the way in: the links in words stay only where a card opens several pages
+    of a kind (its relatives, side by side), or where no picture was recorded."""
     out = []
     for card in PORTAL:
         key = html.escape(card['id'], quote=True)
         parts = [f'<h3 id="{key}">' + html.escape(card['title'], quote=False) + '</h3>']
-        if f'tools/{card["id"]}' in samples:
+        shown = f'tools/{card["id"]}' in samples
+        if shown:
             parts.append(f'<a class="project-sample" href="{html.escape(card["links"][0][1], quote=True)}"><img src="./media/pages/tools/{key}.gif" '
                          f'alt="🎥 {html.escape(card["title"], quote=True)}" loading="lazy" width="240" height="456"></a>')
         parts.append('<p>' + html.escape(card['text'], quote=False) + '</p>')
@@ -106,7 +108,8 @@ def portal_cards(samples=frozenset()) -> str:
             parts.append('<p class="portal-from">🧩 出どころ: ' + ' · '.join(html.escape(name, quote=False) for name in card['from']) + '</p>')
         if 'points' in card:
             parts.append('<ul class="portal-points">' + ''.join(f'<li>{point}</li>' for point in card['points']) + '</ul>')
-        parts += [f'<a href="{html.escape(href, quote=True)}">{html.escape(label, quote=False)}</a>' for label, href in card['links']]
+        if not shown or len(card['links']) > 1:
+            parts += [f'<a href="{html.escape(href, quote=True)}">{html.escape(label, quote=False)}</a>' for label, href in card['links']]
         out.append('        <article class="card portal-card">' + ''.join(parts) + '</article>\n')
     return '      <div class="portal-grid">\n' + ''.join(out)
 

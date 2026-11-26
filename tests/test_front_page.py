@@ -123,6 +123,7 @@ def test_a_tools_card_picture_opens_the_tool_and_the_weekly_note_draws_its_bars_
         page.goto("/with-samples.html")
         picture = page.locator('.portal-card a.project-sample[href="./tools/gif/"] img')
         expect(page.locator(".portal-card a.project-sample")).to_have_count(1)                  # only what was recorded
+        expect(page.locator(".portal-card", has=page.locator('a.project-sample[href="./tools/gif/"]')).locator("a")).to_have_count(1)   # one page: the picture, no words
         picture.scroll_into_view_if_needed()
         page.wait_for_function("img => img.complete && img.naturalWidth === 240 && img.naturalHeight === 456", arg=picture.element_handle())
         cam = world.Camera(page)
