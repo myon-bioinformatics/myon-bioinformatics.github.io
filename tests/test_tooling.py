@@ -419,12 +419,40 @@ def test_stub_normalizes_json_keys_consistently():
     assert assets.stub_response(spec['mock'], 'hello') == {'1': 'hello'}
 
 
-def test_copy_source_keeps_files_as_they_are_and_renders_nothing(tmp_path):
-    root, out = tmp_path / 'repo', tmp_path / 'site'
-    for path, text in {'AGENTS.md': '# agents', 'docs/a.md': '# A', 'assets/x.png': 'png', '_src/tools/t.py': 'x', 'node_modules/m.js': 'm',
-                       'tests/__pycache__/c.pyc': 'c', '.git/HEAD': 'h'}.items():
-        (root / path).parent.mkdir(parents=True, exist_ok=True)
-        (root / path).write_text(text)
-    assets.copy_source(out, root)
-    found = sorted(p.relative_to(out).as_posix() for p in out.rglob('*') if p.is_file())
-    assert found == ['AGENTS.md', 'assets/x.png', 'docs/a.md']                  # 📁 no .html made from a .md, no _src or caches
+def test_copy_source_copies_only_public_files_verbatim(tmp_path):
+    root = tmp_path / 'checkout'
+    development = ('AGENTS.md', 'README.md', '.coverage', 'pyproject.toml', 'uv.lock', '.git/HEAD',
+                   '.github/workflows/pages.yml', 'tests/test_sample.py', 'scripts/chat.py',
+                   '_src/tools/panel.js', 'vendor/pillow_min.py', 'tools/vendor/lab/html_snapshot.py',
+                   'docs/weekly-view.md', 'docs/evidence/scratch.gif', 'api/private.json',
+                   'assets/brand/.cache/preview.png', 'tools/niconico/__pycache__/sample.pyc')
+    for name in (*assets.PUBLIC_SOURCE_FILES, *development):
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(name, encoding='utf-8')
+
+    output = root / '_site'
+    generated = output / 'media/chat/index.json'
+    generated.parent.mkdir(parents=True)
+    generated.write_text('{}', encoding='utf-8')
+    assets.copy_source(output, root)
+
+    copied = {path.relative_to(output).as_posix(): path.read_text(encoding='utf-8')
+              for path in output.rglob('*') if path.is_file()}
+    expected = {name: name for name in assets.PUBLIC_SOURCE_FILES}
+    assert expected.keys().isdisjoint(development)
+    assert copied == {**expected, 'media/chat/index.json': '{}'}
+
+
+def test_copy_source_rejects_a_symlink_in_the_public_list(tmp_path):
+    root = tmp_path / 'checkout'
+    root.mkdir()
+    outside = tmp_path / 'outside'
+    outside.write_text('outside the checkout', encoding='utf-8')
+    (root / '.nojekyll').symlink_to(outside)
+    output = tmp_path / 'public'
+
+    with pytest.raises(ValueError, match=r'regular public file: \.nojekyll'):
+        assets.copy_source(output, root)
+
+    assert not output.exists()

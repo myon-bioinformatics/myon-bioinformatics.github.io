@@ -6,7 +6,7 @@ pinned once, in `[tool.uv.sources]` in `pyproject.toml`.
 cards, the profile and projects rendered in every display mode, stylesheet and script in one file; outside the
 lock because it follows the refreshed `api/repos.json`), the generated CSS/JS and the pages are not kept in git
 (`.gitignore`); only the license under `tools/vendor/web-ui/` is. `--output DIR` writes the
-generated files, `--stage DIR` writes the whole site (source tree plus generated files).
+generated files, `--stage DIR` writes the whole site (public static files plus generated files).
 
 `web-ui-assets.lock.json` (`web-ui-generated/2`) records the commit and SHA-256
 of all eight public assets. Normal generation checks the installed git provenance,
@@ -35,8 +35,15 @@ uv run --locked python scripts/project_pages.py --stage .generated-site
 npx playwright test --config playwright/html-import.config.js
 ```
 
-The front page tests stage the site themselves; the Node specs (HTML import, MCP lab) serve `.generated-site`, so stage it first. Pages writes the same verified
-assets over the copied source tree (`--copy-source`; no Jekyll). The public CSS/JS URLs remain unchanged.
+The front page tests stage the site themselves. Stage `.generated-site` before running the Node specs for HTML import and MCP lab.
+Use a fresh output directory to reproduce a deployment.
+
+`--copy-source` copies the files in `PUBLIC_SOURCE_FILES` from `scripts/project_pages.py`. Add a path there when a new
+file needs to be served verbatim. The list covers public JSON endpoints and browser settings, icons and the web app
+manifest, the HTML import guide, demo GIFs and their browser receipt, Niconico's browser script, and licenses.
+The weekly view is rendered into `index.html`, and the chat's Python and dependencies are embedded in its HTML for
+Pyodide. The generation and recording steps write those pages, the chat index, and other built assets directly to the
+output directory. Build scripts, development docs, tests, and caches stay in the checkout.
 
 ## Move the generator pin
 
