@@ -1281,5 +1281,178 @@ class CitiesTests(unittest.TestCase):
         self.assertEqual(self.errors, [])
 
 
+class ToolChromeTests(unittest.TestCase):
+    """🧰 The chrome of a tool page (chrome_html, add_chrome) on two pages of one site: the board's clock in seconds, ☰ this page's own
+    (itself with 📍, its sections, the rows it gives, each with ☆), ⭐ and 🌐 that follow to the next tool, ⏯️, ⋯ ⬆️ ⬇️, the emoji a page
+    adds, a phone, and no JavaScript.
+    The star-and-language run is recorded to test-results/tools-chrome/tools-chrome-star-and-language-<UTC>.gif."""
+    SPEC = {"board": {"title": "TOOLS", "items": [{"text": "🎞 GIF工房"}, {"text": "🌊 流れの実験室"}]}, "home": "../../index.html#tools",
+            "places": [{"label": "🌊 流れの実験室へ", "href": "../flow/index.html"}],
+            "tools": {"🗼": {"label": "パラレル都市", "label_en": "Parallel cities", "links": [{"label": "🗼 パラレル東京", "href": "../maps/tokyo.html"}]}}}
+
+    @classmethod
+    def setUpClass(cls):
+        def tool(title, parts):
+            body = f"<main><h1>{title}</h1>" + "".join(f'<h2>{part}</h2><p style="min-height:480px">{part}…</p>' for part in parts) + "</main>"
+            return W.add_chrome(W.render_document(trusted_html=body, title=title, css=W.bundled_css()), cls.SPEC)
+        cls.pages = {"/tools/gif/": tool("🎞 GIF工房", ["えらぶ", "ならべる", "つくる"]), "/tools/flow/index.html": tool("🌊 流れの実験室", [])}
+        cls.pw = sync_playwright().start()
+        cls.browser = W.launch(cls.pw)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.browser.close()
+        cls.pw.stop()
+
+    def open(self, path="/tools/gif/", width=1280, height=800, js=True):
+        context = self.browser.new_context(viewport={"width": width, "height": height}, java_script_enabled=js)
+        self.addCleanup(context.close)
+        self.requests = []
+        context.route("http://tools.test/**", lambda route: (self.requests.append(route.request.url), route.fulfill(
+            content_type="text/html", body=self.pages.get(route.request.url.removeprefix("http://tools.test"), "<main>404</main>")))[1])
+        page = context.new_page()
+        self.errors = []
+        page.on("pageerror", lambda e: self.errors.append(str(e)))
+        page.goto("http://tools.test" + path)
+        return page
+
+    def menu(self, page, kind):
+        page.click(f'.ui-chrome [data-menu="{kind}"] > summary')
+        return page.locator(f'.ui-chrome [data-menu="{kind}"] .ui-world-panel')
+
+    def test_clock_counts_seconds_and_pauses_only_the_board(self):
+        page = self.open()
+        clock = page.locator(".ui-chrome [data-clock]")
+        first = clock.inner_text()
+        self.assertRegex(first, r"^\d\d:\d\d:\d\d$")
+        page.wait_for_function("t => document.querySelector('.ui-chrome [data-clock]').textContent !== t", arg=first, timeout=3000)
+        self.assertRegex(clock.inner_text(), r"^\d\d:\d\d:\d\d$")
+        state = "() => getComputedStyle(document.querySelector('.ui-chrome .ui-board-run')).animationPlayState"
+        self.assertEqual(page.evaluate(state), "running")
+        self.menu(page, "settings").locator(".ui-world-pause").click()                       # ⏯️
+        self.assertEqual(page.evaluate(state), "paused")
+        self.assertEqual(page.locator(".ui-chrome .ui-world-pause").inner_text(), "▶️")
+        stopped = clock.inner_text()
+        page.wait_for_function("t => document.querySelector('.ui-chrome [data-clock]').textContent !== t", arg=stopped, timeout=3000)   # the clock goes on
+        page.click(".ui-chrome .ui-world-pause")
+        self.assertEqual(page.evaluate(state), "running")
+        self.assertEqual(self.errors, [])
+
+    def test_menus_open_one_at_a_time_and_the_list_is_this_page(self):
+        page = self.open()
+        for kind in ("favorites", "settings", "spots", "more", "tool"):
+            self.assertTrue(page.locator(f'.ui-chrome [data-menu="{kind}"] > summary').is_visible(), kind)
+        rows = self.menu(page, "spots")                                                                          # ☰ the page, its h2, the row it gave
+        self.assertEqual([t.replace("\n", "") for t in rows.locator("a").all_inner_texts()], ["📍🎞 GIF工房", "えらぶ", "ならべる", "つくる", "🌊 流れの実験室へ"])
+        self.assertEqual(rows.locator("a[aria-current=page]").count(), 1)
+        self.assertEqual(rows.locator(".ui-world-star").all_inner_texts(), ["☆"] * 5)
+        rows.locator("a").nth(3).click()                                                                         # a section: there, and ☰ closes
+        self.assertEqual(page.evaluate("location.hash"), "#tools-chrome-part-3")
+        self.assertEqual(page.locator(".ui-chrome .ui-world-menu[open]").count(), 0)
+        self.assertLess(page.evaluate("document.querySelector('#tools-chrome-part-3').getBoundingClientRect().top"), 400)
+        self.menu(page, "spots")
+        links = self.menu(page, "tool")                                                                          # 🗼 opens, ☰ closes
+        page.wait_for_function("() => document.querySelectorAll('.ui-chrome .ui-world-menu[open]').length === 1")
+        self.assertEqual(page.evaluate("[...document.querySelectorAll('.ui-chrome .ui-world-menu[open]')].map(m => m.dataset.menu)"), ["tool"])
+        self.assertEqual(links.locator("a").get_attribute("href"), "../maps/tokyo.html")
+        page.keyboard.press("Escape")
+        self.assertEqual(page.locator(".ui-chrome .ui-world-menu[open]").count(), 0)
+        self.menu(page, "settings")
+        page.mouse.click(320, 640)                                                                               # a tap on the page closes it
+        self.assertEqual(page.locator(".ui-chrome .ui-world-menu[open]").count(), 0)
+        self.assertEqual(page.get_attribute(".ui-chrome .ui-world-home", "href"), "../../index.html#tools")
+        bare = self.open("/tools/flow/index.html")                                                               # a page without sections: itself, and the row
+        self.assertEqual([t.replace("\n", "") for t in self.menu(bare, "spots").locator("a").all_inner_texts()], ["📍🌊 流れの実験室", "🌊 流れの実験室へ"])
+        self.assertEqual(self.errors, [])
+
+    def test_more_moves_this_screen_to_its_end_and_back(self):
+        page = self.open(height=480)
+        self.menu(page, "more").locator('[data-scroll="bottom"]').click()                                        # ⋯ ⬇️
+        page.wait_for_function("() => scrollY + innerHeight >= document.documentElement.scrollHeight - 1")
+        self.assertEqual(page.locator(".ui-chrome .ui-world-menu[open]").count(), 0)
+        self.assertGreater(page.evaluate("scrollY"), 480)
+        page.evaluate("document.querySelector('.ui-chrome').scrollIntoView()")                                   # the chrome is at the page's top
+        self.menu(page, "more").locator('[data-scroll="top"]').click()                                           # ⋯ ⬆️
+        page.wait_for_function("() => scrollY === 0")
+        self.assertEqual(page.locator('.ui-chrome [data-scroll]').all_text_contents(), ["⬆️", "⬇️"])
+        self.assertEqual(self.errors, [])
+
+    def test_star_and_language_follow_to_the_next_tool_with_a_gif(self):
+        page = self.open(width=560, height=480)
+        cam = W.Camera(page)
+        cam.hold(600)
+        self.assertEqual(page.evaluate("Object.keys(localStorage)"), [])                                          # nothing is kept until asked
+        rows = self.menu(page, "spots")
+        cam.hold(700)
+        rows.locator("li", has_text="つくる").locator(".ui-world-star").click()                                    # ☆ a section of this page
+        rows.locator("li").first.locator(".ui-world-star").click()                                                # ☆ the page itself
+        self.assertEqual(rows.locator(".ui-world-star").all_inner_texts(), ["★", "☆", "☆", "★", "☆"])
+        cam.hold(700)
+        favs = self.menu(page, "favorites")
+        self.assertEqual([t.replace("\n", "") for t in favs.locator("a").all_inner_texts()], ["🎞 GIF工房 › つくる", "📍🎞 GIF工房"])
+        cam.hold(900)
+        self.menu(page, "settings")
+        cam.hold(500)
+        page.select_option(".ui-chrome [data-lang]", "en")
+        self.assertEqual(page.get_attribute(".ui-chrome .ui-world-home", "aria-label"), "Home")
+        self.assertEqual(page.get_attribute('.ui-chrome [data-menu="tool"] > summary', "title"), "Parallel cities")   # a page's own emoji, its own words
+        self.assertEqual(page.get_attribute(".ui-chrome", "lang"), "en")
+        cam.hold(700)
+        self.menu(page, "spots").locator("a", has_text="流れの実験室へ").click()                                    # the row the page gave leads out
+        page.wait_for_url("http://tools.test/tools/flow/index.html")
+        page.wait_for_function("() => document.querySelector('.ui-chrome')?.hasAttribute('data-js')")
+        cam.hold(600)
+        self.assertEqual(page.get_attribute(".ui-chrome .ui-world-home", "aria-label"), "Home")                    # 🌐 followed
+        self.assertEqual(page.get_attribute(".ui-chrome .ui-world-star >> nth=0", "aria-label"), "Favorite")       # and the rows the script made speak it
+        favs = self.menu(page, "favorites")
+        self.assertEqual(favs.locator("a").all_inner_texts(), ["🎞 GIF工房 › つくる", "🎞 GIF工房"])                   # ⭐ followed: places of another tool
+        cam.hold(900)
+        kept = page.evaluate("Object.fromEntries(Object.keys(localStorage).map(k => [k, JSON.parse(localStorage.getItem(k))]))")
+        self.assertEqual(kept, {"ui-chrome:tools-chrome": {"lang": "en", "fav": [
+            {"href": "/tools/gif/#tools-chrome-part-3", "label": "🎞 GIF工房 › つくる"}, {"href": "/tools/gif/", "label": "🎞 GIF工房"}]}})   # one key, two fields
+        favs.locator("a").first.click()                                                                           # ⭐ leads to the starred section
+        page.wait_for_url("http://tools.test/tools/gif/#tools-chrome-part-3")
+        page.wait_for_function("() => document.querySelector('.ui-chrome')?.hasAttribute('data-js')")
+        self.assertLess(page.evaluate("document.querySelector('#tools-chrome-part-3').getBoundingClientRect().top"), 240)
+        cam.hold(700)
+        self.menu(page, "favorites").locator(".ui-world-star").first.click()                                      # ★ again: gone, here and in ☰
+        self.assertEqual(page.evaluate("JSON.parse(localStorage.getItem('ui-chrome:tools-chrome')).fav.map(f => f.href)"), ["/tools/gif/"])
+        self.assertEqual(page.locator(".ui-chrome .ui-world-spots .ui-world-star").all_text_contents(), ["★", "☆", "☆", "☆", "☆"])
+        cam.hold(600)
+        self.assertEqual([url for url in self.requests if not url.startswith("http://tools.test/tools/")], [])    # the chrome asks for nothing
+        self.assertEqual(self.errors, [])
+        target = W.gif_targets(W.ROOT / "test-results" / "tools-chrome", ["tools-chrome-star-and-language"], run_details=["timestamp"])
+        gif = W.encode(cam.shots, width=392)
+        target["tools-chrome-star-and-language"].write_bytes(gif)
+        self.assertEqual(gif[:6], b"GIF89a")
+
+    def test_side_stands_at_the_edge_on_a_desktop_and_rides_the_header_on_a_phone(self):
+        for width, height, position in ((1280, 800, "fixed"), (392, 848, "static"), (320, 568, "static")):
+            with self.subTest(width=width):
+                page = self.open(width=width, height=height)
+                self.assertEqual(page.evaluate("getComputedStyle(document.querySelector('.ui-chrome .ui-world-side')).position"), position)
+                self.assertEqual(page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth"), 0)
+                panel = self.menu(page, "spots")
+                box, head = panel.bounding_box(), page.locator(".ui-chrome").bounding_box()
+                self.assertGreaterEqual(box["x"], 0)
+                self.assertLessEqual(box["x"] + box["width"], width)
+                self.assertLessEqual(box["y"] + box["height"], height)
+                self.assertLessEqual(head["height"], 96 if width > 600 else 136, head)                # the page keeps its height
+                buttons = page.evaluate("[...document.querySelectorAll('.ui-chrome summary, .ui-chrome .ui-world-home')].map(b => { const r = b.getBoundingClientRect(); return [r.width, r.height] })")
+                self.assertTrue(all(w >= 40 and h >= 40 for w, h in buttons), buttons)
+                self.assertEqual(self.errors, [])
+
+    def test_without_javascript_the_board_home_and_the_list_still_work(self):
+        page = self.open(js=False)
+        self.assertEqual(page.locator(".ui-chrome [data-clock]").inner_text(), "--:--:--")
+        for kind in ("favorites", "settings", "more"):
+            self.assertTrue(page.locator(f'.ui-chrome [data-menu="{kind}"]').is_hidden(), kind)
+        rows = self.menu(page, "spots")                                                       # a <details> with a row of its own: it opens by itself
+        self.assertEqual(rows.locator("a").all_inner_texts(), ["🌊 流れの実験室へ"])              # the page and its sections wait for the script
+        self.assertTrue(rows.locator(".ui-world-star").first.is_hidden())                     # ☆ needs the script
+        rows.locator("a").click()
+        page.wait_for_url("http://tools.test/tools/flow/index.html")
+
+
 if __name__ == "__main__":
     unittest.main()

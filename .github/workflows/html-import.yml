@@ -53,14 +53,14 @@ jobs:
           docker run --rm -i --entrypoint sh -v "$PWD/reports:/app/reports" html-import-test -s <<'SCRIPT'
           set -eu
           out="${OUT:-/app/reports}"
-          roots="${ROOTS:-$(ls -d /root/.cache/ms-playwright/*/ 2>/dev/null | tr '\n' ' ')/usr/local/bin/node /usr/bin/python3}"
+          roots="${ROOTS:-$(ls -d /root/.cache/ms-playwright/*/ 2>/dev/null | tr '\n' ' ')/usr/local/bin/node /opt/tests/bin/python}"
           mkdir -p "$out"
           dpkg-query -W -f='${Package}\t${Architecture}\t${Version}\t${Installed-Size}\n' | sort > "$out/html-import-apt-installed.tsv"
           apt-mark showmanual | sort > "$out/html-import-apt-manual.txt"
           {
             echo "node $(node --version)"
             echo "npm $(npm --version)"
-            echo "python $(python3 --version 2>&1)"
+            echo "python $(python --version 2>&1)"
             ls /root/.cache/ms-playwright 2>/dev/null || true
           } > "$out/html-import-runtime.txt"
           # Shared libraries that node, python and the Playwright browsers load, and the package that owns each file.
