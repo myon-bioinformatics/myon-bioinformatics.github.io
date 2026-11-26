@@ -558,10 +558,13 @@ def world_validate(spec: Any) -> dict[str, Any]:
             raise ValueError("a floor lists 1..64 spots")
         spots = []
         for spot in spots_in:
-            if not isinstance(spot, dict) or set(spot) - {"id", "x", "y", "label", "category", "body", "flip", "sign", "mark", "item"}:
-                raise ValueError("a spot has id, x, y, label, category, body, flip, sign, mark and item")
+            if not isinstance(spot, dict) or set(spot) - {"id", "x", "y", "label", "category", "body", "flip", "sign", "mark", "item", "always_named"}:
+                raise ValueError("a spot has id, x, y, label, category, body, flip, sign, mark, item and always_named")
             if "sign" in spot and spot["sign"] not in WORLD_SIGNS:
                 raise ValueError(f"sign is one of {', '.join(WORLD_SIGNS)}")
+            named = spot.get("always_named", False)
+            if not (isinstance(named, bool) or named in ("left", "right")) or (named and "sign" in spot):
+                raise ValueError("always_named is true, left or right (the side its name hangs on), and a sign keeps its own dot and text")
             category = spot.get("category", "")
             if category != "" and not (isinstance(category, str) and _WORLD_TOKEN.fullmatch(category)):
                 raise ValueError("category must be a lowercase token")
@@ -578,6 +581,7 @@ def world_validate(spec: Any) -> dict[str, Any]:
                           **({"flip": _world_text(spot["flip"], "flip", 16)} if "flip" in spot else {}),
                           **({"sign": spot["sign"]} if "sign" in spot else {}),
                           **({"mark": _world_mark(spot["mark"])} if "mark" in spot else {}),
+                          **({"always_named": named} if named else {}),
                           **({"item": item} if item is not None else {})})
         actors = []
         actors_in = floor.get("actors", [])
@@ -836,7 +840,7 @@ def land_floor(theme: str = "meadow", cols: int = 24, rows: int = 16, *, seed: i
 # A real place in miniature: points with a latitude and longitude laid on the tile grid (``meters`` of ground per tile), roads between linked
 # points, and rivers as bands of water that roads cross as bridges. The projection and the box come from the coordinate tools below (the same
 # Earth radius and ``tolerance_area``), so a place is only data: a list of points, nothing drawn by hand.
-_PLACE_KEYS = {"points", "meters", "tile", "links", "rivers", "area", "start", "scatter", "marks"}
+_PLACE_KEYS = {"points", "meters", "tile", "links", "rivers", "area", "start", "scatter", "marks", "always_named"}
 _PLACE_POINT_KEYS = {"id", "label", "lat", "lon", "maps", "category", "body", "flip", "sign", "mark"}
 
 
@@ -893,7 +897,8 @@ def _place_rects(cells: set[tuple[int, int]]) -> list[tuple[int, int, int, int]]
 
 
 def place_floor(points: list[dict[str, Any]], *, meters: int = 64, tile: int = 32, links: Any = (), rivers: Any = (), area: Any = None,
-                start: str | None = None, scatter: Any = None, marks: Any = None, id: str = "place", label: str = "場所") -> dict[str, Any]:
+                start: str | None = None, scatter: Any = None, marks: Any = None, always_named: Any = (), id: str = "place",
+                label: str = "場所") -> dict[str, Any]:
     """A real place as a floor: each point (``id``, ``label``, ``lat`` and ``lon``, or ``maps`` with a Maps URL; optional ``category`` and ``body``) becomes a
     spot on the tile its position falls on, ``meters`` of ground per tile.
 
@@ -907,7 +912,10 @@ def place_floor(points: list[dict[str, Any]], *, meters: int = 64, tile: int = 3
     it takes no tile and sits between the stations; two signs on one corner go to the nearest free corner, and it must touch a tile that can be walked on.
 
     ``marks`` is ``{category: emoji}``: a point without its own ``mark`` gets its category's emoji as the mark drawn instead of the dot
-    (``mark_scale`` on the world sets the marks' width and height factors).
+    (``mark_scale`` on the world sets the marks' width and height factors). ``always_named`` lists the categories whose points always show
+    their names, faint in the name layer behind the marks, whatever the world's ``names`` says (a sign keeps its own dot and text). Their names
+    hang away from the middle of the group (west of it to the left, east of it to the right), the mark staying on the point, so the two sides
+    of a station do not cover each other; a spot's own ``always_named`` is ``true`` (centred), ``"left"`` or ``"right"``.
 
     ``scatter`` is ``{"kind": "fire", "every": 8, "seed": 1}``: the map is cut into blocks of ``every`` tiles and one free tile in each gets the kind
     (a decoration such as ``fire``: not ground, not solid), chosen by a small seeded generator, so the same arguments give the same places.
@@ -1032,8 +1040,14 @@ def place_floor(points: list[dict[str, Any]], *, meters: int = 64, tile: int = 3
         raise ValueError("marks is {category: emoji}")
     marks = {k: _world_mark(v) for k, v in (marks or {}).items()}
     mark = lambda p: {"mark": p["mark"]} if "mark" in p else {"mark": marks[p["category"]]} if p["category"] in marks else {}   # noqa: E731
+    if isinstance(always_named, str) or not all(isinstance(k, str) and _WORLD_TOKEN.fullmatch(k) for k in always_named):
+        raise ValueError("always_named is a list of categories")
+    group = [p["cell"][0] for p in pts if p["category"] in always_named]
+    middle = sum(group) / len(group) if group else 0                                  # names hang away from the middle of their group, so two rows
+    named = lambda p: ({"always_named": "left" if p["cell"][0] < middle else "right" if p["cell"][0] > middle else True}   # noqa: E731  (do not cover
+                       if p["category"] in always_named else {})                                                          # each other)
     spots = [{"id": f"{id}-{p['id']}", "x": int((p["cell"][0] + .5) * tile), "y": int((p["cell"][1] + .5) * tile), "label": p["label"],
-              "category": p["category"], "body": p["body"], **({"flip": p["flip"]} if "flip" in p else {}), **mark(p)} for p in pts]
+              "category": p["category"], "body": p["body"], **({"flip": p["flip"]} if "flip" in p else {}), **mark(p), **named(p)} for p in pts]
     spots += [{"id": f"{id}-{p['id']}", "x": p["corner"][0] * tile, "y": p["corner"][1] * tile, "label": p["label"], "category": p["category"],
                "body": p["body"], "sign": p["sign"], **({"flip": p["flip"]} if "flip" in p else {}), **mark(p)} for p in signs]
     return {"id": id, "label": label, "width": cols * tile, "height": rows * tile, "tile": tile, "props": props, "actors": [], "spots": spots,
@@ -1221,7 +1235,7 @@ def _world_playable(world: dict[str, Any]) -> bool:
 
 def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = False) -> tuple[str, list[str]]:
     """One floor's stage (props, spots, actors, player) and the info sheet articles of its spots and actors (``close`` is their closing link)."""
-    flip = lambda s: (f' data-flip="{escape(s["flip"], quote=True)}"' if s.get("flip") else "") + (f' data-sign="{s["sign"]}"' if s.get("sign") else "")   # noqa: E731
+    flip = lambda s: (f' data-flip="{escape(s["flip"], quote=True)}"' if s.get("flip") else "") + (f' data-sign="{s["sign"]}"' if s.get("sign") else "") + (f' data-named="{"" if s["always_named"] is True else s["always_named"]}"' if s.get("always_named") else "")   # noqa: E731
     mark = lambda s: f';--mark:\'{escape(s["mark"], quote=True)}\'' if s.get("mark") else ""   # noqa: E731  (the dot's replacement, read by CSS content)
     spots = "".join(
         f'<a class="ui-spot" href="#{wid}-spot-{s["id"]}" data-x="{s["x"]}" data-y="{s["y"]}" data-category="{s["category"]}" '
@@ -1409,15 +1423,21 @@ _WORLD_CSS = (
     "text-shadow:0 0 3px var(--ui-bg),0 0 3px var(--ui-bg),0 1px 2px var(--ui-bg)}"
     ".ui-spot:not([data-sign]):is(:hover,:focus-visible,[data-near],[data-selected]){background:var(--ui-bg);border-color:var(--ui-accent);color:var(--ui-fg);"
     "font-size:.82rem;padding:.2rem .6rem;text-shadow:none;z-index:var(--ui-layer-mark)}"
-    ".ui-spot[data-sign],.ui-world[data-names=dots] .ui-spot:not([data-sign]):not([data-near]):not(:hover):not(:focus-visible),.ui-world[data-names=off] .ui-spot:not([data-sign]):not(:hover):not(:focus-visible)"
+    ".ui-spot[data-sign],.ui-world[data-names=dots] .ui-spot:not([data-sign]):not([data-near]):not(:hover):not(:focus-visible):not([data-named]),"
+    ".ui-world[data-names=off] .ui-spot:not([data-sign]):not(:hover):not(:focus-visible):not([data-named])"
     "{z-index:var(--ui-layer-mark);padding:.3rem .5rem;border-radius:4px;font-size:0;line-height:1;letter-spacing:.04em;background:color-mix(in srgb,var(--ui-bg) 78%,transparent);border-color:color-mix(in srgb,var(--ui-border) 80%,transparent);text-shadow:none}"
-    ".ui-spot[data-sign]::before,.ui-world[data-names=dots] .ui-spot:not([data-sign]):not([data-near]):not(:hover):not(:focus-visible)::before,"
-    ".ui-world[data-names=off] .ui-spot:not([data-sign]):not(:hover):not(:focus-visible)::before{content:var(--mark,\"●\");font-size:.7rem}"
+    ".ui-spot[data-sign]::before,.ui-world[data-names=dots] .ui-spot:not([data-sign]):not([data-near]):not(:hover):not(:focus-visible):not([data-named])::before,"
+    ".ui-world[data-names=off] .ui-spot:not([data-sign]):not(:hover):not(:focus-visible):not([data-named])::before{content:var(--mark,\"●\");font-size:.7rem}"
     # A mark (an emoji in --mark) stands in for the dot and leads the name; --mark-x / --mark-y on the world scale every mark's width and height.
     ".ui-spot::before{display:inline-block;transform:scale(var(--mark-x,1),var(--mark-y,1))}"
-    ".ui-world[data-names=names] .ui-spot:not([data-sign])::before,.ui-world[data-names=dots] .ui-spot[data-near]:not([data-sign])::before,"
+    # A spot with data-named (always_named) stays in the name layer in every mode: its name shows faint behind the marks, like a village's name on a land.
+    ".ui-world[data-names=names] .ui-spot:not([data-sign])::before,.ui-world[data-names=dots] .ui-spot[data-near]:not([data-sign])::before,.ui-spot[data-named]::before,"
     ".ui-world:not([data-names=names]) .ui-spot:not([data-sign]):hover::before,.ui-world:not([data-names=names]) .ui-spot:not([data-sign]):focus-visible::before{content:var(--mark);margin-right:.3em}"
     ".ui-world[data-names]:not([data-names=names]) .ui-spot:not([data-sign]){border-radius:999px}"
+    # data-named=left / right: the name hangs on that side and the mark stays on the point (the camera's zoom --z keeps both where they are).
+    ".ui-spot[data-named=left]{display:flex;flex-direction:row-reverse;transform-origin:right center;transform:translate(calc(-100% + .85rem / var(--z,1)),-50%) scale(calc(1 / var(--z,1)))}"
+    ".ui-spot[data-named=left]::before{margin:0 0 0 .3em}"
+    ".ui-spot[data-named=right]{transform-origin:left center;transform:translate(calc(-.85rem / var(--z,1)),-50%) scale(calc(1 / var(--z,1)))}"
     ".ui-world[data-names=dots] .ui-spot[data-near],.ui-world:not([data-names=names]) .ui-spot:hover,.ui-world:not([data-names=names]) .ui-spot:focus-visible{z-index:var(--ui-layer-mark)}"
     ".ui-spot[data-sign][data-show]{padding:.05rem .4rem;font-size:.7rem}.ui-spot[data-sign][data-show]::before{content:var(--mark,\"●\");margin-right:.3em}"
     ".ui-spot[data-sign=led]{background:#111;color:#ffb000;border-color:#ffb000;font-family:monospace;text-shadow:0 0 4px #ffb000}"
@@ -1992,7 +2012,7 @@ EXAMPLES: dict[str, Any] = {
 
 # Real places in miniature (the `place` floor): latitude and longitude in, tiles out. The coordinates are approximate (about 100 m, read off public
 # maps), which is all a miniature needs; the point is where things stand relative to each other, so nothing here is a facility's exact position.
-_CITY_MARKS = {"exit": "🚪", "station": "🚉", "terminus": "🚆"}   # the mark drawn instead of the dot, by category: the cities are their transport
+_CITY_MARKS = {"exit": "🎫", "station": "🚉", "terminus": "🚆"}   # the mark drawn instead of the dot, by category: the cities are their transport (🚪 is the footer's)
 
 
 def _pt(id: str, label: str, lat: float, lon: float, category: str, body: str = "", flip: str = "", sign: str = "") -> dict[str, Any]:
@@ -2153,7 +2173,7 @@ EXAMPLES.update({
                   "🚉": {"label": "東京駅", "label_en": "Tokyo Station",
                          "spots": ["tokyo-marunouchi-n", "tokyo-marunouchi-c", "tokyo-marunouchi-s", "tokyo-yaesu-n", "tokyo-yaesu-c", "tokyo-yaesu-s"]}},
         "board": {"title": "PARALLEL", "items": [{"text": "実在の街の、もうひとつの姿"}, {"text": "🚪で3つの街を行き来"}, {"text": "歩いて駅から駅へ"}]},
-        "floors": [{"id": "tokyo", "label": "Parallel Tokyo", "place": {"points": _TOKYO_POINTS, "meters": 32, "links": _TOKYO_LINKS, "marks": _CITY_MARKS}},
+        "floors": [{"id": "tokyo", "label": "Parallel Tokyo", "place": {"points": _TOKYO_POINTS, "meters": 32, "links": _TOKYO_LINKS, "marks": _CITY_MARKS, "always_named": ["exit"]}},
                    {"id": "london", "label": "Reverse London",
                     "place": {"points": _LONDON_POINTS, "meters": 150, "links": _LONDON_LINKS, "rivers": [_THAMES], "marks": _CITY_MARKS}},
                    {"id": "paris", "label": "Fake Paris",
