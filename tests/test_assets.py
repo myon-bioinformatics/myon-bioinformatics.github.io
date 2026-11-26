@@ -92,7 +92,7 @@ def test_homepage_favicon_links_and_header_artwork_are_local():
 def test_readme_uses_the_same_profile_artwork():
     parser = BrandParser()
     parser.feed((ROOT / "README.md").read_text(encoding="utf-8"))
-    brand = [item for item in parser.images if item.get("src") == "assets/brand/myon-profile-icon.png"]
+    brand = [item for item in parser.images if item.get("src") == "https://myon-bioinformatics.github.io/assets/brand/myon-profile-icon.png"]
     assert len(brand) == 1
     assert brand[0]["alt"]
     assert brand[0]["width"] == brand[0]["height"] == "160"

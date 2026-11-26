@@ -96,7 +96,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/Ironmate
-          ref: dbacddce72df545b7317cb1dfc6184e8d23d8918
+          ref: 0f7f34a6be2e2da8bf0b1966bb31246aec09f54b
           path: .test-deps/ironmate-studio
           persist-credentials: false
       - name: Check routed Image and Slide Studio file operations in Chromium
