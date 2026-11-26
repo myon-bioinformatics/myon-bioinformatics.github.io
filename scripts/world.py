@@ -1429,7 +1429,8 @@ def chrome_validate(spec: Any) -> dict[str, Any]:
 
 
 def chrome_html(spec: Any) -> str:
-    """The chrome as one ``<header>``: the board, then 🏠, your header emoji, ⭐ and ⚙️; the side holds ☰, your side emoji and ⋯.
+    """The chrome as one ``<div>`` (not a ``<header>``: the page's own header, and whatever looks for it, stay the page's): the board,
+    then 🏠, your header emoji, ⭐ and ⚙️; the side holds ☰, your side emoji and ⋯.
 
     Without JavaScript the board scrolls (one lap in 24 s; the script sets the lap by its length), 🏠 and the link emoji lead, and ☰ opens (a ``<details>``); ⭐ ⚙️ ⋯ and the ☆ wait for the script.
     ⚙️ holds ⏯️ (stop the board) and 🌐 (the words of the icons, in eleven languages)."""
@@ -1449,8 +1450,8 @@ def chrome_html(spec: Any) -> str:
     side = ((_menu_html("spots", "☰", _wt("places"), f'<ul class="ui-world-rows ui-world-spots">{rows}</ul>') if rows else "") +
             "".join(_tool_html(e, t) for e, t in tools.items() if t["slot"] == "side") +
             _menu_html("more", "⋯", _wt("screen"), '<ul class="ui-world-rows"></ul>', hidden=True))
-    return (f'<header class="ui-chrome ui-world-head" id="{chrome["id"]}-chrome" data-ui-chrome lang="ja">{_board_html(chrome["board"], timed=False)}'
-            f'<nav class="ui-world-tools">{head}</nav><div class="ui-world-side">{side}</div></header>')
+    return (f'<div class="ui-chrome ui-world-head" id="{chrome["id"]}-chrome" data-ui-chrome lang="ja">{_board_html(chrome["board"], timed=False)}'
+            f'<nav class="ui-world-tools">{head}</nav><div class="ui-world-side">{side}</div></div>')
 
 
 def _map_html(world: dict[str, Any]) -> str:
@@ -1695,7 +1696,8 @@ def chrome_css(tokens: str = "") -> str:
 
     The header sits at the top of the page. ☰ ⋯ ride in its row; from 960px they stand at the right edge, mid-height, as in a world.
     ``tokens`` is a declaration block (``--ui-bg:#0d1117;--ui-fg:…``) for a page that does not load the shared sheet: the chrome then
-    carries its own colours and its rules stay out of ``@layer`` (so that page's plain rules do not outrank them)."""
+    carries its own colours. The rules stay out of ``@layer``: a page's own plain rules (``label{…}``, ``header{…}``) would outrank
+    layered ones, and the chrome has to look the same on every page."""
     marks = (".ui-board", ".ui-world-menu", ".ui-world-panel", ".ui-world-rows", ".ui-world-star", ".ui-world-head", ".ui-world-tools",
              ".ui-world-home", ".ui-world-side", ".ui-world-favs", ".ui-world-empty", ".ui-world-arrow", "ui-board-scroll")
     rules, depth, start = [], 0, 0
@@ -1708,6 +1710,8 @@ def chrome_css(tokens: str = "") -> str:
                 rules.append(rule)
     own = (".ui-chrome{position:relative;z-index:32;margin:0;padding:0;gap:0;font-family:var(--ui-font);font-size:1rem;line-height:1.5;color:var(--ui-fg);text-align:left}"
            ".ui-chrome,.ui-chrome *{box-sizing:border-box}"
+           ".ui-chrome .ui-world-tools,.ui-chrome .ui-world-menu,.ui-chrome .ui-world-rows,.ui-chrome .ui-world-rows li{margin:0;border:0;background:none}"   # a page's own nav{…} details{…} li{…}
+           ".ui-chrome .ui-world-menu,.ui-chrome .ui-world-rows li{padding:0}.ui-chrome .ui-world-menu>summary{margin:0;padding:0}"
            ".ui-chrome[data-js] .ui-world-star{display:inline-flex;align-items:center;justify-content:center}"
            ".ui-chrome[data-motion-paused] .ui-board-run{animation-play-state:paused!important}"
            ".ui-chrome .ui-world-panel{top:100%;right:8px;width:min(320px,calc(100% - 16px));max-height:min(60vh,384px)}"
@@ -1719,21 +1723,27 @@ def chrome_css(tokens: str = "") -> str:
            "border:1px solid var(--ui-border);border-right:0;background:var(--ui-panel)}"
            ".ui-chrome .ui-world-side .ui-world-menu>summary,.ui-chrome .ui-world-side .ui-world-tool{width:48px;height:48px}"
            ".ui-chrome .ui-world-side .ui-world-panel{top:50%;right:72px;transform:translateY(-50%);width:min(320px,calc(100vw - 88px));max-height:min(80vh,480px)}}")
-    return f".ui-chrome{{{tokens}}}{''.join(rules)}{own}" if tokens else "@layer components{" + "".join(rules) + own + "}"
+    return (f".ui-chrome{{{tokens}}}" if tokens else "") + "".join(rules) + own
+
+
+def add_part(page: str, *, top: str = "", bottom: str = "", css: str, js: str) -> str:
+    """A built page with one more part: ``top`` right after ``<body>`` or ``bottom`` at its end, the part's CSS in ``<head>`` and its
+    module last in ``<body>`` (the chrome below; scripts/project_pages.py adds PySaiyanWeBoo's 🚪 Door-to-Door the same way)."""
+    body = re.search(r"<body[^>]*>", page)
+    if not body or page.count("</head>") != 1 or "</body>" not in page:
+        raise ValueError("page has no single <head> and <body> to put the part in")
+    page = page[:body.end()] + top + page[body.end():]
+    end = page.rindex("</body>")
+    page = page[:end] + bottom + module_script(js) + page[end:]
+    return page.replace("</head>", f"<style>{css}</style></head>", 1)
 
 
 def add_chrome(page: str, spec: Any, *, tokens: str = "") -> str:
     """🧰 A built page with the chrome (``chrome_html``) at the top of its ``<body>``, the chrome's CSS in its ``<head>`` and the chrome's
     module (``SHELL_JS`` and one ``bindChrome()``) before ``</body>``. A page that has a chrome keeps it."""
-    if '<header class="ui-chrome ' in page:
+    if '<div class="ui-chrome ' in page:
         return page
-    body = re.search(r"<body[^>]*>", page)
-    if not body or page.count("</head>") != 1 or "</body>" not in page:
-        raise ValueError("page has no single <head> and <body> to put the chrome in")
-    page = page[:body.end()] + chrome_html(spec) + page[body.end():]
-    end = page.rindex("</body>")
-    page = page[:end] + module_script(SHELL_JS + "bindChrome();\n") + page[end:]
-    return page.replace("</head>", f"<style>{chrome_css(tokens)}</style></head>", 1)
+    return add_part(page, top=chrome_html(spec), css=chrome_css(tokens), js=SHELL_JS + "bindChrome();\n")
 
 
 # Browser arithmetic is a projection of the Python oracle, not Python execution.

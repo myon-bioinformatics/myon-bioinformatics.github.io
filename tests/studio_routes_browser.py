@@ -102,8 +102,8 @@ def test_image_studio_import_edit_and_download(browser, studio_origin, mobile):
 
 @pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
 def test_studio_csp_admits_the_tools_chrome(browser, studio_origin, mobile):
-    """🧰 The studios allow neither inline scripts nor inline styles; the chrome's module and sheet are listed by hash, so the
-    board's clock runs and its buttons are drawn (☰: 48px at the edge of a desktop, 40px in a phone's header), with no CSP report."""
+    """🧰 The studios allow neither inline scripts nor inline styles; the modules and sheets of the chrome and 🚪 Door-to-Door are
+    listed by hash, so the board's clock runs and its buttons are drawn (☰: 48px at the edge of a desktop, 40px in a phone's header), with no CSP report."""
     page = _page(browser, studio_origin, mobile=mobile)
     try:
         blocked = []
@@ -116,6 +116,8 @@ def test_studio_csp_admits_the_tools_chrome(browser, studio_origin, mobile):
         page.locator('.ui-chrome [data-menu="spots"] > summary').click()
         expect(page.locator(".ui-chrome a[aria-current=page]")).to_have_count(1)
         assert page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") == 0
+        door = page.locator(".ui-door-foot [data-door-select]")                 # 🚪 Door-to-Door's sheet and module are listed too
+        assert door.is_visible() and door.bounding_box()["height"] == 40 and door.input_value() == "../../tools/image-studio/"
         assert blocked == [], blocked
     finally:
         page.context.close()

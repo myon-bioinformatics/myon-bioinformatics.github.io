@@ -554,7 +554,8 @@ CHROME = {"board": {"title": "TOOLS", "items": [{"text": "🎞 GIF工房"}]}, "h
 def test_a_tool_page_chrome_is_a_world_shell_without_a_map():
     """🧰 chrome_html: the world's board (HH:MM:SS), 🏠, the page's own emoji, ⭐ ⚙️ in the header and ☰ ⋯ in the side."""
     html = W.chrome_html(CHROME)
-    assert html.startswith('<header class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="ja"><div class="ui-board"')
+    assert html.startswith('<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="ja"><div class="ui-board"')
+    assert "<header" not in html and "<footer" not in html                     # a page's own header (and whatever looks for it) stays the page's
     assert '<span class="ui-board-clock" data-clock>--:--:--</span>' in html and "ui-board-post" not in html
     head, side = html.split('<div class="ui-world-side">')
     assert [m for m in ("🏠", "🗼", "⭐", "⚙️") if f">{m}</" in head] == ["🏠", "🗼", "⭐", "⚙️"] and "☰" not in head
@@ -601,24 +602,24 @@ def test_a_world_takes_link_tools_too():
 
 def test_chrome_css_is_the_shell_rules_of_the_world_sheet():
     css = W.chrome_css()
-    assert css.startswith("@layer components{") and css.endswith("}")
+    assert "@layer" not in css and css.endswith("}")                           # plain rules: a page's own label{…} must not outrank them
     for kept in (".ui-board-clock{", "@keyframes ui-board-scroll{", ".ui-world-menu>summary{", ".ui-world-panel{", ".ui-world-rows a{", ".ui-chrome .ui-world-side{"):
         assert kept in css, kept
     for map_only in (".ui-floor", ".ui-spot", ".ui-player", ".ui-sheet{", ".ui-world-view", ".ui-world-dpad", ".ui-prop"):
         assert map_only not in css, map_only
-    shared = css[len("@layer components{"):css.index(".ui-chrome{")]
+    shared = css[:css.index(".ui-chrome{")]
     assert shared and shared in "".join(rule for rule in re.findall(r"[^{}]+\{(?:[^{}]|\{[^{}]*\})*\}", W._WORLD_CSS) if rule in shared)   # world rules, in order
     assert len(css) < len(W._WORLD_CSS) / 2
     own = W.chrome_css("--ui-bg:#000;--ui-fg:#fff")                            # a page without the shared sheet: its own colours, no layer
-    assert own.startswith(".ui-chrome{--ui-bg:#000;--ui-fg:#fff}") and "@layer" not in own
+    assert own == ".ui-chrome{--ui-bg:#000;--ui-fg:#fff}" + css
     assert not [px for px in re.findall(r"(\d+)px", css[css.index(".ui-chrome{"):]) if int(px) % 8 and int(px) not in (1, 4)]   # 8s (4: the header row's own padding)
 
 
 def test_add_chrome_puts_the_three_parts_in_a_built_page_once():
     page = '<!doctype html><html><head><title>t</title></head><body data-ui-theme="modern"><main><h1>t</h1></main></body></html>'
     built = W.add_chrome(page, CHROME)
-    assert built.count('<header class="ui-chrome') == 1 and W.add_chrome(built, CHROME) == built
-    assert built.index("<style>@layer components{") < built.index("</head>") < built.index('<body data-ui-theme="modern"><header class="ui-chrome')
+    assert built.count('<div class="ui-chrome') == 1 and W.add_chrome(built, CHROME) == built
+    assert built.index("<style>" + W.chrome_css()[:40]) < built.index("</head>") < built.index('<body data-ui-theme="modern"><div class="ui-chrome')
     assert built.endswith("bindChrome();\n</script></body></html>") and built.index("</main>") < built.index('<script type="module">')
     with pytest.raises(ValueError, match="no single <head> and <body>"):
         W.add_chrome("<main>fragment</main>", CHROME)

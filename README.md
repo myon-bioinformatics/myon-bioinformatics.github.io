@@ -256,9 +256,9 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 
 🗓️ 2026-11-13 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k home_screen` writes `test-results/home-screen/home-screen-shortcut-<UTC>.gif` (CI keeps it in the browser evidence artifact); copy the newest one to `docs/evidence/home-screen.gif` to update this.
 
-### 🧰 Tools の共通ヘッダー（電光掲示板・時計・☰ ⋯ ⭐ ⚙️）
+### 🧰 Tools の共通ヘッダー（電光掲示板・時計・☰ ⋯ ⭐ ⚙️）と 🚪 ドア to ドア
 
-🧰 Tools のページは、どれも同じヘッダーとサイドを持ちます（ワールドのページは同じ部品でできた自前のものを使います）。
+🧰 Tools のページは、どれも同じヘッダーとサイド、そしてフッターの 🚪 プルダウンを持ちます（ワールドのページは同じ部品でできた自前のものを使います）。
 
 | | |
 |---|---|
@@ -268,19 +268,23 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 | ⚙️ | ⏯️ 掲示板を止める ・ 🌐 アイコンの言葉（11 言語。保存） |
 | ☰ | 🧰 Tools の全リンク（いまのページに 📍）。`scripts/front_page.py` の `PORTAL` から作るので、カードを足せば行も増える |
 | ⋯ | このページの見出し（`h2`）へ移動。見出しがなければ出ない |
+| 🚪 | ドア to ドア：フッターのプルダウンで道具から道具へ（🏠 でカードへ）。ヘッダーとは別の部品で、PySaiyanWeBoo の共通機能 Door-to-Door（`door_html` / door.css / door.js）をそのまま使い、プルダウンだけを 1 行で見せている。何も保存しない |
 
 絵文字は用途に応じて key-value で足せます（`href`＝リンク、`links`＝リンクの一覧、`body`＝ひとこと。`slot` は `head` か `side`）。
 地図URL・ピン留めのページは 🗼（パラレル都市）を足しています。
 
 ```python
-add_back_nav(page, tools={'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'links': [
+add_back_nav(page, 'tools/maps/index.html', {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'links': [
     {'label': '🗼 パラレル東京', 'href': './tokyo.html'}, {'label': '🌍 東京・ロンドン・パリ', 'href': '../demos/cities.html'}]}})
 ```
 
 ![Tools の共通ヘッダー：☰ で ☆ を付け、⭐ に並び、🌐 を English にして、⭐ から次の道具へ移っても両方が引き継がれる（Chromium 560×480）](docs/evidence/tools-chrome.gif)
 
 🗓️ 2026-11-26 · `python tests/world_browser.py ToolChromeTests` writes `test-results/tools-chrome/tools-chrome-star-and-language-<UTC>.gif`; copy the newest one to `docs/evidence/tools-chrome.gif` to update this.
-作りは `scripts/world.py`（`chrome_html` / `chrome_css` / `add_chrome`、ワールドと共有する `SHELL_JS`）と `scripts/project_pages.py`（`tools_chrome` / `add_back_nav`）。
+![ドア to ドア：フッターの 🚪 プルダウンで GIF工房 → 流れの実験室、ブラウザの「戻る」でも表示が付いてきて、同じドアをもう一度開け、🏠 でカードへ（Chromium 560×480）](docs/evidence/door-to-door.gif)
+
+🗓️ 2026-11-26 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k door_to_door` writes `test-results/door-to-door/door-to-door-pulldown-<UTC>.gif`（`docs/evidence/door-to-door.gif` へコピー）。
+作りは `scripts/world.py`（`chrome_html` / `chrome_css` / `add_chrome` / `add_part`、ワールドと共有する `SHELL_JS`）と `scripts/project_pages.py`（`tools_chrome` / `tools_door` / `add_back_nav`）。
 
 ### 💬 横断チャット
 
