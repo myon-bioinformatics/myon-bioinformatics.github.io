@@ -280,7 +280,7 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
 # The demos (DEMOS) and the 🌍 world pages (WORLD_PAGES) come from scripts/project_pages.py; they are tool pages too.
 TOOL_PAGES = ("tools/html-import/index.html",
               *(("tools/mcp/index.html", "tools/mcp/repository-diagnostics.html") if LAB_BUILT else ()),
-              "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html", "tools/flow/index.html",
+              "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html", "tools/chat/index.html", "tools/flow/index.html",
               "tools/repo-map/index.html",
               *sorted(str(path.relative_to(SITE)) for path in (SITE / "tools/demos").glob("*.html")))
 
@@ -1184,14 +1184,29 @@ def test_prose_extract_adapter_preserves_whitespace_hooks_and_code_blocks():
 
 CHAT = PAGES._chat()
 CHAT_INDEX = {'schema': 'chat-index/1', 'owner': 'myon-bioinformatics',
-              'commits': {'onto': 'a' * 40, 'Aoi': 'b' * 40, 'TaxOntOy': 'c' * 40},
+              'commits': {'onto': 'a' * 40, 'Aoi': 'b' * 40, 'TaxOntOy': 'c' * 40, 'OnTautoLogy': 'd' * 40},
               'files': [['onto', 'docs/graph.json', 120], ['Aoi', 'cycles/c001/outputs/allocation.jsonl', 80],
                         ['Aoi', 'cycles/c003/units.jsonl', 40 * 1024 ** 2], ['TaxOntOy', 'package.json', 30],
-                        ['TaxOntOy', 'otl-relations.json', 64]],
+                        ['TaxOntOy', 'otl-relations.json', 64], ['OnTautoLogy', 'examples/concepts-20261115.json', 900]],
+              'scan_errors': {},
               'tools': [{'name': 'find_municipalities', 'description': 'Find mock municipalities.',
                          'parameters': {'type': 'object', 'properties': {'query': {'type': 'string'}}, 'required': ['query'],
-                                        'additionalProperties': False}}]}
+                                        'additionalProperties': False}}],
+              'repos': {'onto': 'ONTO: an index linking ontology-related repositories', 'Aoi': 'Hypothesis-driven baseball analytics.',
+                        'TaxOntOy': 'TaxOntOy: Taxonomy × Ontology', 'OnTautoLogy': 'Stdlib-only Python graphlib knowledge graph.'}}
+CHAT_CONCEPTS = {'schema': 'ontautology-concepts/1',                    # 🧬 a small ledger in OnTautoLogy's shape (both entry forms)
+                 'concepts': {'ギター': {'id': 'C001-guitar', 'elements': ['楽器', '弦楽器', '撥弦', 'フレット', '6弦標準']},
+                              'ベース': ['楽器', '弦楽器', '撥弦', 'フレット', '4弦標準', '低音主体'],
+                              'ウクレレ': ['楽器', '弦楽器', '撥弦', 'フレット', '4弦標準', '小型'],
+                              'バイオリン': ['楽器', '弦楽器', '擦弦', '4弦標準', '弓で弾く'],
+                              'マリオ': ['ゲームキャラクター', '帽子', '赤色', '兄'], 'ルイージ': ['ゲームキャラクター', '帽子', '緑色', '弟']},
+                 'similar': [['ギター', 'ベース'], ['ギター', 'ウクレレ'], ['ギター', 'バイオリン'], ['マリオ', 'ルイージ']],
+                 'names': {'ギター': ['英名:Guitar', '略称:ギタ'],      # 🎩 ties; 👻 is ルイージ's (同じ beats 代用), so マリオ's face is 🍄
+                           'マリオ': ['英名:Mario', '主役シリーズ:スーパーマリオ', '絵文字略称/似たもの:🍄', '絵文字略称/代用:👻', '絵文字略称:🎩'],
+                           'ルイージ': ['同音語:類似', '絵文字略称/同じ:👻', '絵文字略称:🎩', '別名:マリオ']},   # マリオ stays マリオ
+                 'name_basis': {'絵文字略称': ['同じ', '代用', '似たもの']}}
 CHAT_RAW = {'onto/docs/graph.json': json.dumps({'schema': 'graph/1', 'nodes': [{'id': 'a'}, {'id': 'b'}], 'edges': [['a', 'b']]}),
+            'OnTautoLogy/examples/concepts-20261115.json': json.dumps(CHAT_CONCEPTS, ensure_ascii=False),
             'Aoi/cycles/c001/outputs/allocation.jsonl': '{"team": "d", "z": -0.7}\n{"team": "s", "z": 0.2}\n'}
 
 
@@ -1241,6 +1256,94 @@ def test_chat_finds_and_shows_json_and_jsonl_across_repositories():
     assert '⏸' in CHAT.respond('onto', index={}) and '⏸' in CHAT.respond('/mcp', index={})
 
 
+def test_chat_onto_defines_concepts_and_looks_them_up_with_ontautology():
+    """🧬 /onto: genus + differentia and the table against what is similar (OnTautoLogy's define_concepts), + for a reverse
+    lookup (roundtrip_elements) with the element that would tell the rest apart, and "maybe" for a name the ledger lacks."""
+    say = lambda text: CHAT.respond(text, index=CHAT_INDEX, fetch=_chat_fetch)
+    listing = say('/onto')
+    assert '🧬 **6** 概念' in listing and 'ギター · ベース' in listing and 'OnTautoLogy/examples/concepts-20261115.json@ddddddd' in listing
+    guitar = say('/onto ギター')
+    assert '### 🧬 ギター' in guitar and '**6弦標準** のもの' in guitar and '✅ これだけ' in guitar
+    assert '| 🤝 ベース |' in guitar and '🔑 決め手（それだけで ギター）: 6弦標準' in guitar
+    assert '⚠️ 3 つ（ウクレレ・ギター・ベース）' in say('/onto 撥弦 + フレット') and '`/onto 撥弦 + フレット + 4弦標準`' in say('/onto 撥弦 + フレット')
+    assert '✅ **ギター** だけ' in say('/onto 撥弦 + 6弦標準')
+    assert '⌨️ もしかして: `/onto バイオリン`' in say('/onto バイオリ') and '🫥' in say('/onto 楽器 + 赤色')
+    assert '🏷 guitar → **ギター**' in say('/onto guitar') and '### 🧬 ギター' in say('/onto ギタ')      # 🏷 the ledger's names
+    assert '### 🧬 🍄 マリオ' in say('/onto Mario') and '❓ 台帳にない' in say('/onto スーパーマリオ') and '❓' in say('/onto 類似')
+    assert '→ **ルイージ**' in say('/onto 👻\ufe0f') and '### 🧬 👻 ルイージ' in say('/onto 👻')      # 🏷 絵文字略称, the strongest wins
+    assert '🏷 👻 → **ルイージ**（同じ） · ほかに `/onto マリオ`（代用）' in say('/onto 👻')
+    assert '🏷 **🎩** は 2 つ: `/onto マリオ` · `/onto ルイージ`' in say('/onto 🎩') and '### 🧬 🍄 マリオ' in say('/onto マリオ')
+    assert '⏸' in CHAT.respond('/onto ギター', index={})
+
+
+def test_chat_guess_finds_every_concept_by_yes_and_no():
+    """🎯 /guess: each question halves what is left; answering truthfully reaches every concept in at most ⌈log₂ N⌉ + 1
+    questions here, plain y / n answer only while a game is on, and ? skips."""
+    say = lambda text: CHAT.respond(text, index=CHAT_INDEX, fetch=_chat_fetch)
+    for target, body in CHAT_CONCEPTS['concepts'].items():
+        elements = body['elements'] if isinstance(body, dict) else body
+        reply, asked = say('/guess'), 0
+        while '❓ Q' in reply:
+            element = re.search(r'『\*\*(.+?)\*\*』', reply).group(1)
+            reply, asked = say('y' if element in elements else 'n'), asked + 1
+        face = {'マリオ': '🍄 ', 'ルイージ': '👻 '}.get(target, '')                       # 🍄 its first 絵文字略称
+        assert f'🎯 それは **{face}{target}**' in reply and asked <= 4, (target, reply)
+    assert '🔎' in say('y')                                                   # no game: y is a search
+    first = say('/guess')
+    assert '❔' in say('?') and '`y`（はい）' in say('/guess maybe') and 'おしまい' in say('/guess stop')
+    assert 'Q1' in first and '🔎' in say('n')
+
+
+def test_chat_runs_olnm_to_list_read_and_calculate():
+    """🧷 /olnm runs olnm.py itself: sections, search, "maybe you meant", a one-liner's definition and the calculator; running
+    a one-liner stays in the terminal, with the one-line install."""
+    say = lambda text: CHAT.respond(text, index={})
+    first = say('/olnm')
+    assert '🧷 **OLNM**' in first and '`git`' in first and 'OneLaunchNumerousModules/HEAD/olnm.py' in first
+    assert 'uvtest' in say('/olnm like uvtets') and 'git push' in say('/olnm show gp') and 'git push' in say('/olnm gp')
+    assert '= **42**' in say('/olnm calc 6 mul 7') and '⚠️ ZeroDivisionError' in say('/olnm calc 1/0')
+    assert '🌿 gs' in say('/olnm ls git') and 'jsonf' in say('/olnm grep json')
+    assert '❓ そのワンライナーはない' in say('/olnm show gpp') and 'gp' in say('/olnm show gpp')
+    assert 'git push' in say('/olnm run gp') and '▶️ `olnm doctor` は端末で' in say('/olnm doctor')
+
+
+def test_chat_ask_stands_on_readme_summaries_concepts_and_files():
+    """🤖 /ask's system message carries what the question names: repositories (by name, capitals or summary words, with their
+    README summary), the ledger's concepts (by name or 🏷 alias, as genus + differentia) and the recorded files — and stays short."""
+    ask = lambda text: json.loads(CHAT.ask_messages(text, CHAT_INDEX, _chat_fetch))
+    system, user = ask('/ask OTL と baseball の Guitar は？')
+    assert user == {'role': 'user', 'content': 'OTL と baseball の Guitar は？'}
+    content = system['content']
+    assert ('関係しそうなリポジトリ（README の要約）:\n- OnTautoLogy（OTL）: Stdlib-only Python graphlib knowledge graph.\n'
+            '- Aoi: Hypothesis-driven baseball analytics.\n- TaxOntOy（TOO）: TaxOntOy: Taxonomy × Ontology\n') in content   # OTL is in its file
+    assert '- ギター: 弦楽器・楽器 のうち、6弦標準 のもの（似たもの: ウクレレ・バイオリン・ベース）' in content
+    assert 'リポジトリ: Aoi, OnTautoLogy, onto, TaxOntOy' in content and '記録にあるファイル: TaxOntOy/otl-relations.json' in content
+    found = CHAT.grounding('マリオとルイージの違い、オントロジーの台帳はどこ？', CHAT_INDEX, _chat_fetch)
+    assert found['concepts'] == ['🍄 マリオ: ゲームキャラクター・帽子 のうち、兄 のもの（似たもの: ルイージ）',
+                                 '👻 ルイージ: ゲームキャラクター・帽子 のうち、弟 のもの（似たもの: マリオ）']
+    assert [c.split(':')[0] for c in CHAT.grounding('🎩 って誰？', CHAT_INDEX, _chat_fetch)['concepts']] == ['🍄 マリオ', '👻 ルイージ']
+    assert 'onto/docs/graph.json' in found['files'] and [r.split('（')[0].split(':')[0] for r in found['repos']] == ['TaxOntOy', 'onto']
+    quiet = CHAT.grounding('MAIN の話', CHAT_INDEX, _chat_fetch)                 # AI is not in MAIN, nothing is named
+    assert quiet['repos'] == [] and quiet['concepts'] == [] and quiet['files'] == []
+    assert CHAT.abbr('PySaiyanWeBoo') == 'PSWB' and CHAT.abbr('Aoi') == '' and CHAT.abbr('CaChereCyCle') == 'CCCC'
+    assert len(CHAT.ask_messages('/ask ' + ' '.join(['ギター マリオ ルイージ ベース OTL onto Aoi'] * 3), CHAT_INDEX, _chat_fetch)) < 2400
+    assert 'リポジトリ' not in json.loads(CHAT.ask_messages('/ask', {}))[0]['content'].split('。')[-1]
+
+
+@pytest.mark.parametrize(('errors', 'note'), [({}, ''), ({'Aoi': 'truncated_tree'}, '部分取得 1 件'),
+                                            ({'Broken': 'unavailable'}, '取得不可 1 件'), (None, '取得範囲は未記録')])
+def test_chat_empty_search_distinguishes_index_coverage(errors, note):
+    index = {'commits': {} if errors == {'Broken': 'unavailable'} else {'Aoi': 'b' * 40}, 'files': []}
+    if errors is not None:
+        index['scan_errors'] = errors
+    for query in ('/find never-matches', 'never-matches'):
+        reply = CHAT.respond(query, index=index)
+        assert '0 件（索引内）' in reply
+        assert ('⚠️' in reply) is bool(note)
+        assert note in reply
+    assert '索引を記録していない' in CHAT.respond('/find', index={})
+
+
 def test_chat_checks_mcp_tool_calls_against_what_the_lab_advertises():
     """🔌 Only an advertised tool with arguments that fit its schema becomes a tools/call; anything else is refused."""
     say = lambda text: CHAT.respond(text, index=CHAT_INDEX)
@@ -1265,31 +1368,62 @@ def test_chat_compresses_with_talkcompress_and_markdown(monkeypatch):
     assert '⏸ TalkCompress を読めない（OSError）' in CHAT.respond('/compress a\n\n\n\nb', index={})
 
 
-def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modules(tmp_path):
-    """💬 --record-chat lists each repository's JSON / JSONL at its commit, the lab's advertised tools and TalkCompress's files;
+def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modules(tmp_path, monkeypatch):
+    """💬 --record-chat records observed paths and scan errors, the lab's advertised tools and TalkCompress's files;
     the page carries chat.py and exactly the installed markdown / ascii_artist / cli_args, and an index of every example."""
+    from io import BytesIO
+    from urllib.error import HTTPError
+
     root = tmp_path / 'root'
     (root / 'api').mkdir(parents=True)
-    (root / 'api/repos.json').write_text(json.dumps({'repos': [{'name': n} for n in ('TalkCompress', 'mcp-toolcall-lab', 'onto', 'Broken')]
-                                                     + [{'name': 'Old', 'archived': True}]}))
+    names = ('TalkCompress', 'mcp-toolcall-lab', 'onto', 'Empty', 'BrokenHead', 'BrokenTree', 'InvalidTree')
+    (root / 'api/repos.json').write_text(json.dumps({'repos': [{'name': n, **({'description': '', 'readmeSummary': '📘 [Guide](https://x.test/)  for  ' + 'x' * 200} if n == 'onto' else {})} for n in names] + [{'name': 'Old', 'archived': True}]}))
     trees = {'onto': [('docs/graph.json', 120), ('README.md', 9)], 'TalkCompress': [('x.jsonl', 3)],
-             'mcp-toolcall-lab': [('fixtures/prompt_experiments/a.json', 50), ('fixtures/other.json', 2)]}
+             'mcp-toolcall-lab': [('fixtures/prompt_experiments/a.json', 50), ('fixtures/other.json', 2)], 'Empty': []}
     fixture = {'openai': {'request': {'tools': [{'type': 'function', 'function': CHAT_INDEX['tools'][0]}]}}}
+    requests = []
 
     def head(repository):
-        if repository.endswith('Broken'):
+        if repository.endswith('BrokenHead'):
             raise OSError('unreachable')
         return 'e' * 40
+
+    def open_tree(request, *, timeout):
+        name = request.full_url.split('/')[5]
+        assert request.full_url == f'https://api.github.com/repos/{PAGES.OWNER}/{name}/git/trees/{"e" * 40}?recursive=1'
+        requests.append(name)
+        if name == 'BrokenTree':
+            raise HTTPError(request.full_url, 503, 'unavailable', None, None)
+        if name == 'InvalidTree':
+            return BytesIO(b'{"tree": []}')
+        return BytesIO(json.dumps({'tree': [{'type': 'blob', 'path': path, 'size': size} for path, size in trees[name]],
+                                   'truncated': name == 'onto'}).encode())
+
+    monkeypatch.setattr('urllib.request.urlopen', open_tree)
     raw = lambda repository, commit, path: json.dumps(fixture).encode() if path.endswith('a.json') else f'# {path}'.encode()
-    lines = PAGES.record_chat(tmp_path / 'site', root, head=head, raw=raw, tree=lambda repository, commit: trees[repository.split('/')[1]])
-    assert lines == ['💬 3 repositories · 4 JSON/JSONL · 🔌 1 tools · 🗂 TalkCompress ✅ eeeeeee', '⏸ Broken: OSError']
+    lines = PAGES.record_chat(tmp_path / 'site', root, head=head, raw=raw)
+    assert requests == [name for name in names if name != 'BrokenHead']
+    assert lines == ['💬 4 repositories · 4 JSON/JSONL · 🔌 1 tools · 🗂 TalkCompress ✅ eeeeeee', '⚠️ onto: truncated_tree',
+                     '⏸ BrokenHead: OSError', '⏸ BrokenTree: HTTPError', '⏸ InvalidTree: ValueError']
     index = json.loads((tmp_path / 'site/media/chat/index.json').read_text())
     assert [row[:2] for row in index['files']] == [['TalkCompress', 'x.jsonl'], ['mcp-toolcall-lab', 'fixtures/prompt_experiments/a.json'],
                                                    ['mcp-toolcall-lab', 'fixtures/other.json'], ['onto', 'docs/graph.json']]
-    assert [tool['name'] for tool in index['tools']] == ['find_municipalities'] and set(index['commits']) == {'TalkCompress', 'mcp-toolcall-lab', 'onto'}
+    assert [tool['name'] for tool in index['tools']] == ['find_municipalities'] and set(index['commits']) == set(names[:4])
+    assert index['repos'] == {'onto': ('📘 Guide for ' + 'x' * 200)[:159] + '…'}           # 🤖 README summaries for /ask, links as their text
+    assert index['scan_errors'] == {'onto': 'truncated_tree', 'BrokenHead': 'unavailable', 'BrokenTree': 'unavailable',
+                                    'InvalidTree': 'unavailable'}
+    say = lambda query: CHAT.respond(query, index=index, fetch=lambda url: pytest.fail(url))
+    assert '部分取得 1 件・取得不可 3 件' in say('/find graph') and 'docs/graph.json' in say('/find graph')
+    assert '部分取得 1 件' in say('/find missing --repo ONTO') and '取得不可' not in say('/find missing --repo ONTO')
+    assert '取得不可 1 件' in say('/find --repo brokentree')
+    assert say('/find --repo Empty') == '🔎 📦 Empty: 0 件（索引内）'
+    assert '索引の対象外' in say('/find --repo Old')
+    assert '部分取得 1 件' in say('/show onto/missing.json')
+    assert '取得不可 1 件' in say('/show BrokenTree/missing.json')
+    assert '⚠️' not in say('/show Empty/missing.json')
     assert all((tmp_path / 'site/media/chat/talkcompress' / name).is_file() for name in CHAT.TALKCOMPRESS)
 
-    page = (SITE / 'tools/demos/chat.html').read_text(encoding='utf-8')
+    page = (SITE / 'tools/chat/index.html').read_text(encoding='utf-8')
     sources = json.loads(re.search(r'<script type="application/json" id="chat-sources">(.*?)</script>', page, re.S).group(1))
     import importlib.util as util
     assert sources == {'chat.py': (ROOT / 'scripts/chat.py').read_text(encoding='utf-8'),
@@ -1300,7 +1434,9 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     assert page.count('class="ui-card ui-step"') == sum(len(c[3]) for c in CHAT.COMMANDS.values()) + len(CHAT.TYPOS)
     assert 'data-testid="portfolio-back"' in page and '💬chat-slot' not in page
     front = (SITE / 'index.html').read_text(encoding='utf-8')
-    assert 'id="chat"' in front and './tools/demos/chat.html' in front and 'Markdown 道具箱' not in front
+    assert 'id="chat"' in front and './tools/chat/' in front and 'Markdown 道具箱' not in front
+    assert 'chat' not in PAGES.DEMOS and not (SITE / 'tools/demos/chat.html').exists()      # 💬 one card, one address: not among the 🤖 stubs
+    assert 'chat.html' not in (SITE / 'tools/demos/index.html').read_text(encoding='utf-8')
 
 
 def html_escape(text):
@@ -1353,7 +1489,8 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
     def local_media(r):
         name = r.request.url.split('/media/chat/', 1)[1]
         if name == 'index.json':
-            return r.fulfill(body=json.dumps(CHAT_INDEX), content_type='application/json')
+            index = CHAT_INDEX | {'scan_errors': {'onto': 'truncated_tree', 'Broken': 'unavailable'}}
+            return r.fulfill(body=json.dumps(index), content_type='application/json')
         if mirror and name.startswith('talkcompress/') and (mirror / name).is_file():
             return r.fulfill(path=str(mirror / name))
         return r.fulfill(status=404, body='')
@@ -1369,10 +1506,10 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             context.route(lambda url: '/media/chat/' in url, local_media)      # the context's routes reach wllama's workers too
             page = context.new_page()
             page.on('pageerror', lambda error: errors.append(str(error)))
-            page.goto(base + 'tools/demos/chat.html')
+            page.goto(base + 'tools/chat/')
             page.wait_for_function('() => document.documentElement.dataset.chatReady === "true"', timeout=180_000)
             status = page.locator('[data-chat-status]').text_content()
-            assert status.startswith('✅ 🐍 3.') and '🔎 5 files' in status, status
+            assert status.startswith('✅ 🐍 3.') and '🔎 6 files' in status, status
             frames.append((page.screenshot(), '💬 ' + status))
             bot = page.locator('[data-chat-who="bot"]')
 
@@ -1398,8 +1535,22 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             say('/flwo a', 'もしかして /flow')
             say('', 'find_municipalities', tap='.ui-chat-chips [data-chat-say="/mcp"]')
             say('/mcp find_municipalities {"query": "Exampleville"}', 'tools/call')
-            say('onto', 'docs/graph.json')
+            assert '部分取得 1 件・取得不可 1 件' in say('onto', 'docs/graph.json')
+            assert '部分取得 1 件' in say('/find missing --repo onto', '0 件（索引内）')
+            assert '取得不可 1 件' in say('/find --repo Broken', '0 件（索引内）')
+            assert '⚠️' not in say('/find missing --repo Aoi', '0 件（索引内）')
             say('/show onto/docs/graph.json', '🧬 nodes 2')
+            say('/onto ギター', '6弦標準')                                     # 🧬 OnTautoLogy (ontautology.py) in Pyodide
+            say('/guess', 'Q1')                                             # 🎯 then y / n as plain answers
+            for _ in range(6):
+                question = page.locator('[data-chat-who="bot"]').last.inner_text()
+                if '🎯 それは' in question:
+                    break
+                element = re.search(r'『(.+?)』', question).group(1)
+                say('y' if element in CHAT_CONCEPTS['concepts']['ギター']['elements'] else 'n', '')
+            assert '🎯 それは ギター' in bot.last.inner_text(), bot.last.inner_text()
+            say('/olnm calc 6 mul 7', '42')                                  # 🧷 OLNM (olnm.py) in Pyodide
+            say('/olnm show gp', 'git push')
             compress = mirror and (mirror / 'talkcompress').is_dir()
             say('/compress As soon as possible, please send me the report.', 'ASAP' if compress else '⏸ TalkCompress')
             say('/md <img src=x onerror="window.pwned=1"> **ok**', '<img src=x')

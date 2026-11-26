@@ -905,7 +905,7 @@ class CitiesTests(unittest.TestCase):
             self.assertEqual(self.errors, [])
 
     def test_city_tools_and_tokyo_station(self):
-        """🗼🎡🥖 open their city; 🚉 lists Tokyo Station's six exits (🚪 from another city), walks to each, and its arrows agree with Python."""
+        """🗼🎡🥖 open their city; 🚉 lists Tokyo Station's six exits (🚪 from another city: the floor's door, not the exits' 🎫), walks to each, and its arrows agree with Python."""
         tool = CITIES["tools"]["🚉"]
         tokyo = next(f for f in CITIES["floors"] if f["id"] == "tokyo")
         exits = [next(s for s in tokyo["spots"] if s["id"] == i) for i in tool["spots"]]
@@ -1189,6 +1189,32 @@ class CitiesTests(unittest.TestCase):
             page.reload()
             self.start(page)
             self.assertEqual(page.get_attribute(".ui-world", "data-names"), "names")   # kept with the language
+            self.assertEqual(self.errors, [])
+
+    def test_tokyo_exits_are_always_named_behind_the_marks(self):
+        """Tokyo Station's six exits (always_named) keep their names in every 🏷️ mode, faint in the name layer behind the marks, with 🎫 on the point;
+        丸の内 hangs to the left and 八重洲 to the right, so the two sides of the station never cover each other, even with the whole map in view."""
+        named = f'{CITY_FLOOR.format("tokyo")} .ui-spot[data-named]'
+        read = ("els => Object.fromEntries(els.map(e => { const r = e.getBoundingClientRect(), c = getComputedStyle(e); return [e.getAttribute('href').split('-spot-tokyo-')[1],"
+                " {side: e.dataset.named, size: c.fontSize, layer: c.zIndex, near: e.hasAttribute('data-near'), mark: getComputedStyle(e, '::before').content, left: r.left, right: r.right}] }))")
+        for size in SIZES:
+            page = self.open(size)
+            self.start(page)
+            for mode in ("dots", "off", "names"):
+                with self.subTest(size=size, names=mode):
+                    self.menu(page, "settings")
+                    page.select_option("[data-names-pick]", mode)
+                    page.keyboard.press("Escape")
+                    page.mouse.move(1, 1)
+                    exits = page.eval_on_selector_all(named, read)
+                    self.assertEqual(sorted(exits), ["marunouchi-c", "marunouchi-n", "marunouchi-s", "yaesu-c", "yaesu-n", "yaesu-s"])
+                    self.assertNotIn("0px", {e["size"] for e in exits.values()}, "an exit never shrinks to a dot")
+                    self.assertEqual({e["mark"] for e in exits.values()}, {'"🎫"'})
+                    self.assertEqual({k: e["layer"] for k, e in exits.items() if not e["near"]}, {k: "1" for k, e in exits.items() if not e["near"]})   # the name layer, behind the marks
+                    self.assertEqual({k: e["side"] for k, e in exits.items()}, {k: "left" if k.startswith("marunouchi") else "right" for k in exits})
+                    for part in "ncs":
+                        self.assertLessEqual(exits[f"marunouchi-{part}"]["right"], exits[f"yaesu-{part}"]["left"], "the two sides of the station do not cover each other")
+                    self.shot(page, "layer", "tokyo", f"exits-{mode}", f"🎫 exits always named ({mode})")
             self.assertEqual(self.errors, [])
 
     def test_zoom_dial_and_overlay_opacity(self):

@@ -75,8 +75,6 @@ PUBLIC_SOURCE_FILES = (
 
 # 🧰 name -> (how it is built from pysaiyanweboo, shortcut label, title, summary): the only list of demos.
 DEMOS = {
-    'chat': (lambda ui: chat_document(ui), '💬 チャット', 'Cross-repo chat',
-             'リポジトリ横断のチャット：Markdown・ASCII アート・会話の圧縮・MCP 呼び出しの確認・JSON / JSONL の索引を、ページの中の Python（Pyodide）で'),
     'mcp-stub': (lambda ui: stub_document(ui, EXAMPLE_STUBS['mcp']), '🤖 MCP stub', 'MCP stub', '通信しない MCP のスタブ：ツール名を入れて結果と証跡を見る'),
     'api-stub': (lambda ui: stub_document(ui, EXAMPLE_STUBS['api']), '🔁 API stub', 'API stub', '通信しない API のスタブ：パスを送って結果と証跡を見る'),
     'mcp-lab': (lambda ui: ui.mcp_document(), '🔌 MCP試験', 'MCP lab', 'ページ内で動く MCP サーバーのモック：新旧の protocol、PKCE、ヘッダー名、Bearer、OAuth メタデータ'),
@@ -386,8 +384,7 @@ def render_demos(ui) -> dict[str, bytes]:
     the site root)."""
     result = {DEMO_BASE + 'index.html': add_home_label(add_back_nav(ui.catalog_document({
         'schema': 'web-ui-catalog/1', 'title': '🤖 Stubs & mocks',
-        'description': '💬 チャット、🤖🔁 通信しないスタブ、PySaiyanWeBoo のモック。どれも Python で生成し、このページの中で動きます'
-                       '（💬 は Pyodide を CDN から読む。ほかは通信しない）。',
+        'description': '🤖🔁 通信しないスタブと、PySaiyanWeBoo のモック。どれも Python で生成し、このページの中で動きます（通信しない）。',
         'items': [{'id': name, 'title': title, 'summary': summary, 'links': [{'label': 'Open →', 'href': f'./{name}.html'}]}
                   for name, (_, _, title, summary) in DEMOS.items()]}), DEMO_BASE + 'index.html'), '🤖 Stubs', icons_from='../../').encode('utf-8')}
     for name, (build, label, _, _) in {**DEMOS, **WORLD_PAGES}.items():
@@ -734,8 +731,8 @@ async function boot() {
   py.runPython("import sys; sys.path.insert(0, '/chat')");
   bot = py.pyimport("chat");
   bot.configure(index, new URL(cfg.base, location.href).href);
-  const files = index ? JSON.parse(index).files.length : 0;
-  chat.status(`✅ 🐍 ${py.runPython("import sys; sys.version.split()[0]")} · ` + (files ? `🔎 ${files} files` : "⏸ 索引なし"));
+  const files = index ? JSON.parse(index).files?.length : undefined;
+  chat.status(`✅ 🐍 ${py.runPython("import sys; sys.version.split()[0]")} · ` + (files === undefined ? "⏸ 索引なし" : `🔎 ${files} files`));
   chat.ready();
   document.documentElement.dataset.chatReady = "true";
 }
@@ -762,11 +759,14 @@ def chat_books() -> list[dict]:
     """📇 The index as a runbook (records, search and state filter, as in olnm's guide): one book per kind of tool, one
     step per example; the expected reply is the bot's own where it needs nothing recorded at deploy time."""
     chat = _chat()
-    groups = [('📝 Markdown', ('md', 'table', 'help')), ('🎨 ASCII art', ('ascii', 'box', 'flow')), ('🗂 圧縮', ('compress',)),
-              ('🔌 MCP', ('mcp',)), ('🔎 JSON / JSONL', ('find', 'show')), ('🤖 LLM', ('ask',)), ('⌨️ もしかして', ())]
+    groups = [('📝 Markdown', ('md', 'table', 'help')), ('🎨 ASCII art', ('ascii', 'box', 'flow')), ('🗂 圧縮 · 🔌 MCP', ('compress', 'mcp')),
+              ('🔎 JSON / JSONL', ('find', 'show')), ('🧬 オントロジー', ('onto', 'guess')), ('🧷 OLNM', ('olnm',)),
+              ('🤖 LLM', ('ask',)), ('⌨️ もしかして', ())]           # (a runbook holds 1..8 books)
     recorded = {'compress': '🗂 TalkCompress の短い文と 📏 文字数（TalkCompress は公開時に記録）',
                 'mcp': '🔌 mcp-toolcall-lab が広告する道具で判定（✅ 送ってよい／❌ 断る。道具は公開時に記録）',
-                'find': '🔎 全リポジトリの JSON / JSONL から（索引は公開時に記録）', 'show': '👀 そのコミットの raw を読んで表に',
+                'find': '🔎 公開時に取得できた JSON / JSONL の索引から検索', 'show': '👀 そのコミットの raw を読んで表に',
+                'onto': '🧬 OnTautoLogy の概念の台帳（concepts-*.json、索引のコミットの raw）から、属（似たものと共通）と種差（決め手）',
+                'guess': '🎯 台帳の概念を 1 つ思い浮かべて y / n / ? で答えると、残りを半分にする要素から質問して当てる',
                 'ask': '🤖 初回だけ約 560 MB のモデルを読み、端末の中で答える（⚡ WebGPU があれば GPU、なければ 🧮 CPU 1 スレッド）'}
     books = []
     for label, names in groups:
@@ -784,8 +784,8 @@ def chat_document(ui) -> str:
     """💬 The chat page: 💬 the conversation (Pyodide runs chat.py in the page) and 📇 the index of what it answers."""
     chat = _chat()
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '💬 横断チャット', 'description':
-                             'markdown.py・ascii_artist・cli_args・TalkCompress・mcp-toolcall-lab をページの中の Python で。'
-                             '全リポジトリの JSON / JSONL にも答える。🤖 /ask は llama.cpp が端末の中で答える。'
+                             'markdown.py・ascii_artist・cli_args・TalkCompress・mcp-toolcall-lab・OnTautoLogy・OLNM をページの中の Python で。'
+                             '公開リポジトリの JSON / JSONL を索引から検索できる。🤖 /ask は llama.cpp が端末の中で答える。'
                              '送った文はどこにも送らない（/show は GitHub の raw を、/ask はモデルを読むだけ）。',
                              'blocks': [{'type': 'tabs', 'id': 'chat', 'tabs': [
                                  {'label': '💬 チャット', 'blocks': [{'type': 'text', 'text': _CHAT_SLOT}]},
@@ -806,27 +806,41 @@ def chat_document(ui) -> str:
     return page.replace(slot, body, 1).replace('</head>', f'<style>{parts["css"]}{CHAT_CSS}</style></head>', 1)
 
 
-def _tree(repository: str, commit: str) -> list[tuple[str, int]]:
-    """Every file (path, size) of ``repository`` at ``commit``, from the GitHub API (GITHUB_TOKEN when set)."""
-    data = load_module('repos_catalog', 'scripts/repos_catalog.py')._get_json(
-        f'https://api.github.com/repos/{repository}/git/trees/{commit}?recursive=1')
-    return [(item['path'], item.get('size', 0)) for item in data.get('tree', []) if item.get('type') == 'blob']
+CHAT_PAGE = 'tools/chat/index.html'   # 💬 a tool of its own (a 🧰 Tools card), not one of the 🤖 stubs
+def render_chat_tool(ui) -> dict[str, bytes]:
+    """💬 横断チャット: ``chat_document`` with the way back and the home-screen name."""
+    return {CHAT_PAGE: add_home_label(add_back_nav(chat_document(ui), CHAT_PAGE), '💬 チャット', icons_from='../../').encode('utf-8')}
+
+
+def _tree(repository: str, commit: str) -> tuple[list[tuple[str, int]], bool]:
+    """Return the API's blob paths and sizes at ``commit``, plus its truncation flag."""
+    github = load_module('repos_catalog', 'scripts/repos_catalog.py')
+    data = github._get_json(f'{github.API_ROOT}/repos/{repository}/git/trees/{commit}?recursive=1')
+    if not isinstance(data, dict) or not isinstance(data.get('tree'), list) or type(data.get('truncated')) is not bool:
+        raise ValueError('invalid tree response')
+    blobs = [(item['path'], item.get('size', 0)) for item in data['tree'] if item.get('type') == 'blob']
+    return blobs, data['truncated']
 
 
 def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, tree=_tree) -> list[str]:
     """💬 What the chat knows of the other repositories, at their current commits, under ``output/media/chat/``: index.json
-    (every JSON / JSONL file with its size, the tools mcp-toolcall-lab's prompt fixtures advertise) and TalkCompress's
-    shorthand compressor (talkcompress/). Best effort: a repository that cannot be read is listed and skipped."""
+    (observed JSON / JSONL paths and sizes, repository scan errors, the tools advertised by mcp-toolcall-lab,
+    and README summaries from api/repos.json) and TalkCompress's shorthand compressor (talkcompress/).
+    Repositories in commits without a scan error were fully listed."""
     catalog = json.loads((root / 'api/repos.json').read_text(encoding='utf-8'))
     folder = Path(output) / CHAT
-    commits, files, tools, missed, compressor = {}, [], {}, [], '⏸'
+    commits, files, tools, scan_errors, missed, compressor = {}, [], {}, {}, [], '⏸'
     for name in [repo['name'] for repo in catalog['repos'] if not repo.get('archived')]:
         try:
             commit = head(f'{OWNER}/{name}')
-            blobs = tree(f'{OWNER}/{name}', commit)
+            blobs, truncated = tree(f'{OWNER}/{name}', commit)
         except Exception as exc:
+            scan_errors[name] = 'unavailable'
             missed.append(f'⏸ {name}: {type(exc).__name__}')
             continue
+        if truncated:
+            scan_errors[name] = 'truncated_tree'
+            missed.append(f'⚠️ {name}: truncated_tree')
         commits[name] = commit
         files += [[name, path, size] for path, size in blobs if path.lower().endswith(('.json', '.jsonl', '.ndjson'))]
         try:
@@ -847,7 +861,14 @@ def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, t
         except Exception as exc:
             missed.append(f'⏸ {name}: {type(exc).__name__}')
     folder.mkdir(parents=True, exist_ok=True)
-    index = {'schema': 'chat-index/1', 'owner': OWNER, 'commits': commits, 'files': files, 'tools': list(tools.values())}
+    summaries = {}                                          # 🤖 what /ask tells the model of each one: its README summary
+    for repo in catalog['repos']:
+        text = re.sub(r'\[([^\]]*)\]\([^)]*\)', r'\1', repo.get('description') or repo.get('readmeSummary') or '')
+        text = ' '.join(text.split())
+        if text and not repo.get('archived'):
+            summaries[repo['name']] = text if len(text) <= 160 else text[:159] + '…'
+    index = {'schema': 'chat-index/1', 'owner': OWNER, 'commits': commits, 'files': files, 'tools': list(tools.values()),
+             'repos': summaries, 'scan_errors': scan_errors}
     (folder / 'index.json').write_text(json.dumps(index, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
     return [f'💬 {len(commits)} repositories · {len(files)} JSON/JSONL · 🔌 {len(tools)} tools · 🗂 TalkCompress {compressor}', *missed]
 
@@ -989,7 +1010,7 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
         {'label': '🗼 パラレル東京', 'href': './tokyo.html'}, {'label': '🌍 東京・ロンドン・パリ', 'href': '../demos/cities.html'}]}}
     maps = {path: add_home_label(add_back_nav(document, path, cities), '地図・ピン', icons_from='../../').encode('utf-8')
             for path, document in load_module('map_tool', 'scripts/map_tool.py').render(ui, _world()).items()}
-    pages = {**render_demos(ui), **render_html_import(ui), **maps, **render_gif_tool(ui)}
+    pages = {**render_demos(ui), **render_html_import(ui), **maps, **render_gif_tool(ui), **render_chat_tool(ui)}
     for sheet, builder in STYLESHEET_BUNDLES.items():
         prefix = b'<style>' + getattr(ui, builder)().encode()
         for path, page in pages.items():
@@ -1012,7 +1033,7 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
     if set(lock['outputs']) != {HTML_IMPORT_MODULE, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
-    expected = ({DEMO_BASE + 'index.html', HTML_IMPORT_PAGE, GIF_PAGE} | MAP_PAGES
+    expected = ({DEMO_BASE + 'index.html', HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE} | MAP_PAGES
                 | {DEMO_BASE + name + '.html' for name in (*DEMOS, *WORLD_PAGES)})
     if set(lock.get('pages', {})) != expected:
         raise ValueError('generated page paths differ from the demo and world lists and the HTML import page')

@@ -876,14 +876,43 @@ def test_the_name_layer_is_names_dots_or_off_and_switches_in_the_header():
     assert ".ui-world[data-names=dots] .ui-spot:not([data-sign]):not([data-near]):not(:hover):not(:focus-visible)" in css
 
 
+def test_an_always_named_spot_keeps_its_name_in_the_name_layer_in_every_mode():
+    """always_named: the name stays faint in the name layer (like a village's name on a land) whatever data-names says; left / right hang it beside the mark."""
+    tokyo = W.world_validate(W.example_data("cities"))["floors"][0]
+    sides = {s["id"].removeprefix("tokyo-"): s.get("always_named") for s in tokyo["spots"]}
+    assert {k: v for k, v in sides.items() if v} == {"marunouchi-n": "left", "marunouchi-c": "left", "marunouchi-s": "left",
+                                                     "yaesu-n": "right", "yaesu-c": "right", "yaesu-s": "right"}   # away from the middle of the station
+    html = W.world_html(W.example_data("cities"))
+    assert html.count(' data-named="left"') == html.count(' data-named="right"') == 3 and html.count(" data-named") == 6   # Tokyo's exits only
+    css = W.world_css(W.example_data("cities"))
+    assert css.count(":not(:focus-visible):not([data-named])") == 4                        # no dot rule (dots, off; the pill and its ::before) takes them
+    assert ".ui-spot[data-named]::before," in css and ".ui-spot[data-named=left]{display:flex;flex-direction:row-reverse;transform-origin:right center" in css
+    pt = lambda i, lon, category: {"id": i, "label": i.upper(), "lat": 35.0, "lon": lon, "category": category}   # noqa: E731
+    floor = W.place_floor([pt("w", 139.0, "gate"), pt("m", 139.01, "gate"), pt("e", 139.02, "gate"), pt("s", 139.03, "shop")], meters=100, always_named=["gate"])
+    assert [s.get("always_named") for s in floor["spots"]] == ["left", True, "right", None]   # the middle one is centred; another category keeps its dot
+    assert [s.get("always_named") for s in W.place_floor([pt("a", 139.0, "gate")], meters=100, always_named=["gate"])["spots"]] == [True]
+    for bad in ("gate", ["Bad Key"], [1]):
+        with pytest.raises(ValueError, match="always_named is a list"):
+            W.place_floor([pt("a", 139.0, "gate")], meters=100, always_named=bad)
+    spec = W.example_data("school")
+    spot = spec["floors"][0]["spots"][0]
+    one = W.world_html({**spec, "floors": [{**spec["floors"][0], "spots": [{**spot, "always_named": True}, *spec["floors"][0]["spots"][1:]]}, *spec["floors"][1:]]})
+    assert one.count(' data-named=""') == 1
+    for bad, why in (("up", "always_named is true, left or right"), (1, "always_named is true, left or right")):
+        with pytest.raises(ValueError, match=why):
+            W.world_validate({**spec, "floors": [{**spec["floors"][0], "spots": [{**spot, "always_named": bad}]}, *spec["floors"][1:]]})
+    with pytest.raises(ValueError, match="a sign keeps its own dot"):
+        W.world_validate({**spec, "floors": [{**spec["floors"][0], "spots": [{**spot, "always_named": True, "sign": "led"}]}, *spec["floors"][1:]]})
+
+
 def test_a_mark_is_an_emoji_in_place_of_the_dot_scaled_by_the_world():
     """A spot's mark (or its category's, through place_floor marks=) replaces the dot and leads the name; mark_scale sets every mark's width and height."""
     cities = W.world_validate(W.example_data("cities"))
     assert cities["mark_scale"] == [1.5, 1.5]
-    assert {s["category"]: s.get("mark") for f in cities["floors"] for s in f["spots"]} == {"exit": "🚪", "station": "🚉", "terminus": "🚆", "sign": None}
+    assert {s["category"]: s.get("mark") for f in cities["floors"] for s in f["spots"]} == {"exit": "🎫", "station": "🚉", "terminus": "🚆", "sign": None}
     html = W.world_html(W.example_data("cities"))
     assert 'style="--mark-x:1.5;--mark-y:1.5"' in html
-    assert "top:1232px;--mark:'🚪'\"" in html
+    assert "top:1232px;--mark:'🎫'\"" in html and "--mark:'🚪'" not in html           # 🚪 is the footer's: an exit is a ticket gate
     css = W.world_css(W.example_data("cities"))
     assert 'content:var(--mark,"●")' in css and "transform:scale(var(--mark-x,1),var(--mark-y,1))" in css
     spec = W.example_data("school")

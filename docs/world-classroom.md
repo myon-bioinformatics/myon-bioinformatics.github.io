@@ -103,7 +103,11 @@ plain spots sit, and 🏷️ in ⚙️ switches it without a reload (kept with t
 
 A spot's `mark` (one emoji) is drawn instead of the dot and leads the name when the name shows; `place_floor(marks={category: emoji})` (or `"marks"` in a
 `place`) gives every point of a category its mark, and the world's `mark_scale: [x, y]` (0.5–4, default `[1, 1]`) sets the width and height factor of every mark,
-dots included. The cities use 🚪 exits, 🚉 stations and 🚆 termini at `[1.5, 1.5]`.
+dots included. The cities use 🎫 exits (ticket gates; 🚪 is the footer's), 🚉 stations and 🚆 termini at `[1.5, 1.5]`.
+A spot with `always_named` stays in the name layer in every mode: its name shows faint behind the marks, the way a village's name lies on a land, and
+🏷️ never turns it into a dot. `true` centres the name on the spot; `"left"` / `"right"` hang it on that side with the mark on the spot.
+`place_floor(always_named=[category, ...])` (or `"always_named"` in a `place`) does it for every point of a category and hangs each name away from the
+middle of the group, so the two sides of a station do not cover each other: Tokyo Station's six exits are always named (丸の内 to the left, 八重洲 to the right).
 Signs (`sign`) always sit in the mark layer and keep their own dot → text → face cycle. While a sheet is open, the camera aims a little below the player or the spot,
 so the thing you walked to stays in the view above the sheet.
 
