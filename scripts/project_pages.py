@@ -167,6 +167,11 @@ def load_module(name: str, relative_path: str | Path) -> ModuleType:
     return module
 
 
+@functools.cache
+def _front_module():
+    return load_module('front_page', 'scripts/front_page.py')
+
+
 def tools_places(prefix: str = '../../') -> list[dict]:
     """🧰 Every link of the 🧰 Tools cards (front_page.py ``PORTAL``, so a new card is a new row) as ``{'id', 'label', 'href'}``, for
     a page ``prefix`` below the site root: the doors of 🚪 Door-to-Door. ``text`` is the card's own description (the board shows it).
@@ -175,7 +180,7 @@ def tools_places(prefix: str = '../../') -> list[dict]:
     for a link that has none or shares its card's."""
     site, places = 'https://myon-bioinformatics.github.io/tools/', {}
     marks = {'html-import': '📄', 'maps': '🗺️', 'maps-tokyo': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'mcp-protocol': '🤝'}
-    for card in load_module('front_page', 'scripts/front_page.py').PORTAL:
+    for card in _front_module().PORTAL:
         mark, _, title = card['title'].partition(' ')
         if not title or any(c.isalnum() for c in mark):                  # a title without an emoji: all of it is words
             mark, title = '🚪', card['title']
@@ -192,7 +197,7 @@ def tools_chrome(prefix: str = '../../', tools: dict | None = None, description:
     the board (``title``, the clock, then ``description`` — what this page is, a sentence per item — and the cards' titles), 🏠 back
     to the cards (``home=False``: the front page itself) and ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``).
     ☰ is each page's own (itself and its sections, listed in the page); the tools themselves are 🚪 Door-to-Door's rows (``tools_places``)."""
-    cards = load_module('front_page', 'scripts/front_page.py').PORTAL
+    cards = _front_module().PORTAL
     about = [{'text': part if len(part) <= 120 else part[:119] + '…'}
              for part in (p.strip() for p in re.split(r'(?<=[。！？])|(?<=[.!?])\s+', html.unescape(description))) if part][:3]
     return {'id': 'tools', **({'home': prefix + 'index.html#tools'} if home else {}), 'tools': tools or {},
@@ -203,10 +208,10 @@ def tools_door(ui, prefix: str = '../../', here: str | None = None, title: str =
     """🚪 PySaiyanWeBoo's Door-to-Door (``door_html``, door.css, door.js) for a tool page, as ``(html, css, js)``: 🏠 the cards, then
     every tool (``tools_places``); ``here`` (this page's href) is the door you came in by, and a page that is no tool is added as 📌 ``title``.
 
-    The part is PySaiyanWeBoo's whole panel; the sheet here shows its pull-down alone, in a 56px row that stays at the window's foot
-    (the label reads 🚪, the rest of the panel is not drawn), followed by the site's own line: 🐦 the X account and 📦 this page's
-    size (``stamp_size`` writes it once the page is whole). The one line after door.js puts the pull-down back on this page when the
-    browser's own way back restores it."""
+    The part is PySaiyanWeBoo's compact door (``door_html(compact=True)``: 🚪 and the pull-down, one 56px row; door.js shows this
+    page again after the browser's own way back). The sheet here keeps the row at the window's foot and styles the pull-down for a
+    page without the shared sheet, followed by the site's own line: 🐦 the X account and 📦 this page's size (``stamp_size`` writes
+    it once the page is whole)."""
     pages = [{'emoji': '🏠', 'label': 'Tools', 'href': prefix + 'index.html#tools'},
              *({'emoji': mark, 'label': words, 'href': place['href']} for place in tools_places(prefix) for mark, _, words in [place['label'].partition(' ')])]
     if here and here not in {page['href'] for page in pages}:
@@ -218,17 +223,13 @@ def tools_door(ui, prefix: str = '../../', here: str | None = None, title: str =
            '.ui-door-foot{display:flex;align-items:center}.ui-door-foot .ui-door{flex:1;min-width:0}'
            '.ui-foot-info{display:flex;align-items:center;gap:8px;margin:0;padding:0 8px;font-size:.75rem;white-space:nowrap}'
            '.ui-foot-info a{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;font-size:1.25rem;text-decoration:none}'
-           '.ui-door-foot .ui-door{display:flex;align-items:center;gap:8px;min-height:56px;margin:0;padding:8px;border:0;background:none}'
-           '.ui-door-foot .ui-door>:not(label[for=door-select],.ui-door-row),.ui-door-foot [data-door-draw]{display:none}'
-           '.ui-door-foot label[for=door-select]{margin:0;font-size:0}.ui-door-foot label[for=door-select]::before{content:"🚪";font-size:1.25rem}'
-           '.ui-door-foot .ui-door-row{flex:1;min-width:0;flex-wrap:nowrap}'
-           '.ui-door-foot .ui-door-row select{flex:1;min-width:0;max-width:384px;min-height:40px;margin:0;padding:0 8px;font:inherit;color:var(--ui-fg);'
-           'background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:var(--ui-radius)}')
-    js = (ui.js_source('door.js') + 'addEventListener("pageshow",()=>{for(const s of document.querySelectorAll("[data-door-select]"))'
-          's.selectedIndex=Math.max(0,[...s.options].findIndex(o=>o.disabled))});\n')
+           '.ui-door-foot .ui-door{margin:0;border:0;background:none}'
+           '.ui-door-foot select{margin:0;padding:0 8px;font:inherit;color:var(--ui-fg);background:var(--ui-bg);'
+           'border:1px solid var(--ui-border);border-radius:var(--ui-radius)}')
+    js = ui.js_source('door.js')
     info = (f'<p class="ui-foot-info"><a href="{X_URL}" target="_blank" rel="noopener noreferrer" title="X (Twitter) @{X_URL.rpartition("/")[2]}" '
             f'aria-label="X (Twitter) @{X_URL.rpartition("/")[2]}">🐦</a><span class="ui-foot-size" title="このページの HTML の大きさ">📦</span></p>')
-    return '<div class="ui-door-foot">' + ui.door_html(door) + info + '</div>', css, js
+    return '<div class="ui-door-foot">' + ui.door_html(door, compact=True) + info + '</div>', css, js
 
 
 X_URL = 'https://twitter.com/myonitbusiness'
@@ -304,7 +305,7 @@ def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
     site's shared header, side and foot (``add_site_chrome``: the board reads the page's description, ☰ lists its sections).
 
     It is not in the lock: api/repos.json is refreshed by a workflow, and the page must follow it without a lock refresh."""
-    front = load_module('front_page', 'scripts/front_page.py')
+    front = _front_module()
     return {'index.html': add_site_chrome(front.document(root, samples=samples), 'index.html', front.LINKS, title='MYON', home=False).encode('utf-8')}
 
 

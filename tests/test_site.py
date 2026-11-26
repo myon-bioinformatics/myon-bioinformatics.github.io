@@ -78,6 +78,33 @@ def test_portal_exposes_expected_pages():
     assert "tools" in parser.ids
     assert EXPECTED_PAGES <= set(parser.links)
 
+
+def test_tool_cards_and_door_follow_the_service_catalog(tmp_path, monkeypatch):
+    from shutil import copyfile
+
+    scripts = tmp_path / 'scripts'
+    scripts.mkdir()
+    copyfile(ROOT / 'scripts/front_page.py', scripts / 'front_page.py')
+    path = tmp_path / 'services.json'
+    catalog = json.loads((ROOT / 'services.json').read_text(encoding='utf-8'))
+    projects = catalog['services']['projects']
+    projects['Ironmate']['pages']['url'] = 'https://myon-bioinformatics.github.io/tools/example-image/'
+    projects['mcp-toolcall-lab']['execution']['url'] = 'https://myon-bioinformatics.github.io/tools/example-execution/'
+    path.write_text(json.dumps(catalog), encoding='utf-8')
+    front = PAGES.load_module('test_front_catalog', scripts / 'front_page.py')
+    monkeypatch.setattr(PAGES, '_front_module', lambda: front)
+
+    parser = LinkParser()
+    parser.feed(front.portal_cards())
+    assert 'https://myon-bioinformatics.github.io/tools/example-image/' in parser.links
+    assert './tools/example-image/' in parser.links  # keep the heatmap-to-editor shortcut
+    assert 'https://myon-bioinformatics.github.io/tools/example-execution/' in parser.links
+    assert not any('/image-studio/' in href or '/mcp/execution/' in href for href in parser.links)
+    doors = [place['href'] for place in PAGES.tools_places()]
+    assert doors.count('../../tools/example-image/') == 1
+    assert '../../tools/example-execution/' in doors
+
+
 def test_every_active_repository_with_pages_is_one_tap_away():
     """🌐 api/repos.json (has_pages) owns the Pages roots: each project card links its repository's own Pages (🧰 Tools has no
     list of them, and no portfolio copy of a repository's page)."""
@@ -352,9 +379,9 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
     import re
     world = PAGES._world()
     import pysaiyanweboo as ui
-    module = ('<script type="module">' + world.SHELL_JS + 'bindChrome();\n</script><div class="ui-door-foot"><section class="ui-panel ui-door" id="door" data-ui-door ',
+    module = ('<script type="module">' + world.SHELL_JS + 'bindChrome();\n</script><div class="ui-door-foot"><div class="ui-door ui-door-compact" id="door" data-ui-door ',
               '</span></p></div><script type="module">' + PAGES.tools_door(ui)[2] + '</script></body>')
-    assert module[1].count(ui.js_source('door.js')) == 1 and 'addEventListener("pageshow"' in module[1]      # PySaiyanWeBoo's door.js, and one line
+    assert PAGES.tools_door(ui)[2] == ui.js_source('door.js') and 'addEventListener("pageshow",fill)' in module[1]   # PySaiyanWeBoo's door.js alone
     cards = [html.escape(card['title']) for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL]
     pages = {*TOOL_PAGES, *(f'{folder}/{entry}index.html' for _, folder, entries in PAGES.TOOL_SOURCES.values() for entry in entries)}
     assert len(pages) > len(TOOL_PAGES)
@@ -466,8 +493,8 @@ def test_door_to_door_in_chromium_with_a_gif():
                     foot, select = page.locator('.ui-door-foot').bounding_box(), page.locator('.ui-door-foot [data-door-select]')
                     assert (foot['x'], foot['width'], round(foot['y'] + foot['height'])) == (0, width, height) and foot['height'] <= 64, foot
                     assert select.bounding_box()['height'] == 40 and page.evaluate(shown) == '🗺️ 地図URLを作成 (current)'
-                    visible = page.evaluate("[...document.querySelectorAll('.ui-door-foot .ui-door *')].filter(e => e.offsetParent && e.tagName !== 'OPTION').map(e => e.tagName)")
-                    assert sorted(visible) == ['DIV', 'LABEL', 'SELECT'], visible          # 🚪 the label, the row, the pull-down: no panel
+                    visible = page.evaluate("[...document.querySelectorAll('.ui-door-foot .ui-door *')].filter(e => e.offsetParent && e.tagName !== 'OPTION' && e.getBoundingClientRect().width > 1).map(e => e.tagName)")
+                    assert visible == ['LABEL', 'SPAN', 'SELECT'], visible                 # 🚪 and the pull-down (compact): no panel
                     assert page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth') == 0
                     page.close()
                 page = browser.new_page(viewport={'width': 560, 'height': 480})
