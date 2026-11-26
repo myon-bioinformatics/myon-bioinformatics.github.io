@@ -293,11 +293,11 @@ def add_back_nav(page: str, path: str | None = None, tools: dict | None = None) 
 
 def add_home_label(page: str, label: str, *, icons_from: str | None = None) -> str:
     """📱 PySaiyanWeBoo's ``home_label``: the home-screen shortcut is named ``label``; ``icons_from`` (the way back to the site
-    root, ``'../../'``) also gives the page the portfolio's tab icon and home-screen icon. Idempotent."""
+    root, ``'../../'``) also gives the page the portfolio's tab icon and home-screen icon. Idempotent; 📦 the foot's size follows."""
     import pysaiyanweboo as ui
     icons = {} if icons_from is None else {'icon': f'{icons_from}assets/brand/favicon-32x32.png',
                                            'touch_icon': f'{icons_from}assets/brand/myon-profile-icon.png'}
-    return ui.home_label(page, label, **icons)
+    return stamp_size(ui.home_label(page, label, **icons))
 
 
 def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
