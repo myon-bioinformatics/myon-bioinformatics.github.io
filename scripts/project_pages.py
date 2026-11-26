@@ -739,7 +739,8 @@ def _tree(repository: str, commit: str) -> list[tuple[str, int]]:
 
 def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, tree=_tree) -> list[str]:
     """💬 What the chat knows of the other repositories, at their current commits, under ``output/media/chat/``: index.json
-    (every JSON / JSONL file with its size, the tools mcp-toolcall-lab's prompt fixtures advertise) and TalkCompress's
+    (every JSON / JSONL file with its size, the tools mcp-toolcall-lab's prompt fixtures advertise, each one's README summary
+    from api/repos.json for /ask) and TalkCompress's
     shorthand compressor (talkcompress/). Best effort: a repository that cannot be read is listed and skipped."""
     catalog = json.loads((root / 'api/repos.json').read_text(encoding='utf-8'))
     folder = Path(output) / CHAT
@@ -771,7 +772,14 @@ def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, t
         except Exception as exc:
             missed.append(f'⏸ {name}: {type(exc).__name__}')
     folder.mkdir(parents=True, exist_ok=True)
-    index = {'schema': 'chat-index/1', 'owner': OWNER, 'commits': commits, 'files': files, 'tools': list(tools.values())}
+    summaries = {}                                          # 🤖 what /ask tells the model of each one: its README summary
+    for repo in catalog['repos']:
+        text = re.sub(r'\[([^\]]*)\]\([^)]*\)', r'\1', repo.get('description') or repo.get('readmeSummary') or '')
+        text = ' '.join(text.split())
+        if text and not repo.get('archived'):
+            summaries[repo['name']] = text if len(text) <= 160 else text[:159] + '…'
+    index = {'schema': 'chat-index/1', 'owner': OWNER, 'commits': commits, 'files': files, 'tools': list(tools.values()),
+             'repos': summaries}
     (folder / 'index.json').write_text(json.dumps(index, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
     return [f'💬 {len(commits)} repositories · {len(files)} JSON/JSONL · 🔌 {len(tools)} tools · 🗂 TalkCompress {compressor}', *missed]
 

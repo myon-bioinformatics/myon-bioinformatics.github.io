@@ -1048,14 +1048,17 @@ CHAT_INDEX = {'schema': 'chat-index/1', 'owner': 'myon-bioinformatics',
                         ['TaxOntOy', 'otl-relations.json', 64], ['OnTautoLogy', 'examples/concepts-20261115.json', 900]],
               'tools': [{'name': 'find_municipalities', 'description': 'Find mock municipalities.',
                          'parameters': {'type': 'object', 'properties': {'query': {'type': 'string'}}, 'required': ['query'],
-                                        'additionalProperties': False}}]}
+                                        'additionalProperties': False}}],
+              'repos': {'onto': 'ONTO: an index linking ontology-related repositories', 'Aoi': 'Hypothesis-driven baseball analytics.',
+                        'TaxOntOy': 'TaxOntOy: Taxonomy × Ontology', 'OnTautoLogy': 'Stdlib-only Python graphlib knowledge graph.'}}
 CHAT_CONCEPTS = {'schema': 'ontautology-concepts/1',                    # 🧬 a small ledger in OnTautoLogy's shape (both entry forms)
                  'concepts': {'ギター': {'id': 'C001-guitar', 'elements': ['楽器', '弦楽器', '撥弦', 'フレット', '6弦標準']},
                               'ベース': ['楽器', '弦楽器', '撥弦', 'フレット', '4弦標準', '低音主体'],
                               'ウクレレ': ['楽器', '弦楽器', '撥弦', 'フレット', '4弦標準', '小型'],
                               'バイオリン': ['楽器', '弦楽器', '擦弦', '4弦標準', '弓で弾く'],
                               'マリオ': ['ゲームキャラクター', '帽子', '赤色', '兄'], 'ルイージ': ['ゲームキャラクター', '帽子', '緑色', '弟']},
-                 'similar': [['ギター', 'ベース'], ['ギター', 'ウクレレ'], ['ギター', 'バイオリン'], ['マリオ', 'ルイージ']]}
+                 'similar': [['ギター', 'ベース'], ['ギター', 'ウクレレ'], ['ギター', 'バイオリン'], ['マリオ', 'ルイージ']],
+                 'names': {'ギター': ['英名:Guitar', '略称:ギタ'], 'マリオ': ['英名:Mario', '主役シリーズ:スーパーマリオ'], 'ルイージ': ['同音語:類似']}}
 CHAT_RAW = {'onto/docs/graph.json': json.dumps({'schema': 'graph/1', 'nodes': [{'id': 'a'}, {'id': 'b'}], 'edges': [['a', 'b']]}),
             'OnTautoLogy/examples/concepts-20261115.json': json.dumps(CHAT_CONCEPTS, ensure_ascii=False),
             'Aoi/cycles/c001/outputs/allocation.jsonl': '{"team": "d", "z": -0.7}\n{"team": "s", "z": 0.2}\n'}
@@ -1118,7 +1121,9 @@ def test_chat_onto_defines_concepts_and_looks_them_up_with_ontautology():
     assert '| 🤝 ベース |' in guitar and '🔑 決め手（それだけで ギター）: 6弦標準' in guitar
     assert '⚠️ 3 つ（ウクレレ・ギター・ベース）' in say('/onto 撥弦 + フレット') and '`/onto 撥弦 + フレット + 4弦標準`' in say('/onto 撥弦 + フレット')
     assert '✅ **ギター** だけ' in say('/onto 撥弦 + 6弦標準')
-    assert '⌨️ もしかして: `/onto ギター`' in say('/onto ギタ') and '🫥' in say('/onto 楽器 + 赤色')
+    assert '⌨️ もしかして: `/onto バイオリン`' in say('/onto バイオリ') and '🫥' in say('/onto 楽器 + 赤色')
+    assert '🏷 guitar → **ギター**' in say('/onto guitar') and '### 🧬 ギター' in say('/onto ギタ')      # 🏷 the ledger's names
+    assert '### 🧬 マリオ' in say('/onto Mario') and '❓ 台帳にない' in say('/onto スーパーマリオ') and '❓' in say('/onto 類似')
     assert '⏸' in CHAT.respond('/onto ギター', index={})
 
 
@@ -1152,6 +1157,28 @@ def test_chat_runs_olnm_to_list_read_and_calculate():
     assert 'git push' in say('/olnm run gp') and '▶️ `olnm doctor` は端末で' in say('/olnm doctor')
 
 
+def test_chat_ask_stands_on_readme_summaries_concepts_and_files():
+    """🤖 /ask's system message carries what the question names: repositories (by name, capitals or summary words, with their
+    README summary), the ledger's concepts (by name or 🏷 alias, as genus + differentia) and the recorded files — and stays short."""
+    ask = lambda text: json.loads(CHAT.ask_messages(text, CHAT_INDEX, _chat_fetch))
+    system, user = ask('/ask OTL と baseball の Guitar は？')
+    assert user == {'role': 'user', 'content': 'OTL と baseball の Guitar は？'}
+    content = system['content']
+    assert ('関係しそうなリポジトリ（README の要約）:\n- OnTautoLogy（OTL）: Stdlib-only Python graphlib knowledge graph.\n'
+            '- Aoi: Hypothesis-driven baseball analytics.\n- TaxOntOy（TOO）: TaxOntOy: Taxonomy × Ontology\n') in content   # OTL is in its file
+    assert '- ギター: 弦楽器・楽器 のうち 6弦標準 のもの（似たもの: ウクレレ・バイオリン・ベース）' in content
+    assert 'リポジトリ: Aoi, OnTautoLogy, onto, TaxOntOy' in content and '記録にあるファイル: TaxOntOy/otl-relations.json' in content
+    found = CHAT.grounding('マリオとルイージの違い、オントロジーの台帳はどこ？', CHAT_INDEX, _chat_fetch)
+    assert found['concepts'] == ['マリオ: ゲームキャラクター・帽子 のうち 兄 のもの（似たもの: ルイージ）',
+                                 'ルイージ: ゲームキャラクター・帽子 のうち 弟 のもの（似たもの: マリオ）']
+    assert 'onto/docs/graph.json' in found['files'] and [r.split('（')[0].split(':')[0] for r in found['repos']] == ['TaxOntOy', 'onto']
+    quiet = CHAT.grounding('MAIN の話', CHAT_INDEX, _chat_fetch)                 # AI is not in MAIN, nothing is named
+    assert quiet['repos'] == [] and quiet['concepts'] == [] and quiet['files'] == []
+    assert CHAT.abbr('PySaiyanWeBoo') == 'PSWB' and CHAT.abbr('Aoi') == '' and CHAT.abbr('CaChereCyCle') == 'CCCC'
+    assert len(CHAT.ask_messages('/ask ' + ' '.join(['ギター マリオ ルイージ ベース OTL onto Aoi'] * 3), CHAT_INDEX, _chat_fetch)) < 2400
+    assert 'リポジトリ' not in json.loads(CHAT.ask_messages('/ask', {}))[0]['content'].split('。')[-1]
+
+
 def test_chat_checks_mcp_tool_calls_against_what_the_lab_advertises():
     """🔌 Only an advertised tool with arguments that fit its schema becomes a tools/call; anything else is refused."""
     say = lambda text: CHAT.respond(text, index=CHAT_INDEX)
@@ -1181,8 +1208,9 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     the page carries chat.py and exactly the installed markdown / ascii_artist / cli_args, and an index of every example."""
     root = tmp_path / 'root'
     (root / 'api').mkdir(parents=True)
-    (root / 'api/repos.json').write_text(json.dumps({'repos': [{'name': n} for n in ('TalkCompress', 'mcp-toolcall-lab', 'onto', 'Broken')]
-                                                     + [{'name': 'Old', 'archived': True}]}))
+    (root / 'api/repos.json').write_text(json.dumps({'repos': [{'name': n} for n in ('TalkCompress', 'mcp-toolcall-lab', 'Broken')]
+                                                     + [{'name': 'onto', 'description': '', 'readmeSummary': '📘 [Guide](https://x.test/)  for  ' + 'x' * 200},
+                                                        {'name': 'Old', 'archived': True, 'description': 'gone'}]}))
     trees = {'onto': [('docs/graph.json', 120), ('README.md', 9)], 'TalkCompress': [('x.jsonl', 3)],
              'mcp-toolcall-lab': [('fixtures/prompt_experiments/a.json', 50), ('fixtures/other.json', 2)]}
     fixture = {'openai': {'request': {'tools': [{'type': 'function', 'function': CHAT_INDEX['tools'][0]}]}}}
@@ -1198,6 +1226,7 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     assert [row[:2] for row in index['files']] == [['TalkCompress', 'x.jsonl'], ['mcp-toolcall-lab', 'fixtures/prompt_experiments/a.json'],
                                                    ['mcp-toolcall-lab', 'fixtures/other.json'], ['onto', 'docs/graph.json']]
     assert [tool['name'] for tool in index['tools']] == ['find_municipalities'] and set(index['commits']) == {'TalkCompress', 'mcp-toolcall-lab', 'onto'}
+    assert index['repos'] == {'onto': ('📘 Guide for ' + 'x' * 200)[:159] + '…'}           # 🤖 README summaries for /ask, links as their text
     assert all((tmp_path / 'site/media/chat/talkcompress' / name).is_file() for name in CHAT.TALKCOMPRESS)
 
     page = (SITE / 'tools/demos/chat.html').read_text(encoding='utf-8')

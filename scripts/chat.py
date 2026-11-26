@@ -68,7 +68,7 @@ COMMANDS = {
               ('/guess',)),
     'olnm': ('🧷', '[ls | grep | like | show | calc | sections] …', '端末のワンライナー集 OLNM を動かす（探す・読む・もしかして・電卓）',
              ('/olnm like uvtets', '/olnm show gp', '/olnm calc 6 mul 7', '/olnm grep json')),
-    'ask': ('🤖', 'TEXT', '小さな LLM に聞く（llama.cpp をページの中で。初回だけモデルを読む）', ('/ask オントロジーの台帳はどのリポジトリにある？',)),
+    'ask': ('🤖', 'TEXT', '小さな LLM に聞く（llama.cpp をページの中で。初回だけモデルを読む）。質問が名指すリポジトリの要約・台帳の概念を添える', ('/ask オントロジーの台帳はどのリポジトリにある？',)),
 }
 TYPOS = ('/flwo a > b', '/find --kidn onto', '/find --kind ont')    # ⌨️ what cli_args answers with "maybe you meant"
 _STATE = {'index': None, 'base': '', 'fetch': None, 'talkcompress': None, 'concepts': None, 'guess': None}
@@ -418,7 +418,7 @@ def concepts(index: dict | None = None, fetch=None) -> dict:
     key = (json.dumps(index.get('commits', {}), sort_keys=True), id(fetch))
     if _STATE['concepts'] and _STATE['concepts'][0] == key:
         return _STATE['concepts'][1]
-    corpus = {'schema': otl.CONCEPT_SCHEMA, 'concepts': {}, 'similar': [], 'sources': []}
+    corpus = {'schema': otl.CONCEPT_SCHEMA, 'concepts': {}, 'similar': [], 'sources': [], 'names': {}}
     for name, path, size in index['files']:
         if not re.search(r'(^|/)concepts[-_][^/]*\.json$', path) or size > SHOW_MAX:
             continue
@@ -433,6 +433,8 @@ def concepts(index: dict | None = None, fetch=None) -> dict:
         for concept, body in data['concepts'].items():
             corpus['concepts'].setdefault(concept, body)
         corpus['similar'] += data.get('similar', [])
+        for concept, called in (data.get('names') or {}).items():
+            corpus['names'].setdefault(concept, []).extend(c for c in called if isinstance(c, str))
         corpus['sources'].append(f'{name}/{path}@{commit[:7]}')
     _STATE['concepts'] = (key, corpus)
     return corpus
@@ -442,6 +444,17 @@ def _elements(body) -> list:
     """A ledger entry's elements: the ledger writes {"id", "elements"} or the bare list; unobserved is []."""
     elements = body.get('elements') if isinstance(body, dict) else body
     return list(elements) if isinstance(elements, list) else []
+
+
+def aliases(corpus: dict) -> dict[str, str]:
+    """🏷 What each concept is also called, casefolded → the concept: its name and the ledger's names whose kind is a name or a
+    reading (略称:中日, 英名:Guitar, 別名:ヒト, 読み:しゃけ — not 同音語 or 名前の由来)."""
+    called = {name.casefold(): name for name in corpus.get('concepts', {})}
+    for concept, names in corpus.get('names', {}).items():
+        for kind, _, alias in (n.partition(':') for n in names):
+            if concept in corpus['concepts'] and alias.strip() and (kind.endswith(('名', '称')) or kind == '読み'):
+                called.setdefault(alias.strip().casefold(), concept)
+    return called
 
 
 def _ledger(corpus: dict) -> str:
@@ -469,7 +482,9 @@ def onto_reply(text: str, index: dict | None = None, fetch=None) -> str:
     if not corpus.get('concepts'):
         return '⏸ 概念の台帳（OnTautoLogy の concepts-*.json）をこのビルドの索引から読めない'
     names = list(corpus['concepts'])
-    text = text.strip()
+    text, said = text.strip(), ''
+    if text not in corpus['concepts'] and aliases(corpus).get(text.casefold()):
+        said, text = f'🏷 {text} → **{aliases(corpus)[text.casefold()]}**', aliases(corpus)[text.casefold()]
     if not text:
         return '\n\n'.join([f'🧬 **{len(names)}** 概念 · 🤝 似ている組 **{len(corpus["similar"])}**', ' · '.join(names),
                             '例: `/onto ギター`（〇〇を〇〇たらしめるもの）· `/onto 撥弦 + フレット`（要素から逆引き）· `/guess`（当てっこ）',
@@ -499,7 +514,7 @@ def onto_reply(text: str, index: dict | None = None, fetch=None) -> str:
              _few(differ['vs_similar'][other]['only_similar'], 3)] for other in result['similar'] if other in differ['vs_similar']]
     keys = ' · '.join('＋'.join(k) for k in differ['minimal_keys'][:5])
     return '\n\n'.join(part for part in [
-        f'### 🧬 {text}',
+        f'### 🧬 {text}', said,
         f'📐 **{_few(definition["genus"], 6)}** のうち、**{_few(definition["differentia"], 4)}** のもの'
         f'（🔁 逆引き {"✅ これだけ" if verdict == "unique" else "⚠️ " + _few(definition["roundtrip"]["matched"])}）',
         md.table(['似たもの', '🤝 共通', f'🆚 {text}だけ', '🆚 相手だけ'], rows).strip() if rows else '🤝 似たものはまだない',
@@ -601,18 +616,62 @@ def olnm_reply(text: str, index: dict | None = None) -> str:
     return '\n\n'.join(part for part in [f'🧷 `olnm {" ".join([sub, *rest])}`', _code(shown, 'sh' if sub == 'show' else 'text'), tail] if part)
 
 
-def ask_messages(text: str, index: dict | None = None) -> str:
-    """🤖 The chat messages /ask sends to the model (JSON): who it is, the commands, and the recorded files its words find."""
-    index = _STATE['index'] if index is None else index
-    question = re.sub(r'^/ask\s*', '', text.strip(), flags=re.I) or 'こんにちは'
-    words = re.findall(r'[A-Za-z0-9_.@-]{3,}', question)
-    kind = 'onto' if re.search(r'onto|オントロジー', question, re.I) else None
-    hits = [f'{name}/{path}' for word in (words if words else [''] if kind else [])
-            for name, path, _ in find(index or {}, [word] if word else [], None, kind)[:6]]
+def abbr(name: str) -> str:
+    """The capitals of a CamelCase name, as the fleet shortens them (OnTautoLogy → OTL, PySaiyanWeBoo → PSWB); '' below two."""
+    caps = re.sub(r'[^A-Z]', '', name)
+    return caps if len(caps) >= 2 else ''
+
+
+def _said(word: str, text: str) -> bool:
+    """``word`` in ``text``: as a whole word when it is ASCII (AI is not in MAIN), anywhere when it is not (中日 in 中日の本拠地)."""
+    if re.fullmatch(r'[\x00-\x7f]+', word):
+        return re.search(rf'(?<![A-Za-z0-9]){re.escape(word)}(?![A-Za-z0-9])', text, re.I) is not None
+    return word.casefold() in text.casefold()
+
+
+def grounding(question: str, index: dict | None = None, fetch=None, *, repos: int = 3, ideas: int = 3) -> dict:
+    """🤖 What /ask gives the model to stand on (the context is 2048 tokens, so a few lines): the repositories the question names
+    (by name or capitals), whose summary has its words or whose recorded files it finds, with their README summary; the ledger's
+    concepts it names (or their 🏷 aliases), each as genus + differentia; and those files."""
+    index = (_STATE['index'] if index is None else index) or {}
+    words = re.findall(r'[A-Za-z][A-Za-z0-9_.@-]{2,}', question)
+    kind = 'onto' if re.search(r'onto|オントロジー|概念', question, re.I) else None
+    hits = [(name, path) for word in (words if words else [''] if kind else [])
+            for name, path, _ in find(index, [word] if word else [], None, kind)[:6]]
     hits = list(dict.fromkeys(hits))[:12]
+    summaries = index.get('repos') or {}
+    score = {name: 3 * (_said(name, question) or bool(abbr(name) and _said(abbr(name), question)))
+             + sum(w.casefold() in summary.casefold() for w in words) + sum(n == name for n, _ in hits)
+             for name, summary in summaries.items()}
+    near = sorted((n for n in score if score[n]), key=lambda n: (-score[n], n))[:repos]
+    corpus = concepts(index, fetch) if any(re.search(r'(^|/)concepts[-_]', p) for _, p, _ in index.get('files', [])) else {}
+    named = {}                                                  # concept → where the question first names it
+    for alias, concept in aliases(corpus).items():
+        if (len(alias) > 1 or alias == concept.casefold()) and _said(alias, question):
+            named[concept] = min(named.get(concept, len(question)), question.casefold().find(alias))
+    defined = []
+    for concept in sorted(named, key=named.get)[:ideas]:
+        result = otl.define_concepts(corpus, [concept])['concepts'][concept]
+        if result['elements_observed']:
+            definition = result['definition']
+            defined.append(f'{concept}: {_few(definition["genus"], 6)} のうち {_few(definition["differentia"], 4)} のもの'
+                           + (f'（似たもの: {_few(result["similar"], 3)}）' if result['similar'] else ''))
+    return {'repos': [f'{n}{f"（{abbr(n)}）" if abbr(n) else ""}: {summaries[n]}' for n in near], 'concepts': defined,
+            'files': [f'{n}/{p}' for n, p in hits], 'names': sorted(summaries or index.get('commits', {}), key=str.casefold)}
+
+
+def ask_messages(text: str, index: dict | None = None, fetch=None) -> str:
+    """🤖 The chat messages /ask sends to the model (JSON): who it is, the commands, and what ``grounding`` finds for the question."""
+    question = re.sub(r'^/ask\s*', '', text.strip(), flags=re.I) or 'こんにちは'
+    found = grounding(question, index, fetch)
+    lines = lambda title, rows: f'\n{title}:\n' + '\n'.join(f'- {row}' for row in rows) if rows else ''
     system = ('あなたは myon-bioinformatics のポートフォリオにある横断チャットの案内役。日本語で、短く、Markdown で答える。'
-              '分からないことは分からないと言う。道具はコマンドで: ' + ' '.join(f'/{n}' for n in COMMANDS if n != 'ask') + '。'
-              + ('記録にあるファイル: ' + ', '.join(hits) if hits else ''))
+              '下の資料にあることを根拠にし、分からないことは分からないと言う。道具はコマンドで: '
+              + ' '.join(f'/{n}' for n in COMMANDS if n != 'ask') + '（概念は /onto 名前、ファイルは /show リポジトリ/パス）。'
+              + ('\nリポジトリ: ' + ', '.join(found['names']) if found['names'] else '')
+              + lines('関係しそうなリポジトリ（README の要約）', found['repos'])
+              + lines('台帳の概念（OnTautoLogy）', found['concepts'])
+              + ('\n記録にあるファイル: ' + ', '.join(found['files']) if found['files'] else ''))
     return json.dumps([{'role': 'system', 'content': system}, {'role': 'user', 'content': question}], ensure_ascii=False)
 
 
