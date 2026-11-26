@@ -1,17 +1,20 @@
 # Build/test image only. GitHub Pages receives static files, never this image.
 # uv is a build-time tool here: it creates the pytest environment in its own stage and is not
 # part of the final image (no pip, no python3-venv, no uv).
+# The test interpreter is CPython 3.15 (same as CI static/browser), not Bookworm's apt python3 (3.11).
 FROM ghcr.io/astral-sh/uv:0.13.6 AS uv
 FROM node:26-bookworm-slim AS base
-RUN apt-get update && apt-get install -y --no-install-recommends python3 ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
 
 FROM base AS tests-venv
 COPY --from=uv /uv /usr/local/bin/uv
 RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 WORKDIR /opt/test-project
 COPY pyproject.toml uv.lock ./
-RUN UV_PYTHON_DOWNLOADS=never UV_PROJECT_ENVIRONMENT=/opt/tests \
-    uv sync --locked --only-group docker-test --python /usr/bin/python3 --no-cache
+# Standalone 3.15 under /opt/python so the acceptance stage can copy it with the venv.
+ENV UV_PYTHON_INSTALL_DIR=/opt/python
+RUN uv python install 3.15 \
+ && UV_PROJECT_ENVIRONMENT=/opt/tests uv sync --locked --only-group docker-test --python 3.15 --no-cache
 
 FROM base AS browser-env
 WORKDIR /app
@@ -21,8 +24,10 @@ RUN npm ci --ignore-scripts && npx playwright install --with-deps --only-shell c
 FROM browser-env AS acceptance
 # git reads the commit of the pinned checkouts under .test-deps/ that --stage builds the tools from.
 RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+COPY --from=tests-venv /opt/python /opt/python
 COPY --from=tests-venv /opt/tests /opt/tests
 COPY . .
+RUN /opt/tests/bin/python -c "import sys; assert sys.version_info[:2] == (3, 15), sys.version"
 RUN /opt/tests/bin/python scripts/project_pages.py --stage .generated-site
 ENV PATH="/opt/tests/bin:${PATH}"
 CMD ["sh", "-c", "python -m pytest tests/test_site.py --junitxml=reports/html-import-python.xml && npx playwright test --config playwright/html-import.config.js"]
