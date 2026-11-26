@@ -546,13 +546,14 @@ def test_demo_zoom_goes_in_toward_the_anchor_and_stays_on_the_real_clock():
 
 
 CHROME = {"board": {"title": "TOOLS", "items": [{"text": "🎞 GIF工房"}]}, "home": "../../index.html#tools",
-          "places": [{"id": "gif", "label": "🎞 GIF工房", "href": "../gif/"}, {"id": "demos-chat", "label": "💬 横断チャット", "href": "./chat.html"}],
+          "places": [{"label": "🧾 出力のしかた", "href": "#export"}, {"label": "📚 使い方（別ページ）", "href": "./guide.html"}],
           "tools": {"🗼": {"label": "パラレル都市", "label_en": "Parallel cities", "links": [{"label": "🗼 パラレル東京", "href": "../maps/tokyo.html"}]},
                     "🧭": {"label": "統合運用", "slot": "side", "href": "https://myon-bioinformatics.github.io/myon-bioinformatics/"}}}
 
 
 def test_a_tool_page_chrome_is_a_world_shell_without_a_map():
-    """🧰 chrome_html: the world's board (HH:MM:SS), 🏠, the page's own emoji, ⭐ ⚙️ in the header and ☰ ⋯ in the side."""
+    """🧰 chrome_html: the world's board (HH:MM:SS), 🏠, the page's own emoji, ⭐ ⚙️ in the header and ☰ ⋯ in the side.
+    ☰ is this page's own (the rows it gives; the script adds the page and its sections), ⋯ moves the screen."""
     html = W.chrome_html(CHROME)
     assert html.startswith('<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="ja"><div class="ui-board"')
     assert "<header" not in html and "<footer" not in html                     # a page's own header (and whatever looks for it) stays the page's
@@ -564,21 +565,25 @@ def test_a_tool_page_chrome_is_a_world_shell_without_a_map():
     assert side.index(">☰<") < side.index(">🧭<") < side.index(">⋯<")
     assert '<a class="ui-world-tool" href="https://myon-bioinformatics.github.io/myon-bioinformatics/"' in side     # href: the button is the link
     assert '<li><a href="../maps/tokyo.html">🗼 パラレル東京</a></li>' in head                                        # links: a panel of rows
-    assert html.count('data-fav="') == 2 and 'data-fav="demos-chat"' in html and html.count('class="ui-world-star"') == 2
+    assert "data-fav" not in html and html.count('class="ui-world-star"') == 2            # a place is known by where it leads
+    assert ('<ul class="ui-world-rows ui-world-spots"><li><a href="#export"><span class="ui-world-arrow" aria-hidden="true"></span>🧾 出力のしかた</a>'
+            '<button type="button" class="ui-world-star" aria-pressed="false"') in side
     for waits in ('data-menu="favorites" hidden', 'data-menu="settings" hidden', 'data-menu="more" hidden'):     # shown by the script
         assert waits in html
-    assert 'data-menu="spots"><summary' in html                                                                # ☰ opens without it
+    assert 'data-menu="spots"><summary' in html                                                                # ☰ has rows: it opens without it
+    assert side.count("data-scroll=") == 2 and side.index('data-scroll="top"') < side.index(">⬆️<") < side.index('data-scroll="bottom"') < side.index(">⬇️<")
     assert 'data-pause="⏯️" data-resume="▶️"' in html and "⏸" not in html      # ⏸ marks a page a build did not make (tests/test_site.py)
     assert html.count("<option ") == len(W.WORLD_LANGS)
-    bare = W.chrome_html({})                                                   # nothing asked: ⚙️ (🌐) and ⋯ only
-    assert "ui-board" not in bare and "ui-world-home" not in bare and "⭐" not in bare and "☰" not in bare and "⏯️" not in bare
+    bare = W.chrome_html({})                                                   # nothing asked: no board, no 🏠; ☰ waits for the script to list the page
+    assert "ui-board" not in bare and "ui-world-home" not in bare and "⏯️" not in bare
+    assert 'data-menu="spots" hidden><summary' in bare and '<ul class="ui-world-rows ui-world-spots"></ul>' in bare and ">⭐<" in bare
 
 
 @pytest.mark.parametrize("spec,word", [
     ({"extra": 1}, "a chrome has"),
     ({"home": "javascript:alert(1)"}, "href"), ({"home": "http://example.test/"}, "href"), ({"home": "../x\"y"}, "href"),
-    ({"places": [{"id": "a", "label": "A"}]}, "places"), ({"places": [{"id": "A b", "label": "A", "href": "./"}]}, "place id"),
-    ({"places": [{"id": "a", "label": "A", "href": "./"}] * 2}, "place id"),
+    ({"places": [{"label": "A"}]}, "places"), ({"places": [{"id": "a", "label": "A", "href": "./"}]}, "places"),
+    ({"places": [{"label": "A", "href": "//example.test/"}]}, "href"), ({"places": [{"label": "A", "href": "./"}] * 33}, "places"),
     ({"board": {"items": [{"text": "x"}], "post": True}}, "post and shared_issue"),
     ({"tools": {"🏠": {"href": "./"}}}, "already used"), ({"tools": {"🗼": {"floor": "1f"}}}, "exactly one of href, links, body"),
     ({"tools": {"🗼": {"href": "./", "body": "x"}}}, "exactly one of"), ({"tools": {"🗼": {"links": []}}}, "links"),
@@ -638,31 +643,54 @@ def test_node26_board_clock_has_seconds_and_the_chrome_binds_a_fake_page():
     harness = r"""
 import assert from 'node:assert/strict';
 assert.deepEqual(data.map(([n,o])=>boardClock(n,o).clock),data.map(c=>c[2]));
-const node=(extra={})=>({dataset:{},attrs:{},events:{},hidden:true,open:false,textContent:'',addEventListener(n,f){this.events[n]=f},setAttribute(n,v){this.attrs[n]=v},
- hasAttribute(n){return n in this.attrs},toggleAttribute(n){if(n in this.attrs){delete this.attrs[n];return false}this.attrs[n]='';return true},querySelector(){return null},querySelectorAll(){return[]},contains(){return false},...extra});
-const store={};globalThis.localStorage={getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v}};
+// A small tree: enough of the DOM for bindChrome (append / prepend / replaceChildren, one-level queries, href → origin, pathname, hash).
+const find=(n,test,out=[])=>{for(const k of n.kids){if(k.kids){if(test(k))out.push(k);find(k,test,out)}}return out};
+const is=s=>k=>s==='a'?k.tag==='a':s==='button'?k.tag==='button':s==='.ui-world-star'?k.className==='ui-world-star':false;
+const node=(tag='div',extra={})=>{const n={tag,dataset:{},attrs:{},events:{},kids:[],hidden:true,open:false,className:'',parentElement:null,
+ addEventListener(e,f){this.events[e]=f},setAttribute(k,v){this.attrs[k]=v},hasAttribute(k){return k in this.attrs},
+ toggleAttribute(k){if(k in this.attrs){delete this.attrs[k];return false}this.attrs[k]='';return true},
+ take(c){return c.map(k=>{k=typeof k==='string'?{textContent:k}:k;k.parentElement=this;return k})},
+ append(...c){this.kids.push(...this.take(c))},prepend(...c){this.kids.unshift(...this.take(c))},replaceChildren(...c){this.kids=this.take(c)},
+ querySelector(s){return find(this,is(s))[0]??null},querySelectorAll(s){return find(this,is(s))},contains(){return false},
+ closest(s){for(let p=this;p;p=p.parentElement)if((s==='.ui-world-star'&&p.className==='ui-world-star')||(s==='.ui-world-rows a'&&p.tag==='a'))return p;return null},
+ get lastChild(){return this.kids.at(-1)},get textContent(){return this.text??this.kids.map(k=>k.textContent).join('')},set textContent(v){this.text=v;this.kids=[]},
+ set href(v){const u=new URL(v,location.origin+location.pathname);this.url=v;this.origin=u.origin;this.pathname=u.pathname;this.hash=u.hash},get href(){return this.url},...extra};return n};
+const store={'ui-chrome:tools-chrome':JSON.stringify({fav:[{href:'/tools/flow/#part',label:'流れ › 部品'},{href:'javascript:alert(1)',label:'x'},{href:'//evil.test/',label:'y'},{href:'/tools/gif/',label:5}]})};
+globalThis.localStorage={getItem:k=>store[k]??null,setItem:(k,v)=>{store[k]=v}};
 globalThis.location={origin:'https://x.test',pathname:'/tools/gif/index.html'};
-globalThis.setInterval=()=>0;globalThis.clearInterval=()=>{};
-const menus=[node(),node(),node()],clock=node(),pause=node({dataset:{pause:'⏯️',resume:'▶️'}}),more=node(),list=node({replaceChildren(...c){this.kids=c}});
-const arrow=node(),here=node({origin:'https://x.test',pathname:'/tools/gif/',hash:'',querySelector:()=>arrow}),there=node({origin:'https://x.test',pathname:'/tools/flow/',hash:'',querySelector:()=>node()});
-more.querySelector=()=>list;
-const board=node({isConnected:true,querySelector:s=>s==='[data-clock]'?clock:null});board.dataset.offset='540';
-const el=node({id:'tools-chrome',querySelector:s=>s==='.ui-board'?board:s==='.ui-world-pause'?pause:s==='[data-menu="more"]'?more:null,
- querySelectorAll:s=>s==='.ui-world-menu'?menus:s==='.ui-world-spots a'?[here,there]:[]});
-const heading=node({textContent:' 地点 ',id:''});
-globalThis.document={querySelectorAll:s=>s==='[data-ui-chrome]'?[el]:s==='main h2'?[heading]:[],addEventListener(){},
- createElement:()=>node({append(...c){this.kids=c}})};
+globalThis.setInterval=()=>0;globalThis.clearInterval=()=>{};let scrolled=null;globalThis.scrollTo=o=>{scrolled=o};
+const menus=[node(),node(),node()],clock=node(),pause=node('button',{dataset:{pause:'⏯️',resume:'▶️'}}),spots=node('ul'),favs=node('ul');
+const given=node('li'),link=node('a'),star=node('button');star.className='ui-world-star';link.href='#export';link.append(node('span'),'🧾 出力のしかた');given.append(link,star);spots.append(given);
+const board=node('div',{isConnected:true,querySelector:s=>s==='[data-clock]'?clock:null});board.dataset.offset='540';
+const el=node('div',{id:'tools-chrome',querySelector:s=>s==='.ui-board'?board:s==='.ui-world-pause'?pause:s==='.ui-world-spots'?spots:s==='.ui-world-favs'?favs:null,
+ querySelectorAll:s=>s==='.ui-world-menu'?menus:[]});
+const heading=node('h2',{id:''});heading.textContent=' 地点 ';
+globalThis.document={title:' 🎞 GIF工房 ',documentElement:{scrollHeight:4096},querySelectorAll:s=>s==='[data-ui-chrome]'?[el]:s==='main h2'?[heading]:[],addEventListener(){},createElement:t=>node(t)};
 assert.deepEqual(bindChrome(),[el]);assert.equal(el.dataset.js,'');
 assert.match(clock.textContent,/^\d\d:\d\d:\d\d$/);
 assert.deepEqual(menus.map(m=>m.hidden),[false,false,false]);
 menus[0].open=true;menus[1].open=true;menus[1].events.toggle();assert.deepEqual(menus.map(m=>m.open),[false,true,false]);   // one at a time
 el.events.keydown({key:'Escape'});assert.deepEqual(menus.map(m=>m.open),[false,false,false]);
-assert.equal(here.attrs['aria-current'],'page');assert.equal(arrow.textContent,'📍');assert.equal('aria-current' in there.attrs,false);   // index.html and / are one page
-assert.equal(more.hidden,false);assert.equal(heading.id,'tools-chrome-part-1');assert.equal(list.kids[0].kids[0].textContent,'地点');
+// ☰ this page: itself (📍), its sections, then the row the page gave
+const rows=spots.querySelectorAll('a');
+assert.deepEqual(rows.map(a=>[a.href,a.textContent]),[['#','📍🎞 GIF工房'],['#tools-chrome-part-1','地点'],['#export','🧾 出力のしかた']]);
+assert.equal(rows[0].attrs['aria-current'],'page');assert.equal(heading.id,'tools-chrome-part-1');
+// ⭐ what was kept: a place of another tool page; the unsafe and the broken entries are dropped
+assert.deepEqual(favs.querySelectorAll('a').map(a=>[a.href,a.textContent]),[['/tools/flow/#part','流れ › 部品']]);
+const press=b=>el.events.click({target:b}),stars=()=>spots.querySelectorAll('.ui-world-star').map(b=>b.textContent).join('');
+assert.equal(stars(),'☆☆☆');
+press(spots.querySelectorAll('.ui-world-star')[1]);assert.equal(stars(),'☆★☆');                    // a section: "page › section", at its path on the site
+press(spots.querySelectorAll('.ui-world-star')[0]);assert.equal(stars(),'★★☆');                    // the page itself (index.html and / are one page)
+assert.deepEqual(JSON.parse(store['ui-chrome:tools-chrome']).fav,[{href:'/tools/flow/#part',label:'流れ › 部品'},{href:'/tools/gif/#tools-chrome-part-1',label:'🎞 GIF工房 › 地点'},{href:'/tools/gif/',label:'🎞 GIF工房'}]);
+assert.deepEqual(favs.querySelectorAll('a').map(a=>a.textContent),['流れ › 部品','🎞 GIF工房 › 地点','📍🎞 GIF工房']);
+press(favs.querySelectorAll('.ui-world-star')[0]);                                                 // ★ in the ⭐ panel: gone, here and in ☰
+assert.deepEqual(JSON.parse(store['ui-chrome:tools-chrome']).fav.map(f=>f.href),['/tools/gif/#tools-chrome-part-1','/tools/gif/']);
+menus[2].open=true;el.events.click({target:node('button',{dataset:{scroll:'bottom'},closest(s){return s==='[data-scroll]'?this:null}})});
+assert.deepEqual(scrolled,{top:4096,behavior:'smooth'});assert.equal(menus[2].open,false);         // ⋯ ⬇️
 pause.events.click();assert.equal('data-motion-paused' in el.attrs,true);assert.equal(pause.textContent,'▶️');assert.equal(pause.attrs['aria-pressed'],'true');
 pause.events.click();assert.equal('data-motion-paused' in el.attrs,false);assert.equal(pause.textContent,'⏯️');
-assert.deepEqual(Object.keys(store),[]);                                       // nothing is written until ⭐ or 🌐 is used
-assert.deepEqual(bindChrome(),[el]);                                           // bound once
+assert.deepEqual(Object.keys(JSON.parse(store['ui-chrome:tools-chrome'])),['fav']);                 // ⭐ only; 🌐 was not touched
+assert.deepEqual(bindChrome(),[el]);                                                               // bound once
 console.log('ok');
 """
     cases = [[0, 0, "00:00:00"], [86399, 540, "08:59:59"], [1800000000.7, -210, W.board_clock(1800000000.7, -210)["clock"]], [59, 0, "00:00:59"]]

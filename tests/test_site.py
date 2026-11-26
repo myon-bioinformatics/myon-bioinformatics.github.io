@@ -344,15 +344,15 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
 
 
 def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
-    """🧰 tools_chrome + scripts/world.py chrome_html: the board with the clock, 🏠, ⭐ ⚙️, ☰ every 🧰 Tools link, ⋯; and 🚪 tools_door:
-    PySaiyanWeBoo's Door-to-Door with 🏠 and the same links, this page marked as the door you came in by. A 🌍 world page keeps its
-    own header, side and 🚪 (floors), and every ☰ row and every door leads to a page of this site."""
+    """🧰 tools_chrome + scripts/world.py chrome_html: the board with the clock, 🏠, ⭐ ⚙️ and ☰ ⋯ for the page's own (☰ lists nothing
+    of other pages); and 🚪 tools_door: PySaiyanWeBoo's Door-to-Door with 🏠 and every 🧰 Tools link, this page marked as the door you
+    came in by. A 🌍 world page keeps its own header, side and 🚪 (floors), and every door leads to a page of this site."""
     import html
     import re
     world = PAGES._world()
     import pysaiyanweboo as ui
     module = ('<script type="module">' + world.SHELL_JS + 'bindChrome();\n</script><div class="ui-door-foot"><section class="ui-panel ui-door" id="door" data-ui-door ',
-              '</section></div><script type="module">' + PAGES.tools_door(ui, PAGES.tools_chrome(), None, '')[2] + '</script></body>')
+              '</section></div><script type="module">' + PAGES.tools_door(ui)[2] + '</script></body>')
     assert module[1].count(ui.js_source('door.js')) == 1 and 'addEventListener("pageshow"' in module[1]      # PySaiyanWeBoo's door.js, and one line
     cards = [html.escape(card['title']) for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL]
     pages = {*TOOL_PAGES, *(f'{folder}/{entry}index.html' for _, folder, entries in PAGES.TOOL_SOURCES.values() for entry in entries)}
@@ -372,7 +372,9 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
         assert '<img' not in chrome and 'lab-execution-link' not in chrome, name   # 🔌 the lab's logo and links go to the lab's own <header>
         for title in cards:
             assert chrome.count(f'>{title}</span>') == 2, (name, title)        # the board says each card twice (the loop)
-        rows = re.findall(r'<li><a href="([^"]+)" data-fav="([a-z0-9-]+)">', page)
+        assert '<ul class="ui-world-rows ui-world-spots"></ul>' in page and 'data-fav' not in page, name   # ☰ this page's own: the script lists it
+        assert page.count('data-scroll="top"') == page.count('data-scroll="bottom"') == 1, name            # ⋯ ⬆️ ⬇️
+        rows = [(place['href'], place['id']) for place in PAGES.tools_places(prefix)]                      # 🚪 every tool
         assert len(rows) == len({fav for _, fav in rows}) >= len(cards), name
         for href, fav in rows:
             if href.startswith('https://'):
@@ -381,10 +383,10 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
             target = (SITE / name).parent / href
             assert (target / 'index.html' if href.endswith('/') else target).resolve().is_file(), (name, href)
         doors = re.findall(r'<option value="([^"]+)"( selected disabled)?>([^<]+)</option>', page[page.index('<div class="ui-door-foot">'):page.index(module[1])])
-        assert doors[0] == (f'{prefix}index.html#tools', '', '🏠 Tools') and [href for href, _, _ in doors[1:1 + len(rows)]] == [href for href, _ in rows], name   # 🚪 = 🏠 + ☰
+        assert doors[0] == (f'{prefix}index.html#tools', '', '🏠 Tools') and [href for href, _, _ in doors[1:1 + len(rows)]] == [href for href, _ in rows], name   # 🚪 = 🏠 + the tools
         here = [(href, words) for href, mark, words in doors if mark]              # the door you came in by: this very page
         assert len(here) == 1 and ((SITE / name).parent / here[0][0]).resolve() in ((SITE / name).resolve(), (SITE / name).parent.resolve()), (name, here)
-        assert len(doors) == 1 + len(rows) + (here[0][1].startswith('📌 ')), name   # 📌 a page that is no ☰ row is its own door
+        assert len(doors) == 1 + len(rows) + (here[0][1].startswith('📌 ')), name   # 📌 a page that is no tool of the cards is its own door
         assert len({words.split(' ')[0] for _, _, words in doors}) == len(doors), name                    # one emoji, one page
     maps = (SITE / 'tools/maps/index.html').read_text(encoding='utf-8')            # 🗼 an emoji a page adds for its own use
     assert '>🗼</summary>' in maps and '<li><a href="./tokyo.html">🗼 パラレル東京</a></li>' in maps
@@ -395,7 +397,7 @@ def test_html_import_csp_names_the_chrome_and_door_modules_and_nothing_else():
     import pysaiyanweboo as ui
     world = PAGES._world()
     html = (SITE / PAGES.HTML_IMPORT_PAGE).read_text(encoding='utf-8')
-    chrome, doors = ui.module_csp_hash(world.SHELL_JS + 'bindChrome();\n'), ui.module_csp_hash(PAGES.tools_door(ui, PAGES.tools_chrome(), None, '')[2])
+    chrome, doors = ui.module_csp_hash(world.SHELL_JS + 'bindChrome();\n'), ui.module_csp_hash(PAGES.tools_door(ui)[2])
     assert f"script-src 'self' {chrome} {doors}; style-src 'self' 'unsafe-inline';" in html
     assert html.count("'sha256-") == 2 and "'unsafe-inline'; img-src" in html and "connect-src 'none'" in html
     strict = ('<!doctype html><html><head><meta\n http-equiv="Content-Security-Policy"\n content="default-src \'none\'; script-src \'self\'; '
@@ -454,7 +456,8 @@ def test_door_to_door_in_chromium_with_a_gif():
                 page.wait_for_url(base + 'tools/flow/')
                 page.wait_for_selector('#door[data-door_ready]')
                 assert page.evaluate(shown) == '🌊 流れの実験室 (current)'
-                assert page.locator('.ui-chrome a[aria-current=page]').text_content() == '📍🌊 流れの実験室'   # the chrome agrees, on its own
+                assert page.locator('.ui-chrome .ui-world-spots a').first.text_content().startswith('📍')   # the chrome's ☰ is this page's own
+                assert not page.evaluate("[...document.querySelectorAll('.ui-chrome .ui-world-spots a')].some(a => a.pathname !== location.pathname)")
                 cam.hold(900)
                 page.go_back()                                                    # ← the browser's own way back: the pull-down follows
                 page.wait_for_url(base + 'tools/gif/')

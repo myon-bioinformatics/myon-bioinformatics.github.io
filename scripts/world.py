@@ -534,8 +534,8 @@ def board_validate(board: Any) -> dict[str, Any] | None:
 
 
 def _world_href(value: Any) -> str:
-    """Where a tool or a row leads: a path of this site (``./``, ``../``, ``/``), a fragment (``#``) or an ``https://`` address."""
-    if not isinstance(value, str) or not 1 <= len(value) <= 200 or not re.fullmatch(r"(?:https://|\.{1,2}/|/|#)[^\s\"'<>\\]*", value):
+    """Where a tool or a row leads: a path of this site (``./``, ``../``, ``/``; never ``//host``), a fragment (``#``) or an ``https://`` address."""
+    if not isinstance(value, str) or not 1 <= len(value) <= 200 or not re.fullmatch(r"(?:https://|\.{1,2}/|/(?!/)|#)[^\s\"'<>\\]*", value):
         raise ValueError("href is a ./ ../ / path, a # fragment or an https:// address, up to 200 characters")
     return value
 
@@ -1409,18 +1409,16 @@ def chrome_validate(spec: Any) -> dict[str, Any]:
 
     ``id``      names the chrome; ⭐ and 🌐 are kept under it in this browser, so pages sharing an id share them (default ``tools``)
     ``board``   the info board (``board_validate``; it shows, so no ``post`` and no ``shared_issue``)        ``home``   where 🏠 leads (left out: no 🏠)
-    ``places``  the rows of ☰, each ``{"id", "label", "href"}`` with a ☆ (up to 32); the script marks the page you are on with 📍
+    ``places``  rows this page adds to its ☰, each ``{"label", "href"}`` with a ☆ (up to 32); the script lists the page itself (📍) and
+                its sections ahead of them. ☰ is this page's own: moving between pages is another part's (🚪 Door-to-Door)
     ``tools``   emoji of your own, key → feature (``tools_validate``: ``href``, ``links`` or ``body``, in the header or the side)
     """
     if not isinstance(spec, dict) or set(spec) - {"id", "board", "home", "places", "tools"}:
         raise ValueError("a chrome has id, board, home, places and tools")
-    places, seen = [], set()
     places_in = spec.get("places", [])
-    if not isinstance(places_in, list) or len(places_in) > 32 or any(not isinstance(p, dict) or set(p) != {"id", "label", "href"} for p in places_in):
-        raise ValueError("places lists up to 32 {id, label, href}")
-    for place in places_in:
-        places.append({"id": _world_id(place["id"], "place id", seen), "label": _world_text(place["label"], "label", 40),
-                       "href": _world_href(place["href"])})
+    if not isinstance(places_in, list) or len(places_in) > 32 or any(not isinstance(p, dict) or set(p) != {"label", "href"} for p in places_in):
+        raise ValueError("places lists up to 32 {label, href}")
+    places = [{"label": _world_text(place["label"], "label", 40), "href": _world_href(place["href"])} for place in places_in]
     board = board_validate(spec.get("board"))
     if board and (board["post"] or board["shared_issue"]):
         raise ValueError("a chrome's board shows: post and shared_issue belong to a world")
@@ -1433,24 +1431,28 @@ def chrome_html(spec: Any) -> str:
     """The chrome as one ``<div>`` (not a ``<header>``: the page's own header, and whatever looks for it, stay the page's): the board,
     then 🏠, your header emoji, ⭐ and ⚙️; the side holds ☰, your side emoji and ⋯.
 
-    Without JavaScript the board scrolls (one lap in 24 s; the script sets the lap by its length), 🏠 and the link emoji lead, and ☰ opens (a ``<details>``); ⭐ ⚙️ ⋯ and the ☆ wait for the script.
-    ⚙️ holds ⏯️ (stop the board) and 🌐 (the words of the icons, in eleven languages)."""
+    ☰  this page: itself (📍), its sections (the ``h2`` of ``<main>``, listed by the script) and the rows it gives, each with a ☆
+    ⭐  the starred places of every page that shares the chrome's id, so a starred section is one tap away from any of them
+    ⚙️  ⏯️ stop the board, 🌐 the words of the icons (eleven languages)        ⋯  this screen: ⬆️ to its top, ⬇️ to its end
+
+    Without JavaScript the board scrolls (one lap in 24 s; the script sets the lap by its length), 🏠 and the link emoji lead, and a ☰
+    that has rows of its own opens (a ``<details>``); ⭐ ⚙️ ⋯, the ☆ and the listed sections wait for the script."""
     chrome = chrome_validate(spec)
     tools = chrome["tools"]
-    rows = "".join(f'<li><a href="{escape(p["href"], quote=True)}" data-fav="{p["id"]}"><span class="ui-world-arrow" aria-hidden="true"></span>{escape(p["label"])}</a>'
+    rows = "".join(f'<li><a href="{escape(p["href"], quote=True)}"><span class="ui-world-arrow" aria-hidden="true"></span>{escape(p["label"])}</a>'
                    f'<button type="button" class="ui-world-star" aria-pressed="false" {_wt("star")}>☆</button></li>' for p in chrome["places"])
+    move = "".join(f'<button type="button" data-scroll="{to}" {_wt(word)}>{glyph}</button>' for to, word, glyph in (("top", "up", "⬆️"), ("bottom", "down", "⬇️")))
     settings = ((f'<button type="button" class="ui-world-pause" aria-pressed="false" data-pause="⏯️" data-resume="▶️" {_wt("pause")}>⏯️</button>' if chrome["board"] else "") +
                 f'<label class="ui-world-lang">🌐 <select data-lang {_wt("language")}>' +
                 "".join(f'<option value="{code}" lang="{code}"{" selected" if i == 0 else ""}>{name}</option>' for i, (code, name) in enumerate(WORLD_LANGS)) +
                 '</select></label>')
     head = ((f'<a class="ui-world-home" href="{escape(chrome["home"], quote=True)}" {_wt("home")}>🏠</a>' if chrome["home"] else "") +
             "".join(_tool_html(e, t) for e, t in tools.items() if t["slot"] == "head") +
-            (_menu_html("favorites", "⭐", _wt("favorites"), '<p class="ui-world-empty" aria-hidden="true">☆</p><ul class="ui-world-rows ui-world-favs"></ul>', hidden=True)
-             if rows else "") +
+            _menu_html("favorites", "⭐", _wt("favorites"), '<p class="ui-world-empty" aria-hidden="true">☆</p><ul class="ui-world-rows ui-world-favs"></ul>', hidden=True) +
             _menu_html("settings", "⚙️", _wt("settings"), settings, hidden=True))
-    side = ((_menu_html("spots", "☰", _wt("places"), f'<ul class="ui-world-rows ui-world-spots">{rows}</ul>') if rows else "") +
+    side = (_menu_html("spots", "☰", _wt("places"), f'<ul class="ui-world-rows ui-world-spots">{rows}</ul>', hidden=not rows) +
             "".join(_tool_html(e, t) for e, t in tools.items() if t["slot"] == "side") +
-            _menu_html("more", "⋯", _wt("screen"), '<ul class="ui-world-rows"></ul>', hidden=True))
+            _menu_html("more", "⋯", _wt("screen"), move, hidden=True))
     return (f'<div class="ui-chrome ui-world-head" id="{chrome["id"]}-chrome" data-ui-chrome lang="ja">{_board_html(chrome["board"], timed=False)}'
             f'<nav class="ui-world-tools">{head}</nav><div class="ui-world-side">{side}</div></div>')
 
@@ -1717,6 +1719,9 @@ def chrome_css(tokens: str = "") -> str:
            ".ui-chrome[data-motion-paused] .ui-board-run{animation-play-state:paused!important}"
            ".ui-chrome .ui-world-panel{top:100%;right:8px;width:min(320px,calc(100% - 16px));max-height:min(60vh,384px)}"
            ".ui-chrome .ui-world-rows a[aria-current]{font-weight:700}"
+           ".ui-chrome .ui-world-panel>button{min-width:48px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-bg);color:var(--ui-fg);"
+           "font-size:1.25rem;line-height:1;cursor:pointer}.ui-chrome .ui-world-panel>button[aria-pressed=true]{background:var(--ui-accent);color:var(--ui-bg)}"
+           ".ui-chrome [data-menu=more] .ui-world-panel{display:flex;flex-wrap:wrap;gap:8px}"
            ".ui-chrome .ui-world-side{flex-direction:row;padding:4px 8px 4px 0;border-left:0;background:none}"
            ".ui-chrome .ui-world-side .ui-world-menu>summary,.ui-chrome .ui-world-side .ui-world-tool{width:40px;height:40px}"
            "@media(max-width:600px){.ui-chrome .ui-world-tools{width:auto;flex:1}}"
@@ -1868,26 +1873,28 @@ function bindMenus(el){const menus=[...el.querySelectorAll('.ui-world-menu')];fo
 const stored=slot=>{const load=()=>{try{const v=JSON.parse(localStorage.getItem(slot));return v&&typeof v==='object'?v:{}}catch(e){return{}}};return[load,part=>{try{localStorage.setItem(slot,JSON.stringify({...load(),...part}))}catch(e){}}]};
 // 🌐: aria-labels and tooltips in one of eleven languages (data-t names a catalogue word, data-labels carries a tool's own words).
 const sayIn=(root,lang)=>{const i=WORLD_LANGS.indexOf(lang);for(const n of root.querySelectorAll('[data-t],[data-labels]')){const m=n.dataset.labels&&JSON.parse(n.dataset.labels),w=m?m[lang]||m.en||m.ja:WORLD_TEXT[n.dataset.t][i];n.setAttribute('aria-label',w);n.setAttribute('title',w)}};
-// ⭐ the ★ of a row lists it in the header's ⭐ panel: a world's places on any floor, the tools on any tool page. A row is known by its
-// data-fav (the same on every page), else by its href.
-function bindFavs(el,say,kept,save){const favs=el.querySelector('.ui-world-favs');if(!favs)return;const fav=new Set(),rows=()=>[...el.querySelectorAll('.ui-world-spots a')],key=a=>a.dataset.fav||a.getAttribute('href'),
- show=()=>{for(const a of rows()){const on=fav.has(key(a)),b=a.parentElement.querySelector('.ui-world-star');b.setAttribute('aria-pressed',String(on));b.textContent=on?'★':'☆'}
-  favs.replaceChildren(...rows().filter(a=>fav.has(key(a))).map(a=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.className='ui-world-star';b.setAttribute('aria-pressed','true');b.dataset.t='star';b.textContent='★';li.append(a.cloneNode(true),b);return li}));say(favs)};
- el.addEventListener('click',e=>{const b=e.target.closest('.ui-world-star');if(!b)return;const h=key(b.parentElement.querySelector('a'));if(fav.has(h))fav.delete(h);else fav.add(h);show();save({fav:[...fav]})});
- for(const a of rows())if(Array.isArray(kept.fav)&&kept.fav.includes(key(a)))fav.add(key(a));if(fav.size)show()}
-// 🧰 The chrome of a tool page: the board, the menus, ⭐ and 🌐 of a world's shell, with no map. ☰ marks the page you are on (📍),
-// ⋯ lists this page's sections (the h2 of its <main>; none: no ⋯), ⏯️ stops the board. ⭐ and 🌐 are kept per chrome id, so they follow
-// you from tool to tool. Nothing else is kept, and this module asks the network for nothing.
+// 🧰 The chrome of a tool page: the board, the menus and 🌐 of a world's shell, with no map.
+// ☰ is this page: itself (📍), its sections (the h2 of <main>) and the rows it gave, each with a ☆. ⭐ lists the starred places of
+// every page sharing the chrome's id (a place is its path and fragment on this site), so they follow you from tool to tool, as 🌐
+// does. ⏯️ stops the board; ⋯ moves this screen to its top or its end. Nothing else is kept, and this module asks the network for nothing.
 export function bindChrome(root=document){return[...root.querySelectorAll('[data-ui-chrome]')].map(el=>{if(el.hasAttribute('data-js'))return el;el.dataset.js='';
  const shut=bindMenus(el),[load,save]=stored('ui-chrome:'+el.id),kept=load(),sel=el.querySelector('[data-lang]'),page=p=>p.replace(/index\.html$/,'');let lang='ja';
  const say=r=>sayIn(r,lang),setLang=to=>{if(!WORLD_LANGS.includes(to))return;lang=to;el.lang=to;if(sel)sel.value=to;say(el)};
  sel?.addEventListener('change',()=>{setLang(sel.value);save({lang})});
- for(const a of el.querySelectorAll('.ui-world-spots a'))if(a.origin===location.origin&&page(a.pathname)===page(location.pathname)&&!a.hash){a.setAttribute('aria-current','page');a.querySelector('.ui-world-arrow').textContent='📍'}
- bindFavs(el,say,kept,save);if(typeof kept.lang==='string'&&kept.lang!=='ja')setLang(kept.lang);
+ const here=page(location.pathname),title=(document.title.trim()||here).slice(0,40),key=a=>a.origin===location.origin?page(a.pathname)+a.hash:a.href,
+  row=(href,text,mark='')=>{const li=document.createElement('li'),a=document.createElement('a'),arrow=document.createElement('span'),b=document.createElement('button');a.href=href;arrow.className='ui-world-arrow';arrow.setAttribute('aria-hidden','true');arrow.textContent=mark;a.append(arrow,text);b.type='button';b.className='ui-world-star';b.dataset.t='star';li.append(a,b);return li},
+  spots=el.querySelector('.ui-world-spots'),favs=el.querySelector('.ui-world-favs'),heads=[...document.querySelectorAll('main h2')].filter(h=>!el.contains(h)&&h.textContent.trim());
+ spots.prepend(row('#',title,'📍'),...heads.map((h,i)=>{if(!h.id)h.id=el.id+'-part-'+(i+1);return row('#'+h.id,h.textContent.trim().slice(0,40))}));
+ spots.querySelector('a').setAttribute('aria-current','page');
+ let fav=(Array.isArray(kept.fav)?kept.fav:[]).filter(f=>f&&typeof f.label==='string'&&typeof f.href==='string'&&/^(\/(?!\/)|https:\/\/)/.test(f.href)).slice(-32);
+ const words=a=>a.lastChild.textContent,show=()=>{for(const a of spots.querySelectorAll('a')){const on=fav.some(f=>f.href===key(a)),b=a.parentElement.querySelector('.ui-world-star');b.setAttribute('aria-pressed',String(on));b.textContent=on?'★':'☆'}
+  favs.replaceChildren(...fav.map(f=>{const li=row(f.href,f.label.slice(0,80),f.href===here?'📍':''),b=li.querySelector('button');b.setAttribute('aria-pressed','true');b.textContent='★';return li}));say(el)};
+ el.addEventListener('click',e=>{const b=e.target.closest('.ui-world-star'),s=e.target.closest('[data-scroll]');
+  if(b){const a=b.parentElement.querySelector('a'),k=key(a);fav=fav.some(f=>f.href===k)?fav.filter(f=>f.href!==k):[...fav,{href:k,label:k===here?title:title+' › '+words(a)}].slice(-32);show();save({fav})}
+  if(s){shut();scrollTo({top:s.dataset.scroll==='top'?0:document.documentElement.scrollHeight,behavior:'smooth'})}
+  if(e.target.closest('.ui-world-rows a'))shut()});
+ show();if(typeof kept.lang==='string'&&kept.lang!=='ja')setLang(kept.lang);
  const pause=el.querySelector('.ui-world-pause');pause?.addEventListener('click',()=>{const on=el.toggleAttribute('data-motion-paused');pause.setAttribute('aria-pressed',String(on));pause.textContent=on?pause.dataset.resume:pause.dataset.pause});
- const more=el.querySelector('[data-menu="more"]'),heads=[...document.querySelectorAll('main h2')].filter(h=>!el.contains(h)&&h.textContent.trim());
- if(more){more.hidden=!heads.length;more.querySelector('.ui-world-rows').replaceChildren(...heads.map((h,i)=>{if(!h.id)h.id=el.id+'-part-'+(i+1);const li=document.createElement('li'),a=document.createElement('a');a.href='#'+h.id;a.textContent=h.textContent.trim();li.append(a);return li}))}
- el.addEventListener('click',e=>{if(e.target.closest('.ui-world-rows a'))shut()});
  el.addEventListener('keydown',e=>{if(e.key==='Escape')shut()});
  document.addEventListener('pointerdown',e=>{if(!el.contains(e.target))shut()});
  const board=el.querySelector('.ui-board');if(board)bindBoard(board);return el})}
@@ -1898,6 +1905,12 @@ export function fitZoom(w,h,vw,vh){return Math.min(vw/w,vh/h)}
 export function travelSeconds(x0,y0,x1,y1,speed){return Math.hypot(x1-x0,y1-y0)/speed}
 export function clampFocus(fx,fy,z,w,h,vw,vh){const hw=vw/(2*z),hh=vh/(2*z);return[w>2*hw?clamp(fx,hw,w-hw):w/2,h>2*hh?clamp(fy,hh,h-hh):h/2]}
 function bindShots(el){el.dataset.js="";const marks=[...el.querySelectorAll(".ui-shot-mark")];if(typeof IntersectionObserver==="undefined"){marks[0].dataset.lit="";return el}const io=new IntersectionObserver(es=>{for(const e of es){if(e.isIntersecting)e.target.dataset.lit="";else delete e.target.dataset.lit}},{root:el.querySelector(".ui-shots-scroll"),threshold:0.5});for(const m of marks)io.observe(m);return el}
+// ⭐ the ★ of a place lists it in the header's ⭐ panel, on any floor. A row is known by its href.
+function bindFavs(el,say,kept,save){const favs=el.querySelector('.ui-world-favs');if(!favs)return;const fav=new Set(),rows=()=>[...el.querySelectorAll('.ui-world-spots a')],key=a=>a.dataset.fav||a.getAttribute('href'),
+ show=()=>{for(const a of rows()){const on=fav.has(key(a)),b=a.parentElement.querySelector('.ui-world-star');b.setAttribute('aria-pressed',String(on));b.textContent=on?'★':'☆'}
+  favs.replaceChildren(...rows().filter(a=>fav.has(key(a))).map(a=>{const li=document.createElement('li'),b=document.createElement('button');b.type='button';b.className='ui-world-star';b.setAttribute('aria-pressed','true');b.dataset.t='star';b.textContent='★';li.append(a.cloneNode(true),b);return li}));say(favs)};
+ el.addEventListener('click',e=>{const b=e.target.closest('.ui-world-star');if(!b)return;const h=key(b.parentElement.querySelector('a'));if(fav.has(h))fav.delete(h);else fav.add(h);show();save({fav:[...fav]})});
+ for(const a of rows())if(Array.isArray(kept.fav)&&kept.fav.includes(key(a)))fav.add(key(a));if(fav.size)show()}
 function bindMap(el){el.dataset.js="";const view=el.querySelector(".ui-world-view"),cam=el.querySelector(".ui-world-cam"),zmax=Number(el.dataset.zoomMax||4),pts=new Map();let fx=0,fy=0,z=1,moved=0,onFloor=()=>{};
 // The floor and the category are radios (they work without JS): read the checked floor, tick a floor, or clear the category filter.
 const shown=()=>el.querySelector('input[name$="-floor"]:checked'),radio=(kind,value)=>el.querySelector(`input[name$="-${kind}"][value="${value}"]`),

@@ -16,8 +16,8 @@ own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; 
 
 ``tools/html-import/index.html`` (the HTML import tool page) is built here too and hash-locked with the other pages.
 Every generated or imported tool page gets the same way back, chrome and shortcut label: ``add_back_nav()`` (the way back and
-🧰 the chrome of scripts/world.py: the board with the clock, 🏠 ⭐ ⚙️ ☰ ⋯, built by ``tools_chrome()`` from the 🧰 Tools cards, and
-🚪 PySaiyanWeBoo's Door-to-Door, the same tools as a footer pull-down: ``tools_door()``) and
+🧰 the chrome of scripts/world.py: the board with the clock, 🏠 ⭐ ⚙️ and each page's own ☰ ⋯, built by ``tools_chrome()``, and
+🚪 PySaiyanWeBoo's Door-to-Door, every 🧰 Tools link as a footer pull-down: ``tools_door()``) and
 ``add_home_label()`` (_src/tools/mcp_lab.py gets them for the lab pages). ``load_module()`` loads a file of this
 repository by path (a sibling script or a vendored module) without touching ``sys.path``.
 """
@@ -281,16 +281,15 @@ def load_module(name: str, relative_path: str | Path) -> ModuleType:
     return module
 
 
-def tools_chrome(prefix: str = '../../', tools: dict | None = None) -> dict:
-    """🧰 The chrome every tool page carries (scripts/world.py ``chrome_validate``), for a page ``prefix`` below the site root:
-    the board (TOOLS, the clock, the cards' titles), 🏠 back to the cards, ☰ every link of the 🧰 Tools cards (front_page.py
-    ``PORTAL``, so a new card is a new row) and ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``).
+def tools_places(prefix: str = '../../') -> list[dict]:
+    """🧰 Every link of the 🧰 Tools cards (front_page.py ``PORTAL``, so a new card is a new row) as ``{'id', 'label', 'href'}``, for
+    a page ``prefix`` below the site root: the doors of 🚪 Door-to-Door.
 
-    Every row is ``emoji words``, one emoji per page (🚪 Door-to-Door knows a page by its emoji): the card's own, or the one named
-    here for a link that has none or shares its card's."""
-    cards, site, places = load_module('front_page', 'scripts/front_page.py').PORTAL, 'https://myon-bioinformatics.github.io/tools/', {}
+    Every label is ``emoji words``, one emoji per page (the door knows a page by its emoji): the card's own, or the one named here
+    for a link that has none or shares its card's."""
+    site, places = 'https://myon-bioinformatics.github.io/tools/', {}
     marks = {'html-import': '📄', 'maps': '🗺️', 'maps-tokyo': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪'}
-    for card in cards:
+    for card in load_module('front_page', 'scripts/front_page.py').PORTAL:
         mark, _, title = card['title'].partition(' ')
         if not title or any(c.isalnum() for c in mark):                  # a title without an emoji: all of it is words
             mark, title = '🚪', card['title']
@@ -299,19 +298,28 @@ def tools_chrome(prefix: str = '../../', tools: dict | None = None) -> dict:
             name = re.sub(r'[^a-z0-9]+', '-', href.partition('tools/')[2].removesuffix('.html').lower()).strip('-') or card['id']
             words = title if len(card['links']) == 1 else label.removesuffix(' →').removeprefix('Open ')   # several links: each link's own words
             places.setdefault(href, {'id': name, 'href': href, 'label': f'{marks.get(name, mark)} {words}'})
-    return {'id': 'tools', 'home': prefix + 'index.html#tools', 'places': list(places.values()), 'tools': tools or {},
+    return list(places.values())
+
+
+def tools_chrome(prefix: str = '../../', tools: dict | None = None) -> dict:
+    """🧰 The chrome every tool page carries (scripts/world.py ``chrome_validate``), for a page ``prefix`` below the site root:
+    the board (TOOLS, the clock, the cards' titles), 🏠 back to the cards and ``tools``, the emoji this page adds
+    (``{'🗼': {'label': …, 'href': …}}``). ☰ is each page's own (itself and its sections, listed in the page); the tools
+    themselves are 🚪 Door-to-Door's rows (``tools_places``)."""
+    cards = load_module('front_page', 'scripts/front_page.py').PORTAL
+    return {'id': 'tools', 'home': prefix + 'index.html#tools', 'tools': tools or {},
             'board': {'title': 'TOOLS', 'items': [{'text': card['title']} for card in cards[:12]]}}
 
 
-def tools_door(ui, chrome: dict, here: str | None, title: str, tokens: str = '') -> tuple[str, str, str]:
+def tools_door(ui, prefix: str = '../../', here: str | None = None, title: str = '', tokens: str = '') -> tuple[str, str, str]:
     """🚪 PySaiyanWeBoo's Door-to-Door (``door_html``, door.css, door.js) for a tool page, as ``(html, css, js)``: 🏠 the cards, then
-    every ☰ row of ``chrome``; ``here`` (this page's href) is the door you came in by, and a page that is no row is added as 📌 ``title``.
+    every tool (``tools_places``); ``here`` (this page's href) is the door you came in by, and a page that is no tool is added as 📌 ``title``.
 
     The part is PySaiyanWeBoo's whole panel; the sheet here shows its pull-down alone, in a 56px row that stays at the window's foot
     (the label reads 🚪, the rest of the panel is not drawn). The one line after door.js puts the pull-down back on this page when the
     browser's own way back restores it."""
-    pages = [{'emoji': '🏠', 'label': 'Tools', 'href': chrome['home']},
-             *({'emoji': mark, 'label': words, 'href': place['href']} for place in chrome['places'] for mark, _, words in [place['label'].partition(' ')])]
+    pages = [{'emoji': '🏠', 'label': 'Tools', 'href': prefix + 'index.html#tools'},
+             *({'emoji': mark, 'label': words, 'href': place['href']} for place in tools_places(prefix) for mark, _, words in [place['label'].partition(' ')])]
     if here and here not in {page['href'] for page in pages}:
         pages.append({'emoji': '📌', 'label': title[:40] or here, 'href': here})
     door = {'schema': ui.DOOR_SCHEMA, 'k': 0, 'pages': pages, **({'current': here} if here else {})}
@@ -331,7 +339,7 @@ def tools_door(ui, chrome: dict, here: str | None, title: str, tokens: str = '')
 
 def add_back_nav(page: str, path: str | None = None, tools: dict | None = None) -> str:
     """🏠 PySaiyanWeBoo's way back (``back_nav_html``) to the 🧰 Tools cards, right after <main> (else <body>), 🧰 the chrome
-    (``tools_chrome``) at the top of the page and 🚪 Door-to-Door (``tools_door``: the same tools as a pull-down) at its foot, for
+    (``tools_chrome``) at the top of the page and 🚪 Door-to-Door (``tools_door``: every tool, as a pull-down) at its foot, for
     the page published at ``path`` (``tools/gif/index.html``; left out: two folders below the root, and no door marked as this
     page); a page that already has them keeps them. A 🌍 world page has its own header and side
     (the same parts), so it gets the way back only, and so does a fragment without <head> and <body>. A page that is not drawn
@@ -345,7 +353,7 @@ def add_back_nav(page: str, path: str | None = None, tools: dict | None = None) 
     world = _world()
     tokens = '' if 'data-ui-theme="modern"' in page else re.search(r':root\{([^}]*)\}', ui.css_source('tokens.css'))[1]
     chrome, title = tools_chrome(prefix, tools), re.search(r'<title>(.*?)</title>', page, re.S)
-    door, door_css, door_js = tools_door(ui, chrome, prefix + re.sub(r'index\.html$', '', path) if path else None,
+    door, door_css, door_js = tools_door(ui, prefix, prefix + re.sub(r'index\.html$', '', path) if path else None,
                                          html.unescape(title[1]).strip() if title else '', tokens)
     for part, css, js in (({'top': world.chrome_html(chrome)}, world.chrome_css(tokens), world.SHELL_JS + 'bindChrome();\n'),
                           ({'bottom': door}, door_css, door_js)):

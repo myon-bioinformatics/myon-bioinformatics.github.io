@@ -114,7 +114,7 @@ def test_studio_csp_admits_the_tools_chrome(browser, studio_origin, mobile):
         assert (box["width"], box["height"]) == ((40, 40) if mobile else (48, 48)), box
         assert page.evaluate("getComputedStyle(document.querySelector('.ui-chrome .ui-board-run')).animationDuration") != "24s"   # set by the script
         page.locator('.ui-chrome [data-menu="spots"] > summary').click()
-        expect(page.locator(".ui-chrome a[aria-current=page]")).to_have_count(1)
+        expect(page.locator(".ui-chrome .ui-world-spots a[aria-current=page]")).to_have_text(re.compile("^📍"))   # ☰ this page, then its sections
         assert page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") == 0
         door = page.locator(".ui-door-foot [data-door-select]")                 # 🚪 Door-to-Door's sheet and module are listed too
         assert door.is_visible() and door.bounding_box()["height"] == 40 and door.input_value() == "../../tools/image-studio/"
