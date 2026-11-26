@@ -308,22 +308,41 @@ def _blob(index: dict, name: str, path: str) -> str:
     return f'https://github.com/{index.get("owner", OWNER)}/{name}/blob/{index["commits"].get(name, "HEAD")}/{quote(path)}'
 
 
+def _index_note(index: dict, repo: str | None = None) -> str:
+    """Report scan coverage for the requested repository or the full search scope."""
+    errors = index.get('scan_errors')
+    if errors is None:
+        return '⚠️ 索引の取得範囲は未記録です。'
+    if repo:
+        key = repo.lower()
+        statuses = [status for name, status in errors.items() if name.lower() == key]
+        if not statuses and not any(name.lower() == key for name in index['commits']):
+            return 'ℹ️ このリポジトリは索引の対象外です。'
+    else:
+        statuses = list(errors.values())
+    counts = [f'{label} {statuses.count(status)} 件' for status, label in
+              [('truncated_tree', '部分取得'), ('unavailable', '取得不可')] if status in statuses]
+    return f'⚠️ {"・".join(counts)}。未取得のファイルは検索範囲に含まれません。' if counts else ''
+
+
 def find_reply(index: dict | None, words=(), repo=None, kind=None) -> str:
-    if not index or not index.get('files'):
+    if not index or 'files' not in index:
         return '⏸ このビルドはリポジトリ横断の索引を記録していない'
     hits = find(index, words, repo, kind)
     label = ' '.join([*words, *([f'📦 {repo}'] if repo else []), *([f'{KINDS[kind]} {kind}'] if kind else [])]) or 'すべて'
+    note = _index_note(index, repo)
     if not hits:
         names = {name.lower(): name for name, _, _ in index['files']}
         near = [names[n] for n in names if any(w.lower() in n or n in w.lower() for w in words)][:5]
-        return f'🔎 {label}: 0 件' + (f'\n\n📦 リポジトリ: {", ".join(near)} → `/find --repo {near[0]}`' if near else '')
+        return '\n\n'.join(part for part in (f'🔎 {label}: 0 件（索引内）', note,
+                            f'📦 リポジトリ: {", ".join(near)} → `/find --repo {near[0]}`' if near else '') if part)
     repos = sorted({name for name, _, _ in hits}, key=str.lower)
     rows = [[f'📦 {name}', f'[{path}]({_blob(index, name, path)})', _size(size), ''.join(KINDS[k] for k in kinds_of(name, path))]
             for name, path, size in hits[:FIND_ROWS]]
     more = f'（上位 {FIND_ROWS} 件）' if len(hits) > FIND_ROWS else ''
-    return '\n\n'.join([f'🔎 {label}: {len(hits)} 件 · 📦 {len(repos)} リポジトリ{more}',
+    return '\n\n'.join(part for part in (f'🔎 {label}: {len(hits)} 件 · 📦 {len(repos)} リポジトリ{more}', note,
                         md.table(['リポジトリ', 'ファイル', '大きさ', '種類'], rows).strip(),
-                        f'👀 `/show {hits[0][0]}/{hits[0][1]}` で中身'])
+                        f'👀 `/show {hits[0][0]}/{hits[0][1]}` で中身') if part)
 
 
 def summarize(path: str, text: str) -> str:
@@ -366,7 +385,7 @@ def _records(records: list) -> str:
 
 
 def show_reply(index: dict | None, target: str, fetch=None) -> str:
-    if not index or not index.get('files'):
+    if not index or 'files' not in index:
         return '⏸ このビルドはリポジトリ横断の索引を記録していない'
     target = re.sub(r'^https://github\.com/[^/]+/', '', target.strip()).replace('/blob/', '/', 1)
     name, _, path = target.partition('/')
@@ -376,7 +395,8 @@ def show_reply(index: dict | None, target: str, fetch=None) -> str:
         found = rows.get((name.lower(), path.split('/', 1)[1]))
     if found is None:
         near = find(index, [path.rsplit('/', 1)[-1]] if path else [name])
-        return f'❓ 記録にない: `{target}`' + (f'\n\n🔎 近いもの: `/show {near[0][0]}/{near[0][1]}`' if near else '')
+        return '\n\n'.join(part for part in (f'❓ 記録にない: `{target}`', _index_note(index, name),
+                            f'🔎 近いもの: `/show {near[0][0]}/{near[0][1]}`' if near else '') if part)
     name, path, size = found
     if size > SHOW_MAX:
         return f'🐘 {_size(size)} は大きすぎる（{_size(SHOW_MAX)} まで）→ [GitHub で開く]({_blob(index, name, path)})'
@@ -711,7 +731,7 @@ def ask_messages(text: str, index: dict | None = None, fetch=None) -> str:
     found = grounding(question, index, fetch)
     lines = lambda title, rows: f'\n{title}:\n' + '\n'.join(f'- {row}' for row in rows) if rows else ''
     system = ('あなたは myon-bioinformatics のポートフォリオにある横断チャットの案内役。日本語で、短く、Markdown で答える。'
-              '下の資料にあることを根拠にし、分からないことは分からないと言う。道具はコマンドで: '
+              '下の資料にあることを根拠にし、分からないことは分からないと言う。索引にない情報の有無は断定しない。道具はコマンドで: '
               + ' '.join(f'/{n}' for n in COMMANDS if n != 'ask') + '（概念は /onto 名前、ファイルは /show リポジトリ/パス）。'
               + ('\nリポジトリ: ' + ', '.join(found['names']) if found['names'] else '')
               + lines('関係しそうなリポジトリ（README の要約）', found['repos'])
