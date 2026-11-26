@@ -63,7 +63,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 | `api/repos.json` | GitHub から生成した公開リポジトリの事実（URL・説明・トピック・⭐・Pages の有無）。手編集しない |
 | `projects.json` | 任意の説明の上書き・追加トピック。カタログにないリポジトリは足せない |
 | `services.json` | このサイトが持つ公開エンドポイント（サブページなど、カタログから導けない URL） |
-| `site.config.json` | プロジェクト一覧の初期表示。いまは `defaultViewMode: modern` |
+| `site.config.json` | プロジェクト一覧の初期表示（`defaultViewMode`）と、トップページに区画として載せる Markdown の一覧（`documents`: `id`・`title`・`source`・任意の `note`。1 行足すと `#id` の区画が 1 つ増える） |
 
 主な workflow（いずれもイベントまたは定期実行あり）:
 
@@ -83,8 +83,8 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 | 地図URL・ピン留め | [tools/maps/](https://myon-bioinformatics.github.io/tools/maps/) · [パラレル東京](https://myon-bioinformatics.github.io/tools/maps/tokyo.html) |
 | 🖼️ スライド・画像工房（Ironmate） | [Image Studio](https://myon-bioinformatics.github.io/tools/image-studio/) · [Browser Tools](https://myon-bioinformatics.github.io/tools/browser-tools/) · [Slide Studio](https://myon-bioinformatics.github.io/tools/slide-studio/) |
 | 🌡️ ヒートマップ（DRAgoWing · Ironmate） | [tools/heatmap/](https://myon-bioinformatics.github.io/tools/heatmap/) |
-| 🔌 MCP 実験室（mcp-toolcall-lab） | [Tool Lab](https://myon-bioinformatics.github.io/tools/mcp/) · [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) |
-| 🤖 Stubs & mocks | [tools/demos/](https://myon-bioinformatics.github.io/tools/demos/) |
+| 🔌 MCP 実験室（mcp-toolcall-lab） | [Tool Lab](https://myon-bioinformatics.github.io/tools/mcp/) · [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) · [MCP 接続試験](https://myon-bioinformatics.github.io/tools/mcp-protocol/) |
+| 🧾 テスト結果（PySaiyanWeBoo） | [tools/test-report/](https://myon-bioinformatics.github.io/tools/test-report/) |
 | 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab） | [tools/chat/](https://myon-bioinformatics.github.io/tools/chat/) |
 | 🧭 統合運用 | [Dashboard](https://myon-bioinformatics.github.io/myon-bioinformatics/) |
 | 🎞 GIF工房（PySaiyanWeBoo） | [tools/gif/](https://myon-bioinformatics.github.io/tools/gif/) |
@@ -184,7 +184,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
   - `defaultViewMode`: `modern`, `xml-like`, `json`, `markdown`, or `github-like`
 - Users can switch mode from the page header, and their choice is saved in browser local storage.
 
-The header gets its animated face from PSWB’s Python `component_parts("gaze-avatar")` API. Project URL buttons use the same pinned PSWB release’s `copyText` helper. Reusable interaction changes belong in PSWB; the portfolio owns placement, labels and project data.
+Every page’s shared header (`add_site_chrome()`) gets its animated face from PSWB’s Python `component_parts("gaze-avatar")` API. Project URL buttons use the same pinned PSWB release’s `copyText` helper. Reusable interaction changes belong in PSWB; the portfolio owns placement, labels and project data.
 
 ---
 
@@ -250,7 +250,7 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
   --plan docs/evidence/browser.json
 ```
 
-📱🧰📚 Home-screen shortcuts, the demos (stubs and mocks) and the project pages with their recorded runs, in Chromium:
+📱🧰📚 Home-screen shortcuts, the tool pages and the project pages with their recorded runs, in Chromium (recorded before the 🤖 stubs were removed):
 
 ![Portfolio home-screen manifest and icons, tile labels, start_url, the HTML import page, the demos and every project page with its recorded run, in Chromium at 392×840](docs/evidence/home-screen.gif)
 
