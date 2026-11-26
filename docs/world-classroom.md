@@ -63,9 +63,9 @@ vertical scrolling and nothing changes page. The screen is icons; the words are 
   * **⚙️** settings: ⏸️ pause the motion, 🙂✏️ change the emoji, 🌐 pick the language (a `<select>` of native names), 🏷️ the name layer (names / dots / off), 🔍 a dial for the zoom (turn it, or the wheel on the map turns it), 🫥 a slider for how see-through the controls over the map are (the pad, `data-overlay`; `--ui-overlay-alpha` .2–1, kept with the language).
 * **Side** (this screen): 48px buttons that open a panel over the map (one menu open at a time; Escape, a tap on the map or choosing an item closes it).
   * **☰**: the places of this floor (and the category chips, if any). Each row has an arrow from you to the place (⬆️ ↗️ ➡️ ↘️ ⬇️ ↙️ ⬅️ ↖️, 📍 within one tile,
-    🚪 when it is on another floor) that follows you as you walk; tap a row to go there and read its sheet. Works without JavaScript too (the rows are links).
+    🛗 when it is on another floor) that follows you as you walk; tap a row to go there and read its sheet. Works without JavaScript too (the rows are links).
   * **⋯**: 🚶 walk to X / Y and 🎯 find myself. Shown by the script.
-* **Footer**: 🚪 the pulldown that moves between floors, each as it is, no door-to-door wiring needed. Without JavaScript the plain floor labels stand in for it.
+* **Footer**: 🛗 the pulldown that moves between floors, each as it is, no door-to-door wiring needed. Without JavaScript the plain floor labels stand in for it.
 
 Worlds without a tile grid keep the original layout and markup (floor chips on top, controls below) unless they ask for the shell.
 A catalogue can too: `catalogue_world(items, shell=True)` turns a long list into floors you reach with the pulldown, with no scrolling.
@@ -82,11 +82,11 @@ A catalogue can too: `catalogue_world(items, shell=True)` turns a long list into
 
 Each entry adds one icon with exactly one feature: `spots` (a panel listing those places, with arrows), `body` (a panel with a note), `floor` (a shortcut
 to that floor), `href` (the icon is a link: a `./` `../` `/` path, a `#` fragment or an `https://` address) or `links` (a panel of up to 16 `{"label", "href"}` rows).
-The chrome of a tool page (PySaiyanWeBoo's `chrome_html`, the same icons without a world: no floors) takes `href`, `links` and `body`. `slot` is `head` (default) or `side`; `label` (ja) / `label_en` (en) / `labels` (`{"fr": "Carte", "de": "Karte"}`, any of the other nine codes) are the tooltip words. Up to 8; the page's own icons (🏠 ⭐ ⚙️ 🌐 ☰ ⋯ 🚪) are taken.
+The chrome of a tool page (PySaiyanWeBoo's `chrome_html`, the same icons without a world: no floors) takes `href`, `links` and `body`. `slot` is `head` (default) or `side`; `label` (ja) / `label_en` (en) / `labels` (`{"fr": "Carte", "de": "Karte"}`, any of the other nine codes) are the tooltip words. Up to 8; the page's own icons (🏠 ⭐ ⚙️ 🌐 ☰ ⋯ 🛗) are taken.
 Adding an icon is adding a key: nothing else in the page changes, and the key is the emoji itself.
 
 How flutter_navigation_basic's header maps here (so it can be archived): Home → 🏠; Favorite this page / Favorites → ☆ and ⭐ (session only); Menu → ☰ ⚙️;
-Language → 🌐 (labels switch, the content stays yours); Door-to-Door selector → 🚪 in the footer; the page's own action row → the emoji `tools`. Not taken over:
+Language → 🌐 (labels switch, the content stays yours); Door-to-Door selector → 🛗 in the footer; the page's own action row → the emoji `tools`. Not taken over:
 the "leave this page?" confirmation (a world has no unsaved page to lose; 🏠 has its own small ask() dialog) and favouriting a whole floor.
 
 ### Layers (🏷️)
@@ -103,7 +103,7 @@ plain spots sit, and 🏷️ in ⚙️ switches it without a reload (kept with t
 
 A spot's `mark` (one emoji) is drawn instead of the dot and leads the name when the name shows; `place_floor(marks={category: emoji})` (or `"marks"` in a
 `place`) gives every point of a category its mark, and the world's `mark_scale: [x, y]` (0.5–4, default `[1, 1]`) sets the width and height factor of every mark,
-dots included. The cities use 🎫 exits (ticket gates; 🚪 is the footer's), 🚉 stations and 🚆 termini at `[1.5, 1.5]`.
+dots included. The cities use 🎫 exits (ticket gates; 🛗 is the footer's), 🚉 stations and 🚆 termini at `[1.5, 1.5]`.
 A spot with `always_named` stays in the name layer in every mode: its name shows faint behind the marks, the way a village's name lies on a land, and
 🏷️ never turns it into a dot. `true` centres the name on the spot; `"left"` / `"right"` hang it on that side with the mark on the spot.
 `place_floor(always_named=[category, ...])` (or `"always_named"` in a `place`) does it for every point of a category and hangs each name away from the
@@ -128,7 +128,7 @@ The content (spot labels, bodies, the board) is yours and is not translated. Ara
 ## Lands: other spaces from the same grid
 
 A land is a floor made of terrain instead of furniture, so a world can be a Dragon Quest-style map of several lands (`EXAMPLES["overworld"]`,
-six lands, a few lines of JSON) and the footer's 🚪 pulldown moves between them. Nothing links one land to another.
+six lands, a few lines of JSON) and the footer's 🛗 pulldown moves between them. Nothing links one land to another.
 
 ```json
 {"schema": "web-ui-world/1", "id": "trip", "floors": [
@@ -280,7 +280,7 @@ the browser tests name their GIFs through them from `PSWB_GIFS="DIR [--prefix P]
 | `school-menu.gif` | the ☰ list with its arrows; tap **黒板** and the arrow turns into 📍 as you arrive |
 | `school-header.gif` | the header: ⭐ stars on two floors and their list, the 🗺️ tool, 🌐 the language, 🏠 home |
 | `school-floors.gif` | the footer pulldown to the schoolyard, a spot's sheet, back to the classroom, the board spot |
-| `overworld-lands.gif` | six lands by the 🚪 pulldown (forest, mountain, desert, coast, castle), then walking to the castle town from the ☰ list |
+| `overworld-lands.gif` | six lands by the 🛗 pulldown (forest, mountain, desert, coast, castle), then walking to the castle town from the ☰ list |
 | `overworld-real.gif` | the real floor: ⋯ → 🖼️📷 → 🖼️ choose a photo, walk over it, then 🧹 (the photo is drawn by the recorder) |
 | `cities-tokyo.gif` | Parallel Tokyo: the 🚉 tool (the six exits of Tokyo Station), Marunouchi to Yaesu through the concourse, the electronic board's dot and text, on to Kanda by ☰ |
 | `cities-london.gif` | Reverse London: 🎡 in the header, King's Cross to Waterloo over the Thames bridge, the wooden **nogard** board: dot, text, 🐉, dot |

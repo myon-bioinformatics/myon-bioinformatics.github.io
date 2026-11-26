@@ -258,7 +258,7 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 
 ### 🧰 Tools の共通ヘッダー（電光掲示板・時計・☰ ⋯ ⭐ ⚙️）と 🚪 ドア to ドア
 
-🧰 Tools のページは、どれも同じヘッダーとサイド、そしてフッターの 🚪 プルダウンを持ちます（`add_site_chrome` の 1 か所で付けるので、ページごとの作り込みはしません）。ワールドのページは同じ部品でできた自前のヘッダーとサイドを持つので、足りない 🫧 とフッターだけを足します。📟 掲示板に流す説明は、カードの文、なければページの `<meta name="description">`、どちらもなければ仮置きの汎用の一文（ページ名＋「🚪 でほかの道具へ、🏠 で一覧へ。」）です。
+🧰 Tools のページは、どれも同じヘッダーとサイド、そしてフッターの 🚪 プルダウンを持ちます（`add_site_chrome` の 1 か所で付けるので、ページごとの作り込みはしません）。ワールドのページは同じ部品でできた自前のヘッダーとサイドを持つので、足りない 🫧 とフッターだけを足します。ワールドの中の移動（階・土地・街）は 🛗、道具から道具へは 🚪 です。📟 掲示板に流す説明は、カードの文、なければページの `<meta name="description">`、どちらもなければ仮置きの汎用の一文（ページ名＋「🚪 でほかの道具へ、🏠 で一覧へ。」）です。
 
 | | |
 |---|---|
@@ -316,7 +316,7 @@ uv run --locked --only-group browser python -m pytest tests/test_site.py -k chat
 
 ### 🌍 ワールド
 
-**🌍 ワールド**（`tools/demos/` の4ページ。🧰 Tools には載せず、PySaiyanWeBoo の 🎞 GIF デモから開く）は、1ページの中を絵文字のキャラで歩くワールドです：🌍 旅（`world.html`、🚪 で土地をわたる）・🏫 スクール（`school.html`）・🗼 パラレルシティ（`cities.html`、パラレル東京・リバースロンドン・フェイクパリ）・🎬 カメラ（`world-shots.html`）。ページ遷移もリロードもなく、HTML・CSS・小さなスクリプトは `scripts/world.py` が書きます（見た目・テーマ・ダイヤル・座標は PySaiyanWeBoo）。
+**🌍 ワールド**（`tools/demos/` の4ページ。🧰 Tools には載せず、PySaiyanWeBoo の 🎞 GIF デモから開く）は、1ページの中を絵文字のキャラで歩くワールドです：🌍 旅（`world.html`、🛗 で土地をわたる）・🏫 スクール（`school.html`）・🗼 パラレルシティ（`cities.html`、パラレル東京・リバースロンドン・フェイクパリ）・🎬 カメラ（`world-shots.html`）。ページ遷移もリロードもなく、HTML・CSS・小さなスクリプトは `scripts/world.py` が書きます（見た目・テーマ・ダイヤル・座標は PySaiyanWeBoo）。
 
 ```sh
 uv run --locked --only-group pages python scripts/world.py example school | uv run --locked --only-group pages python scripts/world.py page - > school.html

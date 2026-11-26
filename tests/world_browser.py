@@ -303,7 +303,7 @@ class SchoolTests(unittest.TestCase):
         page.click(f'{menu("tool")}:has(summary:text("🗺️")) summary')
         self.assertTrue(page.is_visible(f'{head} .ui-world-rows:not(.ui-world-favs) a[href="#school-spot-flowers"]'))
         page.wait_for_function("() => document.querySelector('.ui-world-head .ui-world-rows:not(.ui-world-favs) a .ui-world-arrow').textContent !== '📍'")
-        self.assertEqual(page.eval_on_selector_all(f"{head} .ui-world-rows:not(.ui-world-favs) .ui-world-arrow", "els => els.map(e => e.textContent)"), ["⬆️", "🚪"])
+        self.assertEqual(page.eval_on_selector_all(f"{head} .ui-world-rows:not(.ui-world-favs) .ui-world-arrow", "els => els.map(e => e.textContent)"), ["⬆️", "🛗"])
         page.click(f'{menu("tool")}:has(summary:text("🏫")) summary')
         page.wait_for_function("() => document.querySelectorAll('.ui-world-menu[open]').length === 1")
         self.assertIn("教室と校庭", page.inner_text(f'{menu("tool")}[open]'))
@@ -906,7 +906,7 @@ class CitiesTests(unittest.TestCase):
             self.assertEqual(self.errors, [])
 
     def test_city_tools_and_tokyo_station(self):
-        """🗼🎡🥖 open their city; 🚉 lists Tokyo Station's six exits (🚪 from another city: the floor's door, not the exits' 🎫), walks to each, and its arrows agree with Python."""
+        """🗼🎡🥖 open their city; 🚉 lists Tokyo Station's six exits (🛗 from another city: the floor's door, not the exits' 🎫), walks to each, and its arrows agree with Python."""
         tool = CITIES["tools"]["🚉"]
         tokyo = next(f for f in CITIES["floors"] if f["id"] == "tokyo")
         exits = [next(s for s in tokyo["spots"] if s["id"] == i) for i in tool["spots"]]
@@ -924,8 +924,8 @@ class CitiesTests(unittest.TestCase):
                 self.shot(page, "tool", fl, emoji, f"{emoji} {next(f['label'] for f in CITIES['floors'] if f['id'] == fl)}")
             self.show(page, "london")
             page.click('.ui-world-head .ui-world-menu[data-menu="tool"] > summary')
-            self.assertEqual(page.eval_on_selector_all(rows, "els => els.map(a => a.querySelector('.ui-world-arrow').textContent)"), ["🚪"] * 6)
-            self.shot(page, "tool", "london", "station-door", "🚉 from London: 🚪 ×6")
+            self.assertEqual(page.eval_on_selector_all(rows, "els => els.map(a => a.querySelector('.ui-world-arrow').textContent)"), ["🛗"] * 6)
+            self.shot(page, "tool", "london", "station-door", "🚉 from London: 🛗 ×6")
             page.keyboard.press("Escape")
             for s in exits:
                 with self.subTest(size=size, exit=s["id"]):
@@ -955,7 +955,7 @@ class CitiesTests(unittest.TestCase):
                 fl, tile = f["id"], f["tile"]
                 blocked = W.world_blocked(f["width"], f["height"], tile, f["props"])
                 self.show(page, fl)
-                page.focus(".ui-world-view")                                                         # the 🚪 pulldown kept the focus: keys go to the map again
+                page.focus(".ui-world-view")                                                         # the 🛗 pulldown kept the focus: keys go to the map again
                 steps = [((0, -1), "ArrowUp"), ((1, 0), "ArrowRight"), ((0, 1), "ArrowDown"), ((-1, 0), "ArrowLeft")]
                 for (dx, dy), key in steps:
                     with self.subTest(size=size, floor=fl, key=key):
