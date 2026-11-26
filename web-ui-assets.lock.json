@@ -16,16 +16,16 @@
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/world.html": "fc9a0e5f8923711b761b863066141df1b0b8ba7627bb1d2e2ab9ca3468a9a06d",
-    "tools/demos/school.html": "7a7f14ff997632c1eed2c0d9e3220fe3602e8a3c5d2365f70ef8c5d87149dd26",
-    "tools/demos/cities.html": "32bf4fe9e0451b43d403eb57b0d8fdddf55042e0c2bc672f3b58f5be8f43d4ac",
-    "tools/demos/world-shots.html": "bf5868e9de5145f15ffbaf1b83dcdeb3dd32bc051fd6a0481c85553db42ffc79",
-    "tools/test-report/index.html": "fe5dea4903f009be1ce7605579dd5772b0bcca32d50dc7c8b891ea4d84e27470",
-    "tools/mcp-protocol/index.html": "4195e1647b8c01466e5fdd1496cb9001473c104b4fd31e0322f6346a65ee267c",
-    "tools/html-import/index.html": "08ece065d0203202cdca6d694cc1fb7571c6445c7bdfc8fc58d3a9f7de0e6e14",
-    "tools/maps/index.html": "bd851e1e797cfabf58c22b4e93bf3636a981fcf7df38eddcdd520298fd481791",
-    "tools/maps/tokyo.html": "780257351de86a2c478b7379824672a94e5eb1083f494df0cd9caf29102b23b7",
-    "tools/gif/index.html": "33b580afac2ed07505adfc79c835aad2ccefe974a246241f64c7a076d8adbbbd",
-    "tools/chat/index.html": "94adebc451b46b3e53952531f3f63defe963dbf1cfe21e628443c176b592e43e"
+    "tools/demos/world.html": "52dd8d77520c09e390b7d0b04f3c9a1c3512d0c2c8e5c99567473b2c757f3b96",
+    "tools/demos/school.html": "aeedf6e9a06d3710bd6885bacdd1a490e4cdbf7c95bbaff4e975c4a1e1c81c72",
+    "tools/demos/cities.html": "9cbcde21f015a946c5e35a95ac50eb3c89522a31336dea6f475ca6a1e919449d",
+    "tools/demos/world-shots.html": "93ba494227c2b5cd41976ca3acc93390a259cf478db4b58bec1fcf3313f3e72d",
+    "tools/test-report/index.html": "f742ab27abcf9f29269ed0e5b35a0b8bada49c99cd08da6b7585f354c702fdcc",
+    "tools/mcp-protocol/index.html": "6f5bb5e3223367adaa9df099bc4f60a60289c4150629a86313c791026d05753c",
+    "tools/html-import/index.html": "a8d2f651b34a213a4674c8ee63979e19784fae3e5e504711482bea4505fe679d",
+    "tools/maps/index.html": "d877d83db06ebeecea3da4ec0e39f6f980161d5f6f188a0318557d28036ce2fa",
+    "tools/maps/tokyo.html": "b038b1aa3092c3a6f4117d641736e423ea9f4736fd7824356f5ce9a6fe798505",
+    "tools/gif/index.html": "a17372cb57278d3e832108eadae58c3664652f4e2d44f6e45bab69027c24ce2b",
+    "tools/chat/index.html": "387ab8f5bfe87fff197d407331d34a998bfd06acd4c0fcd4545c170cfd580f46"
   }
 }

@@ -372,10 +372,11 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
     assert manifest['shortcuts'] == [{'url': '../../slide-studio/'}]
 
 
-def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
+def test_every_tool_page_carries_the_same_chrome_and_a_world_page_adds_what_it_lacks():
     """🧰 tools_chrome + PySaiyanWeBoo's chrome: the board with the clock, 🏠, ⭐ ⚙️ and ☰ ⋯ for the page's own (☰ lists nothing
     of other pages); and 🚪 tools_door: PySaiyanWeBoo's Door-to-Door with 🏠 and every 🧰 Tools link, this page marked as the door you
-    came in by. A 🌍 world page keeps its own header, side and 🚪 (floors), and every door leads to a page of this site."""
+    came in by. A 🌍 world page keeps its own header and side (the same parts) and gets what it lacks, 🫧 in that header and the
+    foot; a page with nothing to say of itself says a line any page can (📟 a placeholder). Every door leads to a page of this site."""
     import html
     import re
     import pysaiyanweboo as ui
@@ -387,11 +388,13 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
     assert len(pages) > len(TOOL_PAGES)
     for name in sorted(pages):
         page = (SITE / name).read_text(encoding='utf-8')
-        if 'data-ui-world="' in page:
-            assert '<div class="ui-chrome ' not in page and '<div class="ui-door-foot"' not in page, name   # 🌍 its own (or 🎬 none: scenes)
-            continue
         prefix = '../' * name.count('/')
         body = re.search(r'<body[^>]*>', page)
+        assert '<div class="ui-board"' in page and page.count('<button type="button" class="ui-gaze"') == page.count('<div class="ui-door-foot">') == 1, name   # 📟 🫧 🚪 on every page
+        if '<header class="ui-world-head">' in page:                               # 🌍 its own header and side: 🫧 after its board, then the foot
+            assert '<div class="ui-chrome ' not in page and '</div><button type="button" class="ui-gaze"' in page[:page.index('<nav class="ui-world-tools">')], name
+            assert page.count(module[1]) == 1 and f'<option value="{prefix}index.html#tools">🏠 Tools</option>' in page, name
+            continue
         assert page[body.end():].startswith('<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="ja">'), name
         assert page.count('<div class="ui-chrome') == 1 and '<span class="ui-board-clock" data-clock>--:--:--</span>' in page, name
         assert page.count(module[0]) == 1 and page.count(module[1]) == 1 and page.count('<div class="ui-door-foot">') == 1, name
@@ -409,6 +412,8 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
         here = next((place['text'] for place in PAGES.tools_places(prefix) if place['href'] == prefix + re.sub(r'index\.html$', '', name)), None)
         assert len(about) <= 3 and items[:half] == about + cards[:12 - len(about)], name
         assert (about and html.unescape(about[0]) in here) if here else True, name
+        if not here and '<meta name="description"' not in page:                    # 📟 nothing of its own to say: the line any page can carry
+            assert about[0].endswith('：myon-bioinformatics の道具のページ。') and about[1:] == ['🚪 でほかの道具へ、🏠 で一覧へ。'], (name, about)
         assert '<ul class="ui-world-rows ui-world-spots"></ul>' in page and 'data-fav' not in page, name   # ☰ this page's own: the script lists it
         assert page.count('data-scroll="top"') == page.count('data-scroll="bottom"') == 1, name            # ⋯ ⬆️ ⬇️
         rows = [(place['href'], place['id']) for place in PAGES.tools_places(prefix)]                      # 🚪 every tool
