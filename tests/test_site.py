@@ -78,6 +78,33 @@ def test_portal_exposes_expected_pages():
     assert "tools" in parser.ids
     assert EXPECTED_PAGES <= set(parser.links)
 
+
+def test_tool_cards_and_door_follow_the_service_catalog(tmp_path, monkeypatch):
+    from shutil import copyfile
+
+    scripts = tmp_path / 'scripts'
+    scripts.mkdir()
+    copyfile(ROOT / 'scripts/front_page.py', scripts / 'front_page.py')
+    path = tmp_path / 'services.json'
+    catalog = json.loads((ROOT / 'services.json').read_text(encoding='utf-8'))
+    projects = catalog['services']['projects']
+    projects['Ironmate']['pages']['url'] = 'https://myon-bioinformatics.github.io/tools/example-image/'
+    projects['mcp-toolcall-lab']['execution']['url'] = 'https://myon-bioinformatics.github.io/tools/example-execution/'
+    path.write_text(json.dumps(catalog), encoding='utf-8')
+    front = PAGES.load_module('test_front_catalog', scripts / 'front_page.py')
+    monkeypatch.setattr(PAGES, '_front_module', lambda: front)
+
+    parser = LinkParser()
+    parser.feed(front.portal_cards())
+    assert 'https://myon-bioinformatics.github.io/tools/example-image/' in parser.links
+    assert './tools/example-image/' in parser.links  # keep the heatmap-to-editor shortcut
+    assert 'https://myon-bioinformatics.github.io/tools/example-execution/' in parser.links
+    assert not any('/image-studio/' in href or '/mcp/execution/' in href for href in parser.links)
+    doors = [place['href'] for place in PAGES.tools_places()]
+    assert doors.count('../../tools/example-image/') == 1
+    assert '../../tools/example-execution/' in doors
+
+
 def test_every_active_repository_with_pages_is_one_tap_away():
     """🌐 api/repos.json (has_pages) owns the Pages roots: each project card links its repository's own Pages (🧰 Tools has no
     list of them, and no portfolio copy of a repository's page)."""
@@ -1289,21 +1316,40 @@ def test_chat_onto_defines_concepts_and_looks_them_up_with_ontautology():
 
 
 def test_chat_guess_finds_every_concept_by_yes_and_no():
-    """🎯 /guess: each question halves what is left; answering truthfully reaches every concept in at most ⌈log₂ N⌉ + 1
-    questions here, plain y / n answer only while a game is on, and ? skips."""
     say = lambda text: CHAT.respond(text, index=CHAT_INDEX, fetch=_chat_fetch)
     for target, body in CHAT_CONCEPTS['concepts'].items():
         elements = body['elements'] if isinstance(body, dict) else body
-        reply, asked = say('/guess'), 0
-        while '❓ Q' in reply:
-            element = re.search(r'『\*\*(.+?)\*\*』', reply).group(1)
-            reply, asked = say('y' if element in elements else 'n'), asked + 1
-        face = {'マリオ': '🍄 ', 'ルイージ': '👻 '}.get(target, '')                       # 🍄 its first 絵文字略称
-        assert f'🎯 それは **{face}{target}**' in reply and asked <= 4, (target, reply)
-    assert '🔎' in say('y')                                                   # no game: y is a search
+        reply = say('/guess')
+        for _ in range(10):
+            element = re.search(r'『\*\*(.+?)\*\*』', reply)
+            if element is None:
+                break
+            reply = say('y' if element.group(1) in elements else 'n')
+        face = {'マリオ': '🍄 ', 'ルイージ': '👻 '}.get(target, '')
+        assert f'候補は **{face}{target}**' in reply and '🎯 それは' not in reply
+        assert f'🎯 それは **{face}{target}**' in say('y')
+    assert '🔎' in say('y')
     first = say('/guess')
     assert '❔' in say('?') and '`y`（はい）' in say('/guess maybe') and 'おしまい' in say('/guess stop')
     assert 'Q1' in first and '🔎' in say('n')
+
+
+@pytest.mark.parametrize('final_answer', ['n', '?'])
+def test_chat_guess_rejects_an_unknown_with_identical_features(final_answer):
+    corpus = {'schema': CHAT_CONCEPTS['schema'], 'concepts': {'うどん': ['麺']},
+              'broader': {'麺': ['食品']}, 'maybe': {'うどん': ['小麦']}}
+
+    def fetch(_):
+        return json.dumps(corpus)
+
+    say = lambda text: CHAT.respond(text, index=CHAT_INDEX, fetch=fetch)
+    assert CHAT.concepts(CHAT_INDEX, fetch)['maybe'] == {'うどん': ['小麦']}
+    assert '食品' in say('/guess')
+    assert '麺' in say('?')
+    prompt = say('y')
+    assert '候補は **うどん**' in prompt and '🎯 それは' not in prompt
+    assert '確認できなかった' in say(final_answer)
+    assert '🔎' in say('y')
 
 
 def test_chat_runs_olnm_to_list_read_and_calculate():
@@ -1552,14 +1598,15 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             assert '⚠️' not in say('/find missing --repo Aoi', '0 件（索引内）')
             say('/show onto/docs/graph.json', '🧬 nodes 2')
             say('/onto ギター', '6弦標準')                                     # 🧬 OnTautoLogy (ontautology.py) in Pyodide
-            say('/guess', 'Q1')                                             # 🎯 then y / n as plain answers
-            for _ in range(6):
-                question = page.locator('[data-chat-who="bot"]').last.inner_text()
-                if '🎯 それは' in question:
-                    break
-                element = re.search(r'『(.+?)』', question).group(1)
-                say('y' if element in CHAT_CONCEPTS['concepts']['ギター']['elements'] else 'n', '')
-            assert '🎯 それは ギター' in bot.last.inner_text(), bot.last.inner_text()
+            for final_answer, expected in [('n', '確認できなかった'), ('y', '🎯 それは ギター')]:
+                question = say('/guess', 'Q1')
+                for _ in range(10):
+                    if '候補は ギター' in question:
+                        break
+                    element = re.search(r'『(.+?)』', question).group(1)
+                    question = say('y' if element in CHAT_CONCEPTS['concepts']['ギター']['elements'] else 'n', 'Q')
+                assert '候補は ギター' in question and '🎯 それは' not in question
+                say(final_answer, expected)
             say('/olnm calc 6 mul 7', '42')                                  # 🧷 OLNM (olnm.py) in Pyodide
             say('/olnm show gp', 'git push')
             compress = mirror and (mirror / 'talkcompress').is_dir()

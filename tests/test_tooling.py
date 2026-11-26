@@ -291,7 +291,7 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     (root / 'docs').mkdir()
     shutil.copyfile(ROOT / 'docs/weekly-view.md', root / 'docs/weekly-view.md')
     (root / 'api').mkdir()
-    for name in ('profile.json', 'api/repos.json', 'site.config.json'):                                       # ... from these and projects.json
+    for name in ('profile.json', 'api/repos.json', 'site.config.json', 'services.json'):                                       # ... from these and projects.json
         shutil.copyfile(ROOT / name, root / name)
     shutil.copyfile(ROOT / 'projects.json', root / 'projects.json')                       # the project cards' curation
     output = tmp_path / 'cli-output'
