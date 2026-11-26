@@ -78,6 +78,33 @@ def test_portal_exposes_expected_pages():
     assert "tools" in parser.ids
     assert EXPECTED_PAGES <= set(parser.links)
 
+
+def test_tool_cards_and_door_follow_the_service_catalog(tmp_path, monkeypatch):
+    from shutil import copyfile
+
+    scripts = tmp_path / 'scripts'
+    scripts.mkdir()
+    copyfile(ROOT / 'scripts/front_page.py', scripts / 'front_page.py')
+    path = tmp_path / 'services.json'
+    catalog = json.loads((ROOT / 'services.json').read_text(encoding='utf-8'))
+    projects = catalog['services']['projects']
+    projects['Ironmate']['pages']['url'] = 'https://myon-bioinformatics.github.io/tools/example-image/'
+    projects['mcp-toolcall-lab']['execution']['url'] = 'https://myon-bioinformatics.github.io/tools/example-execution/'
+    path.write_text(json.dumps(catalog), encoding='utf-8')
+    front = PAGES.load_module('test_front_catalog', scripts / 'front_page.py')
+    monkeypatch.setattr(PAGES, '_front_module', lambda: front)
+
+    parser = LinkParser()
+    parser.feed(front.portal_cards())
+    assert 'https://myon-bioinformatics.github.io/tools/example-image/' in parser.links
+    assert './tools/example-image/' in parser.links  # keep the heatmap-to-editor shortcut
+    assert 'https://myon-bioinformatics.github.io/tools/example-execution/' in parser.links
+    assert not any('/image-studio/' in href or '/mcp/execution/' in href for href in parser.links)
+    doors = [place['href'] for place in PAGES.tools_places()]
+    assert doors.count('../../tools/example-image/') == 1
+    assert '../../tools/example-execution/' in doors
+
+
 def test_every_active_repository_with_pages_is_one_tap_away():
     """🌐 api/repos.json (has_pages) owns the Pages roots: each project card links its repository's own Pages (🧰 Tools has no
     list of them, and no portfolio copy of a repository's page)."""

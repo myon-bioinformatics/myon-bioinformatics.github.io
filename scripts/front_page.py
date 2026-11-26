@@ -12,6 +12,16 @@ import re
 from pathlib import Path
 from urllib.parse import quote
 
+# Service endpoints come from the same catalog for both tool cards and the footer.
+_services = json.loads((Path(__file__).resolve().parents[1] / 'services.json').read_text(encoding='utf-8'))['services']
+_site_url = _services['portfolio']['pages']['url']
+
+
+def _service_url(project: str, endpoint: str, *, relative: bool = False) -> str:
+    url = _services['projects'][project][endpoint]['url']
+    return './' + url.removeprefix(_site_url) if relative and url.startswith(_site_url) else url
+
+
 # 🧰 Tools: one card each, named for what it does — practical tools only. ``from`` names the repositories a card is built from (🧩, plain
 # text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. ``points`` are trusted HTML (they carry <code>);
 # everything else is escaped.
@@ -25,22 +35,22 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
           'ではドット絵・比較用の一枚・容量確認ができます。Markdown→PPTX変換と既存PPTXの属性編集はローカルCLIの試作実装です。',
   'id': 'studios',
   'from': ('Ironmate',),
-  'links': [('Open Image Studio →', 'https://myon-bioinformatics.github.io/tools/image-studio/'),
-            ('Open Browser Tools →', 'https://myon-bioinformatics.github.io/tools/browser-tools/'),
-            ('Open Slide Studio →', 'https://myon-bioinformatics.github.io/tools/slide-studio/')]},
+  'links': [('Open Image Studio →', _service_url('Ironmate', 'pages')),
+            ('Open Browser Tools →', _service_url('Ironmate', 'browserTools')),
+            ('Open Slide Studio →', _service_url('Ironmate', 'slides'))]},
  {'title': '🌡️ ヒートマップ',
   'text': '数値行列か Plotly の heatmap を貼って描き、色の段階・値の表示を変えて SVG・PNG・シーン JSON に。'
           'シーンは Ironmate の Image Studio でレイヤーとして編集できます。',
   'id': 'heatmap',
   'from': ('DRAgoWing', 'Ironmate'),
-  'links': [('ヒートマップを描く →', './tools/heatmap/'), ('Image Studio で編集 →', './tools/image-studio/')]},
+  'links': [('ヒートマップを描く →', './tools/heatmap/'), ('Image Studio で編集 →', _service_url('Ironmate', 'pages', relative=True))]},
  {'title': '🔌 MCP 実験室',
   'text': 'AI が MCP で呼ぶ道具（Wikipedia 表示・Pixiv 原文抽出・ニコニコ検索・ポケモン）をブラウザで試し、ツール呼び出しの記録（JSONL）を集計。'
           '検証の結果は、ラボの Actions の写し。接続試験は、新旧の protocol・PKCE・Bearer・OAuth メタデータを端末の中で確かめる。',
   'id': 'mcp',
   'from': ('mcp-toolcall-lab',),
   'links': [('Open Tool Lab →', './tools/mcp/'),
-            ('Open Execution Lab →', 'https://myon-bioinformatics.github.io/tools/mcp/execution/'),
+            ('Open Execution Lab →', _service_url('mcp-toolcall-lab', 'execution')),
             ('MCP 接続試験 →', './tools/mcp-protocol/')]},
  {'title': '🧾 テスト結果',
   'text': 'JUnit の結果を貼るか開いて読み、前回と比べて新規・再発・解消を分ける。端末の中で完結し、結果はどこにも送らない。',
