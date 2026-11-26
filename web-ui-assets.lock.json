@@ -16,19 +16,16 @@
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/index.html": "813ea60eb687e56a70ab356bde191f53821c7543345a49cf274be0c038a9a392",
-    "tools/demos/mcp-stub.html": "0b5a5df0a5c8a713c64e9530122e522fd92454f32b222e76ff35ec8f6eb9c864",
-    "tools/demos/api-stub.html": "449c9266c528d613d38b1210acd29ed14924927f85120f20e297990f6463fa58",
-    "tools/demos/mcp-lab.html": "f2f88979f8a00080edc8238bc08ee102a242dd06fe3c08391ee22ca6303375f9",
-    "tools/demos/test-report.html": "c2ae455ce8a997e99667afbffae9a1ed33fad76714398a6a1299acb681d192e4",
     "tools/demos/world.html": "763d89a7dbb4a72b07836712b28482f4d73a1683df2aa20f606bd37bc6cdd007",
     "tools/demos/school.html": "f50bf0127e06053b421921f1b7548ef95f4f32214d45372047a58352fe7c42d0",
     "tools/demos/cities.html": "0e01c203826f680909e884ce503b4cc6dd9f860eeb1d837553fb7f6fe96fce50",
     "tools/demos/world-shots.html": "a9f21f60d2079a87566ca212ba48097517ef0a3711682aff3e655ebd8d8e4757",
-    "tools/html-import/index.html": "300bfe0c6c377f4dc8b8f897e02afd8c8de1d5fe107363adfe03cd439932828f",
-    "tools/maps/index.html": "8754da80b9da0733ba6e3656facb5c23d3c156e77a37ddf585f4a4898cd666d6",
+    "tools/test-report/index.html": "f6b30297db28d8aa4567258a7e748b014500b79b574fe2413b060f215190051f",
+    "tools/mcp-protocol/index.html": "143db62bf739a75d88ec6155e556fe04229c9e2a474dd722212ab540e3b4f55b",
+    "tools/html-import/index.html": "97df084d206ce566da7706f332037a0457f22c312c032df154a134984411ed2c",
+    "tools/maps/index.html": "43cbd25b0197177941519d94edf37395c847a68e55cdbd6fb9e82a61d3a2a838",
     "tools/maps/tokyo.html": "5f55221a223d782f87897f10ba45bc9100a5214c3b13c36ce20c808b2e65a1ef",
-    "tools/gif/index.html": "b17c576202b6eae1ec888345f1c3edfee842f9a64c40d63f2a455b7101899709",
-    "tools/chat/index.html": "6e858cdbc5962097613c781fe5ee9ccbad4729878284184c67b849a0c459f6c8"
+    "tools/gif/index.html": "12891c4e9d1a1a1c483325d16a49d98372dc71f414985a285090207f941fbe76",
+    "tools/chat/index.html": "43d79ce65c770772cc8f1fb94844184188ce5369a0c6a20d849090baea468f8c"
   }
 }

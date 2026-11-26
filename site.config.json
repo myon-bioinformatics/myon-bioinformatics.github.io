@@ -1,1 +1,11 @@
-{"defaultViewMode":"modern"}
+{
+  "defaultViewMode": "modern",
+  "documents": [
+    {
+      "id": "weekly",
+      "title": "🗓️ 週次台帳",
+      "source": "docs/weekly-view.md",
+      "note": "Markdownをビルド時にHTML化し、同じページ内の #weekly で参照します。監査実測値は親リポジトリの監査ページが正本です。"
+    }
+  ]
+}

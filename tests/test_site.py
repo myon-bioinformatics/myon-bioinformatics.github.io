@@ -277,10 +277,11 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
         assert not any(f'/tools/{name}/' in href.lower() for _, href in links for name in names), card['title']
 
 
-# The demos (DEMOS) and the 🌍 world pages (WORLD_PAGES) come from scripts/project_pages.py; they are tool pages too.
+# PySaiyanWeBoo's tool documents (PSWB_TOOLS) and the 🌍 world pages (WORLD_PAGES, tools/demos/) come from scripts/project_pages.py; they are tool pages too.
 TOOL_PAGES = ("tools/html-import/index.html",
               *(("tools/mcp/index.html", "tools/mcp/repository-diagnostics.html") if LAB_BUILT else ()),
               "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html", "tools/chat/index.html", "tools/flow/index.html",
+              "tools/test-report/index.html", "tools/mcp-protocol/index.html",
               "tools/repo-map/index.html",
               *sorted(str(path.relative_to(SITE)) for path in (SITE / "tools/demos").glob("*.html")))
 
@@ -352,7 +353,7 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
     world = PAGES._world()
     import pysaiyanweboo as ui
     module = ('<script type="module">' + world.SHELL_JS + 'bindChrome();\n</script><div class="ui-door-foot"><section class="ui-panel ui-door" id="door" data-ui-door ',
-              '</section></div><script type="module">' + PAGES.tools_door(ui)[2] + '</script></body>')
+              '</span></p></div><script type="module">' + PAGES.tools_door(ui)[2] + '</script></body>')
     assert module[1].count(ui.js_source('door.js')) == 1 and 'addEventListener("pageshow"' in module[1]      # PySaiyanWeBoo's door.js, and one line
     cards = [html.escape(card['title']) for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL]
     pages = {*TOOL_PAGES, *(f'{folder}/{entry}index.html' for _, folder, entries in PAGES.TOOL_SOURCES.values() for entry in entries)}
@@ -367,11 +368,19 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
         assert page[body.end():].startswith('<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="ja">'), name
         assert page.count('<div class="ui-chrome') == 1 and '<span class="ui-board-clock" data-clock>--:--:--</span>' in page, name
         assert page.count(module[0]) == 1 and page.count(module[1]) == 1 and page.count('<div class="ui-door-foot">') == 1, name
+        foot = re.search(r'<p class="ui-foot-info"><a href="https://twitter\.com/myonitbusiness" target="_blank" rel="noopener noreferrer"[^>]*>🐦</a>'
+                         r'<span class="ui-foot-size"[^>]*>📦 (\d+) KB</span></p></div>', page)
+        assert foot and abs(int(foot[1]) - len(page.encode('utf-8')) / 1024) <= 1, name                     # 🐦 X and 📦 this page's own size
         assert f'<a class="ui-world-home" href="{prefix}index.html#tools"' in page, name
         chrome = page[body.end():page.index('<div class="ui-world-side">', body.end())]          # the board and the header's tools; ☰ follows
         assert '<img' not in chrome and 'lab-execution-link' not in chrome, name   # 🔌 the lab's logo and links go to the lab's own <header>
-        for title in cards:
-            assert chrome.count(f'>{title}</span>') == 2, (name, title)        # the board says each card twice (the loop)
+        items = re.findall(r'<span class="ui-board-item"[^>]*>(.*?)</span>', chrome)
+        half = len(items) // 2
+        assert 1 <= half <= 12 and items[:half] == items[half:], name         # the board says its items (up to 12) twice (the loop)
+        about = [item for item in items[:half] if item not in cards]          # 📝 what this page is: its card's text, a sentence per item
+        here = next((place['text'] for place in PAGES.tools_places(prefix) if place['href'] == prefix + re.sub(r'index\.html$', '', name)), None)
+        assert len(about) <= 3 and items[:half] == about + cards[:12 - len(about)], name
+        assert (about and html.unescape(about[0]) in here) if here else True, name
         assert '<ul class="ui-world-rows ui-world-spots"></ul>' in page and 'data-fav' not in page, name   # ☰ this page's own: the script lists it
         assert page.count('data-scroll="top"') == page.count('data-scroll="bottom"') == 1, name            # ⋯ ⬆️ ⬇️
         rows = [(place['href'], place['id']) for place in PAGES.tools_places(prefix)]                      # 🚪 every tool
@@ -1435,8 +1444,7 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     assert 'data-testid="portfolio-back"' in page and '💬chat-slot' not in page
     front = (SITE / 'index.html').read_text(encoding='utf-8')
     assert 'id="chat"' in front and './tools/chat/' in front and 'Markdown 道具箱' not in front
-    assert 'chat' not in PAGES.DEMOS and not (SITE / 'tools/demos/chat.html').exists()      # 💬 one card, one address: not among the 🤖 stubs
-    assert 'chat.html' not in (SITE / 'tools/demos/index.html').read_text(encoding='utf-8')
+    assert not (SITE / 'tools/demos/chat.html').exists() and not (SITE / 'tools/demos/index.html').exists()   # 💬 one card, one address; no 🤖 stubs list
 
 
 def html_escape(text):
@@ -1575,13 +1583,53 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
     target['chat-conversation'].write_bytes(gif)
     assert gif[:6] == b'GIF89a'
 
-def test_weekly_markdown_fragment_and_hash_link():
+def test_documents_of_the_site_config_become_sections_of_the_front_page():
+    """📄 site.config.json ``documents``: each reviewed .md is a section at ``#id`` (☰ lists it); a new document is a new row, not a new page."""
     front = _front()
     page = front.document()
-    assert 'href="#weekly"' in page
-    assert 'id="weekly"' in page
-    assert '公開用週次台帳ビュー' in page
-    assert '@@WEEKLY@@' not in page
+    assert '<section id="weekly" class="container document" aria-label="🗓️ 週次台帳">' in page and '<h2>🗓️ 週次台帳</h2>' in page
+    assert '公開用週次台帳ビュー' in page and '@@DOCUMENTS@@' not in page and 'weekly-markdown' not in page
+    two = front.documents_html(ROOT, [{'id': 'weekly', 'title': '🗓️ 週次台帳', 'source': 'docs/weekly-view.md'},
+                                      {'id': 'ssot', 'title': '📚 SSOT', 'source': 'docs/ssot.md', 'note': 'a <note>'}])
+    assert two.count('<article class="document-markdown">') == 2 and '<section id="ssot" class="container document"' in two
+    assert '<p class="section-sub">a &lt;note&gt;</p>' in two and two.count('section-sub') == 1
+    assert front.documents_html(ROOT, []) == ''
+    for bad in ({'id': 'weekly'}, [{'id': 'Weekly', 'title': 't', 'source': 'docs/ssot.md'}], [{'id': 'a', 'title': 't', 'source': 'docs/ssot.md', 'url': 'x'}],
+                [{'id': 'a', 'title': 't', 'source': 'docs/ssot.md'}] * 2, [{'id': 'a', 'title': '', 'source': 'docs/ssot.md'}]):
+        with pytest.raises(ValueError):
+            front.documents_html(ROOT, bad)
+
+
+def test_the_front_page_carries_the_shared_header_side_and_foot():
+    """🧰 The front page has the parts every tool page has (add_site_chrome): the board reads its description, 🔗 its links, no 🏠
+    (it is the home), ☰ ⋯ at the side, and the foot with 🚪 every tool, 🐦 X and 📦 its own size; its old nav, contact and footer are gone."""
+    import re
+    page = (SITE / 'index.html').read_text(encoding='utf-8')
+    body = re.search(r'<body[^>]*>', page)
+    assert page[body.end():].startswith('<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="ja">')
+    assert page.count('<div class="ui-chrome') == 1 and page.count('<div class="ui-door-foot">') == 1 and 'class="ui-world-home"' not in page
+    board = page[body.end():page.index('<nav class="ui-world-tools">')]
+    assert '>MYON<' in board and 'Bioinformatics → Security/Backend engineer.' in board and 'Practical CLI and browser tools in Python' in board
+    assert all(href in page for href in ('https://github.com/myon-bioinformatics', 'https://lit.link/myon123', 'https://linktr.ee/myon123'))
+    size = re.search(r'<span class="ui-foot-size"[^>]*>📦 (\d+) KB</span>', page)
+    assert size and abs(int(size[1]) - len(page.encode('utf-8')) / 1024) <= 1 and 'href="https://twitter.com/myonitbusiness"' in page
+    assert '<nav class="nav">' not in page and 'site-footer"' not in page and '📬 Contact' not in page
+    assert 'value="./tools/chat/"' in page or './tools/chat/' in page                       # 🚪 the doors lead from the root
+
+
+def test_a_tool_page_board_reads_its_card_and_stamp_size_follows_the_page():
+    """🧰 The board of a tool page starts with what its 🧰 Tools card says (a sentence per item, up to three, 120 characters each);
+    📦 stamp_size rewrites the number when the page changed."""
+    chrome = PAGES.tools_chrome('../../', description='一つ目。二つ目！ Third one. markdown.py は切らない。五つ目。')
+    assert [item['text'] for item in chrome['board']['items'][:4]] == ['一つ目。', '二つ目！', 'Third one.', PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL[0]['title']]
+    assert len(chrome['board']['items']) <= 12 and chrome['home'] == '../../index.html#tools'
+    assert 'home' not in PAGES.tools_chrome('./', home=False) and PAGES.tools_chrome('./', title='MYON')['board']['title'] == 'MYON'
+    assert PAGES.tools_chrome(description='x' * 200)['board']['items'][0]['text'] == 'x' * 119 + '…'
+    card = next(card for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL if card.get('id') == 'gif')
+    gif = (SITE / 'tools/gif/index.html').read_text(encoding='utf-8')
+    assert card['text'].split('。')[0] + '。' in gif[:gif.index('<nav class="ui-world-tools">')]
+    page = '<p><span class="ui-foot-size" title="t">📦</span></p>' + 'x' * 4096
+    assert '>📦 4 KB</span>' in PAGES.stamp_size(page) and PAGES.stamp_size(PAGES.stamp_size(page) + 'y' * 2048).count('📦 6 KB') == 1
 
 
 def test_weekly_markdown_fragment_rejects_invalid_paths():
