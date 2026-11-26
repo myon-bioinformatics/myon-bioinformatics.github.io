@@ -683,11 +683,14 @@ def chat_books() -> list[dict]:
     """📇 The index as a runbook (records, search and state filter, as in olnm's guide): one book per kind of tool, one
     step per example; the expected reply is the bot's own where it needs nothing recorded at deploy time."""
     chat = _chat()
-    groups = [('📝 Markdown', ('md', 'table', 'help')), ('🎨 ASCII art', ('ascii', 'box', 'flow')), ('🗂 圧縮', ('compress',)),
-              ('🔌 MCP', ('mcp',)), ('🔎 JSON / JSONL', ('find', 'show')), ('🤖 LLM', ('ask',)), ('⌨️ もしかして', ())]
+    groups = [('📝 Markdown', ('md', 'table', 'help')), ('🎨 ASCII art', ('ascii', 'box', 'flow')), ('🗂 圧縮 · 🔌 MCP', ('compress', 'mcp')),
+              ('🔎 JSON / JSONL', ('find', 'show')), ('🧬 オントロジー', ('onto', 'guess')), ('🧷 OLNM', ('olnm',)),
+              ('🤖 LLM', ('ask',)), ('⌨️ もしかして', ())]           # (a runbook holds 1..8 books)
     recorded = {'compress': '🗂 TalkCompress の短い文と 📏 文字数（TalkCompress は公開時に記録）',
                 'mcp': '🔌 mcp-toolcall-lab が広告する道具で判定（✅ 送ってよい／❌ 断る。道具は公開時に記録）',
                 'find': '🔎 全リポジトリの JSON / JSONL から（索引は公開時に記録）', 'show': '👀 そのコミットの raw を読んで表に',
+                'onto': '🧬 OnTautoLogy の概念の台帳（concepts-*.json、索引のコミットの raw）から、属（似たものと共通）と種差（決め手）',
+                'guess': '🎯 台帳の概念を 1 つ思い浮かべて y / n / ? で答えると、残りを半分にする要素から質問して当てる',
                 'ask': '🤖 初回だけ約 560 MB のモデルを読み、端末の中で答える（⚡ WebGPU があれば GPU、なければ 🧮 CPU 1 スレッド）'}
     books = []
     for label, names in groups:
@@ -705,7 +708,7 @@ def chat_document(ui) -> str:
     """💬 The chat page: 💬 the conversation (Pyodide runs chat.py in the page) and 📇 the index of what it answers."""
     chat = _chat()
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '💬 横断チャット', 'description':
-                             'markdown.py・ascii_artist・cli_args・TalkCompress・mcp-toolcall-lab をページの中の Python で。'
+                             'markdown.py・ascii_artist・cli_args・TalkCompress・mcp-toolcall-lab・OnTautoLogy・OLNM をページの中の Python で。'
                              '全リポジトリの JSON / JSONL にも答える。🤖 /ask は llama.cpp が端末の中で答える。'
                              '送った文はどこにも送らない（/show は GitHub の raw を、/ask はモデルを読むだけ）。',
                              'blocks': [{'type': 'tabs', 'id': 'chat', 'tabs': [

@@ -2,8 +2,8 @@
 """💬 The portfolio's cross-repo chat bot: one Markdown reply per message, made by the fleet's own single-file modules.
 
 The same file runs in CPython (tests, ``python scripts/chat.py "/flow 入力 > 圧縮 > 出力"``) and in the chat page
-(tools/demos/chat.html), where Pyodide loads it next to markdown.py (md-market), ascii_artist.py and cli_args.py — the
-commits pinned in pyproject.toml's pages group. What it knows about the other repositories is ``media/chat/index.json``,
+(tools/demos/chat.html), where Pyodide loads it next to markdown.py (md-market), ascii_artist.py, cli_args.py,
+ontautology.py (🧬 /onto, 🎯 /guess) and olnm.py (🧷 /olnm) — the commits pinned in pyproject.toml's pages group. What it knows about the other repositories is ``media/chat/index.json``,
 written at deploy time by ``project_pages.py --record-chat``: every JSON / JSONL file of every active repository at its
 commit, and the tools mcp-toolcall-lab advertises. TalkCompress's shorthand compressor is fetched on first use.
 
@@ -14,8 +14,10 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import difflib
 import io
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -24,9 +26,10 @@ from urllib.parse import quote
 import ascii_artist as aa
 import cli_args
 import markdown as md
+import ontautology as otl
 
 OWNER = 'myon-bioinformatics'
-MODULES = ('markdown', 'ascii_artist', 'cli_args')            # 📦 the page writes these next to this file in Pyodide
+MODULES = ('markdown', 'ascii_artist', 'cli_args', 'ontautology', 'olnm')   # 📦 the page writes these next to this file in Pyodide
 # 🐍 the page's Python (Pyodide, CPython 3.14, stdlib only), 🤖 llama.cpp in WebAssembly (wllama; WebGPU when the browser has it)
 # and the GGUF /ask loads once (then the browser keeps it): GitHub Pages sends no COOP/COEP, so the CPU runs one thread
 RUNTIME = {'pyodide': 'https://cdn.jsdelivr.net/npm/pyodide@314.0.8/',
@@ -59,10 +62,16 @@ COMMANDS = {
     'find': ('🔎', 'WORDS [--repo R] [--kind K]', 'リポジトリ横断で JSON / JSONL を探す（K: ' + ' '.join(KINDS) + '）',
              ('onto', '/find --kind onto', '/find --kind jsonl --repo Aoi', 'TaxOntOy')),
     'show': ('👀', 'REPO/PATH', 'JSON / JSONL の中身を表にまとめる（そのコミットの raw を読む）', ('/show TaxOntOy/otl-relations.json',)),
+    'onto': ('🧬', '[WORD | 要素 + 要素]', 'オントロジー（OnTautoLogy）: 〇〇を〇〇たらしめる要素と、似たものとの違い。要素を + でつなぐと逆引き',
+             ('/onto ギター', '/onto 撥弦 + フレット', '/onto')),
+    'guess': ('🎯', '[y | n | ?]', '当てっこ: 台帳から思い浮かべたものを、要素の質問（はい・いいえ）で当てる（OnTautoLogy の台帳）',
+              ('/guess',)),
+    'olnm': ('🧷', '[ls | grep | like | show | calc | sections] …', '端末のワンライナー集 OLNM を動かす（探す・読む・もしかして・電卓）',
+             ('/olnm like uvtets', '/olnm show gp', '/olnm calc 6 mul 7', '/olnm grep json')),
     'ask': ('🤖', 'TEXT', '小さな LLM に聞く（llama.cpp をページの中で。初回だけモデルを読む）', ('/ask オントロジーの台帳はどのリポジトリにある？',)),
 }
 TYPOS = ('/flwo a > b', '/find --kidn onto', '/find --kind ont')    # ⌨️ what cli_args answers with "maybe you meant"
-_STATE = {'index': None, 'base': '', 'fetch': None, 'talkcompress': None}
+_STATE = {'index': None, 'base': '', 'fetch': None, 'talkcompress': None, 'concepts': None, 'guess': None}
 
 
 def configure(index=None, base: str = '', fetch=None) -> None:
@@ -398,6 +407,200 @@ def chat_reply(text: str, index: dict | None) -> str:
     return reply
 
 
+# ── 🧬 /onto and 🎯 /guess: OnTautoLogy's concept ledgers (ontautology-concepts/1, from any repository) ──────────────────
+
+def concepts(index: dict | None = None, fetch=None) -> dict:
+    """🧬 Every concept ledger the index records (``concepts-*.json`` with OnTautoLogy's schema, in any repository), merged
+    into one corpus and read once at the recorded commits: {'concepts': {...}, 'similar': [...], 'sources': [...]}."""
+    index = _STATE['index'] if index is None else index
+    if not index or not index.get('files'):
+        return {}
+    key = (json.dumps(index.get('commits', {}), sort_keys=True), id(fetch))
+    if _STATE['concepts'] and _STATE['concepts'][0] == key:
+        return _STATE['concepts'][1]
+    corpus = {'schema': otl.CONCEPT_SCHEMA, 'concepts': {}, 'similar': [], 'sources': []}
+    for name, path, size in index['files']:
+        if not re.search(r'(^|/)concepts[-_][^/]*\.json$', path) or size > SHOW_MAX:
+            continue
+        commit = index['commits'].get(name, 'HEAD')
+        try:
+            data = json.loads((fetch or _STATE['fetch'] or _fetch)(
+                f'https://raw.githubusercontent.com/{index.get("owner", OWNER)}/{name}/{commit}/{quote(path)}'))
+        except Exception:
+            continue
+        if not isinstance(data, dict) or data.get('schema') != otl.CONCEPT_SCHEMA or not isinstance(data.get('concepts'), dict):
+            continue
+        for concept, body in data['concepts'].items():
+            corpus['concepts'].setdefault(concept, body)
+        corpus['similar'] += data.get('similar', [])
+        corpus['sources'].append(f'{name}/{path}@{commit[:7]}')
+    _STATE['concepts'] = (key, corpus)
+    return corpus
+
+
+def _elements(body) -> list:
+    """A ledger entry's elements: the ledger writes {"id", "elements"} or the bare list; unobserved is []."""
+    elements = body.get('elements') if isinstance(body, dict) else body
+    return list(elements) if isinstance(elements, list) else []
+
+
+def _ledger(corpus: dict) -> str:
+    return f'📚 台帳: {" · ".join(corpus["sources"])}（OnTautoLogy の concepts-*.json）'
+
+
+def _few(items, n: int = 4) -> str:
+    items = list(items)
+    return '・'.join(items[:n]) + (f' …ほか {len(items) - n}' if len(items) > n else '') if items else '—'
+
+
+def _splitter(corpus: dict, names, asked=()) -> str | None:
+    """The element that halves ``names`` best (a yes/no question worth the most), skipping ``asked``; None when none splits."""
+    names = list(names)
+    elements = sorted({e for n in names for e in _elements(corpus['concepts'][n])} - set(asked))
+    has = {e: sum(e in _elements(corpus['concepts'][n]) for n in names) for e in elements}
+    useful = [e for e in elements if 0 < has[e] < len(names)]
+    return min(useful, key=lambda e: (abs(2 * has[e] - len(names)), e)) if useful else None
+
+
+def onto_reply(text: str, index: dict | None = None, fetch=None) -> str:
+    """🧬 A concept: what makes it itself (genus + differentia, OnTautoLogy's define_concepts) and how it differs from what is
+    like it; elements joined with + : which concepts have them all (roundtrip_elements); nothing: the ledger."""
+    corpus = concepts(index, fetch)
+    if not corpus.get('concepts'):
+        return '⏸ 概念の台帳（OnTautoLogy の concepts-*.json）をこのビルドの索引から読めない'
+    names = list(corpus['concepts'])
+    text = text.strip()
+    if not text:
+        return '\n\n'.join([f'🧬 **{len(names)}** 概念 · 🤝 似ている組 **{len(corpus["similar"])}**', ' · '.join(names),
+                            '例: `/onto ギター`（〇〇を〇〇たらしめるもの）· `/onto 撥弦 + フレット`（要素から逆引き）· `/guess`（当てっこ）',
+                            _ledger(corpus)])
+    if text not in corpus['concepts']:
+        words = [w for w in re.split(r'\s*\+\s*|\s+', text) if w]
+        known = {e for body in corpus['concepts'].values() for e in _elements(body)}
+        if all(w in known for w in words):
+            found = otl.roundtrip_elements(corpus, words)
+            matched = found['matched']
+            head = f'🔁 **{" + ".join(found["query"])}** を全部もつもの: '
+            if found['verdict'] == 'unique':
+                return head + f'✅ **{matched[0]}** だけ → `/onto {matched[0]}`'
+            more = _splitter(corpus, matched, words) if matched else None
+            return '\n\n'.join(part for part in [
+                head + (f'⚠️ {len(matched)} つ（{_few(matched, 8)}）' if matched else '🫥 台帳にない'),
+                f'➕ 見分けるなら: `/onto {" + ".join(words)} + {more}`' if more else ''] if part)
+        near = difflib.get_close_matches(text, names, n=3, cutoff=0.3) + difflib.get_close_matches(text, sorted(known), n=3, cutoff=0.6)
+        return '\n\n'.join(part for part in [f'❓ 台帳にない: **{text}**', f'⌨️ もしかして: {" · ".join(f"`/onto {n}`" for n in near)}' if near else '',
+                                             '`/onto` で台帳の一覧（要素は + でつなぐと逆引き）'] if part)
+    result = otl.define_concepts(corpus, [text])['concepts'][text]
+    if not result['elements_observed']:
+        return f'### 🧬 {text}\n\n⏸ 要素はまだ観測されていない（似たもの: {_few(result["similar"])}）'
+    definition, differ = result['definition'], result['differentia']
+    verdict = definition['roundtrip']['verdict']
+    rows = [[f'🤝 {other}', _few(result['genus']['by_similar'][other]['common']), _few(differ['vs_similar'][other]['only_target'], 3),
+             _few(differ['vs_similar'][other]['only_similar'], 3)] for other in result['similar'] if other in differ['vs_similar']]
+    keys = ' · '.join('＋'.join(k) for k in differ['minimal_keys'][:5])
+    return '\n\n'.join(part for part in [
+        f'### 🧬 {text}',
+        f'📐 **{_few(definition["genus"], 6)}** のうち、**{_few(definition["differentia"], 4)}** のもの'
+        f'（🔁 逆引き {"✅ これだけ" if verdict == "unique" else "⚠️ " + _few(definition["roundtrip"]["matched"])}）',
+        md.table(['似たもの', '🤝 共通', f'🆚 {text}だけ', '🆚 相手だけ'], rows).strip() if rows else '🤝 似たものはまだない',
+        f'🔑 決め手（それだけで {text}）: {keys}' if keys else '',
+        f'🧩 要素 {len(result["elements"])}: ' + ' · '.join(result['elements']),
+        _ledger(corpus)] if part)
+
+
+_YES, _NO, _SKIP = {'y', 'yes', 'はい', 'うん', 'o', '⭕'}, {'n', 'no', 'いいえ', 'ううん', 'x', '❌'}, {'?', '？', 'わからない', 'skip', 'パス'}
+
+
+def guess_reply(text: str = '', index: dict | None = None, fetch=None) -> str:
+    """🎯 Think of one concept in the ledger; each question is the element that halves what is left (y / n / ?), until one
+    is left — the count against ⌈log₂ N⌉, the questions a perfect split would need."""
+    corpus = concepts(index, fetch)
+    if not corpus.get('concepts'):
+        return '⏸ 概念の台帳（OnTautoLogy の concepts-*.json）をこのビルドの索引から読めない'
+    answer, game = text.strip().lower(), _STATE['guess']
+    if answer in ('stop', 'やめる'):
+        _STATE['guess'] = None
+        return '🎯 おしまい（`/guess` でもう一度）'
+    observed = [n for n, body in corpus['concepts'].items() if _elements(body)]
+    if game is None or answer in ('', 'new', 'again', 'もう一回'):
+        game = _STATE['guess'] = {'left': observed, 'asked': [], 'q': None, 'n': len(observed)}
+        intro = f'🎯 台帳の {len(observed)} 個から 1 つ思い浮かべて（{_few(observed, 6)}）。はい＝`y`・いいえ＝`n`・わからない＝`?`'
+    elif answer in _YES | _NO | _SKIP:
+        element = game['q']
+        game['asked'].append((element, '⭕' if answer in _YES else '❌' if answer in _NO else '❔'))
+        if answer not in _SKIP:
+            game['left'] = [n for n in game['left'] if (element in _elements(corpus['concepts'][n])) == (answer in _YES)]
+        intro = f'{game["asked"][-1][1]} {element}'
+    else:
+        return f'🎯 `y`（はい）・`n`（いいえ）・`?`（わからない）で答えて（やめるなら `/guess stop`）\n\n❓ 『{game["q"]}』？'
+    left, asked = game['left'], [e for e, _ in game['asked']]
+    if len(left) == 1:
+        _STATE['guess'] = None
+        return '\n\n'.join([intro, f'🎯 それは **{left[0]}**！ {len(asked)} 問で（目安 ⌈log₂ {game["n"]}⌉ = {math.ceil(math.log2(game["n"]))} 問）',
+                            f'🧬 `/onto {left[0]}` で、何が {left[0]} を {left[0]} にしているか'])
+    question = _splitter(corpus, left, asked) if left else None
+    if question is None:
+        _STATE['guess'] = None
+        return '\n\n'.join([intro, f'🤷 見分けられない: {_few(left, 6)}' if left else '🫥 台帳にない…（`/onto` で一覧）'])
+    game['q'] = question
+    return '\n\n'.join([intro, f'❓ Q{len(asked) + 1}: 『**{question}**』？（のこり {len(left)}）', '`y` / `n` / `?`'])
+
+
+# ── 🧷 /olnm: OneLaunchNumerousModules (olnm.py), the terminal's one-liners, run here as far as a browser can ─────────────
+
+def _olnm_like(olnm, word: str) -> list[str]:
+    """olnm's closest names (it prints them too; that print is not the reply)."""
+    with _quiet(), contextlib.redirect_stdout(io.StringIO()):
+        return olnm.like(word) if word else []
+
+
+def olnm_reply(text: str, index: dict | None = None) -> str:
+    """🧷 olnm.py itself: list, search, read and "maybe you meant" its one-liners, and its quote-free calculator. Running a
+    one-liner needs a shell, so that stays in the terminal (the reply says how to get olnm there)."""
+    import olnm
+    index = _STATE['index'] if index is None else index
+    argv = text.split()
+    commit = ((index or {}).get('commits') or {}).get('OneLaunchNumerousModules', 'HEAD')
+    install = _code(f'curl -fsSL https://raw.githubusercontent.com/{OWNER}/OneLaunchNumerousModules/{commit}/olnm.py -o ~/.olnm.py'
+                    " && echo 'eval \"$(python3 ~/.olnm.py init)\"' >> ~/.bashrc", 'sh')
+    if not argv or argv == ['ls']:
+        counts = {}
+        for entry in olnm.entries():
+            counts[entry['section']] = counts.get(entry['section'], 0) + 1
+        return '\n\n'.join([f'🧷 **OLNM**: 端末の bash/zsh で使うワンライナー **{sum(counts.values())}** 本（olnm.py 1 ファイル）',
+                            ' · '.join(f'`{s}` {n}' for s, n in counts.items()),
+                            '例: `/olnm ls git` · `/olnm grep json` · `/olnm like uvtets` · `/olnm show gp` · `/olnm calc 6 mul 7`',
+                            '⬇️ 端末に入れる', install])
+    sub, rest = argv[0], argv[1:]
+    if sub == 'calc':
+        words = getattr(olnm, '_CALC_WORDS', {})
+        expression = ' '.join(words.get(w, w) for w in rest)
+        try:
+            return f'🧮 `{" ".join(rest)}` = **{olnm.calc(expression)}**'
+        except (SyntaxError, ValueError, ZeroDivisionError, OverflowError) as exc:
+            return f'🧮 ⚠️ {type(exc).__name__}: {exc}（数と + - * / ** % と mul div pow lpar rpar）'
+    if sub not in ('ls', 'grep', 'like', 'show', 'sections', 'net'):
+        named = [w for w in argv if w in olnm.names()]
+        if named:                                       # a one-liner's own name (alone, or after run): read it
+            sub, rest = 'show', named[:1]
+        else:
+            near = _olnm_like(olnm, sub)
+            return '\n\n'.join(part for part in [f'▶️ `olnm {sub}` は端末で（ブラウザでは探す・読む・電卓まで）',
+                                                 f'⌨️ もしかして: {" · ".join(f"`/olnm show {n}`" for n in near[:4])}' if near else '',
+                                                 install] if part)
+    if sub == 'show' and rest and rest[0] not in olnm.names():
+        near = _olnm_like(olnm, rest[0])
+        return f'❓ そのワンライナーはない: `{rest[0]}`' + (f'\n\n⌨️ もしかして: {" · ".join(f"`/olnm show {n}`" for n in near[:4])}' if near else '')
+    with _quiet() as err, contextlib.redirect_stdout(io.StringIO()) as out:
+        try:
+            olnm.main([sub, *rest])
+        except SystemExit:
+            pass
+    shown = out.getvalue().strip() or (err.getvalue().strip().splitlines() or ['（なし）'])[-1]
+    tail = f'▶️ 端末で `{rest[0]}`（olnm を入れたシェル）' if sub == 'show' else ''
+    return '\n\n'.join(part for part in [f'🧷 `olnm {" ".join([sub, *rest])}`', _code(shown, 'sh' if sub == 'show' else 'text'), tail] if part)
+
+
 def ask_messages(text: str, index: dict | None = None) -> str:
     """🤖 The chat messages /ask sends to the model (JSON): who it is, the commands, and the recorded files its words find."""
     index = _STATE['index'] if index is None else index
@@ -429,6 +632,8 @@ def respond(text: str, *, index: dict | None = None, fetch=None) -> str:
     index = _STATE['index'] if index is None else index
     text = (text or '').strip()
     if not text.startswith('/'):
+        if _STATE['guess'] and text.lower() in _YES | _NO | _SKIP | {'stop', 'やめる'}:   # 🎯 a game is on: y / n / ? answer it
+            return guess_reply(text, index, fetch)
         return chat_reply(text, index)
     head, rest = (re.split(r'\s', text[1:], maxsplit=1) + [''])[:2]
     name = head.lower()
@@ -443,6 +648,12 @@ def respond(text: str, *, index: dict | None = None, fetch=None) -> str:
         return show_reply(index, rest, fetch)
     if name == 'mcp':
         return mcp_reply(rest, index)
+    if name == 'onto':
+        return onto_reply(rest, index, fetch)
+    if name == 'guess':
+        return guess_reply(rest, index, fetch)
+    if name == 'olnm':
+        return olnm_reply(rest, index)
     if name == 'compress':
         return compress_reply(rest, fetch, commit=(index or {}).get('commits', {}).get('TalkCompress'))
     if name == 'ask':                                   # the page answers it with wllama; here there is no model

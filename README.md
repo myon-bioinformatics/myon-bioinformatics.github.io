@@ -258,7 +258,7 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 
 ### 💬 横断チャット
 
-🧰 Tools → **💬 横断チャット**（`tools/demos/chat.html`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。
+🧰 Tools → **💬 横断チャット**（`tools/demos/chat.html`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args・ontautology.py（OnTautoLogy）・olnm.py（OLNM）は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。
 
 | | コマンド | 出どころ |
 | --- | --- | --- |
@@ -266,6 +266,8 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 | 🎨📦🔀 | `/ascii` `/box` `/flow A, B > C` | ascii_artist（banner・枠・流れ図と Mermaid） |
 | 🗂 | `/compress` | TalkCompress の ShorthandSessionEdge（公開時に記録）と markdown.py の compact_llm_output |
 | 🔌 | `/mcp 道具 {JSON}` | mcp-toolcall-lab のプロンプト実験が広告する道具（✅ tools/call／❌ 断る） |
+| 🧬🎯 | `/onto ギター` `/onto 撥弦 + フレット` `/guess` | OnTautoLogy の `define_concepts`（属＝似たものと共通・種差＝決め手）と `roundtrip_elements`（要素から逆引き）。台帳は全リポジトリの `concepts-*.json`（ontautology-concepts/1、索引のコミットの raw）。🎯 は残りを半分にする要素から y / n / ? で当てっこ |
+| 🧷 | `/olnm ls git` `/olnm show gp` `/olnm calc 6 mul 7` | OLNM の olnm.py そのもの（探す・読む・もしかして・電卓）。ワンライナーの実行は端末で（入れ方の 1 行を返す） |
 | 🔎👀 | `onto` `/find --kind jsonl` `/show REPO/PATH` | 全リポジトリの JSON / JSONL（公開時に `--record-chat` が `media/chat/index.json` へ）と、そのコミットの raw |
 | ⌨️ | `/flwo` → `/flow` | cli_args の「もしかして」 |
 | 🤖 | `/ask 質問` | llama.cpp（wllama 4.0.0、jsDelivr）が Qwen3.5-0.8B（Q4_0、約 560 MB、Hugging Face）を端末の中で動かす。初回だけ読み、あとはブラウザが保存。GitHub Pages は COOP/COEP を返せないので CPU は 1 スレッド、WebGPU があれば GPU。考えた過程（reasoning）を書いたときは 💭 で引用して見せる |

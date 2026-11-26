@@ -1042,14 +1042,22 @@ def test_prose_extract_adapter_preserves_whitespace_hooks_and_code_blocks():
 
 CHAT = PAGES._chat()
 CHAT_INDEX = {'schema': 'chat-index/1', 'owner': 'myon-bioinformatics',
-              'commits': {'onto': 'a' * 40, 'Aoi': 'b' * 40, 'TaxOntOy': 'c' * 40},
+              'commits': {'onto': 'a' * 40, 'Aoi': 'b' * 40, 'TaxOntOy': 'c' * 40, 'OnTautoLogy': 'd' * 40},
               'files': [['onto', 'docs/graph.json', 120], ['Aoi', 'cycles/c001/outputs/allocation.jsonl', 80],
                         ['Aoi', 'cycles/c003/units.jsonl', 40 * 1024 ** 2], ['TaxOntOy', 'package.json', 30],
-                        ['TaxOntOy', 'otl-relations.json', 64]],
+                        ['TaxOntOy', 'otl-relations.json', 64], ['OnTautoLogy', 'examples/concepts-20261115.json', 900]],
               'tools': [{'name': 'find_municipalities', 'description': 'Find mock municipalities.',
                          'parameters': {'type': 'object', 'properties': {'query': {'type': 'string'}}, 'required': ['query'],
                                         'additionalProperties': False}}]}
+CHAT_CONCEPTS = {'schema': 'ontautology-concepts/1',                    # 🧬 a small ledger in OnTautoLogy's shape (both entry forms)
+                 'concepts': {'ギター': {'id': 'C001-guitar', 'elements': ['楽器', '弦楽器', '撥弦', 'フレット', '6弦標準']},
+                              'ベース': ['楽器', '弦楽器', '撥弦', 'フレット', '4弦標準', '低音主体'],
+                              'ウクレレ': ['楽器', '弦楽器', '撥弦', 'フレット', '4弦標準', '小型'],
+                              'バイオリン': ['楽器', '弦楽器', '擦弦', '4弦標準', '弓で弾く'],
+                              'マリオ': ['ゲームキャラクター', '帽子', '赤色', '兄'], 'ルイージ': ['ゲームキャラクター', '帽子', '緑色', '弟']},
+                 'similar': [['ギター', 'ベース'], ['ギター', 'ウクレレ'], ['ギター', 'バイオリン'], ['マリオ', 'ルイージ']]}
 CHAT_RAW = {'onto/docs/graph.json': json.dumps({'schema': 'graph/1', 'nodes': [{'id': 'a'}, {'id': 'b'}], 'edges': [['a', 'b']]}),
+            'OnTautoLogy/examples/concepts-20261115.json': json.dumps(CHAT_CONCEPTS, ensure_ascii=False),
             'Aoi/cycles/c001/outputs/allocation.jsonl': '{"team": "d", "z": -0.7}\n{"team": "s", "z": 0.2}\n'}
 
 
@@ -1097,6 +1105,51 @@ def test_chat_finds_and_shows_json_and_jsonl_across_repositories():
     assert '🐘' in CHAT.respond('/show Aoi/cycles/c003/units.jsonl', index=CHAT_INDEX, fetch=lambda url: pytest.fail(url))
     assert '❓ 記録にない' in CHAT.respond('/show Aoi/nope.json', index=CHAT_INDEX)
     assert '⏸' in CHAT.respond('onto', index={}) and '⏸' in CHAT.respond('/mcp', index={})
+
+
+def test_chat_onto_defines_concepts_and_looks_them_up_with_ontautology():
+    """🧬 /onto: genus + differentia and the table against what is similar (OnTautoLogy's define_concepts), + for a reverse
+    lookup (roundtrip_elements) with the element that would tell the rest apart, and "maybe" for a name the ledger lacks."""
+    say = lambda text: CHAT.respond(text, index=CHAT_INDEX, fetch=_chat_fetch)
+    listing = say('/onto')
+    assert '🧬 **6** 概念' in listing and 'ギター · ベース' in listing and 'OnTautoLogy/examples/concepts-20261115.json@ddddddd' in listing
+    guitar = say('/onto ギター')
+    assert '### 🧬 ギター' in guitar and '**6弦標準** のもの' in guitar and '✅ これだけ' in guitar
+    assert '| 🤝 ベース |' in guitar and '🔑 決め手（それだけで ギター）: 6弦標準' in guitar
+    assert '⚠️ 3 つ（ウクレレ・ギター・ベース）' in say('/onto 撥弦 + フレット') and '`/onto 撥弦 + フレット + 4弦標準`' in say('/onto 撥弦 + フレット')
+    assert '✅ **ギター** だけ' in say('/onto 撥弦 + 6弦標準')
+    assert '⌨️ もしかして: `/onto ギター`' in say('/onto ギタ') and '🫥' in say('/onto 楽器 + 赤色')
+    assert '⏸' in CHAT.respond('/onto ギター', index={})
+
+
+def test_chat_guess_finds_every_concept_by_yes_and_no():
+    """🎯 /guess: each question halves what is left; answering truthfully reaches every concept in at most ⌈log₂ N⌉ + 1
+    questions here, plain y / n answer only while a game is on, and ? skips."""
+    say = lambda text: CHAT.respond(text, index=CHAT_INDEX, fetch=_chat_fetch)
+    for target, body in CHAT_CONCEPTS['concepts'].items():
+        elements = body['elements'] if isinstance(body, dict) else body
+        reply, asked = say('/guess'), 0
+        while '❓ Q' in reply:
+            element = re.search(r'『\*\*(.+?)\*\*』', reply).group(1)
+            reply, asked = say('y' if element in elements else 'n'), asked + 1
+        assert f'🎯 それは **{target}**' in reply and asked <= 4, (target, reply)
+    assert '🔎' in say('y')                                                   # no game: y is a search
+    first = say('/guess')
+    assert '❔' in say('?') and '`y`（はい）' in say('/guess maybe') and 'おしまい' in say('/guess stop')
+    assert 'Q1' in first and '🔎' in say('n')
+
+
+def test_chat_runs_olnm_to_list_read_and_calculate():
+    """🧷 /olnm runs olnm.py itself: sections, search, "maybe you meant", a one-liner's definition and the calculator; running
+    a one-liner stays in the terminal, with the one-line install."""
+    say = lambda text: CHAT.respond(text, index={})
+    first = say('/olnm')
+    assert '🧷 **OLNM**' in first and '`git`' in first and 'OneLaunchNumerousModules/HEAD/olnm.py' in first
+    assert 'uvtest' in say('/olnm like uvtets') and 'git push' in say('/olnm show gp') and 'git push' in say('/olnm gp')
+    assert '= **42**' in say('/olnm calc 6 mul 7') and '⚠️ ZeroDivisionError' in say('/olnm calc 1/0')
+    assert '🌿 gs' in say('/olnm ls git') and 'jsonf' in say('/olnm grep json')
+    assert '❓ そのワンライナーはない' in say('/olnm show gpp') and 'gp' in say('/olnm show gpp')
+    assert 'git push' in say('/olnm run gp') and '▶️ `olnm doctor` は端末で' in say('/olnm doctor')
 
 
 def test_chat_checks_mcp_tool_calls_against_what_the_lab_advertises():
@@ -1230,7 +1283,7 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             page.goto(base + 'tools/demos/chat.html')
             page.wait_for_function('() => document.documentElement.dataset.chatReady === "true"', timeout=180_000)
             status = page.locator('[data-chat-status]').text_content()
-            assert status.startswith('✅ 🐍 3.') and '🔎 5 files' in status, status
+            assert status.startswith('✅ 🐍 3.') and '🔎 6 files' in status, status
             frames.append((page.screenshot(), '💬 ' + status))
             bot = page.locator('[data-chat-who="bot"]')
 
@@ -1258,6 +1311,17 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             say('/mcp find_municipalities {"query": "Exampleville"}', 'tools/call')
             say('onto', 'docs/graph.json')
             say('/show onto/docs/graph.json', '🧬 nodes 2')
+            say('/onto ギター', '6弦標準')                                     # 🧬 OnTautoLogy (ontautology.py) in Pyodide
+            say('/guess', 'Q1')                                             # 🎯 then y / n as plain answers
+            for _ in range(6):
+                question = page.locator('[data-chat-who="bot"]').last.inner_text()
+                if '🎯 それは' in question:
+                    break
+                element = re.search(r'『(.+?)』', question).group(1)
+                say('y' if element in CHAT_CONCEPTS['concepts']['ギター']['elements'] else 'n', '')
+            assert '🎯 それは ギター' in bot.last.inner_text(), bot.last.inner_text()
+            say('/olnm calc 6 mul 7', '42')                                  # 🧷 OLNM (olnm.py) in Pyodide
+            say('/olnm show gp', 'git push')
             compress = mirror and (mirror / 'talkcompress').is_dir()
             say('/compress As soon as possible, please send me the report.', 'ASAP' if compress else '⏸ TalkCompress')
             say('/md <img src=x onerror="window.pwned=1"> **ok**', '<img src=x')
