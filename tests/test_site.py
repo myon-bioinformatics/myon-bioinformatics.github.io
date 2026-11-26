@@ -1058,7 +1058,8 @@ CHAT_CONCEPTS = {'schema': 'ontautology-concepts/1',                    # 🧬 a
                               'バイオリン': ['楽器', '弦楽器', '擦弦', '4弦標準', '弓で弾く'],
                               'マリオ': ['ゲームキャラクター', '帽子', '赤色', '兄'], 'ルイージ': ['ゲームキャラクター', '帽子', '緑色', '弟']},
                  'similar': [['ギター', 'ベース'], ['ギター', 'ウクレレ'], ['ギター', 'バイオリン'], ['マリオ', 'ルイージ']],
-                 'names': {'ギター': ['英名:Guitar', '略称:ギタ'], 'マリオ': ['英名:Mario', '主役シリーズ:スーパーマリオ'], 'ルイージ': ['同音語:類似']}}
+                 'names': {'ギター': ['英名:Guitar', '略称:ギタ'], 'マリオ': ['英名:Mario', '主役シリーズ:スーパーマリオ', '絵文字略称:🍄', '絵文字略称:🎩'],
+                           'ルイージ': ['同音語:類似', '絵文字略称:👻', '絵文字略称:🎩', '別名:マリオ']}}   # 🎩 is both; マリオ stays マリオ
 CHAT_RAW = {'onto/docs/graph.json': json.dumps({'schema': 'graph/1', 'nodes': [{'id': 'a'}, {'id': 'b'}], 'edges': [['a', 'b']]}),
             'OnTautoLogy/examples/concepts-20261115.json': json.dumps(CHAT_CONCEPTS, ensure_ascii=False),
             'Aoi/cycles/c001/outputs/allocation.jsonl': '{"team": "d", "z": -0.7}\n{"team": "s", "z": 0.2}\n'}
@@ -1123,7 +1124,9 @@ def test_chat_onto_defines_concepts_and_looks_them_up_with_ontautology():
     assert '✅ **ギター** だけ' in say('/onto 撥弦 + 6弦標準')
     assert '⌨️ もしかして: `/onto バイオリン`' in say('/onto バイオリ') and '🫥' in say('/onto 楽器 + 赤色')
     assert '🏷 guitar → **ギター**' in say('/onto guitar') and '### 🧬 ギター' in say('/onto ギタ')      # 🏷 the ledger's names
-    assert '### 🧬 マリオ' in say('/onto Mario') and '❓ 台帳にない' in say('/onto スーパーマリオ') and '❓' in say('/onto 類似')
+    assert '### 🧬 🍄 マリオ' in say('/onto Mario') and '❓ 台帳にない' in say('/onto スーパーマリオ') and '❓' in say('/onto 類似')
+    assert '→ **ルイージ**' in say('/onto 👻\ufe0f') and '### 🧬 👻 ルイージ' in say('/onto 👻')      # 🏷 絵文字略称, the first is its face
+    assert '🏷 **🎩** は 2 つ: `/onto マリオ` · `/onto ルイージ`' in say('/onto 🎩') and '### 🧬 🍄 マリオ' in say('/onto マリオ')
     assert '⏸' in CHAT.respond('/onto ギター', index={})
 
 
@@ -1137,7 +1140,8 @@ def test_chat_guess_finds_every_concept_by_yes_and_no():
         while '❓ Q' in reply:
             element = re.search(r'『\*\*(.+?)\*\*』', reply).group(1)
             reply, asked = say('y' if element in elements else 'n'), asked + 1
-        assert f'🎯 それは **{target}**' in reply and asked <= 4, (target, reply)
+        face = {'マリオ': '🍄 ', 'ルイージ': '👻 '}.get(target, '')                       # 🍄 its first 絵文字略称
+        assert f'🎯 それは **{face}{target}**' in reply and asked <= 4, (target, reply)
     assert '🔎' in say('y')                                                   # no game: y is a search
     first = say('/guess')
     assert '❔' in say('?') and '`y`（はい）' in say('/guess maybe') and 'おしまい' in say('/guess stop')
@@ -1166,11 +1170,12 @@ def test_chat_ask_stands_on_readme_summaries_concepts_and_files():
     content = system['content']
     assert ('関係しそうなリポジトリ（README の要約）:\n- OnTautoLogy（OTL）: Stdlib-only Python graphlib knowledge graph.\n'
             '- Aoi: Hypothesis-driven baseball analytics.\n- TaxOntOy（TOO）: TaxOntOy: Taxonomy × Ontology\n') in content   # OTL is in its file
-    assert '- ギター: 弦楽器・楽器 のうち 6弦標準 のもの（似たもの: ウクレレ・バイオリン・ベース）' in content
+    assert '- ギター: 弦楽器・楽器 のうち、6弦標準 のもの（似たもの: ウクレレ・バイオリン・ベース）' in content
     assert 'リポジトリ: Aoi, OnTautoLogy, onto, TaxOntOy' in content and '記録にあるファイル: TaxOntOy/otl-relations.json' in content
     found = CHAT.grounding('マリオとルイージの違い、オントロジーの台帳はどこ？', CHAT_INDEX, _chat_fetch)
-    assert found['concepts'] == ['マリオ: ゲームキャラクター・帽子 のうち 兄 のもの（似たもの: ルイージ）',
-                                 'ルイージ: ゲームキャラクター・帽子 のうち 弟 のもの（似たもの: マリオ）']
+    assert found['concepts'] == ['🍄 マリオ: ゲームキャラクター・帽子 のうち、兄 のもの（似たもの: ルイージ）',
+                                 '👻 ルイージ: ゲームキャラクター・帽子 のうち、弟 のもの（似たもの: マリオ）']
+    assert [c.split(':')[0] for c in CHAT.grounding('🎩 って誰？', CHAT_INDEX, _chat_fetch)['concepts']] == ['🍄 マリオ', '👻 ルイージ']
     assert 'onto/docs/graph.json' in found['files'] and [r.split('（')[0].split(':')[0] for r in found['repos']] == ['TaxOntOy', 'onto']
     quiet = CHAT.grounding('MAIN の話', CHAT_INDEX, _chat_fetch)                 # AI is not in MAIN, nothing is named
     assert quiet['repos'] == [] and quiet['concepts'] == [] and quiet['files'] == []

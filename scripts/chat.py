@@ -20,6 +20,7 @@ import json
 import math
 import re
 import sys
+import unicodedata
 from pathlib import Path
 from urllib.parse import quote
 
@@ -446,15 +447,29 @@ def _elements(body) -> list:
     return list(elements) if isinstance(elements, list) else []
 
 
-def aliases(corpus: dict) -> dict[str, str]:
-    """🏷 What each concept is also called, casefolded → the concept: its name and the ledger's names whose kind is a name or a
-    reading (略称:中日, 英名:Guitar, 別名:ヒト, 読み:しゃけ — not 同音語 or 名前の由来)."""
-    called = {name.casefold(): name for name in corpus.get('concepts', {})}
+def _key(word: str) -> str:
+    """How a name is looked up: casefolded, without the emoji variation selector (❤️ is ❤)."""
+    return word.replace('\ufe0f', '').strip().casefold()
+
+
+def aliases(corpus: dict) -> dict[str, list[str]]:
+    """🏷 What each concept is also called → the concepts called so (more than one when a name is shared: 🦅 is 楽天 and
+    ソフトバンク): its name and the ledger's names whose kind is a name or a reading (略称:中日, 英名:Guitar, 別名:ヒト, 読み:しゃけ,
+    絵文字略称:🐯 — not 同音語 or 名前の由来). A concept's own name is only ever itself."""
+    called = {_key(name): [name] for name in corpus.get('concepts', {})}
     for concept, names in corpus.get('names', {}).items():
         for kind, _, alias in (n.partition(':') for n in names):
-            if concept in corpus['concepts'] and alias.strip() and (kind.endswith(('名', '称')) or kind == '読み'):
-                called.setdefault(alias.strip().casefold(), concept)
+            key = _key(alias)
+            if concept in corpus['concepts'] and key and (kind.endswith(('名', '称')) or kind == '読み') \
+                    and key not in {_key(name) for name in corpus['concepts']} and concept not in called.setdefault(key, []):
+                called[key].append(concept)
     return called
+
+
+def icon(corpus: dict, concept: str) -> str:
+    """The concept's first 絵文字略称 and a space (its face in replies: 🐯 阪神タイガース), or ''."""
+    marks = [n.split(':', 1)[1].strip() for n in corpus.get('names', {}).get(concept, []) if n.startswith('絵文字略称:')]
+    return f'{marks[0]} ' if marks else ''
 
 
 def _ledger(corpus: dict) -> str:
@@ -464,6 +479,12 @@ def _ledger(corpus: dict) -> str:
 def _few(items, n: int = 4) -> str:
     items = list(items)
     return '・'.join(items[:n]) + (f' …ほか {len(items) - n}' if len(items) > n else '') if items else '—'
+
+
+def _of(definition: dict, bold: str = '') -> str:
+    """📐 "genus のうち、differentia のもの"; only "differentia のもの" when it shares nothing with all that is like it."""
+    genus = f'{bold}{_few(definition["genus"], 6)}{bold} のうち、' if definition['genus'] else ''
+    return f'{genus}{bold}{_few(definition["differentia"], 4)}{bold} のもの'
 
 
 def _splitter(corpus: dict, names, asked=()) -> str | None:
@@ -483,8 +504,11 @@ def onto_reply(text: str, index: dict | None = None, fetch=None) -> str:
         return '⏸ 概念の台帳（OnTautoLogy の concepts-*.json）をこのビルドの索引から読めない'
     names = list(corpus['concepts'])
     text, said = text.strip(), ''
-    if text not in corpus['concepts'] and aliases(corpus).get(text.casefold()):
-        said, text = f'🏷 {text} → **{aliases(corpus)[text.casefold()]}**', aliases(corpus)[text.casefold()]
+    called = aliases(corpus).get(_key(text), []) if text not in corpus['concepts'] else []
+    if len(called) > 1:
+        return '\n\n'.join([f'🏷 **{text}** は {len(called)} つ: ' + ' · '.join(f'`/onto {c}`' for c in called), _ledger(corpus)])
+    if called:
+        said, text = f'🏷 {text} → **{called[0]}**', called[0]
     if not text:
         return '\n\n'.join([f'🧬 **{len(names)}** 概念 · 🤝 似ている組 **{len(corpus["similar"])}**', ' · '.join(names),
                             '例: `/onto ギター`（〇〇を〇〇たらしめるもの）· `/onto 撥弦 + フレット`（要素から逆引き）· `/guess`（当てっこ）',
@@ -507,15 +531,15 @@ def onto_reply(text: str, index: dict | None = None, fetch=None) -> str:
                                              '`/onto` で台帳の一覧（要素は + でつなぐと逆引き）'] if part)
     result = otl.define_concepts(corpus, [text])['concepts'][text]
     if not result['elements_observed']:
-        return f'### 🧬 {text}\n\n⏸ 要素はまだ観測されていない（似たもの: {_few(result["similar"])}）'
+        return f'### 🧬 {icon(corpus, text)}{text}\n\n⏸ 要素はまだ観測されていない（似たもの: {_few(result["similar"])}）'
     definition, differ = result['definition'], result['differentia']
     verdict = definition['roundtrip']['verdict']
     rows = [[f'🤝 {other}', _few(result['genus']['by_similar'][other]['common']), _few(differ['vs_similar'][other]['only_target'], 3),
              _few(differ['vs_similar'][other]['only_similar'], 3)] for other in result['similar'] if other in differ['vs_similar']]
     keys = ' · '.join('＋'.join(k) for k in differ['minimal_keys'][:5])
     return '\n\n'.join(part for part in [
-        f'### 🧬 {text}', said,
-        f'📐 **{_few(definition["genus"], 6)}** のうち、**{_few(definition["differentia"], 4)}** のもの'
+        f'### 🧬 {icon(corpus, text)}{text}', said,
+        f'📐 {_of(definition, "**")}'
         f'（🔁 逆引き {"✅ これだけ" if verdict == "unique" else "⚠️ " + _few(definition["roundtrip"]["matched"])}）',
         md.table(['似たもの', '🤝 共通', f'🆚 {text}だけ', '🆚 相手だけ'], rows).strip() if rows else '🤝 似たものはまだない',
         f'🔑 決め手（それだけで {text}）: {keys}' if keys else '',
@@ -551,7 +575,7 @@ def guess_reply(text: str = '', index: dict | None = None, fetch=None) -> str:
     left, asked = game['left'], [e for e, _ in game['asked']]
     if len(left) == 1:
         _STATE['guess'] = None
-        return '\n\n'.join([intro, f'🎯 それは **{left[0]}**！ {len(asked)} 問で（目安 ⌈log₂ {game["n"]}⌉ = {math.ceil(math.log2(game["n"]))} 問）',
+        return '\n\n'.join([intro, f'🎯 それは **{icon(corpus, left[0])}{left[0]}**！ {len(asked)} 問で（目安 ⌈log₂ {game["n"]}⌉ = {math.ceil(math.log2(game["n"]))} 問）',
                             f'🧬 `/onto {left[0]}` で、何が {left[0]} を {left[0]} にしているか'])
     question = _splitter(corpus, left, asked) if left else None
     if question is None:
@@ -645,16 +669,17 @@ def grounding(question: str, index: dict | None = None, fetch=None, *, repos: in
              for name, summary in summaries.items()}
     near = sorted((n for n in score if score[n]), key=lambda n: (-score[n], n))[:repos]
     corpus = concepts(index, fetch) if any(re.search(r'(^|/)concepts[-_]', p) for _, p, _ in index.get('files', [])) else {}
-    named = {}                                                  # concept → where the question first names it
-    for alias, concept in aliases(corpus).items():
-        if (len(alias) > 1 or alias == concept.casefold()) and _said(alias, question):
-            named[concept] = min(named.get(concept, len(question)), question.casefold().find(alias))
+    named, asked = {}, question.replace('\ufe0f', '')            # concept → where the question first names it
+    for alias, called in aliases(corpus).items():
+        for concept in called:                                  # one letter only when it is the name or a symbol (🐯, not 中)
+            if (len(alias) > 1 or alias == _key(concept) or unicodedata.category(alias)[0] == 'S') and _said(alias, asked):
+                named[concept] = min(named.get(concept, len(asked)), asked.casefold().find(alias))
     defined = []
     for concept in sorted(named, key=named.get)[:ideas]:
         result = otl.define_concepts(corpus, [concept])['concepts'][concept]
         if result['elements_observed']:
             definition = result['definition']
-            defined.append(f'{concept}: {_few(definition["genus"], 6)} のうち {_few(definition["differentia"], 4)} のもの'
+            defined.append(f'{icon(corpus, concept)}{concept}: {_of(definition)}'
                            + (f'（似たもの: {_few(result["similar"], 3)}）' if result['similar'] else ''))
     return {'repos': [f'{n}{f"（{abbr(n)}）" if abbr(n) else ""}: {summaries[n]}' for n in near], 'concepts': defined,
             'files': [f'{n}/{p}' for n, p in hits], 'names': sorted(summaries or index.get('commits', {}), key=str.casefold)}
