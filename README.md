@@ -90,6 +90,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 | 🎞 GIF工房（PySaiyanWeBoo） | [tools/gif/](https://myon-bioinformatics.github.io/tools/gif/) |
 | 🌊 流れの実験室（FluidFullSpeedSimulation · DRAgoWing） | [tools/flow/](https://myon-bioinformatics.github.io/tools/flow/) |
 | 🧠 リポジトリ地図 | [tools/repo-map/](https://myon-bioinformatics.github.io/tools/repo-map/) |
+| 🌍 仮想空間・はじまりの村（PySaiyanWeBoo · Ironmate · xprobe · gh_identity） | [tools/demos/world.html](https://myon-bioinformatics.github.io/tools/demos/world.html) |
 
 新しい道具を足すときは、生成元の `scripts/front_page.py`（`PORTAL`）と `tests/test_site.py` をいっしょに直し、行き先と HTTPS の Pages 契約を同じ変更で確認します。
 

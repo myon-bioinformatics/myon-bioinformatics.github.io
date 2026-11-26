@@ -16,16 +16,16 @@
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/world.html": "ce9ceefb0024fd962763c70073cfdffa9166496d5ba450416479ccca2f1e3667",
+    "tools/demos/world.html": "7cd7d2f6c637fcdfb11255bceb7657737b24e927c4349d35eb7f410e62c20004",
     "tools/demos/school.html": "e3568ed6a83002cd74b417705239f51162b749a0e474077dff14b85ce3f0ebcc",
     "tools/demos/cities.html": "512ae0a8037681b5e127e239de534fad9c59fed6f3c4fa5b59e0e58f9c8a0748",
     "tools/demos/world-shots.html": "1c284d2a9b729c48d1ba818afd893f83e6f3b96f71962b68c25574cf928c2b14",
-    "tools/test-report/index.html": "b06408cbafa1cca9a8452424a17644c3a74a849b1e8f8a4433da053d0d5f1df0",
-    "tools/mcp-protocol/index.html": "5ea2a23c481580f49796ee73a90d9fd4583d518ef3964a6e9286ef025976a11c",
-    "tools/html-import/index.html": "fc1d821dbeb50d2845a9b1e5c906dfb89984bc8f06f3526402836c8db333666a",
-    "tools/maps/index.html": "47b24cbafa3f262a202aabb29c728ebb528f379639afaba85cadd5980c1eac84",
+    "tools/test-report/index.html": "eacd9a4c0e48ab3f522dc38996edc44669dac86483a82339542dcc67a3d77e63",
+    "tools/mcp-protocol/index.html": "23114ca453d3540edaa1b91026fdd5b2c71e18ca05d05dd14908c4b9631d693a",
+    "tools/html-import/index.html": "5bd961b3a99089b820e37aa73027b2c4a7da4508c1a46654e4a8995b48a4a2b3",
+    "tools/maps/index.html": "8f4d33ebf43241ebefcfeb79c5c75f6fd414e91b103a10c9a8f237697e82e1ed",
     "tools/maps/tokyo.html": "90f16ca24aec5aceed2cbc3072797d8f1d54964e6707d90b66e439fe8ae7dd90",
-    "tools/gif/index.html": "2922b3f83847cbc1302da257bf2ba58b390f0233d1ae78d2a942338f2c1db1f6",
-    "tools/chat/index.html": "4e6e791e24ff9dea99b256b9fb2712391f9beaf9419b57e730c2ed36c6b6d203"
+    "tools/gif/index.html": "e7be4c3cc54d6e4cb7b1b7413a947c832b00763efd009d7d4e4cf3737388a828",
+    "tools/chat/index.html": "82a3368591d1a42156a7a559b6c83fa983bca0d10d56ae93fd39360d51a1e25c"
   }
 }

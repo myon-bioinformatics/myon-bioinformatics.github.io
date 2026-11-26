@@ -1454,5 +1454,141 @@ class ToolChromeTests(unittest.TestCase):
         page.wait_for_url("http://tools.test/tools/flow/index.html")
 
 
+class OverworldRpgTests(unittest.TestCase):
+    """Overworld starting-village (meadow) RPG & gamification contract in Chromium."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.page_path = Path(cls.tmp.name) / "overworld.html"
+        cls.page_path.write_text(W.world_document(W.example_data("overworld")), encoding="utf-8")
+        cls.pw = sync_playwright().start()
+        cls.browser = W.launch(cls.pw)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.browser.close()
+        cls.pw.stop()
+        cls.tmp.cleanup()
+
+    def open(self, width=1280, height=800, touch=False):
+        context = self.browser.new_context(viewport={"width": width, "height": height}, has_touch=touch, is_mobile=touch)
+        self.addCleanup(context.close)
+        page = context.new_page()
+        self.errors = []
+        page.on("pageerror", lambda e: self.errors.append(str(e)))
+        page.on("console", lambda m: m.type == "error" and self.errors.append(m.text))
+        page.goto(self.page_path.as_uri())
+        page.click('[data-emoji="🧙"]')
+        page.wait_for_function(W.PICKED)
+        page.wait_for_selector(".ui-rpg-hud", state="visible")
+        return page
+
+    def test_contact_npc_dialogue_and_fountain_heal(self):
+        page = self.open()
+        # Player starts at (12, 14); guide cat sits at (13, 13). Stepping Up then Right contacts it!
+        page.keyboard.press("ArrowUp")
+        page.wait_for_timeout(450)
+        page.keyboard.press("ArrowRight")
+        dialog = page.locator(".ui-rpg-card")
+        dialog.wait_for(state="visible", timeout=5000)
+        self.assertIn("案内猫ミョン", dialog.inner_text())
+        dialog.get_by_role("button", name="つぎへ ▶").click()
+        self.assertIn("[2/3]", dialog.inner_text())
+        dialog.locator(".ui-rpg-close").click()
+        dialog.wait_for(state="hidden")
+        # Interact with healing fountain via spots menu & sheet action button
+        page.click('.ui-world-menu[data-menu="spots"] > summary')
+        page.click('.ui-world-spots a[href="#overworld-spot-meadow-npc-fountain"]')
+        page.click('#overworld-spot-meadow-npc-fountain .ui-rpg-sheet-btn')
+        dialog.wait_for(state="visible")
+        dialog.get_by_role("button", name="💚 いやす（全回復）").click()
+        self.assertIn("全回復した", dialog.inner_text())
+        self.assertTrue(dialog.locator(".ui-rpg-orb").count() >= 1)
+        self.assertEqual(self.errors, [])
+
+    def test_drop_and_chest_collection_updates_bag_and_atk(self):
+        page = self.open()
+        # Collect ground drop 🌿 やくそう and open 🎁 はじまりの剣 chest via sheet buttons
+        page.click('.ui-world-menu[data-menu="spots"] > summary')
+        page.click('.ui-world-spots a[href="#overworld-spot-meadow-drop-herb"]')
+        page.click('#overworld-spot-meadow-drop-herb .ui-rpg-sheet-btn')
+        dialog = page.locator(".ui-rpg-card")
+        dialog.wait_for(state="visible")
+        self.assertIn("やくそう", dialog.inner_text())
+        dialog.get_by_role("button", name="やったね！").click()
+        dialog.wait_for(state="hidden")
+
+        page.click('.ui-world-menu[data-menu="spots"] > summary')
+        page.click('.ui-world-spots a[href="#overworld-spot-meadow-chest-sword"]')
+        page.click('#overworld-spot-meadow-chest-sword .ui-rpg-sheet-btn')
+        dialog.wait_for(state="visible")
+        self.assertIn("宝箱をあけた", dialog.inner_text())
+        dialog.get_by_role("button", name="やったね！").click()
+        dialog.wait_for(state="hidden")
+
+        # ATK rose from 6 to 10 (6 + 4 from sword) and both items are synced into 🎒 Bag
+        self.assertIn("⚔️ 10", page.locator("[data-rpg-gear]").inner_text())
+        self.assertEqual(page.get_attribute('.ui-spot[href="#overworld-spot-meadow-chest-sword"]', "data-rpg-opened"), "")
+        self.assertIn("📭", page.inner_text('.ui-spot[href="#overworld-spot-meadow-chest-sword"]'))
+        page.click('.ui-world-menu[data-menu="bag"] > summary')
+        bag_text = page.locator(".ui-world-bag").inner_text()
+        self.assertIn("やくそう", bag_text)
+        self.assertIn("はじまりの剣", bag_text)
+        self.assertEqual(self.errors, [])
+
+    def test_turn_based_battle_orbs_skill_item_and_victory(self):
+        page = self.open()
+        page.click("[data-rpg-explore]")
+        battle = page.locator(".ui-rpg-battle")
+        battle.wait_for(state="visible")
+        self.assertIn("バグスライム", battle.inner_text())
+        battle.get_by_role("button", name="✨ とくぎ").click()
+        battle.locator(".ui-rpg-subpanel button", has_text="バグバスター").click()
+        self.assertGreaterEqual(battle.locator(".ui-rpg-orb").count(), 1)
+        for _ in range(10):
+            if battle.get_by_role("button", name="🏆 勝利！マップにもどる").count():
+                break
+            battle.get_by_role("button", name="⚔️ こうげき").click()
+        battle.get_by_role("button", name="🏆 勝利！マップにもどる").click()
+        battle.wait_for(state="hidden")
+        # Gold and EXP increased from starting (25G, 0 EXP)
+        self.assertNotEqual(page.locator("[data-rpg-gold]").inner_text(), "🪙 25G")
+        self.assertFalse(page.locator("[data-rpg-exp]").inner_text().startswith("✨ 0/"))
+        self.assertEqual(self.errors, [])
+
+    def test_journal_quests_badges_quiz_and_responsive_layout(self):
+        for width, height, touch in ((1280, 800, False), (390, 844, True)):
+            with self.subTest(width=width):
+                page = self.open(width=width, height=height, touch=touch)
+                self.assertEqual(page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth"), 0)
+                if width == 1280:
+                    # Quiz with 🔬 研究員
+                    page.click('.ui-world-menu[data-menu="spots"] > summary')
+                    page.click('.ui-world-spots a[href="#overworld-spot-meadow-npc-researcher"]')
+                    page.click('#overworld-spot-meadow-npc-researcher .ui-rpg-sheet-btn')
+                    dialog = page.locator(".ui-rpg-card")
+                    dialog.wait_for(state="visible")
+                    dialog.get_by_role("button", name="🎓 クイズに挑戦").click()
+                    dialog.locator(".ui-rpg-actions button").first.click()
+                    self.assertIn("せいかい", dialog.inner_text())
+                    dialog.get_by_role("button", name="とじる").click()
+                    dialog.wait_for(state="hidden")
+                    # Open 📜 Journal and inspect tabs
+                    page.click("[data-rpg-journal-btn]")
+                    journal = page.locator(".ui-rpg-journal-card")
+                    journal.wait_for(state="visible")
+                    self.assertIn("村の案内を聞こう", journal.inner_text())
+                    journal.get_by_role("button", name="🏅 実績").click()
+                    self.assertIn("はじめの挨拶", journal.inner_text())
+                    journal.get_by_role("button", name="🧙 ステータス").click()
+                    self.assertIn("冒険者", journal.inner_text())
+                    journal.get_by_role("button", name="👾 図鑑").click()
+                    self.assertIn("スパゲッティゴーレム", journal.inner_text())
+                    page.keyboard.press("Escape")
+                    journal.wait_for(state="hidden")
+                self.assertEqual(self.errors, [])
+
+
 if __name__ == "__main__":
     unittest.main()
