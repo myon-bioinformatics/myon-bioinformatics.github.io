@@ -374,6 +374,7 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
         assert f'<a class="ui-world-home" href="{prefix}index.html#tools"' in page, name
         chrome = page[body.end():page.index('<div class="ui-world-side">', body.end())]          # the board and the header's tools; ☰ follows
         assert '<img' not in chrome and 'lab-execution-link' not in chrome, name   # 🔌 the lab's logo and links go to the lab's own <header>
+        assert page.count('<button type="button" class="ui-gaze"') == 1 and '</div><button type="button" class="ui-gaze"' in chrome, name   # 🫧 after the board
         items = re.findall(r'<span class="ui-board-item"[^>]*>(.*?)</span>', chrome)
         half = len(items) // 2
         assert 1 <= half <= 12 and items[:half] == items[half:], name         # the board says its items (up to 12) twice (the loop)
@@ -402,22 +403,24 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
     assert '>🗼</summary>' not in (SITE / 'tools/gif/index.html').read_text(encoding='utf-8')
 
 
-def test_html_import_csp_names_the_chrome_and_door_modules_and_nothing_else():
+def test_html_import_csp_names_the_face_chrome_and_door_modules_and_nothing_else():
     import pysaiyanweboo as ui
     world = PAGES._world()
     html = (SITE / PAGES.HTML_IMPORT_PAGE).read_text(encoding='utf-8')
     chrome, doors = ui.module_csp_hash(world.SHELL_JS + 'bindChrome();\n'), ui.module_csp_hash(PAGES.tools_door(ui)[2])
-    assert f"script-src 'self' {chrome} {doors}; style-src 'self' 'unsafe-inline';" in html
-    assert html.count("'sha256-") == 2 and "'unsafe-inline'; img-src" in html and "connect-src 'none'" in html
+    face = ui.module_csp_hash(ui.component_parts('gaze-avatar')['js'])                    # 🫧 the header's round face is a module too
+    assert f"script-src 'self' {face} {chrome} {doors}; style-src 'self' 'unsafe-inline';" in html
+    assert html.count("'sha256-") == 3 and "'unsafe-inline'; img-src" in html and "connect-src 'none'" in html
     strict = ('<!doctype html><html><head><meta\n http-equiv="Content-Security-Policy"\n content="default-src \'none\'; script-src \'self\'; '
               'style-src \'self\'; img-src \'self\' data:"\n/><title>s</title></head><body data-ui-theme="green"><main><h1>s</h1></main></body></html>')
     built = PAGES.add_back_nav(strict, 'tools/image-studio/index.html')        # Ironmate's studios: neither inline scripts nor inline styles
     sheets = re.findall(r'<style>(.*?)</style>', built, re.S)
-    assert [sheet[:27] for sheet in sheets] == ['.ui-chrome{--ui-bg:#0d1117;', '.ui-door-foot{--ui-bg:#0d11'] and '@layer' not in sheets[0]   # their own colours
-    assert (f"script-src 'self' {chrome} {doors}; style-src 'self' {ui.module_csp_hash(sheets[0])} {ui.module_csp_hash(sheets[1])}; "
+    assert sheets[0].startswith(ui.component_parts('gaze-avatar')['css']) and len(sheets) == 3
+    assert [sheet[:27] for sheet in sheets[1:]] == ['.ui-chrome{--ui-bg:#0d1117;', '.ui-door-foot{--ui-bg:#0d11'] and '@layer' not in sheets[1]   # their own colours
+    assert (f"script-src 'self' {face} {chrome} {doors}; style-src 'self' {' '.join(ui.module_csp_hash(sheet) for sheet in sheets)}; "
             "img-src 'self' data:\"") in built
-    assert built.count("'sha256-") == 4 and ' style="' not in built and PAGES.add_back_nav(built, 'tools/image-studio/index.html') == built   # no style attribute
-    assert html.count('<script') == 3 and '<script type="module" src="./extract.mjs"></script>' in html
+    assert built.count("'sha256-") == 6 and ' style="' not in built and PAGES.add_back_nav(built, 'tools/image-studio/index.html') == built   # no style attribute
+    assert html.count('<script') == 4 and '<script type="module" src="./extract.mjs"></script>' in html
 
 
 def test_door_to_door_in_chromium_with_a_gif():
@@ -1614,6 +1617,7 @@ def test_the_front_page_carries_the_shared_header_side_and_foot():
     size = re.search(r'<span class="ui-foot-size"[^>]*>📦 (\d+) KB</span>', page)
     assert size and abs(int(size[1]) - len(page.encode('utf-8')) / 1024) <= 1 and 'href="https://twitter.com/myonitbusiness"' in page
     assert '<nav class="nav">' not in page and 'site-footer"' not in page and '📬 Contact' not in page
+    assert page.count('class="ui-gaze"') == 1 and 'class="ui-gaze"' in page[body.end():page.index('<nav class="ui-world-tools">')]   # 🫧 in the shared header
     assert 'value="./tools/chat/"' in page or './tools/chat/' in page                       # 🚪 the doors lead from the root
 
 

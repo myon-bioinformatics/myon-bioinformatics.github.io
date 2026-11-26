@@ -241,7 +241,8 @@ def stamp_size(page: str) -> str:
 def add_site_chrome(page: str, path: str | None = None, tools: dict | None = None, description: str | None = None, *,
                     title: str = 'TOOLS', home: bool = True) -> str:
     """🧰 The parts every page of the site shares, for the page published at ``path`` (``tools/gif/index.html``; left out: two folders
-    below the root, and no door marked as this page): the header (``tools_chrome``: the board with ``description``, 🏠 ⭐ ⚙️), the side
+    below the root, and no door marked as this page): the header (``tools_chrome``: the board with ``description``, 🫧 the round face
+    that follows the pointer, 🏠 ⭐ ⚙️), the side
     (☰ ⋯) and the foot (``tools_door``: 🚪 every tool as a pull-down, 🐦 X, 📦 the page's size). ``description`` left out is the text
     of the 🧰 Tools card that leads here, else the page's own ``<meta name="description">``.
 
@@ -258,7 +259,10 @@ def add_site_chrome(page: str, path: str | None = None, tools: dict | None = Non
     tokens = '' if 'data-ui-theme="modern"' in page else re.search(r':root\{([^}]*)\}', ui.css_source('tokens.css'))[1]
     chrome, heading = tools_chrome(prefix, tools, description, title=title, home=home), re.search(r'<title>(.*?)</title>', page, re.S)
     door, door_css, door_js = tools_door(ui, prefix, here if path and '/' in path else None, html.unescape(heading[1]).strip() if heading else '', tokens)
-    for part, css, js in (({'top': world.chrome_html(chrome)}, world.chrome_css(tokens), world.SHELL_JS + 'bindChrome();\n'),
+    face = ui.component_parts('gaze-avatar')      # 🫧 PySaiyanWeBoo's round face that follows the pointer: in the header, after the board
+    head = world.chrome_html(chrome).replace('<nav class="ui-world-tools">', face['html'] + '<nav class="ui-world-tools">', 1)
+    for part, css, js in (({}, face['css'] + '.ui-chrome .ui-gaze{flex:none;margin:0 4px}', face['js']),
+                          ({'top': head}, world.chrome_css(tokens), world.SHELL_JS + 'bindChrome();\n'),
                           ({'bottom': door}, door_css, door_js)):
         page = world.add_part(page, css=css, js=js, **part)
         for directive, block in (('script-src', js), ('style-src', css)):

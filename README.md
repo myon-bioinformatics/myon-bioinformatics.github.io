@@ -184,7 +184,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
   - `defaultViewMode`: `modern`, `xml-like`, `json`, `markdown`, or `github-like`
 - Users can switch mode from the page header, and their choice is saved in browser local storage.
 
-The header gets its animated face from PSWB’s Python `component_parts("gaze-avatar")` API. Project URL buttons use the same pinned PSWB release’s `copyText` helper. Reusable interaction changes belong in PSWB; the portfolio owns placement, labels and project data.
+Every page’s shared header (`add_site_chrome()`) gets its animated face from PSWB’s Python `component_parts("gaze-avatar")` API. Project URL buttons use the same pinned PSWB release’s `copyText` helper. Reusable interaction changes belong in PSWB; the portfolio owns placement, labels and project data.
 
 ---
 

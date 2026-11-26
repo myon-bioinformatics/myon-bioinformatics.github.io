@@ -365,13 +365,12 @@ def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
     palettes = ''.join(ui.theme_css(name, tokens) for name, tokens in ui.theme_palettes().items())
     data = (f'<script type="application/json" id="projects-data">{_inline_json([{k: p[k] for k in ("name", "desc", "topics")} for p in projects])}</script>\n'
             f'<script type="application/json" id="page-data">{_inline_json({"modes": MODES, "fallback": AI_FALLBACK})}</script>\n')
-    avatar = ui.component_parts("gaze-avatar")
-    script = ui.module_script('\n'.join((ui.js_source('collection.js'), avatar['js'], SCRIPT)))
+    script = ui.module_script('\n'.join((ui.js_source('collection.js'), SCRIPT)))
     page = SHELL
     documents = documents_html(root, read('site.config.json').get('documents', []))
     for mark, value in (('@@PORTAL@@', portal_cards()), ('@@THEMES@@', theme_options(ui)), ('@@TOPICS@@', topic_buttons(projects)),
-                        ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + STYLE + avatar['css'] + '\n  '),
-                        ('@@AVATAR@@', avatar['html']), ('@@DOCUMENTS@@', documents), ('@@SCRIPT@@', script)):
+                        ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + STYLE + '\n  '),
+                        ('@@DOCUMENTS@@', documents), ('@@SCRIPT@@', script)):
         assert page.count(mark) == 1, mark
         page = page.replace(mark, value)
     return page
@@ -403,7 +402,6 @@ SHELL = '''<!doctype html>
   <header class="site-header">
     <div class="container">
       <h1><img class="brand-icon" src="./assets/brand/myon-profile-icon.png" alt="" width="40" height="40">myon-bioinformatics</h1>
-      @@AVATAR@@
       <div class="header-actions">
         <div class="view-mode-switch">
           <label for="view-mode-select">Mode</label>
@@ -515,8 +513,7 @@ STYLE = ''':root {
 a{color:inherit}
 .container{max-width:960px;margin:0 auto;padding:1.5rem}
 .site-header{border-bottom:1px solid var(--border)}
-.site-header .container{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:1rem}
-.site-header .ui-gaze{justify-self:center}
+.site-header .container{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:1rem}
 .site-header h1{display:flex;align-items:center;gap:.75rem;margin:0;max-width:100%;font-size:1.25rem;overflow-wrap:anywhere}
 .site-header .brand-icon{display:block;flex:none;width:40px;height:40px}
 .header-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
@@ -1021,7 +1018,6 @@ body[data-view-mode="github-like"] .badges .tag {
   .container { padding: 1.25rem; }
   body[data-view-mode="json"] .container { padding-left: 1rem; }
   .site-header .container { grid-template-columns:1fr; }
-  .site-header .ui-gaze { grid-row:1; }
   .header-actions { align-items:flex-start; }
   .header-actions {
     width: 100%;
