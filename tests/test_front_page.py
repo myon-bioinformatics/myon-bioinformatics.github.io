@@ -384,8 +384,13 @@ def test_an_invalid_configured_mode_falls_back_to_modern(page, site):
 
 def test_modern_keeps_the_web_notation_with_a_terminal_look(page, site):
     open_front(page, site)
-    expect(page.locator('#profile-render-root[data-renderer="web"] .tabs')).to_be_visible()
+    expect(page.locator('#profile-render-root[data-renderer="web"] .ui-tabs')).to_be_visible()
     expect(page.locator(".skill-bar-fill")).to_have_count(sum(len(group["items"]) for group in PROFILE["skills"]))
+    page.click('label[for="ui-tabs-profile-1"]')                    # 🗂️ Skills: the radio shows the panel, the CSS grows each bar to its level
+    expect(page.locator(".skill-bar-fill").first).to_be_visible()
+    first = PROFILE["skills"][0]["items"][0]["level"]
+    page.wait_for_function("""(level) => { const bar = document.querySelector('.skill-bar-fill');
+        return Math.abs(bar.getBoundingClientRect().width / bar.parentElement.getBoundingClientRect().width * 100 - level) < 1; }""", arg=first)
     expect(page.locator(".timeline-item")).to_have_count(len(PROFILE["career"]))
     expect(page.locator('#projects-render-root[data-renderer="web"] .ui-card')).to_have_count(COUNT)
     style = page.evaluate("""() => { const body = getComputedStyle(document.body), card = getComputedStyle(document.querySelector('.card'));
@@ -406,7 +411,7 @@ def test_the_career_matches_the_profile_in_every_mode(page, site, width):
     for mode in ("modern", "xml-like", "json", "markdown", "github-like"):
         select_mode(page, mode)
         if mode in ("modern", "github-like"):
-            root.get_by_role("tab", name=re.compile("Career")).click()      # modern's CSS adds brackets to the accessible name
+            root.locator("label.ui-tab", has_text="Career").click()        # 🗂️ the label checks its radio (modern's CSS adds brackets around it)
             items = root.locator(".timeline-item")
             expect(items).to_have_count(len(PROFILE["career"]))
             expect(items.locator(".tl-year")).to_have_text([entry["year"] for entry in PROFILE["career"]])

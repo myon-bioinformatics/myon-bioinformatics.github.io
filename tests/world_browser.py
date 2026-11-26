@@ -22,6 +22,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, sync_pla
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import world as W  # noqa: E402  (scripts/world.py: the engine, the specs and the demo recorder)
+import pysaiyanweboo as ui  # noqa: E402  (the pinned web UI: the tool page's chrome and add_part)
 
 SPEC = W.example_data("school")
 CLASSROOM = '.ui-floor[data-floor="classroom"]'
@@ -1282,7 +1283,7 @@ class CitiesTests(unittest.TestCase):
 
 
 class ToolChromeTests(unittest.TestCase):
-    """🧰 The chrome of a tool page (chrome_html, add_chrome) on two pages of one site: the board's clock in seconds, ☰ this page's own
+    """🧰 The chrome of a tool page (PySaiyanWeBoo's chrome, put on by add_part) on two pages of one site: the board's clock in seconds, ☰ this page's own
     (itself with 📍, its sections, the rows it gives, each with ☆), ⭐ and 🌐 that follow to the next tool, ⏯️, ⋯ ⬆️ ⬇️, the emoji a page
     adds, a phone, and no JavaScript.
     The star-and-language run is recorded to test-results/tools-chrome/tools-chrome-star-and-language-<UTC>.gif."""
@@ -1294,7 +1295,7 @@ class ToolChromeTests(unittest.TestCase):
     def setUpClass(cls):
         def tool(title, parts):
             body = f"<main><h1>{title}</h1>" + "".join(f'<h2>{part}</h2><p style="min-height:480px">{part}…</p>' for part in parts) + "</main>"
-            return W.add_chrome(W.render_document(trusted_html=body, title=title, css=W.bundled_css()), cls.SPEC)
+            return ui.add_part(W.render_document(trusted_html=body, title=title, css=W.bundled_css()), ui.component_parts("chrome", cls.SPEC), at="top")
         cls.pages = {"/tools/gif/": tool("🎞 GIF工房", ["えらぶ", "ならべる", "つくる"]), "/tools/flow/index.html": tool("🌊 流れの実験室", [])}
         cls.pw = sync_playwright().start()
         cls.browser = W.launch(cls.pw)

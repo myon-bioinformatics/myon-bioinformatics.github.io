@@ -224,21 +224,16 @@ def profile_html(profile: dict, notation: str) -> str:
                        + ''.join(f'<li>{_e(item["name"])} — {_e(item["level"])}%</li>' for item in group['items']) + '</ul>')
         return ''.join(out) + '<h3 class="md-heading">### Career</h3><ul class="md-list">' + ''.join(
             f'<li><strong>{_e(entry["year"])} — {_e(entry["title"])}</strong>: {_e(entry["desc"])}</li>' for entry in profile['career']) + '</ul>'
-    sections = (('about', 'About'), ('skills', 'Skills'), ('career', 'Career'))
-    tabs = ''.join(f'<button type="button" class="tab-btn{" active" if at == 0 else ""}" id="tab-{key}" role="tab" aria-selected="{str(at == 0).lower()}"'
-                   f' aria-controls="panel-{key}">{label}</button>' for at, (key, label) in enumerate(sections))
+    import pysaiyanweboo as ui
     skills = ''.join(
         f'<div class="skill-group"><h4 class="skill-category">{_e(group["category"])}</h4>' + ''.join(
             f'<div class="skill-row"><span class="skill-label">{_e(item["name"])}</span><div class="skill-bar-track">'
-            f'<div class="skill-bar-fill" data-level="{_a(item["level"])}" style="width: 0%"></div></div></div>' for item in group['items']) + '</div>'
+            f'<div class="skill-bar-fill" style="--level:{int(item["level"])}%"></div></div></div>' for item in group['items']) + '</div>'
         for group in profile['skills'])
     career = '<ol class="timeline">' + ''.join(
         f'<li class="timeline-item"><span class="tl-year">{_e(entry["year"])}</span><div class="tl-body"><strong>{_e(entry["title"])}</strong>'
         f'<p>{_e(entry["desc"])}</p></div></li>' for entry in profile['career']) + '</ol>'
-    bodies = {'about': f'<p class="about-text">{_e(profile["about"])}</p>', 'skills': skills, 'career': career}
-    panels = ''.join(f'<div class="tab-panel{" active" if at == 0 else ""}" id="panel-{key}" role="tabpanel" aria-labelledby="tab-{key}"'
-                     f'{"" if at == 0 else " hidden"}>{bodies[key]}</div>' for at, (key, _) in enumerate(sections))
-    return f'<div class="tabs" role="tablist" aria-label="Profile sections">{tabs}</div><div class="profile-panels">{panels}</div>'
+    return ui.tabs_html((('About', f'<p class="about-text">{_e(profile["about"])}</p>'), ('Skills', skills), ('Career', career)), id='profile')
 
 
 def projects_html(projects: list[dict], notation: str) -> str:
@@ -379,7 +374,7 @@ def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
     page = SHELL
     documents = documents_html(root, read('site.config.json').get('documents', []))
     for mark, value in (('@@PORTAL@@', portal_cards()), ('@@THEMES@@', theme_options(ui)), ('@@TOPICS@@', topic_buttons(projects)),
-                        ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + STYLE + '\n  '),
+                        ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + ui.tabs_css() + '\n' + STYLE + '\n  '),
                         ('@@DOCUMENTS@@', documents), ('@@SCRIPT@@', script)):
         assert page.count(mark) == 1, mark
         page = page.replace(mark, value)
@@ -713,18 +708,17 @@ h2{margin:0 0 .75rem}
 }
 .more { margin-top: 8px; font-size: .95rem; }
 
-/* ── Profile tabs ──────────────────────────────────────────────────────── */
+/* ── Profile tabs (PySaiyanWeBoo's tabs_html: a radio and a label each, no script) ── */
 #profile h2 { margin-bottom: 0.75rem; }
-.tabs { display: flex; gap: 6px; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0; }
-.tab-btn {
-  background: none; border: none; padding: 6px 16px; cursor: pointer;
+.ui-tabs { display: flex; flex-wrap: wrap; gap: 0 6px; margin: 0; }
+.ui-tab {
+  position: relative; background: none; border: 0; border-radius: 0; padding: 6px 16px; margin: 0;
   font: inherit; color: var(--muted); border-bottom: 2px solid transparent;
-  margin-bottom: -1px; transition: color .15s, border-color .15s;
+  transition: color .15s, border-color .15s;
 }
-.tab-btn:hover { color: var(--fg); }
-.tab-btn.active { color: var(--fg); border-bottom-color: currentColor; font-weight: 600; }
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
+.ui-tab:hover { color: var(--fg); }
+.ui-tab-input:checked + .ui-tab { color: var(--fg); background: none; border-bottom-color: currentColor; font-weight: 600; }
+.ui-tab-panel { flex: 0 0 100%; margin-top: -1px; padding-top: 1rem; border-top: 1px solid var(--border); }
 
 /* About */
 .about-text { line-height: 1.7; white-space: pre-line; }
@@ -741,9 +735,10 @@ h2{margin:0 0 .75rem}
 .skill-bar-fill {
   height: 100%; border-radius: 999px;
   background: var(--fg);
-  width: 0%;
-  transition: width .6s cubic-bezier(.4,0,.2,1);
+  width: var(--level);
+  animation: skill-grow .6s cubic-bezier(.4,0,.2,1);
 }
+@keyframes skill-grow { from { width: 0; } }
 
 /* Career timeline */
 .timeline { list-style: none; margin: 0; padding: 0; position: relative; }
@@ -823,23 +818,21 @@ body[data-view-mode="modern"] .btn-refresh {
 }
 body[data-view-mode="modern"] .btn-refresh::before { content: "[ "; color: var(--terminal-border); }
 body[data-view-mode="modern"] .btn-refresh::after { content: " ]"; color: var(--terminal-border); }
-body[data-view-mode="modern"] .tabs {
-  gap: 0;
-  border-color: var(--terminal-border);
-  border-style: dashed;
-}
-body[data-view-mode="modern"] .tab-btn {
+body[data-view-mode="modern"] .ui-tabs { gap: 0; }
+body[data-view-mode="modern"] .ui-tab-panel { border-top: 1px dashed var(--terminal-border); }
+body[data-view-mode="modern"] .ui-tab {
   border-right: 1px solid var(--terminal-border);
   border-bottom: 0;
   color: var(--terminal-muted);
 }
-body[data-view-mode="modern"] .tab-btn::before { content: "[ "; color: var(--terminal-border); }
-body[data-view-mode="modern"] .tab-btn::after { content: " ]"; color: var(--terminal-border); }
-body[data-view-mode="modern"] .tab-btn.active {
+body[data-view-mode="modern"] .ui-tab::before { content: "[ "; color: var(--terminal-border); }
+body[data-view-mode="modern"] .ui-tab::after { content: " ]"; color: var(--terminal-border); }
+body[data-view-mode="modern"] .ui-tab-input:checked + .ui-tab {
+  border-right-color: var(--terminal-border);
   color: var(--terminal-fg);
   background: rgba(126,231,135,.08);
 }
-body[data-view-mode="modern"] .tab-btn.active::before { content: "[> "; color: var(--terminal-accent); }
+body[data-view-mode="modern"] .ui-tab-input:checked + .ui-tab::before { content: "[> "; color: var(--terminal-accent); }
 body[data-view-mode="modern"] .card {
   border-radius: 0;
   border-color: var(--terminal-border);
@@ -934,7 +927,6 @@ body[data-view-mode="xml-like"] h2[data-tag]::after {
   font-size: .9em;
 }
 body[data-view-mode="xml-like"] .card,
-body[data-view-mode="xml-like"] .tab-panel,
 body[data-view-mode="xml-like"] .timeline-item,
 body[data-view-mode="xml-like"] .skill-group {
   border-radius: 0;
@@ -956,8 +948,7 @@ body[data-view-mode="json"] .container {
   border-left: 3px solid var(--border);
   padding-left: 1rem;
 }
-body[data-view-mode="json"] .card,
-body[data-view-mode="json"] .tab-panel {
+body[data-view-mode="json"] .card {
   border-radius: 4px;
 }
 
@@ -974,8 +965,7 @@ body[data-view-mode="markdown"] a {
   text-decoration: underline;
   text-underline-offset: 2px;
 }
-body[data-view-mode="markdown"] .card,
-body[data-view-mode="markdown"] .tab-panel {
+body[data-view-mode="markdown"] .card {
   border-radius: 6px;
   border-style: dashed;
 }
@@ -988,16 +978,15 @@ body[data-view-mode="github-like"] {
 body[data-view-mode="github-like"] .site-header,
 body[data-view-mode="github-like"] .site-footer,
 body[data-view-mode="github-like"] .card,
-body[data-view-mode="github-like"] .tab-panel,
+body[data-view-mode="github-like"] .ui-tab-panel,
 body[data-view-mode="github-like"] .view-mode-switch select {
   background: #ffffff;
 }
 body[data-view-mode="github-like"] .site-header,
 body[data-view-mode="github-like"] .site-footer,
 body[data-view-mode="github-like"] .card,
-body[data-view-mode="github-like"] .tab-panel,
-body[data-view-mode="github-like"] .view-mode-switch select,
-body[data-view-mode="github-like"] .tabs {
+body[data-view-mode="github-like"] .ui-tab-panel,
+body[data-view-mode="github-like"] .view-mode-switch select {
   border-color: #d0d7de;
 }
 body[data-view-mode="github-like"] .card {
@@ -1020,7 +1009,6 @@ body[data-view-mode="github-like"] .badges .tag {
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
-  .skill-bar-fill { transition: none; }
   .card:hover { transform: none; }
 }
 
@@ -1045,8 +1033,7 @@ body[data-view-mode="github-like"] .badges .tag {
   .grid {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
-  .tabs { flex-wrap: wrap; }
-  .tab-btn { padding: 10px 14px; }
+  .ui-tab { padding: 10px 14px; }
   .skill-row {
     grid-template-columns: 1fr;
     gap: 6px;
@@ -1387,24 +1374,6 @@ function setTagFilter(tag) {
   renderPortfolio();
 }
 
-function activateProfileTab(root, key) {
-  root.querySelectorAll('.tab-btn').forEach((button) => {
-    const active = button.id === `tab-${key}`;
-    button.classList.toggle('active', active);
-    button.setAttribute('aria-selected', String(active));
-  });
-  root.querySelectorAll('.tab-panel').forEach((panel) => {
-    const active = panel.id === `panel-${key}`;
-    panel.classList.toggle('active', active);
-    panel.hidden = !active;
-  });
-  if (key === 'skills') {
-    requestAnimationFrame(() => {
-      root.querySelectorAll('.skill-bar-fill').forEach((bar) => { bar.style.width = `${bar.dataset.level}%`; });
-    });
-  }
-}
-
 async function copyUrl(button) {
   const url = button.dataset.copy;
   try {
@@ -1517,11 +1486,6 @@ function bindControls() {
     const copy = event.target.closest('.project-copy');
     if (topic) setTagFilter(topic.dataset.topic);
     else if (copy) void copyUrl(copy);
-  });
-  const profileRoot = document.getElementById('profile-render-root');
-  profileRoot.addEventListener('click', (event) => {
-    const tab = event.target.closest('.tab-btn');
-    if (tab) activateProfileTab(profileRoot, tab.id.replace(/^tab-/, ''));
   });
   document.getElementById('view-mode-select').addEventListener('change', (event) => {
     const nextMode = normalizeViewMode(event.target.value);

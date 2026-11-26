@@ -5,9 +5,6 @@
 ``place_floor`` from latitude/longitude). ``EXAMPLES`` / ``example_data(name)`` hold the world, the school, the overworld
 and the three cities. The CSS, the themes, the dial and the coordinates come from PySaiyanWeBoo (the pinned web UI).
 
-🧰 ``chrome_validate(spec)`` / ``chrome_html(spec)`` / ``chrome_css()`` / ``add_chrome(page, spec)`` give a page that is not a world
-the same header and side (the board with its ``HH:MM:SS`` clock, 🏠, ⭐, ⚙️, ☰, ⋯ and the emoji a page adds): ``SHELL_JS`` is the
-part of the script a world and that chrome share. scripts/project_pages.py puts it on every 🧰 Tools page.
 """
 from __future__ import annotations
 
@@ -493,7 +490,7 @@ def _bounded_int(value: Any, label: str, low: int, high: int) -> int:
 
 
 def board_validate(board: Any) -> dict[str, Any] | None:
-    """The info board of a world or of a tool page's chrome (``None`` stays ``None``): a title, 1..12 items, optional zone clocks."""
+    """The info board of a world (``None`` stays ``None``): a title, 1..12 items, optional zone clocks."""
     if board is None:
         return None
     if not isinstance(board, dict) or set(board) - {"title", "items", "post", "offset_label", "offset_minutes", "zones", "shared_issue"} or not isinstance(board.get("items"), list) \
@@ -547,7 +544,7 @@ def tools_validate(tools_in: Any, *, floor_ids: Any = (), spot_ids: Any = ()) ->
     ``href``   a link out (🏠 back, 🗼 another city)  ``links``  a panel of links (``[{"label", "href"}]``, up to 16)
     ``body``   a panel of words
 
-    A world passes its floor and spot ids; a tool page's chrome has neither, so ``floor`` and ``spots`` are refused there."""
+    A world passes its floor and spot ids; without them ``floor`` and ``spots`` are refused."""
     tools: dict[str, dict[str, Any]] = {}
     if not isinstance(tools_in, dict) or len(tools_in) > 8:
         raise ValueError("tools maps up to 8 emoji to a feature")
@@ -1415,62 +1412,6 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
             f'<div class="ui-world-body">{view}{dpad}<div class="ui-world-side">{side}</div></div>{foot}{tail}')
 
 
-# ── 🧰 The chrome of a tool page: a world's header and side with no map ─────────────────────────────────────────────────────────
-# The same board, menus and words as a shell world (``_board_html``, ``_menu_html``, ``_tool_html``, ``WORLD_TEXT``), for a page that is not a
-# world: every tool of the portfolio carries it, so the clock, ☰ ⋯ ⭐ ⚙️ and the emoji a page adds look and behave the same everywhere.
-def chrome_validate(spec: Any) -> dict[str, Any]:
-    """``{"id", "board", "home", "places", "tools"}``: all optional but what the page wants shown.
-
-    ``id``      names the chrome; ⭐ and 🌐 are kept under it in this browser, so pages sharing an id share them (default ``tools``)
-    ``board``   the info board (``board_validate``; it shows, so no ``post`` and no ``shared_issue``)        ``home``   where 🏠 leads (left out: no 🏠)
-    ``places``  rows this page adds to its ☰, each ``{"label", "href"}`` with a ☆ (up to 32); the script lists the page itself (📍) and
-                its sections ahead of them. ☰ is this page's own: moving between pages is another part's (🚪 Door-to-Door)
-    ``tools``   emoji of your own, key → feature (``tools_validate``: ``href``, ``links`` or ``body``, in the header or the side)
-    """
-    if not isinstance(spec, dict) or set(spec) - {"id", "board", "home", "places", "tools"}:
-        raise ValueError("a chrome has id, board, home, places and tools")
-    places_in = spec.get("places", [])
-    if not isinstance(places_in, list) or len(places_in) > 32 or any(not isinstance(p, dict) or set(p) != {"label", "href"} for p in places_in):
-        raise ValueError("places lists up to 32 {label, href}")
-    places = [{"label": _world_text(place["label"], "label", 40), "href": _world_href(place["href"])} for place in places_in]
-    board = board_validate(spec.get("board"))
-    if board and (board["post"] or board["shared_issue"]):
-        raise ValueError("a chrome's board shows: post and shared_issue belong to a world")
-    return {"id": _world_id(spec.get("id", "tools"), "chrome id", set()), "board": board,
-            "home": None if spec.get("home") is None else _world_href(spec["home"]), "places": places,
-            "tools": tools_validate(spec.get("tools", {}))}
-
-
-def chrome_html(spec: Any) -> str:
-    """The chrome as one ``<div>`` (not a ``<header>``: the page's own header, and whatever looks for it, stay the page's): the board,
-    then 🏠, your header emoji, ⭐ and ⚙️; the side holds ☰, your side emoji and ⋯.
-
-    ☰  this page: itself (📍), its sections (the ``h2`` of ``<main>``, listed by the script) and the rows it gives, each with a ☆
-    ⭐  the starred places of every page that shares the chrome's id, so a starred section is one tap away from any of them
-    ⚙️  ⏯️ stop the board, 🌐 the words of the icons (eleven languages)        ⋯  this screen: ⬆️ to its top, ⬇️ to its end
-
-    Without JavaScript the board scrolls (one lap in 24 s; the script sets the lap by its length), 🏠 and the link emoji lead, and a ☰
-    that has rows of its own opens (a ``<details>``); ⭐ ⚙️ ⋯, the ☆ and the listed sections wait for the script."""
-    chrome = chrome_validate(spec)
-    tools = chrome["tools"]
-    rows = "".join(f'<li><a href="{escape(p["href"], quote=True)}"><span class="ui-world-arrow" aria-hidden="true"></span>{escape(p["label"])}</a>'
-                   f'<button type="button" class="ui-world-star" aria-pressed="false" {_wt("star")}>☆</button></li>' for p in chrome["places"])
-    move = "".join(f'<button type="button" data-scroll="{to}" {_wt(word)}>{glyph}</button>' for to, word, glyph in (("top", "up", "⬆️"), ("bottom", "down", "⬇️")))
-    settings = ((f'<button type="button" class="ui-world-pause" aria-pressed="false" data-pause="⏯️" data-resume="▶️" {_wt("pause")}>⏯️</button>' if chrome["board"] else "") +
-                f'<label class="ui-world-lang">🌐 <select data-lang {_wt("language")}>' +
-                "".join(f'<option value="{code}" lang="{code}"{" selected" if i == 0 else ""}>{name}</option>' for i, (code, name) in enumerate(WORLD_LANGS)) +
-                '</select></label>')
-    head = ((f'<a class="ui-world-home" href="{escape(chrome["home"], quote=True)}" {_wt("home")}>🏠</a>' if chrome["home"] else "") +
-            "".join(_tool_html(e, t) for e, t in tools.items() if t["slot"] == "head") +
-            _menu_html("favorites", "⭐", _wt("favorites"), '<p class="ui-world-empty" aria-hidden="true">☆</p><ul class="ui-world-rows ui-world-favs"></ul>', hidden=True) +
-            _menu_html("settings", "⚙️", _wt("settings"), settings, hidden=True))
-    side = (_menu_html("spots", "☰", _wt("places"), f'<ul class="ui-world-rows ui-world-spots">{rows}</ul>', hidden=not rows) +
-            "".join(_tool_html(e, t) for e, t in tools.items() if t["slot"] == "side") +
-            _menu_html("more", "⋯", _wt("screen"), move, hidden=True))
-    return (f'<div class="ui-chrome ui-world-head" id="{chrome["id"]}-chrome" data-ui-chrome lang="ja">{_board_html(chrome["board"], timed=False)}'
-            f'<nav class="ui-world-tools">{head}</nav><div class="ui-world-side">{side}</div></div>')
-
-
 def _map_html(world: dict[str, Any]) -> str:
     wid, floors, shell = world["id"], world["floors"], _world_shell(world)
     categories = _world_categories(floors)
@@ -1713,65 +1654,6 @@ def world_css(spec: Any, *, base: bool = True) -> str:
     return "@layer components{" + "".join(rules) + "}"
 
 
-def chrome_css(tokens: str = "") -> str:
-    """CSS for a tool page's chrome: the rules of ``_WORLD_CSS`` that style the board, the menus, the header and the side (picked by
-    selector, so the two cannot drift apart), then the chrome's own layout.
-
-    The header sits at the top of the page. ☰ ⋯ ride in its row; from 960px they stand at the right edge, mid-height, as in a world.
-    ``tokens`` is a declaration block (``--ui-bg:#0d1117;--ui-fg:…``) for a page that does not load the shared sheet: the chrome then
-    carries its own colours. The rules stay out of ``@layer``: a page's own plain rules (``label{…}``, ``header{…}``) would outrank
-    layered ones, and the chrome has to look the same on every page."""
-    marks = (".ui-board", ".ui-world-menu", ".ui-world-panel", ".ui-world-rows", ".ui-world-star", ".ui-world-head", ".ui-world-tools",
-             ".ui-world-home", ".ui-world-side", ".ui-world-favs", ".ui-world-empty", ".ui-world-arrow", "ui-board-scroll")
-    rules, depth, start = [], 0, 0
-    for i, c in enumerate(_WORLD_CSS):
-        depth += (c == "{") - (c == "}")
-        if c == "}" and depth == 0:
-            rule, start = _WORLD_CSS[start:i + 1], i + 1
-            prelude = rule[:rule.index("{")]
-            if any(m in (rule if prelude.startswith("@media") else prelude) for m in marks):
-                rules.append(rule)
-    own = (".ui-chrome{position:relative;z-index:32;margin:0;padding:0;gap:0;font-family:var(--ui-font);font-size:1rem;line-height:1.5;color:var(--ui-fg);text-align:left}"
-           ".ui-chrome,.ui-chrome *{box-sizing:border-box}"
-           ".ui-chrome .ui-world-tools,.ui-chrome .ui-world-menu,.ui-chrome .ui-world-rows,.ui-chrome .ui-world-rows li{margin:0;border:0;background:none}"   # a page's own nav{…} details{…} li{…}
-           ".ui-chrome .ui-world-menu,.ui-chrome .ui-world-rows li{padding:0}.ui-chrome .ui-world-menu>summary{margin:0;padding:0}"
-           ".ui-chrome[data-js] .ui-world-star{display:inline-flex;align-items:center;justify-content:center}"
-           ".ui-chrome[data-motion-paused] .ui-board-run{animation-play-state:paused!important}"
-           ".ui-chrome .ui-world-panel{top:100%;right:8px;width:min(320px,calc(100% - 16px));max-height:min(60vh,384px)}"
-           ".ui-chrome .ui-world-rows a[aria-current]{font-weight:700}"
-           ".ui-chrome .ui-world-panel>button{min-width:48px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-bg);color:var(--ui-fg);"
-           "font-size:1.25rem;line-height:1;cursor:pointer}.ui-chrome .ui-world-panel>button[aria-pressed=true]{background:var(--ui-accent);color:var(--ui-bg)}"
-           ".ui-chrome [data-menu=more] .ui-world-panel{display:flex;flex-wrap:wrap;gap:8px}"
-           ".ui-chrome .ui-world-side{flex-direction:row;padding:4px 8px 4px 0;border-left:0;background:none}"
-           ".ui-chrome .ui-world-side .ui-world-menu>summary,.ui-chrome .ui-world-side .ui-world-tool{width:40px;height:40px}"
-           "@media(max-width:600px){.ui-chrome .ui-world-tools{width:auto;flex:1}}"
-           "@media(min-width:960px){.ui-chrome .ui-world-side{position:fixed;right:0;top:50%;transform:translateY(-50%);flex-direction:column;padding:8px;"
-           "border:1px solid var(--ui-border);border-right:0;background:var(--ui-panel)}"
-           ".ui-chrome .ui-world-side .ui-world-menu>summary,.ui-chrome .ui-world-side .ui-world-tool{width:48px;height:48px}"
-           ".ui-chrome .ui-world-side .ui-world-panel{top:50%;right:72px;transform:translateY(-50%);width:min(320px,calc(100vw - 88px));max-height:min(80vh,480px)}}")
-    return (f".ui-chrome{{{tokens}}}" if tokens else "") + "".join(rules) + own
-
-
-def add_part(page: str, *, top: str = "", bottom: str = "", css: str, js: str) -> str:
-    """A built page with one more part: ``top`` right after ``<body>`` or ``bottom`` at its end, the part's CSS in ``<head>`` and its
-    module last in ``<body>`` (the chrome below; scripts/project_pages.py adds PySaiyanWeBoo's 🚪 Door-to-Door the same way)."""
-    body = re.search(r"<body[^>]*>", page)
-    if not body or page.count("</head>") != 1 or "</body>" not in page:
-        raise ValueError("page has no single <head> and <body> to put the part in")
-    page = page[:body.end()] + top + page[body.end():]
-    end = page.rindex("</body>")
-    page = page[:end] + bottom + module_script(js) + page[end:]
-    return page.replace("</head>", f"<style>{css}</style></head>", 1)
-
-
-def add_chrome(page: str, spec: Any, *, tokens: str = "") -> str:
-    """🧰 A built page with the chrome (``chrome_html``) at the top of its ``<body>``, the chrome's CSS in its ``<head>`` and the chrome's
-    module (``SHELL_JS`` and one ``bindChrome()``) before ``</body>``. A page that has a chrome keeps it."""
-    if '<div class="ui-chrome ' in page:
-        return page
-    return add_part(page, top=chrome_html(spec), css=chrome_css(tokens), js=SHELL_JS + "bindChrome();\n")
-
-
 # Browser arithmetic is a projection of the Python oracle, not Python execution.
 WORLD_MOTION_JS = r"""
 export function motionSample(s,t){const f=s.duration===0?(t>=s.at?1:0):Math.min(1,Math.max(0,(t-s.at)/s.duration));return s.from.map((v,i)=>v+(s.to[i]-v)*f)}
@@ -1874,7 +1756,7 @@ WORLD_SHARED_JS = ISSUE_BULLETIN_JS + r"""
 export function bindSharedBoard(board){bindIssueBulletin(board.querySelector(".ui-board-shared"))}
 """
 SHELL_JS = WORLD_TEXT_JS + r"""
-// ── The shell: what a world's header and side share with 🧰 the chrome of a tool page (chrome_html) ──
+// ── The shell: a world's header and side (a tool page's chrome is PySaiyanWeBoo's chrome_html, made from the same pieces) ──
 export function minutesUntil(now,at){return Math.ceil(((at-now)%1440+1440)%1440)}
 export function boardClock(now,offset){const seconds=((now+offset*60)%86400+86400)%86400,whole=Math.floor(seconds);return{clock:[Math.floor(whole/3600),Math.floor(whole/60)%60,whole%60].map(v=>String(v).padStart(2,"0")).join(":"),minutes:seconds/60}}
 export function boardSeconds(chars,cps=8){return Math.max(8,Math.round(chars/cps*10)/10)}
@@ -1889,35 +1771,10 @@ const run=board.querySelector(".ui-board-run");if(run)run.style.animationDuratio
 tick();const timer=setInterval(()=>{if(board.isConnected)tick();else clearInterval(timer)},1000);return{tick,clockNow}}
 // ☰ ⋯ ⭐ ⚙️ and the emoji of your own: the menus show once the script runs, one open at a time; the returned shut() closes them all.
 function bindMenus(el){const menus=[...el.querySelectorAll('.ui-world-menu')];for(const m of menus){m.hidden=false;m.addEventListener('toggle',()=>{if(m.open)for(const o of menus)if(o!==m)o.open=false})}return()=>{for(const m of menus)m.open=false}}
-// A small cache in this browser, one key per world or chrome: [load, save(part)]. Nothing else is written.
+// A small cache in this browser, one key per world: [load, save(part)]. Nothing else is written.
 const stored=slot=>{const load=()=>{try{const v=JSON.parse(localStorage.getItem(slot));return v&&typeof v==='object'?v:{}}catch(e){return{}}};return[load,part=>{try{localStorage.setItem(slot,JSON.stringify({...load(),...part}))}catch(e){}}]};
 // 🌐: aria-labels and tooltips in one of eleven languages (data-t names a catalogue word, data-labels carries a tool's own words).
 const sayIn=(root,lang)=>{const i=WORLD_LANGS.indexOf(lang);for(const n of root.querySelectorAll('[data-t],[data-labels]')){const m=n.dataset.labels&&JSON.parse(n.dataset.labels),w=m?m[lang]||m.en||m.ja:WORLD_TEXT[n.dataset.t][i];n.setAttribute('aria-label',w);n.setAttribute('title',w)}};
-// 🧰 The chrome of a tool page: the board, the menus and 🌐 of a world's shell, with no map.
-// ☰ is this page: itself (📍), its sections (the h2 of <main>) and the rows it gave, each with a ☆. ⭐ lists the starred places of
-// every page sharing the chrome's id (a place is its path and fragment on this site), so they follow you from tool to tool, as 🌐
-// does. ⏯️ stops the board; ⋯ moves this screen to its top or its end. Nothing else is kept, and this module asks the network for nothing.
-export function bindChrome(root=document){return[...root.querySelectorAll('[data-ui-chrome]')].map(el=>{if(el.hasAttribute('data-js'))return el;el.dataset.js='';
- const shut=bindMenus(el),[load,save]=stored('ui-chrome:'+el.id),kept=load(),sel=el.querySelector('[data-lang]'),page=p=>p.replace(/index\.html$/,'');let lang='ja';
- const say=r=>sayIn(r,lang),setLang=to=>{if(!WORLD_LANGS.includes(to))return;lang=to;el.lang=to;if(sel)sel.value=to;say(el)};
- sel?.addEventListener('change',()=>{setLang(sel.value);save({lang})});
- const here=page(location.pathname),title=(document.title.trim()||here).slice(0,40),key=a=>a.origin===location.origin?page(a.pathname)+a.hash:a.href,
-  row=(href,text,mark='')=>{const li=document.createElement('li'),a=document.createElement('a'),arrow=document.createElement('span'),b=document.createElement('button');a.href=href;arrow.className='ui-world-arrow';arrow.setAttribute('aria-hidden','true');arrow.textContent=mark;a.append(arrow,text);b.type='button';b.className='ui-world-star';b.dataset.t='star';li.append(a,b);return li},
-  spots=el.querySelector('.ui-world-spots'),favs=el.querySelector('.ui-world-favs'),heads=[...document.querySelectorAll('main h2')].filter(h=>!el.contains(h)&&h.textContent.trim());
- spots.prepend(row('#',title,'📍'),...heads.map((h,i)=>{if(!h.id)h.id=el.id+'-part-'+(i+1);return row('#'+h.id,h.textContent.trim().slice(0,40))}));
- spots.querySelector('a').setAttribute('aria-current','page');
- let fav=(Array.isArray(kept.fav)?kept.fav:[]).filter(f=>f&&typeof f.label==='string'&&typeof f.href==='string'&&/^(\/(?!\/)|https:\/\/)/.test(f.href)).slice(-32);
- const words=a=>a.lastChild.textContent,show=()=>{for(const a of spots.querySelectorAll('a')){const on=fav.some(f=>f.href===key(a)),b=a.parentElement.querySelector('.ui-world-star');b.setAttribute('aria-pressed',String(on));b.textContent=on?'★':'☆'}
-  favs.replaceChildren(...fav.map(f=>{const li=row(f.href,f.label.slice(0,80),f.href===here?'📍':''),b=li.querySelector('button');b.setAttribute('aria-pressed','true');b.textContent='★';return li}));say(el)};
- el.addEventListener('click',e=>{const b=e.target.closest('.ui-world-star'),s=e.target.closest('[data-scroll]');
-  if(b){const a=b.parentElement.querySelector('a'),k=key(a);fav=fav.some(f=>f.href===k)?fav.filter(f=>f.href!==k):[...fav,{href:k,label:k===here?title:title+' › '+words(a)}].slice(-32);show();save({fav})}
-  if(s){shut();scrollTo({top:s.dataset.scroll==='top'?0:document.documentElement.scrollHeight,behavior:'smooth'})}
-  if(e.target.closest('.ui-world-rows a'))shut()});
- show();if(typeof kept.lang==='string'&&kept.lang!=='ja')setLang(kept.lang);
- const pause=el.querySelector('.ui-world-pause');pause?.addEventListener('click',()=>{const on=el.toggleAttribute('data-motion-paused');pause.setAttribute('aria-pressed',String(on));pause.textContent=on?pause.dataset.resume:pause.dataset.pause});
- el.addEventListener('keydown',e=>{if(e.key==='Escape')shut()});
- document.addEventListener('pointerdown',e=>{if(!el.contains(e.target))shut()});
- const board=el.querySelector('.ui-board');if(board)bindBoard(board);return el})}
 """
 WORLD_JS = WORLD_MOTION_JS + WORLD_SHARED_JS + SHELL_JS + DIAL_JS + r"""/* web-ui world: one page, a camera. Shots: scroll marks light up (data-lit). Map: drag, wheel and pinch move a camera; spots open a sheet. No page changes. */
 const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
@@ -2047,7 +1904,7 @@ const fromHash=()=>{const hash=location.hash.slice(1),a=hash&&el.querySelector(`
 addEventListener("hashchange",fromHash);home();fromHash();
 return el}
 export function bindWorlds(root=document){return[...root.querySelectorAll("[data-ui-world]")].map(el=>el.hasAttribute("data-js")?el:el.dataset.uiWorld==="shots"?bindShots(el):bindMap(el))}
-globalThis.webUiWorld={fitZoom,clampFocus,travelSeconds,minutesUntil,boardClock,boardSeconds,bindBoard,bindChrome,gaugeState,gaugeCells,clockLabel,utcOffsetLabel,zoneOffset,cleanMessage,motionWalk,motionSample,motionRoute,routeSample,gridPath,gridRoute,direction,cleanAvatar,bindWorlds};
+globalThis.webUiWorld={fitZoom,clampFocus,travelSeconds,minutesUntil,boardClock,boardSeconds,bindBoard,gaugeState,gaugeCells,clockLabel,utcOffsetLabel,zoneOffset,cleanMessage,motionWalk,motionSample,motionRoute,routeSample,gridPath,gridRoute,direction,cleanAvatar,bindWorlds};
 bindWorlds();
 """
 

@@ -280,11 +280,11 @@ add_back_nav(page, 'tools/maps/index.html', {'🗼': {'label': 'パラレル都�
 
 ![Tools の共通ヘッダー：☰（このページと見出し）で ☆ を付け、⭐ に並び、🌐 を English にして次の道具へ移っても両方が引き継がれ、⭐ から見出しへ戻る（Chromium 560×480）](docs/evidence/tools-chrome.gif)
 
-🗓️ 2026-11-26 · `python tests/world_browser.py ToolChromeTests` writes `test-results/tools-chrome/tools-chrome-star-and-language-<UTC>.gif`; copy the newest one to `docs/evidence/tools-chrome.gif` to update this.
+🗓️ 2026-11-27 · `python tests/world_browser.py ToolChromeTests` writes `test-results/tools-chrome/tools-chrome-star-and-language-<UTC>.gif`; copy the newest one to `docs/evidence/tools-chrome.gif` to update this.
 ![ドア to ドア：フッターの 🚪 プルダウンで GIF工房 → 流れの実験室、ブラウザの「戻る」でも表示が付いてきて、同じドアをもう一度開け、🏠 でカードへ（Chromium 560×480）](docs/evidence/door-to-door.gif)
 
-🗓️ 2026-11-26 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k door_to_door` writes `test-results/door-to-door/door-to-door-pulldown-<UTC>.gif`（`docs/evidence/door-to-door.gif` へコピー）。
-作りは `scripts/world.py`（`chrome_html` / `chrome_css` / `add_chrome` / `add_part`、ワールドと共有する `SHELL_JS`）と `scripts/project_pages.py`（`tools_chrome` / `tools_places` / `tools_door` / `add_back_nav`）。
+🗓️ 2026-11-27 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k door_to_door` writes `test-results/door-to-door/door-to-door-pulldown-<UTC>.gif`（`docs/evidence/door-to-door.gif` へコピー）。
+部品は PySaiyanWeBoo（`component_parts('chrome' | 'door' | 'gaze-avatar')`・`door_html(foot=True)`・`add_part`・`stamp_page_size`）、ポートフォリオ側は指定だけ：`scripts/project_pages.py`（`tools_chrome` / `tools_places` / `tools_door` / `add_back_nav`）。
 
 ### 💬 横断チャット
 
