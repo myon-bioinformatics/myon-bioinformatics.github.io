@@ -184,7 +184,10 @@ def test_repository_map_reads_each_lock_and_aois_subtrees(tmp_path):
 def test_gif_workshop_page_keeps_images_in_the_browser():
     page = (SITE / "tools/gif/index.html").read_text(encoding="utf-8")
     assert 'id="gif-files"' in page and 'accept="image/*"' in page and "function bindMaker" in page   # PySaiyanWeBoo's gif_maker_document
-    assert "fetch(" not in page and "XMLHttpRequest" not in page and "localStorage" not in page   # nothing is sent or kept
+    tool, _, chrome = page.partition('<script type="module">' + PAGES._world().SHELL_JS[:64])    # 🧰 the chrome's module, then 🚪 the door's
+    assert "bindChrome();" in chrome and "bindDoor()" in chrome and "fetch(" not in page and "XMLHttpRequest" not in page   # nothing is sent
+    assert "localStorage" not in tool                                                             # the tool keeps nothing: no image, no setting
+    assert sorted(set(re.findall(r"save\(\{(\w+)", chrome))) == ["fav", "lang"]                     # the chrome keeps ⭐ and 🌐 only
 
 
 def test_catalog_pages_come_from_has_pages():
@@ -277,7 +280,7 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
 # The demos (DEMOS) and the 🌍 world pages (WORLD_PAGES) come from scripts/project_pages.py; they are tool pages too.
 TOOL_PAGES = ("tools/html-import/index.html",
               *(("tools/mcp/index.html", "tools/mcp/repository-diagnostics.html") if LAB_BUILT else ()),
-              "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html", "tools/flow/index.html",
+              "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html", "tools/chat/index.html", "tools/flow/index.html",
               "tools/repo-map/index.html",
               *sorted(str(path.relative_to(SITE)) for path in (SITE / "tools/demos").glob("*.html")))
 
@@ -338,6 +341,145 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
     manifest = json.loads((tools / 'image-studio/brand/manifest.webmanifest').read_text())
     assert manifest['scope'] == '../../'
     assert manifest['shortcuts'] == [{'url': '../../slide-studio/'}]
+
+
+def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
+    """🧰 tools_chrome + scripts/world.py chrome_html: the board with the clock, 🏠, ⭐ ⚙️ and ☰ ⋯ for the page's own (☰ lists nothing
+    of other pages); and 🚪 tools_door: PySaiyanWeBoo's Door-to-Door with 🏠 and every 🧰 Tools link, this page marked as the door you
+    came in by. A 🌍 world page keeps its own header, side and 🚪 (floors), and every door leads to a page of this site."""
+    import html
+    import re
+    world = PAGES._world()
+    import pysaiyanweboo as ui
+    module = ('<script type="module">' + world.SHELL_JS + 'bindChrome();\n</script><div class="ui-door-foot"><section class="ui-panel ui-door" id="door" data-ui-door ',
+              '</section></div><script type="module">' + PAGES.tools_door(ui)[2] + '</script></body>')
+    assert module[1].count(ui.js_source('door.js')) == 1 and 'addEventListener("pageshow"' in module[1]      # PySaiyanWeBoo's door.js, and one line
+    cards = [html.escape(card['title']) for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL]
+    pages = {*TOOL_PAGES, *(f'{folder}/{entry}index.html' for _, folder, entries in PAGES.TOOL_SOURCES.values() for entry in entries)}
+    assert len(pages) > len(TOOL_PAGES)
+    for name in sorted(pages):
+        page = (SITE / name).read_text(encoding='utf-8')
+        if 'data-ui-world="' in page:
+            assert '<div class="ui-chrome ' not in page and '<div class="ui-door-foot"' not in page, name   # 🌍 its own (or 🎬 none: scenes)
+            continue
+        prefix = '../' * name.count('/')
+        body = re.search(r'<body[^>]*>', page)
+        assert page[body.end():].startswith('<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="ja">'), name
+        assert page.count('<div class="ui-chrome') == 1 and '<span class="ui-board-clock" data-clock>--:--:--</span>' in page, name
+        assert page.count(module[0]) == 1 and page.count(module[1]) == 1 and page.count('<div class="ui-door-foot">') == 1, name
+        assert f'<a class="ui-world-home" href="{prefix}index.html#tools"' in page, name
+        chrome = page[body.end():page.index('<div class="ui-world-side">', body.end())]          # the board and the header's tools; ☰ follows
+        assert '<img' not in chrome and 'lab-execution-link' not in chrome, name   # 🔌 the lab's logo and links go to the lab's own <header>
+        for title in cards:
+            assert chrome.count(f'>{title}</span>') == 2, (name, title)        # the board says each card twice (the loop)
+        assert '<ul class="ui-world-rows ui-world-spots"></ul>' in page and 'data-fav' not in page, name   # ☰ this page's own: the script lists it
+        assert page.count('data-scroll="top"') == page.count('data-scroll="bottom"') == 1, name            # ⋯ ⬆️ ⬇️
+        rows = [(place['href'], place['id']) for place in PAGES.tools_places(prefix)]                      # 🚪 every tool
+        assert len(rows) == len({fav for _, fav in rows}) >= len(cards), name
+        for href, fav in rows:
+            if href.startswith('https://'):
+                assert href == 'https://myon-bioinformatics.github.io/myon-bioinformatics/', href      # 🧭 another repository's Pages
+                continue
+            target = (SITE / name).parent / href
+            assert (target / 'index.html' if href.endswith('/') else target).resolve().is_file(), (name, href)
+        doors = re.findall(r'<option value="([^"]+)"( selected disabled)?>([^<]+)</option>', page[page.index('<div class="ui-door-foot">'):page.index(module[1])])
+        assert doors[0] == (f'{prefix}index.html#tools', '', '🏠 Tools') and [href for href, _, _ in doors[1:1 + len(rows)]] == [href for href, _ in rows], name   # 🚪 = 🏠 + the tools
+        here = [(href, words) for href, mark, words in doors if mark]              # the door you came in by: this very page
+        assert len(here) == 1 and ((SITE / name).parent / here[0][0]).resolve() in ((SITE / name).resolve(), (SITE / name).parent.resolve()), (name, here)
+        assert len(doors) == 1 + len(rows) + (here[0][1].startswith('📌 ')), name   # 📌 a page that is no tool of the cards is its own door
+        assert len({words.split(' ')[0] for _, _, words in doors}) == len(doors), name                    # one emoji, one page
+    maps = (SITE / 'tools/maps/index.html').read_text(encoding='utf-8')            # 🗼 an emoji a page adds for its own use
+    assert '>🗼</summary>' in maps and '<li><a href="./tokyo.html">🗼 パラレル東京</a></li>' in maps
+    assert '>🗼</summary>' not in (SITE / 'tools/gif/index.html').read_text(encoding='utf-8')
+
+
+def test_html_import_csp_names_the_chrome_and_door_modules_and_nothing_else():
+    import pysaiyanweboo as ui
+    world = PAGES._world()
+    html = (SITE / PAGES.HTML_IMPORT_PAGE).read_text(encoding='utf-8')
+    chrome, doors = ui.module_csp_hash(world.SHELL_JS + 'bindChrome();\n'), ui.module_csp_hash(PAGES.tools_door(ui)[2])
+    assert f"script-src 'self' {chrome} {doors}; style-src 'self' 'unsafe-inline';" in html
+    assert html.count("'sha256-") == 2 and "'unsafe-inline'; img-src" in html and "connect-src 'none'" in html
+    strict = ('<!doctype html><html><head><meta\n http-equiv="Content-Security-Policy"\n content="default-src \'none\'; script-src \'self\'; '
+              'style-src \'self\'; img-src \'self\' data:"\n/><title>s</title></head><body data-ui-theme="green"><main><h1>s</h1></main></body></html>')
+    built = PAGES.add_back_nav(strict, 'tools/image-studio/index.html')        # Ironmate's studios: neither inline scripts nor inline styles
+    sheets = re.findall(r'<style>(.*?)</style>', built, re.S)
+    assert [sheet[:27] for sheet in sheets] == ['.ui-chrome{--ui-bg:#0d1117;', '.ui-door-foot{--ui-bg:#0d11'] and '@layer' not in sheets[0]   # their own colours
+    assert (f"script-src 'self' {chrome} {doors}; style-src 'self' {ui.module_csp_hash(sheets[0])} {ui.module_csp_hash(sheets[1])}; "
+            "img-src 'self' data:\"") in built
+    assert built.count("'sha256-") == 4 and ' style="' not in built and PAGES.add_back_nav(built, 'tools/image-studio/index.html') == built   # no style attribute
+    assert html.count('<script') == 3 and '<script type="module" src="./extract.mjs"></script>' in html
+
+
+def test_door_to_door_in_chromium_with_a_gif():
+    """🚪 PySaiyanWeBoo's Door-to-Door on the tool pages, in Chromium: only its pull-down is drawn, in a 56px row at the window's foot;
+    it shows the page you are on, goes where you choose, follows the browser's own way back, and 🏠 leads to the cards. Nothing is kept.
+    Frames go to test-results/door-to-door/door-to-door-pulldown-<UTC>.gif."""
+    sync_api = pytest.importorskip('playwright.sync_api')
+    ui = pytest.importorskip('pysaiyanweboo')
+    import functools, threading
+    from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+    class Quiet(SimpleHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+    world = PAGES._world()
+    server = ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Quiet, directory=str(SITE)))
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base, errors = f'http://127.0.0.1:{server.server_port}/', []
+    shown = "() => document.querySelector('.ui-door-foot [data-door-select]').selectedOptions[0].textContent"
+    try:
+        with sync_api.sync_playwright() as playwright:
+            browser = playwright.chromium.launch(channel='chromium')
+            try:
+                for width, height in ((392, 848), (1280, 800)):                   # a phone and a desktop: one row at the window's foot
+                    page = browser.new_page(viewport={'width': width, 'height': height})
+                    page.on('pageerror', lambda error: errors.append(str(error)))
+                    page.goto(base + 'tools/maps/')
+                    page.wait_for_selector('#door[data-door_ready]')
+                    foot, select = page.locator('.ui-door-foot').bounding_box(), page.locator('.ui-door-foot [data-door-select]')
+                    assert (foot['x'], foot['width'], round(foot['y'] + foot['height'])) == (0, width, height) and foot['height'] <= 64, foot
+                    assert select.bounding_box()['height'] == 40 and page.evaluate(shown) == '🗺️ 地図URLを作成 (current)'
+                    visible = page.evaluate("[...document.querySelectorAll('.ui-door-foot .ui-door *')].filter(e => e.offsetParent && e.tagName !== 'OPTION').map(e => e.tagName)")
+                    assert sorted(visible) == ['DIV', 'LABEL', 'SELECT'], visible          # 🚪 the label, the row, the pull-down: no panel
+                    assert page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth') == 0
+                    page.close()
+                page = browser.new_page(viewport={'width': 560, 'height': 480})
+                page.on('pageerror', lambda error: errors.append(str(error)))
+                page.goto(base + 'tools/gif/')
+                page.wait_for_selector('#door[data-door_ready]')
+                cam = world.Camera(page)
+                assert page.evaluate(shown) == '🎞 GIF工房 (current)'
+                cam.hold(900)
+                page.locator('.ui-door-foot [data-door-select]').select_option(label='🌊 流れの実験室')
+                page.wait_for_url(base + 'tools/flow/')
+                page.wait_for_selector('#door[data-door_ready]')
+                assert page.evaluate(shown) == '🌊 流れの実験室 (current)'
+                assert page.locator('.ui-chrome .ui-world-spots a').first.text_content().startswith('📍')   # the chrome's ☰ is this page's own
+                assert not page.evaluate("[...document.querySelectorAll('.ui-chrome .ui-world-spots a')].some(a => a.pathname !== location.pathname)")
+                cam.hold(900)
+                page.go_back()                                                    # ← the browser's own way back: the pull-down follows
+                page.wait_for_url(base + 'tools/gif/')
+                page.wait_for_function(shown + " === '🎞 GIF工房 (current)'")
+                cam.hold(700)
+                page.locator('.ui-door-foot [data-door-select]').select_option(label='🌊 流れの実験室')       # the same door again still opens
+                page.wait_for_url(base + 'tools/flow/')
+                page.wait_for_selector('#door[data-door_ready]')
+                cam.hold(600)
+                page.locator('.ui-door-foot [data-door-select]').select_option(label='🏠 Tools')
+                page.wait_for_url(base + 'index.html#tools')
+                cam.hold(700)
+                assert page.evaluate('[localStorage.length, sessionStorage.length]') == [0, 0]            # the door keeps nothing
+                gif = world.encode(cam.shots, width=392)
+            finally:
+                browser.close()
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert errors == [] and gif[:6] == b'GIF89a'
+    target = ui.gif_targets(ROOT / 'test-results' / 'door-to-door', ['door-to-door-pulldown'], run_details=['timestamp'])
+    target['door-to-door-pulldown'].write_bytes(gif)
 
 
 def test_every_tool_page_has_the_same_back_link_first_in_main():
@@ -1042,15 +1184,29 @@ def test_prose_extract_adapter_preserves_whitespace_hooks_and_code_blocks():
 
 CHAT = PAGES._chat()
 CHAT_INDEX = {'schema': 'chat-index/1', 'owner': 'myon-bioinformatics',
-              'commits': {'onto': 'a' * 40, 'Aoi': 'b' * 40, 'TaxOntOy': 'c' * 40},
+              'commits': {'onto': 'a' * 40, 'Aoi': 'b' * 40, 'TaxOntOy': 'c' * 40, 'OnTautoLogy': 'd' * 40},
               'files': [['onto', 'docs/graph.json', 120], ['Aoi', 'cycles/c001/outputs/allocation.jsonl', 80],
                         ['Aoi', 'cycles/c003/units.jsonl', 40 * 1024 ** 2], ['TaxOntOy', 'package.json', 30],
-                        ['TaxOntOy', 'otl-relations.json', 64]],
+                        ['TaxOntOy', 'otl-relations.json', 64], ['OnTautoLogy', 'examples/concepts-20261115.json', 900]],
               'scan_errors': {},
               'tools': [{'name': 'find_municipalities', 'description': 'Find mock municipalities.',
                          'parameters': {'type': 'object', 'properties': {'query': {'type': 'string'}}, 'required': ['query'],
-                                        'additionalProperties': False}}]}
+                                        'additionalProperties': False}}],
+              'repos': {'onto': 'ONTO: an index linking ontology-related repositories', 'Aoi': 'Hypothesis-driven baseball analytics.',
+                        'TaxOntOy': 'TaxOntOy: Taxonomy × Ontology', 'OnTautoLogy': 'Stdlib-only Python graphlib knowledge graph.'}}
+CHAT_CONCEPTS = {'schema': 'ontautology-concepts/1',                    # 🧬 a small ledger in OnTautoLogy's shape (both entry forms)
+                 'concepts': {'ギター': {'id': 'C001-guitar', 'elements': ['楽器', '弦楽器', '撥弦', 'フレット', '6弦標準']},
+                              'ベース': ['楽器', '弦楽器', '撥弦', 'フレット', '4弦標準', '低音主体'],
+                              'ウクレレ': ['楽器', '弦楽器', '撥弦', 'フレット', '4弦標準', '小型'],
+                              'バイオリン': ['楽器', '弦楽器', '擦弦', '4弦標準', '弓で弾く'],
+                              'マリオ': ['ゲームキャラクター', '帽子', '赤色', '兄'], 'ルイージ': ['ゲームキャラクター', '帽子', '緑色', '弟']},
+                 'similar': [['ギター', 'ベース'], ['ギター', 'ウクレレ'], ['ギター', 'バイオリン'], ['マリオ', 'ルイージ']],
+                 'names': {'ギター': ['英名:Guitar', '略称:ギタ'],      # 🎩 ties; 👻 is ルイージ's (同じ beats 代用), so マリオ's face is 🍄
+                           'マリオ': ['英名:Mario', '主役シリーズ:スーパーマリオ', '絵文字略称/似たもの:🍄', '絵文字略称/代用:👻', '絵文字略称:🎩'],
+                           'ルイージ': ['同音語:類似', '絵文字略称/同じ:👻', '絵文字略称:🎩', '別名:マリオ']},   # マリオ stays マリオ
+                 'name_basis': {'絵文字略称': ['同じ', '代用', '似たもの']}}
 CHAT_RAW = {'onto/docs/graph.json': json.dumps({'schema': 'graph/1', 'nodes': [{'id': 'a'}, {'id': 'b'}], 'edges': [['a', 'b']]}),
+            'OnTautoLogy/examples/concepts-20261115.json': json.dumps(CHAT_CONCEPTS, ensure_ascii=False),
             'Aoi/cycles/c001/outputs/allocation.jsonl': '{"team": "d", "z": -0.7}\n{"team": "s", "z": 0.2}\n'}
 
 
@@ -1100,6 +1256,80 @@ def test_chat_finds_and_shows_json_and_jsonl_across_repositories():
     assert '⏸' in CHAT.respond('onto', index={}) and '⏸' in CHAT.respond('/mcp', index={})
 
 
+def test_chat_onto_defines_concepts_and_looks_them_up_with_ontautology():
+    """🧬 /onto: genus + differentia and the table against what is similar (OnTautoLogy's define_concepts), + for a reverse
+    lookup (roundtrip_elements) with the element that would tell the rest apart, and "maybe" for a name the ledger lacks."""
+    say = lambda text: CHAT.respond(text, index=CHAT_INDEX, fetch=_chat_fetch)
+    listing = say('/onto')
+    assert '🧬 **6** 概念' in listing and 'ギター · ベース' in listing and 'OnTautoLogy/examples/concepts-20261115.json@ddddddd' in listing
+    guitar = say('/onto ギター')
+    assert '### 🧬 ギター' in guitar and '**6弦標準** のもの' in guitar and '✅ これだけ' in guitar
+    assert '| 🤝 ベース |' in guitar and '🔑 決め手（それだけで ギター）: 6弦標準' in guitar
+    assert '⚠️ 3 つ（ウクレレ・ギター・ベース）' in say('/onto 撥弦 + フレット') and '`/onto 撥弦 + フレット + 4弦標準`' in say('/onto 撥弦 + フレット')
+    assert '✅ **ギター** だけ' in say('/onto 撥弦 + 6弦標準')
+    assert '⌨️ もしかして: `/onto バイオリン`' in say('/onto バイオリ') and '🫥' in say('/onto 楽器 + 赤色')
+    assert '🏷 guitar → **ギター**' in say('/onto guitar') and '### 🧬 ギター' in say('/onto ギタ')      # 🏷 the ledger's names
+    assert '### 🧬 🍄 マリオ' in say('/onto Mario') and '❓ 台帳にない' in say('/onto スーパーマリオ') and '❓' in say('/onto 類似')
+    assert '→ **ルイージ**' in say('/onto 👻\ufe0f') and '### 🧬 👻 ルイージ' in say('/onto 👻')      # 🏷 絵文字略称, the strongest wins
+    assert '🏷 👻 → **ルイージ**（同じ） · ほかに `/onto マリオ`（代用）' in say('/onto 👻')
+    assert '🏷 **🎩** は 2 つ: `/onto マリオ` · `/onto ルイージ`' in say('/onto 🎩') and '### 🧬 🍄 マリオ' in say('/onto マリオ')
+    assert '⏸' in CHAT.respond('/onto ギター', index={})
+
+
+def test_chat_guess_finds_every_concept_by_yes_and_no():
+    """🎯 /guess: each question halves what is left; answering truthfully reaches every concept in at most ⌈log₂ N⌉ + 1
+    questions here, plain y / n answer only while a game is on, and ? skips."""
+    say = lambda text: CHAT.respond(text, index=CHAT_INDEX, fetch=_chat_fetch)
+    for target, body in CHAT_CONCEPTS['concepts'].items():
+        elements = body['elements'] if isinstance(body, dict) else body
+        reply, asked = say('/guess'), 0
+        while '❓ Q' in reply:
+            element = re.search(r'『\*\*(.+?)\*\*』', reply).group(1)
+            reply, asked = say('y' if element in elements else 'n'), asked + 1
+        face = {'マリオ': '🍄 ', 'ルイージ': '👻 '}.get(target, '')                       # 🍄 its first 絵文字略称
+        assert f'🎯 それは **{face}{target}**' in reply and asked <= 4, (target, reply)
+    assert '🔎' in say('y')                                                   # no game: y is a search
+    first = say('/guess')
+    assert '❔' in say('?') and '`y`（はい）' in say('/guess maybe') and 'おしまい' in say('/guess stop')
+    assert 'Q1' in first and '🔎' in say('n')
+
+
+def test_chat_runs_olnm_to_list_read_and_calculate():
+    """🧷 /olnm runs olnm.py itself: sections, search, "maybe you meant", a one-liner's definition and the calculator; running
+    a one-liner stays in the terminal, with the one-line install."""
+    say = lambda text: CHAT.respond(text, index={})
+    first = say('/olnm')
+    assert '🧷 **OLNM**' in first and '`git`' in first and 'OneLaunchNumerousModules/HEAD/olnm.py' in first
+    assert 'uvtest' in say('/olnm like uvtets') and 'git push' in say('/olnm show gp') and 'git push' in say('/olnm gp')
+    assert '= **42**' in say('/olnm calc 6 mul 7') and '⚠️ ZeroDivisionError' in say('/olnm calc 1/0')
+    assert '🌿 gs' in say('/olnm ls git') and 'jsonf' in say('/olnm grep json')
+    assert '❓ そのワンライナーはない' in say('/olnm show gpp') and 'gp' in say('/olnm show gpp')
+    assert 'git push' in say('/olnm run gp') and '▶️ `olnm doctor` は端末で' in say('/olnm doctor')
+
+
+def test_chat_ask_stands_on_readme_summaries_concepts_and_files():
+    """🤖 /ask's system message carries what the question names: repositories (by name, capitals or summary words, with their
+    README summary), the ledger's concepts (by name or 🏷 alias, as genus + differentia) and the recorded files — and stays short."""
+    ask = lambda text: json.loads(CHAT.ask_messages(text, CHAT_INDEX, _chat_fetch))
+    system, user = ask('/ask OTL と baseball の Guitar は？')
+    assert user == {'role': 'user', 'content': 'OTL と baseball の Guitar は？'}
+    content = system['content']
+    assert ('関係しそうなリポジトリ（README の要約）:\n- OnTautoLogy（OTL）: Stdlib-only Python graphlib knowledge graph.\n'
+            '- Aoi: Hypothesis-driven baseball analytics.\n- TaxOntOy（TOO）: TaxOntOy: Taxonomy × Ontology\n') in content   # OTL is in its file
+    assert '- ギター: 弦楽器・楽器 のうち、6弦標準 のもの（似たもの: ウクレレ・バイオリン・ベース）' in content
+    assert 'リポジトリ: Aoi, OnTautoLogy, onto, TaxOntOy' in content and '記録にあるファイル: TaxOntOy/otl-relations.json' in content
+    found = CHAT.grounding('マリオとルイージの違い、オントロジーの台帳はどこ？', CHAT_INDEX, _chat_fetch)
+    assert found['concepts'] == ['🍄 マリオ: ゲームキャラクター・帽子 のうち、兄 のもの（似たもの: ルイージ）',
+                                 '👻 ルイージ: ゲームキャラクター・帽子 のうち、弟 のもの（似たもの: マリオ）']
+    assert [c.split(':')[0] for c in CHAT.grounding('🎩 って誰？', CHAT_INDEX, _chat_fetch)['concepts']] == ['🍄 マリオ', '👻 ルイージ']
+    assert 'onto/docs/graph.json' in found['files'] and [r.split('（')[0].split(':')[0] for r in found['repos']] == ['TaxOntOy', 'onto']
+    quiet = CHAT.grounding('MAIN の話', CHAT_INDEX, _chat_fetch)                 # AI is not in MAIN, nothing is named
+    assert quiet['repos'] == [] and quiet['concepts'] == [] and quiet['files'] == []
+    assert CHAT.abbr('PySaiyanWeBoo') == 'PSWB' and CHAT.abbr('Aoi') == '' and CHAT.abbr('CaChereCyCle') == 'CCCC'
+    assert len(CHAT.ask_messages('/ask ' + ' '.join(['ギター マリオ ルイージ ベース OTL onto Aoi'] * 3), CHAT_INDEX, _chat_fetch)) < 2400
+    assert 'リポジトリ' not in json.loads(CHAT.ask_messages('/ask', {}))[0]['content'].split('。')[-1]
+
+
 @pytest.mark.parametrize(('errors', 'note'), [({}, ''), ({'Aoi': 'truncated_tree'}, '部分取得 1 件'),
                                             ({'Broken': 'unavailable'}, '取得不可 1 件'), (None, '取得範囲は未記録')])
 def test_chat_empty_search_distinguishes_index_coverage(errors, note):
@@ -1147,7 +1377,7 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     root = tmp_path / 'root'
     (root / 'api').mkdir(parents=True)
     names = ('TalkCompress', 'mcp-toolcall-lab', 'onto', 'Empty', 'BrokenHead', 'BrokenTree', 'InvalidTree')
-    (root / 'api/repos.json').write_text(json.dumps({'repos': [{'name': n} for n in names] + [{'name': 'Old', 'archived': True}]}))
+    (root / 'api/repos.json').write_text(json.dumps({'repos': [{'name': n, **({'description': '', 'readmeSummary': '📘 [Guide](https://x.test/)  for  ' + 'x' * 200} if n == 'onto' else {})} for n in names] + [{'name': 'Old', 'archived': True}]}))
     trees = {'onto': [('docs/graph.json', 120), ('README.md', 9)], 'TalkCompress': [('x.jsonl', 3)],
              'mcp-toolcall-lab': [('fixtures/prompt_experiments/a.json', 50), ('fixtures/other.json', 2)], 'Empty': []}
     fixture = {'openai': {'request': {'tools': [{'type': 'function', 'function': CHAT_INDEX['tools'][0]}]}}}
@@ -1179,6 +1409,7 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     assert [row[:2] for row in index['files']] == [['TalkCompress', 'x.jsonl'], ['mcp-toolcall-lab', 'fixtures/prompt_experiments/a.json'],
                                                    ['mcp-toolcall-lab', 'fixtures/other.json'], ['onto', 'docs/graph.json']]
     assert [tool['name'] for tool in index['tools']] == ['find_municipalities'] and set(index['commits']) == set(names[:4])
+    assert index['repos'] == {'onto': ('📘 Guide for ' + 'x' * 200)[:159] + '…'}           # 🤖 README summaries for /ask, links as their text
     assert index['scan_errors'] == {'onto': 'truncated_tree', 'BrokenHead': 'unavailable', 'BrokenTree': 'unavailable',
                                     'InvalidTree': 'unavailable'}
     say = lambda query: CHAT.respond(query, index=index, fetch=lambda url: pytest.fail(url))
@@ -1192,7 +1423,7 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     assert '⚠️' not in say('/show Empty/missing.json')
     assert all((tmp_path / 'site/media/chat/talkcompress' / name).is_file() for name in CHAT.TALKCOMPRESS)
 
-    page = (SITE / 'tools/demos/chat.html').read_text(encoding='utf-8')
+    page = (SITE / 'tools/chat/index.html').read_text(encoding='utf-8')
     sources = json.loads(re.search(r'<script type="application/json" id="chat-sources">(.*?)</script>', page, re.S).group(1))
     import importlib.util as util
     assert sources == {'chat.py': (ROOT / 'scripts/chat.py').read_text(encoding='utf-8'),
@@ -1203,7 +1434,9 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     assert page.count('class="ui-card ui-step"') == sum(len(c[3]) for c in CHAT.COMMANDS.values()) + len(CHAT.TYPOS)
     assert 'data-testid="portfolio-back"' in page and '💬chat-slot' not in page
     front = (SITE / 'index.html').read_text(encoding='utf-8')
-    assert 'id="chat"' in front and './tools/demos/chat.html' in front and 'Markdown 道具箱' not in front
+    assert 'id="chat"' in front and './tools/chat/' in front and 'Markdown 道具箱' not in front
+    assert 'chat' not in PAGES.DEMOS and not (SITE / 'tools/demos/chat.html').exists()      # 💬 one card, one address: not among the 🤖 stubs
+    assert 'chat.html' not in (SITE / 'tools/demos/index.html').read_text(encoding='utf-8')
 
 
 def html_escape(text):
@@ -1273,10 +1506,10 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             context.route(lambda url: '/media/chat/' in url, local_media)      # the context's routes reach wllama's workers too
             page = context.new_page()
             page.on('pageerror', lambda error: errors.append(str(error)))
-            page.goto(base + 'tools/demos/chat.html')
+            page.goto(base + 'tools/chat/')
             page.wait_for_function('() => document.documentElement.dataset.chatReady === "true"', timeout=180_000)
             status = page.locator('[data-chat-status]').text_content()
-            assert status.startswith('✅ 🐍 3.') and '🔎 5 files' in status, status
+            assert status.startswith('✅ 🐍 3.') and '🔎 6 files' in status, status
             frames.append((page.screenshot(), '💬 ' + status))
             bot = page.locator('[data-chat-who="bot"]')
 
@@ -1307,6 +1540,17 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             assert '取得不可 1 件' in say('/find --repo Broken', '0 件（索引内）')
             assert '⚠️' not in say('/find missing --repo Aoi', '0 件（索引内）')
             say('/show onto/docs/graph.json', '🧬 nodes 2')
+            say('/onto ギター', '6弦標準')                                     # 🧬 OnTautoLogy (ontautology.py) in Pyodide
+            say('/guess', 'Q1')                                             # 🎯 then y / n as plain answers
+            for _ in range(6):
+                question = page.locator('[data-chat-who="bot"]').last.inner_text()
+                if '🎯 それは' in question:
+                    break
+                element = re.search(r'『(.+?)』', question).group(1)
+                say('y' if element in CHAT_CONCEPTS['concepts']['ギター']['elements'] else 'n', '')
+            assert '🎯 それは ギター' in bot.last.inner_text(), bot.last.inner_text()
+            say('/olnm calc 6 mul 7', '42')                                  # 🧷 OLNM (olnm.py) in Pyodide
+            say('/olnm show gp', 'git push')
             compress = mirror and (mirror / 'talkcompress').is_dir()
             say('/compress As soon as possible, please send me the report.', 'ASAP' if compress else '⏸ TalkCompress')
             say('/md <img src=x onerror="window.pwned=1"> **ok**', '<img src=x')

@@ -2,6 +2,7 @@
 import functools
 import importlib.util
 import json
+import re
 import struct
 import subprocess
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -95,6 +96,29 @@ def test_image_studio_import_edit_and_download(browser, studio_origin, mobile):
         assert png[:8] == b"\x89PNG\r\n\x1a\n"
         assert int.from_bytes(png[16:20], "big") == scene["width"]
         assert int.from_bytes(png[20:24], "big") == scene["height"]
+    finally:
+        page.context.close()
+
+
+@pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
+def test_studio_csp_admits_the_tools_chrome(browser, studio_origin, mobile):
+    """🧰 The studios allow neither inline scripts nor inline styles; the modules and sheets of the chrome and 🚪 Door-to-Door are
+    listed by hash, so the board's clock runs and its buttons are drawn (☰: 48px at the edge of a desktop, 40px in a phone's header), with no CSP report."""
+    page = _page(browser, studio_origin, mobile=mobile)
+    try:
+        blocked = []
+        page.on("console", lambda message: blocked.append(message.text) if "Content Security Policy" in message.text else None)
+        assert page.goto(studio_origin + "/tools/image-studio/").ok
+        expect(page.locator(".ui-chrome [data-clock]")).to_have_text(re.compile(r"^\d\d:\d\d:\d\d$"))
+        box = page.locator('.ui-chrome [data-menu="spots"] > summary').bounding_box()
+        assert (box["width"], box["height"]) == ((40, 40) if mobile else (48, 48)), box
+        assert page.evaluate("getComputedStyle(document.querySelector('.ui-chrome .ui-board-run')).animationDuration") != "24s"   # set by the script
+        page.locator('.ui-chrome [data-menu="spots"] > summary').click()
+        expect(page.locator(".ui-chrome .ui-world-spots a[aria-current=page]")).to_have_text(re.compile("^📍"))   # ☰ this page, then its sections
+        assert page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") == 0
+        door = page.locator(".ui-door-foot [data-door-select]")                 # 🚪 Door-to-Door's sheet and module are listed too
+        assert door.is_visible() and door.bounding_box()["height"] == 40 and door.input_value() == "../../tools/image-studio/"
+        assert blocked == [], blocked
     finally:
         page.context.close()
 

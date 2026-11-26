@@ -16,7 +16,8 @@ A mismatch fails the build before upload; there is no fallback to stale assets.
 The lab's `publication.json` separately identifies the imported report source.
 
 🧰 The same generator also builds `tools/demos/` (`DEMOS` in `scripts/project_pages.py`): PySaiyanWeBoo's MCP / API
-stubs, its in-page MCP server and its JUnit reader, plus their catalog `index.html`. Each gets the portfolio back link,
+stubs, its in-page MCP server and its JUnit reader, plus their catalog `index.html`. Each gets the portfolio back link, 🧰 the tools' chrome
+(the board with the clock, 🏠 ⭐ ⚙️ ☰ ⋯: `tools_chrome()` and `scripts/world.py` `add_chrome()`), 🚪 PySaiyanWeBoo's Door-to-Door (`tools_door()`: the same tools as a footer pull-down),
 shortcut label and icons (`add_back_nav()` / `add_home_label()` in `scripts/project_pages.py`). Their SHA-256 values are under `pages` in the same lock, so
 `presentation_identity()` (the shared assets, `outputs`) is unchanged. `--refresh-lock` rewrites their hashes with the assets'.
 

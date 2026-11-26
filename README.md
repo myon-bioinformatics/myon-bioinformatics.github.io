@@ -85,7 +85,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 | 🌡️ ヒートマップ（DRAgoWing · Ironmate） | [tools/heatmap/](https://myon-bioinformatics.github.io/tools/heatmap/) |
 | 🔌 MCP 実験室（mcp-toolcall-lab） | [Tool Lab](https://myon-bioinformatics.github.io/tools/mcp/) · [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) |
 | 🤖 Stubs & mocks | [tools/demos/](https://myon-bioinformatics.github.io/tools/demos/) |
-| 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab） | [tools/demos/chat.html](https://myon-bioinformatics.github.io/tools/demos/chat.html) |
+| 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab） | [tools/chat/](https://myon-bioinformatics.github.io/tools/chat/) |
 | 🧭 統合運用 | [Dashboard](https://myon-bioinformatics.github.io/myon-bioinformatics/) |
 | 🎞 GIF工房（PySaiyanWeBoo） | [tools/gif/](https://myon-bioinformatics.github.io/tools/gif/) |
 | 🌊 流れの実験室（FluidFullSpeedSimulation · DRAgoWing） | [tools/flow/](https://myon-bioinformatics.github.io/tools/flow/) |
@@ -256,9 +256,39 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 
 🗓️ 2026-11-13 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k home_screen` writes `test-results/home-screen/home-screen-shortcut-<UTC>.gif` (CI keeps it in the browser evidence artifact); copy the newest one to `docs/evidence/home-screen.gif` to update this.
 
+### 🧰 Tools の共通ヘッダー（電光掲示板・時計・☰ ⋯ ⭐ ⚙️）と 🚪 ドア to ドア
+
+🧰 Tools のページは、どれも同じヘッダーとサイド、そしてフッターの 🚪 プルダウンを持ちます（ワールドのページは同じ部品でできた自前のものを使います）。
+
+| | |
+|---|---|
+| 📟 | 電光掲示板：`TOOLS`、時計（`hh:mm:ss`）、🧰 Tools のカード名が流れる |
+| 🏠 | 🧰 Tools のカードへもどる |
+| ⭐ | ☰ で ☆ を付けた場所（ページや見出し）の一覧。このブラウザに保存し、どの道具のページからでも開ける |
+| ⚙️ | ⏯️ 掲示板を止める ・ 🌐 アイコンの言葉（11 言語。保存） |
+| ☰ | そのページ固有：このページ自身（📍）と見出し（`h2`）、ページが足した行。ほかの道具は並べない（移動は 🚪） |
+| ⋯ | この画面の操作：⬆️ 先頭へ ・ ⬇️ 末尾へ |
+| 🚪 | ドア to ドア：フッターのプルダウンで道具から道具へ（🏠 でカードへ）。行は `scripts/front_page.py` の `PORTAL` から作るので、カードを足せば増える。ヘッダーとは別の部品で、PySaiyanWeBoo の共通機能 Door-to-Door（`door_html` / door.css / door.js）をそのまま使い、プルダウンだけを 1 行で見せている。何も保存しない |
+
+絵文字は用途に応じて key-value で足せます（`href`＝リンク、`links`＝リンクの一覧、`body`＝ひとこと。`slot` は `head` か `side`）。
+地図URL・ピン留めのページは 🗼（パラレル都市）を足しています。
+
+```python
+add_back_nav(page, 'tools/maps/index.html', {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'links': [
+    {'label': '🗼 パラレル東京', 'href': './tokyo.html'}, {'label': '🌍 東京・ロンドン・パリ', 'href': '../demos/cities.html'}]}})
+```
+
+![Tools の共通ヘッダー：☰（このページと見出し）で ☆ を付け、⭐ に並び、🌐 を English にして次の道具へ移っても両方が引き継がれ、⭐ から見出しへ戻る（Chromium 560×480）](docs/evidence/tools-chrome.gif)
+
+🗓️ 2026-11-26 · `python tests/world_browser.py ToolChromeTests` writes `test-results/tools-chrome/tools-chrome-star-and-language-<UTC>.gif`; copy the newest one to `docs/evidence/tools-chrome.gif` to update this.
+![ドア to ドア：フッターの 🚪 プルダウンで GIF工房 → 流れの実験室、ブラウザの「戻る」でも表示が付いてきて、同じドアをもう一度開け、🏠 でカードへ（Chromium 560×480）](docs/evidence/door-to-door.gif)
+
+🗓️ 2026-11-26 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k door_to_door` writes `test-results/door-to-door/door-to-door-pulldown-<UTC>.gif`（`docs/evidence/door-to-door.gif` へコピー）。
+作りは `scripts/world.py`（`chrome_html` / `chrome_css` / `add_chrome` / `add_part`、ワールドと共有する `SHELL_JS`）と `scripts/project_pages.py`（`tools_chrome` / `tools_places` / `tools_door` / `add_back_nav`）。
+
 ### 💬 横断チャット
 
-🧰 Tools → **💬 横断チャット**（`tools/demos/chat.html`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。
+🧰 Tools → **💬 横断チャット**（`tools/chat/`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args・ontautology.py（OnTautoLogy）・olnm.py（OLNM）は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。
 
 | | コマンド | 出どころ |
 | --- | --- | --- |
@@ -266,9 +296,11 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 | 🎨📦🔀 | `/ascii` `/box` `/flow A, B > C` | ascii_artist（banner・枠・流れ図と Mermaid） |
 | 🗂 | `/compress` | TalkCompress の ShorthandSessionEdge（公開時に記録）と markdown.py の compact_llm_output |
 | 🔌 | `/mcp 道具 {JSON}` | mcp-toolcall-lab のプロンプト実験が広告する道具（✅ tools/call／❌ 断る） |
+| 🧬🎯 | `/onto ギター` `/onto 撥弦 + フレット` `/guess` | OnTautoLogy の `define_concepts`（属＝似たものと共通・種差＝決め手）と `roundtrip_elements`（要素から逆引き）。台帳は全リポジトリの `concepts-*.json`（ontautology-concepts/1、索引のコミットの raw）。🏷 台帳の `names`（略称・英名・別名・読み・絵文字略称）でも引ける（`/onto 中日`・`/onto 🐯`）。`絵文字略称/根拠:🐯` は台帳の `name_basis` の強い順（同じ ＞ 代用 ＞ … ＞ 親会社）で、取り合う 🦅 は強い方（楽天）へ、見出しの顔は取られていないいちばん強いもの（ソフトバンクは 🐶）。同じ強さで重なる名前は候補を並べる。🎯 は残りを半分にする要素から y / n / ? で当てっこ |
+| 🧷 | `/olnm ls git` `/olnm show gp` `/olnm calc 6 mul 7` | OLNM の olnm.py そのもの（探す・読む・もしかして・電卓）。ワンライナーの実行は端末で（入れ方の 1 行を返す） |
 | 🔎👀 | `onto` `/find --kind jsonl` `/show REPO/PATH` | 公開時に `--record-chat` で取得した JSON / JSONL の索引（`media/chat/index.json`）と、そのコミットの raw |
 | ⌨️ | `/flwo` → `/flow` | cli_args の「もしかして」 |
-| 🤖 | `/ask 質問` | llama.cpp（wllama 4.0.0、jsDelivr）が Qwen3.5-0.8B（Q4_0、約 560 MB、Hugging Face）を端末の中で動かす。初回だけ読み、あとはブラウザが保存。GitHub Pages は COOP/COEP を返せないので CPU は 1 スレッド、WebGPU があれば GPU。考えた過程（reasoning）を書いたときは 💭 で引用して見せる |
+| 🤖 | `/ask 質問` | llama.cpp（wllama 4.0.0、jsDelivr）が Qwen3.5-0.8B（Q4_0、約 560 MB、Hugging Face）を端末の中で動かす。初回だけ読み、あとはブラウザが保存。GitHub Pages は COOP/COEP を返せないので CPU は 1 スレッド、WebGPU があれば GPU。考えた過程（reasoning）を書いたときは 💭 で引用して見せる。📚 質問が名指すもの（リポジトリ名・頭文字の略称 OTL / PSWB・要約の単語・見つかるファイル、台帳の概念と 🏷 別名）だけを、README の要約（`api/repos.json`、索引の `repos`）・属＋種差・ファイル名としてシステムに渡す（文脈は 2048 トークン） |
 
 📇 索引タブは olnm の検証ガイドと同じ PySaiyanWeBoo の runbook（検索・状態の絞り込み・記録の JSON 保存）で、各例の 💬 送る でチャットに送れます。
 
