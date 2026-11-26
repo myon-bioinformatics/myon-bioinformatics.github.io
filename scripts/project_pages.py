@@ -167,6 +167,11 @@ def load_module(name: str, relative_path: str | Path) -> ModuleType:
     return module
 
 
+@functools.cache
+def _front_module():
+    return load_module('front_page', 'scripts/front_page.py')
+
+
 def tools_places(prefix: str = '../../') -> list[dict]:
     """🧰 Every link of the 🧰 Tools cards (front_page.py ``PORTAL``, so a new card is a new row) as ``{'id', 'label', 'href'}``, for
     a page ``prefix`` below the site root: the doors of 🚪 Door-to-Door. ``text`` is the card's own description (the board shows it).
@@ -175,7 +180,7 @@ def tools_places(prefix: str = '../../') -> list[dict]:
     for a link that has none or shares its card's."""
     site, places = 'https://myon-bioinformatics.github.io/tools/', {}
     marks = {'html-import': '📄', 'maps': '🗺️', 'maps-tokyo': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'mcp-protocol': '🤝'}
-    for card in load_module('front_page', 'scripts/front_page.py').PORTAL:
+    for card in _front_module().PORTAL:
         mark, _, title = card['title'].partition(' ')
         if not title or any(c.isalnum() for c in mark):                  # a title without an emoji: all of it is words
             mark, title = '🚪', card['title']
@@ -192,7 +197,7 @@ def tools_chrome(prefix: str = '../../', tools: dict | None = None, description:
     the board (``title``, the clock, then ``description`` — what this page is, a sentence per item — and the cards' titles), 🏠 back
     to the cards (``home=False``: the front page itself) and ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``).
     ☰ is each page's own (itself and its sections, listed in the page); the tools themselves are 🚪 Door-to-Door's rows (``tools_places``)."""
-    cards = load_module('front_page', 'scripts/front_page.py').PORTAL
+    cards = _front_module().PORTAL
     about = [{'text': part if len(part) <= 120 else part[:119] + '…'}
              for part in (p.strip() for p in re.split(r'(?<=[。！？])|(?<=[.!?])\s+', html.unescape(description))) if part][:3]
     return {'id': 'tools', **({'home': prefix + 'index.html#tools'} if home else {}), 'tools': tools or {},
@@ -298,7 +303,7 @@ def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
     site's shared header, side and foot (``add_site_chrome``: the board reads the page's description, ☰ lists its sections).
 
     It is not in the lock: api/repos.json is refreshed by a workflow, and the page must follow it without a lock refresh."""
-    front = load_module('front_page', 'scripts/front_page.py')
+    front = _front_module()
     return {'index.html': add_site_chrome(front.document(root, samples=samples), 'index.html', front.LINKS, title='MYON', home=False).encode('utf-8')}
 
 
