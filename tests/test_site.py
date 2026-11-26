@@ -277,7 +277,7 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
 # The demos (DEMOS) and the 🌍 world pages (WORLD_PAGES) come from scripts/project_pages.py; they are tool pages too.
 TOOL_PAGES = ("tools/html-import/index.html",
               *(("tools/mcp/index.html", "tools/mcp/repository-diagnostics.html") if LAB_BUILT else ()),
-              "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html", "tools/flow/index.html",
+              "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html", "tools/chat/index.html", "tools/flow/index.html",
               "tools/repo-map/index.html",
               *sorted(str(path.relative_to(SITE)) for path in (SITE / "tools/demos").glob("*.html")))
 
@@ -1237,7 +1237,7 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     assert index['repos'] == {'onto': ('📘 Guide for ' + 'x' * 200)[:159] + '…'}           # 🤖 README summaries for /ask, links as their text
     assert all((tmp_path / 'site/media/chat/talkcompress' / name).is_file() for name in CHAT.TALKCOMPRESS)
 
-    page = (SITE / 'tools/demos/chat.html').read_text(encoding='utf-8')
+    page = (SITE / 'tools/chat/index.html').read_text(encoding='utf-8')
     sources = json.loads(re.search(r'<script type="application/json" id="chat-sources">(.*?)</script>', page, re.S).group(1))
     import importlib.util as util
     assert sources == {'chat.py': (ROOT / 'scripts/chat.py').read_text(encoding='utf-8'),
@@ -1248,7 +1248,9 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     assert page.count('class="ui-card ui-step"') == sum(len(c[3]) for c in CHAT.COMMANDS.values()) + len(CHAT.TYPOS)
     assert 'data-testid="portfolio-back"' in page and '💬chat-slot' not in page
     front = (SITE / 'index.html').read_text(encoding='utf-8')
-    assert 'id="chat"' in front and './tools/demos/chat.html' in front and 'Markdown 道具箱' not in front
+    assert 'id="chat"' in front and './tools/chat/' in front and 'Markdown 道具箱' not in front
+    assert 'chat' not in PAGES.DEMOS and not (SITE / 'tools/demos/chat.html').exists()      # 💬 one card, one address: not among the 🤖 stubs
+    assert 'chat.html' not in (SITE / 'tools/demos/index.html').read_text(encoding='utf-8')
 
 
 def html_escape(text):
@@ -1317,7 +1319,7 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             context.route(lambda url: '/media/chat/' in url, local_media)      # the context's routes reach wllama's workers too
             page = context.new_page()
             page.on('pageerror', lambda error: errors.append(str(error)))
-            page.goto(base + 'tools/demos/chat.html')
+            page.goto(base + 'tools/chat/')
             page.wait_for_function('() => document.documentElement.dataset.chatReady === "true"', timeout=180_000)
             status = page.locator('[data-chat-status]').text_content()
             assert status.startswith('✅ 🐍 3.') and '🔎 6 files' in status, status

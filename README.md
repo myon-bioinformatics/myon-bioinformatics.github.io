@@ -85,7 +85,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 | 🌡️ ヒートマップ（DRAgoWing · Ironmate） | [tools/heatmap/](https://myon-bioinformatics.github.io/tools/heatmap/) |
 | 🔌 MCP 実験室（mcp-toolcall-lab） | [Tool Lab](https://myon-bioinformatics.github.io/tools/mcp/) · [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) |
 | 🤖 Stubs & mocks | [tools/demos/](https://myon-bioinformatics.github.io/tools/demos/) |
-| 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab） | [tools/demos/chat.html](https://myon-bioinformatics.github.io/tools/demos/chat.html) |
+| 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab） | [tools/chat/](https://myon-bioinformatics.github.io/tools/chat/) |
 | 🧭 統合運用 | [Dashboard](https://myon-bioinformatics.github.io/myon-bioinformatics/) |
 | 🎞 GIF工房（PySaiyanWeBoo） | [tools/gif/](https://myon-bioinformatics.github.io/tools/gif/) |
 | 🌊 流れの実験室（FluidFullSpeedSimulation · DRAgoWing） | [tools/flow/](https://myon-bioinformatics.github.io/tools/flow/) |
@@ -258,7 +258,7 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 
 ### 💬 横断チャット
 
-🧰 Tools → **💬 横断チャット**（`tools/demos/chat.html`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args・ontautology.py（OnTautoLogy）・olnm.py（OLNM）は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。
+🧰 Tools → **💬 横断チャット**（`tools/chat/`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args・ontautology.py（OnTautoLogy）・olnm.py（OLNM）は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。
 
 | | コマンド | 出どころ |
 | --- | --- | --- |

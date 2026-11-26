@@ -73,8 +73,6 @@ PUBLIC_SOURCE_FILES = (
 
 # 🧰 name -> (how it is built from pysaiyanweboo, shortcut label, title, summary): the only list of demos.
 DEMOS = {
-    'chat': (lambda ui: chat_document(ui), '💬 チャット', 'Cross-repo chat',
-             'リポジトリ横断のチャット：Markdown・ASCII アート・会話の圧縮・MCP 呼び出しの確認・JSON / JSONL の索引を、ページの中の Python（Pyodide）で'),
     'mcp-stub': (lambda ui: stub_document(ui, EXAMPLE_STUBS['mcp']), '🤖 MCP stub', 'MCP stub', '通信しない MCP のスタブ：ツール名を入れて結果と証跡を見る'),
     'api-stub': (lambda ui: stub_document(ui, EXAMPLE_STUBS['api']), '🔁 API stub', 'API stub', '通信しない API のスタブ：パスを送って結果と証跡を見る'),
     'mcp-lab': (lambda ui: ui.mcp_document(), '🔌 MCP試験', 'MCP lab', 'ページ内で動く MCP サーバーのモック：新旧の protocol、PKCE、ヘッダー名、Bearer、OAuth メタデータ'),
@@ -307,8 +305,7 @@ def render_demos(ui) -> dict[str, bytes]:
     the site root)."""
     result = {DEMO_BASE + 'index.html': add_home_label(add_back_nav(ui.catalog_document({
         'schema': 'web-ui-catalog/1', 'title': '🤖 Stubs & mocks',
-        'description': '💬 チャット、🤖🔁 通信しないスタブ、PySaiyanWeBoo のモック。どれも Python で生成し、このページの中で動きます'
-                       '（💬 は Pyodide を CDN から読む。ほかは通信しない）。',
+        'description': '🤖🔁 通信しないスタブと、PySaiyanWeBoo のモック。どれも Python で生成し、このページの中で動きます（通信しない）。',
         'items': [{'id': name, 'title': title, 'summary': summary, 'links': [{'label': 'Open →', 'href': f'./{name}.html'}]}
                   for name, (_, _, title, summary) in DEMOS.items()]})), '🤖 Stubs', icons_from='../../').encode('utf-8')}
     for name, (build, label, _, _) in {**DEMOS, **WORLD_PAGES}.items():
@@ -730,6 +727,12 @@ def chat_document(ui) -> str:
     return page.replace(slot, body, 1).replace('</head>', f'<style>{parts["css"]}{CHAT_CSS}</style></head>', 1)
 
 
+CHAT_PAGE = 'tools/chat/index.html'   # 💬 a tool of its own (a 🧰 Tools card), not one of the 🤖 stubs
+def render_chat_tool(ui) -> dict[str, bytes]:
+    """💬 横断チャット: ``chat_document`` with the way back and the home-screen name."""
+    return {CHAT_PAGE: add_home_label(add_back_nav(chat_document(ui)), '💬 チャット', icons_from='../../').encode('utf-8')}
+
+
 def _tree(repository: str, commit: str) -> list[tuple[str, int]]:
     """Every file (path, size) of ``repository`` at ``commit``, from the GitHub API (GITHUB_TOKEN when set)."""
     data = load_module('repos_catalog', 'scripts/repos_catalog.py')._get_json(
@@ -921,7 +924,7 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     """Every hash-locked page: the demos and world pages, HTML import, map tools and the GIF workshop, keyed by published path."""
     maps = {path: add_home_label(add_back_nav(document), '地図・ピン', icons_from='../../').encode('utf-8')
             for path, document in load_module('map_tool', 'scripts/map_tool.py').render(ui, _world()).items()}
-    pages = {**render_demos(ui), **render_html_import(ui), **maps, **render_gif_tool(ui)}
+    pages = {**render_demos(ui), **render_html_import(ui), **maps, **render_gif_tool(ui), **render_chat_tool(ui)}
     for sheet, builder in STYLESHEET_BUNDLES.items():
         prefix = b'<style>' + getattr(ui, builder)().encode()
         for path, page in pages.items():
@@ -944,7 +947,7 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
     if set(lock['outputs']) != {HTML_IMPORT_MODULE, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
-    expected = ({DEMO_BASE + 'index.html', HTML_IMPORT_PAGE, GIF_PAGE} | MAP_PAGES
+    expected = ({DEMO_BASE + 'index.html', HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE} | MAP_PAGES
                 | {DEMO_BASE + name + '.html' for name in (*DEMOS, *WORLD_PAGES)})
     if set(lock.get('pages', {})) != expected:
         raise ValueError('generated page paths differ from the demo and world lists and the HTML import page')
