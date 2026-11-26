@@ -547,7 +547,7 @@ def test_demo_zoom_goes_in_toward_the_anchor_and_stays_on_the_real_clock():
 
 CHROME = {"board": {"title": "TOOLS", "items": [{"text": "🎞 GIF工房"}]}, "home": "../../index.html#tools",
           "places": [{"label": "🧾 出力のしかた", "href": "#export"}, {"label": "📚 使い方（別ページ）", "href": "./guide.html"}],
-          "tools": {"🗼": {"label": "パラレル都市", "label_en": "Parallel cities", "links": [{"label": "🗼 パラレル東京", "href": "../maps/tokyo.html"}]},
+          "tools": {"🗼": {"label": "パラレル都市", "label_en": "Parallel cities", "links": [{"label": "🗼 パラレル東京", "href": "../demos/cities.html"}]},
                     "🧭": {"label": "統合運用", "slot": "side", "href": "https://myon-bioinformatics.github.io/myon-bioinformatics/"}}}
 
 
@@ -564,7 +564,7 @@ def test_a_tool_page_chrome_is_a_world_shell_without_a_map():
     assert '<a class="ui-world-home" href="../../index.html#tools"' in head
     assert side.index(">☰<") < side.index(">🧭<") < side.index(">⋯<")
     assert '<a class="ui-world-tool" href="https://myon-bioinformatics.github.io/myon-bioinformatics/"' in side     # href: the button is the link
-    assert '<li><a href="../maps/tokyo.html">🗼 パラレル東京</a></li>' in head                                        # links: a panel of rows
+    assert '<li><a href="../demos/cities.html">🗼 パラレル東京</a></li>' in head                                        # links: a panel of rows
     assert "data-fav" not in html and html.count('class="ui-world-star"') == 2            # a place is known by where it leads
     assert ('<ul class="ui-world-rows ui-world-spots"><li><a href="#export"><span class="ui-world-arrow" aria-hidden="true"></span>🧾 出力のしかた</a>'
             '<button type="button" class="ui-world-star" aria-pressed="false"') in side
@@ -598,9 +598,9 @@ def test_a_world_takes_link_tools_too():
     """``href`` and ``links`` are tool kinds of a world as well: one validator (tools_validate) and one markup (_tool_html)."""
     spec = W.example_data("school")
     spec = {**spec, "tools": {"🧰": {"label": "Tools", "href": "../../index.html#tools"},
-                              "🗼": {"label": "街", "slot": "side", "links": [{"label": "東京", "href": "./tokyo.html"}]}}}
+                              "🗼": {"label": "街", "slot": "side", "links": [{"label": "東京", "href": "../demos/cities.html"}]}}}
     html = W.world_html(spec)
-    assert '<a class="ui-world-tool" href="../../index.html#tools"' in html and '<li><a href="./tokyo.html">東京</a></li>' in html
+    assert '<a class="ui-world-tool" href="../../index.html#tools"' in html and '<li><a href="../demos/cities.html">東京</a></li>' in html
     with pytest.raises(ValueError, match="exactly one of floor, spots, href, links, body"):
         W.world_validate({**spec, "tools": {"🧰": {"label": "Tools"}}})
 

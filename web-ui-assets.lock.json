@@ -18,14 +18,14 @@
   "pages": {
     "tools/demos/world.html": "ce9ceefb0024fd962763c70073cfdffa9166496d5ba450416479ccca2f1e3667",
     "tools/demos/school.html": "e3568ed6a83002cd74b417705239f51162b749a0e474077dff14b85ce3f0ebcc",
-    "tools/demos/cities.html": "512ae0a8037681b5e127e239de534fad9c59fed6f3c4fa5b59e0e58f9c8a0748",
+    "tools/demos/cities.html": "d351bca2ed6e669af601053ddc3b57702dc2bcb8ca7d13b9e8883bd92dd5737c",
     "tools/demos/world-shots.html": "1c284d2a9b729c48d1ba818afd893f83e6f3b96f71962b68c25574cf928c2b14",
-    "tools/test-report/index.html": "b06408cbafa1cca9a8452424a17644c3a74a849b1e8f8a4433da053d0d5f1df0",
-    "tools/mcp-protocol/index.html": "5ea2a23c481580f49796ee73a90d9fd4583d518ef3964a6e9286ef025976a11c",
-    "tools/html-import/index.html": "fc1d821dbeb50d2845a9b1e5c906dfb89984bc8f06f3526402836c8db333666a",
-    "tools/maps/index.html": "47b24cbafa3f262a202aabb29c728ebb528f379639afaba85cadd5980c1eac84",
-    "tools/maps/tokyo.html": "90f16ca24aec5aceed2cbc3072797d8f1d54964e6707d90b66e439fe8ae7dd90",
-    "tools/gif/index.html": "2922b3f83847cbc1302da257bf2ba58b390f0233d1ae78d2a942338f2c1db1f6",
-    "tools/chat/index.html": "4e6e791e24ff9dea99b256b9fb2712391f9beaf9419b57e730c2ed36c6b6d203"
+    "tools/test-report/index.html": "bf04a7bf42b174e561c87da793a4f5155767aec6d1feee9a0002c8b21a87b147",
+    "tools/mcp-protocol/index.html": "af92e469750770fd8c3b485f0c3cd5a576958ab707d142a7bbc350c44a0d6055",
+    "tools/html-import/index.html": "7451f1f919c7a09748546017a05838ef28c6e219f9589b5dbfab077bbf6707f5",
+    "tools/maps/index.html": "2b3f62b86c65500d3c0134d5d15ec3ee4c591ebc51ff8a79bd46b7c7ea3473e6",
+    "tools/maps/tokyo.html": "56acb14d094c69f679f82772078e02082b61fd99c4e097ff4763a4ccfdb7ffed",
+    "tools/gif/index.html": "616d981a51b5574a00b834a5bbba002995bdbc2462a5d0a95b6f80004afb4aae",
+    "tools/chat/index.html": "36a86be57291e826bebf3c71e654013351d32ab60dca5e481ae7a5743a888902"
   }
 }

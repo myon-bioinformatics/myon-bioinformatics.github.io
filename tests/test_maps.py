@@ -68,6 +68,9 @@ def test_map_links_pins_share_and_tokyo_with_gif(site, browser):
             other.close()
 
         page.locator('#tokyo-link').click()
+        assert urlsplit(page.url).path == '/tools/demos/cities.html'
+        assert page.locator('.map-point-link').count() == 21
+        assert set(page.locator('.ui-floor').evaluate_all('(floors) => floors.map(f => f.dataset.floor)')) >= {'tokyo', 'london', 'paris'}
         # PSWB asks for the walking avatar on entry; choose it through the normal UI.
         expect(page.locator('.ui-world-pick')).to_be_visible()
         page.locator('.ui-world-pick-grid [data-emoji]').first.click()
@@ -221,5 +224,20 @@ def test_nearby_city_handoff_preserves_radius_and_original_area(site, browser):
         page.locator('#radius-preset').select_option('0')
         expect(page.locator('#area-result')).to_be_hidden()
         expect(page.locator('#nearby')).to_be_hidden()
+    finally:
+        page.close()
+
+
+def test_old_tokyo_bookmark_restores_spot_and_area(site, browser):
+    page = browser.new_page()
+    try:
+        suffix = '?lat=35.68135&lon=139.7665&name=Centre&radius_m=0#cities-spot-tokyo-kanda'
+        page.goto(site[1] + '/tools/maps/tokyo.html' + suffix)
+        expect(page).to_have_url(site[1] + '/tools/demos/cities.html' + suffix)
+        page.locator('.ui-world-pick-grid [data-emoji]').first.click()
+        expect(page.locator('#cities-spot-tokyo-kanda')).to_be_visible()
+        page.locator('#area-return').click()
+        expect(page.locator('#point-name')).to_have_value('Centre')
+        expect(page.locator('#radius')).to_have_value('0')
     finally:
         page.close()

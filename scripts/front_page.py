@@ -29,7 +29,7 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
  {'title': '地図URL・ピン留め',
   'text': '緯度・経度からApple MapsとGoogle MapsのURLを作成。地点のピン留め・共有と、パラレル東京の対応地点へ。',
   'id': 'maps',
-  'links': [('地図URLを作成 →', './tools/maps/'), ('パラレル東京 →', './tools/maps/tokyo.html')]},
+  'links': [('地図URLを作成 →', './tools/maps/'), ('パラレル東京 →', './tools/demos/cities.html')]},
  {'title': '🖼️ スライド・画像工房',
   'text': 'ブラウザでスライドを作成し、文字・図形・矢印を編集可能なPPTXへ出力。Image Studio はレイヤー、数値行列のヒートマップ、作業履歴、クリップボード棚、PNG Base64 の受け渡しに対応し、Browser Tools '
           'ではドット絵・比較用の一枚・容量確認ができます。Markdown→PPTX変換と既存PPTXの属性編集はローカルCLIの試作実装です。',
