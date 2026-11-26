@@ -1058,8 +1058,10 @@ CHAT_CONCEPTS = {'schema': 'ontautology-concepts/1',                    # 🧬 a
                               'バイオリン': ['楽器', '弦楽器', '擦弦', '4弦標準', '弓で弾く'],
                               'マリオ': ['ゲームキャラクター', '帽子', '赤色', '兄'], 'ルイージ': ['ゲームキャラクター', '帽子', '緑色', '弟']},
                  'similar': [['ギター', 'ベース'], ['ギター', 'ウクレレ'], ['ギター', 'バイオリン'], ['マリオ', 'ルイージ']],
-                 'names': {'ギター': ['英名:Guitar', '略称:ギタ'], 'マリオ': ['英名:Mario', '主役シリーズ:スーパーマリオ', '絵文字略称:🍄', '絵文字略称:🎩'],
-                           'ルイージ': ['同音語:類似', '絵文字略称:👻', '絵文字略称:🎩', '別名:マリオ']}}   # 🎩 is both; マリオ stays マリオ
+                 'names': {'ギター': ['英名:Guitar', '略称:ギタ'],      # 🎩 ties; 👻 is ルイージ's (同じ beats 代用), so マリオ's face is 🍄
+                           'マリオ': ['英名:Mario', '主役シリーズ:スーパーマリオ', '絵文字略称/似たもの:🍄', '絵文字略称/代用:👻', '絵文字略称:🎩'],
+                           'ルイージ': ['同音語:類似', '絵文字略称/同じ:👻', '絵文字略称:🎩', '別名:マリオ']},   # マリオ stays マリオ
+                 'name_basis': {'絵文字略称': ['同じ', '代用', '似たもの']}}
 CHAT_RAW = {'onto/docs/graph.json': json.dumps({'schema': 'graph/1', 'nodes': [{'id': 'a'}, {'id': 'b'}], 'edges': [['a', 'b']]}),
             'OnTautoLogy/examples/concepts-20261115.json': json.dumps(CHAT_CONCEPTS, ensure_ascii=False),
             'Aoi/cycles/c001/outputs/allocation.jsonl': '{"team": "d", "z": -0.7}\n{"team": "s", "z": 0.2}\n'}
@@ -1125,7 +1127,8 @@ def test_chat_onto_defines_concepts_and_looks_them_up_with_ontautology():
     assert '⌨️ もしかして: `/onto バイオリン`' in say('/onto バイオリ') and '🫥' in say('/onto 楽器 + 赤色')
     assert '🏷 guitar → **ギター**' in say('/onto guitar') and '### 🧬 ギター' in say('/onto ギタ')      # 🏷 the ledger's names
     assert '### 🧬 🍄 マリオ' in say('/onto Mario') and '❓ 台帳にない' in say('/onto スーパーマリオ') and '❓' in say('/onto 類似')
-    assert '→ **ルイージ**' in say('/onto 👻\ufe0f') and '### 🧬 👻 ルイージ' in say('/onto 👻')      # 🏷 絵文字略称, the first is its face
+    assert '→ **ルイージ**' in say('/onto 👻\ufe0f') and '### 🧬 👻 ルイージ' in say('/onto 👻')      # 🏷 絵文字略称, the strongest wins
+    assert '🏷 👻 → **ルイージ**（同じ） · ほかに `/onto マリオ`（代用）' in say('/onto 👻')
     assert '🏷 **🎩** は 2 つ: `/onto マリオ` · `/onto ルイージ`' in say('/onto 🎩') and '### 🧬 🍄 マリオ' in say('/onto マリオ')
     assert '⏸' in CHAT.respond('/onto ギター', index={})
 

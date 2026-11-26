@@ -419,7 +419,7 @@ def concepts(index: dict | None = None, fetch=None) -> dict:
     key = (json.dumps(index.get('commits', {}), sort_keys=True), id(fetch))
     if _STATE['concepts'] and _STATE['concepts'][0] == key:
         return _STATE['concepts'][1]
-    corpus = {'schema': otl.CONCEPT_SCHEMA, 'concepts': {}, 'similar': [], 'sources': [], 'names': {}}
+    corpus = {'schema': otl.CONCEPT_SCHEMA, 'concepts': {}, 'similar': [], 'sources': [], 'names': {}, 'name_basis': {}}
     for name, path, size in index['files']:
         if not re.search(r'(^|/)concepts[-_][^/]*\.json$', path) or size > SHOW_MAX:
             continue
@@ -436,6 +436,8 @@ def concepts(index: dict | None = None, fetch=None) -> dict:
         corpus['similar'] += data.get('similar', [])
         for concept, called in (data.get('names') or {}).items():
             corpus['names'].setdefault(concept, []).extend(c for c in called if isinstance(c, str))
+        for kind, order in (data.get('name_basis') or {}).items():       # 絵文字略称: [同じ, 代用, …] — the strongest first
+            corpus['name_basis'].setdefault(kind, [b for b in order if isinstance(b, str)])
         corpus['sources'].append(f'{name}/{path}@{commit[:7]}')
     _STATE['concepts'] = (key, corpus)
     return corpus
@@ -452,24 +454,39 @@ def _key(word: str) -> str:
     return word.replace('\ufe0f', '').strip().casefold()
 
 
-def aliases(corpus: dict) -> dict[str, list[str]]:
-    """🏷 What each concept is also called → the concepts called so (more than one when a name is shared: 🦅 is 楽天 and
-    ソフトバンク): its name and the ledger's names whose kind is a name or a reading (略称:中日, 英名:Guitar, 別名:ヒト, 読み:しゃけ,
-    絵文字略称:🐯 — not 同音語 or 名前の由来). A concept's own name is only ever itself."""
-    called = {_key(name): [name] for name in corpus.get('concepts', {})}
+def aliases(corpus: dict) -> dict[str, list[tuple[str, str, int]]]:
+    """🏷 What each concept is also called → (concept, basis, rank) for each concept called so, the strongest basis first: its
+    name and the ledger's names whose kind is a name or a reading (略称:中日, 英名:Guitar, 別名:ヒト, 読み:しゃけ, 絵文字略称/同じ:🐯 —
+    not 同音語 or 名前の由来). ``kind/basis`` ranks by the ledger's name_basis for that kind (🦅: 楽天 同じ before ソフトバンク 代用;
+    an unlisted basis after them, none before them); the same rank keeps the ledger's order. A concept's name is only ever itself."""
+    called = {_key(name): [(name, '', -1)] for name in corpus.get('concepts', {})}
+    own = set(called)
     for concept, names in corpus.get('names', {}).items():
-        for kind, _, alias in (n.partition(':') for n in names):
-            key = _key(alias)
-            if concept in corpus['concepts'] and key and (kind.endswith(('名', '称')) or kind == '読み') \
-                    and key not in {_key(name) for name in corpus['concepts']} and concept not in called.setdefault(key, []):
-                called[key].append(concept)
-    return called
+        for full, _, alias in (n.partition(':') for n in names):
+            kind, _, basis = full.partition('/')
+            key, order = _key(alias), corpus.get('name_basis', {}).get(kind, [])
+            if concept in corpus['concepts'] and key and key not in own and (kind.endswith(('名', '称')) or kind == '読み') \
+                    and concept not in [c for c, _, _ in called.get(key, [])]:
+                rank = (order.index(basis) if basis in order else len(order)) if basis else -1
+                called.setdefault(key, []).append((concept, basis, rank))
+    return {key: sorted(claims, key=lambda claim: claim[2]) for key, claims in called.items()}
+
+
+def _wins(claims: list, concept: str) -> bool:
+    """``concept`` alone holds the strongest claim to a name (a tie wins for no one)."""
+    return [c for c, _, rank in claims if rank == claims[0][2]] == [concept]
 
 
 def icon(corpus: dict, concept: str) -> str:
-    """The concept's first 絵文字略称 and a space (its face in replies: 🐯 阪神タイガース), or ''."""
-    marks = [n.split(':', 1)[1].strip() for n in corpus.get('names', {}).get(concept, []) if n.startswith('絵文字略称:')]
-    return f'{marks[0]} ' if marks else ''
+    """The concept's face in replies (🐯 阪神タイガース) and a space: its strongest 絵文字略称 that no one else holds more strongly
+    (ソフトバンク: 🦅 is 楽天's, so 🐶), else its strongest; '' without one."""
+    table = aliases(corpus)
+    marks = [(next(rank for c, _, rank in table[_key(alias)] if c == concept), _key(alias), alias.strip())
+             for kind, _, alias in (n.partition(':') for n in corpus.get('names', {}).get(concept, []))
+             if kind.partition('/')[0] == '絵文字略称' and concept in [c for c, _, _ in table.get(_key(alias), [])]]
+    marks.sort(key=lambda mark: mark[0])
+    face = next((alias for _, key, alias in marks if _wins(table[key], concept)), marks[0][2] if marks else '')
+    return f'{face} ' if face else ''
 
 
 def _ledger(corpus: dict) -> str:
@@ -505,10 +522,13 @@ def onto_reply(text: str, index: dict | None = None, fetch=None) -> str:
     names = list(corpus['concepts'])
     text, said = text.strip(), ''
     called = aliases(corpus).get(_key(text), []) if text not in corpus['concepts'] else []
-    if len(called) > 1:
-        return '\n\n'.join([f'🏷 **{text}** は {len(called)} つ: ' + ' · '.join(f'`/onto {c}`' for c in called), _ledger(corpus)])
+    why = lambda basis: f'（{basis}）' if basis else ''
+    if len(called) > 1 and not _wins(called, called[0][0]):           # a tie: which one is meant is the user's to say
+        return '\n\n'.join([f'🏷 **{text}** は {len(called)} つ: ' + ' · '.join(f'`/onto {c}`{why(b)}' for c, b, _ in called), _ledger(corpus)])
     if called:
-        said, text = f'🏷 {text} → **{called[0]}**', called[0]
+        said = f'🏷 {text} → **{called[0][0]}**{why(called[0][1])}' + (
+            ' · ほかに ' + ' · '.join(f'`/onto {c}`{why(b)}' for c, b, _ in called[1:]) if called[1:] else '')
+        text = called[0][0]
     if not text:
         return '\n\n'.join([f'🧬 **{len(names)}** 概念 · 🤝 似ている組 **{len(corpus["similar"])}**', ' · '.join(names),
                             '例: `/onto ギター`（〇〇を〇〇たらしめるもの）· `/onto 撥弦 + フレット`（要素から逆引き）· `/guess`（当てっこ）',
@@ -671,7 +691,7 @@ def grounding(question: str, index: dict | None = None, fetch=None, *, repos: in
     corpus = concepts(index, fetch) if any(re.search(r'(^|/)concepts[-_]', p) for _, p, _ in index.get('files', [])) else {}
     named, asked = {}, question.replace('\ufe0f', '')            # concept → where the question first names it
     for alias, called in aliases(corpus).items():
-        for concept in called:                                  # one letter only when it is the name or a symbol (🐯, not 中)
+        for concept, _, _ in called:                                  # one letter only when it is the name or a symbol (🐯, not 中)
             if (len(alias) > 1 or alias == _key(concept) or unicodedata.category(alias)[0] == 'S') and _said(alias, asked):
                 named[concept] = min(named.get(concept, len(asked)), asked.casefold().find(alias))
     defined = []
