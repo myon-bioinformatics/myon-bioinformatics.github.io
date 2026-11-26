@@ -17,7 +17,6 @@ import contextlib
 import difflib
 import io
 import json
-import math
 import re
 import sys
 import unicodedata
@@ -65,7 +64,7 @@ COMMANDS = {
     'show': ('👀', 'REPO/PATH', 'JSON / JSONL の中身を表にまとめる（そのコミットの raw を読む）', ('/show TaxOntOy/otl-relations.json',)),
     'onto': ('🧬', '[WORD | 要素 + 要素]', 'オントロジー（OnTautoLogy）: 〇〇を〇〇たらしめる要素と、似たものとの違い。要素を + でつなぐと逆引き',
              ('/onto ギター', '/onto 撥弦 + フレット', '/onto')),
-    'guess': ('🎯', '[y | n | ?]', '当てっこ: 台帳から思い浮かべたものを、要素の質問（はい・いいえ）で当てる（OnTautoLogy の台帳）',
+    'guess': ('🎯', '[y | n | ?]', '当てっこ。要素を質問し、最後に候補名を確認する。わからないときは ?',
               ('/guess',)),
     'olnm': ('🧷', '[ls | grep | like | show | calc | sections] …', '端末のワンライナー集 OLNM を動かす（探す・読む・もしかして・電卓）',
              ('/olnm like uvtets', '/olnm show gp', '/olnm calc 6 mul 7', '/olnm grep json')),
@@ -439,7 +438,8 @@ def concepts(index: dict | None = None, fetch=None) -> dict:
     key = (json.dumps(index.get('commits', {}), sort_keys=True), id(fetch))
     if _STATE['concepts'] and _STATE['concepts'][0] == key:
         return _STATE['concepts'][1]
-    corpus = {'schema': otl.CONCEPT_SCHEMA, 'concepts': {}, 'similar': [], 'sources': [], 'names': {}, 'name_basis': {}}
+    corpus = {'schema': otl.CONCEPT_SCHEMA, 'concepts': {}, 'similar': [], 'sources': [],
+              'names': {}, 'name_basis': {}, 'maybe': {}, 'broader': {}}
     for name, path, size in index['files']:
         if not re.search(r'(^|/)concepts[-_][^/]*\.json$', path) or size > SHOW_MAX:
             continue
@@ -451,8 +451,16 @@ def concepts(index: dict | None = None, fetch=None) -> dict:
             continue
         if not isinstance(data, dict) or data.get('schema') != otl.CONCEPT_SCHEMA or not isinstance(data.get('concepts'), dict):
             continue
+        maybe = data.get('maybe') or {}
         for concept, body in data['concepts'].items():
-            corpus['concepts'].setdefault(concept, body)
+            if concept not in corpus['concepts']:
+                corpus['concepts'][concept] = body
+                if isinstance(maybe, dict) and concept in maybe:
+                    corpus['maybe'][concept] = maybe[concept]
+        broader = data.get('broader')
+        if isinstance(broader, dict):
+            for element, parents in broader.items():
+                corpus['broader'].setdefault(element, parents)
         corpus['similar'] += data.get('similar', [])
         for concept, called in (data.get('names') or {}).items():
             corpus['names'].setdefault(concept, []).extend(c for c in called if isinstance(c, str))
@@ -591,38 +599,52 @@ _YES, _NO, _SKIP = {'y', 'yes', 'はい', 'うん', 'o', '⭕'}, {'n', 'no', '�
 
 
 def guess_reply(text: str = '', index: dict | None = None, fetch=None) -> str:
-    """🎯 Think of one concept in the ledger; each question is the element that halves what is left (y / n / ?), until one
-    is left — the count against ⌈log₂ N⌉, the questions a perfect split would need."""
-    corpus = concepts(index, fetch)
-    if not corpus.get('concepts'):
-        return '⏸ 概念の台帳（OnTautoLogy の concepts-*.json）をこのビルドの索引から読めない'
-    answer, game = text.strip().lower(), _STATE['guess']
+    """Render a turn of OnTautoLogy's guessing game in Markdown."""
+    answer, session = text.strip().lower(), _STATE['guess']
     if answer in ('stop', 'やめる'):
         _STATE['guess'] = None
         return '🎯 おしまい（`/guess` でもう一度）'
-    observed = [n for n, body in corpus['concepts'].items() if _elements(body)]
-    if game is None or answer in ('', 'new', 'again', 'もう一回'):
-        game = _STATE['guess'] = {'left': observed, 'asked': [], 'q': None, 'n': len(observed)}
-        intro = f'🎯 台帳の {len(observed)} 個から 1 つ思い浮かべて（{_few(observed, 6)}）。はい＝`y`・いいえ＝`n`・わからない＝`?`'
-    elif answer in _YES | _NO | _SKIP:
-        element = game['q']
-        game['asked'].append((element, '⭕' if answer in _YES else '❌' if answer in _NO else '❔'))
-        if answer not in _SKIP:
-            game['left'] = [n for n in game['left'] if (element in _elements(corpus['concepts'][n])) == (answer in _YES)]
-        intro = f'{game["asked"][-1][1]} {element}'
+    if session is None or answer in ('', 'new', 'again', 'もう一回'):
+        _STATE['guess'] = None
+        corpus = concepts(index, fetch)
+        if not corpus.get('concepts'):
+            return '⏸ 概念の台帳（OnTautoLogy の concepts-*.json）をこのビルドの索引から読めない'
+        try:
+            game = otl.GuessGame(corpus, binary=True, confirm_name=True, lies=1)
+        except ValueError:
+            return '⏸ 概念の台帳に不整合があるため、当てっこを始められない'
+        if not game.candidates:
+            return '⏸ 台帳に要素を観測した概念がない'
+        _STATE['guess'] = game, corpus
+        intro = f'🎯 台帳の {len(game.candidates)} 個から思い浮かべて（{_few(game.candidates, 6)}）。はい＝`y`・いいえ＝`n`・わからない＝`?`'
     else:
-        return f'🎯 `y`（はい）・`n`（いいえ）・`?`（わからない）で答えて（やめるなら `/guess stop`）\n\n❓ 『{game["q"]}』？'
-    left, asked = game['left'], [e for e, _ in game['asked']]
-    if len(left) == 1:
-        _STATE['guess'] = None
-        return '\n\n'.join([intro, f'🎯 それは **{icon(corpus, left[0])}{left[0]}**！ {len(asked)} 問で（目安 ⌈log₂ {game["n"]}⌉ = {math.ceil(math.log2(game["n"]))} 問）',
-                            f'🧬 `/onto {left[0]}` で、何が {left[0]} を {left[0]} にしているか'])
-    question = _splitter(corpus, left, asked) if left else None
-    if question is None:
-        _STATE['guess'] = None
-        return '\n\n'.join([intro, f'🤷 見分けられない: {_few(left, 6)}' if left else '🫥 台帳にない…（`/onto` で一覧）'])
-    game['q'] = question
-    return '\n\n'.join([intro, f'❓ Q{len(asked) + 1}: 『**{question}**』？（のこり {len(left)}）', '`y` / `n` / `?`'])
+        game, corpus = session
+        if answer in _YES | _NO | _SKIP:
+            value = None if answer in _SKIP else answer in _YES
+            _, question = game.question
+            game.answer(value)
+            mark = {True: '⭕', False: '❌', None: '❔'}[value]
+            intro = f'{mark} {question}'
+        else:
+            intro = '🎯 `y`（はい）・`n`（いいえ）・`?`（わからない）で答えて（やめるなら `/guess stop`）'
+    if game.question is not None:
+        kind, question = game.question
+        prompt = (f'候補は **{icon(corpus, question)}{question}**。思い浮かべたものと同じ？' if kind == 'name'
+                  else f'『**{question}**』？（のこり {len(game.candidates)}）')
+        return '\n\n'.join([intro, f'❓ Q{len(game.log) + 1}: {prompt}', '`y` / `n` / `?`'])
+
+    _STATE['guess'] = None
+    if game.guess is not None:
+        name = game.guess
+        return '\n\n'.join([intro, f'🎯 それは **{icon(corpus, name)}{name}**！ {len(game.log)} 問で',
+                            f'🧬 `/onto {name}` で、何が {name} を {name} にしているか'])
+    if game.log and game.log[-1].get('identity'):
+        result = '🫥 台帳の候補を確認できなかった（`/guess` でもう一度）'
+    elif len(game.candidates) > 1:
+        result = f'🤷 見分けられない: {_few(game.candidates, 6)}'
+    else:
+        result = '🫥 当てられなかった（`/onto` で台帳の一覧）'
+    return f'{intro}\n\n{result}'
 
 
 # ── 🧷 /olnm: OneLaunchNumerousModules (olnm.py), the terminal's one-liners, run here as far as a browser can ─────────────

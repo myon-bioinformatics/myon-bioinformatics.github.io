@@ -296,7 +296,7 @@ add_back_nav(page, 'tools/maps/index.html', {'🗼': {'label': 'パラレル都�
 | 🎨📦🔀 | `/ascii` `/box` `/flow A, B > C` | ascii_artist（banner・枠・流れ図と Mermaid） |
 | 🗂 | `/compress` | TalkCompress の ShorthandSessionEdge（公開時に記録）と markdown.py の compact_llm_output |
 | 🔌 | `/mcp 道具 {JSON}` | mcp-toolcall-lab のプロンプト実験が広告する道具（✅ tools/call／❌ 断る） |
-| 🧬🎯 | `/onto ギター` `/onto 撥弦 + フレット` `/guess` | OnTautoLogy の `define_concepts`（属＝似たものと共通・種差＝決め手）と `roundtrip_elements`（要素から逆引き）。台帳は全リポジトリの `concepts-*.json`（ontautology-concepts/1、索引のコミットの raw）。🏷 台帳の `names`（略称・英名・別名・読み・絵文字略称）でも引ける（`/onto 中日`・`/onto 🐯`）。`絵文字略称/根拠:🐯` は台帳の `name_basis` の強い順（同じ ＞ 代用 ＞ … ＞ 親会社）で、取り合う 🦅 は強い方（楽天）へ、見出しの顔は取られていないいちばん強いもの（ソフトバンクは 🐶）。同じ強さで重なる名前は候補を並べる。🎯 は残りを半分にする要素から y / n / ? で当てっこ |
+| 🧬🎯 | `/onto ギター` `/onto 撥弦 + フレット` `/guess` | OnTautoLogy の `define_concepts`（属＝似たものと共通・種差＝決め手）と `roundtrip_elements`（要素から逆引き）。台帳は全リポジトリの `concepts-*.json`（ontautology-concepts/1、索引のコミットの raw）。🏷 台帳の `names`（略称・英名・別名・読み・絵文字略称）でも引ける（`/onto 中日`・`/onto 🐯`）。`絵文字略称/根拠:🐯` は台帳の `name_basis` の強い順（同じ ＞ 代用 ＞ … ＞ 親会社）で、取り合う 🦅 は強い方（楽天）へ、見出しの顔は取られていないいちばん強いもの（ソフトバンクは 🐶）。同じ強さで重なる名前は候補を並べる。🎯 は y / n / ? で回答。食い違いを 1 回まで許し、最後の候補名に y と答えると確定 |
 | 🧷 | `/olnm ls git` `/olnm show gp` `/olnm calc 6 mul 7` | OLNM の olnm.py そのもの（探す・読む・もしかして・電卓）。ワンライナーの実行は端末で（入れ方の 1 行を返す） |
 | 🔎👀 | `onto` `/find --kind jsonl` `/show REPO/PATH` | 公開時に `--record-chat` で取得した JSON / JSONL の索引（`media/chat/index.json`）と、そのコミットの raw |
 | ⌨️ | `/flwo` → `/flow` | cli_args の「もしかして」 |
