@@ -1,7 +1,7 @@
 {
   "schema": "web-ui-generated/2",
   "generator": "pysaiyanweboo (pyproject.toml pages group)",
-  "commit": "3bcea0820406732ce640f95cc68a49d6b4b1a425",
+  "commit": "2c8c96e7358a6f3739c63f77e83535a53d18517e",
   "outputs": {
     "tools/vendor/web-ui/css/base.css": "89bf5a2371b7be9057540501bba09f399d60f9207971c47fd9dac7f473ea928d",
     "tools/vendor/web-ui/css/components.css": "b82cfa27825780876dfb28409214de079f52528ecb8afe22602ec54f36031e2f",
@@ -12,20 +12,20 @@
     "tools/vendor/web-ui/js/controls.js": "e545885ed2f0e43937d2eb3a44bdb874e8c4f42e895a36a51498a0db20956e9d",
     "tools/vendor/web-ui/js/coordinates.js": "b97576f0f7ccdb3a8c94b390c9a53f87acc3ddc837a5a4221cc5fef1a067b9bc",
     "tools/html-import/extract.mjs": "22453239323b35f46e4ece66fea443ed6475f0e26324926ba8dbb1fade203fec",
-    "tools/vendor/web-ui/css/bundle.css": "c3f7564b22934639983f213c5ce1475e101c9164fc2c464c220711ba692e682f",
+    "tools/vendor/web-ui/css/bundle.css": "18ca24051c77610d70a3aa2f38d9727e2f3a06ac03f3de7c78a543e0484b3626",
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/world.html": "52dd8d77520c09e390b7d0b04f3c9a1c3512d0c2c8e5c99567473b2c757f3b96",
-    "tools/demos/school.html": "aeedf6e9a06d3710bd6885bacdd1a490e4cdbf7c95bbaff4e975c4a1e1c81c72",
-    "tools/demos/cities.html": "9cbcde21f015a946c5e35a95ac50eb3c89522a31336dea6f475ca6a1e919449d",
-    "tools/demos/world-shots.html": "93ba494227c2b5cd41976ca3acc93390a259cf478db4b58bec1fcf3313f3e72d",
-    "tools/test-report/index.html": "f742ab27abcf9f29269ed0e5b35a0b8bada49c99cd08da6b7585f354c702fdcc",
-    "tools/mcp-protocol/index.html": "6f5bb5e3223367adaa9df099bc4f60a60289c4150629a86313c791026d05753c",
-    "tools/html-import/index.html": "a8d2f651b34a213a4674c8ee63979e19784fae3e5e504711482bea4505fe679d",
-    "tools/maps/index.html": "d877d83db06ebeecea3da4ec0e39f6f980161d5f6f188a0318557d28036ce2fa",
-    "tools/maps/tokyo.html": "b038b1aa3092c3a6f4117d641736e423ea9f4736fd7824356f5ce9a6fe798505",
-    "tools/gif/index.html": "a17372cb57278d3e832108eadae58c3664652f4e2d44f6e45bab69027c24ce2b",
-    "tools/chat/index.html": "387ab8f5bfe87fff197d407331d34a998bfd06acd4c0fcd4545c170cfd580f46"
+    "tools/demos/world.html": "9730c0f8267964cdc39c6c1ae44d2bbb47b3b56bd2aea29e570977cb29208e69",
+    "tools/demos/school.html": "443dfc2b48d6baaea0f569bc0a06aaf5d669ec14b19e4aef0fdb4de8699cc9dc",
+    "tools/demos/cities.html": "cc92c732200cf02bb3b9573aabe06c29c69ac9bd08eb0abed6a65a54e83f07dd",
+    "tools/demos/world-shots.html": "e321401dfe4f9c01cab38fd34f5aface620ae67603b0923c3b0f43c03f6f7874",
+    "tools/test-report/index.html": "af4eff5b8faf16ff4098455f2bbbfd9fd6d68f95fa5640e4fee21ed85a4ea59e",
+    "tools/mcp-protocol/index.html": "47af875c9caddd0dfde8e8e41e66dfd0019dd029fe8abbe8e941c873b0a94da6",
+    "tools/html-import/index.html": "f51bd640329512094d8fc93c10e41a7223f4cfa785ba1150182838502726e863",
+    "tools/maps/index.html": "ab4fe66400e06b2082c6e257a6e2bb248e26c7f0742fdaa049242fde40cf2647",
+    "tools/maps/tokyo.html": "11dab1820db99be08321bb03f3c0a5422ce37e4ed3dd534242bfea9934b05b0a",
+    "tools/gif/index.html": "71ed3d46711b95127bb564b145f41ce94bef159bae917bb82da655fc47a189c5",
+    "tools/chat/index.html": "17bb886a3352a543bf60c1edeff58c43a35164b3bc20816b24e1b62adc333ce5"
   }
 }
