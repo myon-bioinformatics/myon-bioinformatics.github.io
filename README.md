@@ -266,11 +266,13 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 | 🎨📦🔀 | `/ascii` `/box` `/flow A, B > C` | ascii_artist（banner・枠・流れ図と Mermaid） |
 | 🗂 | `/compress` | TalkCompress の ShorthandSessionEdge（公開時に記録）と markdown.py の compact_llm_output |
 | 🔌 | `/mcp 道具 {JSON}` | mcp-toolcall-lab のプロンプト実験が広告する道具（✅ tools/call／❌ 断る） |
-| 🔎👀 | `onto` `/find --kind jsonl` `/show REPO/PATH` | 全リポジトリの JSON / JSONL（公開時に `--record-chat` が `media/chat/index.json` へ）と、そのコミットの raw |
+| 🔎👀 | `onto` `/find --kind jsonl` `/show REPO/PATH` | 公開時に `--record-chat` で取得した JSON / JSONL の索引（`media/chat/index.json`）と、そのコミットの raw |
 | ⌨️ | `/flwo` → `/flow` | cli_args の「もしかして」 |
 | 🤖 | `/ask 質問` | llama.cpp（wllama 4.0.0、jsDelivr）が Qwen3.5-0.8B（Q4_0、約 560 MB、Hugging Face）を端末の中で動かす。初回だけ読み、あとはブラウザが保存。GitHub Pages は COOP/COEP を返せないので CPU は 1 スレッド、WebGPU があれば GPU。考えた過程（reasoning）を書いたときは 💭 で引用して見せる |
 
 📇 索引タブは olnm の検証ガイドと同じ PySaiyanWeBoo の runbook（検索・状態の絞り込み・記録の JSON 保存）で、各例の 💬 送る でチャットに送れます。
+
+検索結果の「0 件」は索引内の一致件数です。検索範囲に部分取得・取得不可のリポジトリがあれば、結果にも表示します。
 
 ![The cross-repo chat in Chromium: Pyodide runs scripts/chat.py — a flow, a typo, MCP checks, the onto index, /show, /compress, raw HTML kept as text, 🤖 /ask through llama.cpp (on a tiny random test model, so its words are noise), and a step sent from the index](docs/evidence/chat.gif)
 

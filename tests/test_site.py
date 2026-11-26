@@ -1046,6 +1046,7 @@ CHAT_INDEX = {'schema': 'chat-index/1', 'owner': 'myon-bioinformatics',
               'files': [['onto', 'docs/graph.json', 120], ['Aoi', 'cycles/c001/outputs/allocation.jsonl', 80],
                         ['Aoi', 'cycles/c003/units.jsonl', 40 * 1024 ** 2], ['TaxOntOy', 'package.json', 30],
                         ['TaxOntOy', 'otl-relations.json', 64]],
+              'scan_errors': {},
               'tools': [{'name': 'find_municipalities', 'description': 'Find mock municipalities.',
                          'parameters': {'type': 'object', 'properties': {'query': {'type': 'string'}}, 'required': ['query'],
                                         'additionalProperties': False}}]}
@@ -1099,6 +1100,20 @@ def test_chat_finds_and_shows_json_and_jsonl_across_repositories():
     assert '⏸' in CHAT.respond('onto', index={}) and '⏸' in CHAT.respond('/mcp', index={})
 
 
+@pytest.mark.parametrize(('errors', 'note'), [({}, ''), ({'Aoi': 'truncated_tree'}, '部分取得 1 件'),
+                                            ({'Broken': 'unavailable'}, '取得不可 1 件'), (None, '取得範囲は未記録')])
+def test_chat_empty_search_distinguishes_index_coverage(errors, note):
+    index = {'commits': {} if errors == {'Broken': 'unavailable'} else {'Aoi': 'b' * 40}, 'files': []}
+    if errors is not None:
+        index['scan_errors'] = errors
+    for query in ('/find never-matches', 'never-matches'):
+        reply = CHAT.respond(query, index=index)
+        assert '0 件（索引内）' in reply
+        assert ('⚠️' in reply) is bool(note)
+        assert note in reply
+    assert '索引を記録していない' in CHAT.respond('/find', index={})
+
+
 def test_chat_checks_mcp_tool_calls_against_what_the_lab_advertises():
     """🔌 Only an advertised tool with arguments that fit its schema becomes a tools/call; anything else is refused."""
     say = lambda text: CHAT.respond(text, index=CHAT_INDEX)
@@ -1123,28 +1138,58 @@ def test_chat_compresses_with_talkcompress_and_markdown(monkeypatch):
     assert '⏸ TalkCompress を読めない（OSError）' in CHAT.respond('/compress a\n\n\n\nb', index={})
 
 
-def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modules(tmp_path):
-    """💬 --record-chat lists each repository's JSON / JSONL at its commit, the lab's advertised tools and TalkCompress's files;
+def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modules(tmp_path, monkeypatch):
+    """💬 --record-chat records observed paths and scan errors, the lab's advertised tools and TalkCompress's files;
     the page carries chat.py and exactly the installed markdown / ascii_artist / cli_args, and an index of every example."""
+    from io import BytesIO
+    from urllib.error import HTTPError
+
     root = tmp_path / 'root'
     (root / 'api').mkdir(parents=True)
-    (root / 'api/repos.json').write_text(json.dumps({'repos': [{'name': n} for n in ('TalkCompress', 'mcp-toolcall-lab', 'onto', 'Broken')]
-                                                     + [{'name': 'Old', 'archived': True}]}))
+    names = ('TalkCompress', 'mcp-toolcall-lab', 'onto', 'Empty', 'BrokenHead', 'BrokenTree', 'InvalidTree')
+    (root / 'api/repos.json').write_text(json.dumps({'repos': [{'name': n} for n in names] + [{'name': 'Old', 'archived': True}]}))
     trees = {'onto': [('docs/graph.json', 120), ('README.md', 9)], 'TalkCompress': [('x.jsonl', 3)],
-             'mcp-toolcall-lab': [('fixtures/prompt_experiments/a.json', 50), ('fixtures/other.json', 2)]}
+             'mcp-toolcall-lab': [('fixtures/prompt_experiments/a.json', 50), ('fixtures/other.json', 2)], 'Empty': []}
     fixture = {'openai': {'request': {'tools': [{'type': 'function', 'function': CHAT_INDEX['tools'][0]}]}}}
+    requests = []
 
     def head(repository):
-        if repository.endswith('Broken'):
+        if repository.endswith('BrokenHead'):
             raise OSError('unreachable')
         return 'e' * 40
+
+    def open_tree(request, *, timeout):
+        name = request.full_url.split('/')[5]
+        assert request.full_url == f'https://api.github.com/repos/{PAGES.OWNER}/{name}/git/trees/{"e" * 40}?recursive=1'
+        requests.append(name)
+        if name == 'BrokenTree':
+            raise HTTPError(request.full_url, 503, 'unavailable', None, None)
+        if name == 'InvalidTree':
+            return BytesIO(b'{"tree": []}')
+        return BytesIO(json.dumps({'tree': [{'type': 'blob', 'path': path, 'size': size} for path, size in trees[name]],
+                                   'truncated': name == 'onto'}).encode())
+
+    monkeypatch.setattr('urllib.request.urlopen', open_tree)
     raw = lambda repository, commit, path: json.dumps(fixture).encode() if path.endswith('a.json') else f'# {path}'.encode()
-    lines = PAGES.record_chat(tmp_path / 'site', root, head=head, raw=raw, tree=lambda repository, commit: trees[repository.split('/')[1]])
-    assert lines == ['💬 3 repositories · 4 JSON/JSONL · 🔌 1 tools · 🗂 TalkCompress ✅ eeeeeee', '⏸ Broken: OSError']
+    lines = PAGES.record_chat(tmp_path / 'site', root, head=head, raw=raw)
+    assert requests == [name for name in names if name != 'BrokenHead']
+    assert lines == ['💬 4 repositories · 4 JSON/JSONL · 🔌 1 tools · 🗂 TalkCompress ✅ eeeeeee', '⚠️ onto: truncated_tree',
+                     '⏸ BrokenHead: OSError', '⏸ BrokenTree: HTTPError', '⏸ InvalidTree: ValueError']
     index = json.loads((tmp_path / 'site/media/chat/index.json').read_text())
     assert [row[:2] for row in index['files']] == [['TalkCompress', 'x.jsonl'], ['mcp-toolcall-lab', 'fixtures/prompt_experiments/a.json'],
                                                    ['mcp-toolcall-lab', 'fixtures/other.json'], ['onto', 'docs/graph.json']]
-    assert [tool['name'] for tool in index['tools']] == ['find_municipalities'] and set(index['commits']) == {'TalkCompress', 'mcp-toolcall-lab', 'onto'}
+    assert [tool['name'] for tool in index['tools']] == ['find_municipalities'] and set(index['commits']) == set(names[:4])
+    assert index['scan_errors'] == {'onto': 'truncated_tree', 'BrokenHead': 'unavailable', 'BrokenTree': 'unavailable',
+                                    'InvalidTree': 'unavailable'}
+    say = lambda query: CHAT.respond(query, index=index, fetch=lambda url: pytest.fail(url))
+    assert '部分取得 1 件・取得不可 3 件' in say('/find graph') and 'docs/graph.json' in say('/find graph')
+    assert '部分取得 1 件' in say('/find missing --repo ONTO') and '取得不可' not in say('/find missing --repo ONTO')
+    assert '取得不可 1 件' in say('/find --repo brokentree')
+    assert say('/find --repo Empty') == '🔎 📦 Empty: 0 件（索引内）'
+    assert '索引の対象外' in say('/find --repo Old')
+    assert '部分取得 1 件' in say('/show onto/missing.json')
+    assert '取得不可 1 件' in say('/show BrokenTree/missing.json')
+    assert '⚠️' not in say('/show Empty/missing.json')
     assert all((tmp_path / 'site/media/chat/talkcompress' / name).is_file() for name in CHAT.TALKCOMPRESS)
 
     page = (SITE / 'tools/demos/chat.html').read_text(encoding='utf-8')
@@ -1211,7 +1256,8 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
     def local_media(r):
         name = r.request.url.split('/media/chat/', 1)[1]
         if name == 'index.json':
-            return r.fulfill(body=json.dumps(CHAT_INDEX), content_type='application/json')
+            index = CHAT_INDEX | {'scan_errors': {'onto': 'truncated_tree', 'Broken': 'unavailable'}}
+            return r.fulfill(body=json.dumps(index), content_type='application/json')
         if mirror and name.startswith('talkcompress/') and (mirror / name).is_file():
             return r.fulfill(path=str(mirror / name))
         return r.fulfill(status=404, body='')
@@ -1256,7 +1302,10 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             say('/flwo a', 'もしかして /flow')
             say('', 'find_municipalities', tap='.ui-chat-chips [data-chat-say="/mcp"]')
             say('/mcp find_municipalities {"query": "Exampleville"}', 'tools/call')
-            say('onto', 'docs/graph.json')
+            assert '部分取得 1 件・取得不可 1 件' in say('onto', 'docs/graph.json')
+            assert '部分取得 1 件' in say('/find missing --repo onto', '0 件（索引内）')
+            assert '取得不可 1 件' in say('/find --repo Broken', '0 件（索引内）')
+            assert '⚠️' not in say('/find missing --repo Aoi', '0 件（索引内）')
             say('/show onto/docs/graph.json', '🧬 nodes 2')
             compress = mirror and (mirror / 'talkcompress').is_dir()
             say('/compress As soon as possible, please send me the report.', 'ASAP' if compress else '⏸ TalkCompress')
