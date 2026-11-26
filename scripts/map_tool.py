@@ -38,7 +38,7 @@ BODY = '''<main class="ui-page">
 <button class="ui-button" type="button" id="copy-share">地点リンクをコピー</button>
 <button class="ui-button" type="button" id="share">共有</button></div>
 <label for="share-text">共有テキスト</label><textarea class="ui-input" id="share-text" rows="7" readonly></textarea>
-<p id="map-status" role="status" aria-live="polite"></p></section>
+__STATUS__</section>
 <section class="ui-panel" id="nearby" hidden><h2>範囲内の東京の地点</h2><p id="nearby-status"></p><ul id="nearby-list"></ul></section>
 <section class="ui-panel"><h2>ピン留めした地点</h2><p id="pin-storage">このブラウザに保存。地点リンクを渡せば、相手も同じ座標を開けます。</p>
 <ul id="pins"></ul></section>
@@ -172,7 +172,7 @@ def render(ui, worlds) -> dict[str, str]:
               for p in tokyo['place']['points']]
     options = ''.join(f'<option value="{html.escape(p["id"], quote=True)}">{html.escape(p["label"])}</option>' for p in points)
     data = json.dumps(points, ensure_ascii=False).replace('<', '\\u003c')
-    body = BODY.replace('__OPTIONS__', options)
+    body = BODY.replace('__OPTIONS__', options).replace('__STATUS__', ui.status_html(id='map-status'))
     # The two inline modules execute in order; the shared module owns validation and URL encoding.
     script = SCRIPT.replace('__POINTS__', data).replace('__RANGE_HELPERS__', RANGE_HELPERS).replace('__EARTH_RADIUS__', str(ui.EARTH_RADIUS_M))
     body += COORDINATES_MODULE + ui.module_script(script)
