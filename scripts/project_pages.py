@@ -246,8 +246,11 @@ def add_site_chrome(page: str, path: str | None = None, tools: dict | None = Non
     (☰ ⋯) and the foot (``tools_door``: 🚪 every tool as a pull-down, 🐦 X, 📦 the page's size). ``description`` left out is the text
     of the 🧰 Tools card that leads here, else the page's own ``<meta name="description">``.
 
-    A page that is not drawn with the shared sheet's modern theme (another repository's own look: Ironmate's green) gets the chrome's
-    colours with it. A page whose CSP lists its scripts or styles without ``'unsafe-inline'`` (HTML import, Ironmate's studios) gets
+    🎨 Every page is published in one look: the shared sheet's ``modern`` theme, the front page's default. A page built with
+    another palette on its ``<body>`` (Ironmate's studios: green; the MCP lab: terminal or github-like) is switched to it, and the
+    chrome then takes the page's own colours; a page with no ``data-ui-theme`` keeps it and gets the chrome's colours with the chrome.
+    The way back spans a grid ``<main>``'s whole first row, so it never takes the place of a column (Ironmate's three-column studio).
+    A page whose CSP lists its scripts or styles without ``'unsafe-inline'`` (HTML import, Ironmate's studios) gets
     the modules and sheets of the chrome and the door listed too: their hashes, nothing wider."""
     import pysaiyanweboo as ui
     prefix = ('../' * path.count('/') or './') if path else '../../'
@@ -256,12 +259,15 @@ def add_site_chrome(page: str, path: str | None = None, tools: dict | None = Non
         meta = re.search(r'<meta name="description" content="([^"]*)"', page)
         description = next((place['text'] for place in tools_places(prefix) if place['href'] == here), meta[1] if meta else '')
     world = _world()
+    body = re.search(r'<body\b[^>]*>', page)
+    if body and 'data-ui-theme="' in body[0]:
+        page = page[:body.start()] + re.sub(r'data-ui-theme="[^"]*"', 'data-ui-theme="modern"', body[0], count=1) + page[body.end():]
     tokens = '' if 'data-ui-theme="modern"' in page else re.search(r':root\{([^}]*)\}', ui.css_source('tokens.css'))[1]
     chrome, heading = tools_chrome(prefix, tools, description, title=title, home=home), re.search(r'<title>(.*?)</title>', page, re.S)
     door, door_css, door_js = tools_door(ui, prefix, here if path and '/' in path else None, html.unescape(heading[1]).strip() if heading else '', tokens)
     face = ui.component_parts('gaze-avatar')      # 🫧 PySaiyanWeBoo's round face that follows the pointer: in the header, after the board
     head = world.chrome_html(chrome).replace('<nav class="ui-world-tools">', face['html'] + '<nav class="ui-world-tools">', 1)
-    for part, css, js in (({}, face['css'] + '.ui-chrome .ui-gaze{flex:none;margin:0 4px}', face['js']),
+    for part, css, js in (({}, face['css'] + '.ui-chrome .ui-gaze{flex:none;margin:0 4px}main>nav.ui-back{grid-column:1/-1}', face['js']),
                           ({'top': head}, world.chrome_css(tokens), world.SHELL_JS + 'bindChrome();\n'),
                           ({'bottom': door}, door_css, door_js)):
         page = world.add_part(page, css=css, js=js, **part)

@@ -403,6 +403,17 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
     assert '>🗼</summary>' not in (SITE / 'tools/gif/index.html').read_text(encoding='utf-8')
 
 
+def test_every_page_turns_modern_on_its_body_only():
+    """🎨 add_site_chrome publishes every page in the shared modern look: only the <body>'s palette changes (a theme picker's
+    previews keep theirs), and a page without data-ui-theme keeps its own look with the chrome's colours."""
+    page = ('<!doctype html><html><head><title>t</title></head><body class="ui-elements" data-ui-theme="green" data-page="studio">'
+            '<main><div data-ui-theme="purple">preview</div></main></body></html>')
+    built = PAGES.add_site_chrome(page, 'tools/image-studio/index.html')
+    assert '<body class="ui-elements" data-ui-theme="modern" data-page="studio">' in built and '<div data-ui-theme="purple">' in built
+    plain = PAGES.add_site_chrome('<!doctype html><html><head><title>t</title></head><body><main>x</main></body></html>', 'tools/x/index.html')
+    assert '<body>' in plain and '.ui-chrome{--ui-bg:#0d1117;' in plain                       # no palette of its own: the chrome brings its colours
+
+
 def test_html_import_csp_names_the_face_chrome_and_door_modules_and_nothing_else():
     import pysaiyanweboo as ui
     world = PAGES._world()
@@ -416,7 +427,9 @@ def test_html_import_csp_names_the_face_chrome_and_door_modules_and_nothing_else
     built = PAGES.add_back_nav(strict, 'tools/image-studio/index.html')        # Ironmate's studios: neither inline scripts nor inline styles
     sheets = re.findall(r'<style>(.*?)</style>', built, re.S)
     assert sheets[0].startswith(ui.component_parts('gaze-avatar')['css']) and len(sheets) == 3
-    assert [sheet[:27] for sheet in sheets[1:]] == ['.ui-chrome{--ui-bg:#0d1117;', '.ui-door-foot{--ui-bg:#0d11'] and '@layer' not in sheets[1]   # their own colours
+    assert '<body data-ui-theme="modern">' in built and 'data-ui-theme="green"' not in built           # 🎨 one look: the page turns modern,
+    assert not any('--ui-bg:' in sheet for sheet in sheets)                                    # and the chrome takes its colours (none pinned)
+    assert 'main>nav.ui-back{grid-column:1/-1}' in sheets[0]                                           # the way back spans a grid <main>
     assert (f"script-src 'self' {face} {chrome} {doors}; style-src 'self' {' '.join(ui.module_csp_hash(sheet) for sheet in sheets)}; "
             "img-src 'self' data:\"") in built
     assert built.count("'sha256-") == 6 and ' style="' not in built and PAGES.add_back_nav(built, 'tools/image-studio/index.html') == built   # no style attribute
