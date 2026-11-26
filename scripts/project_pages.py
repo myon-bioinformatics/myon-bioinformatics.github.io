@@ -203,10 +203,10 @@ def tools_door(ui, prefix: str = '../../', here: str | None = None, title: str =
     """🚪 PySaiyanWeBoo's Door-to-Door (``door_html``, door.css, door.js) for a tool page, as ``(html, css, js)``: 🏠 the cards, then
     every tool (``tools_places``); ``here`` (this page's href) is the door you came in by, and a page that is no tool is added as 📌 ``title``.
 
-    The part is PySaiyanWeBoo's whole panel; the sheet here shows its pull-down alone, in a 56px row that stays at the window's foot
-    (the label reads 🚪, the rest of the panel is not drawn), followed by the site's own line: 🐦 the X account and 📦 this page's
-    size (``stamp_size`` writes it once the page is whole). The one line after door.js puts the pull-down back on this page when the
-    browser's own way back restores it."""
+    The part is PySaiyanWeBoo's compact door (``door_html(compact=True)``: 🚪 and the pull-down, one 56px row; door.js shows this
+    page again after the browser's own way back). The sheet here keeps the row at the window's foot and styles the pull-down for a
+    page without the shared sheet, followed by the site's own line: 🐦 the X account and 📦 this page's size (``stamp_size`` writes
+    it once the page is whole)."""
     pages = [{'emoji': '🏠', 'label': 'Tools', 'href': prefix + 'index.html#tools'},
              *({'emoji': mark, 'label': words, 'href': place['href']} for place in tools_places(prefix) for mark, _, words in [place['label'].partition(' ')])]
     if here and here not in {page['href'] for page in pages}:
@@ -218,17 +218,13 @@ def tools_door(ui, prefix: str = '../../', here: str | None = None, title: str =
            '.ui-door-foot{display:flex;align-items:center}.ui-door-foot .ui-door{flex:1;min-width:0}'
            '.ui-foot-info{display:flex;align-items:center;gap:8px;margin:0;padding:0 8px;font-size:.75rem;white-space:nowrap}'
            '.ui-foot-info a{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;font-size:1.25rem;text-decoration:none}'
-           '.ui-door-foot .ui-door{display:flex;align-items:center;gap:8px;min-height:56px;margin:0;padding:8px;border:0;background:none}'
-           '.ui-door-foot .ui-door>:not(label[for=door-select],.ui-door-row),.ui-door-foot [data-door-draw]{display:none}'
-           '.ui-door-foot label[for=door-select]{margin:0;font-size:0}.ui-door-foot label[for=door-select]::before{content:"🚪";font-size:1.25rem}'
-           '.ui-door-foot .ui-door-row{flex:1;min-width:0;flex-wrap:nowrap}'
-           '.ui-door-foot .ui-door-row select{flex:1;min-width:0;max-width:384px;min-height:40px;margin:0;padding:0 8px;font:inherit;color:var(--ui-fg);'
-           'background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:var(--ui-radius)}')
-    js = (ui.js_source('door.js') + 'addEventListener("pageshow",()=>{for(const s of document.querySelectorAll("[data-door-select]"))'
-          's.selectedIndex=Math.max(0,[...s.options].findIndex(o=>o.disabled))});\n')
+           '.ui-door-foot .ui-door{margin:0;border:0;background:none}'
+           '.ui-door-foot select{margin:0;padding:0 8px;font:inherit;color:var(--ui-fg);background:var(--ui-bg);'
+           'border:1px solid var(--ui-border);border-radius:var(--ui-radius)}')
+    js = ui.js_source('door.js')
     info = (f'<p class="ui-foot-info"><a href="{X_URL}" target="_blank" rel="noopener noreferrer" title="X (Twitter) @{X_URL.rpartition("/")[2]}" '
             f'aria-label="X (Twitter) @{X_URL.rpartition("/")[2]}">🐦</a><span class="ui-foot-size" title="このページの HTML の大きさ">📦</span></p>')
-    return '<div class="ui-door-foot">' + ui.door_html(door) + info + '</div>', css, js
+    return '<div class="ui-door-foot">' + ui.door_html(door, compact=True) + info + '</div>', css, js
 
 
 X_URL = 'https://twitter.com/myonitbusiness'

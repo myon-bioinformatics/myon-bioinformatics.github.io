@@ -268,7 +268,7 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 | ⚙️ | ⏯️ 掲示板を止める ・ 🌐 アイコンの言葉（11 言語。保存） |
 | ☰ | そのページ固有：このページ自身（📍）と見出し（`h2`）、ページが足した行。ほかの道具は並べない（移動は 🚪） |
 | ⋯ | この画面の操作：⬆️ 先頭へ ・ ⬇️ 末尾へ |
-| 🚪 | ドア to ドア：フッターのプルダウンで道具から道具へ（🏠 でカードへ）。行は `scripts/front_page.py` の `PORTAL` から作るので、カードを足せば増える。ヘッダーとは別の部品で、PySaiyanWeBoo の共通機能 Door-to-Door（`door_html` / door.css / door.js）をそのまま使い、プルダウンだけを 1 行で見せている。何も保存しない |
+| 🚪 | ドア to ドア：フッターのプルダウンで道具から道具へ（🏠 でカードへ）。行は `scripts/front_page.py` の `PORTAL` から作るので、カードを足せば増える。ヘッダーとは別の部品で、PySaiyanWeBoo の共通機能 Door-to-Door のプルダウンだけの形（`door_html(compact=True)` / door.css / door.js）をそのまま使っている（「戻る」で戻っても今のページの表示に戻る）。何も保存しない |
 
 絵文字は用途に応じて key-value で足せます（`href`＝リンク、`links`＝リンクの一覧、`body`＝ひとこと。`slot` は `head` か `side`）。
 地図URL・ピン留めのページは 🗼（パラレル都市）を足しています。
