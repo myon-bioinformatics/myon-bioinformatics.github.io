@@ -63,6 +63,8 @@ function readRadius(raw){
 '''
 
 SCRIPT = r'''
+import { copyText } from '../vendor/web-ui/js/ui.js';
+
 const {parseCoordinate,tryParseMapsUrl,mapsUrls,coordinateText,toleranceArea,areaTexts}=globalThis.webUiCoordinates;
 const points=__POINTS__, $=id=>document.getElementById(id), key='portfolio-map-pins/1';
 const lat=$('latitude'),lon=$('longitude'),name=$('point-name'),picker=$('tokyo-point'),status=$('map-status'),radius=$('radius'),preset=$('radius-preset');
@@ -129,7 +131,7 @@ $('read-url').addEventListener('click',()=>{const p=tryParseMapsUrl($('maps-inpu
 $('pin').addEventListener('click',()=>{if(!current)return;const index=pins.findIndex(p=>same(p,current));
  if(index<0){if(pins.length>=100){status.textContent='ピンは100件までです。不要なピンを解除してください。';return}pins.push({...current})}
  else pins[index]={...current};save();renderPins();show();status.textContent='ピン留めしました。'});
-async function copy(text){try{await navigator.clipboard.writeText(text);status.textContent='コピーしました。'}
+async function copy(text){try{await copyText(text);status.textContent='コピーしました。'}
  catch{$('share-text').value=text;$('share-text').focus();$('share-text').select();status.textContent='コピーできませんでした。選択したテキストをコピーしてください。'}}
 $('copy-google').addEventListener('click',()=>copy($('google-link').href));
 $('copy-apple').addEventListener('click',()=>copy($('apple-link').href));
