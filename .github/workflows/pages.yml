@@ -145,13 +145,15 @@ jobs:
           try {
             const page = await browser.newPage();
             await page.goto('http://127.0.0.1:8000/tools/browser-tools/#composition');
-            await page.locator('[data-notes]').fill('C4 E4 G4');
+            await page.locator('#song-parts').fill('A = I\nB = V');
+            await page.locator('#song-order').fill('B A B');
             const response = page.waitForResponse(r => r.url().endsWith('/tools/vendor/tone-studio.min.js'));
-            await page.locator('[data-audio-play]').click();
+            await page.locator('#song-play').click();
             assert.ok((await response).ok());
-            await page.waitForFunction(() => document.querySelector('[data-audio-status]')?.textContent === 'Scheduled 3 notes');
-            await page.locator('[data-audio-stop]').click();
-            assert.equal(await page.locator('[data-audio-status]').innerText(), 'Stopped');
+            assert.equal(await page.locator("#song-progression").inputValue(), "V I V");
+            await page.waitForFunction(() => document.querySelector('#song-status')?.textContent === '9音を再生します。');
+            await page.locator('#song-stop').click();
+            assert.equal(await page.locator('#song-status').innerText(), '停止しました。');
           } finally {
             await browser.close();
           }
