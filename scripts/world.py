@@ -2327,7 +2327,7 @@ export function bindWorldRpg(el){
   talked:new Set(),looted:new Set(),defeated:new Set(),quizSolved:new Set(),quizIdx:0,
   visitedFloors:new Set([el.querySelector("input[name$='-floor']:checked")?.value||"meadow"]),
   consumables:new Map(),equipment:new Set(),completedQuests:new Set(),badges:new Set(),
-  boughtCount:0,healedCount:0,dragonExp:0,fireX:0,fireY:0,dragonHue:0,dragonFill:0
+  boughtCount:0,healedCount:0,dragonExp:0,fireX:0,fireY:0,dragonHue:0,dragonFill:0,dragonScroll:0,topic1:0,topic2:0,topic3:0
  };
  const equipIds=()=>[...state.equipment];
  const equipBonus=()=>equipIds().reduce((acc,sid)=>{const it=rpg.loot[sid];if(!it)return acc;acc.hp+=it.hp;acc.mp+=it.mp;acc.atk+=it.atk;acc.def+=it.def;return acc},{hp:0,mp:0,atk:0,def:0});
@@ -2363,7 +2363,14 @@ export function bindWorldRpg(el){
  const extraWidths={dragonExp:16,fireX:16,fireY:16};
  const extendedLayout=[...layout,...Object.entries(extraWidths)];
  const layouts=[null,layout,extendedLayout,[...extendedLayout,["dragonHue",2],["dragonFill",25]]];
- const optionalKeys=[...Object.keys(extraWidths),"dragonHue","dragonFill"];
+ // Stored topic IDs are append-only. Slot 1 is the most recent exchange.
+ const topics=["","昼ヶ丘","サツマイモ","ドラゴン","木の看板","リバースロンドン","癒しの水","火","パリ","MP","冒険手帳","復活の呪文"];
+ const memoryKeys=["topic1","topic2","topic3"];
+ const remember=name=>{
+  state.topic3=state.topic2;state.topic2=state.topic1;state.topic1=Math.max(0,topics.indexOf(name));
+ };
+ layouts.push([...layouts[3],["dragonScroll",1],...memoryKeys.map(key=>[key,8])]);
+ const optionalKeys=[...Object.keys(extraWidths),"dragonHue","dragonFill","dragonScroll",...memoryKeys];
  const catalogue=async(fields)=>new DataView(await crypto.subtle.digest("SHA-256",
   new TextEncoder().encode(JSON.stringify([wid,fields])))).getUint32(0);
  const snapshot=()=>{
@@ -2385,6 +2392,7 @@ export function bindWorldRpg(el){
    next[key]=data[key];
   }
   for(const key of optionalKeys)next[key]=data[key]??0;
+  if(next.dragonScroll>1||memoryKeys.some(key=>next[key]>=topics.length))invalid();
   if(next.dragonHue>3||next.dragonFill>0x1000000)invalid();
   if(Boolean(next.fireX)!==Boolean(next.fireY)||next.fireX>65535||next.fireY>65535)invalid();
   if(next.fireX&&fires.length&&!fires.some(f=>atSavedFire(f,next)))invalid();
@@ -2559,11 +2567,17 @@ export function bindWorldRpg(el){
   };
   const pet=rpgEl("button",{type:"button","aria-label":"ドラゴンをなでる",onclick:()=>{
    const moods=[["💕","すり寄ってきた"],["🎵","のどを鳴らした"],["💤","安心してうとうとしている"]];
+   const first=!state.dragonScroll;
+   state.dragonScroll=1;syncDragon();
    react(...moods[pats++%moods.length]);
+   if(first)mood.textContent+=" 📜 竜の巻物をくれた！";
   }},portrait,"なでる");
   const hue=rpgEl("select",{"aria-label":"ドラゴンの体色"},...["元の色","青系","紫系","桃色系"].map((label,i)=>rpgEl("option",{value:i,textContent:label})));
   const fill=rpgEl("input",{type:"color","aria-label":"背景の塗りつぶし"});
+  const summon=rpgEl("button",{type:"button",textContent:"📜 竜の巻物",hidden:true});
+  cities.closest("[data-world-shell]").querySelector("#world-switcher nav").append(summon);
   syncDragon=()=>{
+   summon.hidden=!state.dragonScroll;
    hue.value=String(state.dragonHue);fill.value=state.dragonFill?"#"+(state.dragonFill-1).toString(16).padStart(6,"0"):"#ffffff";
    portrait.style.filter=["none","hue-rotate(120deg)","hue-rotate(180deg)","hue-rotate(225deg)"][state.dragonHue];
    pet.style.backgroundColor=state.dragonFill?fill.value:"";
@@ -2574,20 +2588,29 @@ export function bindWorldRpg(el){
   fill.oninput=()=>{state.dragonFill=parseInt(fill.value.slice(1),16)+1;syncDragon()};
   const reset=rpgEl("button",{type:"button",textContent:"元の色に戻す",onclick:()=>{state.dragonHue=0;state.dragonFill=0;syncDragon()}});
   const care=rpgEl("div",{className:"dragon-care"},pet,mood,rpgEl("label",{},"体色 ",hue),rpgEl("label",{},"背景 ",fill),reset,art.querySelector("a").cloneNode(true));
-  const chat=talkMore("リバースロンドンのドラゴン",()=>`今の様子：${mood.textContent||"看板から顔を出している"}。ドラゴン経験値：${state.dragonExp}`);
+  const chat=talkMore("リバースロンドンのドラゴン",()=>`今いる場所：${cities.closest("[data-world-shell]").querySelector("#world-space-name").textContent}。今の様子：${mood.textContent||"こちらを見ている"}。ドラゴン経験値：${state.dragonExp}`);
   if(chat)care.append(chat);
   sheet.querySelector(".ui-sheet-close").before(care);syncDragon();
-  cityButton("london","🍠 ドラゴンにあげる",()=>{
-   if(sign.dataset.show!=="flip")return "nogardの看板のドラゴンを探してください";
+  const feedDragon=()=>{
    if(!consume("spot:meadow-hirugaoka"))return `サツマイモがありません（ドラゴン経験値 ${state.dragonExp}）`;
    state.dragonExp+=foodExp;react("😋","ほくほくのサツマイモをぺろり！");return `🐉 ドラゴン経験値 +${foodExp}（累計 ${state.dragonExp}）`;
-  });
+  };
+  cityButton("london","🍠 ドラゴンにあげる",()=>sign.dataset.show==="flip"?feedDragon():"nogardの看板のドラゴンを探してください");
+  const result=rpgEl("output",{"aria-live":"polite"});
+  const scroll=rpgEl("dialog",{className:"dragon-scroll-dialog","aria-label":"竜の巻物"},
+   rpgEl("button",{type:"button",textContent:"閉じる",onclick:()=>scroll.close()}),
+   rpgEl("button",{type:"button",textContent:"🍠 サツマイモを渡す",onclick:()=>{result.textContent=feedDragon()}}),result);
+  cities.closest("[data-world-shell]").append(scroll);
+  summon.onclick=()=>{result.textContent="";scroll.prepend(care);scroll.showModal()};
+  scroll.addEventListener("close",()=>sheet.querySelector(".ui-sheet-close").before(care));
   cityTools.append(note);cities.addEventListener("change",()=>{note.textContent=""});
  }
- function relatedFacts(question){
+ function queryTopics(question){
   const normalize=text=>text.normalize("NFKC").toLowerCase();
   const words=normalize(question);
-  const seeds=Object.keys(worldKnowledge.terms).filter(name=>worldKnowledge.terms[name].some(alias=>words.includes(normalize(alias))));
+  return Object.keys(worldKnowledge.terms).filter(name=>worldKnowledge.terms[name].some(alias=>words.includes(normalize(alias))));
+ }
+ function relatedFacts(seeds){
   const paths=seeds.flatMap(name=>worldKnowledge.paths[name]).sort((a,b)=>a.length-b.length);
   const selected=new Set();
   for(const path of paths){
@@ -2606,13 +2629,20 @@ export function bindWorldRpg(el){
    e.preventDefault();const question=input.value.trim();if(!question||send.disabled)return;
    send.disabled=true;
    try{
-    const facts=relatedFacts(question);
+    const seeds=queryTopics(question);
+    if(!seeds.length){
+     const previous=/[3３三]回前/.test(question)?3:/[2２二]回前/.test(question)?2:/さっき|先ほど|前の話|[1１一]回前|それについて/.test(question)?1:0;
+     const topic=previous&&topics[state[memoryKeys[previous-1]]];
+     if(topic)seeds.push(topic);
+    }
+    const facts=relatedFacts(seeds);
     sources.replaceChildren(...facts.map(f=>rpgEl("li",{},f.edge+" ",...f.urls.map(url=>rpgEl("a",{href:url,target:"_blank",rel:"noopener",textContent:url.split("/")[4]+" "})))));
     evidence.hidden=!facts.length;
     const grounding=facts.map(f=>f.edge+"："+f.text).join("\n")||"この質問に対応する関係は台帳にない。";
     const messages=[{role:"system",content:`あなたは${speaker}。次の台詞と今の様子をもとに、日本語で短くひと言返して。未知の事実は知らないと答えて。噂は噂として話し、アイテムや報酬を与えたことにはしない。\n${context()}\n質問からたどった根拠：\n${grounding}`},{role:"user",content:question}];
     const result=await worldAnswer(messages,s=>{reply.textContent=s},96);
     if(!result.output.trim())throw new Error("empty answer");
+    remember(seeds[0]);
    }catch{reply.textContent="今はうまくおしゃべりできないみたい。"}
    finally{send.disabled=false}
   };
@@ -2708,7 +2738,7 @@ export function bindWorldRpg(el){
     rpgEl("h3",{className:"ui-rpg-card-title",textContent:`${npc.emoji} ${npc.speaker}`}),
     rpgEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
    textEl,orbsWrap,actionsEl,
-   npc.topic?rpgEl("button",{type:"button",textContent:npc.topic.question,onclick:()=>{idx=pages.length-1;renderPage()}}):null,
+   npc.topic?rpgEl("button",{type:"button",textContent:npc.topic.question,onclick:()=>{idx=pages.length-1;renderPage();if(typeof worldKnowledge!=="undefined")remember(queryTopics(npc.topic.question)[0])}}):null,
    talkMore(npc.speaker,()=>[npc.greeting,...npc.lines].join(" ")));
   renderPage();showCard(card);
  };
@@ -2845,7 +2875,7 @@ export function bindWorldRpg(el){
   const body=rpgEl("div"),tabBtns=[];
   const drawBody=()=>{
    if(activeTab==="save"){
-    const saveVersion=()=>state.dragonHue||state.dragonFill?3:Object.keys(extraWidths).some(k=>state[k])?2:1;
+    const saveVersion=()=>state.dragonScroll||memoryKeys.some(k=>state[k])?4:state.dragonHue||state.dragonFill?3:Object.keys(extraWidths).some(k=>state[k])?2:1;
     const box=rpgEl("textarea",{"aria-label":"冒険データ",rows:5}),message=rpgEl("p",{role:"status"});
     const button=(label,run)=>rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:label,onclick:run});
     body.replaceChildren(box,rpgEl("div",{className:"ui-rpg-actions"},
@@ -2860,11 +2890,11 @@ export function bindWorldRpg(el){
        if(/[ぁ-ヶ]/u.test(text)){
         const bytes=spellBytes(text),fields=layouts[bytes[0]];
         const {version,catalogue:tag,...data}=bitsUnpack(fields,bytes);
-        if(![1,2,3].includes(version)||tag!==await catalogue(fields))throw new Error("incompatible spell");
+        if(![1,2,3,4].includes(version)||tag!==await catalogue(fields))throw new Error("incompatible spell");
         restore(data,version);
        }else{
         const save=saveState(text);
-        if(![1,2,3].includes(save.version)||save.world!==wid)throw new Error("incompatible save");
+        if(![1,2,3,4].includes(save.version)||save.world!==wid)throw new Error("incompatible save");
         restore(save.data,save.version);
        }
        message.textContent="冒険データを復元しました";

@@ -503,6 +503,8 @@ def test_london_dragon_care_and_colors(site, browser):
         expect(care).to_be_hidden()
         for _ in range(2):
             sign.evaluate('e=>e.click()')
+        summon = page.get_by_role('button', name='📜 竜の巻物')
+        expect(summon).to_be_hidden()
         pet = care.get_by_role('button', name='ドラゴンをなでる')
         assert care.locator('img').evaluate('img=>[img.naturalWidth,img.naturalHeight]') == [20, 15]
         with page.expect_download() as download:
@@ -529,20 +531,31 @@ def test_london_dragon_care_and_colors(site, browser):
         export = village.get_by_text('セーブ文字列を作る', exact=True)
         export.tap()
         save = ui.save_state(box.input_value())
-        assert (save['version'], save['data']['dragonHue'], save['data']['dragonFill']) == (3, 2, 1)
+        assert save['data']['dragonScroll'] == 1
+        assert (save['version'], save['data']['dragonHue'], save['data']['dragonFill']) == (4, 2, 1)
         village.get_by_text('復活の呪文を作る', exact=True).tap()
         expect(village.get_by_text('空白・改行を含めてコピーできます')).to_be_visible()
         spell = box.input_value()
-        old = {k: v for k, v in save['data'].items() if k not in ('dragonHue', 'dragonFill')}
+        old = {k: v for k, v in save['data'].items() if k not in ('dragonHue', 'dragonFill', 'dragonScroll')}
         box.fill(ui.save_text({**save, 'version': 1, 'data': old}))
         load = village.get_by_role('button', name='読み込む')
         load.tap()
         expect(hue).to_have_value('0')
+        expect(summon).to_be_hidden()
         box.fill(spell)
         load.tap()
         expect(hue).to_have_value('2')
         expect(fill).to_have_value('#000000')
         village.locator('.ui-rpg-close').tap()
+        page.evaluate("location.hash='london'")
+        page.evaluate("location.hash='school'")
+        summon.tap()
+        visiting = page.get_by_role('dialog', name='竜の巻物')
+        visiting.get_by_role('button', name='ドラゴンをなでる').tap()
+        expect(visiting.get_by_label('ドラゴンの体色')).to_have_value('2')
+        visiting.get_by_role('button', name='🍠 サツマイモを渡す').tap()
+        expect(visiting).to_contain_text('サツマイモがありません')
+        visiting.get_by_role('button', name='閉じる').tap()
         page.evaluate("location.hash='london'")
         # Reopen the sheet if the scene switch closed it.
         cities.locator('.ui-world-spots a[href="#cities-spot-london-nogard"]').evaluate('a=>a.click()')
@@ -604,6 +617,12 @@ def test_shop_rumor_and_optional_world_dialogue(site, browser):
                 expect(evidence).to_be_hidden()
                 system = page.evaluate('window.dialogueMessages[0].content')
                 assert 'この質問に対応する関係は台帳にない' in system and rumor not in system
+        # The unrelated turn still occupies slot 1, so the spell is two exchanges back.
+        for question, expected in [('２回前の話をもう一度', '復活の呪文'), ('3回前の話は？', '復活の呪文')]:
+            card.get_by_label('話しかける').fill(question)
+            card.get_by_role('button', name='送る').click()
+            page.wait_for_function('q=>window.dialogueMessages[1].content===q', arg=question)
+            assert expected in page.evaluate('window.dialogueMessages[0].content')
         assert len(loads) == 1
     finally:
         page.close()

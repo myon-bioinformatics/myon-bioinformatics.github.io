@@ -28,7 +28,7 @@ CSS = """
 .world-switcher details[open]>div{position:absolute;top:100%;left:0;z-index:30;min-width:min(10rem, 76vw);max-height:65vh;max-width:min(85vw,22rem);width:max-content;overflow:auto;background:var(--ui-bg);color:var(--ui-fg);border:1px solid var(--ui-border);border-radius:var(--ui-radius);padding:.35rem;box-shadow:0 6px 20px #0005}
 .world-switcher{position:relative;z-index:5}
 .dragon-care{display:none}
-#cities-map:has(.ui-spot[data-flip="🐉"][data-show="flip"]) .dragon-care{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.dragon-scroll-dialog .dragon-care,#cities-map:has(.ui-spot[data-flip="🐉"][data-show="flip"]) .dragon-care{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
 .dragon-care button,.dragon-care input,.dragon-care select{min-height:44px}
 .dragon-portrait{display:block;width:80px;image-rendering:pixelated}
 #cities-map .ui-spot[data-flip="🐉"][data-show="flip"]{font-size:0;background-color:var(--dragon-fill,var(--ui-panel))}
