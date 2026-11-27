@@ -458,7 +458,8 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_adds_what_it_l
         page = (SITE / name).read_text(encoding='utf-8')
         prefix = '../' * name.count('/')
         body = re.search(r'<body[^>]*>', page)
-        assert '<div class="ui-board"' in page and page.count('<button type="button" class="ui-gaze"') == page.count('<div class="ui-door-foot">') == 1, name   # 📟 🫧 🚪 on every page
+        faces = page.count('<button type="button" class="ui-gaze"')
+        assert '<div class="ui-board"' in page and page.count('<div class="ui-door-foot">') == 1 and faces == max(1, page.count('<nav class="ui-world-tools">')), name   # 📟 🚪 on every page, 🫧 in every header
         if '<header class="ui-world-head">' in page:                               # 🌍 its own header and side: 🫧 after its board, then the foot
             assert '<div class="ui-chrome ' not in page and '</div><button type="button" class="ui-gaze"' in page[:page.index('<nav class="ui-world-tools">')], name
             assert page.count(module[1]) == 1 and f'<option value="{prefix}index.html#tools">🏠 Tools</option>' in page, name
