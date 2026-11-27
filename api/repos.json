@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-26T21:07:35Z",
+  "generatedAt": "2026-11-27T02:51:11Z",
   "owner": "myon-bioinformatics",
   "count": 49,
   "repos": [
@@ -418,7 +418,7 @@
       "updatedAt": "2026-11-23T08:51:14Z",
       "homepage": "https://myon-bioinformatics.github.io/gh_identity/",
       "pages": "https://myon-bioinformatics.github.io/gh_identity/",
-      "readmeHeading": "<img src=\"assets/branding/concept-c.svg\" width=\"40\" height=\"40\" alt=\"GHI search icon\"> gh_identity (GHI)",
+      "readmeHeading": "<img src=\"https://myon-bioinformatics.github.io/gh_identity/icon.png\" width=\"40\" height=\"40\" alt=\"GHI search icon\"> gh_identity (GHI)",
       "readmeSummary": "Single-file, stdlib-only Python interface for portable GitHub identity and operations.",
       "readmeUrl": "https://raw.githubusercontent.com/myon-bioinformatics/gh_identity/main/README.md"
     },
