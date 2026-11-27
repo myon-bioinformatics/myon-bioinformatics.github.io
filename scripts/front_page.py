@@ -26,6 +26,11 @@ def _service_url(project: str, endpoint: str, *, relative: bool = False) -> str:
 # text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. ``points`` are trusted HTML (they carry <code>);
 # everything else is escaped.
 PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル選択から、端末内で本文・見出し・リンクを抽出。', 'links': [('Open HTML Import →', './tools/html-import/')]},
+ {'title': '🗃️ 形式変換・検証',
+  'id': 'format-lab',
+  'text': 'ファイルや貼り付けた原文を静的検査し、Base64の復元差分と検証記録を確認。CaChereCyCleのJSONLは資産のSHA-256も照合。',
+  'from': ('myon-bioinformatics', 'PySaiyanWeBoo'),
+  'links': [('Format Lab を開く →', './tools/format-lab/')]},
  {'title': '地図URL・ピン留め',
   'text': '緯度・経度からApple MapsとGoogle MapsのURLを作成。地点のピン留め・共有と、パラレル東京の対応地点へ。',
   'id': 'maps',
