@@ -378,7 +378,7 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
 TOOL_PAGES = ("tools/html-import/index.html",
               *(("tools/mcp/index.html",) if LAB_BUILT else ()),
               "tools/maps/index.html", "tools/gif/index.html", "tools/chat/index.html", "tools/flow/index.html",
-              "tools/test-report/index.html", "tools/mcp-protocol/index.html",
+              "tools/test-report/index.html",
               "tools/repo-map/index.html",
               PAGES.WORLD_PAGE)
 
@@ -1149,7 +1149,7 @@ def test_lab_rebuild_keeps_the_execution_lab_inside_it(tmp_path):
     (package / '__init__.py').write_text('')
     (package / 'stub_front.py').write_text(
         "import pathlib, sys\nout = pathlib.Path(sys.argv[3]); out.mkdir(parents=True, exist_ok=True)\n"
-        "for name in ('pages-hash.js', 'pages-pixiv.js', 'source.js', 'build_meta.json', 'summary.json'): (out / name).write_text('{}')\n"
+        "for name in ('pages-hash.js', 'pages-pixiv.js', 'source.js', 'mcp.js', 'build_meta.json', 'summary.json'): (out / name).write_text('{}')\n"
         "(out / 'pages-wiki.js').write_text('var DEFAULT_TITLE = \"\";')\n"
         "(out / 'index.html').write_text('<html><head></head><body><header>Lab</header><main></main></body></html>')\n")
     (package / 'mcp_toolcall_lab_repository_diagnostics.py').write_text('')
@@ -1305,6 +1305,8 @@ def test_lab_branding_is_idempotent_and_uses_published_absolute_paths():
     from mcp_lab import apply_lab_branding, FAVICON, LOGO
     from urllib.parse import urljoin
     assert not (PUBLIC / 'repository-diagnostics.html').exists()   # 🩺 a panel of the page (#diagnostics), not a page
+    assert 'data-pages-view="protocol"' in (PUBLIC / 'index.html').read_text() and (PUBLIC / 'mcp.js').is_file()   # 🤝 so is #protocol
+    assert not (SITE / 'tools/mcp-protocol').exists()
     for name in ('index.html',):
         page = (PUBLIC / name).read_text()
         assert apply_lab_branding(page) == page
