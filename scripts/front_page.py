@@ -81,12 +81,7 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
  {'title': '🧠 リポジトリ地図',
   'text': 'どのリポジトリが、どのリポジトリのファイルを写して使っているか。各リポジトリの vendor.lock.json と Aoi の subtree から、公開のたびに描き直す。',
   'id': 'repo-map',
-  'links': [('地図へ →', './tools/repo-map/')]},
- {'title': '🌍 仮想空間・はじまりの村',
-  'text': '村人との接触会話、落とし物や宝箱（🎒連携）、PySaiyanWeBoo のオーブ演出×ターン制バトル、冒険手帳のクエスト・実績・ポートフォリオクイズで遊べる仮想空間。',
-  'id': 'village',
-  'from': ('PySaiyanWeBoo', 'Ironmate', 'xprobe', 'gh_identity'),
-  'links': [('🌍 はじまりの村へ →', './tools/demos/world.html')]}]
+  'links': [('地図へ →', './tools/repo-map/')]}]
 
 
 # 🔗 The front page's own emoji in the shared header (scripts/project_pages.py ``add_site_chrome``): where else to find the author.

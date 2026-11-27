@@ -16,15 +16,15 @@
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/world.html": "051afca9f3bc76261e1ffc8e3c1c208c4daf6b7c6448801631558c1ca4ef6bff",
-    "tools/demos/school.html": "b5c645a6eaa96a593ab6a2a4fa171fc1f7f7002a878f22f8fcd63c3d6e2946e4",
-    "tools/demos/cities.html": "e86ede3c3a06c46c6ec99e8498d82341eef59006b24954fbe06928d0d2971ada",
-    "tools/demos/world-shots.html": "e0c8981bd2d798ff5e9a8c64935732acfd1ab866a38adddff82bec97a7f152c4",
-    "tools/test-report/index.html": "0031935cc67860fd833770ea6a06e3b44c4b3038bb55d19937c99d947c7a9a70",
-    "tools/mcp-protocol/index.html": "2cb6a519883169718286dde18770a49c2fbafad72a5981d32512f8207c9a0552",
-    "tools/html-import/index.html": "191faffca004c42067cd948759d2f94863bac3f03c3d47c079d319881297c866",
-    "tools/maps/index.html": "2d9e535a939576f15e23a3618c00369121645044830ccfdc4712b98cb80f1d3c",
-    "tools/gif/index.html": "0fefb370042f58b61b8e43c11f960a7b6daebaf2c5ad2ea04764b196b15ebe93",
-    "tools/chat/index.html": "5a05a66159597b099e6832767ea38796d6a2bd871bd876b2832bccdddb54147f"
+    "tools/demos/world.html": "f261b8cbc587e42dbf49ea957b230d7fe4bad43bf5c35ecc6227326d1f9f9b2f",
+    "tools/demos/school.html": "2d37d1ed38e1dee4f8e9576e847aaaeb091d6efd172aceae0c70b575880af05d",
+    "tools/demos/cities.html": "1099393515c42fb97376cb140db3f16179de50c7ef638a8e0a42597a5518698c",
+    "tools/demos/world-shots.html": "20047ed48e7cecfb5d14416eac58d67d258331cf7d5b2d0ac062c027a23da80d",
+    "tools/test-report/index.html": "e73c30dc3c41ddd3f27377a8616105cdf6e0f55cc3cc303827e13204bff4f55f",
+    "tools/mcp-protocol/index.html": "de853f5910ec3afbd81d56d1d4122c8dce04f27b131fee24739b04b97ba1541e",
+    "tools/html-import/index.html": "ed5346c2d14cd1be17513939fe1598a7372edd5de723c8a4807e0e0e873a9b0d",
+    "tools/maps/index.html": "5eed9d6494f961fa966118940b0056393e15d67bf487be817135b9b4058291d4",
+    "tools/gif/index.html": "805a678be72db4dec16ee78e025f745ba5ea9bc2882da0c6fc77564067b47850",
+    "tools/chat/index.html": "bb78d3a17b08f648b2ef55b567b18092db0b1b03f1bd9a9f9407c180e64c93c4"
   }
 }
