@@ -15,13 +15,19 @@ class KnowledgeFlowTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             p = Path(tmp) / "knowledge.mjs"
             p.write_text(value, encoding="utf-8")
-            check = """import {knowledgeStep} from './knowledge.mjs';
+            check = """import {knowledgeStep,parseGraph,seededIndex} from './knowledge.mjs';
 import assert from 'node:assert/strict';
-let a=[1,0,0,0,0,0];
-assert.deepEqual(knowledgeStep(a,0),a);
-assert.deepEqual(knowledgeStep(a,1),[.5,.25,.25,0,0,0]);
-for(let i=0;i<100;i++){a=knowledgeStep(a,1);assert.ok(a.every(x=>x>=0));assert.ok(Math.abs(a.reduce((s,x)=>s+x,0)-1)<1e-12);}
-assert.throws(()=>knowledgeStep(a,2),RangeError);
+const graph=parseGraph('@prefix ex: <urn:example:> .\\nex:A ex:r ex:B .\\nex:B ex:r ex:C .');
+assert.equal(graph.nodes.length,3);
+assert.deepEqual(graph.edges,[[0,1],[1,2]]);
+let a=[1,0,0];
+assert.deepEqual(knowledgeStep(a,0,graph.edges),a);
+assert.deepEqual(knowledgeStep(a,1,graph.edges),[.5,.5,0]);
+for(let i=0;i<100;i++){a=knowledgeStep(a,1,graph.edges);assert.ok(a.every(x=>x>=0));assert.ok(Math.abs(a.reduce((s,x)=>s+x,0)-1)<1e-12);}
+assert.throws(()=>knowledgeStep(a,2,graph.edges),RangeError);
+assert.throws(()=>parseGraph('ex:A ex:r ex:B .'));
+assert.equal(seededIndex(123,3),seededIndex(123,3));
+assert.equal(parseGraph('<urn:a> <urn:r> <urn:a> .').nodes.length,1);
 """
             (Path(tmp)/"check.mjs").write_text(check, encoding="utf-8")
             subprocess.run(["node", "check.mjs"], cwd=tmp, check=True)
