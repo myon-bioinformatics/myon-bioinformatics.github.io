@@ -147,7 +147,12 @@ jobs:
             assert.ok((await response).ok());
             assert.equal(await page.locator("#song-progression").inputValue(), "V I V");
             await page.waitForFunction(() => document.querySelector('#song-status')?.textContent === '9音を再生します。');
+            const parts = page.locator('#song-sections li');
+            assert.deepEqual(await parts.allTextContents(), ['B', 'A', 'B']);
+            await page.waitForFunction(() => document.querySelector('#song-sections li:first-child[aria-current="step"]'));
+            await page.waitForFunction(() => document.querySelector('#song-sections li:last-child[aria-current="step"]'));
             await page.locator('#song-stop').click();
+            assert.equal(await page.locator('#song-sections [aria-current]').count(), 0);
             assert.equal(await page.locator('#song-status').innerText(), '停止しました。');
           } finally {
             await browser.close();
