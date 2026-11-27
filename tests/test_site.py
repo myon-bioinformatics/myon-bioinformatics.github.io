@@ -376,7 +376,7 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
 
 # PySaiyanWeBoo's tool documents (PSWB_TOOLS) and the 🌍 world pages (WORLD_PAGE, tools/demos/) come from scripts/project_pages.py; they are tool pages too.
 TOOL_PAGES = ("tools/html-import/index.html",
-              *(("tools/mcp/index.html", "tools/mcp/repository-diagnostics.html") if LAB_BUILT else ()),
+              *(("tools/mcp/index.html",) if LAB_BUILT else ()),
               "tools/maps/index.html", "tools/gif/index.html", "tools/chat/index.html", "tools/flow/index.html",
               "tools/test-report/index.html", "tools/mcp-protocol/index.html",
               "tools/repo-map/index.html",
@@ -1303,7 +1303,8 @@ def test_actions_report_replaces_only_the_empty_summary():
 def test_lab_branding_is_idempotent_and_uses_published_absolute_paths():
     from mcp_lab import apply_lab_branding, FAVICON, LOGO
     from urllib.parse import urljoin
-    for name in ('index.html', 'repository-diagnostics.html'):
+    assert not (PUBLIC / 'repository-diagnostics.html').exists()   # 🩺 a panel of the page (#diagnostics), not a page
+    for name in ('index.html',):
         page = (PUBLIC / name).read_text()
         assert apply_lab_branding(page) == page
         assert page.count('data-lab-brand="favicon"') == 1

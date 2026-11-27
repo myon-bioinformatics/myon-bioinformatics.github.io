@@ -605,7 +605,7 @@ def test_brand_assets_resolve_when_the_page_is_served_below_a_subpath(page, site
 
 @pytest.mark.parametrize("path", ["/", "/tools/html-import/", "/tools/mcp/#home", "/tools/mcp/#wiki",
                                   "/tools/mcp/#pixiv", "/tools/mcp/#niconico", "/tools/mcp/#pokemon",
-                                  "/tools/mcp/repository-diagnostics.html"])
+                                  "/tools/mcp/#diagnostics"])
 def test_each_hosted_page_loads_and_draws(page, path):
     response = page.goto(path)
     assert response.status == 200

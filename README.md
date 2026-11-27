@@ -410,7 +410,7 @@ default branch (`scripts/project_pages.py --record-tools`), and nothing of the l
 | 🔗 Page | 🧰 Built from the lab with | 🔀 Path |
 | --- | --- | --- |
 | 🔎 Tool Lab: `#wiki` · `#pixiv` · `#pokemon` (+ the portfolio's `#niconico`) | `python -m mcp_toolcall_lab.stub_front pages` | `tools/mcp/` |
-| 🩺 Repository diagnostics | `python -m mcp_toolcall_lab.mcp_toolcall_lab_repository_diagnostics` | `tools/mcp/repository-diagnostics.html` |
+| 🩺 Repository diagnostics (a panel of the Tool Lab) | `python -m mcp_toolcall_lab.mcp_toolcall_lab_repository_diagnostics` (its JSON / JSONL) | `tools/mcp/#diagnostics` |
 | 🧮 [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) | `scripts/build_portable_pages.py` (Node 26) | `tools/mcp/execution/` |
 
 The portfolio's side is one build-time adapter, `_src/tools/mcp_lab.py` (beside Ironmate's `_src/tools/studio_routes.py`):
