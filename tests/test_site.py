@@ -153,7 +153,7 @@ def test_a_tools_card_shows_its_moving_sample_and_the_picture_opens_the_tool(tmp
     cards = front.portal_cards(frozenset({"tools/gif", "tools/operations", "tools/maps", "gif", "tools/no-such-tool"}))
     assert cards.count('class="project-sample"') == 3
     assert "GIF をつくる →" not in cards and "Open Dashboard →" not in cards and ">実験室へ →</a>" in cards        # one page: the picture; no picture: the words
-    assert ('<a href="./tools/maps/">地図URLを作成 →</a><a href="./tools/maps/tokyo.html">パラレル東京 →</a>' in cards
+    assert ('<a href="./tools/maps/">地図URLを作成 →</a><a href="./tools/demos/cities.html">パラレル東京 →</a>' in cards
             and '<a class="project-sample" href="./tools/maps/">' in cards)                                    # relatives stay side by side
     everything = front.portal_cards(frozenset(f"tools/{key}" for key in ids))
     several = [card for card in front.PORTAL if len(card["links"]) > 1]

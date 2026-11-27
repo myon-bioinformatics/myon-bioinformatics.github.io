@@ -245,6 +245,14 @@ In `avatars` and the `player` the same rule holds: control and line-separator ch
 refused; the label is set as text, never as markup. (`actors` and catalog pages keep the stricter emoji-only rule.) The player stays hidden until then. **🙂✏️** (⚙️ menu) reopens it. The emoji and the board messages are never stored; a reload
 asks again. Without JavaScript the picker, the pad and the player controls stay hidden and the static map and spots still work.
 
+## RPG & Gamification (`rpg`)
+
+Worlds that set optional `"rpg"` (`EXAMPLES["overworld"]`, starting in `meadow` / はじまりの村) layer an offline, pure-JS turn-based RPG and gamification system over the same map, `🎒` bag, and `PySaiyanWeBoo` orb readout primitives (`play_random`, `counter_effect`, `counter_label`):
+
+* **Contact dialogue (`npcs`)**: Walking within tile contact range of village NPCs (or tapping them) opens multi-page dialogue with optional healing (`heal`), shop purchases (`shop`), and 3-choice portfolio/GitHub quizzes (`quiz`).
+* **Ground drops & chests (`loot`)**: Collecting ground drops (`🌿`, `💧`, `📜`) or chests (`🎁` → `📭`, optionally gated by `requires_enemy`) syncs `.ui-world-take` into `🎒` and applies gear (`ATK`/`DEF`/`MaxHP`/`MaxMP`) or consumables.
+* **Turn-based battle (`enemies`, `skills`, `orbs`)**: Five commands (`⚔️`, `✨`, `🎒`, `🛡️`, `💨`), telegraphed 3-turn heavy enemy strikes, PSWB attribute/heal orb animations, EXP/Lv/Gold, and an Adventure Journal modal (`📜`) tracking quests, badges, equipment, and the bestiary.
+
 ## Not included
 
 ## Demos

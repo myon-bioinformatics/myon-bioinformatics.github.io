@@ -1879,3 +1879,83 @@ def test_shot_color_rules_are_scoped_to_each_world():
 
 def test_board_duration_rounding_matches_browser_half_up():
     assert W.board_seconds(66) == 8.3
+
+
+class OverworldRpgTests(unittest.TestCase):
+    """Overworld RPG spec validation, PSWB/Node parity, walkability, and script privacy checks."""
+
+    def test_rpg_validate_round_trips_and_rejects_bad_refs(self):
+        spec = W.example_data("overworld")
+        validated = W.world_validate(spec)
+        self.assertEqual(W.world_validate(validated)["rpg"], validated["rpg"])
+        for label, mutate in (
+            ("unknown npc spot", lambda r: r["npcs"].__setitem__("missing-npc", r["npcs"]["meadow-npc-cat"])),
+            ("unknown loot spot", lambda r: r["loot"].__setitem__("missing-loot", r["loot"]["meadow-drop-herb"])),
+            ("unknown enemy spot", lambda r: r["enemies"].__setitem__("missing-enemy", r["enemies"]["meadow-enemy-slime"])),
+            ("underscore quest id", lambda r: r["quests"][0].__setitem__("id", "bad_id")),
+            ("unknown quest floor", lambda r: r["quests"].__setitem__(0, {**r["quests"][-1], "target": "no-such-floor"})),
+            ("bad quiz choice count", lambda r: r["quizzes"][0].__setitem__("choices", ["a", "b"])),
+            ("bad quiz correct index", lambda r: r["quizzes"][0].__setitem__("correct", 3)),
+            ("bad item_type", lambda r: r["loot"]["meadow-drop-herb"].__setitem__("item_type", "laser")),
+        ):
+            bad = W.example_data("overworld")
+            mutate(bad["rpg"])
+            with self.subTest(label=label), self.assertRaises(ValueError):
+                W.world_validate(bad)
+
+    def test_rpg_oracles_match_pysaiyanweboo_and_node(self):
+        import shutil
+        import subprocess
+        for seed in (0, 1, 20261126, 0xFFFFFFFF):
+            self.assertEqual(W.rpg_next_seed(seed), W.play_random(seed))
+        self.assertTrue(W.rpg_orb_effect(0)["idle"])
+        self.assertEqual(W.rpg_orb_effect(10)["orbs"], list(W.COUNTER_ATTACK_ORBS) + [W.COUNTER_ATTACK_ORBS[0]])
+        self.assertEqual(W.rpg_orb_effect(4, heal=True)["label"], "💚 Heal 4")
+        self.assertEqual(W.rpg_level_for_exp(0)["level"], 1)
+        self.assertEqual(W.rpg_level_for_exp(30)["level"], 2)
+        self.assertEqual(W.rpg_level_for_exp(9999)["level"], 10)
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node binary unavailable")
+        pure_js = W.WORLD_RPG_JS.replace("bindRpgWorlds();\n", "")
+        probe = (
+            pure_js
+            + "\nconsole.log(JSON.stringify({"
+            + "seeds: [0, 1, 20261126, 4294967295].map(rpgRandomWord),"
+            + "orbs: [rpgOrbEffect(0), rpgOrbEffect(10), rpgOrbEffect(4, true)],"
+            + "levels: [0, 29, 30, 75, 9999].map(rpgLevelForExp),"
+            + "dmg: [rpgDamage(10, 2, 123456), rpgDamage(10, 2, 123456, {multPct: 160, guarding: true})]"
+            + "}));\n"
+        )
+        res = subprocess.run([node, "--input-type=module", "-e", probe], capture_output=True, text=True, check=True)
+        data = json.loads(res.stdout)
+        self.assertEqual(data["seeds"], [W.rpg_next_seed(s) for s in (0, 1, 20261126, 0xFFFFFFFF)])
+        self.assertEqual(data["orbs"], [W.rpg_orb_effect(0), W.rpg_orb_effect(10), W.rpg_orb_effect(4, heal=True)])
+        self.assertEqual(data["levels"], [W.rpg_level_for_exp(e) for e in (0, 29, 30, 75, 9999)])
+        self.assertEqual(data["dmg"], [W.rpg_damage(10, 2, 123456), W.rpg_damage(10, 2, 123456, mult_pct=160, guarding=True)])
+
+    def test_overworld_all_lands_spots_are_walkable_and_reachable(self):
+        spec = W.world_validate(W.example_data("overworld"))
+        for floor in spec["floors"]:
+            if not floor.get("tile"):
+                continue
+            rows = W.world_blocked(floor["width"], floor["height"], floor["tile"], floor["props"])
+            px, py = floor["player"]["x"] // floor["tile"], floor["player"]["y"] // floor["tile"]
+            reach = W.world_reach(rows, (px, py))
+            for spot in floor["spots"]:
+                sx, sy = spot["x"] // floor["tile"], spot["y"] // floor["tile"]
+                with self.subTest(floor=floor["id"], spot=spot["id"]):
+                    self.assertEqual(rows[sy][sx], "0")
+                    self.assertIn((sx, sy), reach)
+
+    def test_world_rpg_script_has_no_network_storage_or_inner_html_and_non_rpg_is_untouched(self):
+        for forbidden in ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "fetch(",
+                          "XMLHttpRequest", "WebSocket", "sendBeacon", "localStorage", "sessionStorage", "indexedDB", "document.cookie", "<canvas"):
+            self.assertNotIn(forbidden, W.WORLD_RPG_JS)
+        school_doc = W.world_document(W.example_data("school"))
+        self.assertNotIn("ui-rpg-", school_doc)
+        self.assertNotIn("bindWorldRpg", school_doc)
+        overworld_doc = W.world_document(W.example_data("overworld"))
+        self.assertIn("ui-rpg-hud", overworld_doc)
+        self.assertIn("bindWorldRpg", overworld_doc)
+

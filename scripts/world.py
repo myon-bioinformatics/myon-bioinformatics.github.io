@@ -29,7 +29,8 @@ from pathlib import Path
 from typing import Any, Callable, NamedTuple
 from urllib.parse import quote, urlsplit
 
-from pysaiyanweboo import (DIAL_CSS, DIAL_JS, EARTH_RADIUS_M, bundled_css, dial_html, module_script, parse_coordinate, render_document,
+from pysaiyanweboo import (COUNTER_ATTACK_ORBS, COUNTER_HEAL_ORBS, COUNTER_MAX_ORBS, DIAL_CSS, DIAL_JS, EARTH_RADIUS_M, bundled_css,
+                           counter_effect, counter_label, dial_html, module_script, parse_coordinate, play_random, render_document,
                            tolerance_area, try_parse_maps_url)
 
 # --- World: one page, a camera, no page changes (scrolling "shots" and a pan/zoom map) -----------------
@@ -587,12 +588,258 @@ def tools_validate(tools_in: Any, *, floor_ids: Any = (), spot_ids: Any = ()) ->
     return tools
 
 
+RPG_LEVEL_THRESHOLDS = (0, 30, 75, 140, 230, 350, 500, 700, 950, 1250)
+RPG_LOOT_KINDS = ("drop", "chest")
+RPG_ITEM_TYPES = ("heal", "mana", "weapon", "armor", "charm", "scroll", "trophy")
+RPG_QUEST_KINDS = ("talk", "drop", "chest", "battle", "item", "boss", "quiz", "floor")
+RPG_SKILL_KINDS = ("attack", "heal", "guard")
+
+
+def rpg_next_seed(seed: int) -> int:
+    """Deterministic xorshift32 step delegated to PySaiyanWeBoo's ``play_random``."""
+    return play_random(_bounded_int(seed, "seed", 0, 0xFFFFFFFF))
+
+
+def rpg_orb_effect(amount: int, *, heal: bool = False) -> dict[str, Any]:
+    """Battle/heal orb readout delegated to PySaiyanWeBoo's ``counter_effect`` and ``counter_label``."""
+    amount = _bounded_int(amount, "amount", 0, 9999)
+    signed = -amount if heal else amount
+    effect = counter_effect(signed)
+    return {**effect, "label": counter_label(signed)}
+
+
+def rpg_level_for_exp(exp: int) -> dict[str, Any]:
+    """Level and cumulative stat bonuses from total EXP (Lv 1..10)."""
+    exp = _bounded_int(exp, "exp", 0, 999999)
+    level = 1
+    for idx, threshold in enumerate(RPG_LEVEL_THRESHOLDS, start=1):
+        if exp >= threshold:
+            level = idx
+    next_exp = RPG_LEVEL_THRESHOLDS[level] if level < len(RPG_LEVEL_THRESHOLDS) else RPG_LEVEL_THRESHOLDS[-1]
+    return {"level": level, "exp": exp, "next_exp": next_exp,
+            "bonus_hp": (level - 1) * 6, "bonus_mp": (level - 1) * 3,
+            "bonus_atk": (level - 1) * 2, "bonus_def": (level - 1) * 1}
+
+
+def rpg_damage(atk: int, defense: int, roll_word: int, *, mult_pct: int = 100, guarding: bool = False,
+               crit_pct: int = 12) -> dict[str, Any]:
+    """Pure integer RPG battle damage matching ``WORLD_RPG_JS``."""
+    atk = _bounded_int(atk, "atk", 1, 999)
+    defense = _bounded_int(defense, "defense", 0, 999)
+    roll_word = _bounded_int(roll_word, "roll_word", 0, 0xFFFFFFFF)
+    mult_pct = _bounded_int(mult_pct, "mult_pct", 10, 500)
+    crit_pct = _bounded_int(crit_pct, "crit_pct", 0, 100)
+    if not isinstance(guarding, bool):
+        raise ValueError("guarding must be bool")
+    crit = (roll_word % 100) < crit_pct
+    variance = ((roll_word >> 8) % 3) - 1
+    raw = max(1, (atk * mult_pct) // 100 - defense // 2 + variance)
+    if crit:
+        raw = max(2, (raw * 3) // 2)
+    if guarding:
+        raw = max(1, raw // 2)
+    return {"damage": raw, "crit": crit, "effect": rpg_orb_effect(raw)}
+
+
+def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dict[str, Any]:
+    """Checked copy of the optional ``rpg`` spec for contact dialogue, drops/chests, battles and gamification."""
+    if not isinstance(rpg_in, dict) or set(rpg_in) - {"seed", "hero", "npcs", "loot", "enemies", "quests", "badges", "quizzes", "shop", "skills", "orbs"}:
+        raise ValueError("rpg has seed, hero, npcs, loot, enemies, quests, badges, quizzes, shop, skills and orbs")
+    seed = _bounded_int(rpg_in.get("seed", 20261126), "rpg seed", 0, 0xFFFFFFFF)
+    hero_in = rpg_in.get("hero", {})
+    if not isinstance(hero_in, dict) or set(hero_in) - {"hp", "mp", "atk", "def", "gold"}:
+        raise ValueError("rpg hero has hp, mp, atk, def and gold")
+    hero = {"hp": _bounded_int(hero_in.get("hp", 32), "hero hp", 1, 999),
+            "mp": _bounded_int(hero_in.get("mp", 14), "hero mp", 0, 999),
+            "atk": _bounded_int(hero_in.get("atk", 6), "hero atk", 1, 99),
+            "def": _bounded_int(hero_in.get("def", 2), "hero def", 0, 99),
+            "gold": _bounded_int(hero_in.get("gold", 0), "hero gold", 0, 99999)}
+    npcs_in = rpg_in.get("npcs", {})
+    if not isinstance(npcs_in, dict) or len(npcs_in) > 64:
+        raise ValueError("rpg npcs maps up to 64 spot or actor ids")
+    npcs: dict[str, dict[str, Any]] = {}
+    for sid, entry in npcs_in.items():
+        if sid not in spot_ids or not isinstance(entry, dict) or set(entry) - {"speaker", "emoji", "greeting", "lines", "on_contact", "heal", "shop", "quiz"}:
+            raise ValueError(f"rpg npc {sid!r} must reference an existing spot or actor")
+        lines = entry.get("lines", [])
+        if not isinstance(lines, list) or len(lines) > 8:
+            raise ValueError("rpg npc lines lists up to 8 strings")
+        for flag in ("on_contact", "heal", "shop", "quiz"):
+            if flag in entry and not isinstance(entry[flag], bool):
+                raise ValueError(f"rpg npc {flag} must be bool")
+        npcs[sid] = {"speaker": _world_text(entry.get("speaker"), "speaker", 40),
+                     "emoji": _world_emoji(entry.get("emoji")),
+                     "greeting": _world_text(entry.get("greeting"), "greeting", 200),
+                     "lines": [_world_text(line, "line", 240) for line in lines],
+                     **({"on_contact": True} if entry.get("on_contact") else {}),
+                     **({"heal": True} if entry.get("heal") else {}),
+                     **({"shop": True} if entry.get("shop") else {}),
+                     **({"quiz": True} if entry.get("quiz") else {})}
+    loot_in = rpg_in.get("loot", {})
+    if not isinstance(loot_in, dict) or len(loot_in) > 64:
+        raise ValueError("rpg loot maps up to 64 spot ids")
+    loot: dict[str, dict[str, Any]] = {}
+    for sid, entry in loot_in.items():
+        if sid not in spot_ids or not isinstance(entry, dict) or set(entry) - {"kind", "item_type", "hp", "mp", "atk", "def", "exp", "gold", "consumable", "opened_mark", "requires_enemy"}:
+            raise ValueError(f"rpg loot {sid!r} must reference an existing spot")
+        kind = entry.get("kind")
+        if kind not in RPG_LOOT_KINDS:
+            raise ValueError(f"loot kind is one of {', '.join(RPG_LOOT_KINDS)}")
+        itype = entry.get("item_type")
+        if itype not in RPG_ITEM_TYPES:
+            raise ValueError(f"item_type is one of {', '.join(RPG_ITEM_TYPES)}")
+        if "consumable" in entry and not isinstance(entry["consumable"], bool):
+            raise ValueError("consumable must be bool")
+        req = entry.get("requires_enemy")
+        if req is not None and req not in spot_ids:
+            raise ValueError(f"requires_enemy {req!r} must reference an existing spot")
+        loot[sid] = {"kind": kind, "item_type": itype,
+                     "hp": _bounded_int(entry.get("hp", 0), "loot hp", 0, 999),
+                     "mp": _bounded_int(entry.get("mp", 0), "loot mp", 0, 999),
+                     "atk": _bounded_int(entry.get("atk", 0), "loot atk", 0, 99),
+                     "def": _bounded_int(entry.get("def", 0), "loot def", 0, 99),
+                     "exp": _bounded_int(entry.get("exp", 0), "loot exp", 0, 9999),
+                     "gold": _bounded_int(entry.get("gold", 0), "loot gold", 0, 9999),
+                     "consumable": bool(entry.get("consumable", itype in ("heal", "mana", "scroll"))),
+                     **({"opened_mark": _world_mark(entry["opened_mark"])} if "opened_mark" in entry else {}),
+                     **({"requires_enemy": req} if req is not None else {})}
+    enemies_in = rpg_in.get("enemies", {})
+    if not isinstance(enemies_in, dict) or len(enemies_in) > 32:
+        raise ValueError("rpg enemies maps up to 32 spot ids")
+    enemies: dict[str, dict[str, Any]] = {}
+    for sid, entry in enemies_in.items():
+        if sid not in spot_ids or not isinstance(entry, dict) or set(entry) - {"name", "emoji", "level", "hp", "atk", "def", "exp", "gold", "weakness", "drop_spot", "boss", "on_contact", "taunt"}:
+            raise ValueError(f"rpg enemy {sid!r} must reference an existing spot")
+        drop_spot = entry.get("drop_spot")
+        if drop_spot is not None and drop_spot not in spot_ids:
+            raise ValueError(f"drop_spot {drop_spot!r} must reference an existing spot")
+        for flag in ("boss", "on_contact"):
+            if flag in entry and not isinstance(entry[flag], bool):
+                raise ValueError(f"enemy {flag} must be bool")
+        enemies[sid] = {"name": _world_text(entry.get("name"), "enemy name", 40),
+                        "emoji": _world_emoji(entry.get("emoji")),
+                        "level": _bounded_int(entry.get("level", 1), "enemy level", 1, 99),
+                        "hp": _bounded_int(entry.get("hp"), "enemy hp", 1, 9999),
+                        "atk": _bounded_int(entry.get("atk"), "enemy atk", 1, 999),
+                        "def": _bounded_int(entry.get("def", 0), "enemy def", 0, 999),
+                        "exp": _bounded_int(entry.get("exp", 10), "enemy exp", 0, 9999),
+                        "gold": _bounded_int(entry.get("gold", 10), "enemy gold", 0, 9999),
+                        "weakness": _world_text(entry.get("weakness", ""), "weakness", 32, required=False),
+                        "taunt": _world_text(entry.get("taunt", ""), "taunt", 120, required=False),
+                        **({"drop_spot": drop_spot} if drop_spot is not None else {}),
+                        **({"boss": True} if entry.get("boss") else {}),
+                        **({"on_contact": True} if entry.get("on_contact") else {})}
+    quests_in = rpg_in.get("quests", [])
+    if not isinstance(quests_in, list) or len(quests_in) > 24:
+        raise ValueError("rpg quests lists up to 24 entries")
+    quests, seen_q = [], set()
+    for q in quests_in:
+        if not isinstance(q, dict) or set(q) - {"id", "title", "desc", "kind", "target", "count", "reward_exp", "reward_gold", "reward_emoji", "reward_label"}:
+            raise ValueError("quest has id, title, desc, kind, count, reward_exp, reward_gold")
+        qkind = q.get("kind")
+        if qkind not in RPG_QUEST_KINDS:
+            raise ValueError(f"quest kind is one of {', '.join(RPG_QUEST_KINDS)}")
+        target = q.get("target")
+        if target is not None:
+            if qkind == "floor" and target not in floor_ids:
+                raise ValueError(f"quest floor target {target!r} unknown")
+            if qkind in ("talk", "drop", "chest", "battle", "item", "boss") and target not in spot_ids:
+                raise ValueError(f"quest spot target {target!r} unknown")
+        quests.append({"id": _world_id(q.get("id"), "quest id", seen_q),
+                       "title": _world_text(q.get("title"), "quest title", 48),
+                       "desc": _world_text(q.get("desc"), "quest desc", 160),
+                       "kind": qkind,
+                       "count": _bounded_int(q.get("count", 1), "quest count", 1, 99),
+                       "reward_exp": _bounded_int(q.get("reward_exp", 0), "reward_exp", 0, 9999),
+                       "reward_gold": _bounded_int(q.get("reward_gold", 0), "reward_gold", 0, 9999),
+                       **({"target": target} if target is not None else {}),
+                       **({"reward_emoji": _world_emoji(q["reward_emoji"])} if "reward_emoji" in q else {}),
+                       **({"reward_label": _world_text(q["reward_label"], "reward_label", 40)} if "reward_label" in q else {})})
+    badges_in = rpg_in.get("badges", [])
+    if not isinstance(badges_in, list) or len(badges_in) > 24:
+        raise ValueError("rpg badges lists up to 24 entries")
+    badges, seen_b = [], set()
+    for b in badges_in:
+        if not isinstance(b, dict) or set(b) - {"id", "emoji", "label", "desc"}:
+            raise ValueError("badge has id, emoji, label and desc")
+        badges.append({"id": _world_id(b.get("id"), "badge id", seen_b),
+                       "emoji": _world_emoji(b.get("emoji")),
+                       "label": _world_text(b.get("label"), "badge label", 40),
+                       "desc": _world_text(b.get("desc"), "badge desc", 120)})
+    quizzes_in = rpg_in.get("quizzes", [])
+    if not isinstance(quizzes_in, list) or len(quizzes_in) > 24:
+        raise ValueError("rpg quizzes lists up to 24 entries")
+    quizzes = []
+    for qz in quizzes_in:
+        if not isinstance(qz, dict) or set(qz) - {"prompt", "choices", "correct", "explanation", "repo"}:
+            raise ValueError("quiz has prompt, choices (3), correct (0..2) and explanation")
+        choices = qz.get("choices")
+        if not isinstance(choices, list) or len(choices) != 3:
+            raise ValueError("quiz choices must have 3 items")
+        quizzes.append({"prompt": _world_text(qz.get("prompt"), "quiz prompt", 200),
+                        "choices": [_world_text(c, "quiz choice", 80) for c in choices],
+                        "correct": _bounded_int(qz.get("correct"), "quiz correct", 0, 2),
+                        "explanation": _world_text(qz.get("explanation"), "quiz explanation", 200),
+                        **({"repo": _world_text(qz["repo"], "quiz repo", 80)} if "repo" in qz else {})})
+    shop_in = rpg_in.get("shop", [])
+    if not isinstance(shop_in, list) or len(shop_in) > 16:
+        raise ValueError("rpg shop lists up to 16 items")
+    shop, seen_sh = [], set()
+    for sh in shop_in:
+        if not isinstance(sh, dict) or set(sh) - {"id", "spot_id", "emoji", "label", "cost", "item_type", "hp", "mp", "desc"}:
+            raise ValueError("shop item has id, emoji, label, cost, item_type, hp, mp and desc")
+        itype = sh.get("item_type", "heal")
+        if itype not in ("heal", "mana"):
+            raise ValueError("shop item_type must be heal or mana")
+        sid = sh.get("spot_id")
+        if sid is not None and sid not in spot_ids:
+            raise ValueError(f"shop spot_id {sid!r} must reference an existing spot")
+        shop.append({"id": _world_id(sh.get("id"), "shop id", seen_sh),
+                     "emoji": _world_emoji(sh.get("emoji")),
+                     "label": _world_text(sh.get("label"), "shop label", 40),
+                     "cost": _bounded_int(sh.get("cost"), "shop cost", 1, 9999),
+                     "item_type": itype,
+                     "hp": _bounded_int(sh.get("hp", 0), "shop hp", 0, 999),
+                     "mp": _bounded_int(sh.get("mp", 0), "shop mp", 0, 999),
+                     "desc": _world_text(sh.get("desc"), "shop desc", 160),
+                     **({"spot_id": sid} if sid is not None else {})})
+    skills_in = rpg_in.get("skills", [])
+    if not isinstance(skills_in, list) or len(skills_in) > 8:
+        raise ValueError("rpg skills lists up to 8 entries")
+    skills, seen_sk = [], set()
+    for sk in skills_in:
+        if not isinstance(sk, dict) or set(sk) - {"id", "emoji", "label", "mp", "kind", "mult_pct", "power", "desc"}:
+            raise ValueError("skill has id, emoji, label, mp, kind, mult_pct, power and desc")
+        skind = sk.get("kind")
+        if skind not in RPG_SKILL_KINDS:
+            raise ValueError(f"skill kind is one of {', '.join(RPG_SKILL_KINDS)}")
+        skills.append({"id": _world_id(sk.get("id"), "skill id", seen_sk),
+                       "emoji": _world_emoji(sk.get("emoji")),
+                       "label": _world_text(sk.get("label"), "skill label", 40),
+                       "mp": _bounded_int(sk.get("mp", 0), "skill mp", 0, 99),
+                       "kind": skind,
+                       "mult_pct": _bounded_int(sk.get("mult_pct", 100), "skill mult_pct", 10, 500),
+                       "power": _bounded_int(sk.get("power", 0), "skill power", 0, 999),
+                       "desc": _world_text(sk.get("desc"), "skill desc", 160)})
+    orbs_in = rpg_in.get("orbs")
+    if orbs_in is None:
+        orbs = {"attack": list(COUNTER_ATTACK_ORBS), "heal": list(COUNTER_HEAL_ORBS), "max": COUNTER_MAX_ORBS}
+    else:
+        if not isinstance(orbs_in, dict) or set(orbs_in) != {"attack", "heal", "max"}:
+            raise ValueError("rpg orbs has attack, heal and max")
+        orbs = {"attack": [_world_emoji(e) for e in orbs_in["attack"]],
+                "heal": [_world_emoji(e) for e in orbs_in["heal"]],
+                "max": _bounded_int(orbs_in["max"], "orbs max", 1, 12)}
+    return {"seed": seed, "hero": hero, "npcs": npcs, "loot": loot, "enemies": enemies,
+            "quests": quests, "badges": badges, "quizzes": quizzes, "shop": shop, "skills": skills, "orbs": orbs}
+
+
 def world_validate(spec: Any) -> dict[str, Any]:
     """Checked copy of a ``web-ui-world/1`` spec: optional ``shots`` (scroll scenes) and ``floors`` (maps with spots)."""
     if not isinstance(spec, dict) or spec.get("schema") != WORLD_SCHEMA:
         raise ValueError(f"expected schema {WORLD_SCHEMA}")
-    if set(spec) - {"schema", "id", "title", "shots", "floors", "zoom_max", "board", "avatars", "shell", "tools", "names", "mark_scale", "move"}:
-        raise ValueError("a world has schema, id, title, shots, floors, zoom_max, board, avatars, shell, tools, names, mark_scale and move")
+    if set(spec) - {"schema", "id", "title", "shots", "floors", "zoom_max", "board", "avatars", "shell", "tools", "names", "mark_scale", "move", "rpg"}:
+        raise ValueError("a world has schema, id, title, shots, floors, zoom_max, board, avatars, shell, tools, names, mark_scale, move and rpg")
     move = spec.get("move", "direct")
     if move not in ("direct", "confirm"):
         raise ValueError("move is direct or confirm")
@@ -717,9 +964,12 @@ def world_validate(spec: Any) -> dict[str, Any]:
     if spec.get("tools") and not floors:
         raise ValueError("tools maps up to 8 emoji to a feature, on a world with floors")
     tools = tools_validate(spec.get("tools", {}), floor_ids={f["id"] for f in floors}, spot_ids={s["id"] for f in floors for s in f["spots"]})
+    rpg = rpg_validate(spec["rpg"], spot_ids=spot_ids, floor_ids={f["id"] for f in floors}) if spec.get("rpg") is not None else None
+    if rpg is not None and not floors:
+        raise ValueError("rpg requires a world with floors")
     return {"schema": WORLD_SCHEMA, "id": world_id, "title": _world_text(spec.get("title", "World"), "title", 80),
             "shots": shots, "floors": floors, "zoom_max": zoom_max, "board": board, "names": names, "move": move, "mark_scale": [float(v) for v in mark_scale], **({"avatars": avatars} if avatars else {}),
-            **({"shell": True} if shell else {}), **({"tools": tools} if tools else {})}
+            **({"shell": True} if shell else {}), **({"tools": tools} if tools else {}), **({"rpg": rpg} if rpg is not None else {})}
 
 
 def _floor_kit(tile: int, id: str) -> tuple[Any, Any]:
@@ -1268,15 +1518,25 @@ def _world_playable(world: dict[str, Any]) -> bool:
     return bool(world["board"] or any(f["player"] or f["actors"] for f in world["floors"]))
 
 
-def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = False) -> tuple[str, list[str]]:
+def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = False, rpg: dict[str, Any] | None = None) -> tuple[str, list[str]]:
     """One floor's stage (props, spots, actors, player) and the info sheet articles of its spots and actors (``close`` is their closing link)."""
     flip = lambda s: (f' data-flip="{escape(s["flip"], quote=True)}"' if s.get("flip") else "") + (f' data-sign="{s["sign"]}"' if s.get("sign") else "") + (f' data-named="{"" if s["always_named"] is True else s["always_named"]}"' if s.get("always_named") else "")   # noqa: E731
     mark = lambda s: f';--mark:\'{escape(s["mark"], quote=True)}\'' if s.get("mark") else ""   # noqa: E731  (the dot's replacement, read by CSS content)
+    def rpg_kind(sid: str) -> str:
+        if not rpg:
+            return ""
+        if sid in rpg["enemies"]:
+            return ' data-rpg-kind="enemy"'
+        if sid in rpg["loot"]:
+            return f' data-rpg-kind="{rpg["loot"][sid]["kind"]}"'
+        if sid in rpg["npcs"]:
+            return ' data-rpg-kind="npc"'
+        return ""
     spots = "".join(
-        f'<a class="ui-spot" href="#{wid}-spot-{s["id"]}" data-x="{s["x"]}" data-y="{s["y"]}" data-category="{s["category"]}" '
-        f'style="left:{s["x"]}px;top:{s["y"]}px{mark(s)}"{flip(s)}>{escape(s["label"])}</a>' for s in f["spots"])
+        f'<a class="ui-spot" href="#{wid}-spot-{s["id"]}" data-x="{s["x"]}" data-y="{s["y"]}" data-category="{s["category"]}"'
+        f'{rpg_kind(s["id"])} style="left:{s["x"]}px;top:{s["y"]}px{mark(s)}"{flip(s)}>{escape(s["label"])}</a>' for s in f["spots"])
     actors = "".join(
-        f'<a class="ui-actor" id="{wid}-actor-{a["id"]}" href="#{wid}-spot-{a["id"]}" aria-label="{escape(a["label"], quote=True)}">'
+        f'<a class="ui-actor" id="{wid}-actor-{a["id"]}" href="#{wid}-spot-{a["id"]}"{rpg_kind(a["id"])} aria-label="{escape(a["label"], quote=True)}">'
         f'<span>{escape(a["emoji"])}</span></a>' for a in f["actors"])
     pl = f["player"]
     player = (f'<span class="ui-player" data-x="{pl["x"]}" data-y="{pl["y"]}" data-speed="{pl["speed"]}" '
@@ -1353,6 +1613,26 @@ def _tool_html(emoji: str, tool: dict[str, Any], *, wid: str = "", spot_rows: Ca
     return _menu_html("tool", escape(emoji), attrs, panel)
 
 
+def _rpg_hud_html(rpg: dict[str, Any] | None) -> str:
+    """Compact RPG status bar for worlds with ``rpg`` (hidden until script binds)."""
+    if not rpg:
+        return ""
+    hero = rpg["hero"]
+    total_q = len(rpg["quests"])
+    return (
+        '<div class="ui-rpg-hud" hidden aria-label="冒険ステータス">'
+        '<span class="ui-rpg-stat ui-rpg-hero" data-rpg-hero>🧙 Lv.1</span>'
+        f'<span class="ui-rpg-stat ui-rpg-hp" data-rpg-hp-wrap><span class="ui-rpg-meter"><i data-rpg-hp-bar style="width:100%"></i></span><b data-rpg-hp>❤️ {hero["hp"]}/{hero["hp"]}</b></span>'
+        f'<span class="ui-rpg-stat ui-rpg-mp" data-rpg-mp-wrap><span class="ui-rpg-meter ui-rpg-meter-mp"><i data-rpg-mp-bar style="width:100%"></i></span><b data-rpg-mp>💧 {hero["mp"]}/{hero["mp"]}</b></span>'
+        f'<span class="ui-rpg-stat" data-rpg-exp>✨ 0/30</span>'
+        f'<span class="ui-rpg-stat" data-rpg-gold>🪙 {hero["gold"]}G</span>'
+        f'<span class="ui-rpg-stat" data-rpg-gear>⚔️ {hero["atk"]} 🛡️ {hero["def"]}</span>'
+        f'<button type="button" class="ui-rpg-pill" data-rpg-journal-btn aria-label="冒険手帳（クエスト・実績・図鑑）">📜 <span data-rpg-qcount>0/{total_q}</span></button>'
+        '<button type="button" class="ui-rpg-pill" data-rpg-explore aria-label="この周辺で魔物をさがす">⚔️ 探索</button>'
+        '</div>'
+    )
+
+
 def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tail: str, floor_labels: str) -> str:
     """A shell world keeps the page short and says it with icons (the words are the aria-label and title, in 11 languages):
 
@@ -1408,12 +1688,14 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
             f'<label class="ui-world-goto-wrap">🛗 <select class="ui-world-goto" {_wt("floor")}>' +
             "".join(f'<option value="{f["id"]}"{" selected" if i == 0 else ""}>{escape(f["label"])}</option>' for i, f in enumerate(floors)) +
             '</select></label></footer>') if len(floors) > 1 else ""
+    rpg_hud = _rpg_hud_html(world.get("rpg"))
     return (f'{head}{radios}<header class="ui-world-head">{_board_html(world["board"])}<nav class="ui-world-tools">{header_tools}</nav></header>'
-            f'<div class="ui-world-body">{view}{dpad}<div class="ui-world-side">{side}</div></div>{foot}{tail}')
+            f'{rpg_hud}<div class="ui-world-body">{view}{dpad}<div class="ui-world-side">{side}</div></div>{foot}{tail}')
 
 
 def _map_html(world: dict[str, Any]) -> str:
     wid, floors, shell = world["id"], world["floors"], _world_shell(world)
+    rpg = world.get("rpg")
     categories = _world_categories(floors)
     cat_ids = [""] + categories
     radios = "".join(
@@ -1427,14 +1709,16 @@ def _map_html(world: dict[str, Any]) -> str:
         labels += "".join(f'<label for="{wid}-cat-{"value-" + c if c else "all"}" data-cat="{c}">{escape(c or "all")}</label>' for c in cat_ids)
     close = f'<a class="ui-sheet-close" href="#{wid}-map"' + (f' {_wt("close")}>✖️</a>' if shell else ">Close</a>")          # an icon in a shell world
     confirm = world["move"] == "confirm"
-    built = [_floor_html(wid, f, close, confirm=confirm) for f in floors]
+    built = [_floor_html(wid, f, close, confirm=confirm, rpg=rpg) for f in floors]
     scale = "" if world["mark_scale"] == [1, 1] else f' style="--mark-x:{world["mark_scale"][0]:g};--mark-y:{world["mark_scale"][1]:g}"'
     move_attr = ' data-move="confirm"' if confirm else ""
+    rpg_attr = ' data-rpg' if rpg else ""
+    rpg_json = ('<script type="application/json" class="ui-rpg-data">' + json.dumps(rpg, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + '</script>') if rpg else ""
     head = (f'<section class="ui-world ui-world-map" id="{wid}-map" data-ui-world="map" data-zoom-max="{world["zoom_max"]}" data-names="{world["names"]}"'
-            f'{move_attr}{scale}'
+            f'{move_attr}{rpg_attr}{scale}'
             f'{" data-grid" if any(f.get("tile") for f in floors) else ""}{" data-shell" if shell else ""} aria-label="{escape(world["title"], quote=True)}">')
     view = f'<div class="ui-world-view" tabindex="0"><div class="ui-world-cam" style="--fx:0;--fy:0;--z:1">{"".join(stage for stage, _ in built)}</div></div>'
-    tail = f'<aside class="ui-sheet" aria-live="polite">{"".join(a for _, articles in built for a in articles)}</aside>{_pick_html(wid, world.get("avatars", []), shell)}</section>'
+    tail = f'<aside class="ui-sheet" aria-live="polite">{"".join(a for _, articles in built for a in articles)}</aside>{_pick_html(wid, world.get("avatars", []), shell)}{rpg_json}</section>'
     if shell:
         return _shell_html(world, head=head, radios=radios, view=view, tail=tail, floor_labels=floor_labels)
     return _classic_html(world, head=head, radios=radios, labels=labels, view=view, tail=tail)
@@ -1600,6 +1884,60 @@ _WORLD_CSS = (
     "@media(prefers-reduced-motion:reduce){.ui-world *{transition:none!important}.ui-actor,.ui-board-run{animation-play-state:paused!important}}"
 )
 
+_WORLD_RPG_CSS = (
+    ".ui-world[data-shell][data-rpg]{--ui-world-h:min(50vh,464px)}"
+    ".ui-rpg-hud{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:6px 10px;border-bottom:1px solid var(--ui-border);background:var(--ui-panel);font-size:.8rem;line-height:1.25}"
+    ".ui-rpg-hud[hidden]{display:none}"
+    ".ui-rpg-stat{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-variant-numeric:tabular-nums}"
+    ".ui-rpg-hero{font-weight:700}"
+    ".ui-rpg-meter{display:inline-block;width:54px;height:8px;border-radius:999px;background:color-mix(in srgb,var(--ui-fg) 16%,transparent);overflow:hidden;vertical-align:middle}"
+    ".ui-rpg-meter>i{display:block;height:100%;background:#2e9d5b;border-radius:999px;transition:width .25s ease}"
+    ".ui-rpg-meter-mp>i{background:#3b82f6}"
+    ".ui-rpg-meter-foe>i{background:#ef4444}"
+    ".ui-rpg-pill{display:inline-flex;align-items:center;gap:4px;min-height:28px;padding:2px 9px;border:1px solid var(--ui-border);border-radius:999px;background:var(--ui-bg);color:var(--ui-fg);font:inherit;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap}"
+    ".ui-rpg-pill:hover,.ui-rpg-pill:focus-visible{border-color:var(--ui-accent);outline:none}"
+    "[data-rpg-kind=\"chest\"][data-rpg-opened],[data-rpg-kind=\"drop\"][data-rpg-collected],[data-rpg-kind=\"enemy\"][data-rpg-defeated]{opacity:.58}"
+    "[data-rpg-kind=\"enemy\"][data-rpg-boss]{border-color:#d946ef!important;box-shadow:0 0 0 2px color-mix(in srgb,#d946ef 32%,transparent)}"
+    "[data-rpg-kind=\"npc\"]{border-color:color-mix(in srgb,var(--ui-accent) 45%,transparent)}"
+    ".ui-rpg-overlay{position:absolute;inset:0;z-index:10;display:grid;place-items:center;padding:12px;background:color-mix(in srgb,var(--ui-bg) 70%,transparent);backdrop-filter:blur(4px)}"
+    ".ui-rpg-overlay[hidden]{display:none}"
+    ".ui-rpg-card{width:min(100%,480px);max-height:100%;overflow:auto;border:2px solid var(--ui-fg);border-radius:var(--ui-radius);background:var(--ui-bg);color:var(--ui-fg);padding:12px 14px;box-shadow:0 12px 32px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:10px}"
+    ".ui-rpg-journal-card{width:min(100%,540px)}"
+    ".ui-rpg-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--ui-border);padding-bottom:6px}"
+    ".ui-rpg-card-title{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.98rem;margin:0}"
+    ".ui-rpg-close{min-width:34px;min-height:34px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-panel);color:var(--ui-fg);cursor:pointer;font-size:1rem;line-height:1}"
+    ".ui-rpg-text{margin:0;font-size:.9rem;line-height:1.5;white-space:pre-line}"
+    ".ui-rpg-subnote{margin:0;font-size:.78rem;color:color-mix(in srgb,var(--ui-fg) 75%,transparent)}"
+    ".ui-rpg-actions,.ui-rpg-cmd-grid,.ui-rpg-tabs{display:flex;flex-wrap:wrap;gap:8px}"
+    ".ui-rpg-btn{min-height:36px;padding:6px 11px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-panel);color:var(--ui-fg);font:inherit;font-size:.84rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;text-align:left}"
+    ".ui-rpg-btn:hover:not(:disabled),.ui-rpg-btn:focus-visible:not(:disabled){border-color:var(--ui-accent);background:color-mix(in srgb,var(--ui-accent) 14%,var(--ui-panel))}"
+    ".ui-rpg-btn:disabled{opacity:.48;cursor:not-allowed}"
+    ".ui-rpg-btn[data-primary]{background:var(--ui-accent);color:var(--ui-bg);border-color:var(--ui-accent)}"
+    ".ui-rpg-btn[aria-selected=\"true\"]{background:var(--ui-accent);color:var(--ui-bg);border-color:var(--ui-accent)}"
+    ".ui-rpg-cmd-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}"
+    ".ui-rpg-foe-box{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-panel)}"
+    ".ui-rpg-foe-sprite{font-size:2.4rem;line-height:1;min-width:48px;text-align:center}"
+    ".ui-rpg-foe-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}"
+    ".ui-rpg-foe-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:.82rem}"
+    ".ui-rpg-intent{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,#f59e0b 20%,var(--ui-bg));border:1px solid #f59e0b;font-size:.74rem;font-weight:700}"
+    ".ui-rpg-orbs{min-height:28px;display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:4px 8px;border:1px dashed var(--ui-border);border-radius:var(--ui-radius);font-size:.82rem}"
+    ".ui-rpg-orb{display:inline-block;animation:ui-rpg-rise .55s ease-out}"
+    "@keyframes ui-rpg-rise{0%{opacity:.2;transform:translateY(6px) scale(.85)}100%{opacity:1;transform:none}}"
+    ".ui-rpg-log{margin:0;padding:8px 10px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-panel);font-size:.82rem;line-height:1.45;min-height:48px;max-height:108px;overflow:auto}"
+    ".ui-rpg-subpanel{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-panel)}"
+    ".ui-rpg-subpanel[hidden]{display:none}"
+    ".ui-rpg-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}"
+    ".ui-rpg-row{padding:8px 10px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-panel);display:flex;flex-direction:column;gap:4px;font-size:.82rem}"
+    ".ui-rpg-row-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700}"
+    ".ui-rpg-badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:8px}"
+    ".ui-rpg-badge{padding:8px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-panel);font-size:.78rem;display:flex;flex-direction:column;gap:2px}"
+    ".ui-rpg-badge[data-unlocked=\"false\"]{opacity:.5}"
+    ".ui-rpg-toast{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);z-index:9;max-width:min(92%,420px);padding:6px 12px;border-radius:999px;border:1px solid var(--ui-accent);background:var(--ui-bg);color:var(--ui-fg);font-size:.8rem;font-weight:600;box-shadow:0 6px 18px rgba(0,0,0,.25);pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
+    ".ui-rpg-toast[hidden]{display:none}"
+    "@media(max-width:640px){.ui-rpg-hud{padding:5px 8px;gap:4px 8px;font-size:.75rem}.ui-rpg-meter{width:42px}.ui-rpg-cmd-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ui-rpg-card{padding:10px 11px}}"
+    "@media(prefers-reduced-motion:reduce){.ui-rpg-orb,.ui-rpg-meter>i{animation:none!important;transition:none!important}}"
+)
+
 _WALL_CSS = (
     ".ui-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}"
     ".ui-wall-cell{border:1px solid var(--ui-border);padding:16px;border-radius:var(--ui-radius);background:var(--ui-bg);color:var(--ui-fg)}"
@@ -1614,6 +1952,8 @@ def world_css(spec: Any, *, base: bool = True) -> str:
     """
     world = world_validate(spec)
     wid, rules = world["id"], [_WORLD_CSS] if base else []
+    if base and world.get("rpg"):
+        rules.append(_WORLD_RPG_CSS)
     for f in world["floors"]:
         radio = f"#{wid}-floor-{f['id']}"
         rules.append(f'.ui-world:has({radio}:checked) .ui-floor[data-floor="{f["id"]}"]{{display:block}}')
@@ -1908,12 +2248,572 @@ globalThis.webUiWorld={fitZoom,clampFocus,travelSeconds,minutesUntil,boardClock,
 bindWorlds();
 """
 
+WORLD_RPG_JS = r"""
+export const RPG_LEVEL_THRESHOLDS=[0,30,75,140,230,350,500,700,950,1250];
+const DEFAULT_ORBS={attack:["🔥","💧","🌳","💡","🔮"],heal:["❤️","💚","✨"],max:6};
+export function rpgRandomWord(seed){let x=(Number(seed)>>>0)||0x6D2B79F5;x^=(x<<13);x>>>=0;x^=(x>>>17);x^=(x<<5);return x>>>0}
+export function rpgOrbEffect(amount,heal=false,orbs=DEFAULT_ORBS){
+ const amt=Math.max(0,Math.floor(Number(amount)||0));
+ if(amt===0)return{counter:0,amount:0,heal:false,idle:true,orbs:[],label:"Orbs ready…"};
+ const pal=heal?(orbs?.heal||DEFAULT_ORBS.heal):(orbs?.attack||DEFAULT_ORBS.attack),max=Math.max(1,Math.floor(Number(orbs?.max)||6)),n=Math.min(Math.max(amt,1),max);
+ return{counter:heal?-amt:amt,amount:amt,heal:Boolean(heal),idle:false,orbs:Array.from({length:n},(_,i)=>pal[i%pal.length]),label:heal?`💚 Heal ${amt}`:`💥 Damage ${amt}`};
+}
+export function rpgLevelForExp(exp){
+ const xp=Math.max(0,Math.floor(Number(exp)||0));let lv=1;
+ for(let i=0;i<RPG_LEVEL_THRESHOLDS.length;i++)if(xp>=RPG_LEVEL_THRESHOLDS[i])lv=i+1;
+ const next=lv<RPG_LEVEL_THRESHOLDS.length?RPG_LEVEL_THRESHOLDS[lv]:RPG_LEVEL_THRESHOLDS[RPG_LEVEL_THRESHOLDS.length-1];
+ return{level:lv,exp:xp,next_exp:next,bonus_hp:(lv-1)*6,bonus_mp:(lv-1)*3,bonus_atk:(lv-1)*2,bonus_def:(lv-1)*1};
+}
+export function rpgDamage(atk,defense,rollWord,{multPct=100,guarding=false,critPct=12}={}){
+ const w=Number(rollWord)>>>0,crit=(w%100)<critPct,variance=((w>>>8)%3)-1;
+ let raw=Math.max(1,Math.floor((atk*multPct)/100)-Math.floor(defense/2)+variance);
+ if(crit)raw=Math.max(2,Math.floor((raw*3)/2));
+ if(guarding)raw=Math.max(1,Math.floor(raw/2));
+ return{damage:raw,crit,effect:rpgOrbEffect(raw)};
+}
+function rpgEl(tag,props={},...kids){
+ const node=document.createElement(tag);
+ for(const[k,v]of Object.entries(props)){
+  if(v===undefined||v===null)continue;
+  if(k==="className")node.className=v;
+  else if(k==="hidden")node.hidden=Boolean(v);
+  else if(k==="disabled")node.disabled=Boolean(v);
+  else if(k.startsWith("data-"))node.setAttribute(k,String(v));
+  else if(k.startsWith("aria-"))node.setAttribute(k,String(v));
+  else node[k]=v;
+ }
+ node.append(...kids.filter(c=>c!==undefined&&c!==null));
+ return node;
+}
+export function bindWorldRpg(el){
+ if(el.hasAttribute("data-rpg-bound"))return el;
+ const dataEl=el.querySelector(".ui-rpg-data");if(!dataEl)return el;
+ let rpg=null;try{rpg=JSON.parse(dataEl.textContent)}catch{return el}
+ el.setAttribute("data-rpg-bound","");
+ const wid=el.id.replace(/-map$/,""),hud=el.querySelector(".ui-rpg-hud");
+ if(hud)hud.hidden=false;
+ const overlay=rpgEl("div",{className:"ui-rpg-overlay",hidden:true}),toast=rpgEl("div",{className:"ui-rpg-toast",hidden:true,"aria-live":"polite"});
+ el.append(overlay,toast);
+ let toastTimer=0;
+ const showToast=msg=>{toast.textContent=msg;toast.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{toast.hidden=true},3200)};
+ const state={
+  exp:0,hp:rpg.hero.hp,mp:rpg.hero.mp,gold:rpg.hero.gold,seed:rpg.seed>>>0||20261126,
+  talked:new Set(),looted:new Set(),defeated:new Set(),quizSolved:new Set(),quizIdx:0,
+  visitedFloors:new Set([el.querySelector("input[name$='-floor']:checked")?.value||"meadow"]),
+  consumables:new Map(),equipment:new Set(),completedQuests:new Set(),badges:new Set(),
+  boughtCount:0,healedCount:0
+ };
+ const equipIds=()=>[...state.equipment];
+ const equipBonus=()=>equipIds().reduce((acc,sid)=>{const it=rpg.loot[sid];if(!it)return acc;acc.hp+=it.hp;acc.mp+=it.mp;acc.atk+=it.atk;acc.def+=it.def;return acc},{hp:0,mp:0,atk:0,def:0});
+ const stats=()=>{const lv=rpgLevelForExp(state.exp),eq=equipBonus();return{lv,maxHp:rpg.hero.hp+lv.bonus_hp+eq.hp,maxMp:rpg.hero.mp+lv.bonus_mp+eq.mp,atk:rpg.hero.atk+lv.bonus_atk+eq.atk,def:rpg.hero.def+lv.bonus_def+eq.def}};
+ const clampVitals=()=>{const st=stats();state.hp=Math.min(Math.max(0,state.hp),st.maxHp);state.mp=Math.min(Math.max(0,state.mp),st.maxMp)};
+ const nextRoll=()=>{state.seed=rpgRandomWord(state.seed);return state.seed};
+ const spotNode=sid=>el.querySelector(`.ui-spot[href="#${CSS.escape(wid+"-spot-"+sid)}"],.ui-actor[href="#${CSS.escape(wid+"-spot-"+sid)}"]`);
+ const spotMeta=sid=>{
+  const node=spotNode(sid),art=document.getElementById(wid+"-spot-"+sid);
+  const label=node?.textContent?.trim()||art?.querySelector("h3")?.textContent?.trim()||sid;
+  const take=art?.querySelector(".ui-world-take");
+  return{node,art,label,emoji:take?.dataset.itemEmoji||"🎒",itemLabel:take?.dataset.itemLabel||label,take};
+ };
+ const syncSpotMarks=()=>{
+  for(const[sid,it]of Object.entries(rpg.loot)){
+   const node=spotNode(sid);if(!node)continue;
+   const got=state.looted.has(sid);
+   if(it.kind==="chest"){node.toggleAttribute("data-rpg-opened",got);if(got&&it.opened_mark&&node.textContent.includes("🎁"))node.textContent=node.textContent.replace("🎁",it.opened_mark)}
+   else node.toggleAttribute("data-rpg-collected",got);
+  }
+  for(const[sid,foe]of Object.entries(rpg.enemies)){
+   const node=spotNode(sid);if(!node)continue;
+   node.toggleAttribute("data-rpg-boss",Boolean(foe.boss));
+   node.toggleAttribute("data-rpg-defeated",state.defeated.has(sid));
+  }
+ };
+ const renderHud=()=>{
+  clampVitals();if(!hud)return;
+  const st=stats(),heroGlyph=el.querySelector(".ui-player span")?.textContent||"🧙";
+  const qDone=state.completedQuests.size,qTotal=rpg.quests.length;
+  hud.querySelector("[data-rpg-hero]").textContent=`${heroGlyph} Lv.${st.lv.level}`;
+  hud.querySelector("[data-rpg-hp]").textContent=`❤️ ${state.hp}/${st.maxHp}`;
+  hud.querySelector("[data-rpg-hp-bar]").style.width=`${Math.round(100*state.hp/Math.max(1,st.maxHp))}%`;
+  hud.querySelector("[data-rpg-mp]").textContent=`💧 ${state.mp}/${st.maxMp}`;
+  hud.querySelector("[data-rpg-mp-bar]").style.width=`${Math.round(100*state.mp/Math.max(1,st.maxMp))}%`;
+  hud.querySelector("[data-rpg-exp]").textContent=`✨ ${state.exp}/${st.lv.next_exp}`;
+  hud.querySelector("[data-rpg-gold]").textContent=`🪙 ${state.gold}G`;
+  hud.querySelector("[data-rpg-gear]").textContent=`⚔️ ${st.atk} 🛡️ ${st.def}`;
+  hud.querySelector("[data-rpg-qcount]").textContent=`${qDone}/${qTotal}`;
+  syncSpotMarks();
+ };
+ const questProgress=q=>{
+  if(q.kind==="talk")return q.target?(state.talked.has(q.target)?1:0):state.talked.size;
+  if(q.kind==="drop")return q.target?(state.looted.has(q.target)?1:0):Object.entries(rpg.loot).filter(([id,v])=>v.kind==="drop"&&state.looted.has(id)).length;
+  if(q.kind==="chest")return q.target?(state.looted.has(q.target)?1:0):Object.entries(rpg.loot).filter(([id,v])=>v.kind==="chest"&&state.looted.has(id)).length;
+  if(q.kind==="battle"||q.kind==="boss")return q.target?(state.defeated.has(q.target)?1:0):state.defeated.size;
+  if(q.kind==="item")return q.target?(state.looted.has(q.target)?1:0):(state.looted.size+state.boughtCount);
+  if(q.kind==="quiz")return state.quizSolved.size;
+  if(q.kind==="floor")return q.target?(state.visitedFloors.has(q.target)?1:0):state.visitedFloors.size;
+  return 0;
+ };
+ const evalBadges=()=>{
+  const checks={
+   "first-talk":state.talked.size>=1,
+   "villager-friends":Object.keys(rpg.npcs).filter(id=>id.startsWith("meadow-npc")).every(id=>state.talked.has(id))||state.talked.size>=4,
+   "item-finder":state.looted.size>=1,
+   "treasure-hunter":Object.entries(rpg.loot).filter(([id,v])=>v.kind==="chest"&&state.looted.has(id)).length>=3,
+   "first-win":state.defeated.size>=1,
+   "boss-slayer":Object.entries(rpg.enemies).some(([id,e])=>e.boss&&state.defeated.has(id)),
+   "quiz-ace":state.quizSolved.size>=2,
+   "world-walker":state.visitedFloors.size>=3,
+   "level-up":rpgLevelForExp(state.exp).level>=2,
+   shopper:state.boughtCount>=1
+  };
+  for(const b of rpg.badges){
+   if(!state.badges.has(b.id)&&checks[b.id]){state.badges.add(b.id);showToast(`🏅 実績解除: ${b.emoji} ${b.label}`)}
+  }
+ };
+ const gainExp=amount=>{
+  if(!amount)return false;
+  const before=rpgLevelForExp(state.exp).level;
+  state.exp+=amount;
+  const after=rpgLevelForExp(state.exp);
+  if(after.level>before){const st=stats();state.hp=st.maxHp;state.mp=st.maxMp;return after.level}
+  return false;
+ };
+ const checkQuests=()=>{
+  for(const q of rpg.quests){
+   if(state.completedQuests.has(q.id))continue;
+   if(questProgress(q)>=q.count){
+    state.completedQuests.add(q.id);
+    const lvUp=gainExp(q.reward_exp);state.gold+=q.reward_gold;
+    showToast(`📜 クエスト達成「${q.title}」 +${q.reward_exp}EXP +${q.reward_gold}G${lvUp?` 🎉Lv.${lvUp}!`:""}`);
+   }
+  }
+  evalBadges();renderHud();
+ };
+ const addLoot=sid=>{
+  const entry=rpg.loot[sid];if(!entry||state.looted.has(sid))return false;
+  state.looted.add(sid);
+  const meta=spotMeta(sid);
+  if(meta.take&&meta.take.getAttribute("aria-pressed")!=="true")meta.take.click();
+  if(entry.consumable){
+   const key="spot:"+sid,cur=state.consumables.get(key)||{key,spotId:sid,emoji:meta.emoji,label:meta.itemLabel,item_type:entry.item_type,hp:entry.hp,mp:entry.mp,atk:entry.atk,count:0};
+   cur.count+=1;state.consumables.set(key,cur);
+  }else{
+   state.equipment.add(sid);
+   const st=stats();state.hp=Math.min(st.maxHp,state.hp+entry.hp);state.mp=Math.min(st.maxMp,state.mp+entry.mp);
+  }
+  state.gold+=entry.gold;
+  const lvUp=gainExp(entry.exp);
+  checkQuests();
+  return{lvUp,meta,entry};
+ };
+ const useConsumable=(key,foeState=null)=>{
+  const item=state.consumables.get(key);if(!item||item.count<=0)return null;
+  item.count-=1;
+  if(item.count===0){
+   state.consumables.delete(key);
+   if(item.spotId){const meta=spotMeta(item.spotId);if(meta.take&&meta.take.getAttribute("aria-pressed")==="true")meta.take.click()}
+  }
+  if(item.item_type==="scroll"&&foeState){
+   const dmg=Math.max(8,item.atk+stats().atk);
+   foeState.hp=Math.max(0,foeState.hp-dmg);
+   return{kind:"attack",amount:dmg,text:`📜 ${item.emoji} ${item.label}！ ${foeState.name}に ${dmg} のダメージ！`,effect:rpgOrbEffect(dmg,false,rpg.orbs)};
+  }
+  const beforeHp=state.hp,beforeMp=state.mp,st=stats();
+  if(item.hp)state.hp=Math.min(st.maxHp,state.hp+item.hp);
+  if(item.mp)state.mp=Math.min(st.maxMp,state.mp+item.mp);
+  const dhp=state.hp-beforeHp,dmp=state.mp-beforeMp;
+  renderHud();
+  return{kind:"heal",amount:Math.max(1,dhp+dmp),text:`${item.emoji} ${item.label}を使った！ HP+${dhp} MP+${dmp}`,effect:rpgOrbEffect(Math.max(1,dhp||dmp),true,rpg.orbs)};
+ };
+ const closeModal=()=>{overlay.hidden=true;overlay.replaceChildren();el.querySelector(".ui-world-view")?.focus({preventScroll:true})};
+ const showCard=(card)=>{overlay.replaceChildren(card);overlay.hidden=false;const focusable=card.querySelector("[data-primary],button");focusable?.focus({preventScroll:true})};
+ const renderOrbs=effect=>{
+  const wrap=rpgEl("div",{className:"ui-rpg-orbs"});
+  if(!effect||effect.idle){wrap.append(rpgEl("span",{textContent:"✨ オーブ待機中…"}));return wrap}
+  for(const orb of effect.orbs)wrap.append(rpgEl("span",{className:"ui-rpg-orb",textContent:orb}));
+  wrap.append(rpgEl("span",{textContent:` ${effect.label}`}));
+  return wrap;
+ };
+ const openQuizView=(npc,spotId)=>{
+  const qz=rpg.quizzes[state.quizIdx%rpg.quizzes.length];
+  state.quizIdx=(state.quizIdx+1)%rpg.quizzes.length;
+  const resultBox=rpgEl("div",{className:"ui-rpg-subpanel",hidden:true});
+  const choiceBtns=[];
+  const card=rpgEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":"ポートフォリオ・クイズ"},
+   rpgEl("div",{className:"ui-rpg-card-head"},
+    rpgEl("h3",{className:"ui-rpg-card-title",textContent:`${npc.emoji} ${npc.speaker}のポートフォリオクイズ`}),
+    rpgEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   qz.repo?rpgEl("p",{className:"ui-rpg-subnote",textContent:`📦 関連リポジトリ: ${qz.repo}`}):null,
+   rpgEl("p",{className:"ui-rpg-text",textContent:qz.prompt}),
+   rpgEl("div",{className:"ui-rpg-actions"},...qz.choices.map((c,idx)=>{
+    const btn=rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:`${idx+1}. ${c}`,onclick:()=>{
+     for(const b of choiceBtns)b.disabled=true;
+     const ok=idx===qz.correct;
+     resultBox.hidden=false;
+     const qKey=qz.prompt;let rewardNote="";
+     if(ok&&!state.quizSolved.has(qKey)){state.quizSolved.add(qKey);gainExp(20);state.gold+=25;rewardNote=" (+20 EXP / +25G)";checkQuests()}
+     resultBox.replaceChildren(
+      rpgEl("p",{className:"ui-rpg-text",textContent:(ok?"⭕ せいかい！":"❌ おしい！")+rewardNote}),
+      rpgEl("p",{className:"ui-rpg-subnote",textContent:qz.explanation}),
+      rpgEl("div",{className:"ui-rpg-actions"},
+       rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"つぎの問題 ▶",onclick:()=>openQuizView(npc,spotId)}),
+       rpgEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"会話にもどる",onclick:()=>openNpcDialog(spotId)})));
+    }});
+    choiceBtns.push(btn);return btn;
+   })),
+   resultBox);
+  showCard(card);
+ };
+ const openShopView=(npc,spotId)=>{
+  const list=rpgEl("div",{className:"ui-rpg-list"});
+  const goldTag=rpgEl("p",{className:"ui-rpg-subnote",textContent:`所持金: 🪙 ${state.gold}G`});
+  const rebuildShop=()=>{
+   goldTag.textContent=`所持金: 🪙 ${state.gold}G`;
+   list.replaceChildren(...rpg.shop.map(sh=>rpgEl("div",{className:"ui-rpg-row"},
+    rpgEl("div",{className:"ui-rpg-row-top"},rpgEl("span",{textContent:`${sh.emoji} ${sh.label}`}),rpgEl("span",{textContent:`🪙 ${sh.cost}G`})),
+    rpgEl("p",{className:"ui-rpg-subnote",textContent:sh.desc}),
+    rpgEl("div",{className:"ui-rpg-actions"},rpgEl("button",{type:"button",className:"ui-rpg-btn",disabled:state.gold<sh.cost,textContent:state.gold<sh.cost?"ゴールド不足":"かう",onclick:()=>{
+     if(state.gold<sh.cost)return;
+     state.gold-=sh.cost;state.boughtCount+=1;
+     const key="shop:"+sh.id,cur=state.consumables.get(key)||{key,emoji:sh.emoji,label:sh.label,item_type:sh.item_type,hp:sh.hp,mp:sh.mp,atk:0,count:0};
+     cur.count+=1;state.consumables.set(key,cur);
+     showToast(`${sh.emoji} ${sh.label} を購入した！`);
+     checkQuests();rebuildShop();
+    }})))));
+  };
+  rebuildShop();
+  const card=rpgEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":`${npc.speaker}のお店`},
+   rpgEl("div",{className:"ui-rpg-card-head"},
+    rpgEl("h3",{className:"ui-rpg-card-title",textContent:`🛒 ${npc.speaker}の道具屋`}),
+    rpgEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   goldTag,list,
+   rpgEl("div",{className:"ui-rpg-actions"},rpgEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"会話にもどる",onclick:()=>openNpcDialog(spotId)})));
+  showCard(card);
+ };
+ const openNpcDialog=(spotId,pageIdx=-1)=>{
+  const npc=rpg.npcs[spotId];if(!npc)return;
+  state.talked.add(spotId);checkQuests();
+  const pages=[npc.greeting,...npc.lines];
+  let idx=pageIdx>=0?Math.min(pageIdx,pages.length-1):0;
+  const textEl=rpgEl("p",{className:"ui-rpg-text"}),orbsWrap=rpgEl("div"),actionsEl=rpgEl("div",{className:"ui-rpg-actions"});
+  const renderPage=()=>{
+   textEl.textContent=`[${idx+1}/${pages.length}] ${pages[idx]}`;
+   actionsEl.replaceChildren();
+   if(idx>0)actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"◀ もどる",onclick:()=>{idx-=1;renderPage()}}));
+   if(idx<pages.length-1)actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"つぎへ ▶",onclick:()=>{idx+=1;renderPage()}}));
+   if(npc.heal)actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"💚 いやす（全回復）",onclick:()=>{
+    const st=stats(),dhp=Math.max(1,st.maxHp-state.hp);state.hp=st.maxHp;state.mp=st.maxMp;state.healedCount+=1;
+    orbsWrap.replaceChildren(renderOrbs(rpgOrbEffect(dhp,true,rpg.orbs)));
+    textEl.textContent="✨ やさしい光に包まれ、HPとMPが全回復した！";renderHud();
+   }}));
+   if(npc.shop)actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🛒 おみせ",onclick:()=>openShopView(npc,spotId)}));
+   if(npc.quiz)actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🎓 クイズに挑戦",onclick:()=>openQuizView(npc,spotId)}));
+   actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",...(idx===pages.length-1?{"data-primary":""}:{}),textContent:"とじる",onclick:closeModal}));
+  };
+  const card=rpgEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":npc.speaker},
+   rpgEl("div",{className:"ui-rpg-card-head"},
+    rpgEl("h3",{className:"ui-rpg-card-title",textContent:`${npc.emoji} ${npc.speaker}`}),
+    rpgEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   textEl,orbsWrap,actionsEl);
+  renderPage();showCard(card);
+ };
+ const openLootDialog=spotId=>{
+  const entry=rpg.loot[spotId];if(!entry)return;
+  const meta=spotMeta(spotId);
+  if(entry.requires_enemy&&!state.defeated.has(entry.requires_enemy)){
+   const guard=rpg.enemies[entry.requires_enemy];
+   const card=rpgEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":"封印された宝箱"},
+    rpgEl("div",{className:"ui-rpg-card-head"},rpgEl("h3",{className:"ui-rpg-card-title",textContent:`🔒 ${meta.label}`}),rpgEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+    rpgEl("p",{className:"ui-rpg-text",textContent:`強力な気配が宝箱を守っている！ まずは ${guard?guard.emoji+" "+guard.name:"番人"} をたおそう。`}),
+    rpgEl("div",{className:"ui-rpg-actions"},
+     rpgEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"⚔️ いどむ",onclick:()=>startBattle(entry.requires_enemy)}),
+     rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"とじる",onclick:closeModal})));
+   showCard(card);return;
+  }
+  const already=state.looted.has(spotId),res=already?null:addLoot(spotId);
+  const bonuses=[];
+  if(entry.atk)bonuses.push(`⚔️ ATK +${entry.atk}`);
+  if(entry.def)bonuses.push(`🛡️ DEF +${entry.def}`);
+  if(entry.hp)bonuses.push(`❤️ HP +${entry.hp}`);
+  if(entry.mp)bonuses.push(`💧 MP +${entry.mp}`);
+  if(entry.gold)bonuses.push(`🪙 +${entry.gold}G`);
+  if(entry.exp)bonuses.push(`✨ +${entry.exp}EXP`);
+  const card=rpgEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":meta.label},
+   rpgEl("div",{className:"ui-rpg-card-head"},
+    rpgEl("h3",{className:"ui-rpg-card-title",textContent:`${meta.emoji} ${meta.itemLabel}`}),
+    rpgEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   rpgEl("p",{className:"ui-rpg-text",textContent:already?`${meta.label} はすでに入手済みだ！（🎒 バッグで確認できる）`:(entry.kind==="chest"?`宝箱をあけた！ ${meta.emoji} ${meta.itemLabel} を手に入れた！`:`${meta.emoji} ${meta.itemLabel} をひろった！ 🎒 バッグにしまった。`)}),
+   bonuses.length?rpgEl("p",{className:"ui-rpg-subnote",textContent:(entry.consumable?"どうぐ効果: ":"装備ボーナス: ")+bonuses.join(" / ")+(res?.lvUp?` 🎉 Lv.${res.lvUp}に上がった！`:"")}):null,
+   rpgEl("div",{className:"ui-rpg-actions"},rpgEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"やったね！",onclick:closeModal})));
+  showCard(card);
+ };
+ const startBattle=spotId=>{
+  const foeTpl=rpg.enemies[spotId];if(!foeTpl)return;
+  const foe={...foeTpl,spotId,maxHp:foeTpl.hp,turn:0};
+  const logLines=[foe.taunt||`${foe.emoji} ${foe.name} があらわれた！`];
+  let orbState=rpgOrbEffect(0,false,rpg.orbs),subMode="",ended=false;
+  const foeHpText=rpgEl("span"),foeHpFill=rpgEl("i"),intentBadge=rpgEl("span",{className:"ui-rpg-intent"}),orbBox=rpgEl("div"),logBox=rpgEl("p",{className:"ui-rpg-log"}),subPanel=rpgEl("div",{className:"ui-rpg-subpanel",hidden:true}),cmdBox=rpgEl("div",{className:"ui-rpg-cmd-grid"});
+  const syncBattle=()=>{
+   foeHpText.textContent=`HP ${foe.hp}/${foe.maxHp}`;
+   foeHpFill.style.width=`${Math.round(100*foe.hp/Math.max(1,foe.maxHp))}%`;
+   const heavy=(foe.turn+1)%3===0;
+   intentBadge.textContent=heavy?"⚠️ 次ターン強攻撃！ぼうぎょ推奨":"🗡️ 通常こうげき構え";
+   orbBox.replaceChildren(renderOrbs(orbState));
+   logBox.textContent=logLines.slice(-4).join("\n");
+   renderHud();
+  };
+  const finishVictory=()=>{
+   ended=true;state.defeated.add(spotId);state.gold+=foe.gold;
+   const lvUp=gainExp(foe.exp);
+   logLines.push(`🎉 ${foe.name} をたおした！ +${foe.exp} EXP / +${foe.gold} G`+(lvUp?` 🌟 Lv.${lvUp}にアップ！`:""));
+   if(foe.drop_spot&&!state.looted.has(foe.drop_spot))logLines.push(`🔓 宝箱の封印がとけた！`);
+   subPanel.hidden=true;
+   cmdBox.replaceChildren(rpgEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"🏆 勝利！マップにもどる",onclick:closeModal}));
+   checkQuests();syncBattle();
+  };
+  const finishDefeat=()=>{
+   ended=true;const st=stats();state.hp=Math.max(1,Math.floor(st.maxHp/2));state.mp=Math.max(0,Math.floor(st.maxMp/2));
+   logLines.push("💫 力尽きた… 村のいずみで介抱され、体力が半分もどった。");
+   subPanel.hidden=true;
+   cmdBox.replaceChildren(rpgEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"🏘️ 村へもどる",onclick:closeModal}));
+   syncBattle();
+  };
+  const enemyTurn=(guarding=false)=>{
+   if(foe.hp<=0){finishVictory();return}
+   const st=stats(),heavy=(foe.turn+1)%3===0,hit=rpgDamage(foe.atk,st.def,nextRoll(),{multPct:heavy?155:100,guarding,critPct:heavy?20:8});
+   state.hp=Math.max(0,state.hp-hit.damage);
+   foe.turn+=1;
+   logLines.push(`${foe.emoji} ${foe.name}の${heavy?"強烈な一撃":"攻撃"}！${guarding?" (🛡️軽減)":""}${hit.crit?" 💥痛恨！":""} ${hit.damage} のダメージ！`);
+   if(state.hp<=0){finishDefeat();return}
+   syncBattle();
+  };
+  const rebuildSub=()=>{
+   if(!subMode||ended){subPanel.hidden=true;subPanel.replaceChildren();return}
+   subPanel.hidden=false;
+   if(subMode==="skill"){
+    subPanel.replaceChildren(...rpg.skills.map(sk=>rpgEl("button",{type:"button",className:"ui-rpg-btn",disabled:state.mp<sk.mp,textContent:`${sk.emoji} ${sk.label} (💧${sk.mp}) - ${sk.desc}`,onclick:()=>{
+     if(ended||state.mp<sk.mp)return;
+     state.mp-=sk.mp;subMode="";rebuildSub();
+     const st=stats();
+     if(sk.kind==="heal"){
+      const gain=Math.max(8,sk.power+Math.floor(st.maxHp/4)),before=state.hp;
+      state.hp=Math.min(st.maxHp,state.hp+gain);const actual=state.hp-before;
+      orbState=rpgOrbEffect(Math.max(1,actual),true,rpg.orbs);
+      logLines.push(`${sk.emoji} ${sk.label}！ HPが ${actual} かいふく！`);
+      enemyTurn(false);
+     }else if(sk.kind==="guard"){
+      const res=rpgDamage(st.atk,foe.def,nextRoll(),{multPct:sk.mult_pct,critPct:15});
+      foe.hp=Math.max(0,foe.hp-res.damage);orbState=res.effect;
+      logLines.push(`${sk.emoji} ${sk.label}！ 身を守りつつ ${res.damage} ダメージ！`);
+      enemyTurn(true);
+     }else{
+      const weak=foe.weakness&&sk.desc.includes(foe.weakness),mult=weak?sk.mult_pct+25:sk.mult_pct;
+      const res=rpgDamage(st.atk,foe.def,nextRoll(),{multPct:mult,critPct:20});
+      foe.hp=Math.max(0,foe.hp-res.damage);orbState=res.effect;
+      logLines.push(`${sk.emoji} ${sk.label}！${weak?" ✨弱点！":""}${res.crit?" 💥会心！":""} ${res.damage} ダメージ！`);
+      enemyTurn(false);
+     }
+    }})));
+   }else if(subMode==="item"){
+    const items=[...state.consumables.values()];
+    if(!items.length){subPanel.replaceChildren(rpgEl("p",{className:"ui-rpg-subnote",textContent:"つかえる どうぐがない！（村の落とし物やお店で手に入るよ）"}));return}
+    subPanel.replaceChildren(...items.map(it=>rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:`${it.emoji} ${it.label} ×${it.count}`,onclick:()=>{
+     if(ended)return;
+     const res=useConsumable(it.key,foe);if(!res)return;
+     subMode="";rebuildSub();orbState=res.effect;logLines.push(res.text);enemyTurn(false);
+    }})));
+   }
+  };
+  const cmds=[
+   ["⚔️ こうげき",()=>{if(ended)return;subMode="";rebuildSub();const st=stats(),res=rpgDamage(st.atk,foe.def,nextRoll(),{multPct:100,critPct:14});foe.hp=Math.max(0,foe.hp-res.damage);orbState=res.effect;logLines.push(`⚔️ こうげき！${res.crit?" 💥会心の一撃！":""} ${foe.name}に ${res.damage} のダメージ！`);enemyTurn(false)},true],
+   ["✨ とくぎ",()=>{subMode=subMode==="skill"?"":"skill";rebuildSub()},false],
+   ["🎒 どうぐ",()=>{subMode=subMode==="item"?"":"item";rebuildSub()},false],
+   ["🛡️ ぼうぎょ",()=>{if(ended)return;subMode="";rebuildSub();const st=stats();state.mp=Math.min(st.maxMp,state.mp+2);orbState=rpgOrbEffect(2,true,rpg.orbs);logLines.push("🛡️ ぼうぎょの構え！ ダメージ半減＋💧MP+2！");enemyTurn(true)},false],
+   ["💨 にげる",()=>{if(ended)return;showToast("💨 うまく にげきった！");closeModal()},false]
+  ];
+  for(const[lbl,fn,prim]of cmds)cmdBox.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",...(prim?{"data-primary":""}:{}),textContent:lbl,onclick:fn}));
+  const card=rpgEl("div",{className:"ui-rpg-card ui-rpg-battle",role:"dialog","aria-modal":"true","aria-label":`${foe.name}との戦闘`},
+   rpgEl("div",{className:"ui-rpg-card-head"},
+    rpgEl("h3",{className:"ui-rpg-card-title",textContent:`⚔️ バトル ${foe.boss?"【BOSS】":""}`}),
+    rpgEl("button",{type:"button",className:"ui-rpg-close","aria-label":"にげてとじる",textContent:"✖️",onclick:closeModal})),
+   rpgEl("div",{className:"ui-rpg-foe-box"},
+    rpgEl("div",{className:"ui-rpg-foe-sprite",textContent:foe.emoji}),
+    rpgEl("div",{className:"ui-rpg-foe-info"},
+     rpgEl("div",{className:"ui-rpg-foe-meta"},rpgEl("strong",{textContent:`${foe.name} Lv.${foe.level}`}),foe.weakness?rpgEl("span",{className:"ui-rpg-subnote",textContent:`弱点:${foe.weakness}`}):null),
+     rpgEl("div",{className:"ui-rpg-foe-meta"},rpgEl("span",{className:"ui-rpg-meter ui-rpg-meter-foe"},foeHpFill),foeHpText),
+     intentBadge)),
+   orbBox,logBox,subPanel,cmdBox);
+  syncBattle();showCard(card);
+ };
+ const openJournal=(activeTab="quests")=>{
+  const tabs=[["quests","📋 クエスト"],["badges","🏅 実績"],["status","🧙 ステータス"],["bestiary","👾 図鑑"]];
+  const body=rpgEl("div"),tabBtns=[];
+  const drawBody=()=>{
+   if(activeTab==="quests"){
+    body.replaceChildren(rpgEl("ul",{className:"ui-rpg-list"},...rpg.quests.map(q=>{
+     const p=Math.min(q.count,questProgress(q)),done=state.completedQuests.has(q.id);
+     return rpgEl("li",{className:"ui-rpg-row"},
+      rpgEl("div",{className:"ui-rpg-row-top"},rpgEl("span",{textContent:`${done?"✅":"◻️"} ${q.title}`}),rpgEl("span",{textContent:`${p}/${q.count}`})),
+      rpgEl("p",{className:"ui-rpg-subnote",textContent:`${q.desc} ｜ 報酬: +${q.reward_exp}EXP / +${q.reward_gold}G`}));
+    })));
+   }else if(activeTab==="badges"){
+    body.replaceChildren(rpgEl("div",{className:"ui-rpg-badges"},...rpg.badges.map(b=>{
+     const on=state.badges.has(b.id);
+     return rpgEl("div",{className:"ui-rpg-badge","data-unlocked":String(on)},
+      rpgEl("strong",{textContent:`${on?b.emoji:"❔"} ${b.label}`}),
+      rpgEl("span",{className:"ui-rpg-subnote",textContent:b.desc}));
+    })));
+   }else if(activeTab==="status"){
+    const st=stats(),eqList=equipIds().map(id=>{const m=spotMeta(id);return `${m.emoji} ${m.itemLabel}`});
+    const bagItems=[...state.consumables.values()];
+    body.replaceChildren(
+     rpgEl("div",{className:"ui-rpg-row"},
+      rpgEl("div",{className:"ui-rpg-row-top"},rpgEl("span",{textContent:`Lv.${st.lv.level} 冒険者`}),rpgEl("span",{textContent:`🪙 ${state.gold}G`})),
+      rpgEl("p",{className:"ui-rpg-text",textContent:`❤️ HP ${state.hp}/${st.maxHp}  💧 MP ${state.mp}/${st.maxMp}  ⚔️ ATK ${st.atk}  🛡️ DEF ${st.def}`}),
+      rpgEl("p",{className:"ui-rpg-subnote",textContent:`✨ 累計EXP ${state.exp} (次Lvまで ${Math.max(0,st.lv.next_exp-state.exp)})`}),
+      rpgEl("p",{className:"ui-rpg-subnote",textContent:`🛡️ そうび品: ${eqList.length?eqList.join("・"):"なし（村の宝箱を探そう！）"}`})),
+     rpgEl("div",{className:"ui-rpg-row"},
+      rpgEl("strong",{textContent:"🎒 つかえるどうぐ"}),
+      bagItems.length?rpgEl("div",{className:"ui-rpg-actions"},...bagItems.map(it=>rpgEl("button",{type:"button",className:"ui-rpg-btn",disabled:it.item_type==="scroll",textContent:`${it.emoji} ${it.label} ×${it.count}`,onclick:()=>{useConsumable(it.key);drawBody();showToast(`${it.emoji} ${it.label} を使った！`)}}))):rpgEl("p",{className:"ui-rpg-subnote",textContent:"まだ消費アイテムがないよ"})));
+   }else{
+    body.replaceChildren(rpgEl("ul",{className:"ui-rpg-list"},...Object.entries(rpg.enemies).map(([id,f])=>{
+     const seen=state.defeated.has(id);
+     return rpgEl("li",{className:"ui-rpg-row"},
+      rpgEl("div",{className:"ui-rpg-row-top"},rpgEl("span",{textContent:`${f.emoji} ${f.name} Lv.${f.level}`}),rpgEl("span",{textContent:seen?"✓ 討伐済み":"未討伐"})),
+      rpgEl("p",{className:"ui-rpg-subnote",textContent:`HP ${f.hp} / ATK ${f.atk} / DEF ${f.def} / +${f.exp}EXP +${f.gold}G`+(f.weakness?` / 弱点:${f.weakness}`:"")}),
+      rpgEl("div",{className:"ui-rpg-actions"},rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"⚔️ 戦ってみる",onclick:()=>startBattle(id)})));
+    })));
+   }
+  };
+  const card=rpgEl("div",{className:"ui-rpg-card ui-rpg-journal-card",role:"dialog","aria-modal":"true","aria-label":"冒険手帳"},
+   rpgEl("div",{className:"ui-rpg-card-head"},
+    rpgEl("h3",{className:"ui-rpg-card-title",textContent:"📜 冒険手帳（クエスト・実績・図鑑）"}),
+    rpgEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   rpgEl("div",{className:"ui-rpg-tabs"},...tabs.map(([k,lbl])=>{
+    const b=rpgEl("button",{type:"button",className:"ui-rpg-btn","aria-selected":String(k===activeTab),textContent:lbl,onclick:()=>{
+     activeTab=k;for(const[tk,tb]of tabBtns)tb.setAttribute("aria-selected",String(tk===k));drawBody();
+    }});
+    tabBtns.push([k,b]);return b;
+   })),
+   body);
+  drawBody();showCard(card);
+ };
+ const interactSpot=sid=>{
+  if(rpg.npcs[sid])return openNpcDialog(sid);
+  if(rpg.loot[sid])return openLootDialog(sid);
+  if(rpg.enemies[sid])return startBattle(sid);
+ };
+ for(const[sid,entry]of[...Object.entries(rpg.npcs),...Object.entries(rpg.loot),...Object.entries(rpg.enemies)]){
+  const art=document.getElementById(wid+"-spot-"+sid);
+  if(!art||art.querySelector(".ui-rpg-sheet-btn"))continue;
+  const label=rpg.npcs[sid]?"💬 はなす":rpg.enemies[sid]?"⚔️ たたかう":(entry.kind==="chest"?"🗝️ 宝箱を見る":"✨ ひろう");
+  const btn=rpgEl("button",{type:"button",className:"ui-rpg-btn ui-rpg-sheet-btn","data-rpg-spot":sid,textContent:label,onclick:()=>{
+   art.querySelector(".ui-sheet-close")?.click();interactSpot(sid);
+  }});
+  const anchor=art.querySelector(".ui-world-go")||art.querySelector(".ui-sheet-close");
+  art.insertBefore(btn,anchor);
+ }
+ el.addEventListener("click",e=>{
+  const takeBtn=e.target.closest(".ui-sheet-item .ui-world-take");
+  if(!takeBtn)return;
+  const id=takeBtn.dataset.itemId,prefix=wid+"-spot-";
+  if(!id?.startsWith(prefix))return;
+  const sid=id.slice(prefix.length);
+  if(takeBtn.getAttribute("aria-pressed")==="true"&&rpg.loot[sid]&&!state.looted.has(sid))addLoot(sid);
+ });
+ hud?.querySelector("[data-rpg-journal-btn]")?.addEventListener("click",()=>openJournal("quests"));
+ hud?.querySelector("[data-rpg-explore]")?.addEventListener("click",()=>{
+  const curFloor=el.querySelector("input[name$='-floor']:checked")?.value||"meadow";
+  const floorEnemies=[...el.querySelectorAll(`.ui-floor[data-floor="${CSS.escape(curFloor)}"] .ui-spot[data-rpg-kind="enemy"]`)].map(n=>n.getAttribute("href").slice(1+(wid+"-spot-").length)).filter(id=>rpg.enemies[id]);
+  const nextId=floorEnemies.find(id=>!state.defeated.has(id))||floorEnemies[0];
+  if(!nextId){showToast("🕊️ この空間には 魔物の気配はないようだ。");return}
+  startBattle(nextId);
+ });
+ for(const b of el.querySelectorAll(".ui-world-take[aria-pressed='true']")){
+  const p=wid+"-spot-";if(b.dataset.itemId?.startsWith(p)){const sid=b.dataset.itemId.slice(p.length);if(rpg.loot[sid])addLoot(sid)}
+ }
+ let goTarget=null,lastContactId="",prevPx=null,prevPy=null,movedSteps=0;
+ el.addEventListener("click",e=>{
+  const g=e.target.closest(".ui-world-go");
+  if(g)goTarget={floor:g.dataset.goFloor,x:Number(g.dataset.goX),y:Number(g.dataset.goY)};
+ },true);
+ el.addEventListener("keydown",e=>{
+  if(!overlay.hidden){
+   if(e.key==="Escape"){e.preventDefault();e.stopPropagation();closeModal();return}
+   if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","w","a","s","d"].includes(e.key.length>1?e.key:e.key.toLowerCase()))e.stopPropagation();
+   return;
+  }
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","w","a","s","d"].includes(e.key.length>1?e.key:e.key.toLowerCase()))goTarget=null;
+ },true);
+ el.addEventListener("pointerdown",e=>{if(e.target.closest("[data-step]"))goTarget=null},true);
+ el.addEventListener("change",e=>{
+  if(e.target.name&&e.target.name.endsWith("-floor")){state.visitedFloors.add(e.target.value);lastContactId="";checkQuests()}
+ });
+ const actorPos=a=>{
+  const m=getComputedStyle(a).transform;
+  if(!m||m==="none")return null;
+  const parts=m.match(/matrix\(([^)]+)\)/);
+  if(!parts)return null;
+  const nums=parts[1].split(",").map(Number);
+  return nums.length===6?[nums[4],nums[5]]:null;
+ };
+ const watch=()=>{
+  if(!el.isConnected)return;
+  const curFloor=el.querySelector("input[name$='-floor']:checked")?.value||"meadow";
+  const f=el.querySelector(`.ui-floor[data-floor="${CSS.escape(curFloor)}"]`)||el.querySelector(".ui-floor");
+  const pl=f?.querySelector(".ui-player");
+  if(pl){
+   const px=parseFloat(pl.style.getPropertyValue("--px"))||Number(pl.dataset.x);
+   const py=parseFloat(pl.style.getPropertyValue("--py"))||Number(pl.dataset.y);
+   const stepDist=prevPx===null?0:Math.hypot(px-prevPx,py-prevPy);
+   if(stepDist>0.5)movedSteps+=stepDist;
+   prevPx=px;prevPy=py;
+   const tile=Number(f.dataset.tile)||32,range=tile*1.15;
+   let hit=null,hitD=Infinity;
+   for(const node of f.querySelectorAll("[data-rpg-kind]")){
+    const sid=node.getAttribute("href")?.slice(1+(wid+"-spot-").length);
+    if(!sid)continue;
+    const pos=node.classList.contains("ui-actor")?actorPos(node):[Number(node.dataset.x),Number(node.dataset.y)];
+    if(!pos)continue;
+    const d=Math.hypot(pos[0]-px,pos[1]-py);
+    if(d<=range&&d<hitD){hit=sid;hitD=d}
+   }
+   if(goTarget&&curFloor===goTarget.floor&&Math.hypot(px-goTarget.x,py-goTarget.y)<=2){
+    goTarget=null;if(hit)lastContactId=hit;
+   }
+   const blocked=Boolean(goTarget)||!overlay.hidden||el.hasAttribute("data-pick")||el.hasAttribute("data-ask")||el.querySelector(".ui-sheet-item[data-open]");
+   if(!blocked){
+    if(hit){
+     if(hit!==lastContactId&&(movedSteps>8||rpg.npcs[hit]?.on_contact||rpg.enemies[hit]?.on_contact||rpg.loot[hit])){
+      lastContactId=hit;
+      if(rpg.npcs[hit]?.on_contact)openNpcDialog(hit);
+      else if(rpg.loot[hit]&&!state.looted.has(hit))openLootDialog(hit);
+      else if(rpg.enemies[hit]?.on_contact&&!state.defeated.has(hit))startBattle(hit);
+     }
+    }else if(lastContactId){
+     const prevNode=spotNode(lastContactId);
+     const pPos=prevNode?(prevNode.classList.contains("ui-actor")?actorPos(prevNode):[Number(prevNode.dataset.x),Number(prevNode.dataset.y)]):null;
+     if(!pPos||Math.hypot(pPos[0]-px,pPos[1]-py)>tile*1.55)lastContactId="";
+    }
+   }
+  }
+  setTimeout(()=>requestAnimationFrame(watch),110);
+ };
+ checkQuests();renderHud();requestAnimationFrame(watch);
+ return el;
+}
+export function bindRpgWorlds(root=document){return[...root.querySelectorAll("[data-ui-world][data-rpg]")].map(el=>bindWorldRpg(el))}
+globalThis.webUiWorld={...globalThis.webUiWorld,rpgRandomWord,rpgOrbEffect,rpgLevelForExp,rpgDamage,bindWorldRpg,bindRpgWorlds};
+bindRpgWorlds();
+"""
+
 
 def world_document(spec: Any, *, theme: str = "modern") -> str:
     """A single-file page: bundled CSS, the world's CSS, the world's HTML and one inline module."""
     world = world_validate(spec)
+    js = WORLD_JS + ("\n" + WORLD_RPG_JS if world.get("rpg") else "")
     # 🌍 world.js lives here now (WORLD_JS), not in PySaiyanWeBoo: the same inline module, after the body.
-    return render_document(trusted_html=world_html(world) + module_script(WORLD_JS), title=world["title"], theme=theme,
+    return render_document(trusted_html=world_html(world) + module_script(js), title=world["title"], theme=theme,
                            css=bundled_css() + world_css(world))
 
 
@@ -2187,6 +3087,306 @@ _PARIS_LINKS = [["gare-du-nord", "poissonniere"], ["gare-du-nord", "barbes"], ["
 _SEINE = {"line": [[48.833, 2.38], [48.8372, 2.3737], [48.845, 2.3668], [48.8506, 2.3622], [48.8545, 2.354], [48.856, 2.349], [48.8573, 2.3413], [48.8585, 2.3377], [48.8609, 2.3306], [48.8637, 2.3203], [48.864, 2.3135], [48.8638, 2.3012], [48.8613, 2.2935], [48.855, 2.2877], [48.848, 2.276]], "width": 1}
 
 
+def _overworld_spec() -> dict[str, Any]:
+    """Overworld prototype centered on はじまりの村 (``meadow``) with contact dialogue, drops/chests, turn-based RPG battle and gamification."""
+    def spot(sid: str, tx: int, ty: int, label: str, category: str, body: str, *, item: dict[str, Any] | None = None,
+             always_named: bool | str = False, mark: str | None = None) -> dict[str, Any]:
+        out: dict[str, Any] = {"id": sid, "x": tx * 32 + 16, "y": ty * 32 + 16, "label": label, "category": category, "body": body}
+        if item:
+            out["item"] = item
+        if always_named:
+            out["always_named"] = always_named
+        if mark:
+            out["mark"] = mark
+        return out
+
+    def land_spots(theme: str, seed: int, extra: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        return [*land_floor(theme, seed=seed, id=theme)["spots"], *extra]
+
+    meadow_spots = land_spots("meadow", 1, [
+        spot("meadow-hirugaoka", 18, 5, "🍠 昼ヶ丘（ヒルガオカ）", "landmark",
+             "ヒルガオ科のサツマイモを育てている、日当たりのよい丘です。",
+             item={"emoji": "🍠", "label": "サツマイモ", "body": "ヒルガオ科のいも。昼ヶ丘で育てたほくほくのサツマイモです。"}),
+        spot("meadow-npc-cat", 13, 13, "🐱 案内猫ミョン", "npc",
+             "はじまりの村の入口にいる案内猫。近づくと操作と冒険の基本を教えてくれます。", mark="🐱"),
+        spot("meadow-npc-elder", 11, 8, "👴 村長", "npc",
+             "はじまりの村を見守る長老。ポートフォリオと冒険の目的を語ってくれます。", mark="👴"),
+        spot("meadow-npc-smith", 9, 8, "⚒️ 道具屋の店主", "npc",
+             "冒険に役立つ回復アイテムやだんごをゴールドで販売しています。", mark="⚒️"),
+        spot("meadow-npc-researcher", 15, 8, "🔬 研究員", "npc",
+             "バイオインフォマティクスと個人開発リポジトリのクイズを出題します。", mark="🔬"),
+        spot("meadow-npc-fountain", 15, 9, "⛲ 回復の泉", "npc",
+             "清らかな水が湧く泉。触れると傷ついた体と魔力をやさしく癒してくれます。", mark="⛲"),
+        spot("meadow-npc-monument", 13, 7, "🗿 PSWB石碑", "npc",
+             "PySaiyanWeBoo（PSWB）と共通UI設計の歴史が刻まれた村の記念碑。", mark="🗿"),
+        spot("meadow-drop-herb", 11, 11, "🌿 やくそう", "item",
+             "道ばたに落ちている香り高い薬草。戦闘中や冒険手帳から使えます。",
+             item={"emoji": "🌿", "label": "やくそう", "body": "HPを15回復するみずみずしい薬草。"}, mark="🌿"),
+        spot("meadow-drop-mana", 6, 7, "💧 マナのしずく", "item",
+             "ひろば近くで光る青いしずく。とくぎ用のMPを回復します。",
+             item={"emoji": "💧", "label": "マナのしずく", "body": "MPを10回復する不思議な水滴。"}, mark="💧"),
+        spot("meadow-drop-scroll", 20, 12, "📜 探索の巻物", "item",
+             "アルゴリズムの極意が書かれた古い巻物。戦闘で使うと大ダメージを与えます。",
+             item={"emoji": "📜", "label": "探索の巻物", "body": "配列探索の閃きで敵に18以上のダメージ。"}, mark="📜"),
+        spot("meadow-chest-sword", 9, 9, "🎁 はじまりの剣", "item",
+             "村の片隅に置かれた宝箱。装備すると攻撃力（ATK）が上がります。",
+             item={"emoji": "🗡️", "label": "はじまりの剣", "body": "PySaiyanWeBooの剣。持っているだけで ATK +4。"}, mark="🎁"),
+        spot("meadow-chest-shield", 20, 3, "🎁 守りの盾", "item",
+             "北東の木立に隠された宝箱。防御力（DEF）と最大HPが上がります。",
+             item={"emoji": "🛡️", "label": "守りの盾", "body": "堅牢なテストの盾。DEF +3、最大HP +6。"}, mark="🎁"),
+        spot("meadow-chest-charm", 3, 12, "🎁 PSWBの護符", "item",
+             "ボス魔物が守る特別な宝箱。全ステータスを底上げします。",
+             item={"emoji": "🔮", "label": "PSWBの護符", "body": "ATK +2、DEF +2、最大MP +5。ボス討伐で開く。"}, mark="🎁"),
+        spot("meadow-enemy-slime", 8, 12, "🟢 バグスライム", "battle",
+             "仕様のスキマから生まれたぷるぷるのスライム。『バグ』属性の技に弱い。", mark="🟢"),
+        spot("meadow-enemy-bat", 17, 10, "🦇 タイポコウモリ", "battle",
+             "夜な夜な識別子を綴り間違えるコウモリ。『パイプライン』技が効果的。", mark="🦇"),
+        spot("meadow-enemy-golem", 12, 3, "👾 スパゲッティゴーレム", "battle",
+             "北の空地に棲むこの地域のボス。3ターンごとの強攻撃は『ぼうぎょ』で防ごう。", mark="👾"),
+    ])
+
+    return {
+        "schema": WORLD_SCHEMA, "id": "overworld", "title": "Overworld (prototype)", "zoom_max": 4, "move": "confirm",
+        "avatars": ["🙂", "🧙", "🧝", "🦸", "🐱", "🐶", "🦊", "🐉", "🦄", "⚔️", "🛡️", "🚀"],
+        "tools": {
+            "🧭": {"label": "町", "label_en": "Towns", "labels": {"fr": "Villes", "es": "Pueblos", "de": "Orte", "zh": "城镇"},
+                   "spots": ["meadow-town", "forest-town", "desert-town", "coast-town", "castle-town"]},
+            "🗺️": {"label": "冒険ガイド", "label_en": "RPG Guide", "labels": {"fr": "Guide RPG", "es": "Guía RPG", "de": "RPG-Führer", "zh": "冒险指南"},
+                   "spots": ["meadow-npc-cat", "meadow-npc-fountain", "meadow-npc-researcher", "meadow-npc-smith", "meadow-enemy-golem"]},
+        },
+        "board": {"title": "TRAVEL", "items": [
+            {"text": "ようこそ はじまりの村へ！"},
+            {"text": "🐱・🌿・🎁・👾に近づくとイベント発生"},
+            {"text": "📜冒険手帳と⚔️戦闘で強くなろう"},
+            {"text": "🛗で6つの土地をわたろう"},
+        ]},
+        "floors": [
+            {"id": "meadow", "land": {"theme": "meadow", "seed": 1}, "spots": meadow_spots,
+             "actors": [
+                 {"id": "meadow-cat", "emoji": "🐱", "label": "散歩猫", "body": "気まぐれに村をパトロールしている黒ぶち猫。", "speed": 28, "seed": 101},
+                 {"id": "meadow-dog", "emoji": "🐕", "label": "村の番犬", "body": "北側のバグ魔物を見張っている頼れる番犬。", "speed": 34, "seed": 202},
+                 {"id": "meadow-bird", "emoji": "🐦", "label": "伝令バト", "body": "各リポジトリの更新を運ぶ小さな鳥。", "speed": 42, "seed": 303},
+             ]},
+            {"id": "forest", "land": {"theme": "forest", "seed": 2},
+             "spots": land_spots("forest", 2, [
+                 spot("forest-chest-cloak", 1, 5, "🎁 森のマント", "item", "森の奥の木陰に置かれた宝箱。",
+                      item={"emoji": "🧥", "label": "森のマント", "body": "自然の加護。DEF +3、最大HP +8。"}, mark="🎁"),
+                 spot("forest-enemy-ent", 22, 10, "🌳 古樹トレント", "battle", "古い依存関係が絡み合った森の番人。", mark="🌳"),
+             ])},
+            {"id": "mountain", "land": {"theme": "mountain", "seed": 3},
+             "spots": land_spots("mountain", 3, [
+                 spot("mountain-chest-pick", 1, 4, "🎁 岩砕きのツルハシ", "item", "岩壁のそばに残された頑丈な道具。",
+                      item={"emoji": "⛏️", "label": "岩砕きのツルハシ", "body": "重い岩も一撃。ATK +5。"}, mark="🎁"),
+                 spot("mountain-enemy-gargoyle", 22, 12, "🪨 岩ゴーレム", "battle", "固いロックファイルのように手ごわい山の巨人。", mark="🪨"),
+             ])},
+            {"id": "desert", "land": {"theme": "desert", "seed": 4},
+             "spots": land_spots("desert", 4, [
+                 spot("desert-drop-elixir", 1, 4, "🏺 砂漠の秘薬", "item", "オアシスの旅人が落とした霊薬。",
+                      item={"emoji": "🏺", "label": "砂漠の秘薬", "body": "HPを30・MPを10回復する秘薬。"}, mark="🏺"),
+                 spot("desert-enemy-scorpion", 22, 11, "🦂 大サソリ", "battle", "乾いたログから現れる素早い大サソリ。", mark="🦂"),
+             ])},
+            {"id": "coast", "land": {"theme": "coast", "seed": 5},
+             "spots": land_spots("coast", 5, [
+                 spot("coast-chest-compass", 1, 7, "🎁 航海の羅針盤", "item", "潮風が運んできた正確な羅針盤。",
+                      item={"emoji": "🧭", "label": "航海の羅針盤", "body": "迷わず進む指針。ATK +3、DEF +2。"}, mark="🎁"),
+                 spot("coast-enemy-kraken", 22, 11, "🦑 潮風クラーケン", "battle", "海辺のタイムアウトを巻き起こす大イカ。", mark="🦑"),
+             ])},
+            {"id": "castle", "land": {"theme": "castle", "seed": 6},
+             "spots": land_spots("castle", 6, [
+                 spot("castle-chest-crown", 1, 4, "🎁 王冠バッジ", "item", "城の一角に眠る開発者の勲章。",
+                      item={"emoji": "👑", "label": "王冠バッジ", "body": "ATK +5、DEF +4、最大HP +12。"}, mark="🎁"),
+                 spot("castle-enemy-daemon", 22, 12, "🐲 幻影ドラゴン", "battle", "最終テストを守る伝説の竜。", mark="🐲"),
+             ])},
+            {"id": "real", "label": "実空間×仮想", "width": 384, "height": 384, "tile": 32, "real": True,
+             "spots": [{"id": "real-gate", "label": "入口", "x": 192, "y": 96,
+                        "body": "⋯ の 🖼️📷 で、写真かカメラをうしろに映せます（ページの中だけ。保存も送信もしません）。"}],
+             "player": {"emoji": "🙂", "x": 192, "y": 288, "speed": 96}},
+        ],
+        "rpg": {
+            "seed": 20261126,
+            "hero": {"hp": 32, "mp": 14, "atk": 6, "def": 2, "gold": 25},
+            "npcs": {
+                "meadow-npc-cat": {
+                    "speaker": "案内猫ミョン", "emoji": "🐱", "on_contact": True,
+                    "greeting": "にゃーん！ ようこそ『はじまりの村』へ！ まずは基本の歩き方をお伝えしますにゃ。",
+                    "lines": [
+                        "矢印キー / WASD / 画面下の十字ボタンで歩けます。村人(🐱👴🔬)や落ちもの(🌿💧)、宝箱(🎁)、魔物(🟢🦇👾)に近づくとイベントが始まるにゃ！",
+                        "上の『📜』ボタンでクエスト・実績・図鑑・装備を確認できますにゃ。まずは道ばたの🌿やくそうや🎁はじまりの剣を探してみよう！",
+                    ],
+                },
+                "meadow-npc-elder": {
+                    "speaker": "村長", "emoji": "👴", "on_contact": True,
+                    "greeting": "ほう、旅のエンジニアか！ この村は『myon-bioinformatics』の学びと実験が集うはじまりの場所じゃ。",
+                    "lines": [
+                        "PythonやFlutterの共通UI（PySaiyanWeBoo）から生まれ、バイオインフォマティクスやCLIツールへと枝分かれしていったのだ。",
+                        "まずは研究員(🔬)のクイズで知識を試し、北にいる『👾 スパゲッティゴーレム』を鎮めてくれぬか？",
+                    ],
+                },
+                "meadow-npc-smith": {
+                    "speaker": "道具屋の店主", "emoji": "⚒️", "on_contact": True, "shop": True,
+                    "greeting": "いらっしゃい！ 旅の支度はばっちりかい？ 魔物から得たゴールドで回復どうぐを買えるぞ。",
+                    "lines": ["『おみせ』ボタンを押せば、昼ヶ丘名物のサツマイモだんごも並べてあるよ！"],
+                },
+                "meadow-npc-researcher": {
+                    "speaker": "研究員", "emoji": "🔬", "on_contact": True, "quiz": True,
+                    "greeting": "こんにちは！ ここでは GitHub リポジトリとポートフォリオにまつわるミニクイズを出しています。",
+                    "lines": ["1問正解するごとに経験値(+20 EXP)と研究費(+25 G)を進呈！ 全8問、ぜひ挑戦してみてください。"],
+                },
+                "meadow-npc-fountain": {
+                    "speaker": "回復の泉", "emoji": "⛲", "on_contact": True, "heal": True,
+                    "greeting": "澄みわたる泉の水面がきらきらと光っている……。『いやす』で何度でも全回復できます。",
+                    "lines": ["ピンチのときはいつでもこの泉にもどってきてくださいね。"],
+                },
+                "meadow-npc-monument": {
+                    "speaker": "PSWB石碑", "emoji": "🗿", "on_contact": True,
+                    "greeting": "【碑文】PySaiyanWeBoo（PSWB）：1ファイル完結の設計と決定的RNG・オーブ演出がここに息づく。",
+                    "lines": [
+                        "Ironmateの『見かけも中身も同じ』検証原則や、Aoiの軽量モジュール連携もこの世界と同じ思想で組み立てられています。",
+                        "すべての計算はページ内のピュア関数だけで完結し、外部へ勝手に送信することはありません。",
+                    ],
+                },
+                "meadow-cat": {
+                    "speaker": "散歩猫", "emoji": "🐱",
+                    "greeting": "ぐるる… 今日も昼ヶ丘のサツマイモが豊作だにゃ。",
+                    "lines": ["北の方にはスパゲッティコードから生まれたゴーレムがいるから、🎁はじまりの剣を取ってから向かうのにゃ！"],
+                },
+                "meadow-dog": {
+                    "speaker": "村の番犬", "emoji": "🐕",
+                    "greeting": "ワン！ 村の西に🟢バグスライム、東に🦇タイポコウモリが出没しているぞ。",
+                    "lines": ["戦闘の『✨ とくぎ』で弱点を突けば一気にカタがつくワン！"],
+                },
+                "meadow-bird": {
+                    "speaker": "伝令バト", "emoji": "🐦",
+                    "greeting": "クルックー！ フッターの🛗から森・山・砂漠・海辺・お城へも旅立てますよ！",
+                    "lines": ["それぞれの土地にも、宝箱と守護モンスターが1つずつ隠れています！"],
+                },
+            },
+            "loot": {
+                "meadow-drop-herb": {"kind": "drop", "item_type": "heal", "hp": 15, "exp": 5},
+                "meadow-drop-mana": {"kind": "drop", "item_type": "mana", "mp": 10, "exp": 5},
+                "meadow-drop-scroll": {"kind": "drop", "item_type": "scroll", "atk": 18, "exp": 8},
+                "meadow-chest-sword": {"kind": "chest", "item_type": "weapon", "atk": 4, "exp": 10, "gold": 15, "opened_mark": "📭"},
+                "meadow-chest-shield": {"kind": "chest", "item_type": "armor", "def": 3, "hp": 6, "exp": 10, "gold": 15, "opened_mark": "📭"},
+                "meadow-chest-charm": {"kind": "chest", "item_type": "charm", "atk": 2, "def": 2, "mp": 5, "exp": 25, "gold": 40,
+                                       "opened_mark": "📭", "requires_enemy": "meadow-enemy-golem"},
+                "meadow-hirugaoka": {"kind": "drop", "item_type": "heal", "hp": 20, "exp": 5},
+                "forest-chest-cloak": {"kind": "chest", "item_type": "armor", "def": 3, "hp": 8, "exp": 15, "gold": 25, "opened_mark": "📭"},
+                "mountain-chest-pick": {"kind": "chest", "item_type": "weapon", "atk": 5, "exp": 20, "gold": 30, "opened_mark": "📭"},
+                "desert-drop-elixir": {"kind": "drop", "item_type": "heal", "hp": 30, "mp": 10, "exp": 15},
+                "coast-chest-compass": {"kind": "chest", "item_type": "charm", "atk": 3, "def": 2, "exp": 20, "gold": 35, "opened_mark": "📭"},
+                "castle-chest-crown": {"kind": "chest", "item_type": "trophy", "atk": 5, "def": 4, "hp": 12, "exp": 40, "gold": 80, "opened_mark": "📭"},
+            },
+            "enemies": {
+                "meadow-enemy-slime": {"name": "バグスライム", "emoji": "🟢", "level": 1, "hp": 18, "atk": 6, "def": 1,
+                                       "exp": 18, "gold": 20, "weakness": "バグ", "on_contact": True,
+                                       "taunt": "ぬるぬるしたバグスライムが飛び出してきた！"},
+                "meadow-enemy-bat": {"name": "タイポコウモリ", "emoji": "🦇", "level": 2, "hp": 24, "atk": 8, "def": 2,
+                                     "exp": 25, "gold": 28, "weakness": "パイプライン", "on_contact": True,
+                                     "taunt": "識別子をかじるタイポコウモリが襲いかかってきた！"},
+                "meadow-enemy-golem": {"name": "スパゲッティゴーレム", "emoji": "👾", "level": 4, "hp": 44, "atk": 11, "def": 3,
+                                       "exp": 60, "gold": 80, "weakness": "パイプライン", "drop_spot": "meadow-chest-charm",
+                                       "boss": True, "on_contact": True, "taunt": "巨大ボス『スパゲッティゴーレム』が立ちはだかる！"},
+                "forest-enemy-ent": {"name": "古樹トレント", "emoji": "🌳", "level": 3, "hp": 34, "atk": 9, "def": 3,
+                                     "exp": 35, "gold": 40, "weakness": "バグ", "on_contact": True,
+                                     "taunt": "絡みつく枝の古樹トレントが現れた！"},
+                "mountain-enemy-gargoyle": {"name": "岩ゴーレム", "emoji": "🪨", "level": 4, "hp": 42, "atk": 11, "def": 4,
+                                            "exp": 45, "gold": 55, "weakness": "パイプライン", "on_contact": True,
+                                            "taunt": "ロックファイルを背負った岩ゴーレムが目を覚ました！"},
+                "desert-enemy-scorpion": {"name": "大サソリ", "emoji": "🦂", "level": 4, "hp": 40, "atk": 12, "def": 3,
+                                          "exp": 48, "gold": 58, "weakness": "バグ", "on_contact": True,
+                                          "taunt": "砂塵の中から大サソリがハサミを鳴らした！"},
+                "coast-enemy-kraken": {"name": "潮風クラーケン", "emoji": "🦑", "level": 5, "hp": 52, "atk": 13, "def": 4,
+                                       "exp": 62, "gold": 75, "weakness": "パイプライン", "on_contact": True,
+                                       "taunt": "波しぶきと共に潮風クラーケンが現れた！"},
+                "castle-enemy-daemon": {"name": "幻影ドラゴン", "emoji": "🐲", "level": 6, "hp": 68, "atk": 15, "def": 5,
+                                        "exp": 100, "gold": 150, "weakness": "パイプライン", "boss": True, "on_contact": True,
+                                        "taunt": "最終試験を守る幻影ドラゴンが咆哮した！"},
+            },
+            "quests": [
+                {"id": "talk-cat", "title": "村の案内を聞こう", "desc": "案内猫ミョン（または村人）に話しかける", "kind": "talk", "count": 1, "reward_exp": 15, "reward_gold": 20},
+                {"id": "find-drops", "title": "道ばたの落とし物", "desc": "村に落ちているどうぐを2つひろう", "kind": "drop", "count": 2, "reward_exp": 20, "reward_gold": 25},
+                {"id": "open-chests", "title": "宝箱トレジャー", "desc": "宝箱(🎁)を2つ見つけて開ける", "kind": "chest", "count": 2, "reward_exp": 30, "reward_gold": 40},
+                {"id": "first-battle", "title": "バグ退治の一歩", "desc": "バグスライムを1体たおす", "kind": "battle", "target": "meadow-enemy-slime", "count": 1, "reward_exp": 25, "reward_gold": 30},
+                {"id": "pass-quizzes", "title": "ポートフォリオ博士", "desc": "研究員のクイズに2問正解する", "kind": "quiz", "count": 2, "reward_exp": 30, "reward_gold": 50},
+                {"id": "defeat-golem", "title": "村の守護者討伐", "desc": "ボス『スパゲッティゴーレム』をたおす", "kind": "boss", "target": "meadow-enemy-golem", "count": 1, "reward_exp": 80, "reward_gold": 100},
+                {"id": "visit-lands", "title": "扉をわたる旅人", "desc": "🛗から3つの土地をおとずれる", "kind": "floor", "count": 3, "reward_exp": 40, "reward_gold": 60},
+            ],
+            "badges": [
+                {"id": "first-talk", "emoji": "💬", "label": "はじめの挨拶", "desc": "村人に初めて話しかけた"},
+                {"id": "villager-friends", "emoji": "🤝", "label": "村の人気者", "desc": "村の人々4人以上と話した"},
+                {"id": "item-finder", "emoji": "🌿", "label": "アイテム発見", "desc": "落とし物か宝箱を手に入れた"},
+                {"id": "treasure-hunter", "emoji": "💎", "label": "トレジャーハンター", "desc": "宝箱を3つ以上開けた"},
+                {"id": "first-win", "emoji": "⚔️", "label": "初勝利", "desc": "バトルで初めて勝利した"},
+                {"id": "boss-slayer", "emoji": "🏆", "label": "コード浄化者", "desc": "地域のボス魔物を撃破した"},
+                {"id": "quiz-ace", "emoji": "🎓", "label": "知識の探究者", "desc": "ポートフォリオクイズに2問以上正解"},
+                {"id": "world-walker", "emoji": "🧭", "label": "世界を巡る旅人", "desc": "3つ以上の土地を訪れた"},
+                {"id": "level-up", "emoji": "🌟", "label": "成長のあかし", "desc": "レベル2以上に到達した"},
+                {"id": "shopper", "emoji": "🛒", "label": "賢い買い物客", "desc": "道具屋でアイテムを購入した"},
+            ],
+            "quizzes": [
+                {"repo": "PySaiyanWeBoo",
+                 "prompt": "PySaiyanWeBoo（PSWB）が戦闘や回復ゲージ表現に採用している最大6個のモチーフは何？",
+                 "choices": ["Puzzle & Dragons風の属性・回復オーブ", "サイコロ6面の数値表", "トランプのスート絵柄"],
+                 "correct": 0,
+                 "explanation": "PySaiyanWeBooの counter_effect は 🔥💧🌳💡🔮 や ❤️💚✨ のオーブ最大6個でダメージと回復を可視化します。"},
+                {"repo": "Ironmate",
+                 "prompt": "Ironmate（テスト・検査系プロジェクト）が大切にする設計原則として正しいものは？",
+                 "choices": ["表示用UIと計算結果が常に一致（見かけも中身も同じ）", "常にクラウドへ自動アップロード", "乱数で毎回UIレイアウトを変える"],
+                 "correct": 0,
+                 "explanation": "画面に見えている数値・文字とバックエンドや検証オラクルの計算がズレない設計を重視しています。"},
+                {"repo": "search_seq_including_spaces",
+                 "prompt": "バイオインフォマティクスツール search_seq_including_spaces が解決する課題は？",
+                 "choices": ["空白や改行を含む塩基配列テキストの検索", "PNG画像の圧縮率向上", "音声ファイルのノイズ除去"],
+                 "correct": 0,
+                 "explanation": "論文やコピー＆ペースト由来の空白入り配列文字列から、柔軟に部分配列を検索できるよう設計されたツールです。"},
+                {"repo": "Aoi",
+                 "prompt": "ポートフォリオやツール群における Aoi / myon-bioinformatics の連携方針は？",
+                 "choices": ["共通部品を明確にピン留めして各成果物を単体完結させる", "1つの巨大モノリスに全て混ぜる", "依存をバージョン未指定にする"],
+                 "correct": 0,
+                 "explanation": "PySaiyanWeBoo などの共通基盤は commit SHA でピン留めし、ビルド後は自己完結した単一HTML/静的ページを生成します。"},
+                {"repo": "xprobe",
+                 "prompt": "xprobe が対象とする開発・解析ワークフローのテーマは？",
+                 "choices": ["軽量な探索・診断プローブとデータ確認", "3Dゲームエンジンの物理演算", "決済ゲートウェイの暗号化"],
+                 "correct": 0,
+                 "explanation": "xprobe は対象の状態や出力を素早く調べ・検証できるプローブ指向のツールとして作られています。"},
+                {"repo": "gh_identity / cli_args",
+                 "prompt": "gh_identity や cli_args が支えている開発基盤の特徴は？",
+                 "choices": ["再利用可能な認証・CLI引数パーサの安全で明快な扱い", "ブラウザ拡張の広告ブロック", "OSカーネルのスケジューラ改造"],
+                 "correct": 0,
+                 "explanation": "CLIツール間で共通する引数検証やGitHubアイデンティティ判定を小さな責務で安全に共有しています。"},
+                {"repo": "mcp-toolcall-lab",
+                 "prompt": "mcp-toolcall-lab で検証・実験されている技術領域はどれ？",
+                 "choices": ["Model Context Protocol（MCP）のツール呼び出し設計と検証", "WebGLのシェーダー最適化", "ブロックチェーンのマイニング"],
+                 "correct": 0,
+                 "explanation": "エージェントやLLMからのツール呼び出し契約・挙動を体系的に試すための実験ラボです。"},
+                {"repo": "FluidFullSpeedSimulation",
+                 "prompt": "ポートフォリオ内の『流れの実験室』（FluidFullSpeedSimulation / DRAgoWing）の可視化テーマは？",
+                 "choices": ["連続的な流れ・遅延（🌊動く像）と内訳フロー図（📊静止図）", "株式チャートのローソク足", "星座の年周視差"],
+                 "correct": 0,
+                 "explanation": "水回り・血流・エネルギーなどの『流れと遅れ』を動的シミュレーションとサンキー風静止図の両面で学べます。"},
+            ],
+            "shop": [
+                {"id": "pot", "spot_id": "meadow-npc-smith", "emoji": "🧪", "label": "村特製ポーション", "cost": 15, "item_type": "heal", "hp": 22, "mp": 0,
+                 "desc": "HPを22回復する定番の薬"},
+                {"id": "ether", "spot_id": "meadow-npc-smith", "emoji": "🔷", "label": "MPエーテル", "cost": 20, "item_type": "mana", "hp": 0, "mp": 12,
+                 "desc": "とくぎ用のMPを12回復する結晶"},
+                {"id": "dango", "spot_id": "meadow-npc-smith", "emoji": "🍡", "label": "昼ヶ丘いもだんご", "cost": 28, "item_type": "heal", "hp": 30, "mp": 6,
+                 "desc": "甘くてほくほく！HP30・MP6を同時に回復"},
+            ],
+            "skills": [
+                {"id": "bug-buster", "emoji": "⚡", "label": "バグバスター", "mp": 4, "kind": "attack", "mult_pct": 160, "power": 0,
+                 "desc": "バグ系の敵に大ダメージ(160%)"},
+                {"id": "pipeline-slash", "emoji": "🔬", "label": "パイプライン斬り", "mp": 6, "kind": "attack", "mult_pct": 210, "power": 0,
+                 "desc": "パイプライン解析の一閃(210%)"},
+                {"id": "pswb-heal", "emoji": "💚", "label": "PSWBヒーリング", "mp": 5, "kind": "heal", "mult_pct": 100, "power": 14,
+                 "desc": "回復オーブでHPを大きく回復"},
+                {"id": "guard-counter", "emoji": "🛡️", "label": "堅牢カウンター", "mp": 3, "kind": "guard", "mult_pct": 125, "power": 0,
+                 "desc": "敵の攻撃を半減しつつ反撃(125%)"},
+            ],
+        },
+    }
+
+
 EXAMPLES.update({
     "school": {
         "schema": WORLD_SCHEMA, "id": "school", "title": "School (prototype)", "zoom_max": 4,
@@ -2206,27 +3406,7 @@ EXAMPLES.update({
                         {"id": "bird", "emoji": "🐦", "label": "とり", "body": "屋根にとまっています。", "speed": 32}],
              "player": {"emoji": "🙂", "x": 320, "y": 320, "speed": 96}}],
     },
-    "overworld": {
-        "schema": WORLD_SCHEMA, "id": "overworld", "title": "Overworld (prototype)", "zoom_max": 4, "move": "confirm",
-        "avatars": ["🙂", "🧙", "🧝", "🦸", "🐱", "🐶", "🦊", "🐉", "🦄", "⚔️", "🛡️", "🚀"],
-        "tools": {"🧭": {"label": "町", "label_en": "Towns", "labels": {"fr": "Villes", "es": "Pueblos", "de": "Orte", "zh": "城镇"},
-                         "spots": ["meadow-town", "forest-town", "desert-town", "coast-town", "castle-town"]}},
-        "board": {"title": "TRAVEL", "items": [{"text": "旅のはじまり"}, {"text": "🛗で土地をわたろう"}, {"text": "道をたどると町に着きます"}]},
-        "floors": [{"id": "meadow", "land": {"theme": "meadow", "seed": 1},
-                    "spots": [*land_floor("meadow", seed=1, id="meadow")["spots"],
-                              {"id": "meadow-hirugaoka", "x": 592, "y": 176, "label": "🍠 昼ヶ丘（ヒルガオカ）",
-                               "body": "ヒルガオ科のサツマイモを育てている、日当たりのよい丘です。",
-                               "item": {"emoji": "🍠", "label": "サツマイモ",
-                                        "body": "ヒルガオ科のいも。昼ヶ丘で育てたほくほくのサツマイモです。"}}]},
-                   {"id": "forest", "land": {"theme": "forest", "seed": 2}},
-                   {"id": "mountain", "land": {"theme": "mountain", "seed": 3}},
-                   {"id": "desert", "land": {"theme": "desert", "seed": 4}},
-                   {"id": "coast", "land": {"theme": "coast", "seed": 5}},
-                   {"id": "castle", "land": {"theme": "castle", "seed": 6}},
-                   {"id": "real", "label": "実空間×仮想", "width": 384, "height": 384, "tile": 32, "real": True,
-                    "spots": [{"id": "real-gate", "label": "入口", "x": 192, "y": 96, "body": "⋯ の 🖼️📷 で、写真かカメラをうしろに映せます（ページの中だけ。保存も送信もしません）。"}],
-                    "player": {"emoji": "🙂", "x": 192, "y": 288, "speed": 96}}],
-    },
+    "overworld": _overworld_spec(),
     "cities": {
         "schema": WORLD_SCHEMA, "id": "cities", "title": "Parallel cities", "zoom_max": 4, "names": "dots", "mark_scale": [1.5, 1.5],
         "avatars": ["🙂", "🧳", "🚶", "🎒", "🐱", "🐶", "🦊", "🐼", "🚃", "☂️", "🎩", "🗼"],

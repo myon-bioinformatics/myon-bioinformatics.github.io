@@ -83,7 +83,7 @@ PSWB_TOOLS = {
 # 🌍 name -> (how it is built, shortcut label, title, summary), for PySaiyanWeBoo's 🎞 GIF demo; not in the 🧰 Tools cards: they show, they are not tools
 WORLD_PAGES = {
     'world': (lambda ui: world_page('overworld'), '🌍 ワールド', 'World',
-              '🛗 で土地をわたる旅のワールド：絵文字のキャラで歩き、時刻・お気に入り・地図・言語を切り替える'),
+              'はじまりの村と6つの土地を 🛗 で巡る RPG ワールド：接触会話・落とし物と宝箱（🎒）・ターン制バトル・クエスト・図鑑・クイズ'),
     'school': (lambda ui: world_page('school'), '🏫 スクール', 'School',
                '教室を歩く：絵文字を選び、タップ・矢印キー・パッドで机のあいだを移動（机・黒板・棚には入らない）'),
     'cities': (lambda ui: world_page('cities'), '🗼 パラレル', 'Parallel cities',
