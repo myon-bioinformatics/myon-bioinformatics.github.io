@@ -47,8 +47,7 @@ ASSETS = ('css/base.css', 'css/components.css', 'css/themes/modern.css',
 STYLESHEET_BUNDLES = {'css/bundle.css': 'bundled_css', 'css/core.css': 'core_css'}
 DISTRIBUTION = 'pysaiyanweboo'
 WORLD_PAGE = 'tools/demos/world.html'
-# Old bookmarks and PSWB's guide can still enter the canonical world; no other scene is rendered as a document.
-WORLD_REDIRECTS = {'tools/demos/school.html': 'school', 'tools/demos/cities.html': 'tokyo', 'tools/demos/world-shots.html': 'camera'}
+# 🌍 One document: the school, the cities and the camera are its #school, #tokyo and #camera (no forwarding pages).
 HTML_IMPORT_PAGE = 'tools/html-import/index.html'
 HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
 WORLD_CSS_ASSET = 'tools/world-assets/world.css'
@@ -332,16 +331,7 @@ def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
 
 def render_world(ui) -> dict[str, bytes]:
     page = add_back_nav(world_page(ui), WORLD_PAGE)
-    pages = {WORLD_PAGE: add_home_label(page, '🌍 ワールド', icons_from='../../').encode('utf-8')}
-    for path, fragment in WORLD_REDIRECTS.items():
-        target = os.path.relpath(WORLD_PAGE, os.path.dirname(path)).replace(os.sep, '/') + '#' + fragment
-        # The actual world paths and fragments above are build-time constants. Transfer only the existing query and hash.
-        redirect = (f'const url=new URL({json.dumps(target)},location.href);'
-                    'url.search=location.search;if(location.hash)url.hash=location.hash;location.replace(url);')
-        pages[path] = (f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>ワールドへ移動</title>'
-                       f'<link rel="canonical" href="{target}"></head><body><a href="{target}">🌍 ワールドを開く</a>'
-                       + ui.module_script(redirect) + '</body></html>').encode('utf-8')
-    return pages
+    return {WORLD_PAGE: add_home_label(page, '🌍 ワールド', icons_from='../../').encode('utf-8')}
 
 
 def render_pswb_tools(ui) -> dict[str, bytes]:
@@ -1171,7 +1161,7 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
     if set(lock['outputs']) != {HTML_IMPORT_MODULE, *WORLD_ASSETS, *DRAGON_ASSETS, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
-    expected = {HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, MAP_PINS_PAGE, WORLD_PAGE, *WORLD_REDIRECTS, *PSWB_TOOLS}
+    expected = {HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, MAP_PINS_PAGE, WORLD_PAGE, *PSWB_TOOLS}
     if set(lock.get('pages', {})) != expected:
         raise ValueError('generated page paths differ from the tool and world lists')
     if ui is None:
