@@ -186,7 +186,26 @@ def tools_places(prefix: str = '../../') -> list[dict]:
     return list(places.values())
 
 
-def tools_chrome(prefix: str = '../../', tools: dict | None = None, description: str = '', *, title: str = 'TOOLS', home: bool = True) -> dict:
+def host_rows(page: str) -> dict:
+    """🧰 The rows a page asks the site's header to show for it: ``<script type="application/json" id="ui-chrome-rows">`` in the page,
+    ``{"tools": {emoji: …}, "settings": rows, "screen": rows, "replaces": "#id,#id"}`` in PySaiyanWeBoo's chrome terms (Ironmate's
+    studios: one 💾 listing every format, one 📂, 📱 under ⚙️, the shelf under ⋯). Every row is an action (``{label, key}``): the page
+    answers ``ui-chrome-action`` itself, so the site routes nothing. ``replaces`` names the page's own menus the rows stand in for;
+    ``add_site_chrome`` hides them, so there is one way to save, in the one header. A page without the block asks for nothing."""
+    block = re.search(r'<script type="application/json" id="ui-chrome-rows">(.*?)</script>', page, re.S)
+    if not block:
+        return {}
+    rows = json.loads(block[1])
+    listed = [row for tool in rows.get('tools', {}).values() for row in tool.get('links', [])] + rows.get('settings', []) + rows.get('screen', [])
+    if set(rows) - {'tools', 'settings', 'screen', 'replaces'} or any(set(row) != {'label', 'key'} for row in listed):
+        raise ValueError('a page\'s header rows are tools, settings and screen of {label, key}, and replaces')
+    if not re.fullmatch(r'(#[a-z][a-z0-9-]*(,#[a-z][a-z0-9-]*)*)?', rows.get('replaces', '')):
+        raise ValueError('replaces lists ids: #a,#b')
+    return rows
+
+
+def tools_chrome(prefix: str = '../../', tools: dict | None = None, description: str = '', *, title: str = 'TOOLS', home: bool = True,
+                 rows: dict | None = None) -> dict:
     """🧰 The chrome every page of the site carries (PySaiyanWeBoo's ``chrome_validate``), for a page ``prefix`` below the site root:
     the board (``title``, the clock, then ``description`` — what this page is, a sentence per item — and the cards' titles), 🏠 back
     to the cards (``home=False``: the front page itself) and ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``).
@@ -194,7 +213,9 @@ def tools_chrome(prefix: str = '../../', tools: dict | None = None, description:
     cards = _front_module().PORTAL
     about = [{'text': part if len(part) <= 120 else part[:119] + '…'}
              for part in (p.strip() for p in re.split(r'(?<=[。！？])|(?<=[.!?])\s+', html.unescape(description))) if part][:3]
-    return {'id': 'tools', **({'home': prefix + 'index.html#tools'} if home else {}), 'tools': tools or {},
+    rows = rows or {}                       # 🧰 what the page itself asks the header to show (host_rows): its 💾 📂, its ⚙️ and ⋯ rows
+    return {'id': 'tools', **({'home': prefix + 'index.html#tools'} if home else {}), 'tools': {**(tools or {}), **rows.get('tools', {})},
+            'settings': rows.get('settings', []), 'screen': rows.get('screen', []),
             'board': {'title': title, 'items': (about + [{'text': card['title']} for card in cards])[:12]}}
 
 
@@ -230,6 +251,8 @@ def add_site_chrome(page: str, path: str | None = None, tools: dict | None = Non
     another palette on its ``<body>`` (Ironmate's studios: green; the MCP lab: terminal or github-like) is switched to it, and the
     chrome then takes the page's own colours; a page with no ``data-ui-theme`` keeps it and gets the chrome's colours with the chrome.
     The way back spans a grid ``<main>``'s whole first row, so it never takes the place of a column (Ironmate's three-column studio).
+    🧰 A page may ask the header to show rows of its own (``host_rows``: Ironmate's studios, one 💾 with every format); the page's
+    own menus those rows replace are hidden, so the header is the one place.
     The parts are PySaiyanWeBoo's (``component_parts("chrome" | "door" | "gaze-avatar")``, put on the page by ``add_part``): a page
     whose CSP lists its scripts or styles without ``'unsafe-inline'`` (HTML import, Ironmate's studios) gets their hashes listed,
     nothing wider."""
@@ -246,9 +269,11 @@ def add_site_chrome(page: str, path: str | None = None, tools: dict | None = Non
     if body and 'data-ui-theme="' in body[0]:
         page = page[:body.start()] + re.sub(r'data-ui-theme="[^"]*"', 'data-ui-theme="modern"', body[0], count=1) + page[body.end():]
     own = 'data-ui-theme="modern"' in page        # 🎨 modern: the parts take the page's colours; else they bring theirs (add_part's scope)
-    face, head = ui.component_parts('gaze-avatar'), ui.component_parts('chrome', tools_chrome(prefix, tools, description, title=title, home=home))
+    rows = host_rows(page)                   # 🧰 the page's own 💾 📂 ⚙️ ⋯ rows go into the one header; the menus they replace are hidden
+    face, head = ui.component_parts('gaze-avatar'), ui.component_parts('chrome', tools_chrome(prefix, tools, description, title=title, home=home, rows=rows))
     tools_nav, world = '<nav class="ui-world-tools">', '<header class="ui-world-head">' in page
-    page = ui.add_part(page, {'css': face['css'] + '.ui-world-head .ui-gaze{flex:none;margin:0 4px}main>nav.ui-back{grid-column:1/-1}', 'js': face['js']})
+    hide = rows['replaces'] + '{display:none}' if rows.get('replaces') else ''
+    page = ui.add_part(page, {'css': face['css'] + '.ui-world-head .ui-gaze{flex:none;margin:0 4px}main>nav.ui-back{grid-column:1/-1}' + hide, 'js': face['js']})
     if world:
         page = page.replace(tools_nav, face['html'] + tools_nav, 1)                                # 🫧 after the world's own board
     else:

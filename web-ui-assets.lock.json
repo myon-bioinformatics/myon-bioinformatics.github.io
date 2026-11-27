@@ -1,7 +1,7 @@
 {
   "schema": "web-ui-generated/2",
   "generator": "pysaiyanweboo (pyproject.toml pages group)",
-  "commit": "2c8c96e7358a6f3739c63f77e83535a53d18517e",
+  "commit": "2d5469f383fc10640a0ba8291171ad2b93f74277",
   "outputs": {
     "tools/vendor/web-ui/css/base.css": "89bf5a2371b7be9057540501bba09f399d60f9207971c47fd9dac7f473ea928d",
     "tools/vendor/web-ui/css/components.css": "b82cfa27825780876dfb28409214de079f52528ecb8afe22602ec54f36031e2f",
@@ -14,19 +14,19 @@
     "tools/world-assets/world.css": "9d21c26e50611033568788e10c1dec68af201faacaf3d6637420d83ba98f97ed",
     "tools/world-assets/world.js": "b241900af86d4fd8e7966e0406fc82e9fa2139c189da6df76f647dc2218a3b1b",
     "tools/html-import/extract.mjs": "22453239323b35f46e4ece66fea443ed6475f0e26324926ba8dbb1fade203fec",
-    "tools/vendor/web-ui/css/bundle.css": "18ca24051c77610d70a3aa2f38d9727e2f3a06ac03f3de7c78a543e0484b3626",
+    "tools/vendor/web-ui/css/bundle.css": "a53204d6d5bc3b1d4329ef846b2742cead74bf40428ebdf6faf05416908d310a",
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/world.html": "80371f41bb6473650477e0fd3a9ca6aca54ee4f540bb454a69e7b349cda81556",
+    "tools/demos/world.html": "0a539a35724e6dda32402a52cc8b500410a70fe8a85c988a9d71d22281c6b052",
     "tools/demos/school.html": "1cca94ebbd110f892af7744c541fdb07f8913cf1c789069739767b1dcbfbc294",
     "tools/demos/cities.html": "a7e75a4fb771371b4249ea32a8792e503b6ec76fae5b76abfd58a4b1871fcdaa",
     "tools/demos/world-shots.html": "bde99c06ef7f8e5c8430a3c82bf6584c66463a84bc4e75ca0d6960999389e93a",
-    "tools/test-report/index.html": "ffd1380e3d989babc0c61d6737627162da81e1ba69589cfc77f0419faaa9ca90",
-    "tools/mcp-protocol/index.html": "317947778cc102592cc053af966c1988e723ac833ab31317dfde3f04d0ed4e81",
-    "tools/html-import/index.html": "1173cdb43765024aa8d38af833b8ed68cd10fd9ee3697f9182fb20d8e7bb5e42",
-    "tools/maps/index.html": "22eb59e20146521b3f06fefbb177acef2759af1e2dff7f5404f8e5f052f9b0a8",
-    "tools/gif/index.html": "417347884018eba604bbd78e293a4a71dfb23e544949eb5456b05d6935535fa4",
-    "tools/chat/index.html": "7f20363672b612a1954fd8e0b2aa448792fbe3c006a19c694f7829383ebe0e75"
+    "tools/test-report/index.html": "1f9107e317e0aef07cc52ee9f1daa0b2123633af77c74a9ca646bcf13c2cdd2d",
+    "tools/mcp-protocol/index.html": "04a73e1ca4765ae724f29580b6b817aef8bf8f40969b6f624d1224787e68e4fc",
+    "tools/html-import/index.html": "e1f55d77e27e937adbb9eefc36cd99d92be04456504efe0b0d9ec69a35d52189",
+    "tools/maps/index.html": "4ea50c1d02cdbbdcc6707590e2ba5588909fb1cad1094262a226a19a6bfb652b",
+    "tools/gif/index.html": "45f0f3bf79854901e297f0281c28d97ccd7bbd5be0d964fbf710b014ed1699c4",
+    "tools/chat/index.html": "a302e33774299b9ff51d20f8d8f1064d13d608a9f19e3b0f408332add0921566"
   }
 }

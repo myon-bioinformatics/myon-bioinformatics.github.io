@@ -515,6 +515,29 @@ def test_every_page_turns_modern_on_its_body_only():
     assert '<body>' in plain and '.ui-chrome{--ui-bg:#0d1117;' in plain                       # no palette of its own: the chrome brings its colours
 
 
+def test_a_page_asks_the_one_header_to_show_its_rows_and_its_own_menus_are_hidden():
+    """🧰 host_rows: a page carries no header of its own; it declares rows (Ironmate's studios: one 💾 with every format) and the site's
+    header shows them as actions the page answers. The page's own menus the rows replace are hidden, so there is one way to save."""
+    import pysaiyanweboo as ui
+    asked = {"tools": {"💾": {"label": "保存", "label_en": "Save", "links": [{"label": "🖼 PNG", "key": "png"}, {"label": "🖼 PNG ×2", "key": "png-2"}]}},
+             "settings": [{"label": "📱 スマホ版", "key": "phone"}], "screen": [{"label": "📋 シェルフ", "key": "shelf"}], "replaces": "#studios,#studio-export"}
+    block = '<script type="application/json" id="ui-chrome-rows">' + json.dumps(asked, ensure_ascii=False) + '</script>'
+    page = ('<!doctype html><html><head><title>Studio</title></head><body class="ui-elements" data-ui-theme="green">' + block +
+            '<header><details id="studio-export"><button id="png">PNG</button></details></header><main><h2>Canvas</h2></main></body></html>')
+    assert PAGES.host_rows(page) == asked and PAGES.host_rows('<body></body>') == {}
+    built = PAGES.add_site_chrome(page, 'tools/image-studio/index.html')
+    assert built.count('<div class="ui-chrome') == 1                                                   # the site's one header
+    assert re.findall(r'data-chrome-action="([a-z0-9-]+)"', built) == ['png', 'png-2', 'phone', 'shelf']
+    head = built[built.index('<div class="ui-chrome'):built.index('<header>')]
+    assert '>💾</summary>' in head and head.index('data-lang') < head.index('data-chrome-action="phone"')   # ⚙️: the site's rows, then the page's
+    assert '#studios,#studio-export{display:none}' in built and '<details id="studio-export"><button id="png">' in built   # hidden, still there to be pressed
+    plain = PAGES.add_site_chrome(page.replace(block, ''), 'tools/image-studio/index.html')            # a page that asks for nothing: as before
+    assert 'data-chrome-action="' not in plain and '#studios,#studio-export{display:none}' not in plain
+    for bad in ({**asked, "extra": 1}, {**asked, "settings": [{"label": "x", "href": "./phone/"}]}, {**asked, "replaces": "body{color:red}"}, {**asked, "replaces": "#a, #b"}):
+        with pytest.raises(ValueError):
+            PAGES.host_rows('<script type="application/json" id="ui-chrome-rows">' + json.dumps(bad) + '</script>')
+
+
 def test_html_import_csp_names_the_face_chrome_and_door_modules_and_nothing_else():
     import pysaiyanweboo as ui
     html = (SITE / PAGES.HTML_IMPORT_PAGE).read_text(encoding='utf-8')
