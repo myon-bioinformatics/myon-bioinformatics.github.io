@@ -325,7 +325,7 @@ uv run --locked --only-group browser python -m pytest tests/test_site.py -k chat
 
 ### 🌍 ワールド
 
-**🌍 ワールド**は [ひとつのページ](https://myon-bioinformatics.github.io/tools/demos/world.html) です。☰ で村（`#world`）、学校（`#school`）、パラレル東京（`#tokyo`）、Reverse London（`#london`）、Fake Paris（`#paris`）、カメラ（`#camera`）へ移動します。ページを読み直さず、直リンクやブラウザの「戻る」でも空間を切り替えられます。⭐ お気に入りと 🧰 道具は共通で、村のRPGや街の範囲指定など、その場の操作は各空間に残しています。
+**🌍 ワールド**は [ひとつのページ](https://myon-bioinformatics.github.io/tools/demos/world.html) です。☰ で村（`#world`）、学校（`#school`）、パラレル東京（`#tokyo`）、Reverse London（`#london`）、Fake Paris（`#paris`）、カメラ（`#camera`）へ移動します。ページを読み直さず、直リンクやブラウザの「戻る」でも空間を切り替えられます。⭐ お気に入りと 🧰 道具は共通で、村のRPGや街の範囲指定、フェイクパリの消防ヒーロー活動（定型会話・ドロップ/宝箱・消火ミッション・緑化）など、その場の操作は各空間に残しています。
 
 村の **冒険手帳 → 💾 セーブ** で文字列を作り、移行先の同じ画面に貼り付けて「読み込む」を選びます。経験値、所持金、HP・MP、乱数の状態、装備、消費アイテムの個数、バッグ、会話・討伐・訪問・クイズ・クエスト・実績の記録を引き継ぎます。現在位置と戦闘途中の状態は保存対象外です。
 
