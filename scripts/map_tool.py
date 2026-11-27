@@ -42,7 +42,7 @@ __STATUS__</section>
 <section class="ui-panel" id="nearby" hidden><h2>範囲内の東京の地点</h2><p id="nearby-status"></p><ul id="nearby-list"></ul></section>
 <section class="ui-panel"><h2>ピン留めした地点</h2><p id="pin-storage">このブラウザに保存。地点リンクを渡せば、相手も同じ座標を開けます。</p>
 <ul id="pins"></ul></section>
-<noscript><p>座標の入力・ピン留めにはJavaScriptが必要です。<a href="./tokyo.html">パラレル東京を開く</a></p></noscript>
+<noscript><p>座標の入力・ピン留めにはJavaScriptが必要です。<a href="../demos/world.html#tokyo">パラレル東京を開く</a></p></noscript>
 </main>'''
 
 CSS = '''label{display:block;margin:1rem 0 .35rem}.ui-input{width:100%;box-sizing:border-box}
@@ -82,7 +82,7 @@ try{const saved=JSON.parse(localStorage.getItem(key)||'[]');if(!Array.isArray(sa
 function save(){try{localStorage.setItem(key,JSON.stringify(pins));$('pin-storage').textContent='このブラウザに保存しました。'}
  catch{$('pin-storage').textContent='ブラウザに保存できません。この画面を閉じるまでのピン留めです。'}}
 function shareURL(p){const url=new URL('./',location.href);url.search=new URLSearchParams({lat:round(p.lat),lon:round(p.lon),name:p.label,radius_m:String(p.radius_m)});return url.href}
-function tokyoURL(p,spot){const url=new URL('./tokyo.html',location.href);url.search=new URL(shareURL(p)).search;url.hash='cities-spot-'+spot.id;return url.href}
+function tokyoURL(p,spot){const url=new URL('../demos/world.html',location.href);url.search=new URL(shareURL(p)).search;url.hash='cities-spot-'+spot.id;return url.href}
 function shareText(p){const links=mapsUrls(p.lat,p.lon),text=[p.label||coordinateText(p.lat,p.lon),'Google Maps: '+links.google,'Apple Maps: '+links.apple];
  if(p.radius_m>0){const area=areaTexts(toleranceArea(p.lat,p.lon,p.radius_m));text.push('半径: '+p.radius_m+' m','Google Maps（範囲）: '+area.google_area_url,'Apple Maps（範囲）: '+area.apple_area_url)}
  text.push('地点リンク: '+shareURL(p));return text.join('\n')}
@@ -153,10 +153,10 @@ try{const radius=readRadius(query.get('radius_m')??'100');
  for(const link of document.querySelectorAll('.map-point-link')){const url=new URL(link.href);url.searchParams.set('radius_m',String(radius));link.href=url.href}
  if(query.has('lat')||query.has('lon')){
   const [lat,lon]=globalThis.webUiCoordinates.parseCoordinate(query.get('lat')||'',query.get('lon')||'');
-  const back=new URL('./',location.href);back.search=new URLSearchParams({lat:lat.toFixed(6),lon:lon.toFixed(6),name:(query.get('name')||'').slice(0,80),radius_m:String(radius)});
+  const back=new URL('../maps/',location.href);back.search=new URLSearchParams({lat:lat.toFixed(6),lon:lon.toFixed(6),name:(query.get('name')||'').slice(0,80),radius_m:String(radius)});
   document.getElementById('area-return').href=back.href;document.getElementById('area-return').hidden=false;
  }
- if(radius>0){banner.hidden=false;document.getElementById('tokyo-range-label').textContent='指定範囲：半径 '+radius+' m。地点を選んだ後も半径を引き継ぎます。'}
+ if(radius>0&&query.has('radius_m')){banner.hidden=false;document.getElementById('tokyo-range-label').textContent='指定範囲：半径 '+radius+' m。地点を選んだ後も半径を引き継ぎます。'}
 }catch{banner.hidden=false;document.getElementById('tokyo-range-label').textContent='指定範囲を読み取れませんでした。'}
 '''
 
@@ -164,33 +164,34 @@ try{const radius=readRadius(query.get('radius_m')??'100');
 COORDINATES_MODULE = '<script type="module" src="../vendor/web-ui/js/coordinates.js"></script>'
 
 
-def render(ui, worlds) -> dict[str, str]:
-    """The map tool and Parallel Tokyo; ``worlds`` is scripts/world.py."""
-    cities = worlds.example_data('cities')
+def tokyo_points(cities):
     tokyo = next(f for f in cities['floors'] if f['id'] == 'tokyo')
-    points = [dict(id='tokyo-' + p['id'], label=p['label'], lat=p['lat'], lon=p['lon'])
-              for p in tokyo['place']['points']]
+    return [dict(id='tokyo-' + p['id'], label=p['label'], lat=p['lat'], lon=p['lon'])
+            for p in tokyo['place']['points']]
+
+
+def map_document(ui, points):
     options = ''.join(f'<option value="{html.escape(p["id"], quote=True)}">{html.escape(p["label"])}</option>' for p in points)
     data = json.dumps(points, ensure_ascii=False).replace('<', '\\u003c')
     body = BODY.replace('__OPTIONS__', options).replace('__STATUS__', ui.status_html(id='map-status'))
     # The two inline modules execute in order; the shared module owns validation and URL encoding.
     script = SCRIPT.replace('__POINTS__', data).replace('__RANGE_HELPERS__', RANGE_HELPERS).replace('__EARTH_RADIUS__', str(ui.EARTH_RADIUS_M))
     body += COORDINATES_MODULE + ui.module_script(script)
-    page = ui.render_document(title='地図URL・ピン留め', trusted_html=body, css=ui.bundled_css() + CSS)
-    cities['title'], cities['floors'] = 'パラレル東京', [tokyo]
-    cities['tools'] = {k: v for k, v in cities['tools'].items() if v.get('floor', 'tokyo') == 'tokyo'}
-    world = worlds.world_document(cities)
+    return ui.render_document(title='地図URL・ピン留め', trusted_html=body, css=ui.bundled_css() + CSS)
+
+
+def tokyo_links(ui, world, points):
     # Keep PSWB's world behaviour and favorites; add a real-coordinate link to each existing sheet.
     for p in points:
-        href = './?' + urlencode({'lat': ui.fixed(p['lat'], 6), 'lon': ui.fixed(p['lon'], 6), 'name': p['label']})
+        href = '../maps/?' + urlencode({'lat': ui.fixed(p['lat'], 6), 'lon': ui.fixed(p['lon'], 6), 'name': p['label']})
         link = f'<p><a class="ui-button map-point-link" href="{html.escape(href, quote=True)}">この地点の地図URL・ピン留め</a></p>'
         pattern = r'(<article\b[^>]*\bid="cities-spot-' + re.escape(p['id']) + r'"[^>]*>.*?)(</article>)'
         world, count = re.subn(pattern, lambda m: m[1] + link + m[2], world, count=1, flags=re.S)
         if count != 1:
             raise ValueError(f'PSWB city sheet missing: {p["id"]}')
     banner = '<p id="tokyo-range" hidden><span id="tokyo-range-label"></span></p><p><a id="area-return" hidden>元の指定範囲へ戻る</a></p>'
-    world = world.replace('<body data-ui-theme="modern">', '<body data-ui-theme="modern"><main>' + banner, 1)
-    world = world.replace('</body>', '</main>' + COORDINATES_MODULE
-                          + ui.module_script(TOKYO_SCRIPT.replace('__RANGE_HELPERS__', RANGE_HELPERS)) + '</body>', 1)
-    return {path: document.replace('<html lang="en">', '<html lang="ja">', 1) for path, document in
-            [('tools/maps/index.html', page), ('tools/maps/tokyo.html', world)]}
+    return banner + world
+
+
+def tokyo_modules(ui):
+    return COORDINATES_MODULE + ui.module_script(TOKYO_SCRIPT.replace('__RANGE_HELPERS__', RANGE_HELPERS))

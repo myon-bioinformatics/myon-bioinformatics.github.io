@@ -287,6 +287,7 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     shutil.copyfile(ROOT / 'scripts/front_page.py', root / 'scripts/front_page.py')         # the front page is generated too
     shutil.copyfile(ROOT / 'scripts/map_tool.py', root / 'scripts/map_tool.py')
     shutil.copyfile(ROOT / 'scripts/world.py', root / 'scripts/world.py')                 # 🌍 the world pages and Parallel Tokyo
+    shutil.copyfile(ROOT / 'scripts/world_shell.py', root / 'scripts/world_shell.py')
     shutil.copyfile(ROOT / 'scripts/chat.py', root / 'scripts/chat.py')                   # 💬 the chat page runs it in Pyodide
     (root / 'docs').mkdir()
     shutil.copyfile(ROOT / 'docs/weekly-view.md', root / 'docs/weekly-view.md')
@@ -355,6 +356,45 @@ def test_every_api_read_has_a_timeout(monkeypatch):
     assert api.fetch_all_repos("o") == []
     assert api.fetch_readme("o", "r") == (None, None)
     assert seen == [api.TIMEOUT_SECONDS, api.TIMEOUT_SECONDS] and api.TIMEOUT_SECONDS > 0
+
+
+def test_the_weekly_note_is_last_weeks_merged_pull_requests_as_markdown(monkeypatch):
+    """🗓️ repos_catalog.py --weekly: the last complete week (Monday to Sunday, Japan time) from GitHub's REST search, as plain Markdown
+    with a table of numbers per day and per label; the note in the repository is that generator's own output."""
+    from datetime import date, datetime, timezone
+    assert api.last_week(datetime(2026, 11, 27, 7, 40, tzinfo=api.JST)) == date(2026, 11, 16)
+    assert api.last_week(datetime(2026, 11, 29, 21, 0, tzinfo=timezone.utc)) == date(2026, 11, 23)      # the 06:00 JST run on Monday: the week turned
+    assert api.last_week(datetime(2026, 11, 29, 14, 59, tzinfo=timezone.utc)) == date(2026, 11, 16)     # Sunday 23:59 JST: not yet
+    seen = []
+
+    def fake_urlopen(request, timeout=None):
+        seen.append((request.full_url, timeout))
+        page = int(re.search(r"&page=(\d+)$", request.full_url)[1])
+        items = [{"number": n, "title": f"t{n}", "html_url": f"https://github.com/o/r/pull/{n}", "labels": [{"name": "bug"}] * (n % 2),
+                  "pull_request": {"merged_at": "2026-11-16T02:00:00Z"}} for n in range(1, 101 if page == 1 else 4)]
+        return io.BytesIO(json.dumps({"items": items}).encode())
+
+    monkeypatch.setattr(api.urllib.request, "urlopen", fake_urlopen)
+    pulls = api.fetch_merged("o/r", date(2026, 11, 16))
+    assert len(pulls) == 103 and len(seen) == 2 and all(timeout == api.TIMEOUT_SECONDS for _, timeout in seen)
+    assert "graphql" not in seen[0][0] and seen[0][0].startswith("https://api.github.com/search/issues?q=repo%3Ao%2Fr%20is%3Apr%20is%3Amerged%20"
+                                                                 "merged%3A2026-11-16T00%3A00%3A00%2B09%3A00..2026-11-22T23%3A59%3A59%2B09%3A00&per_page=100&page=1")
+    week = [{"number": 7, "title": "late  on | Sunday [x](javascript:alert(1))", "url": "https://github.com/o/r/pull/7", "merged": "2026-11-22T14:59:59Z", "labels": ["bug", "a|b"]},
+            {"number": 5, "title": "early on Monday", "url": "https://github.com/o/r/pull/5", "merged": "2026-11-15T15:00:00Z", "labels": []},
+            {"number": 6, "title": "midweek", "url": "https://github.com/o/r/pull/6", "merged": "2026-11-18T03:00:00Z", "labels": ["bug"]}]
+    note = api.weekly_note(week, date(2026, 11, 16), "o/r", limit=2)
+    assert note.startswith("# 🗓️ 2026-11-16（月）〜 11-22（日）\n\nこの週にマージした PR は 3 本です。\n")
+    assert "| 11-16（月） | 1 |\n| 11-17（火） | 0 |\n| 11-18（水） | 1 |" in note and "| 11-22（日） | 1 |\n" in note      # days are Japan's
+    assert "| bug | 2 |\n| a\\|b | 1 |\n| （なし） | 1 |\n" in note
+    assert "- [#7](https://github.com/o/r/pull/7) late on | Sunday [x] (javascript:alert(1))\n- [#6](https://github.com/o/r/pull/6) midweek\n\nほか 1 本は [GitHub の一覧](https://github.com/o/r/pulls?q=is%3Apr%20is%3Amerged%20merged%3A2026-11-16T00%3A00%3A00%2B09%3A00..2026-11-22T23%3A59%3A59%2B09%3A00)" in note
+    empty = api.weekly_note([], date(2026, 11, 16), "o/r")
+    assert "PR は 0 本です。" in empty and "## 🏷️" not in empty and empty.count("| 0 |") == 7
+    committed = (ROOT / "docs/weekly-view.md").read_text(encoding="utf-8")                                 # written by the generator, not by hand
+    monday = date.fromisoformat(re.match(r"# 🗓️ (\d{4}-\d\d-\d\d)（月）", committed)[1])
+    assert monday.weekday() == 0 and committed.startswith(api.weekly_note([], monday, "o/r").split("\n")[0] + "\n")
+    assert committed.endswith(empty.rstrip("\n").split("\n")[-1] + "\n")
+    workflow = (ROOT / ".github/workflows/repos-api.yml").read_text(encoding="utf-8")
+    assert "--weekly docs/weekly-view.md\n" in workflow and "files=(api/repos.json .nojekyll docs/weekly-view.md)\n" in workflow
 
 
 # ═══ 🐍 repos API python selection ════════════════════════════════════════════════════════════════════════

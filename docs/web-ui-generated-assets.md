@@ -17,8 +17,8 @@ The lab's `publication.json` separately identifies the imported report source.
 
 🧰 The same generator also builds PySaiyanWeBoo's own tool documents (`PSWB_TOOLS` in `scripts/project_pages.py`): 🧾 its JUnit reader
 (`tools/test-report/`) and 🤝 its in-page MCP connection test (`tools/mcp-protocol/`). Each gets the portfolio back link and the parts every page of
-the site shares (`add_site_chrome()`): the header (the board with the clock and the page's description, 🏠 ⭐ ⚙️: `tools_chrome()` and `scripts/world.py`), the side (☰ ⋯)
-and the foot (🚪 PySaiyanWeBoo's Door-to-Door, every tool as a pull-down, then 🐦 X and 📦 the page's own size: `tools_door()`, `stamp_size()`). The front page carries the same parts,
+the site shares (`add_site_chrome()`): the header (the board with the clock and the page's description, 🏠 ⭐ ⚙️: PySaiyanWeBoo's chrome from the spec `tools_chrome()` makes), the side (☰ ⋯)
+and the foot (🚪 PySaiyanWeBoo's Door-to-Door, every tool as a pull-down, then 🐦 X and 📦 the page's own size: `tools_door()`, PySaiyanWeBoo's `door_html(foot=True)` and `stamp_page_size()`). The front page carries the same parts,
 shortcut label and icons (`add_back_nav()` / `add_home_label()` in `scripts/project_pages.py`). Their SHA-256 values are under `pages` in the same lock, so
 `presentation_identity()` (the shared assets, `outputs`) is unchanged. `--refresh-lock` rewrites their hashes with the assets'.
 
@@ -43,7 +43,7 @@ Use a fresh output directory to reproduce a deployment.
 `--copy-source` copies the files in `PUBLIC_SOURCE_FILES` from `scripts/project_pages.py`. Add a path there when a new
 file needs to be served verbatim. The list covers public JSON endpoints and browser settings, icons and the web app
 manifest, the HTML import guide, demo GIFs and their browser receipt, Niconico's browser script, and licenses.
-The weekly view is rendered into `index.html`, and the chat's Python and dependencies are embedded in its HTML for
+The weekly note (`docs/weekly-view.md`; a table's number columns become bars, `table_bars()`) is rendered into `index.html`, and the chat's Python and dependencies are embedded in its HTML for
 Pyodide. The generation and recording steps write those pages, the chat index, and other built assets directly to the
 output directory. Build scripts, development docs, tests, and caches stay in the checkout.
 
