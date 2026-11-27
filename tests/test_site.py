@@ -1758,3 +1758,33 @@ def test_weekly_markdown_fragment_rejects_invalid_paths():
         front.markdown_fragment(ROOT, '../README.md')
     with pytest.raises(ValueError):
         front.markdown_fragment(ROOT, 'docs/not-found.md')
+
+
+def test_portfolio_worlds_share_one_engine_and_standalone_stays_self_contained():
+    import pysaiyanweboo as ui
+    world = PAGES._world()
+    css, js = PAGES.WORLD_ASSETS
+    lock = json.loads((ROOT / 'web-ui-assets.lock.json').read_text(encoding='utf-8'))
+    for asset in (css, js):
+        assert hashlib.sha256((SITE / asset).read_bytes()).hexdigest() == lock['outputs'][asset]
+    assert (SITE / js).read_text(encoding='utf-8') == world.WORLD_JS
+    assert (SITE / css).read_text(encoding='utf-8') == '@layer components{' + world.world_base_css() + '}'
+    css_link = '<link rel="stylesheet" href="../world-assets/world.css">'
+    js_link = '<script type="module" src="../world-assets/world.js"></script>'
+    pages = [f'tools/demos/{name}.html' for name in PAGES.WORLD_PAGES]
+    for path in pages:
+        page = (SITE / path).read_text(encoding='utf-8')
+        assert page.count(css_link) == page.count(js_link) == 1
+        assert page.index('css/bundle.css') < page.index(css_link)
+        assert page.split(css_link, 1)[1].startswith('<style>@layer components{')
+        assert world.world_base_css() not in page and world.WORLD_JS not in page
+    cities = (SITE / 'tools/demos/cities.html').read_text(encoding='utf-8')
+    assert cities.index(js_link) < cities.index('js/coordinates.js') < cities.index("getElementById('tokyo-range')")
+    assert cities.count('class="ui-button map-point-link"') == 21
+    overworld = (SITE / 'tools/demos/world.html').read_text(encoding='utf-8')
+    assert overworld.index(js_link) < overworld.index('export function bindRpgWorlds')
+    assert all('export function bindRpgWorlds' not in (SITE / path).read_text(encoding='utf-8')
+               for path in pages if path != 'tools/demos/world.html')
+    standalone = world.world_document(world.example_data('school'))
+    assert world.world_base_css() in standalone and ui.module_script(world.WORLD_JS) in standalone
+    assert 'world-assets/' not in standalone
