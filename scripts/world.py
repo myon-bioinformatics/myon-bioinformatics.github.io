@@ -1945,13 +1945,18 @@ _WALL_CSS = (
 )
 
 
+def world_base_css() -> str:
+    """Fixed world rules, shared by the Portfolio web build."""
+    return _WORLD_CSS
+
+
 def world_css(spec: Any, *, base: bool = True) -> str:
     """CSS for a world: fixed rules plus one rule per floor, category and shot (radios and data-lit drive them through :has).
 
     ``base=False`` leaves the fixed rules out, for a second world on a page that already has them.
     """
     world = world_validate(spec)
-    wid, rules = world["id"], [_WORLD_CSS] if base else []
+    wid, rules = world["id"], [world_base_css()] if base else []
     if base and world.get("rpg"):
         rules.append(_WORLD_RPG_CSS)
     for f in world["floors"]:

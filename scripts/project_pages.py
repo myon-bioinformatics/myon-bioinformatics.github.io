@@ -49,6 +49,9 @@ DISTRIBUTION = 'pysaiyanweboo'
 DEMO_BASE = 'tools/demos/'
 HTML_IMPORT_PAGE = 'tools/html-import/index.html'
 HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
+WORLD_CSS_ASSET = 'tools/world-assets/world.css'
+WORLD_JS_ASSET = 'tools/world-assets/world.js'
+WORLD_ASSETS = (WORLD_CSS_ASSET, WORLD_JS_ASSET)
 MAP_PINS_PAGE = 'tools/maps/index.html'
 
 # Files served verbatim. The generators write every other public file to the output tree.
@@ -150,6 +153,8 @@ def render(ui) -> dict[str, bytes]:
         kind, filename = name.split('/', 1)
         source = ui.css_source(filename) if kind == 'css' else ui.js_source(filename)
         result[ASSET_BASE + name] = source.encode('utf-8')
+    result[WORLD_CSS_ASSET] = ('@layer components{' + _world().world_base_css() + '}').encode('utf-8')
+    result[WORLD_JS_ASSET] = _world().WORLD_JS.encode('utf-8')
     result[HTML_IMPORT_MODULE] = html_import_files(ui)["extract.mjs"]
     for name, builder in STYLESHEET_BUNDLES.items():
         result[ASSET_BASE + name] = getattr(ui, builder)().encode()
@@ -956,6 +961,27 @@ def render_tools(ui, output: Path | None = None) -> dict[str, bytes]:
     return pages
 
 
+def link_world_assets(ui, page: bytes, path: str) -> bytes:
+    """Move only the common engine; leave scene rules and later page-specific modules in place."""
+    head, end, body = page.partition(b'</head>')
+    world = _world()
+    inline_css = b'<style>@layer components{' + world.world_base_css().encode('utf-8')
+    inline_js = ui.module_script(world.WORLD_JS).encode('utf-8')
+    rpg_js = ui.module_script(world.WORLD_JS + '\n' + world.WORLD_RPG_JS).encode('utf-8')
+    has_rpg = rpg_js in body
+    if has_rpg:
+        inline_js = rpg_js
+    if not end or head.count(inline_css) != 1 or body.count(inline_js) != 1:
+        raise ValueError(f'expected one inline world engine in {path}')
+    css, js = (os.path.relpath(asset, os.path.dirname(path)).replace(os.sep, '/') for asset in WORLD_ASSETS)
+    head = head.replace(inline_css, f'<link rel="stylesheet" href="{css}"><style>@layer components{{'.encode(), 1)
+    engine = f'<script type="module" src="{js}"></script>'
+    if has_rpg:
+        engine += ui.module_script(f'import "{js}";\n' + world.WORLD_RPG_JS)
+    body = body.replace(inline_js, engine.encode(), 1)
+    return ui.stamp_page_size((head + end + body).decode('utf-8')).encode('utf-8')
+
+
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     """Every hash-locked page: the demos and world pages, HTML import, map tools and the GIF workshop, keyed by published path."""
     map_tool = load_module('map_tool', 'scripts/map_tool.py')
@@ -973,6 +999,9 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
                 link = f'<link rel="stylesheet" href="{href}">'.encode()
                 head = head.replace(prefix, link + b'<style>', 1).replace(link + b'<style></style>', link, 1)
                 pages[path] = ui.stamp_page_size((head + end + body).decode('utf-8')).encode('utf-8')   # 📦 the page is smaller now
+    for name in WORLD_PAGES:
+        path = DEMO_BASE + name + '.html'
+        pages[path] = link_world_assets(ui, pages[path], path)
     return pages
 
 
@@ -984,7 +1013,7 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
     verify_pin(commit, root)
     if commit != lock['commit']:
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
-    if set(lock['outputs']) != {HTML_IMPORT_MODULE, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
+    if set(lock['outputs']) != {HTML_IMPORT_MODULE, *WORLD_ASSETS, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
     expected = ({HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, MAP_PINS_PAGE, *PSWB_TOOLS} | {DEMO_BASE + name + '.html' for name in WORLD_PAGES})
     if set(lock.get('pages', {})) != expected:
