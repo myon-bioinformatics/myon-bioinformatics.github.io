@@ -42,7 +42,7 @@ from urllib.parse import urljoin
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_BASE = 'tools/vendor/web-ui/'
 ASSETS = ('css/base.css', 'css/components.css', 'css/themes/modern.css',
-          'css/tokens.css', 'js/navigation.js', 'js/ui.js', 'js/controls.js',
+          'css/tokens.css', 'js/navigation.js', 'js/ui.js', 'js/records.js', 'js/controls.js',
           'js/coordinates.js')
 STYLESHEET_BUNDLES = {'css/bundle.css': 'bundled_css', 'css/core.css': 'core_css'}
 DISTRIBUTION = 'pysaiyanweboo'
@@ -54,6 +54,9 @@ HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
 WORLD_CSS_ASSET = 'tools/world-assets/world.css'
 WORLD_JS_ASSET = 'tools/world-assets/world.js'
 WORLD_ASSETS = (WORLD_CSS_ASSET, WORLD_JS_ASSET)
+DRAGON_PNG_ASSET = 'tools/world-assets/london-dragon.png'
+DRAGON_GRID_ASSET = 'tools/world-assets/london-dragon.json'
+DRAGON_ASSETS = (DRAGON_PNG_ASSET, DRAGON_GRID_ASSET)
 MAP_PINS_PAGE = 'tools/maps/index.html'
 
 # Files served verbatim. The generators write every other public file to the output tree.
@@ -96,7 +99,12 @@ def world_page(ui) -> str:
     maps = load_module('map_tool', 'scripts/map_tool.py')
     css, js = (os.path.relpath(path, os.path.dirname(WORLD_PAGE)).replace(os.sep, '/') for path in WORLD_ASSETS)
     places = [p for p in tools_places('../../') if p['href'].split('#', 1)[0] != '../../' + WORLD_PAGE]
-    return shell.document(ui, _world(), maps, places, css, js)
+    runtime = {key: _chat().RUNTIME[key] for key in ('wllama', 'model')}
+    dialogue = WLLAMA_JS + f'\nconst worldAnswer = localModel({json.dumps(runtime)});\n'
+    dragon_png, dragon_grid = (os.path.relpath(path, os.path.dirname(WORLD_PAGE)).replace(os.sep, '/')
+                               for path in DRAGON_ASSETS)
+    return shell.document(ui, _world(), maps, places, css, js, dialogue,
+                          dragon_png=dragon_png, dragon_grid=dragon_grid)
 
 
 def installed_commit(distribution: str = DISTRIBUTION) -> str:
@@ -137,6 +145,9 @@ def render(ui) -> dict[str, bytes]:
         result[ASSET_BASE + name] = source.encode('utf-8')
     result[WORLD_CSS_ASSET] = ('@layer components{' + _world().world_base_css() + '}').encode('utf-8')
     result[WORLD_JS_ASSET] = _world().WORLD_JS.encode('utf-8')
+    grid = (ROOT / 'scripts/london-dragon.json').read_bytes()
+    result[DRAGON_GRID_ASSET] = grid
+    result[DRAGON_PNG_ASSET] = ui.pixel_grid_png(json.loads(grid))
     result[HTML_IMPORT_MODULE] = html_import_files(ui)["extract.mjs"]
     for name, builder in STYLESHEET_BUNDLES.items():
         result[ASSET_BASE + name] = getattr(ui, builder)().encode()
@@ -784,29 +795,44 @@ _CHAT_SLOT = '💬chat-slot'
 CHAT_CSS = '.ui-step [data-chat-say]{margin-top:8px}'    # 📇 the index's "💬 送る"; the chat itself is PySaiyanWeBoo's (chat.css)
 # 💬 the page's part of the chat: the bubbles, Enter, chips and 😀 reactions are PySaiyanWeBoo's chat component (chat.js, webUiChat);
 # here are only the bot (chat.py in Pyodide), 🤖 /ask (wllama) and the index's buttons
-CHAT_JS = r"""const $ = (s) => document.querySelector(s);
+WLLAMA_JS = r"""
+function localModel(runtime){
+ let llm=null,busy=false;
+ return async(messages,show,limit=256)=>{
+  if(busy)throw new Error("生成中です");
+  busy=true;
+  try{
+   if(!llm){
+    show("⏳ 🤖 llama.cpp…");
+    const {Wllama}=await import(runtime.wllama+"index.js");
+    const engine=new Wllama({default:runtime.wllama+"wasm/wllama.wasm"});
+    try{
+     await engine.loadModelFromUrl(runtime.model,{n_ctx:2048,progressCallback:({loaded,total})=>
+      show(`⏳ 🤖 ${total?Math.round(100*loaded/total):0}% · ${Math.round(loaded/2**20)} / ${Math.round(total/2**20)} MB`)});
+    }catch(error){await engine.exit?.();throw error}
+    llm=engine;
+   }
+   let output="",tokens=0;
+   const start=performance.now();
+   await llm.createChatCompletion({messages,max_tokens:limit,temperature:0.3,stream:true,
+    chat_template_kwargs:{enable_thinking:false},onData:chunk=>{
+     output+=chunk.choices?.[0]?.delta?.content??"";tokens++;show(output);
+    }});
+   return {output,tokens,seconds:(performance.now()-start)/1000,llm};
+  }finally{busy=false}
+ };
+}
+"""
+
+CHAT_JS = WLLAMA_JS + r"""const $ = (s) => document.querySelector(s);
 const cfg = JSON.parse($("#chat-config").textContent);
 const [chat] = webUiChat.bindChat(document);
-let bot = null, llm = null;
-async function ask(text, reply) {                      // 🤖 /ask: llama.cpp in WebAssembly (wllama), the model loaded once
-  if (!llm) {
-    reply.text("⏳ 🤖 llama.cpp…");
-    const {Wllama} = await import(cfg.runtime.wllama + "index.js");
-    llm = new Wllama({default: cfg.runtime.wllama + "wasm/wllama.wasm"});
-    await llm.loadModelFromUrl(cfg.runtime.model, {n_ctx: 2048, progressCallback: ({loaded, total}) => {
-      reply.text(`⏳ 🤖 ${total ? Math.round(loaded / total * 100) : 0}% · ${Math.round(loaded / 2 ** 20)} / ${Math.round(total / 2 ** 20)} MB`);
-    }});
-  }
-  let output = "", tokens = 0;
-  const started = performance.now();
-  await llm.createChatCompletion({messages: JSON.parse(bot.ask_messages(text)), max_tokens: 256, temperature: 0.3, stream: true,
-    chat_template_kwargs: {enable_thinking: false}, onData: (chunk) => {
-      output += chunk.choices?.[0]?.delta?.content ?? "";
-      tokens += 1;
-      reply.text(output);
-    }});
-  return bot.ask_html.callKwargs(output, tokens, (performance.now() - started) / 1000,
-                                 {threads: llm.isMultithread() ? navigator.hardwareConcurrency : 1, webgpu: llm.isSupportWebGPU()});
+let bot = null;
+const generateAnswer=localModel(cfg.runtime);
+async function ask(text,reply){
+ const {output,tokens,seconds,llm}=await generateAnswer(JSON.parse(bot.ask_messages(text)),s=>reply.text(s));
+ return bot.ask_html.callKwargs(output,tokens,seconds,
+     {threads:llm.isMultithread()?navigator.hardwareConcurrency:1,webgpu:llm.isSupportWebGPU()});
 }
 chat.respond = (text, reply) => /^\/ask(\s|$)/i.test(text.trim()) ? ask(text, reply) : bot.reply_html(text);
 document.addEventListener("click", (event) => {         // 📇 a step of the index (beside the chat) sends its command there
@@ -1143,7 +1169,7 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
     verify_pin(commit, root)
     if commit != lock['commit']:
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
-    if set(lock['outputs']) != {HTML_IMPORT_MODULE, *WORLD_ASSETS, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
+    if set(lock['outputs']) != {HTML_IMPORT_MODULE, *WORLD_ASSETS, *DRAGON_ASSETS, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
     expected = {HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, MAP_PINS_PAGE, WORLD_PAGE, *WORLD_REDIRECTS, *PSWB_TOOLS}
     if set(lock.get('pages', {})) != expected:

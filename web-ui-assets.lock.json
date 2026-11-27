@@ -9,16 +9,19 @@
     "tools/vendor/web-ui/css/tokens.css": "f86156c6d224780144bde28b330d9dd11a8d25ffc0881c2c4d9ec73df76e9eef",
     "tools/vendor/web-ui/js/navigation.js": "b748512a224685c732db837ebe0738c647c5a8c512f238d75fbc954c1c0a5f35",
     "tools/vendor/web-ui/js/ui.js": "cf1f7c1cf54874a66b0a9bf21e2898a503f893a5a61f08b1a3ad3a794031226b",
+    "tools/vendor/web-ui/js/records.js": "e6e03a29f5a0962917c7282f6e4e365ac599d8ce012b258b786fd1469ef216af",
     "tools/vendor/web-ui/js/controls.js": "e545885ed2f0e43937d2eb3a44bdb874e8c4f42e895a36a51498a0db20956e9d",
     "tools/vendor/web-ui/js/coordinates.js": "b97576f0f7ccdb3a8c94b390c9a53f87acc3ddc837a5a4221cc5fef1a067b9bc",
     "tools/world-assets/world.css": "9d21c26e50611033568788e10c1dec68af201faacaf3d6637420d83ba98f97ed",
-    "tools/world-assets/world.js": "b241900af86d4fd8e7966e0406fc82e9fa2139c189da6df76f647dc2218a3b1b",
+    "tools/world-assets/world.js": "94b12f29463da0f4eccb385ce6942ebfe03959511ef6ea8d3bb78a1c7966654e",
+    "tools/world-assets/london-dragon.json": "96f1b4efbd5a900459688403900cd385bf600987e8f76023f2a7d538f9ed133b",
+    "tools/world-assets/london-dragon.png": "2478a91c5d1c6cb04255b8247ca879f08f6a9ba30051bdb743f14a8a4a6429a9",
     "tools/html-import/extract.mjs": "22453239323b35f46e4ece66fea443ed6475f0e26324926ba8dbb1fade203fec",
     "tools/vendor/web-ui/css/bundle.css": "a53204d6d5bc3b1d4329ef846b2742cead74bf40428ebdf6faf05416908d310a",
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/world.html": "5fd725d4974210aca6b94cab06a43be349a26f5f16e3f24920c87d7614519ae1",
+    "tools/demos/world.html": "3b59cf5f596e06b093b72999b506dcef8f4d0626c10f60c793d84649b2c9b277",
     "tools/demos/school.html": "1cca94ebbd110f892af7744c541fdb07f8913cf1c789069739767b1dcbfbc294",
     "tools/demos/cities.html": "a7e75a4fb771371b4249ea32a8792e503b6ec76fae5b76abfd58a4b1871fcdaa",
     "tools/demos/world-shots.html": "bde99c06ef7f8e5c8430a3c82bf6584c66463a84bc4e75ca0d6960999389e93a",
@@ -27,6 +30,6 @@
     "tools/html-import/index.html": "e1f55d77e27e937adbb9eefc36cd99d92be04456504efe0b0d9ec69a35d52189",
     "tools/maps/index.html": "5e4b7ac95c1cf551a68bb62cbc3793327916d7328ba9553b63a734dc8e31038f",
     "tools/gif/index.html": "45f0f3bf79854901e297f0281c28d97ccd7bbd5be0d964fbf710b014ed1699c4",
-    "tools/chat/index.html": "a302e33774299b9ff51d20f8d8f1064d13d608a9f19e3b0f408332add0921566"
+    "tools/chat/index.html": "231d71bb402e91f9ce8529a1b12d48a8a700e4971215ed216e684f214e49696d"
   }
 }
