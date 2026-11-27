@@ -148,6 +148,7 @@ def render(ui) -> dict[str, bytes]:
     result[DRAGON_GRID_ASSET] = grid
     result[DRAGON_PNG_ASSET] = ui.pixel_grid_png(json.loads(grid))
     result[HTML_IMPORT_MODULE] = html_import_files(ui)["extract.mjs"]
+    result[CHAT_SOURCES] = json.dumps(chat_sources(), ensure_ascii=False).encode('utf-8')
     for name, builder in STYLESHEET_BUNDLES.items():
         result[ASSET_BASE + name] = getattr(ui, builder)().encode()
     return result
@@ -841,7 +842,8 @@ async function boot() {
   const {loadPyodide} = await import(cfg.runtime.pyodide + "pyodide.mjs");
   const py = await loadPyodide({indexURL: cfg.runtime.pyodide});
   py.FS.mkdirTree("/chat");
-  for (const [name, text] of Object.entries(JSON.parse($("#chat-sources").textContent))) py.FS.writeFile("/chat/" + name, text);
+  const sources = await (await fetch(cfg.sources)).json();                       // 🐍 the Python, fetched when the chat opens
+  for (const [name, text] of Object.entries(sources)) py.FS.writeFile("/chat/" + name, text);
   let index = null;
   try { const response = await fetch(cfg.index); if (response.ok) index = await response.text(); } catch {}
   py.runPython("import sys; sys.path.insert(0, '/chat')");
@@ -909,14 +911,13 @@ def chat_document(ui) -> str:
                                  {'label': '💬 チャット', 'blocks': [{'type': 'text', 'text': _CHAT_SLOT}]},
                                  {'label': '📇 索引', 'blocks': [{'type': 'runbook', 'id': 'chat-index', 'choice': '📇 道具',
                                                                   'books': chat_books()}]}]}]})
-    parts = ui.component_parts('chat', chat_id='chat', placeholder='/help · /flow a > b · onto', ready=False,     # 💬 PySaiyanWeBoo's chat
+    parts = ui.component_parts('chat', chat_id='chat-box', placeholder='/help · /flow a > b · onto', ready=False,     # 💬 PySaiyanWeBoo's chat
                                chips=[(f'{icon} /{name}', example) for name, (icon, _, _, (example, *_)) in chat.COMMANDS.items()],
                                status='⏳ 🐍 Python（Pyodide）を読み込み中…')
     body = (parts['html'] + '<noscript><p>⏸ このチャットは JavaScript と Pyodide で動く。📇 索引のコマンドは scripts/chat.py でも試せる。</p></noscript>')
     data = lambda value: json.dumps(value, ensure_ascii=False).replace('<', '\\u003c')
-    config = {'runtime': chat.RUNTIME, 'index': f'../../{CHAT}index.json', 'base': f'../../{CHAT}'}
+    config = {'runtime': chat.RUNTIME, 'index': f'../{CHAT}index.json', 'base': f'../{CHAT}', 'sources': CHAT_SOURCES.removeprefix('tools/')}   # 🧰 from tools/
     body += (f'<script type="application/json" id="chat-config">{data(config)}</script>'
-             f'<script type="application/json" id="chat-sources">{data(chat_sources())}</script>'
              + ui.module_script(parts['js']) + ui.module_script(CHAT_JS))
     slot = f'<p>{_CHAT_SLOT}</p>'
     if page.count(slot) != 1:
@@ -924,10 +925,11 @@ def chat_document(ui) -> str:
     return page.replace(slot, body, 1).replace('</head>', f'<style>{parts["css"]}{CHAT_CSS}</style></head>', 1)
 
 
-CHAT_PAGE = 'tools/chat/index.html'   # 💬 a tool of its own (a 🧰 Tools card), not one of the 🤖 stubs
+CHAT_PAGE = 'tools/chat/index.html'   # 💬 a #panel of the 🧰 screen (render_shell), not one of the 🤖 stubs
+CHAT_SOURCES = 'tools/chat/sources.json'   # 🐍 chat_sources(), beside it: the page fetches them when the chat opens
 def render_chat_tool(ui) -> dict[str, bytes]:
-    """💬 横断チャット: ``chat_document`` with the way back and the home-screen name."""
-    return {CHAT_PAGE: add_home_label(add_back_nav(chat_document(ui), CHAT_PAGE), '💬 チャット', icons_from='../../').encode('utf-8')}
+    """💬 横断チャット: ``chat_document``, a #panel of the 🧰 screen."""
+    return {CHAT_PAGE: chat_document(ui).encode('utf-8')}
 
 
 def _tree(repository: str, commit: str) -> tuple[list[tuple[str, int]], bool]:
@@ -1158,9 +1160,9 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     """Every hash-locked page: the demos and world pages, HTML import, map tools and the GIF workshop, keyed by published path."""
     map_tool = load_module('map_tool', 'scripts/map_tool.py')
     maps = {MAP_PINS_PAGE: map_tool.map_document(ui, map_tool.tokyo_points(_world().example_data('cities'))).encode()}
-    pages = {**render_world(ui), **render_html_import(ui), **render_chat_tool(ui)}
+    pages = {**render_world(ui), **render_html_import(ui)}
     pages = {path: link_shared_sheets(ui, path, page) for path, page in pages.items()}
-    return {**pages, **render_pswb_tools(ui), **maps, **render_gif_tool(ui)}   # 🧰 the last three are #panels (render_shell)
+    return {**pages, **render_pswb_tools(ui), **maps, **render_gif_tool(ui), **render_chat_tool(ui)}   # 🧰 the rest are #panels (render_shell)
 
 
 def link_shared_sheets(ui, path: str, page: bytes) -> bytes:
@@ -1178,7 +1180,7 @@ def link_shared_sheets(ui, path: str, page: bytes) -> bytes:
 
 # ── 🧰 One screen: every tool the portfolio builds is a #panel of tools/index.html, under one header, one foot and one ⚙️ ──
 SHELL_PAGE = 'tools/index.html'
-PANEL_PAGES = (GIF_PAGE, MAP_PINS_PAGE, *PSWB_TOOLS, FLOW_PAGE, MAP_PAGE)   # where each panel's document is built from; never published
+PANEL_PAGES = (GIF_PAGE, MAP_PINS_PAGE, *PSWB_TOOLS, FLOW_PAGE, MAP_PAGE, CHAT_PAGE)   # where each panel's document is built from; never published
 _LINK = re.compile(r'(?P<attr>\b(?:href|src)=)(?P<quote>["\'])(?P<url>[^"\']*)(?P=quote)')
 _SHELL_JS = """(()=>{const panels=[...document.querySelectorAll('[data-tools-panel]')],names=panels.map(p=>p.id);let current='';
 const mark=()=>{const door=document.querySelector('[data-door-select]'),mine=door&&[...door.options].find(o=>o.value.endsWith('#'+current));if(mine)door.value=mine.value};   // 🚪 shows where you are
@@ -1270,7 +1272,7 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
     verify_pin(commit, root)
     if commit != lock['commit']:
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
-    if set(lock['outputs']) != {HTML_IMPORT_MODULE, *WORLD_ASSETS, *DRAGON_ASSETS, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
+    if set(lock['outputs']) != {HTML_IMPORT_MODULE, CHAT_SOURCES, *WORLD_ASSETS, *DRAGON_ASSETS, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
     expected = {HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, MAP_PINS_PAGE, WORLD_PAGE, *PSWB_TOOLS}
     if set(lock.get('pages', {})) != expected:

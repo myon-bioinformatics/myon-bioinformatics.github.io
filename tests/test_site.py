@@ -384,7 +384,7 @@ def shell_panel(name: str) -> str:
 
 TOOL_PAGES = ("tools/html-import/index.html",
               *(("tools/mcp/index.html",) if LAB_BUILT else ()),
-              PAGES.SHELL_PAGE, "tools/chat/index.html",   # 🧰 the one screen: #gif #maps #test-report #flow #repo-map
+              PAGES.SHELL_PAGE,   # 🧰 the one screen: #gif #maps #test-report #flow #repo-map #chat (and #heatmap #format-lab)
               PAGES.WORLD_PAGE)
 
 
@@ -1612,18 +1612,19 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     assert '⚠️' not in say('/show Empty/missing.json')
     assert all((tmp_path / 'site/media/chat/talkcompress' / name).is_file() for name in CHAT.TALKCOMPRESS)
 
-    page = (SITE / 'tools/chat/index.html').read_text(encoding='utf-8')
-    sources = json.loads(re.search(r'<script type="application/json" id="chat-sources">(.*?)</script>', page, re.S).group(1))
+    page = shell_panel('chat')                                                       # 💬 a #panel of the one screen
+    sources = json.loads((SITE / PAGES.CHAT_SOURCES).read_text(encoding='utf-8'))       # 🐍 fetched when the chat opens
     import importlib.util as util
     assert sources == {'chat.py': (ROOT / 'scripts/chat.py').read_text(encoding='utf-8'),
                        **{f'{n}.py': Path(util.find_spec(n).origin).read_text(encoding='utf-8') for n in CHAT.MODULES}}
     config = json.loads(re.search(r'id="chat-config">(.*?)</script>', page).group(1))
-    assert config == {'runtime': CHAT.RUNTIME, 'index': '../../media/chat/index.json', 'base': '../../media/chat/'}
+    assert config == {'runtime': CHAT.RUNTIME, 'index': '../media/chat/index.json', 'base': '../media/chat/', 'sources': 'chat/sources.json'}
+    assert 'id="chat-sources"' not in page
     assert all(html_escape(example) in page for _, _, _, examples in CHAT.COMMANDS.values() for example in examples)
     assert page.count('class="ui-card ui-step"') == sum(len(c[3]) for c in CHAT.COMMANDS.values()) + len(CHAT.TYPOS)
-    assert 'data-testid="portfolio-back"' in page and '💬chat-slot' not in page
+    assert '💬chat-slot' not in page and not (SITE / 'tools/chat/index.html').exists()
     front = (SITE / 'index.html').read_text(encoding='utf-8')
-    assert 'id="chat"' in front and './tools/chat/' in front and 'Markdown 道具箱' not in front
+    assert 'id="chat"' in front and './tools/#chat' in front and 'Markdown 道具箱' not in front
     assert not (SITE / 'tools/demos/chat.html').exists() and not (SITE / 'tools/demos/index.html').exists()   # 💬 one card, one address; no 🤖 stubs list
 
 
@@ -1694,7 +1695,7 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             context.route(lambda url: '/media/chat/' in url, local_media)      # the context's routes reach wllama's workers too
             page = context.new_page()
             page.on('pageerror', lambda error: errors.append(str(error)))
-            page.goto(base + 'tools/chat/')
+            page.goto(base + 'tools/#chat')                                   # 🧰 the one screen's chat panel
             page.wait_for_function('() => document.documentElement.dataset.chatReady === "true"', timeout=180_000)
             status = page.locator('[data-chat-status]').text_content()
             assert status.startswith('✅ 🐍 3.') and '🔎 6 files' in status, status
@@ -1796,7 +1797,7 @@ def test_the_front_page_carries_the_shared_header_side_and_foot():
     assert size and abs(int(size[1]) - len(page.encode('utf-8')) / 1024) <= 1 and 'href="https://twitter.com/myonitbusiness"' in page
     assert '<nav class="nav">' not in page and 'site-footer"' not in page and '📬 Contact' not in page
     assert page.count('class="ui-gaze"') == 1 and 'class="ui-gaze"' in page[body.end():page.index('<nav class="ui-world-tools">')]   # 🫧 in the shared header
-    assert 'value="./tools/chat/"' in page or './tools/chat/' in page                       # 🚪 the doors lead from the root
+    assert 'value="./tools/#chat"' in page or './tools/#chat' in page                       # 🚪 the doors lead from the root
 
 
 def test_a_tool_page_board_reads_its_card():

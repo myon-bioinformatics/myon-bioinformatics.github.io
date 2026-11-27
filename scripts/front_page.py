@@ -67,7 +67,7 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
           '全リポジトリの JSON / JSONL（オントロジーの台帳も）の索引と中身。ページの中の Python（Pyodide）で、それぞれのリポジトリのコードがそのまま動く。',
   'id': 'chat',
   'from': ('markdown', 'ascii_artist', 'cli_args', 'TalkCompress', 'mcp-toolcall-lab'),
-  'links': [('💬 話しかける →', './tools/chat/')]},
+  'links': [('💬 話しかける →', './tools/#chat')]},
  {'title': '🧭 統合運用',
   'text': 'リポジトリ横断の運用ダッシュボード：CI の失敗・競合・未解決レビューの優先確認、監査と依存、実行手順、記録と差分。',
   'id': 'operations',
