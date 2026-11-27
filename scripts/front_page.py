@@ -42,6 +42,7 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'from': ('Ironmate',),
   'links': [('Open Image Studio →', _service_url('Ironmate', 'pages')),
             ('Open Browser Tools →', _service_url('Ironmate', 'browserTools')),
+            ('🎵 Composition Studio →', 'tools/browser-tools/#composition'),
             ('Open Slide Studio →', _service_url('Ironmate', 'slides'))]},
  {'title': '🌡️ ヒートマップ',
   'text': '数値行列か Plotly の heatmap を貼って描き、色の段階・値の表示を変えて SVG・PNG・シーン JSON に。'
