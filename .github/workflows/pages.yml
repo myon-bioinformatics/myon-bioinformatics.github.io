@@ -112,7 +112,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/Ironmate
-          ref: d24b8d52a0d86da2464e511a82b028a5ff5ffaf7
+          ref: 370eb5b2750ee535b2100dd8389ec3623377fbdc
           path: .test-deps/Ironmate
           persist-credentials: false
 
