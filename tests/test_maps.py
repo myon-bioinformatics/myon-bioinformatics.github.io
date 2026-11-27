@@ -654,6 +654,13 @@ def test_reusable_scrolls_in_field_and_battle(site, browser):
     page = browser.new_page(reduced_motion='reduce')
     try:
         page.goto(site[1] + '/tools/demos/world.html#world')
+        page.get_by_text('📖 攻略ガイド', exact=True).click()
+        guide = page.get_by_role('article', name='探索の巻物をいつ使う？')
+        expect(guide).to_contain_text('6マス以内')
+        expect(guide).to_contain_text('1ターン使い、30%')
+        expect(guide).to_contain_text('次が強攻撃なら、まずぼうぎょ')
+        expect(guide.get_by_role('link', name='道具の定義（GitHub）')).to_be_visible()
+        page.get_by_text('📖 攻略ガイド', exact=True).click()
         world = page.locator('#overworld-map')
         world.locator('[data-emoji="🧙"]').click()
         world.locator('[data-rpg-journal-btn]').click()

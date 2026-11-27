@@ -26,6 +26,8 @@ CSS = """
 .world-switcher details{position:relative}
 .world-switcher summary{cursor:pointer;padding:.45rem;min-height:44px;display:grid;align-items:center}
 .world-switcher details[open]>div{position:absolute;top:100%;left:0;z-index:30;min-width:min(10rem, 76vw);max-height:65vh;max-width:min(85vw,22rem);width:max-content;overflow:auto;background:var(--ui-bg);color:var(--ui-fg);border:1px solid var(--ui-border);border-radius:var(--ui-radius);padding:.35rem;box-shadow:0 6px 20px #0005}
+.world-switcher details[data-world-guide]{position:static}
+.world-switcher details[data-world-guide][open]>div{left:0;right:0;width:auto;max-width:34rem;padding:1rem}
 .world-switcher{position:relative;z-index:5}
 .dragon-care{display:none}
 .dragon-scroll-dialog .dragon-care,#cities-map:has(.ui-spot[data-flip="🐉"][data-show="flip"]) .dragon-care{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
@@ -94,6 +96,27 @@ route();listFavorites();
 """
 
 
+EXPLORATION_SCROLL_SOURCE = "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/904cff96506cb6b8d8e2afeaeb171d0da63f41eb/scripts/world.py#L2280-L2287"
+
+
+def exploration_scroll_guide(world):
+    effects = world.exploration_scroll_text()
+    label = escape(world.EXPLORATION_SCROLL["label"])
+    return (
+        '<article aria-labelledby="exploration-guide-title">'
+        f'<h2 id="exploration-guide-title">{label}をいつ使う？</h2>'
+        '<h3>効果</h3>'
+        f'<p>{escape(effects["reuse"])}</p>'
+        f'<ul><li>{escape(effects["field"])}</li><li>{escape(effects["battle"])}</li></ul>'
+        '<h3>戦闘での使いどころ</h3>'
+        '<ul><li>巻物を持っていて薬草を補充したいとき、次が通常攻撃でHPに余裕があれば、薬草を探す手があります。</li>'
+        '<li>次が強攻撃なら、まずぼうぎょを優先します。</li>'
+        '<li>次の攻撃が分からなければ、敵の予告や「💡 ヒント」を確認します。</li></ul>'
+        f'<p><a href="{EXPLORATION_SCROLL_SOURCE}">道具の定義（GitHub）</a>'
+        '<a href="https://github.com/myon-bioinformatics/OnTautoLogy/pull/72">攻略判断の検証例（GitHub）</a></p></article>'
+    )
+
+
 def dialogue_graph(world):
     """Compile the GitHub-backed world facts into bounded paths using the pinned ONTO / OTL APIs."""
     from ontautology import reach
@@ -103,7 +126,6 @@ def dialogue_graph(world):
     scrolls = "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/831cf43785329c799966775153147b82ddc28638/scripts/world.py"
     reusable = "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/2f27ccdf682ad02d717b894889f1dc225d894925/scripts/world.py"
     pswb = "https://github.com/myon-bioinformatics/PySaiyanWeBoo/blob/e249a7c33071a5e70ff4866492506ebfd7719875/pysaiyanweboo.py"
-    scroll_rules = "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/904cff96506cb6b8d8e2afeaeb171d0da63f41eb/scripts/world.py#L2280-L2287"
     scroll = world.EXPLORATION_SCROLL
     scroll_text = world.exploration_scroll_text()
     field_target, battle_target = (scroll[mode]["target"] for mode in ("field", "battle"))
@@ -122,8 +144,8 @@ def dialogue_graph(world):
     vocabulary.update({"発見対象": (["道具"], "道具"), "呼べる": (["道具"], "住人"), "攻撃対象": (["道具"], "相手")})
     facts = [
         ("竜の巻物", "呼べる", "ドラゴン", "ロンドンで初めてドラゴンをなでると竜の巻物を受け取る。旅先でも同じドラゴンを呼べる。", scrolls + "#L2571", scrolls + "#L2604"),
-        (scroll["label"], "発見対象", field_target, scroll_text["field"] + scroll_text["reuse"], scroll_rules),
-        (scroll["label"], "発見対象", battle_target, scroll_text["battle"] + scroll_text["reuse"], scroll_rules),
+        (scroll["label"], "発見対象", field_target, scroll_text["field"] + scroll_text["reuse"], EXPLORATION_SCROLL_SOURCE),
+        (scroll["label"], "発見対象", battle_target, scroll_text["battle"] + scroll_text["reuse"], EXPLORATION_SCROLL_SOURCE),
         ("竜の巻物", "攻撃対象", "敵", "戦闘中はドラゴンが敵1体を攻撃する。巻物は何度でも使える。", reusable + "#L2925"),
         ("昼ヶ丘", "産物", "サツマイモ", "昼ヶ丘でサツマイモが育つ。", source + "#L3322"),
         ("ドラゴン", "好物", "サツマイモ", world.POTATO_RUMOR, source + "#L3302"),
@@ -176,7 +198,9 @@ def document(ui, world, maps, places, css_href, js_href, dialogue=""):
               f'<details data-world-nav><summary aria-label="空間一覧">☰</summary><div>{nav}</div></details>'
               '<strong id="world-space-name">🌍 ワールド</strong>'
               '<details><summary>⭐ お気に入り</summary><div id="world-favorites">まだありません</div></details>'
-              f'<details><summary>🧰 道具</summary><div>{tools}</div></details></nav></div></header>')
+              f'<details><summary>🧰 道具</summary><div>{tools}</div></details>'
+              f'<details data-world-guide><summary>📖 攻略ガイド</summary><div>{exploration_scroll_guide(world)}</div></details>'
+              '</nav></div></header>')
     knowledge = json.dumps(dialogue_graph(world), ensure_ascii=False, separators=(",", ":")).replace("<", r"\u003c")
     dialogue += f"\nconst worldKnowledge={knowledge};\n"
     grid = Path(__file__).with_name("london-dragon.json").read_text(encoding="utf-8")
