@@ -1,9 +1,6 @@
 """The Portfolio's one published world. Individual specs and standalone exports stay in world.py."""
-import base64
 import json
 from html import escape
-from pathlib import Path
-from urllib.parse import quote
 
 # Public fragments are stable and independent of the map engine's internal IDs.
 SPACES = {
@@ -182,7 +179,7 @@ def dialogue_graph(world):
     return {"terms": {name: [name, *aliases] for name, (_, aliases) in nodes.items()}, "facts": records, "paths": paths}
 
 
-def document(ui, world, maps, places, css_href, js_href, dialogue=""):
+def document(ui, world, maps, places, css_href, js_href, dialogue="", *, dragon_png, dragon_grid):
     specs = {name: world.example_data(name) for name in dict.fromkeys(spec for spec, _ in SPACES.values())}
     sections = []
     for spec, data in specs.items():
@@ -203,10 +200,8 @@ def document(ui, world, maps, places, css_href, js_href, dialogue=""):
               '</nav></div></header>')
     knowledge = json.dumps(dialogue_graph(world), ensure_ascii=False, separators=(",", ":")).replace("<", r"\u003c")
     dialogue += f"\nconst worldKnowledge={knowledge};\n"
-    grid = Path(__file__).with_name("london-dragon.json").read_text(encoding="utf-8")
-    png = base64.b64encode(ui.pixel_grid_png(json.loads(grid))).decode("ascii")
-    sprite = (f'<template id="dragon-art"><img class="dragon-portrait" alt="" src="data:image/png;base64,{png}">'
-              f'<a download="london-dragon.json" href="data:application/json,{quote(grid, safe="")}">原画JSONを保存</a></template>')
+    sprite = (f'<template id="dragon-art"><img class="dragon-portrait" alt="" src="{escape(dragon_png, quote=True)}">'
+              f'<a download="london-dragon.json" href="{escape(dragon_grid, quote=True)}">原画JSONを保存</a></template>')
     body = ('<main><div data-world-shell>' + sprite + header + ''.join(sections) + '</div></main>'
             + ui.module_script(JS) + f'<script type="module" src="{js_href}"></script>'
             + ui.module_script(f'import "{js_href}";\n' + dialogue + world.rpg_module("../vendor/web-ui/js/records.js")) + maps.tokyo_modules(ui))

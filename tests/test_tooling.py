@@ -486,3 +486,18 @@ def test_copy_source_rejects_a_symlink_in_the_public_list(tmp_path):
         assets.copy_source(output, root)
 
     assert not output.exists()
+
+
+def test_composition_audio_waits_for_ironmates_editor_instead_of_failing_the_deploy(tmp_path):
+    spec = importlib.util.spec_from_file_location('publish_composition', ROOT / 'scripts/publish_composition.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    publish = module.publish
+    tools = tmp_path / 'tools/browser-tools'
+    tools.mkdir(parents=True)
+    (tools / 'index.html').write_text('<body>no editor yet</body>', encoding='utf-8')
+    assert publish(tmp_path) is False and (tools / 'index.html').read_text(encoding='utf-8') == '<body>no editor yet</body>'   # ⏸
+    (tools / 'index.html').write_text('<body><div id="song-audio"></div></body>', encoding='utf-8')
+    (tools / 'async-task.js').write_text('', encoding='utf-8')
+    assert publish(tmp_path) is True and '<script type="module" src="./audition.mjs"></script></body>' in (tools / 'index.html').read_text(encoding='utf-8')
+    assert (tools / 'audition.mjs').is_file()

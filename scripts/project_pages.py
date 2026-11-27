@@ -54,6 +54,9 @@ HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
 WORLD_CSS_ASSET = 'tools/world-assets/world.css'
 WORLD_JS_ASSET = 'tools/world-assets/world.js'
 WORLD_ASSETS = (WORLD_CSS_ASSET, WORLD_JS_ASSET)
+DRAGON_PNG_ASSET = 'tools/world-assets/london-dragon.png'
+DRAGON_GRID_ASSET = 'tools/world-assets/london-dragon.json'
+DRAGON_ASSETS = (DRAGON_PNG_ASSET, DRAGON_GRID_ASSET)
 MAP_PINS_PAGE = 'tools/maps/index.html'
 
 # Files served verbatim. The generators write every other public file to the output tree.
@@ -98,7 +101,10 @@ def world_page(ui) -> str:
     places = [p for p in tools_places('../../') if p['href'].split('#', 1)[0] != '../../' + WORLD_PAGE]
     runtime = {key: _chat().RUNTIME[key] for key in ('wllama', 'model')}
     dialogue = WLLAMA_JS + f'\nconst worldAnswer = localModel({json.dumps(runtime)});\n'
-    return shell.document(ui, _world(), maps, places, css, js, dialogue)
+    dragon_png, dragon_grid = (os.path.relpath(path, os.path.dirname(WORLD_PAGE)).replace(os.sep, '/')
+                               for path in DRAGON_ASSETS)
+    return shell.document(ui, _world(), maps, places, css, js, dialogue,
+                          dragon_png=dragon_png, dragon_grid=dragon_grid)
 
 
 def installed_commit(distribution: str = DISTRIBUTION) -> str:
@@ -139,6 +145,9 @@ def render(ui) -> dict[str, bytes]:
         result[ASSET_BASE + name] = source.encode('utf-8')
     result[WORLD_CSS_ASSET] = ('@layer components{' + _world().world_base_css() + '}').encode('utf-8')
     result[WORLD_JS_ASSET] = _world().WORLD_JS.encode('utf-8')
+    grid = (ROOT / 'scripts/london-dragon.json').read_bytes()
+    result[DRAGON_GRID_ASSET] = grid
+    result[DRAGON_PNG_ASSET] = ui.pixel_grid_png(json.loads(grid))
     result[HTML_IMPORT_MODULE] = html_import_files(ui)["extract.mjs"]
     for name, builder in STYLESHEET_BUNDLES.items():
         result[ASSET_BASE + name] = getattr(ui, builder)().encode()
@@ -188,7 +197,26 @@ def tools_places(prefix: str = '../../') -> list[dict]:
     return list(places.values())
 
 
-def tools_chrome(prefix: str = '../../', tools: dict | None = None, description: str = '', *, title: str = 'TOOLS', home: bool = True) -> dict:
+def host_rows(page: str) -> dict:
+    """🧰 The rows a page asks the site's header to show for it: ``<script type="application/json" id="ui-chrome-rows">`` in the page,
+    ``{"tools": {emoji: …}, "settings": rows, "screen": rows, "replaces": "#id,#id"}`` in PySaiyanWeBoo's chrome terms (Ironmate's
+    studios: one 💾 listing every format, one 📂, 📱 under ⚙️, the shelf under ⋯). Every row is an action (``{label, key}``): the page
+    answers ``ui-chrome-action`` itself, so the site routes nothing. ``replaces`` names the page's own menus the rows stand in for;
+    ``add_site_chrome`` hides them, so there is one way to save, in the one header. A page without the block asks for nothing."""
+    block = re.search(r'<script type="application/json" id="ui-chrome-rows">(.*?)</script>', page, re.S)
+    if not block:
+        return {}
+    rows = json.loads(block[1])
+    listed = [row for tool in rows.get('tools', {}).values() for row in tool.get('links', [])] + rows.get('settings', []) + rows.get('screen', [])
+    if set(rows) - {'tools', 'settings', 'screen', 'replaces'} or any(set(row) != {'label', 'key'} for row in listed):
+        raise ValueError('a page\'s header rows are tools, settings and screen of {label, key}, and replaces')
+    if not re.fullmatch(r'(#[a-z][a-z0-9-]*(,#[a-z][a-z0-9-]*)*)?', rows.get('replaces', '')):
+        raise ValueError('replaces lists ids: #a,#b')
+    return rows
+
+
+def tools_chrome(prefix: str = '../../', tools: dict | None = None, description: str = '', *, title: str = 'TOOLS', home: bool = True,
+                 rows: dict | None = None) -> dict:
     """🧰 The chrome every page of the site carries (PySaiyanWeBoo's ``chrome_validate``), for a page ``prefix`` below the site root:
     the board (``title``, the clock, then ``description`` — what this page is, a sentence per item — and the cards' titles), 🏠 back
     to the cards (``home=False``: the front page itself) and ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``).
@@ -196,7 +224,9 @@ def tools_chrome(prefix: str = '../../', tools: dict | None = None, description:
     cards = _front_module().PORTAL
     about = [{'text': part if len(part) <= 120 else part[:119] + '…'}
              for part in (p.strip() for p in re.split(r'(?<=[。！？])|(?<=[.!?])\s+', html.unescape(description))) if part][:3]
-    return {'id': 'tools', **({'home': prefix + 'index.html#tools'} if home else {}), 'tools': tools or {},
+    rows = rows or {}                       # 🧰 what the page itself asks the header to show (host_rows): its 💾 📂, its ⚙️ and ⋯ rows
+    return {'id': 'tools', **({'home': prefix + 'index.html#tools'} if home else {}), 'tools': {**(tools or {}), **rows.get('tools', {})},
+            'settings': rows.get('settings', []), 'screen': rows.get('screen', []),
             'board': {'title': title, 'items': (about + [{'text': card['title']} for card in cards])[:12]}}
 
 
@@ -226,12 +256,15 @@ def add_site_chrome(page: str, path: str | None = None, tools: dict | None = Non
     title and where 🚪 🏠 lead; a placeholder until the page says what it is).
 
     🌍 A world page already has the header and the side (``<header class="ui-world-head">``: its own board and menus, the same
-    parts), so it gets what it lacks: 🫧 in that header and the foot.
+    parts), so it gets what it lacks: 🫧 in that header (in each scene's, when one page holds several: the school and the cities
+    have it like the village) and the foot.
 
     🎨 Every page is published in one look: the shared sheet's ``modern`` theme, the front page's default. A page built with
     another palette on its ``<body>`` (Ironmate's studios: green; the MCP lab: terminal or github-like) is switched to it, and the
     chrome then takes the page's own colours; a page with no ``data-ui-theme`` keeps it and gets the chrome's colours with the chrome.
     The way back spans a grid ``<main>``'s whole first row, so it never takes the place of a column (Ironmate's three-column studio).
+    🧰 A page may ask the header to show rows of its own (``host_rows``: Ironmate's studios, one 💾 with every format); the page's
+    own menus those rows replace are hidden, so the header is the one place.
     The parts are PySaiyanWeBoo's (``component_parts("chrome" | "door" | "gaze-avatar")``, put on the page by ``add_part``): a page
     whose CSP lists its scripts or styles without ``'unsafe-inline'`` (HTML import, Ironmate's studios) gets their hashes listed,
     nothing wider."""
@@ -248,11 +281,13 @@ def add_site_chrome(page: str, path: str | None = None, tools: dict | None = Non
     if body and 'data-ui-theme="' in body[0]:
         page = page[:body.start()] + re.sub(r'data-ui-theme="[^"]*"', 'data-ui-theme="modern"', body[0], count=1) + page[body.end():]
     own = 'data-ui-theme="modern"' in page        # 🎨 modern: the parts take the page's colours; else they bring theirs (add_part's scope)
-    face, head = ui.component_parts('gaze-avatar'), ui.component_parts('chrome', tools_chrome(prefix, tools, description, title=title, home=home))
+    rows = host_rows(page)                   # 🧰 the page's own 💾 📂 ⚙️ ⋯ rows go into the one header; the menus they replace are hidden
+    face, head = ui.component_parts('gaze-avatar'), ui.component_parts('chrome', tools_chrome(prefix, tools, description, title=title, home=home, rows=rows))
     tools_nav, world = '<nav class="ui-world-tools">', '<header class="ui-world-head">' in page
-    page = ui.add_part(page, {'css': face['css'] + '.ui-world-head .ui-gaze{flex:none;margin:0 4px}main>nav.ui-back{grid-column:1/-1}', 'js': face['js']})
+    hide = rows['replaces'] + '{display:none}' if rows.get('replaces') else ''
+    page = ui.add_part(page, {'css': face['css'] + '.ui-world-head .ui-gaze{flex:none;margin:0 4px}main>nav.ui-back{grid-column:1/-1}' + hide, 'js': face['js']})
     if world:
-        page = page.replace(tools_nav, face['html'] + tools_nav, 1)                                # 🫧 after the world's own board
+        page = page.replace(tools_nav, face['html'] + tools_nav)                                   # 🫧 after each scene's own board (one shows at a time)
     else:
         head['html'] = head['html'].replace(tools_nav, face['html'] + tools_nav, 1)               # 🫧 after the board
         page = ui.add_part(page, head, at='top', scope=None if own else '.ui-chrome')
@@ -266,8 +301,13 @@ def add_back_nav(page: str, path: str | None = None, tools: dict | None = None) 
     page that already has them keeps them, and a fragment without <head> and <body> gets the way back only."""
     import pysaiyanweboo as ui
     prefix = '../' * path.count('/') if path else '../../'
-    page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': prefix + 'index.html#tools'}], test_id='portfolio-back')
-    if '<div class="ui-door-foot">' in page or '</head>' not in page or '<body' not in page:
+    # Studio pages already have the same destination in the site's header.
+    # Keep the standalone back link for fragments and other page contracts.
+    studio = path in {f'tools/{entry}index.html' for entry in _STUDIO_ROUTES.PUBLIC_STUDIO_ENTRIES}
+    full_page = '</head>' in page and '<body' in page
+    if not (studio and full_page):
+        page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': prefix + 'index.html#tools'}], test_id='portfolio-back')
+    if '<div class="ui-door-foot">' in page or not full_page:
         return page                               # a page that has it, or a fragment with no <head> and <body> to carry it
     return add_site_chrome(page, path, tools)
 
@@ -473,40 +513,165 @@ def record_flow(output: Path, remote: str = 'https://github.com/') -> list[str]:
             f"📊 {len(receipt['figures'])} 図: " + ' '.join(receipt['figures'])]
 
 
+FLOW_MARKDOWN = 'tools/flow/records.md'
+FLOW_RIG_JS = 'tools/flow/rig.mjs'
+FLOW_RIG = """
+<section id="workbench" aria-labelledby="flow-heading">
+<h2 id="flow-heading">モニアック式の実験台</h2>
+<p>入口と出口の弁を動かし、観察槽の残量を比べます。4素材は同じ収支モデルの例で、物性の再現ではありません。</p>
+<div class="flow-fields">
+<label>素材 <select id="flow-medium"><option value="water">水</option><option value="gold">金</option>
+<option value="currency">通貨</option><option value="noodles">そうめん</option></select></label>
+<label>入口 / 秒 <input id="flow-in" type="number" min="0" max="100" step="1" value="5" required></label>
+<label>出口 / 秒 <input id="flow-out" type="number" min="0" max="100" step="1" value="2" required></label>
+</div>
+<div class="flow-controls">
+<button id="flow-run" type="button" disabled>開始</button>
+<button id="flow-step" type="button" disabled>1秒進める</button>
+<button id="flow-reset" type="button" disabled>初期化</button>
+</div>
+<noscript><p>操作するにはJavaScriptを有効にしてください。</p></noscript>
+<div class="flow-fields">
+<label>供給槽 <meter id="flow-source" min="0" max="100" value="100"></meter></label>
+<label>観察槽 <meter id="flow-middle" min="0" max="100" value="0"></meter></label>
+<label>回収槽 <meter id="flow-sink" min="0" max="100" value="0"></meter></label>
+</div>
+<p id="flow-status">0秒 · 供給 100 L · 観察 0 L · 回収 0 L</p>
+<figure><figcaption>観察槽の残量（直近60秒・縦軸0〜100）</figcaption>
+<svg id="flow-chart" viewBox="0 0 240 104" role="img" aria-label="観察槽の残量グラフ">
+<path d="M2 2v100h236" fill="none" stroke="currentColor" opacity=".45"/>
+<polyline id="flow-line" points="2,102" fill="none" stroke="currentColor" stroke-width="2"/>
+</svg></figure>
+</section>
+"""
+FLOW_RIG_CSS = """<style>
+.flow-fields,.flow-controls{display:flex;gap:.75rem;flex-wrap:wrap;margin-block:1rem}
+.flow-fields label{display:grid;gap:.25rem}
+.flow-fields input{width:5em}
+#workbench :is(input, select, button){font:inherit}
+#flow-chart{width:min(100%,420px);display:block}
+</style>"""
+FLOW_RIG_SOURCE = r"""
+const total = 100;
+const limit = n => Number.isFinite(n) ? Math.min(total, Math.max(0, n)) : 0;
+export function flowStep({source, middle, sink}, inlet, outlet) {
+  const incoming = Math.min(source, limit(inlet));
+  const outgoing = Math.min(middle + incoming, limit(outlet));
+  return {source: source - incoming, middle: middle + incoming - outgoing, sink: sink + outgoing};
+}
+if (typeof document !== "undefined") {
+  const get = id => document.getElementById("flow-" + id);
+  const units = {water: "L", gold: "g", currency: "円", noodles: "束"};
+  let tanks, elapsed, history, timer = null;
+  function render() {
+    const unit = units[get("medium").value];
+    for (const [name, n] of Object.entries(tanks)) get(name).value = n;
+    get("status").textContent =
+      `${elapsed}秒 · 供給 ${tanks.source} ${unit} · 観察 ${tanks.middle} ${unit} · 回収 ${tanks.sink} ${unit}`;
+    get("line").setAttribute("points", history.map((n, i) => `${2 + (236 * i / 60)},${102 - n}`).join(" "));
+  }
+  function stop() {
+    if (timer !== null) clearInterval(timer);
+    timer = null;
+    get("run").textContent = "開始";
+    get("step").disabled = false;
+  }
+  function tick() {
+    if (!get("in").reportValidity() || !get("out").reportValidity()) { stop(); return; }
+    tanks = flowStep(tanks, get("in").valueAsNumber, get("out").valueAsNumber);
+    elapsed++;
+    history.push(tanks.middle);
+    if (history.length > 61) history.shift();
+    render();
+  }
+  function reset() {
+    stop();
+    tanks = {source: total, middle: 0, sink: 0};
+    elapsed = 0;
+    history = [0];
+    render();
+  }
+  get("run").onclick = () => {
+    if (timer !== null) { stop(); return; }
+    if (!get("in").reportValidity() || !get("out").reportValidity()) return;
+    timer = setInterval(tick, 1000);
+    get("run").textContent = "一時停止";
+    get("step").disabled = true;
+  };
+  get("step").onclick = tick;
+  get("reset").onclick = reset;
+  get("medium").onchange = reset;
+  for (const name of ["run", "reset"]) get(name).disabled = false;
+  reset();
+}
+"""
+
+
+def flow_markdown(demos: list[dict], figures: list[str]) -> str:
+    """One record of all displayed media, in FFSS order, with unmatched figures last."""
+    def label(value: str) -> str:
+        return str(value).replace('\n', ' ').replace('[', '（').replace(']', '）').replace('<', '＜').replace('>', '＞')
+
+    named = {name.split('_', 1)[-1]: name for name in figures}
+    lines = ['# 流れの実験記録']
+    used = set()
+
+    def figure(name):
+        return f'![📊 DRAgoWing {label(name)}](../../{FLOW}{name}.svg)'
+
+    for demo in demos:
+        name, scene = demo['id'], demo['scene']
+        fluid = '' if demo['fluid'] == 'water' else f" · {demo['fluid']}"
+        title = label(f"{demo['icon']} {name} {scene}{fluid}")
+        lines += [f'## {title}', f'![🌊 FFSS {label(name)}: {label(scene)}](../../{FLOW}{name}.gif)']
+        for key in FLOW_FIGURES.get(scene, ()):
+            if key in named:
+                used.add(named[key])
+                lines.append(figure(named[key]))
+    remaining = [name for name in figures if name not in used]
+    if remaining:
+        lines += ['## 📊 ほかの図', *map(figure, remaining)]
+    if not demos and not figures:
+        lines.append('⏸ このビルドでは記録していない')
+    return '\n\n'.join(lines) + '\n'
+
+
 def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
-    """The 🌊 lab page from what this build recorded under ``output/media/flow/`` (not in the lock, like the front page:
-    the media change with the two repositories): every FFSS scene in FFSS's own order with the DRAgoWing figures that
-    belong to it (FLOW_FIGURES), then every other figure, so nothing that was made is left out."""
+    """Render the lab and a Markdown-derived archive from the same published flow receipt."""
+    import markdown as md_market
+
     path = Path(output) / FLOW / 'receipt.json' if output else None
     receipt = json.loads(path.read_text(encoding='utf-8')) if path and path.is_file() else {}
     commits, demos, figures = receipt.get('commits', {}), receipt.get('demos', []), receipt.get('figures', [])
     link = lambda key: (f"https://github.com/{FLOW_REPOSITORIES[key]}/tree/{commits[key]}"
                         if key in commits else f"https://github.com/{FLOW_REPOSITORIES[key]}")
-    named = {figure.split('_', 1)[1]: figure for figure in figures}
-    svg = lambda figure: {'type': 'image', 'src': f'../../{FLOW}{figure}.svg', 'alt': f'📊 DRAgoWing {figure}'}
-    blocks = [{'type': 'text', 'text': 'FFSS の全場面を 🌊 動く像（流れと遅れ）で、その記録から描ける DRAgoWing の全図を 📊 静止図（行き先の内訳）で。'
-                                       'どちらも公開のたびに、そのとき最新のコミットで作り直す。'},
+    blocks = [{'type': 'text', 'text': '水・金・通貨・そうめんを選んで、入口と出口の流量を比べます。'},
+              {'type': 'text', 'text': 'FLOW_RIG_SLOT'},
               {'type': 'kv', 'rows': [['🌊', f"FFSS {commits.get('ffss', '—')[:7]} · 🎞 {len(demos)} 場面"],
-                                      ['📊', f"DRAgoWing {commits.get('dragowing', '—')[:7]} · {len(figures)} 図"]]}]
+                                      ['📊', f"DRAgoWing {commits.get('dragowing', '—')[:7]} · {len(figures)} 図"]]},
+              {'type': 'links', 'items': [{'label': '📜 実験記録を見る', 'href': '#records'},
+                                          {'label': 'Markdown原本', 'href': './records.md'},
+                                          {'label': '🌊 FFSS', 'href': link('ffss')},
+                                          {'label': '📊 DRAgoWing', 'href': link('dragowing')}]}]
     if not demos and not figures:
         blocks.append({'type': 'text', 'text': '⏸ このビルドでは記録していない'})
-    used = set()
-    for demo in demos:
-        inner = [{'type': 'image', 'src': f"../../{FLOW}{demo['id']}.gif", 'alt': f"🌊 FFSS {demo['id']}: {demo['scene']}"}]
-        for name in FLOW_FIGURES.get(demo['scene'], ()):
-            if name in named:
-                inner.append(svg(named[name]))
-                used.add(named[name])
-        fluid = '' if demo['fluid'] == 'water' else f" · {demo['fluid']}"
-        blocks.append({'type': 'section', 'title': f"{demo['icon']} {demo['id']} {demo['scene']}{fluid}", 'blocks': inner})
-    rest = [figure for figure in figures if figure not in used]
-    if rest:
-        blocks.append({'type': 'section', 'title': '📊 ほかの図', 'blocks': [svg(figure) for figure in rest]})
-    blocks.append({'type': 'links', 'items': [{'label': '🌊 FFSS', 'href': link('ffss')}, {'label': '📊 DRAgoWing', 'href': link('dragowing')}]})
-    page = ui.page_document({'schema': 'web-ui-page/1', 'title': '🌊 流れの実験室', 'blocks': blocks}).replace(
-        '</head>', '<style>.ui-page img{max-width:100%;height:auto}</style></head>', 1)       # 📱 the GIF and SVG fit a phone
-    page = page.replace('<img src="../../media/flow/', '<img loading="lazy" src="../../media/flow/')   # 🐢 40-odd GIFs: load on scroll
-    return {FLOW_PAGE: add_home_label(add_back_nav(page, FLOW_PAGE), '🌊 流れ実験', icons_from='../../').encode('utf-8')}   # fits an 80 px tile
+    blocks.append({'type': 'section', 'title': '📜 実験記録', 'blocks': [{'type': 'text', 'text': 'FLOW_RECORDS_SLOT'}]})   # #records, one page
+    page = ui.page_document({'schema': 'web-ui-page/1', 'title': '🌊 流れの実験室', 'blocks': blocks})
+    slot = '<p>FLOW_RIG_SLOT</p>'
+    if page.count(slot) != 1:
+        raise ValueError('flow workbench placeholder missing')
+    page = page.replace(slot, FLOW_RIG, 1).replace('</head>', FLOW_RIG_CSS + '</head>', 1)
+    page = page.replace('</body>', '<script type="module" src="./rig.mjs"></script></body>', 1)
+
+    records = flow_markdown(demos, figures)   # 📜 the same page, below the rig: its pictures load only when scrolled to
+    slot = '<p>FLOW_RECORDS_SLOT</p>'
+    if page.count(slot) != 1:
+        raise ValueError('flow records placeholder missing')
+    archive = md_market.markdown_to_html(records).replace('<img src="../../media/flow/', '<img loading="lazy" src="../../media/flow/')
+    page = page.replace(slot, f'<div id="records">{archive}</div>', 1)
+    page = page.replace('</head>', '<style>#records img{max-width:100%;height:auto}</style></head>', 1)
+    return {FLOW_PAGE: add_home_label(add_back_nav(page, FLOW_PAGE), '🌊 流れ実験', icons_from='../../').encode('utf-8'),
+            FLOW_MARKDOWN: records.encode('utf-8'), FLOW_RIG_JS: FLOW_RIG_SOURCE.encode('utf-8')}
 
 
 # ── 🧠 リポジトリ地図: who copies what from whom, read from each repository's own vendor.lock.json (and Aoi's subtrees) ──
@@ -887,6 +1052,8 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                     run('scripts/build_portable_pages.py', '--source-sha', commits[key], '--out', str(Path(tmp) / 'lab'),
                         env={**os.environ, 'PYTHONPATH': 'src'})
                     shutil.move(str(Path(tmp) / 'lab' / 'execution'), str(built))
+                    for copy in built.glob('runtime/**/*.html'):   # 🚫 a source copy of the page (it is index.html); runtime.zip keeps it
+                        copy.unlink()
                 if key == 'ironmate':
                     mapped = Path(tmp) / 'mapped'
                     _STUDIO_ROUTES.stage_ironmate_studios(built, mapped, _back_to_tools)
@@ -1002,7 +1169,7 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
     verify_pin(commit, root)
     if commit != lock['commit']:
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
-    if set(lock['outputs']) != {HTML_IMPORT_MODULE, *WORLD_ASSETS, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
+    if set(lock['outputs']) != {HTML_IMPORT_MODULE, *WORLD_ASSETS, *DRAGON_ASSETS, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
     expected = {HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, MAP_PINS_PAGE, WORLD_PAGE, *WORLD_REDIRECTS, *PSWB_TOOLS}
     if set(lock.get('pages', {})) != expected:

@@ -6,6 +6,7 @@ import json
 import re
 import socket
 import struct
+import subprocess
 import sys
 import tempfile
 from html.parser import HTMLParser
@@ -202,13 +203,46 @@ def test_flow_lab_shows_every_ffss_scene_and_every_dragowing_figure(tmp_path):
     receipt = PAGES.collect_flow(tmp_path / "site", ffss, dragowing, {"ffss": "a" * 40, "dragowing": "b" * 40})
     assert [d["id"] for d in receipt["demos"]] == ["D01", "D13", "D24"] and receipt["figures"] == ["F03_losses", "F09_blood-flow"]
     assert (tmp_path / "site/media/flow/D13.gif").read_bytes() == b"GIF89aD13"
-    page = PAGES.render_flow(ui, tmp_path / "site")[PAGES.FLOW_PAGE].decode()
-    assert page.count('<img loading="lazy" src="../../media/flow/') == 3 + 2 and "⏸" not in page
-    assert page.index("D24.gif") < page.index("F09_blood-flow.svg") < page.index("📊 ほかの図") < page.index("F03_losses.svg")
-    assert "🍷 D13 pythagorean-cup · poison-water" in page and "🎞 3 場面" in page and "2 図" in page
-    assert "FFSS aaaaaaa" in page and "/tree/" + "b" * 40 in page
-    staged = (SITE / "tools/flow/index.html").read_text(encoding="utf-8")                # nothing recorded: one ⏸
-    assert staged.count("⏸") == 1 and "media/flow/" not in staged
+    rendered = PAGES.render_flow(ui, tmp_path / "site")
+    page = rendered[PAGES.FLOW_PAGE].decode()
+    records = rendered[PAGES.FLOW_MARKDOWN].decode()
+    assert 'id="workbench"' in page and 'src="./rig.mjs"' in page
+    assert 'href="#records"' in page and 'href="./records.md"' in page and "⏸" not in page
+    assert PAGES.FLOW_PAGE.replace("index.html", "records.html") not in rendered      # 📜 one page: the records are its #records
+    archive = page[page.index('<div id="records">'):]
+    assert archive.count('loading="lazy"') == 3 + 2 and page.count("media/flow/") == 3 + 2  # every picture waits for the scroll
+    for record in (archive, records):
+        assert record.index("D24.gif") < record.index("F09_blood-flow.svg") < record.index("ほかの図") < record.index("F03_losses.svg")
+        assert "🍷 D13 pythagorean-cup · poison-water" in record
+    assert "🎞 3 場面" in page and "2 図" in page and "FFSS aaaaaaa" in page and "/tree/" + "b" * 40 in page
+    staged = (SITE / PAGES.FLOW_PAGE).read_text(encoding="utf-8")
+    assert "⏸ このビルドでは記録していない" in staged and "media/flow/" not in staged
+
+
+def test_flow_rig_conserves_material(tmp_path):
+    import shutil
+    import pysaiyanweboo as ui
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node is required for the flow rig model")
+    module = tmp_path / "rig.mjs"
+    module.write_bytes(PAGES.render_flow(ui)[PAGES.FLOW_RIG_JS])
+    script = tmp_path / "check.mjs"
+    script.write_text("""
+import assert from 'node:assert/strict';
+import {flowStep} from './rig.mjs';
+let state = {source: 100, middle: 0, sink: 0};
+assert.deepEqual(flowStep(state, 5, 2), {source: 95, middle: 3, sink: 2});
+assert.deepEqual(flowStep(state, -1, 500), state);
+for (let sec = 0; sec < 70; sec++) {
+  state = flowStep(state, 5, 2);
+  assert.equal(state.source + state.middle + state.sink, 100);
+  assert(Object.values(state).every(amount => amount >= 0));
+}
+assert.deepEqual(state, {source: 0, middle: 0, sink: 100});
+""", encoding="utf-8")
+    subprocess.run([node, str(script)], check=True, timeout=15)
 
 
 def test_repository_map_reads_each_lock_and_aois_subtrees(tmp_path):
@@ -321,6 +355,7 @@ def test_lab_pages_are_hosted_by_portfolio():
     assert "mcp" in parser.ids
     assert "./tools/mcp/" in parser.links
     assert (SITE / "tools/mcp/index.html").is_file() and (SITE / "tools/mcp/execution/index.html").is_file()
+    assert not list((SITE / "tools/mcp/execution").glob("runtime/**/*.html"))   # 🚫 the runtime's copy of the page is not a page
 
 
 def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
@@ -356,10 +391,16 @@ def test_tools_built_from_other_repositories_never_404():
             name = f'{folder}/{entry}index.html'
             html = (SITE / name).read_text(encoding='utf-8')
             if key in MADE:                                   # built from a pinned checkout: the way back, no ⏸
-                assert 'data-testid="portfolio-back"' in html and '⏸' not in html, name
+                assert '⏸' not in html, name
+                if key == 'ironmate':
+                    assert 'data-testid="portfolio-back"' not in html, name
+                    assert f'<a class="ui-world-home" href="{"../" * name.count("/")}index.html#tools"' in html, name
+                else:
+                    assert 'data-testid="portfolio-back"' in html, name
                 continue
             assert '⏸' in html and f'https://github.com/{repository}' in html, name
-            assert f'<a href="{"../" * name.count("/")}index.html#tools">' in html, name
+            # the way back: the standalone link, or (a studio page) the header's 🏠, whose markup is PySaiyanWeBoo's to choose
+            assert re.search(rf'<a (?:class="ui-world-home" )?href="{"../" * name.count("/")}index\.html#tools"', html), name
     front = LinkParser()
     front.feed((SITE / "index.html").read_text(encoding="utf-8"))
     assert "./tools/heatmap/" in front.links                                         # 🌡️ the 🧰 Tools card opens it
@@ -424,7 +465,8 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_adds_what_it_l
         page = (SITE / name).read_text(encoding='utf-8')
         prefix = '../' * name.count('/')
         body = re.search(r'<body[^>]*>', page)
-        assert '<div class="ui-board"' in page and page.count('<button type="button" class="ui-gaze"') == page.count('<div class="ui-door-foot">') == 1, name   # 📟 🫧 🚪 on every page
+        faces = page.count('<button type="button" class="ui-gaze"')
+        assert '<div class="ui-board"' in page and page.count('<div class="ui-door-foot">') == 1 and faces == max(1, page.count('<nav class="ui-world-tools">')), name   # 📟 🚪 on every page, 🫧 in every header
         if '<header class="ui-world-head">' in page:                               # 🌍 its own header and side: 🫧 after its board, then the foot
             assert '<div class="ui-chrome ' not in page and '</div><button type="button" class="ui-gaze"' in page[:page.index('<nav class="ui-world-tools">')], name
             assert page.count(module[1]) == 1 and f'<option value="{prefix}index.html#tools">🏠 Tools</option>' in page, name
@@ -479,6 +521,29 @@ def test_every_page_turns_modern_on_its_body_only():
     assert '<body class="ui-elements" data-ui-theme="modern" data-page="studio">' in built and '<div data-ui-theme="purple">' in built
     plain = PAGES.add_site_chrome('<!doctype html><html><head><title>t</title></head><body><main>x</main></body></html>', 'tools/x/index.html')
     assert '<body>' in plain and '.ui-chrome{--ui-bg:#0d1117;' in plain                       # no palette of its own: the chrome brings its colours
+
+
+def test_a_page_asks_the_one_header_to_show_its_rows_and_its_own_menus_are_hidden():
+    """🧰 host_rows: a page carries no header of its own; it declares rows (Ironmate's studios: one 💾 with every format) and the site's
+    header shows them as actions the page answers. The page's own menus the rows replace are hidden, so there is one way to save."""
+    import pysaiyanweboo as ui
+    asked = {"tools": {"💾": {"label": "保存", "label_en": "Save", "links": [{"label": "🖼 PNG", "key": "png"}, {"label": "🖼 PNG ×2", "key": "png-2"}]}},
+             "settings": [{"label": "📱 スマホ版", "key": "phone"}], "screen": [{"label": "📋 シェルフ", "key": "shelf"}], "replaces": "#studios,#studio-export"}
+    block = '<script type="application/json" id="ui-chrome-rows">' + json.dumps(asked, ensure_ascii=False) + '</script>'
+    page = ('<!doctype html><html><head><title>Studio</title></head><body class="ui-elements" data-ui-theme="green">' + block +
+            '<header><details id="studio-export"><button id="png">PNG</button></details></header><main><h2>Canvas</h2></main></body></html>')
+    assert PAGES.host_rows(page) == asked and PAGES.host_rows('<body></body>') == {}
+    built = PAGES.add_site_chrome(page, 'tools/image-studio/index.html')
+    assert built.count('<div class="ui-chrome') == 1                                                   # the site's one header
+    assert re.findall(r'data-chrome-action="([a-z0-9-]+)"', built) == ['png', 'png-2', 'phone', 'shelf']
+    head = built[built.index('<div class="ui-chrome'):built.index('<header>')]
+    assert '>💾</summary>' in head and head.index('data-lang') < head.index('data-chrome-action="phone"')   # ⚙️: the site's rows, then the page's
+    assert '#studios,#studio-export{display:none}' in built and '<details id="studio-export"><button id="png">' in built   # hidden, still there to be pressed
+    plain = PAGES.add_site_chrome(page.replace(block, ''), 'tools/image-studio/index.html')            # a page that asks for nothing: as before
+    assert 'data-chrome-action="' not in plain and '#studios,#studio-export{display:none}' not in plain
+    for bad in ({**asked, "extra": 1}, {**asked, "settings": [{"label": "x", "href": "./phone/"}]}, {**asked, "replaces": "body{color:red}"}, {**asked, "replaces": "#a, #b"}):
+        with pytest.raises(ValueError):
+            PAGES.host_rows('<script type="application/json" id="ui-chrome-rows">' + json.dumps(bad) + '</script>')
 
 
 def test_html_import_csp_names_the_face_chrome_and_door_modules_and_nothing_else():

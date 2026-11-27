@@ -6,6 +6,13 @@ on:
   push:
     branches: ["main"]
 
+  pull_request:
+    paths:
+      - ".github/workflows/pages.yml"
+      - "_src/audio/**"
+      - "scripts/audition.mjs"
+      - "scripts/publish_composition.py"
+
   # GITHUB_TOKEN catalog commits do not trigger push workflows.
   workflow_run:
     workflows: ["Update repos API"]
@@ -19,14 +26,15 @@ permissions:
   id-token: write
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+# Cancel obsolete PR previews while production deployments run to completion.
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'pull_request' && format('pages-preview-{0}', github.event.pull_request.number) || 'pages' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # Build job
   build:
+    timeout-minutes: ${{ github.event_name == 'pull_request' && 15 || 60 }}
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
@@ -37,6 +45,7 @@ jobs:
           # The refresh commits after its own triggering SHA was recorded.
           ref: ${{ github.event_name == 'workflow_run' && 'main' || github.sha }}
       - name: Setup Pages
+        if: github.event_name != 'pull_request'
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -46,11 +55,13 @@ jobs:
           enable-cache: false
 
       - name: Copy the source tree as Pages serves it
+        if: github.event_name != 'pull_request'
         run: uv run --locked --only-group pages python scripts/project_pages.py --copy-source _site
 
       # 🎥 A two-frame GIF of every repository's Pages for its card (media/pages/, not kept in git); a Pages that fails is
       # listed as ⏸ in the summary, and a failed step only leaves the cards without samples.
       - name: Record a moving sample of every repository's Pages (best effort)
+        if: github.event_name != 'pull_request'
         continue-on-error: true
         timeout-minutes: 10
         run: |
@@ -59,12 +70,14 @@ jobs:
 
       # 🌊 FFSS's demo GIFs and DRAgoWing's figures from the same FFSS records (media/flow/, not kept in git).
       - name: Record the flow lab (best effort)
+        if: github.event_name != 'pull_request'
         continue-on-error: true
         timeout-minutes: 10
         run: uv run --locked --only-group pages python scripts/project_pages.py --record-flow _site | tee -a "$GITHUB_STEP_SUMMARY"
 
       # 🧠 Each repository's vendor.lock.json (and Aoi's subtrees) at its current commit (media/map/, not kept in git).
       - name: Record the repository map (best effort)
+        if: github.event_name != 'pull_request'
         continue-on-error: true
         timeout-minutes: 5
         run: uv run --locked --only-group pages python scripts/project_pages.py --record-map _site | tee -a "$GITHUB_STEP_SUMMARY"
@@ -72,6 +85,7 @@ jobs:
       # 💬 What the chat answers about the other repositories: every JSON / JSONL file at its current commit (GitHub's tree
       # API, one call each), mcp-toolcall-lab's advertised tools and TalkCompress's compressor (media/chat/, not kept in git).
       - name: Record the chat's cross-repo index (best effort)
+        if: github.event_name != 'pull_request'
         continue-on-error: true
         timeout-minutes: 5
         env:
@@ -79,6 +93,7 @@ jobs:
         run: uv run --locked --only-group pages python scripts/project_pages.py --record-chat _site | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Generate verified shared browser assets with the pinned generator (PySaiyanWeBoo)
+        if: github.event_name != 'pull_request'
         run: uv run --locked --only-group pages python scripts/project_pages.py --output _site
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -88,9 +103,29 @@ jobs:
       # 🧰 Ironmate's studios, mcp-toolcall-lab's tools and execution lab (🔌 tools/mcp/) and DRAgoWing's heatmap from their
       # default branches (tools/…, not kept in git); the execution lab's build runs Node. A tool that fails keeps the ⏸ page the build above wrote.
       - name: Record the tools built from other repositories (best effort)
+        if: github.event_name != 'pull_request'
         continue-on-error: true
         timeout-minutes: 10
         run: uv run --locked --only-group pages python scripts/project_pages.py --record-tools _site | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Checkout the Ironmate preview revision
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: myon-bioinformatics/Ironmate
+          ref: 370eb5b2750ee535b2100dd8389ec3623377fbdc
+          path: .test-deps/Ironmate
+          persist-credentials: false
+
+      - name: Stage the Portfolio preview
+        if: github.event_name == 'pull_request'
+        run: uv run --locked --only-group pages python scripts/project_pages.py --stage _site
+
+      - name: Build Composition Studio and its licensed Tone.js subset
+        run: |
+          npm ci --prefix _src/audio --ignore-scripts
+          python3 -S _src/audio/build.py _site/tools/vendor
+          python3 -S scripts/publish_composition.py _site
 
       - name: Install npm dependencies
         run: npm ci --ignore-scripts
@@ -119,7 +154,103 @@ jobs:
                   time.sleep(0.1)
           PY
 
+      - name: Exercise audio and map clipboard from the staged Pages artifact
+        run: |
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { createHash } from 'node:crypto';
+          const dir = '_site/tools/vendor/';
+          const receipt = JSON.parse(readFileSync(dir + 'tone-studio.build.json'));
+          assert.equal(createHash('sha256').update(readFileSync(dir + 'tone-studio.min.js')).digest('hex'), receipt.subset.sha256);
+          assert.ok(readFileSync(dir + 'tone-studio.LICENSE.txt', 'utf8').includes('tone@'));
+          const browser = await chromium.launch();
+          try {
+            const page = await browser.newPage();
+            await page.goto('http://127.0.0.1:8000/tools/browser-tools/#composition');
+            // ⏸ Until Ironmate's default branch has the arrangement editor, there is no audio to exercise (publish_composition.py waits too).
+            const editor = await page.locator('#song-parts').count() > 0;
+            if (!editor) console.log("⏸ 🎵 Ironmate's arrangement editor is not staged yet: audio not exercised");
+            if (editor) {
+            await page.locator('#song-parts').fill('A = I\nB = V');
+            await page.locator('#song-order').fill('B A B');
+            const response = page.waitForResponse(r => r.url().endsWith('/tools/vendor/tone-studio.min.js'));
+            await page.locator('#song-play').click();
+            assert.ok((await response).ok());
+            assert.equal(await page.locator("#song-progression").inputValue(), "V I V");
+            await page.waitForFunction(() => document.querySelector('#song-status')?.textContent === '9音を再生します。');
+            const parts = page.locator('#song-sections li');
+            assert.deepEqual(await parts.allTextContents(), ['B', 'A', 'B']);
+            await page.waitForFunction(() => document.querySelector('#song-sections li:first-child[aria-current="step"]'));
+            await page.waitForFunction(() => document.querySelector('#song-sections li:last-child[aria-current="step"]'));
+            await page.locator('#song-stop').click();
+            assert.equal(await page.locator('#song-sections [aria-current]').count(), 0);
+            assert.equal(await page.locator('#song-status').innerText(), '停止しました。');
+            await page.evaluate(async () => {
+              const { Synth } = await import('/tools/vendor/tone-studio.min.js');
+              const toDestination = Synth.prototype.toDestination;
+              Synth.prototype.toDestination = function () {
+                const voice = toDestination.call(this);
+                const ctx = voice.context.rawContext;
+                const tap = ctx.createAnalyser();
+                tap.fftSize = 4096;
+                const mute = ctx.createGain();
+                mute.gain.value = 0;
+                voice.connect(tap);
+                tap.connect(mute);
+                mute.connect(ctx.destination);
+                window.songSignal = tap;
+                return voice;
+              };
+            });
+            await page.locator('#song-parts').fill('A = I');
+            await page.locator('#song-order').fill('A');
+            await page.locator('#song-key').selectOption('D');
+            await page.locator('#song-bpm').fill('30');
+            await page.locator('#song-play').click();
+            await page.waitForFunction(() => {
+              const tap = window.songSignal;
+              if (!tap) return false;
+              const signal = new Float32Array(tap.fftSize);
+              tap.getFloatTimeDomainData(signal);
+              if (!signal.some(sample => Math.abs(sample) > 0.0001)) return false;
+              let risingEdges = 0;
+              for (let i = 1; i < signal.length; i++)
+                if (signal[i - 1] <= 0 && signal[i] > 0) risingEdges++;
+              const hz = risingEdges * tap.context.sampleRate / signal.length;
+              return Math.abs(hz - 293.665) < 15;
+            }, null, { timeout: 6000 });
+            await page.locator('#song-stop').click();
+
+            const stalled = await browser.newPage();
+            await stalled.route('**/tone-studio.min.js', route => route.fulfill({
+              contentType: 'text/javascript',
+              body: 'export const start = () => new Promise(() => {});',
+            }));
+            await stalled.goto('http://127.0.0.1:8000/tools/browser-tools/#composition');
+            await stalled.locator('#song-play').click();
+            await stalled.waitForFunction(() =>
+              document.querySelector('#song-status')?.textContent.includes('タイムアウト'),
+              null, { timeout: 7000 });
+            await stalled.locator('#song-play').click();
+            await stalled.locator('#song-stop').click();
+            assert.equal(await stalled.locator('#song-status').innerText(), '停止しました。');
+            }
+
+            const map = await browser.newPage({permissions: ['clipboard-read', 'clipboard-write']});
+            await map.goto('http://127.0.0.1:8000/tools/maps/?lat=0&lon=0');
+            await map.locator('#copy-apple').click();
+            await map.waitForFunction(() => document.querySelector('#map-status')?.textContent === 'コピーしました。');
+            assert.equal(await map.evaluate(() => navigator.clipboard.readText()),
+              await map.locator('#apple-link').getAttribute('href'));
+          } finally {
+            await browser.close();
+          }
+          JS
+
       - name: Capture latest successful screenshots
+        if: github.event_name != 'pull_request'
         run: |
           mkdir -p _site/evidence/latest
           npx playwright screenshot             --browser=chromium             --viewport-size="1440,900"             http://127.0.0.1:8000/index.html             _site/evidence/latest/desktop.png
@@ -127,6 +258,7 @@ jobs:
           npx playwright screenshot             --browser=chromium             --viewport-size="390,844"             http://127.0.0.1:8000/index.html             _site/evidence/latest/mobile.png
 
       - name: Write latest evidence metadata
+        if: github.event_name != 'pull_request'
         env:
           PUBLISHED_SHA: ${{ steps.checkout.outputs.commit }}
         run: |
@@ -150,10 +282,13 @@ jobs:
           PY
 
       - name: Upload artifact
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
 
   # Deployment job
   deploy:
+    timeout-minutes: 15
+    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

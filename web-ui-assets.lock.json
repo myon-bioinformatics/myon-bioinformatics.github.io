@@ -1,7 +1,7 @@
 {
   "schema": "web-ui-generated/2",
   "generator": "pysaiyanweboo (pyproject.toml pages group)",
-  "commit": "e249a7c33071a5e70ff4866492506ebfd7719875",
+  "commit": "2d5469f383fc10640a0ba8291171ad2b93f74277",
   "outputs": {
     "tools/vendor/web-ui/css/base.css": "89bf5a2371b7be9057540501bba09f399d60f9207971c47fd9dac7f473ea928d",
     "tools/vendor/web-ui/css/components.css": "b82cfa27825780876dfb28409214de079f52528ecb8afe22602ec54f36031e2f",
@@ -14,20 +14,22 @@
     "tools/vendor/web-ui/js/coordinates.js": "b97576f0f7ccdb3a8c94b390c9a53f87acc3ddc837a5a4221cc5fef1a067b9bc",
     "tools/world-assets/world.css": "9d21c26e50611033568788e10c1dec68af201faacaf3d6637420d83ba98f97ed",
     "tools/world-assets/world.js": "94b12f29463da0f4eccb385ce6942ebfe03959511ef6ea8d3bb78a1c7966654e",
+    "tools/world-assets/london-dragon.json": "96f1b4efbd5a900459688403900cd385bf600987e8f76023f2a7d538f9ed133b",
+    "tools/world-assets/london-dragon.png": "2478a91c5d1c6cb04255b8247ca879f08f6a9ba30051bdb743f14a8a4a6429a9",
     "tools/html-import/extract.mjs": "22453239323b35f46e4ece66fea443ed6475f0e26324926ba8dbb1fade203fec",
-    "tools/vendor/web-ui/css/bundle.css": "18ca24051c77610d70a3aa2f38d9727e2f3a06ac03f3de7c78a543e0484b3626",
+    "tools/vendor/web-ui/css/bundle.css": "a53204d6d5bc3b1d4329ef846b2742cead74bf40428ebdf6faf05416908d310a",
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/world.html": "8e4b1bd3397ee9e5b44f9f8ef67c87850dcc89fee9d7ec57cf971acdcc9cb040",
+    "tools/demos/world.html": "3b59cf5f596e06b093b72999b506dcef8f4d0626c10f60c793d84649b2c9b277",
     "tools/demos/school.html": "1cca94ebbd110f892af7744c541fdb07f8913cf1c789069739767b1dcbfbc294",
     "tools/demos/cities.html": "a7e75a4fb771371b4249ea32a8792e503b6ec76fae5b76abfd58a4b1871fcdaa",
     "tools/demos/world-shots.html": "bde99c06ef7f8e5c8430a3c82bf6584c66463a84bc4e75ca0d6960999389e93a",
-    "tools/test-report/index.html": "5ddc8af22f31a3fa040502be8177a32a6dae1a44c91baab12677ad679449070a",
-    "tools/mcp-protocol/index.html": "c9531ef274866ef504d31a4a6d5ba1783cf7c79b5403e803b35f7d540a1c9951",
-    "tools/html-import/index.html": "4ba42bd20d25cb78796e5384879bfe9308677ea69749c6d2f864e9cfc37c243a",
-    "tools/maps/index.html": "4f542f12506d15fdc65367ff64e018a8fc835062ef4ed335e0512711ded7d4cc",
-    "tools/gif/index.html": "98dd606e47a726d39e7ab577f00235454bc789de1074e1b0f19db842d1c7fbc7",
-    "tools/chat/index.html": "289d9b1cae3611f554bc45ce4f4c19fa6acac50a3da601de4ec95ea9625ebab6"
+    "tools/test-report/index.html": "1f9107e317e0aef07cc52ee9f1daa0b2123633af77c74a9ca646bcf13c2cdd2d",
+    "tools/mcp-protocol/index.html": "04a73e1ca4765ae724f29580b6b817aef8bf8f40969b6f624d1224787e68e4fc",
+    "tools/html-import/index.html": "e1f55d77e27e937adbb9eefc36cd99d92be04456504efe0b0d9ec69a35d52189",
+    "tools/maps/index.html": "5e4b7ac95c1cf551a68bb62cbc3793327916d7328ba9553b63a734dc8e31038f",
+    "tools/gif/index.html": "45f0f3bf79854901e297f0281c28d97ccd7bbd5be0d964fbf710b014ed1699c4",
+    "tools/chat/index.html": "231d71bb402e91f9ce8529a1b12d48a8a700e4971215ed216e684f214e49696d"
   }
 }

@@ -146,8 +146,23 @@ def test_maps_url_storage_and_clipboard_fallbacks(site, browser):
         page.locator('#pin').click()
         expect(page.locator('#pin-storage')).to_contain_text('保存できません')
         assert page.locator('#pins img').count() == 0
+        page.evaluate("""() => {
+            document.execCommand = command => {
+                if (command !== 'copy') return false;
+                window.fallbackCopy = document.activeElement.value;
+                return true;
+            };
+        }""")
+        page.locator('#copy-apple').click()
+        expect(page.locator('#map-status')).to_have_text('コピーしました。')
+        assert page.evaluate('window.fallbackCopy') == page.locator('#apple-link').get_attribute('href')
+        page.evaluate("() => { document.execCommand = () => false; }")
         page.locator('#share').click()
         expect(page.locator('#map-status')).to_contain_text('選択したテキスト')
+        expect(page.locator('#share-text')).to_be_focused()
+        assert page.locator('#share-text').evaluate('(field) => field.selectionEnd - field.selectionStart') == len(
+            page.locator('#share-text').input_value()
+        )
         assert '0.000000%2C0.000000' in page.locator('#share-text').input_value()
         page.locator('#maps-input').fill('https://maps.apple.com/?ll=35.6918%2C139.7709&q=Kanda')
         page.locator('#read-url').click()
@@ -506,7 +521,8 @@ def test_london_dragon_care_and_colors(site, browser):
         summon = page.get_by_role('button', name='📜 竜の巻物')
         expect(summon).to_be_hidden()
         pet = care.get_by_role('button', name='ドラゴンをなでる')
-        assert care.locator('img').evaluate('img=>[img.naturalWidth,img.naturalHeight]') == [20, 15]
+        expect(care.locator('img')).to_have_js_property('naturalWidth', 20)
+        expect(care.locator('img')).to_have_js_property('naturalHeight', 15)
         with page.expect_download() as download:
             care.get_by_text('原画JSONを保存').tap()
         from pathlib import Path
