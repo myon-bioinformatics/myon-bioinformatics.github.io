@@ -379,7 +379,7 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
 def shell_panel(name: str) -> str:
     """🧰 The markup of the one screen's ``#name`` panel (inert in its <template> until it is opened)."""
     page = (SITE / PAGES.SHELL_PAGE).read_text(encoding="utf-8")
-    return re.search(rf'<section id="{name}" data-tools-panel[^>]*><template>(.*?)</template></section>', page, re.S)[1]
+    return re.search(rf'<section id="{name}"[^>]*\bdata-tools-panel[^>]*><template>(.*?)</template></section>', page, re.S)[1]
 
 
 TOOL_PAGES = ("tools/html-import/index.html",
@@ -408,7 +408,7 @@ def test_tools_built_from_other_repositories_never_404():
             assert re.search(rf'<a (?:class="ui-world-home" )?href="{"../" * name.count("/")}index\.html#tools"', html), name
     front = LinkParser()
     front.feed((SITE / "index.html").read_text(encoding="utf-8"))
-    assert "./tools/heatmap/" in front.links                                         # 🌡️ the 🧰 Tools card opens it
+    assert "./tools/#heatmap" in front.links                                         # 🌡️ the 🧰 Tools card opens it (a #panel)
     with tempfile.TemporaryDirectory() as tmp:
         kept = Path(tmp) / 'tools/image-studio/index.html'
         kept.parent.mkdir(parents=True)
@@ -1866,3 +1866,19 @@ def test_portfolio_worlds_share_one_engine_and_standalone_stays_self_contained()
     standalone = world.world_document(world.example_data('school'))
     assert world.world_base_css() in standalone and ui.module_script(world.WORLD_JS) in standalone
     assert 'world-assets/' not in standalone
+
+
+def test_the_one_screen_keeps_one_owner_per_id():
+    """🆔 Two tools of the one screen never share an id (getElementById would hand one the other's element): the portfolio's own
+    panels fail the build, a tool of another repository gets ⏸ in its place; a <body> class (ui-elements) holds for its panel."""
+    import pysaiyanweboo as ui
+    page = lambda body, attrs='': f'<!doctype html><html><head><title>T</title></head><body{attrs}>{body}</body></html>'.encode()
+    with pytest.raises(ValueError, match=r"\['status'\]"):
+        PAGES.render_shell(ui, {'tools/a/index.html': page('<p id="status">'), 'tools/b/index.html': page('<p id="status">')})
+    shell = PAGES.render_shell(ui, {'tools/a/index.html': page('<p id="status">')},
+                               {'tools/heatmap/index.html': (page('<p id="status">'), 'myon-bioinformatics/DRAgoWing'),
+                                'tools/format-lab/index.html': (page('<i id="own">', ' class="ui-elements"'), 'myon-bioinformatics/myon-bioinformatics')}).decode()
+    heatmap = re.search(r'<section id="heatmap"[^>]*><template>(.*?)</template>', shell, re.S)[1]
+    assert '⏸' in heatmap and 'id がほかの道具とぶつかる（status）' in heatmap and 'id="status"' not in heatmap
+    assert '<section id="format-lab" class="ui-elements" data-tools-panel' in shell and '<i id="own">' in shell
+    assert '<p id="status">' in shell and shell.count('id="status"') == 1

@@ -1000,8 +1000,8 @@ _STUDIO_ROUTES = load_module('studio_routes', '_src/tools/studio_routes.py')
 TOOL_SOURCES = {'ironmate': ('myon-bioinformatics/Ironmate', 'tools', _STUDIO_ROUTES.PUBLIC_STUDIO_ENTRIES),
                 'mcp-toolcall-lab': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp', ('',)),
                 'mcp-toolcall-lab-execution': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp/execution', ('',)),
-                'format-lab': ('myon-bioinformatics/myon-bioinformatics', 'tools/format-lab', ('',)),
-                'dragowing': ('myon-bioinformatics/DRAgoWing', 'tools/heatmap', ('',))}
+                'format-lab': ('myon-bioinformatics/myon-bioinformatics', 'tools/format-lab', ()),   # () : a #panel of the 🧰 screen
+                'dragowing': ('myon-bioinformatics/DRAgoWing', 'tools/heatmap', ())}
 CHECKOUTS = '.test-deps'   # 🧪 local checkouts (CI pins them) that --stage builds the tools from, one folder per repository
 
 
@@ -1123,11 +1123,35 @@ def render_tools(ui, output: Path | None = None) -> dict[str, bytes]:
             continue
         for entry in entries:
             name = f'{folder}/{entry}index.html'
-            page = ui.page_document({'schema': 'web-ui-page/1', 'title': f'🧰 {repository.split("/")[1]}', 'blocks': [
-                {'type': 'text', 'text': f'⏸ この道具は、公開のたびに {repository} の最新のコミットから作り直す。このビルドでは作っていない。'},
-                {'type': 'links', 'items': [{'label': '🐙 GitHub リポジトリ', 'href': f'https://github.com/{repository}'}]}]})
-            pages[name] = _back_to_tools(page, name).encode('utf-8')
+            pages[name] = _back_to_tools(_paused(ui, repository), name).encode('utf-8')
     return pages
+
+
+def _paused(ui, repository: str, why: str = 'このビルドでは作っていない。') -> str:
+    """⏸ What stands in for a tool this build did not make."""
+    return ui.page_document({'schema': 'web-ui-page/1', 'title': f'🧰 {repository.split("/")[1]}', 'blocks': [
+        {'type': 'text', 'text': f'⏸ この道具は、公開のたびに {repository} の最新のコミットから作り直す。{why}'},
+        {'type': 'links', 'items': [{'label': '🐙 GitHub リポジトリ', 'href': f'https://github.com/{repository}'}]}]})
+
+
+def tool_panels(ui, output: Path | None = None) -> dict[str, tuple[bytes, str]]:
+    """🧰 The TOOL_SOURCES tools that are #panels of the screen (no page of their own): the document ``--record-tools`` built,
+    taken out of the tree, else ⏸; ``{source: (document, repository)}`` for ``render_shell``."""
+    path = Path(output) / TOOLS if output else None
+    made = json.loads(path.read_text(encoding='utf-8'))['made'] if path and path.is_file() else []
+    panels = {}
+    for key, (repository, folder, entries) in TOOL_SOURCES.items():
+        built = Path(output) / folder / 'index.html' if output else None
+        if entries:
+            continue
+        if key in made and built.is_file():
+            panels[f'{folder}/index.html'] = built.read_bytes(), repository
+            built.unlink()
+            if not any(built.parent.iterdir()):        # 🌡️ a one-page tool leaves no folder behind
+                built.parent.rmdir()
+        else:
+            panels[f'{folder}/index.html'] = _paused(ui, repository).encode('utf-8'), repository
+    return panels
 
 
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
@@ -1191,26 +1215,41 @@ def _rebase_links(markup: str, source: str, name: str) -> str:
 def _panel(ui, source: str, page: str) -> tuple[str, str]:
     """(title, markup) of a tool's document as a #panel: its <head>'s own styles and scripts (the shared sheet, the name, the icons
     and the viewport are the screen's), then its <body>, links rebased (``_rebase_links``)."""
-    head = re.search(r'<head>(.*?)</head>', page, re.S)[1]
-    body = re.search(r'<body\b[^>]*>(.*)</body>', page, re.S)[1]
-    title = html.unescape(re.search(r'<title>(.*?)</title>', head, re.S)[1]).strip()
-    head = re.sub(r'<meta\b[^>]*>|<title>.*?</title>|<link rel="(?:icon|apple-touch-icon|manifest)"[^>]*>', '', head, flags=re.S)
+    page = re.sub(r'^\s*<!doctype html>\s*|<html\b[^>]*>|</html>\s*$', '', page, flags=re.I)   # a page may leave <head> / <body> implied
+    head = re.search(r'<head>(.*?)</head>', page, re.S)
+    body = re.search(r'<body\b([^>]*)>(.*)</body>', page, re.S)
+    title = re.search(r'<title>(.*?)</title>', page, re.S)
+    title = html.unescape(title[1]).strip() if title else source.split('/')[1]
+    classes = re.search(r'\bclass="([^"]*)"', body[1]) if body else None
+    head, body = (head[1] if head else ''), (body[2] if body else page[head.end():] if head else page)
+    head, body = (re.sub(r'<meta\b[^>]*>|<title>.*?</title>|<link rel="(?:icon|apple-touch-icon|manifest)"[^>]*>', '', part, flags=re.S)
+                  for part in (head, body))
     for builder in STYLESHEET_BUNDLES.values():
         head = head.replace('<style>' + getattr(ui, builder)(), '<style>')
-    return title, _rebase_links(head.replace('<style></style>', '') + body, source, source.split('/')[1])
+    return title, _rebase_links(head.replace('<style></style>', '') + body, source, source.split('/')[1]), classes[1] if classes else ''
 
 
-def render_shell(ui, docs: dict[str, bytes]) -> bytes:
+def render_shell(ui, docs: dict[str, bytes], tools: dict[str, tuple[bytes, str]] | None = None) -> bytes:
     """🧰 tools/index.html: the screen every tool of PANEL_PAGES is a panel of (``#gif``, ``#maps``, …; 🏠 ``#home`` lists them).
     The header, the side and the foot are the site's (``add_site_chrome``) once; a panel stays an inert ``<template>`` until it is
     first opened (its styles and scripts load then), and ``#section`` opens the panel that holds it."""
     places = {place['href']: place['label'] for place in tools_places('../')}
-    index, panels = [], []
-    for source, data in docs.items():
+    names = [source.split('/')[1] for source in (*docs, *(tools or {}))]
+    index, panels, owners = [], [], {name: name for name in ('home', *names, 'door', 'door-select', 'tools-chrome')}   # 🆔 one owner per id
+    for source, data in (*docs.items(), *((source, (data, repository)) for source, (data, repository) in (tools or {}).items())):
         name = source.split('/')[1]
-        title, markup = _panel(ui, source, data.decode('utf-8'))
+        title, markup, classes = _panel(ui, source, (data[0] if isinstance(data, tuple) else data).decode('utf-8'))
+        ids = set(re.findall(r'\bid="([^"]+)"', re.sub(r'<script\b[^>]*>.*?</script>', '', markup, flags=re.S)))
+        clash = sorted(i for i in ids if owners.get(i, name) != name)
+        if clash and not isinstance(data, tuple):
+            raise ValueError(f'🆔 the {name} panel shares ids with another part of the screen: {clash}')
+        if clash:                                                          # 🧰 a tool of another repository: ⏸ rather than a broken screen
+            title, markup, classes = _panel(ui, source, _paused(ui, data[1], f'id がほかの道具とぶつかる（{", ".join(clash)}）。'))
+            ids = set()
+        owners.update(dict.fromkeys(ids, name))
         index.append(f'<li><a href="#{name}">{html.escape(places.get(f"../tools/#{name}", title), quote=False)}</a></li>')
-        panels.append(f'<section id="{name}" data-tools-panel data-title="{html.escape(title)}" hidden><template>{markup}</template></section>')
+        css = f' class="{html.escape(classes)}"' if classes else ''      # the page's <body> class (ui-elements) holds for its panel
+        panels.append(f'<section id="{name}"{css} data-tools-panel data-title="{html.escape(title)}" hidden><template>{markup}</template></section>')
     home = (f'<section id="home" data-tools-panel data-title="🧰 Tools"><main class="ui-page"><h1>🧰 Tools</h1>'
             f'<ul class="ui-tools-index">{"".join(index)}</ul></main></section>')
     page = ui.render_document(title='🧰 Tools', theme='modern', css=ui.bundled_css() + '.ui-tools-index{display:grid;gap:8px;padding:0;list-style:none}',
@@ -1260,7 +1299,7 @@ def build(output: Path, root: Path = ROOT) -> None:
     import pysaiyanweboo as ui
     payload = {**generate(root), **render_front(root, recorded_samples(output)), **render_flow(ui, output), **render_map(ui, output),
                **render_tools(ui, output)}  # Fail closed first.
-    payload[SHELL_PAGE] = render_shell(ui, {path: payload.pop(path) for path in PANEL_PAGES})
+    payload[SHELL_PAGE] = render_shell(ui, {path: payload.pop(path) for path in PANEL_PAGES}, tool_panels(ui, output))
     for name, data in payload.items():
         path = output / name
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -1290,8 +1329,8 @@ def stage(output: Path, root: Path = ROOT) -> None:
     validate_output(output, root)
     generate(root)  # Fail closed before copying anything.
     copy_source(output, root)
+    stage_tools(output, root)   # 🧰 first: the screen (build) takes in the tools that are its panels
     build(output, root)
-    stage_tools(output, root)
 
 
 def refresh_lock(root: Path = ROOT) -> dict:

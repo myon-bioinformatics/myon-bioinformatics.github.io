@@ -92,21 +92,21 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: uv run --locked --only-group pages python scripts/project_pages.py --record-chat _site | tee -a "$GITHUB_STEP_SUMMARY"
 
-      - name: Generate verified shared browser assets with the pinned generator (PySaiyanWeBoo)
-        if: github.event_name != 'pull_request'
-        run: uv run --locked --only-group pages python scripts/project_pages.py --output _site
-
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "26"
 
       # 🧰 Ironmate's studios, mcp-toolcall-lab's tools and execution lab (🔌 tools/mcp/) and DRAgoWing's heatmap from their
-      # default branches (tools/…, not kept in git); the execution lab's build runs Node. A tool that fails keeps the ⏸ page the build above wrote.
+      # default branches (tools/…, not kept in git); the execution lab's build runs Node. A tool that fails gets the ⏸ the build below writes (the 🧰 screen takes the panels in).
       - name: Record the tools built from other repositories (best effort)
         if: github.event_name != 'pull_request'
         continue-on-error: true
         timeout-minutes: 10
         run: uv run --locked --only-group pages python scripts/project_pages.py --record-tools _site | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate verified shared browser assets with the pinned generator (PySaiyanWeBoo)
+        if: github.event_name != 'pull_request'
+        run: uv run --locked --only-group pages python scripts/project_pages.py --output _site
 
       - name: Checkout the Ironmate preview revision
         if: github.event_name == 'pull_request'

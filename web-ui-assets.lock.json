@@ -21,9 +21,9 @@
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/world.html": "d0e2355ed8ac46bea6a9be65f5a8eb016d806a05d3aa445b9689c0a7e106e32e",
-    "tools/html-import/index.html": "348475c692d2c2e60b63b341bdeb35ffaefd3bd028759d68ebcd2a2bc701a92e",
-    "tools/chat/index.html": "039e7aa02374cda2230a98003f71566ea75985bb2c8aa86f5bf1bc91e9f5e90f",
+    "tools/demos/world.html": "71c7a648221b492466e66f20dde554e43848e124f4295254988ff898a4e8fecc",
+    "tools/html-import/index.html": "d664ef248e231c1f7dab864bc72b789da8fbbbd19e8672fd9b2b84e2a91dec90",
+    "tools/chat/index.html": "4e9c15e6a9717c9e66bfa60d07bf91c0cd630e70ed9eab933be3be7278642f10",
     "tools/test-report/index.html": "6c480e545d331bd02c55d0092a65a81b5ee56eec04416d5342b10fb267812262",
     "tools/maps/index.html": "8c6f102ef7a6e4b10828a72c16bbf78c2658b8a41c24cf95bf66978f4eaac541",
     "tools/gif/index.html": "e5221dbde7a928c089df460e72a5a2012f24e6fb4fd62ef2552f5d0dc26f586e"
