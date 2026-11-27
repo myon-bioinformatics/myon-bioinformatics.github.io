@@ -205,18 +205,18 @@ def test_flow_lab_shows_every_ffss_scene_and_every_dragowing_figure(tmp_path):
     assert (tmp_path / "site/media/flow/D13.gif").read_bytes() == b"GIF89aD13"
     rendered = PAGES.render_flow(ui, tmp_path / "site")
     page = rendered[PAGES.FLOW_PAGE].decode()
-    archive = rendered[PAGES.FLOW_RECORDS].decode()
     records = rendered[PAGES.FLOW_MARKDOWN].decode()
     assert 'id="workbench"' in page and 'src="./rig.mjs"' in page
-    assert 'href="./records.html"' in page and 'href="./records.md"' in page
-    assert "media/flow/" not in page and "⏸" not in page
-    assert archive.count('loading="lazy"') == 3 + 2
+    assert 'href="#records"' in page and 'href="./records.md"' in page and "⏸" not in page
+    assert PAGES.FLOW_PAGE.replace("index.html", "records.html") not in rendered      # 📜 one page: the records are its #records
+    archive = page[page.index('<div id="records">'):]
+    assert archive.count('loading="lazy"') == 3 + 2 and page.count("media/flow/") == 3 + 2  # every picture waits for the scroll
     for record in (archive, records):
         assert record.index("D24.gif") < record.index("F09_blood-flow.svg") < record.index("ほかの図") < record.index("F03_losses.svg")
         assert "🍷 D13 pythagorean-cup · poison-water" in record
     assert "🎞 3 場面" in page and "2 図" in page and "FFSS aaaaaaa" in page and "/tree/" + "b" * 40 in page
     staged = (SITE / PAGES.FLOW_PAGE).read_text(encoding="utf-8")
-    assert staged.count("⏸") == 1 and "media/flow/" not in staged
+    assert "⏸ このビルドでは記録していない" in staged and "media/flow/" not in staged
 
 
 def test_flow_rig_conserves_material(tmp_path):
@@ -355,6 +355,7 @@ def test_lab_pages_are_hosted_by_portfolio():
     assert "mcp" in parser.ids
     assert "./tools/mcp/" in parser.links
     assert (SITE / "tools/mcp/index.html").is_file() and (SITE / "tools/mcp/execution/index.html").is_file()
+    assert not list((SITE / "tools/mcp/execution").glob("runtime/**/*.html"))   # 🚫 the runtime's copy of the page is not a page
 
 
 def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
