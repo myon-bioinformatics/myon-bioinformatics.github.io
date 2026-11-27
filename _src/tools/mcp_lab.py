@@ -172,7 +172,7 @@ def apply_actions_report(page: str) -> str:
 
 
 # ── the stage ──
-FILES = ('index.html', 'pages-hash.js', 'pages-wiki.js', 'pages-pixiv.js', 'source.js', 'build_meta.json')
+FILES = ('index.html', 'pages-hash.js', 'pages-wiki.js', 'pages-pixiv.js', 'source.js', 'mcp.js', 'build_meta.json')   # mcp.js: 🤝 the #protocol panel
 OPTIONAL = ('repository-diagnostics.json', 'repository-diagnostics.jsonl')   # 🩺 what the page's #diagnostics panel reads
 WRAPPER = Path(__file__).with_name('mcp')     # the portfolio's Pixiv wrapper (pixiv-markup.js, pixiv-panel.js)
 EXECUTION_URL = "https://myon-bioinformatics.github.io/tools/mcp/execution/"

@@ -56,7 +56,7 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'from': ('mcp-toolcall-lab',),
   'links': [('Open Tool Lab →', './tools/mcp/'),
             ('Open Execution Lab →', _service_url('mcp-toolcall-lab', 'execution')),
-            ('MCP 接続試験 →', './tools/mcp-protocol/')]},
+            ('MCP 接続試験 →', './tools/mcp/#protocol')]},
  {'title': '🧾 テスト結果',
   'text': 'JUnit の結果を貼るか開いて読み、前回と比べて新規・再発・解消を分ける。端末の中で完結し、結果はどこにも送らない。',
   'id': 'test-report',

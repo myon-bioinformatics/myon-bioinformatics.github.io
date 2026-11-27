@@ -9,7 +9,7 @@ and ``--refresh-lock`` rewrites the lock after the pin moves.
 
 The 🧰 Tools cards (scripts/front_page.py ``PORTAL``) list the practical pages, each one working on what the visitor brings:
 the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in the page; ``--record-chat`` indexes the other repositories at deploy
-time) and PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``: 🧾 the JUnit reader, 🤝 the MCP connection test), published with
+time) and PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``: 🧾 the JUnit reader; 🤝 its MCP connection test is the lab's #protocol panel), published with
 the portfolio's way back, shortcut label and icons. The 🌍 world pages (scripts/world.py: the travel world, 🏫 the school,
 🗼 the parallel cities, 🎬 the camera; tools/demos/) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and are not among
 the cards. Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
@@ -85,7 +85,6 @@ PUBLIC_SOURCE_FILES = (
 # published path -> (how it is built from pysaiyanweboo, the home-screen name)
 PSWB_TOOLS = {
     'tools/test-report/index.html': (lambda ui: ui.report_document(), '🧾 テスト結果'),
-    'tools/mcp-protocol/index.html': (lambda ui: ui.mcp_document(), '🤝 MCP接続'),
 }
 @functools.lru_cache(maxsize=None)
 def _world() -> ModuleType:
@@ -335,7 +334,7 @@ def render_world(ui) -> dict[str, bytes]:
 
 
 def render_pswb_tools(ui) -> dict[str, bytes]:
-    """🧾 🤝 PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``), each with the way back, the chrome and the home-screen name."""
+    """🧾 PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``), each with the way back, the chrome and the home-screen name."""
     return {path: add_home_label(add_back_nav(build(ui), path), label, icons_from='../../').encode('utf-8')
             for path, (build, label) in PSWB_TOOLS.items()}
 

@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/mcp-toolcall-lab
-          ref: 07198c7c5c51ff95ee2c3992017de16ac0e31cde
+          ref: a62cf8401b224cb7ecca1906a6de05194595baf3
           path: .test-deps/mcp-toolcall-lab
           persist-credentials: false
       - name: Build reusable Python and browser environment

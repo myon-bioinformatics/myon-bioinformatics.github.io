@@ -21,12 +21,11 @@
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/world.html": "5a901e08e422060bf36a0548c576c2ea79927382ff2f17a27df752425332e27d",
-    "tools/test-report/index.html": "6c41990f16c6818c9c7f3566f41e0dbe24e5096badce70c3da3cbcf9e7c1caa0",
-    "tools/mcp-protocol/index.html": "f8174f6c4eafbff1a1a1da54ebed02336490ca8c39c1a8e990d1ff5d6816e7ba",
-    "tools/html-import/index.html": "98ad2479243a64e7ad8eb817dc815454f742a51dbf3b3a6ce562a5112dca9ffd",
-    "tools/maps/index.html": "bfc70a5ab0c9dc6ee5d71e2da21a1efb4e22b45ef3ea37e987a1a8c8971e0d8c",
-    "tools/gif/index.html": "49f2863c1bc1797f5462428403a4fd7d1f04313f0631798f53a9e5c54e8072a6",
-    "tools/chat/index.html": "8d93d9fffd66be1a75cee63d779c0a0d5219ca421a80cfe2c14264f839098c96"
+    "tools/demos/world.html": "81927c5628e43ad04e533a63f7b678ed02da3acddaf4251b7ad185f41682cbf5",
+    "tools/test-report/index.html": "3f9ac6616ae21a9d09c1434034625842eced0da7aa42d72dd2a3805762acab16",
+    "tools/html-import/index.html": "4ea7ab705289dc339c68892347b034c59742070a203e2279fe9d028ca9a36b8c",
+    "tools/maps/index.html": "ca5e471ab07014cb5c59a438f681cc111c12bc7fbbf1468025e097cee7513c6c",
+    "tools/gif/index.html": "2c7a68cca90409b6133f1f948b4d86f13f777643839f721d17e9b2bd91219b37",
+    "tools/chat/index.html": "5cad263e2abbaeb2d8f2117c5f510207d1984a424792c314b8761d539a7261b4"
   }
 }
