@@ -626,6 +626,59 @@ def flow_markdown(demos: list[dict], figures: list[str]) -> str:
     return '\n\n'.join(lines) + '\n'
 
 
+KNOWLEDGE_FLOW_JS = 'tools/flow/knowledge.mjs'
+KNOWLEDGE_FLOW_HTML = """
+<section id="knowledge-flow">
+<h2>🧠 知識の流れ</h2>
+<p>架空の概念グラフ上の活性度の拡散。真偽・確信度・概念の同一性は表さない。</p>
+<label>拡散係数 <input id="knowledge-rate" type="range" min="0" max="1" step="0.05" value="0.5"></label>
+<button id="knowledge-step" disabled>1ステップ進める</button>
+<button id="knowledge-reset" disabled>初期化</button>
+<svg id="knowledge-graph" viewBox="0 0 320 200" role="img" aria-label="概念の活性度グラフ" style="width:min(100%,420px)"></svg>
+<p id="knowledge-status" aria-live="polite">初期状態</p>
+</section>
+"""
+KNOWLEDGE_FLOW_SOURCE = r"""
+const edges = [[0,1],[0,2],[1,3],[2,3],[3,4],[3,5],[4,5]];
+const points = [[30,100],[95,45],[95,155],[165,100],[260,45],[260,155]];
+const degree = points.map((_, i) => edges.filter(e => e.includes(i)).length);
+export function knowledgeStep(values, rate) {
+  if (values.length !== points.length || values.some(v => !Number.isFinite(v) || v < 0) || !Number.isFinite(rate) || rate < 0 || rate > 1) throw new RangeError("invalid diffusion input");
+  const next = [...values];
+  for (const [i,j] of edges) {
+    const flux = rate * (values[i] - values[j]) / Math.max(...degree);
+    next[i] -= flux; next[j] += flux;
+  }
+  return next;
+}
+if (typeof document !== "undefined") {
+  const get = id => document.getElementById("knowledge-" + id);
+  const svg = get("graph");
+  let values, step;
+  function render() {
+    svg.replaceChildren();
+    const add = (tag, attrs, text) => {
+      const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+      for (const [k,v] of Object.entries(attrs)) el.setAttribute(k, v);
+      if (text !== undefined) el.textContent = text;
+      svg.append(el);
+    };
+    for (const [i,j] of edges) add("line", {x1:points[i][0],y1:points[i][1],x2:points[j][0],y2:points[j][1],stroke:"currentColor",opacity:.35});
+    points.forEach(([x,y],i) => {
+      add("circle",{cx:x,cy:y,r:18,fill:"currentColor",opacity:.12+.75*values[i],stroke:"currentColor"});
+      add("text",{x,y:y+32,"text-anchor":"middle",fill:"currentColor","font-size":11},String.fromCharCode(65+i)+" "+(100*values[i]).toFixed(1)+"%");
+    });
+    get("status").textContent = step+" ステップ · 活性度合計 "+values.reduce((a,b)=>a+b,0).toFixed(6);
+  }
+  function reset(){values=[1,0,0,0,0,0];step=0;render();}
+  get("step").onclick=()=>{values=knowledgeStep(values,Number(get("rate").value));step++;render();};
+  get("reset").onclick=reset;
+  get("step").disabled=get("reset").disabled=false;
+  reset();
+}
+"""
+
+
 def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
     """Render the lab and a Markdown-derived archive from the same published flow receipt."""
     import markdown as md_market
@@ -650,8 +703,8 @@ def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
     slot = '<p>FLOW_RIG_SLOT</p>'
     if page.count(slot) != 1:
         raise ValueError('flow workbench placeholder missing')
-    page = page.replace(slot, FLOW_RIG, 1).replace('</head>', FLOW_RIG_CSS + '</head>', 1)
-    page = page.replace('</body>', '<script type="module" src="./rig.mjs"></script></body>', 1)
+    page = page.replace(slot, FLOW_RIG + KNOWLEDGE_FLOW_HTML, 1).replace('</head>', FLOW_RIG_CSS + '</head>', 1)
+    page = page.replace('</body>', '<script type="module" src="./rig.mjs"></script><script type="module" src="./knowledge.mjs"></script></body>', 1)
 
     records = flow_markdown(demos, figures)   # 📜 the same page, below the rig: its pictures load only when scrolled to
     slot = '<p>FLOW_RECORDS_SLOT</p>'
@@ -661,7 +714,7 @@ def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
     page = page.replace(slot, f'<div id="records">{archive}</div>', 1)
     page = page.replace('</head>', '<style>#records img{max-width:100%;height:auto}</style></head>', 1)
     return {FLOW_PAGE: add_home_label(add_back_nav(page, FLOW_PAGE), '🌊 流れ実験', icons_from='../../').encode('utf-8'),
-            FLOW_MARKDOWN: records.encode('utf-8'), FLOW_RIG_JS: FLOW_RIG_SOURCE.encode('utf-8')}
+            FLOW_MARKDOWN: records.encode('utf-8'), FLOW_RIG_JS: FLOW_RIG_SOURCE.encode('utf-8'), KNOWLEDGE_FLOW_JS: KNOWLEDGE_FLOW_SOURCE.encode('utf-8')}
 
 
 # ── 🧠 リポジトリ地図: who copies what from whom, read from each repository's own vendor.lock.json (and Aoi's subtrees) ──
