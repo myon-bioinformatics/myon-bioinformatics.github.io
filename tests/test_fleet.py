@@ -11,7 +11,7 @@ spec.loader.exec_module(fleet)
 
 ROOT = fleet.repo_root(__file__)
 # Local rollout contract; adopted vendor locks are deliberately independent.
-PARENT_WORKFLOW_PIN = "9e3da7ae1846e9604ebc24bb5178f7de094a4e77"
+PARENT_WORKFLOW_PIN = "43cfe1df924ea96ca44f47a6771c18102c38f7f3"
 ACCEPTED = {"vendor/fleet_check.py": "4748595d057e11477e0d62d76c92cb4658ed350c"}   # 📜 script_catalog (parent #385)
 
 
