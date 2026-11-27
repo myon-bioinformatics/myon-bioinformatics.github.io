@@ -377,7 +377,7 @@ def test_adventure_transfer_on_unified_world(site, browser, record_property):
             bag = world.locator('.ui-world-bag')
             assert 'はじまりの剣' in bag.text_content() and 'やくそう' in bag.text_content()
             assert len(recipient.evaluate('JSON.parse(localStorage["ui-world:overworld-map"]).bag')) == 3
-            for bad in (token[:-2], ui.save_text({**saved, 'version': 2}),
+            for bad in (token[:-2], ui.save_text({**saved, 'version': 99}),
                         ui.save_text({**saved, 'world': 'school'}),
                         ui.save_text({**saved, 'data': {**saved['data'], 'hp': -1}})):
                 box.fill(bad)
@@ -391,3 +391,99 @@ def test_adventure_transfer_on_unified_world(site, browser, record_property):
             assert 'はじまりの剣' in bag.text_content()
         finally:
             recipient.close()
+
+
+def test_village_items_work_in_cities_and_on_hero(site, browser):
+    import pysaiyanweboo as ui
+
+    page = browser.new_page(reduced_motion='reduce')
+    try:
+        page.goto(site[1] + '/tools/demos/world.html#world')
+        village = page.locator('#overworld-map')
+        village.locator('[data-emoji="🧙"]').click()
+        for item in ('meadow-drop-mana', 'meadow-hirugaoka'):
+            village.locator('[data-menu="spots"] summary').click()
+            village.locator(f'.ui-world-spots a[href="#overworld-spot-{item}"]').click()
+            village.locator(f'[data-rpg-spot="{item}"]').click()
+            village.get_by_role('button', name='やったね！').click()
+        village.locator('[data-rpg-journal-btn]').click()
+        tab = village.get_by_role('button', name='💾 セーブ')
+        tab.click()
+        box = village.get_by_role('textbox', name='冒険データ')
+        export = village.get_by_text('セーブ文字列を作る', exact=True)
+        export.click()
+        original = ui.save_state(box.input_value())
+        original['data']['mp'] = 0
+        token = ui.save_text(original)
+
+        def load(value):
+            box.fill(value)
+            village.get_by_role('button', name='読み込む').click()
+            expect(village.get_by_text('冒険データを復元しました')).to_be_visible()
+
+        load(token)
+        village.get_by_role('button', name='🧙 ステータス').click()
+        for label in ('癒しの水', 'サツマイモ'):
+            village.get_by_role('button', name=label, exact=False).click()
+        tab.click()
+        export.click()
+        used = ui.save_state(box.input_value())['data']
+        assert (used['mp'], used['exp']) == (10, original['data']['exp'] + 20)
+        load(token)
+        village.locator('.ui-rpg-close').click()
+        cities = page.locator('#cities-map')
+
+        def travel(route):
+            page.evaluate('(route) => location.hash = route', route)
+            expect(page.locator('[data-world-shell]')).to_have_attribute('data-world-route', route)
+
+        travel('london')
+        cities.locator('.ui-world-pick-grid [data-emoji]').first.click()
+        feed = cities.get_by_role('button', name='🍠 ドラゴンにあげる')
+        feed.click()
+        expect(cities.locator('output').filter(has_text='看板のドラゴン')).to_be_visible()
+        sign = cities.locator('.ui-spot[href="#cities-spot-london-nogard"]')
+        for _ in range(2):
+            sign.evaluate('e => e.click()')
+        feed.click()
+        expect(cities.locator('output').filter(has_text='累計 20')).to_be_visible()
+        travel('paris')
+        water = cities.get_by_role('button', name='💧 目の前の火を消す')
+        water.click()
+        expect(cities.locator('output').filter(has_text='目の前に火がありません')).to_be_visible()
+        floor = cities.locator('.ui-floor[data-floor="paris"]')
+        fires = floor.locator('[data-kind="fire"]:not([hidden])')
+        count = fires.count()
+        # Walk to a reachable fire with two free tiles west, then face east from one tile away.
+        floor.evaluate("""f=>{
+          const t=+f.dataset.tile,rows=f.dataset.blocked.split(',');
+          const fire=[...f.querySelectorAll('[data-kind="fire"]')].find(n=>{
+            const x=parseInt(n.style.left)/t,y=parseInt(n.style.top)/t;
+            return rows[y][x-1]==='0' && rows[y][x-2]==='0';
+          });
+          const form=f.closest('[data-ui-world]').querySelector('.ui-world-walk');
+          form.elements.x.value=parseInt(fire.style.left)-1.5*t;
+          form.elements.y.value=parseInt(fire.style.top)+0.5*t;
+          form.requestSubmit();
+        }""")
+        cities.locator('[data-step="1,0"]').evaluate('b=>b.click()')
+        water.click()
+        expect(fires).to_have_count(count - 1)
+        travel('world')
+        village.locator('[data-rpg-journal-btn]').click()
+        tab.click()
+        export.click()
+        progress = ui.save_state(box.input_value())
+        assert progress['version'] == 2 and progress['data']['dragonExp'] == 20
+        assert 'spot:meadow-hirugaoka' not in progress['data'] and 'spot:meadow-drop-mana' not in progress['data']
+        village.get_by_text('復活の呪文を作る', exact=True).click()
+        expect(village.get_by_text('空白・改行を含めてコピーできます')).to_be_visible()
+        spell = box.input_value()
+        load(token)
+        expect(fires).to_have_count(count)
+        load(spell)
+        expect(fires).to_have_count(count - 1)
+        export.click()
+        assert ui.save_state(box.input_value()) == progress
+    finally:
+        page.close()

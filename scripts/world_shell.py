@@ -12,6 +12,8 @@ SPACES = {
 }
 
 CSS = """
+[data-world-shell]:not([data-world-route="paris"]) [data-city-item="paris"],
+[data-world-shell]:not([data-world-route="london"]) [data-city-item="london"],
 [data-world-space][hidden],[data-world-shell] [data-menu="favorites"],
 [data-world-route]:not([data-world-route="tokyo"]) :is(#tokyo-range,#area-return){display:none!important}
 [data-world-shell]>header{position:sticky;top:0;z-index:10;background:var(--ui-bg)}
