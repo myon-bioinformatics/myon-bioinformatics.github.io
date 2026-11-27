@@ -336,18 +336,28 @@ def tools_samples() -> dict[str, tuple[str, str]]:
     return {f'tools/{card["id"]}': (urljoin(front._site_url, card['links'][0][1]), card['title']) for card in front.PORTAL}
 
 
+def sample_stand_in(title: str) -> str:
+    """🖼 What a 🧰 Tools card's picture shows when its page could not be recorded: the page's name and ⏳, in the site's look,
+    so the cards stay alike (``record_samples(stand_ins=…)``)."""
+    import pysaiyanweboo as ui
+    return ui.page_document({'schema': 'web-ui-page/1', 'title': title, 'theme': 'modern', 'blocks': [
+        {'type': 'heading', 'text': '🎥 ⏳', 'level': 2}, {'type': 'text', 'text': 'このページはまだ撮れていません。次の公開で撮り直します。', 'muted': True}]})
+
+
 def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), size=(240, 432), max_bytes=300_000,
-                   browser=None, captions: dict[str, str] | None = None) -> list[str]:
+                   browser=None, captions: dict[str, str] | None = None, stand_ins: dict[str, str] | None = None) -> list[str]:
     """🎥 Open each page in Chromium at phone size, keep the top and one screen further down, and write a two-frame GIF
     per name as ``output/media/pages/<name>.gif`` with gif.js (a name may hold a folder: ``tools/gif``). The caption is
-    ``captions[name]``, else ``🌐 name``. Best effort: one line per name (🎥 / ⏸).
+    ``captions[name]``, else ``🌐 name``. Best effort: one line per name (🎥 / ⏸). A name in ``stand_ins`` (name → HTML) whose
+    page cannot be opened gets that HTML as its picture instead (⏸ … 🖼), so it is never left without one.
     ``browser``: a launched Playwright browser to use (a caller already inside Playwright); otherwise Chromium is started."""
     if browser is None:
         from playwright.sync_api import sync_playwright
         with sync_playwright() as playwright:
             chromium = playwright.chromium.launch()
             try:
-                return record_samples(output, pages, viewport=viewport, size=size, max_bytes=max_bytes, browser=chromium, captions=captions)
+                return record_samples(output, pages, viewport=viewport, size=size, max_bytes=max_bytes, browser=chromium, captions=captions,
+                                      stand_ins=stand_ins)
             finally:
                 chromium.close()
     import base64
@@ -360,6 +370,15 @@ def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), 
     try:
         site, encoder = site_context.new_page(), encoder_context.new_page()
         encoder.set_content(ui.gif_recorder_document())
+        def save(name: str, frames: list[bytes]) -> int:
+            encoder.evaluate('o => { window.rec = new UiGif.Recorder(o); }', {'width': size[0], 'height': size[1], 'caption': 24})
+            encoder.evaluate('items => rec.add(items)', [{'png': base64.b64encode(png).decode('ascii'), 'caption': (captions or {}).get(name, f'🌐 {name}'),
+                                                         'ok': True, 'delay': 1500} for png in frames])
+            gif = base64.b64decode(encoder.evaluate('o => rec.encodeBase64(o)', {'maxBytes': max_bytes})['gif'])
+            (folder / f'{name.lower()}.gif').parent.mkdir(parents=True, exist_ok=True)
+            (folder / f'{name.lower()}.gif').write_bytes(gif)
+            return len(gif) // 1024
+
         for name, url in pages.items():
             try:
                 response = site.goto(url, wait_until='load', timeout=30_000)
@@ -371,15 +390,15 @@ def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), 
                 site.wait_for_timeout(500)
                 if (lower := site.screenshot()) != frames[0]:
                     frames.append(lower)
-                encoder.evaluate('o => { window.rec = new UiGif.Recorder(o); }', {'width': size[0], 'height': size[1], 'caption': 24})
-                encoder.evaluate('items => rec.add(items)', [{'png': base64.b64encode(png).decode('ascii'), 'caption': (captions or {}).get(name, f'🌐 {name}'),
-                                                             'ok': True, 'delay': 1500} for png in frames])
-                gif = base64.b64decode(encoder.evaluate('o => rec.encodeBase64(o)', {'maxBytes': max_bytes})['gif'])
-                (folder / f'{name.lower()}.gif').parent.mkdir(parents=True, exist_ok=True)
-                (folder / f'{name.lower()}.gif').write_bytes(gif)
-                lines.append(f'🎥 {name}: {len(frames)} frames · {len(gif) // 1024} KiB')
+                lines.append(f'🎥 {name}: {len(frames)} frames · {save(name, frames)} KiB')
             except Exception as exc:                       # one Pages failing keeps the rest (and the deploy) going
                 lines.append(f'⏸ {name}: {type(exc).__name__}: {str(exc).splitlines()[0][:120] if str(exc) else ""}')
+                if name in (stand_ins or {}):
+                    try:
+                        site.set_content(stand_ins[name])
+                        lines[-1] += f' · 🖼 {save(name, [site.screenshot()])} KiB'
+                    except Exception:                      # no picture then: the card keeps its links in words
+                        pass
     finally:
         site_context.close()
         encoder_context.close()
@@ -1054,7 +1073,8 @@ def main(argv=None):
         # 🎥 this portfolio too: its card shows the front page as Pages serves it now (the deploy before this one), and so do the 🧰 Tools
         tools = tools_samples()
         print('\n'.join(record_samples(args.record_samples, {**pages_urls(), **{name: url for name, (url, _) in tools.items()}},
-                                       captions={name: title for name, (_, title) in tools.items()})))
+                                       captions={name: title for name, (_, title) in tools.items()},
+                                       stand_ins={name: sample_stand_in(title) for name, (_, title) in tools.items()})))
     if args.record_map:
         print('\n'.join(record_map(args.record_map)))
     if args.record_chat:

@@ -99,12 +99,16 @@ def test_moving_sample_is_recorded_for_a_pages_url(site, browser, tmp_path):
     pages = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(pages)
     lines = pages.record_samples(tmp_path, {"Portfolio": site[1] + "/index.html", "Gone": site[1] + "/no-such-page/",
-                                            "tools/gif": site[1] + "/tools/gif/"}, browser=browser, captions={"tools/gif": "🎞 GIF工房"})
+                                            "tools/gif": site[1] + "/tools/gif/", "tools/new": site[1] + "/tools/not-published-yet/"},
+                                 browser=browser, captions={"tools/gif": "🎞 GIF工房", "tools/new": "🆕 新しい道具"},
+                                 stand_ins={"tools/new": pages.sample_stand_in("🆕 新しい道具")})
     gif = (tmp_path / "media/pages/portfolio.gif").read_bytes()
     assert gif[:6] == b"GIF89a" and lines[0].startswith("🎥 Portfolio: 2 frames")
     assert lines[1] == "⏸ Gone: RuntimeError: HTTP 404"                                   # an error page is not a sample
     assert (tmp_path / "media/pages/tools/gif.gif").read_bytes()[:6] == b"GIF89a" and lines[2].startswith("🎥 tools/gif: ")   # 🧰 a Tools card's page
-    assert pages.recorded_samples(tmp_path) == {"portfolio", "tools/gif"}
+    assert re.fullmatch(r"⏸ tools/new: RuntimeError: HTTP 404 · 🖼 \d+ KiB", lines[3])     # 🖼 a Tools card is never left without a picture
+    assert (tmp_path / "media/pages/tools/new.gif").read_bytes()[:6] == b"GIF89a" and not (tmp_path / "media/pages/gone.gif").exists()
+    assert pages.recorded_samples(tmp_path) == {"portfolio", "tools/gif", "tools/new"}
 
 
 def test_a_tools_card_picture_opens_the_tool_and_the_weekly_note_draws_its_bars_with_a_gif(site, browser, page):

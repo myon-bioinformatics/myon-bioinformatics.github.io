@@ -288,7 +288,7 @@ add_back_nav(page, 'tools/maps/index.html', {'🗼': {'label': 'パラレル都�
 
 ### 🎥 Tools カードの動く見本と 🗓️ 週次ノート
 
-- 🎥 🧰 Tools の各カードにも、🚀 Projects のカードと同じ動く見本（GIF）が付きます。絵を押すと、その道具が開きます（🧭 統合運用のような別リポジトリのページも同じ）。絵があるカードでは、文字のリンクは開き先が複数ある（似た道具が並ぶ）カードにだけ残します。公開のたびに `--record-samples` が、いま公開中の道具のページを撮ります（`media/pages/tools/<id>.gif`。撮れなかったカードは絵なし）。
+- 🎥 🧰 Tools の各カードにも、🚀 Projects のカードと同じ動く見本（GIF）が付きます。絵を押すと、その道具が開きます（🧭 統合運用のような別リポジトリのページも同じ）。絵があるカードでは、文字のリンクは開き先が複数ある（似た道具が並ぶ）カードにだけ残します。公開のたびに `--record-samples` が、いま公開中の道具のページを撮ります（`media/pages/tools/<id>.gif`）。ページを開けなかったカードには、名前と 🎥 ⏳ のかわりの絵を付け、どのカードも同じ形にそろえます。
 - 🗓️ 週次ノートは `docs/weekly-view.md`（ふつうの Markdown）です。前の週（月〜日、日本時間）にマージした PR を、毎日の Update repos API が月曜に書き直します（`scripts/repos_catalog.py --weekly`、GitHub の REST 検索）。
 - 📊 ビルド時に markdown.py で HTML にし、表の数値だけの列は棒にします（`table_bars`、JS なし）。別の `.md` を載せるときは `site.config.json` の `documents` に 1 行足します。
 
