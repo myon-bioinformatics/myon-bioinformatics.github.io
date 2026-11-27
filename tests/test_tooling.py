@@ -207,7 +207,11 @@ def test_generated_files_match_the_lock_and_are_not_committed(tmp_path):
         assert hashlib.sha256(data).hexdigest() == {**lock['outputs'], **lock['pages']}[name]   # assets and the demo pages
     assets.build(tmp_path)
     for name, data in payload.items():
-        assert (tmp_path / name).read_bytes() == data
+        if name in assets.PANEL_PAGES:                                   # 🧰 a #panel of the one screen, not a page of its own
+            assert not (tmp_path / name).exists()
+        else:
+            assert (tmp_path / name).read_bytes() == data
+    assert (tmp_path / assets.SHELL_PAGE).is_file()
     assert json.loads((tmp_path / assets.ASSET_BASE / 'generated.lock.json').read_text())['commit'] == lock['commit']
 
 
@@ -304,8 +308,11 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     assets.build(tmp_path / 'function-output', root)
     for name, data in assets.generate(root).items():
         assert not (root / name).exists()                         # refresh rewrites the lock only
+        if name in assets.PANEL_PAGES:                            # 🧰 published inside tools/index.html
+            continue
         assert (output / name).read_bytes() == data
         assert (tmp_path / 'function-output' / name).read_bytes() == data
+    assert (output / assets.SHELL_PAGE).read_bytes() == (tmp_path / 'function-output' / assets.SHELL_PAGE).read_bytes()
     # The old CLI without refresh uses the same validated generation path.
     result = subprocess.run([sys.executable, str(root / 'scripts/project_pages.py'),
                              '--output', str(output)], capture_output=True, text=True)

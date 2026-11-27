@@ -34,7 +34,7 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
  {'title': '📍地図URL・座標ピン留め',
   'text': '緯度・経度からApple MapsとGoogle MapsのURLを作成。地点のピン留め・共有と、パラレル東京の対応地点へ。',
   'id': 'maps',
-  'links': [('地図URLを作成 →', './tools/maps/'), ('パラレル東京 →', './tools/demos/world.html#tokyo')]},
+  'links': [('地図URLを作成 →', './tools/#maps'), ('パラレル東京 →', './tools/demos/world.html#tokyo')]},
  {'title': '🖼️ スライド・画像工房',
   'text': 'ブラウザでスライドを作成し、文字・図形・矢印を編集可能なPPTXへ出力。Image Studio はレイヤー、数値行列のヒートマップ、作業履歴、クリップボード棚、PNG Base64 の受け渡しに対応し、Browser Tools '
           'ではドット絵・比較用の一枚・容量確認ができます。Markdown→PPTX変換と既存PPTXの属性編集はローカルCLIの試作実装です。',
@@ -61,7 +61,7 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'text': 'JUnit の結果を貼るか開いて読み、前回と比べて新規・再発・解消を分ける。端末の中で完結し、結果はどこにも送らない。',
   'id': 'test-report',
   'from': ('PySaiyanWeBoo',),
-  'links': [('結果を読む →', './tools/test-report/')]},
+  'links': [('結果を読む →', './tools/#test-report')]},
  {'title': '💬 横断チャット',
   'text': 'リポジトリ横断の道具をチャットで：Markdown の表示・表、ASCII アートと流れ図、会話の圧縮、MCP の道具呼び出しの確認、'
           '全リポジトリの JSON / JSONL（オントロジーの台帳も）の索引と中身。ページの中の Python（Pyodide）で、それぞれのリポジトリのコードがそのまま動く。',
@@ -77,16 +77,16 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'text': '手持ちの画像を並べて GIF に。端末の中で完結し、画像はどこにも送らず保存もしない（PySaiyanWeBoo の gif.js）。',
   'id': 'gif',
   'from': ('PySaiyanWeBoo',),
-  'links': [('GIF をつくる →', './tools/gif/')]},
+  'links': [('GIF をつくる →', './tools/#gif')]},
  {'title': '🌊 流れの実験室',
   'text': 'FFSS の全場面を 🌊 動く像（流れと遅れ）で、その記録から描ける DRAgoWing の全図を 📊 静止図（行き先の内訳）で。水回り・流しそうめん・お金・からだ・火力・ヒートポンプまで。',
   'id': 'flow',
   'from': ('FluidFullSpeedSimulation', 'DRAgoWing'),
-  'links': [('実験室へ →', './tools/flow/')]},
+  'links': [('実験室へ →', './tools/#flow')]},
  {'title': '🧠 リポジトリ地図',
   'text': 'どのリポジトリが、どのリポジトリのファイルを写して使っているか。各リポジトリの vendor.lock.json と Aoi の subtree から、公開のたびに描き直す。',
   'id': 'repo-map',
-  'links': [('地図へ →', './tools/repo-map/')]}]
+  'links': [('地図へ →', './tools/#repo-map')]}]
 
 
 # 🔗 The front page's own emoji in the shared header (scripts/project_pages.py ``add_site_chrome``): where else to find the author.

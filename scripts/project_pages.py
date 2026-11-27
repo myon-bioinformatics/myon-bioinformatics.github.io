@@ -37,7 +37,8 @@ import sys
 import tempfile
 from pathlib import Path
 from types import ModuleType
-from urllib.parse import urljoin
+import posixpath
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_BASE = 'tools/vendor/web-ui/'
@@ -234,9 +235,9 @@ def tools_door(ui, prefix: str = '../../', here: str | None = None, title: str =
     After the pull-down: 🐦 the X account and 📦 this page's size (``pysaiyanweboo.stamp_page_size`` writes it once the page is whole)."""
     pages = [{'emoji': '🏠', 'label': 'Tools', 'href': prefix + 'index.html#tools'},
              *({'emoji': mark, 'label': words, 'href': place['href']} for place in tools_places(prefix) for mark, _, words in [place['label'].partition(' ')])]
-    if here and here not in {page['href'] for page in pages}:
+    if here and not any(page['href'] in (here, here + '#' + page['href'].partition('#')[2]) for page in pages):   # 🧰 the screen's #panels are here
         pages.append({'emoji': '📌', 'label': title[:40] or here, 'href': here})
-    door = {'schema': ui.DOOR_SCHEMA, 'k': 0, 'pages': pages, **({'current': here} if here else {})}
+    door = {'schema': ui.DOOR_SCHEMA, 'k': 0, 'pages': pages, **({'current': here} if here in {page['href'] for page in pages} else {})}
     x = [{'emoji': '🐦', 'label': f'X (Twitter) @{X_URL.rpartition("/")[2]}', 'href': X_URL}]
     return ui.component_parts('door', door, foot=True, links=x, size=True)
 
@@ -334,9 +335,8 @@ def render_world(ui) -> dict[str, bytes]:
 
 
 def render_pswb_tools(ui) -> dict[str, bytes]:
-    """🧾 PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``), each with the way back, the chrome and the home-screen name."""
-    return {path: add_home_label(add_back_nav(build(ui), path), label, icons_from='../../').encode('utf-8')
-            for path, (build, label) in PSWB_TOOLS.items()}
+    """🧾 PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``), each a #panel of the one 🧰 screen (``render_shell``)."""
+    return {path: build(ui).encode('utf-8') for path, (build, _) in PSWB_TOOLS.items()}
 
 
 def html_import_files(ui):
@@ -361,8 +361,8 @@ GIF_PAGE = 'tools/gif/index.html'
 SAMPLES = 'media/pages/'          # 🎥 one moving sample per repository's Pages, recorded at deploy time (not kept in git)
 def render_gif_tool(ui) -> dict[str, bytes]:
     """🎞 GIF工房: PySaiyanWeBoo's ``gif_maker_document`` — images the visitor picks become one looping GIF in the page."""
-    page = ui.gif_maker_document(filename='gif-kobo.gif', css=ui.bundled_css())   # the shared sheet (render_pages links it as css/bundle.css)
-    return {GIF_PAGE: add_home_label(add_back_nav(page, GIF_PAGE), '🎞 GIF工房', icons_from='../../').encode('utf-8')}
+    page = ui.gif_maker_document(filename='gif-kobo.gif', css=ui.bundled_css())   # the shared sheet is the 🧰 screen's (render_shell)
+    return {GIF_PAGE: page.encode('utf-8')}
 
 
 def recorded_samples(output: Path) -> frozenset[str]:
@@ -659,7 +659,7 @@ def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
     archive = md_market.markdown_to_html(records).replace('<img src="../../media/flow/', '<img loading="lazy" src="../../media/flow/')
     page = page.replace(slot, f'<div id="records">{archive}</div>', 1)
     page = page.replace('</head>', '<style>#records img{max-width:100%;height:auto}</style></head>', 1)
-    return {FLOW_PAGE: add_home_label(add_back_nav(page, FLOW_PAGE), '🌊 流れ実験', icons_from='../../').encode('utf-8'),
+    return {FLOW_PAGE: page.encode('utf-8'),   # 🧰 a #panel of the one screen (render_shell)
             FLOW_MARKDOWN: records.encode('utf-8'), FLOW_RIG_JS: FLOW_RIG_SOURCE.encode('utf-8')}
 
 
@@ -774,7 +774,7 @@ def render_map(ui, output: Path | None = None) -> dict[str, bytes]:
         blocks.append({'type': 'text', 'text': '⏸ このビルドでは記録していない'})
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '🧠 リポジトリ地図', 'blocks': blocks}).replace(
         '</head>', '<style>.ui-page img{max-width:100%;height:auto}.ui-kv dd{overflow-wrap:anywhere}</style></head>', 1)
-    return {MAP_PAGE: add_home_label(add_back_nav(page, MAP_PAGE), '🧠 地図', icons_from='../../').encode('utf-8')}
+    return {MAP_PAGE: page.encode('utf-8')}   # 🧰 a #panel of the one screen (render_shell)
 
 
 # ── 💬 横断チャット: scripts/chat.py in Pyodide with the pinned markdown.py · ascii_artist.py · cli_args.py (pages group);
@@ -1133,21 +1133,94 @@ def render_tools(ui, output: Path | None = None) -> dict[str, bytes]:
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     """Every hash-locked page: the demos and world pages, HTML import, map tools and the GIF workshop, keyed by published path."""
     map_tool = load_module('map_tool', 'scripts/map_tool.py')
-    cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': '../demos/world.html#tokyo'}}
-    document = map_tool.map_document(ui, map_tool.tokyo_points(_world().example_data('cities')))
-    document = document.replace('<html lang="en">', '<html lang="ja">', 1)
-    maps = {MAP_PINS_PAGE: add_home_label(add_back_nav(document, MAP_PINS_PAGE, cities), '地図・ピン', icons_from='../../').encode()}
-    pages = {**render_world(ui), **render_pswb_tools(ui), **render_html_import(ui), **maps, **render_gif_tool(ui), **render_chat_tool(ui)}
+    maps = {MAP_PINS_PAGE: map_tool.map_document(ui, map_tool.tokyo_points(_world().example_data('cities'))).encode()}
+    pages = {**render_world(ui), **render_html_import(ui), **render_chat_tool(ui)}
+    pages = {path: link_shared_sheets(ui, path, page) for path, page in pages.items()}
+    return {**pages, **render_pswb_tools(ui), **maps, **render_gif_tool(ui)}   # 🧰 the last three are #panels (render_shell)
+
+
+def link_shared_sheets(ui, path: str, page: bytes) -> bytes:
+    """The shared sheet a page inlines (``STYLESHEET_BUNDLES``) as a link to its published copy, so every page reads one file."""
     for sheet, builder in STYLESHEET_BUNDLES.items():
         prefix = b'<style>' + getattr(ui, builder)().encode()
-        for path, page in pages.items():
-            head, end, body = page.partition(b'</head>')
-            if prefix in head:
-                href = os.path.relpath(ASSET_BASE + sheet, os.path.dirname(path)).replace(os.sep, '/')
-                link = f'<link rel="stylesheet" href="{href}">'.encode()
-                head = head.replace(prefix, link + b'<style>', 1).replace(link + b'<style></style>', link, 1)
-                pages[path] = ui.stamp_page_size((head + end + body).decode('utf-8')).encode('utf-8')   # 📦 the page is smaller now
-    return pages
+        head, end, body = page.partition(b'</head>')
+        if prefix in head:
+            href = os.path.relpath(ASSET_BASE + sheet, os.path.dirname(path)).replace(os.sep, '/')
+            link = f'<link rel="stylesheet" href="{href}">'.encode()
+            head = head.replace(prefix, link + b'<style>', 1).replace(link + b'<style></style>', link, 1)
+            page = ui.stamp_page_size((head + end + body).decode('utf-8')).encode('utf-8')   # 📦 the page is smaller now
+    return page
+
+
+# ── 🧰 One screen: every tool the portfolio builds is a #panel of tools/index.html, under one header, one foot and one ⚙️ ──
+SHELL_PAGE = 'tools/index.html'
+PANEL_PAGES = (GIF_PAGE, MAP_PINS_PAGE, *PSWB_TOOLS, FLOW_PAGE, MAP_PAGE)   # where each panel's document is built from; never published
+_LINK = re.compile(r'(?P<attr>\b(?:href|src)=)(?P<quote>["\'])(?P<url>[^"\']*)(?P=quote)')
+_SHELL_JS = """(()=>{const panels=[...document.querySelectorAll('[data-tools-panel]')],names=panels.map(p=>p.id);let current='';
+const mark=()=>{const door=document.querySelector('[data-door-select]'),mine=door&&[...door.options].find(o=>o.value.endsWith('#'+current));if(mine)door.value=mine.value};   // 🚪 shows where you are
+const show=(panel,target)=>{const inert=panel.querySelector(':scope>template');if(inert)panel.replaceChildren(document.importNode(inert.content,true));  // 💤 a panel loads when first opened
+ for(const p of panels)p.hidden=p!==panel;document.title=panel.dataset.title;
+ if(target)(document.getElementById(target)||panel).scrollIntoView();else if(current&&current!==panel.id)scrollTo(0,0);current=panel.id;mark()};
+const route=()=>{const name=decodeURIComponent(location.hash.slice(1)).split('?')[0];
+ if(names.includes(name))return show(document.getElementById(name));
+ const owner=name&&panels.find(p=>p.querySelector(':scope>template')?.content.getElementById(name)||p.contains(document.getElementById(name)));   // #records: a section of a panel
+ if(owner)return show(owner,name);if(!current)show(document.getElementById('home'))};
+addEventListener('hashchange',route);addEventListener('pageshow',()=>setTimeout(mark));
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',route);else route()})();"""
+
+
+def _rebase_links(markup: str, source: str, name: str) -> str:
+    """Every relative ``href`` / ``src`` of ``markup`` (written for ``source``) as seen from SHELL_PAGE; a link to the page
+    itself becomes ``#name``. Script bodies are left as they are (only a ``<script src>`` moves)."""
+    def move(match):
+        parts = urlsplit(match['url'])
+        if not parts.path or parts.scheme or parts.netloc or parts.path.startswith('/'):
+            return match[0]
+        at = posixpath.normpath(posixpath.join(posixpath.dirname(source), parts.path))
+        if at in (posixpath.dirname(source), source):
+            url = '#' + (parts.fragment or name)
+        else:
+            url = urlunsplit(('', '', './' + posixpath.relpath(at, posixpath.dirname(SHELL_PAGE)) + ('/' if parts.path.endswith('/') else ''),
+                              parts.query, parts.fragment))
+        return match['attr'] + match['quote'] + url + match['quote']
+    pieces = re.split(r'(<script\b[^>]*>.*?</script>)', markup, flags=re.S)
+    return ''.join(_LINK.sub(move, piece) if i % 2 == 0 else re.sub(r'<script\b[^>]*>', lambda tag: _LINK.sub(move, tag[0]), piece, count=1)
+                   for i, piece in enumerate(pieces))
+
+
+def _panel(ui, source: str, page: str) -> tuple[str, str]:
+    """(title, markup) of a tool's document as a #panel: its <head>'s own styles and scripts (the shared sheet, the name, the icons
+    and the viewport are the screen's), then its <body>, links rebased (``_rebase_links``)."""
+    head = re.search(r'<head>(.*?)</head>', page, re.S)[1]
+    body = re.search(r'<body\b[^>]*>(.*)</body>', page, re.S)[1]
+    title = html.unescape(re.search(r'<title>(.*?)</title>', head, re.S)[1]).strip()
+    head = re.sub(r'<meta\b[^>]*>|<title>.*?</title>|<link rel="(?:icon|apple-touch-icon|manifest)"[^>]*>', '', head, flags=re.S)
+    for builder in STYLESHEET_BUNDLES.values():
+        head = head.replace('<style>' + getattr(ui, builder)(), '<style>')
+    return title, _rebase_links(head.replace('<style></style>', '') + body, source, source.split('/')[1])
+
+
+def render_shell(ui, docs: dict[str, bytes]) -> bytes:
+    """🧰 tools/index.html: the screen every tool of PANEL_PAGES is a panel of (``#gif``, ``#maps``, …; 🏠 ``#home`` lists them).
+    The header, the side and the foot are the site's (``add_site_chrome``) once; a panel stays an inert ``<template>`` until it is
+    first opened (its styles and scripts load then), and ``#section`` opens the panel that holds it."""
+    places = {place['href']: place['label'] for place in tools_places('../')}
+    index, panels = [], []
+    for source, data in docs.items():
+        name = source.split('/')[1]
+        title, markup = _panel(ui, source, data.decode('utf-8'))
+        index.append(f'<li><a href="#{name}">{html.escape(places.get(f"../tools/#{name}", title), quote=False)}</a></li>')
+        panels.append(f'<section id="{name}" data-tools-panel data-title="{html.escape(title)}" hidden><template>{markup}</template></section>')
+    home = (f'<section id="home" data-tools-panel data-title="🧰 Tools"><main class="ui-page"><h1>🧰 Tools</h1>'
+            f'<ul class="ui-tools-index">{"".join(index)}</ul></main></section>')
+    page = ui.render_document(title='🧰 Tools', theme='modern', css=ui.bundled_css() + '.ui-tools-index{display:grid;gap:8px;padding:0;list-style:none}',
+                              trusted_html=home + ''.join(panels) + f'<script>{_SHELL_JS}</script>')
+    page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace(
+        '<head>', '<head><meta name="description" content="myon-bioinformatics の道具を 1 つの画面で。🚪 で道具を選び、🏠 で一覧へ。">', 1)   # 📟 the board reads it
+    cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './demos/world.html#tokyo'}}   # 🗺️ the map's neighbour
+    page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': '../index.html#tools'}], test_id='portfolio-back')   # 🏠 the home panel's first line
+    page = add_site_chrome(page, SHELL_PAGE, cities)
+    return link_shared_sheets(ui, SHELL_PAGE, add_home_label(page, '🧰 道具', icons_from='../').encode('utf-8'))
 
 
 def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str, bytes]:
@@ -1187,6 +1260,7 @@ def build(output: Path, root: Path = ROOT) -> None:
     import pysaiyanweboo as ui
     payload = {**generate(root), **render_front(root, recorded_samples(output)), **render_flow(ui, output), **render_map(ui, output),
                **render_tools(ui, output)}  # Fail closed first.
+    payload[SHELL_PAGE] = render_shell(ui, {path: payload.pop(path) for path in PANEL_PAGES})
     for name, data in payload.items():
         path = output / name
         path.parent.mkdir(parents=True, exist_ok=True)
