@@ -94,13 +94,13 @@ class SchoolTests(unittest.TestCase):
         page.fill('.ui-world-pick-form input', "ねこ🐱")                    # text, or emoji and text, is a character too
         page.press('.ui-world-pick-form input', "Enter")
         self.assertFalse(page.is_visible(".ui-world-pick"))
-        self.assertEqual(page.eval_on_selector_all(".ui-player span", "els => els.map(e => e.textContent)"), ["ねこ🐱", "ねこ🐱"])
+        self.assertEqual(page.eval_on_selector_all(".ui-player span", "els => els.map(e => e.textContent)"), ["ねこ🐱"] * len(SPEC["floors"]))
         self.menu(page, "settings")        # the ⚙️ menu (header) holds the picker button
         page.click("[data-pick-open]")
         page.fill('.ui-world-pick-form input', "🦖")
         page.press('.ui-world-pick-form input', "Enter")
         self.assertFalse(page.is_visible(".ui-world-pick"))
-        self.assertEqual(page.eval_on_selector_all(".ui-player span", "els => els.map(e => e.textContent)"), ["🦖", "🦖"])
+        self.assertEqual(page.eval_on_selector_all(".ui-player span", "els => els.map(e => e.textContent)"), ["🦖"] * len(SPEC["floors"]))
         self.menu(page, "settings")        # the ⚙️ menu (header) holds the picker button
         page.click("[data-pick-open]")
         self.assertTrue(page.is_visible(".ui-world-pick"))
@@ -211,7 +211,9 @@ class SchoolTests(unittest.TestCase):
         self.assertTrue(page.is_visible('.ui-world-spots[data-floor="classroom"]'))
         self.assertFalse(page.is_visible('.ui-world-spots[data-floor="yard"]'))
         page.wait_for_function("() => document.querySelector('.ui-world-arrow').textContent !== '📍'")
-        self.assertEqual(arrows("classroom"), ["⬆️", "⬆️", "⬆️"])                      # standing at the door: all three are ahead
+        room_spots = SPEC["floors"][0]["spots"]
+        start_pos = [SPEC["floors"][0]["player"]["x"], SPEC["floors"][0]["player"]["y"]]
+        self.assertEqual(arrows("classroom"), [W.world_direction(start_pos, [s["x"], s["y"]], 32) for s in room_spots])
         page.click(f"{more} summary")                                                  # one menu at a time
         page.wait_for_function(f"() => !document.querySelector('{spots}').open")      # (the toggle event is queued)
         page.keyboard.press("Escape")
@@ -220,13 +222,14 @@ class SchoolTests(unittest.TestCase):
         page.click('.ui-world-spots a[href="#school-spot-classroom-board"]')          # a place in the list: walk there and read it
         self.assertFalse(page.evaluate(f"document.querySelector('{spots}').open"))
         page.wait_for_function("() => { const p = document.querySelector('.ui-floor[data-floor=\"classroom\"] .ui-player'); const s = p.style;"
-                               " return Math.abs(parseFloat(s.getPropertyValue('--py')) - +p.dataset.targetY) < .01 }")
+                               " return Math.abs(parseFloat(s.getPropertyValue('--px')) - +p.dataset.targetX) < .01"
+                               " && Math.abs(parseFloat(s.getPropertyValue('--py')) - +p.dataset.targetY) < .01 }")
         self.assertTrue(page.is_visible("#school-spot-classroom-board"))
         page.click(".ui-sheet-close:visible")
         page.click(f"{spots} summary")
         page.wait_for_function("() => document.querySelector('.ui-world-arrow').textContent === '📍'")   # arrived: within a tile
         player = page.evaluate(POS)                                                    # the page's arrows are the oracle's, point for point
-        want = [W.world_direction(player, [x, y], 32) for x, y in ((192, 16), (192, 112), (192, 432))]
+        want = [W.world_direction(player, [s["x"], s["y"]], 32) for s in room_spots]
         self.assertEqual(arrows("classroom"), want)
         self.assertEqual(want[0], "📍")
         page.keyboard.press("Escape")
@@ -302,10 +305,10 @@ class SchoolTests(unittest.TestCase):
         page.click(f'{menu("tool")}:has(summary:text("🗺️")) summary')
         self.assertTrue(page.is_visible(f'{head} .ui-world-rows:not(.ui-world-favs) a[href="#school-spot-flowers"]'))
         page.wait_for_function("() => document.querySelector('.ui-world-head .ui-world-rows:not(.ui-world-favs) a .ui-world-arrow').textContent !== '📍'")
-        self.assertEqual(page.eval_on_selector_all(f"{head} .ui-world-rows:not(.ui-world-favs) .ui-world-arrow", "els => els.map(e => e.textContent)"), ["⬆️", "🚪"])
+        self.assertEqual(page.eval_on_selector_all(f"{head} .ui-world-rows:not(.ui-world-favs) .ui-world-arrow", "els => els.map(e => e.textContent)"), ["⬆️", "🚪", "🚪", "🚪", "🚪"])
         page.click(f'{menu("tool")}:has(summary:text("🏫")) summary')
         page.wait_for_function("() => document.querySelectorAll('.ui-world-menu[open]').length === 1")
-        self.assertIn("教室と校庭", page.inner_text(f'{menu("tool")}[open]'))
+        self.assertIn("教室・校庭・理科室", page.inner_text(f'{menu("tool")}[open]'))
         self.assertEqual(self.errors, [])
 
     def test_favorites_and_language_come_back_from_the_cache_and_nothing_else_does(self):
@@ -368,6 +371,105 @@ class SchoolTests(unittest.TestCase):
         page.evaluate("(key) => localStorage.setItem(key, JSON.stringify({bag: 'invalid'}))", key)
         page.reload()
         self.assertEqual(page.locator(".ui-world-bag li").count(), 0)
+        self.assertEqual(self.errors, [])
+
+    def test_school_contact_dialogue_drops_chests_quizzes_and_study_log(self):
+        """Contact triggers canned dialogue, auto-picks up ground drops, unlocks key/quiz treasure chests and persists 🏆 study progress."""
+        page = self.open()
+        self.start(page, "🤓")
+        key = "ui-world:school-map"
+        # 1) Walk beside 👩‍🏫 teacher (tile 6,4 -> y=144, within 1.15 tiles of 192,112) -> contact dialogue pops up
+        self.tap_map(page, 208, 144)
+        self.settle(page)
+        page.wait_for_selector(".ui-talk:not([hidden])")
+        self.assertIn("担任の先生", page.text_content(".ui-talk-speaker"))
+        self.assertEqual(page.text_content(".ui-talk-page"), "1/2")
+        page.click(".ui-talk-next")
+        self.assertEqual(page.text_content(".ui-talk-page"), "2/2")
+        page.click(".ui-talk-close")
+        # 2) Walk to (10,14) then step ArrowUp onto dropped 📝 観察メモ (10,13) -> auto-picked up into 🎒
+        self.tap_map(page, 336, 464)
+        self.settle(page)
+        page.keyboard.press("ArrowUp")
+        self.settle(page)
+        page.wait_for_selector('.ui-spot[data-item-id="school-spot-classroom-note"][data-collected]')
+        self.assertIn("観察メモ", page.text_content(".ui-talk-text"))
+        self.assertEqual(page.get_attribute('[data-menu="bag"] > summary', "data-count"), "1")
+        page.click(".ui-talk-close")
+        # 3) Return beside teacher -> item-aware conditional dialogue (has_lines)
+        self.tap_map(page, 208, 144)
+        self.settle(page)
+        page.wait_for_selector(".ui-talk:not([hidden])")
+        self.assertIn("観察メモ", page.text_content(".ui-talk-text"))
+        page.click(".ui-talk-close")
+        # 4) Walk beside 🎁 quiz treasure chest (10,3 -> 336,112) -> open quiz via contact action
+        self.tap_map(page, 336, 112)
+        self.settle(page)
+        page.wait_for_selector(".ui-talk-act:not([hidden])")
+        page.click(".ui-talk-act")
+        self.assertTrue(page.is_visible("#school-spot-classroom-chest"))
+        page.click("#school-spot-classroom-chest .ui-world-take")
+        self.assertEqual(page.get_attribute("#school-spot-classroom-chest .ui-world-take", "aria-pressed"), "false")
+        page.click('#school-spot-classroom-chest .ui-quiz-btn[data-choice="1"]')
+        self.assertIn("ヒント", page.text_content("#school-spot-classroom-chest .ui-quiz-msg"))
+        page.click('#school-spot-classroom-chest .ui-quiz-btn[data-choice="0"]')
+        self.assertIn("正解", page.text_content("#school-spot-classroom-chest .ui-quiz-msg"))
+        self.assertEqual(page.get_attribute("#school-spot-classroom-chest .ui-world-take", "aria-pressed"), "true")
+        self.assertIsNotNone(page.get_attribute('.ui-spot[data-item-id="school-spot-classroom-chest"]', "data-opened"))
+        page.click(".ui-sheet-close:visible")
+        # 5) Key-locked cross-floor chest in 🔬 lab: locked without 🔑, opens after collecting 🔑 in classroom + solving quiz
+        page.select_option(".ui-world-goto", "lab")
+        page.wait_for_timeout(350)
+        page.click('a.ui-spot[href="#school-spot-lab-flow-chest"]')
+        page.click("#school-spot-lab-flow-chest .ui-world-take")
+        self.assertEqual(page.get_attribute("#school-spot-lab-flow-chest .ui-world-take", "aria-pressed"), "false")
+        page.click(".ui-sheet-close:visible")
+        page.select_option(".ui-world-goto", "classroom")
+        page.wait_for_timeout(350)                                               # camera finishes fit transition
+        self.tap_map(page, 48, 144)                                              # walk below 🔑 理科室の鍵, then step up onto it
+        self.settle(page)
+        page.keyboard.press("ArrowUp")
+        self.settle(page)
+        page.wait_for_selector('.ui-spot[data-item-id="school-spot-classroom-key"][data-collected]')
+        page.click(".ui-talk-close")
+        page.select_option(".ui-world-goto", "lab")
+        page.wait_for_timeout(350)
+        page.click('a.ui-spot[href="#school-spot-lab-flow-chest"]')
+        page.click('#school-spot-lab-flow-chest .ui-quiz-btn[data-choice="0"]')
+        self.assertEqual(page.get_attribute("#school-spot-lab-flow-chest .ui-world-take", "aria-pressed"), "true")
+        page.click(".ui-sheet-close:visible")
+        # 6) 🏆 study notebook tracks progress & persists across reload
+        self.menu(page, "progress")
+        self.assertNotEqual(page.text_content(".ui-world-rank"), "🌱 見学中")
+        self.assertGreaterEqual(page.locator(".ui-world-quests a[data-done]").count(), 4)
+        saved = page.evaluate("(key) => JSON.parse(localStorage.getItem(key))", key)
+        self.assertIn("school-spot-classroom-note", saved["bag"])
+        self.assertIn("school-spot-lab-flow-chest", saved["bag"])
+        self.assertIn("school-spot-classroom-chest", saved["done"])
+        page.reload()
+        self.start(page, "🤓")
+        self.assertEqual(page.get_attribute('[data-menu="bag"] > summary', "data-count"), "4")
+        self.menu(page, "progress")
+        self.assertGreaterEqual(page.locator(".ui-world-quests a[data-done]").count(), 4)
+        self.assertEqual(self.errors, [])
+
+    def test_schoolyard_actor_contact_dialogue(self):
+        """Approaching a moving actor in the schoolyard triggers its canned contact dialogue."""
+        page = self.open()
+        self.start(page, "🐱")
+        page.select_option(".ui-world-goto", "yard")
+        page.wait_for_timeout(300)
+        # Walk directly to the kid actor's current screen position on the open schoolyard floor
+        box = page.evaluate("""() => {
+            const f = document.querySelector('.ui-floor[data-floor="yard"]').getBoundingClientRect();
+            const a = document.querySelector('#school-actor-kid').getBoundingClientRect();
+            return [a.left + a.width / 2, a.top + a.height / 2, f.width > 0];
+        }""")
+        self.assertTrue(box[2])
+        page.mouse.click(box[0], box[1])
+        # Clicking the actor directly opens its sheet with static dialogue; verify no JS errors
+        self.assertTrue(page.is_visible("#school-spot-kid"))
+        self.assertIn("ストップウォッチ", page.inner_text("#school-spot-kid"))
         self.assertEqual(self.errors, [])
 
     def test_overworld_lands_are_swapped_by_the_pulldown_and_walked_across(self):

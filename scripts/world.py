@@ -32,8 +32,8 @@ from pathlib import Path
 from typing import Any, Callable, NamedTuple
 from urllib.parse import quote, urlsplit
 
-from pysaiyanweboo import (DIAL_CSS, DIAL_JS, EARTH_RADIUS_M, bundled_css, dial_html, module_script, parse_coordinate, render_document,
-                           tolerance_area, try_parse_maps_url)
+from pysaiyanweboo import (DIAL_CSS, DIAL_JS, EARTH_RADIUS_M, badge, bundled_css, css_source, dial_html, module_script, parse_coordinate,
+                           render_document, status_html, tolerance_area, try_parse_maps_url)
 
 # --- World: one page, a camera, no page changes (scrolling "shots" and a pan/zoom map) -----------------
 # Everything is built here in memory: Python validates the data, does the arithmetic, and emits the HTML,
@@ -121,18 +121,22 @@ def world_motion_sample(segment: dict[str, Any], elapsed: float) -> list[float]:
 # is planned on the grid (breadth first, fixed neighbour order, so Python and the browser pick the same path) and
 # played as a chain of the same constant-speed segments as above.
 WORLD_PROPS = {"desk": True, "board": True, "wall": True, "shelf": True, "chair": False, "rug": False, "fire": False,
-               "grass": False, "sand": False, "road": False, "bridge": False,
-               "water": True, "tree": True, "cactus": True, "mountain": True, "house": True, "castle": True}   # kind -> blocks walking
+               "grass": False, "sand": False, "road": False, "bridge": False, "mat": False,
+               "water": True, "tree": True, "cactus": True, "mountain": True, "house": True, "castle": True,
+               "plant": True, "lab": True, "book": True, "pc": True}   # kind -> blocks walking
 # Ground kinds are laid first and open the tiles they cover (a road through trees, a bridge over water); the other kinds only block.
 WORLD_GROUND = frozenset({"grass", "sand", "road", "bridge"})
 # How the terrain kinds look: a colour (none: the ground shows through) and, for some, an emoji repeated once per tile, or drawn once across
 # the prop (CSS only, written for the kinds a world uses). A floor becomes another place by swapping its kinds; the walking rules above are
 # all the grid needs.
 WORLD_LOOK = {"grass": ("#8fd694", "", False), "sand": ("#efd9a0", "", False), "road": ("#d2b48c", "", False), "bridge": ("#a9784a", "", False),
-              "water": ("#5aaae0", "🌊", False), "mountain": ("#b8a58f", "⛰️", False), "tree": ("", "🌲", False), "cactus": ("", "🌵", False),
-              "house": ("", "🏠", False), "castle": ("", "🏰", True), "fire": ("", "🔥", False)}
+              "mat": ("#d9ebd2", "", False), "water": ("#5aaae0", "🌊", False), "mountain": ("#b8a58f", "⛰️", False),
+              "tree": ("", "🌲", False), "cactus": ("", "🌵", False), "house": ("", "🏠", False), "castle": ("", "🏰", True),
+              "fire": ("", "🔥", False), "plant": ("", "🪴", False), "lab": ("#cce6f4", "🔬", False),
+              "book": ("#d8c3a5", "📚", False), "pc": ("#2b3648", "💻", False)}
 _WORLD_STEPS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 WORLD_SIGNS = ("led", "wood")      # a spot drawn as a small board on a bold dot: an electronic one (amber on black) or a wooden one
+WORLD_ITEM_KINDS = ("take", "drop", "chest")   # take: manual sheet toggle; drop: ground pickup; chest: treasure chest (unlockable)
 
 
 def world_blocked(width: int, height: int, tile: int, props: list[dict[str, Any]]) -> list[str]:
@@ -590,6 +594,82 @@ def tools_validate(tools_in: Any, *, floor_ids: Any = (), spot_ids: Any = ()) ->
     return tools
 
 
+def _world_lines(value: Any, label: str) -> list[str]:
+    if not isinstance(value, list) or not 1 <= len(value) <= 8:
+        raise ValueError(f"{label} must be a list of 1..8 lines")
+    return [_world_text(line, label, 200) for line in value]
+
+
+def _world_item(item_in: Any) -> dict[str, Any]:
+    """Checked spot item: emoji, label, optional body, plus optional kind (take/drop/chest), need (key spot id) and xp."""
+    if not isinstance(item_in, dict) or set(item_in) - {"emoji", "label", "body", "kind", "need", "xp"} or "emoji" not in item_in or "label" not in item_in:
+        raise ValueError("a spot item has emoji, label and optional body, kind, need and xp")
+    out: dict[str, Any] = {"emoji": _world_emoji(item_in["emoji"]), "label": _world_text(item_in["label"], "label", 40),
+                           "body": _world_text(item_in.get("body", ""), "body", 400, required=False)}
+    if "kind" in item_in:
+        if item_in["kind"] not in WORLD_ITEM_KINDS:
+            raise ValueError(f"item kind is one of {', '.join(WORLD_ITEM_KINDS)}")
+        out["kind"] = item_in["kind"]
+    if "need" in item_in:
+        if not isinstance(item_in["need"], str) or not _WORLD_TOKEN.fullmatch(item_in["need"]):
+            raise ValueError("item need must be a spot id token")
+        out["need"] = item_in["need"]
+    if "xp" in item_in:
+        out["xp"] = _bounded_int(item_in["xp"], "xp", 1, 100)
+    return out
+
+
+def _world_talk(talk_in: Any, *, allow_after_quiz: bool = False) -> dict[str, Any]:
+    """Checked canned dialogue (for contact or tap): lines, optional speaker, item-conditional has_lines, after_quiz and contact flag."""
+    if not isinstance(talk_in, dict) or set(talk_in) - {"speaker", "lines", "if_item", "has_lines", "after_quiz", "contact"} or "lines" not in talk_in:
+        raise ValueError("talk has lines and optional speaker, if_item, has_lines, after_quiz and contact")
+    if ("if_item" in talk_in) != ("has_lines" in talk_in):
+        raise ValueError("talk if_item and has_lines must be given together")
+    if "after_quiz" in talk_in and not allow_after_quiz:
+        raise ValueError("talk after_quiz requires a quiz on the same spot")
+    if "contact" in talk_in and not isinstance(talk_in["contact"], bool):
+        raise ValueError("talk contact must be true or false")
+    out: dict[str, Any] = {"lines": _world_lines(talk_in["lines"], "talk lines")}
+    if "speaker" in talk_in:
+        out["speaker"] = _world_text(talk_in["speaker"], "speaker", 40)
+    if "if_item" in talk_in:
+        if not isinstance(talk_in["if_item"], str) or not _WORLD_TOKEN.fullmatch(talk_in["if_item"]):
+            raise ValueError("talk if_item must be a spot id token")
+        out["if_item"] = talk_in["if_item"]
+        out["has_lines"] = _world_lines(talk_in["has_lines"], "has_lines")
+    if "after_quiz" in talk_in:
+        out["after_quiz"] = _world_lines(talk_in["after_quiz"], "after_quiz")
+    if "contact" in talk_in:
+        out["contact"] = talk_in["contact"]
+    return out
+
+
+def _world_quiz(quiz_in: Any) -> dict[str, Any]:
+    """Checked educational multiple-choice quiz: question, 2..4 choices, answer index, explain, optional hint and xp."""
+    if not isinstance(quiz_in, dict) or set(quiz_in) - {"question", "choices", "answer", "hint", "explain", "xp"} \
+            or not {"question", "choices", "answer", "explain"} <= set(quiz_in):
+        raise ValueError("quiz has question, choices, answer, explain and optional hint and xp")
+    choices_in = quiz_in["choices"]
+    if not isinstance(choices_in, list) or not 2 <= len(choices_in) <= 4:
+        raise ValueError("quiz choices must be 2..4 strings")
+    choices = [_world_text(c, "choice", 80) for c in choices_in]
+    answer = _bounded_int(quiz_in["answer"], "answer", 0, len(choices) - 1)
+    out: dict[str, Any] = {"question": _world_text(quiz_in["question"], "question", 200), "choices": choices, "answer": answer,
+                           "explain": _world_text(quiz_in["explain"], "explain", 300)}
+    if "hint" in quiz_in:
+        out["hint"] = _world_text(quiz_in["hint"], "hint", 200)
+    if "xp" in quiz_in:
+        out["xp"] = _bounded_int(quiz_in["xp"], "xp", 5, 100)
+    return out
+
+
+def _world_link(link_in: Any) -> dict[str, str]:
+    """Checked educational or tool link on a spot: label and safe href."""
+    if not isinstance(link_in, dict) or set(link_in) != {"label", "href"}:
+        raise ValueError("link has label and href")
+    return {"label": _world_text(link_in["label"], "link label", 60), "href": _world_href(link_in["href"])}
+
+
 def world_validate(spec: Any) -> dict[str, Any]:
     """Checked copy of a ``web-ui-world/1`` spec: optional ``shots`` (scroll scenes) and ``floors`` (maps with spots)."""
     if not isinstance(spec, dict) or spec.get("schema") != WORLD_SCHEMA:
@@ -661,8 +741,8 @@ def world_validate(spec: Any) -> dict[str, Any]:
             raise ValueError("a floor lists 1..64 spots")
         spots = []
         for spot in spots_in:
-            if not isinstance(spot, dict) or set(spot) - {"id", "x", "y", "label", "category", "body", "flip", "sign", "mark", "item", "always_named"}:
-                raise ValueError("a spot has id, x, y, label, category, body, flip, sign, mark, item and always_named")
+            if not isinstance(spot, dict) or set(spot) - {"id", "x", "y", "label", "category", "body", "flip", "sign", "mark", "item", "always_named", "talk", "quiz", "link"}:
+                raise ValueError("a spot has id, x, y, label, category, body, flip, sign, mark, item, always_named, talk, quiz and link")
             if "sign" in spot and spot["sign"] not in WORLD_SIGNS:
                 raise ValueError(f"sign is one of {', '.join(WORLD_SIGNS)}")
             named = spot.get("always_named", False)
@@ -671,13 +751,10 @@ def world_validate(spec: Any) -> dict[str, Any]:
             category = spot.get("category", "")
             if category != "" and not (isinstance(category, str) and _WORLD_TOKEN.fullmatch(category)):
                 raise ValueError("category must be a lowercase token")
-            item = None
-            if "item" in spot:
-                item_in = spot["item"]
-                if not isinstance(item_in, dict) or set(item_in) - {"emoji", "label", "body"} or "emoji" not in item_in or "label" not in item_in:
-                    raise ValueError("a spot item has emoji, label and optional body")
-                item = {"emoji": _world_emoji(item_in["emoji"]), "label": _world_text(item_in["label"], "label", 40),
-                        "body": _world_text(item_in.get("body", ""), "body", 400, required=False)}
+            item = _world_item(spot["item"]) if "item" in spot else None
+            quiz = _world_quiz(spot["quiz"]) if "quiz" in spot else None
+            talk = _world_talk(spot["talk"], allow_after_quiz=quiz is not None) if "talk" in spot else None
+            link = _world_link(spot["link"]) if "link" in spot else None
             spots.append({"id": _world_id(spot.get("id"), "spot id", spot_ids), "x": _bounded_int(spot.get("x"), "x", 0, width),
                           "y": _bounded_int(spot.get("y"), "y", 0, height), "label": _world_text(spot.get("label"), "label", 40),
                           "category": category, "body": _world_text(spot.get("body", ""), "body", 400, required=False),
@@ -685,23 +762,28 @@ def world_validate(spec: Any) -> dict[str, Any]:
                           **({"sign": spot["sign"]} if "sign" in spot else {}),
                           **({"mark": _world_mark(spot["mark"])} if "mark" in spot else {}),
                           **({"always_named": named} if named else {}),
-                          **({"item": item} if item is not None else {})})
+                          **({"item": item} if item is not None else {}),
+                          **({"talk": talk} if talk is not None else {}),
+                          **({"quiz": quiz} if quiz is not None else {}),
+                          **({"link": link} if link is not None else {})})
         actors = []
         actors_in = floor.get("actors", [])
         if not isinstance(actors_in, list) or len(actors_in) > 16:
             raise ValueError("a floor lists at most 16 actors")
         for actor in actors_in:
-            if not isinstance(actor, dict) or set(actor) - {"id", "emoji", "label", "body", "seed", "speed"}:
-                raise ValueError("an actor has id, emoji, label, body, seed and speed")
+            if not isinstance(actor, dict) or set(actor) - {"id", "emoji", "label", "body", "seed", "speed", "talk"}:
+                raise ValueError("an actor has id, emoji, label, body, seed, speed and optional talk")
             seed = actor.get("seed")
             if seed is not None:
                 _bounded_int(seed, "seed", 0, 2**31 - 1)
             speed = actor.get("speed", 48)
             if type(speed) not in (int, float) or not 8 <= speed <= 240:
                 raise ValueError("speed must be from 8 to 240 (map units per second)")
+            talk = _world_talk(actor["talk"]) if "talk" in actor else None
             actors.append({"id": _world_id(actor.get("id"), "actor id", spot_ids), "emoji": _world_emoji(actor.get("emoji")),
                            "label": _world_text(actor.get("label"), "label", 40),
-                           "body": _world_text(actor.get("body", ""), "body", 400, required=False), "seed": seed, "speed": speed})
+                           "body": _world_text(actor.get("body", ""), "body", 400, required=False), "seed": seed, "speed": speed,
+                           **({"talk": talk} if talk is not None else {})})
         player = floor.get("player")
         if player is not None:
             if not isinstance(player, dict) or set(player) - {"emoji", "x", "y", "speed"}:
@@ -716,6 +798,19 @@ def world_validate(spec: Any) -> dict[str, Any]:
         floors.append({"id": _world_id(floor.get("id"), "floor id", ids), "label": _world_text(floor.get("label"), "label", 40),
                        "width": width, "height": height, "spots": spots, "actors": actors, "player": player,
                        **({"tile": tile, "props": props} if tile else {}), **({"real": True} if floor.get("real") else {})})
+    item_spots = {s["id"] for f in floors for s in f["spots"] if "item" in s}
+    for f in floors:
+        for s in f["spots"]:
+            need = s.get("item", {}).get("need")
+            if need is not None and (need not in item_spots or need == s["id"]):
+                raise ValueError(f"item need must name another spot with an item: {need!r}")
+            if_item = s.get("talk", {}).get("if_item")
+            if if_item is not None and if_item not in item_spots:
+                raise ValueError(f"talk if_item must name a spot with an item: {if_item!r}")
+        for a in f["actors"]:
+            if_item = a.get("talk", {}).get("if_item")
+            if if_item is not None and if_item not in item_spots:
+                raise ValueError(f"talk if_item must name a spot with an item: {if_item!r}")
     board = board_validate(spec.get("board"))
     if spec.get("tools") and not floors:
         raise ValueError("tools maps up to 8 emoji to a feature, on a world with floors")
@@ -1235,8 +1330,13 @@ WORLD_TEXT = {
     "unavailable": ("つかえません（許可かカメラを確認）", "Not available (check permission or camera)", "Indisponible (vérifiez l'autorisation ou la caméra)", "No disponible (revisa el permiso o la cámara)", "Indisponível (verifique a permissão ou a câmera)", "غير متاح (تحقق من الإذن أو الكاميرا)", "无法使用（请检查权限或相机）", "Недоступно (проверьте разрешение или камеру)", "Tidak tersedia (periksa izin atau kamera)", "Nicht verfügbar (Berechtigung oder Kamera prüfen)", "Haipatikani (angalia ruhusa au kamera)"),
     "bag": ("どうぐ", "Bag", "Sac", "Bolsa", "Bolsa", "الحقيبة", "道具", "Сумка", "Tas", "Tasche", "Mkoba"),
     "take": ("どうぐに出し入れする", "Add or remove item", "Ajouter ou retirer l'objet", "Añadir o quitar objeto", "Adicionar ou remover item", "إضافة أو إزالة أداة", "放入或取出道具", "Добавить или убрать предмет", "Tambah atau hapus barang", "Gegenstand hinzufügen oder entfernen", "Ongeza au ondoa kifaa"),
+    "progress": ("学習手帳", "Study log", "Carnet d'étude", "Cuaderno de estudio", "Caderno de estudo", "دفتر التعلم", "学习手册", "Дневник обучения", "Catatan belajar", "Lernheft", "Daftari la masomo"),
+    "talk": ("会話", "Dialogue", "Dialogue", "Diálogo", "Diálogo", "حوار", "对话", "Диалог", "Dialog", "Dialog", "Mazungumzo"),
+    "next": ("つぎへ", "Next", "Suivant", "Siguiente", "Próximo", "التالي", "下一句", "Далее", "Lanjut", "Weiter", "Inayofuata"),
+    "open_chest": ("宝箱をあける", "Open chest", "Ouvrir le coffre", "Abrir el cofre", "Abrir o baú", "فتح الصندوق", "打开宝箱", "Открыть сундук", "Buka peti", "Truhe öffnen", "Fungua sanduku"),
+    "quiz": ("クイズ", "Quiz", "Quiz", "Cuestionario", "Quiz", "اختبار", "问答", "Викторина", "Kuis", "Quiz", "Jaribio"),
 }
-WORLD_BUILTIN_TOOLS = ("🏠", "⭐", "🎒", "⚙", "🌐", "☰", "⋯", "🚪", "🖼", "📷", "🧹")       # emoji the page itself uses; a tool of your own takes another
+WORLD_BUILTIN_TOOLS = ("🏠", "⭐", "🎒", "🏆", "⚙", "🌐", "☰", "⋯", "🚪", "🖼", "📷", "🧹")       # emoji the page itself uses; a tool of your own takes another
 _WORLD_TOOL_KEYS = {"label", "label_en", "labels", "slot"}
 _WORLD_LANG_CODES = tuple(code for code, _ in WORLD_LANGS)
 # What the page's script needs: the language codes and the words by index (one list per key), written once ahead of the script.
@@ -1271,15 +1371,48 @@ def _world_playable(world: dict[str, Any]) -> bool:
     return bool(world["board"] or any(f["player"] or f["actors"] for f in world["floors"]))
 
 
-def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = False) -> tuple[str, list[str]]:
+def _world_has_progress(world: dict[str, Any]) -> bool:
+    """Any spot carries a quiz, a dropped pickup or a treasure chest, so the world gets the 🏆 study notebook."""
+    return any("quiz" in s or s.get("item", {}).get("kind") in ("drop", "chest") for f in world["floors"] for s in f["spots"])
+
+
+def _world_has_game(world: dict[str, Any]) -> bool:
+    """Any spot or actor carries contact dialogue, a quiz, a dropped pickup or a treasure chest."""
+    return _world_has_progress(world) or any("talk" in x for f in world["floors"] for x in (*f["spots"], *f["actors"]))
+
+
+def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = False,
+                item_labels: dict[str, str] | None = None) -> tuple[str, list[str]]:
     """One floor's stage (props, spots, actors, player) and the info sheet articles of its spots and actors (``close`` is their closing link)."""
-    flip = lambda s: (f' data-flip="{escape(s["flip"], quote=True)}"' if s.get("flip") else "") + (f' data-sign="{s["sign"]}"' if s.get("sign") else "") + (f' data-named="{"" if s["always_named"] is True else s["always_named"]}"' if s.get("always_named") else "")   # noqa: E731
+    item_labels = item_labels or {}
+    def talk_attr(entry: dict[str, Any]) -> str:
+        talk = entry.get("talk")
+        if not talk:
+            return ""
+        payload: dict[str, Any] = {"speaker": talk.get("speaker", entry["label"]), "lines": talk["lines"], "contact": talk.get("contact", True)}
+        if "if_item" in talk:
+            payload["ifItem"] = f"{wid}-spot-{talk['if_item']}"
+            payload["hasLines"] = talk["has_lines"]
+        if "after_quiz" in talk:
+            payload["afterQuiz"] = talk["after_quiz"]
+        return f' data-talk="{escape(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), quote=True)}"'
+    def spot_extra(s: dict[str, Any]) -> str:
+        out = ((f' data-flip="{escape(s["flip"], quote=True)}"' if s.get("flip") else "") +
+               (f' data-sign="{s["sign"]}"' if s.get("sign") else "") +
+               (f' data-named="{"" if s["always_named"] is True else s["always_named"]}"' if s.get("always_named") else "") +
+               talk_attr(s))
+        item = s.get("item")
+        if item and item.get("kind") in ("drop", "chest"):
+            out += f' data-item-kind="{item["kind"]}" data-item-id="{wid}-spot-{s["id"]}"'
+        if "quiz" in s:
+            out += ' data-has-quiz=""'
+        return out
     mark = lambda s: f';--mark:\'{escape(s["mark"], quote=True)}\'' if s.get("mark") else ""   # noqa: E731  (the dot's replacement, read by CSS content)
     spots = "".join(
         f'<a class="ui-spot" href="#{wid}-spot-{s["id"]}" data-x="{s["x"]}" data-y="{s["y"]}" data-category="{s["category"]}" '
-        f'style="left:{s["x"]}px;top:{s["y"]}px{mark(s)}"{flip(s)}>{escape(s["label"])}</a>' for s in f["spots"])
+        f'style="left:{s["x"]}px;top:{s["y"]}px{mark(s)}"{spot_extra(s)}>{escape(s["label"])}</a>' for s in f["spots"])
     actors = "".join(
-        f'<a class="ui-actor" id="{wid}-actor-{a["id"]}" href="#{wid}-spot-{a["id"]}" aria-label="{escape(a["label"], quote=True)}">'
+        f'<a class="ui-actor" id="{wid}-actor-{a["id"]}" href="#{wid}-spot-{a["id"]}" aria-label="{escape(a["label"], quote=True)}"{talk_attr(a)}>'
         f'<span>{escape(a["emoji"])}</span></a>' for a in f["actors"])
     pl = f["player"]
     player = (f'<span class="ui-player" data-x="{pl["x"]}" data-y="{pl["y"]}" data-speed="{pl["speed"]}" '
@@ -1290,21 +1423,73 @@ def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = Fals
     grid = (f' data-tile="{tile}" data-blocked="{",".join(world_blocked(f["width"], f["height"], tile, f["props"]))}"') if tile else ""
     stage = (f'<div class="ui-floor" data-floor="{f["id"]}" data-w="{f["width"]}" data-h="{f["height"]}"{grid}{" data-real" if f.get("real") else ""} '
              f'style="width:{f["width"]}px;height:{f["height"]}px{f";--tile:{tile}px" if tile else ""}">{props}{spots}{actors}{player}</div>')
+    def badges_html(s: dict[str, Any]) -> str:
+        tags = []
+        kind = s.get("item", {}).get("kind")
+        if kind == "drop":
+            tags.append(badge("✨ おとしもの"))
+        elif kind == "chest":
+            tags.append(badge("🔐 鍵付き宝箱" if s["item"].get("need") else "🎁 たからばこ"))
+        if "quiz" in s:
+            tags.append(badge("🧩 クイズ"))
+        return f'<p class="ui-sheet-tags">{" ".join(tags)}</p>' if tags else ""
+    def talk_html(s: dict[str, Any]) -> str:
+        talk = s.get("talk")
+        if not talk:
+            return ""
+        speaker = escape(talk.get("speaker", s["label"]))
+        lines = "".join(f'<li>{escape(line)}</li>' for line in talk["lines"])
+        return f'<div class="ui-talk-static"><p class="ui-talk-static-who">{speaker}</p><ul>{lines}</ul></div>'
+    def quiz_html(s: dict[str, Any]) -> str:
+        q = s.get("quiz")
+        if not q:
+            return ""
+        sid = f"{wid}-spot-{s['id']}"
+        xp = q.get("xp", 25)
+        btns = "".join(f'<button type="button" class="ui-button ui-quiz-btn" data-choice="{i}">{escape(choice)}</button>'
+                       for i, choice in enumerate(q["choices"]))
+        return (f'<div class="ui-quiz" role="group" {_wt("quiz")} data-quiz-id="{sid}" data-answer="{q["answer"]}" data-xp="{xp}" '
+                f'data-hint="{escape(q.get("hint", ""), quote=True)}" data-explain="{escape(q["explain"], quote=True)}">'
+                f'<p class="ui-quiz-q"><strong>🧩 {escape(q["question"])}</strong></p>'
+                f'<div class="ui-quiz-choices" hidden>{btns}</div>'
+                '<p class="ui-quiz-msg" role="status" aria-live="polite"></p>'
+                f'<details class="ui-quiz-static"><summary>答えと解説</summary>'
+                f'<p>{escape(q["choices"][q["answer"]])} — {escape(q["explain"])}</p></details></div>')
     def take(s: dict[str, Any]) -> str:
         item = s.get("item")
         if not item:
             return ""
+        kind = item.get("kind")
         note = f'{escape(item["emoji"])} {escape(item["label"])}' + (f': {escape(item["body"])}' if item["body"] else "")
+        extra = f' data-item-kind="{kind}"' if kind else ""
+        if "xp" in item:
+            extra += f' data-xp="{item["xp"]}"'
+        elif kind in ("drop", "chest"):
+            extra += f' data-xp="{20 if kind == "chest" else 10}"'
+        if "need" in item:
+            need_id = f"{wid}-spot-{item['need']}"
+            extra += f' data-need="{need_id}" data-need-label="{escape(item_labels.get(item["need"], item["need"]), quote=True)}"'
+        if kind == "chest" and "quiz" in s:
+            extra += f' data-quiz-gate="{wid}-spot-{s["id"]}"'
+        word = "open_chest" if kind == "chest" else "take"
+        mark_glyph = "🔓" if kind == "chest" else "＋"
         return (f'<p class="ui-world-item-note">{note}</p>'
                 f'<button type="button" class="ui-world-take" data-item-id="{wid}-spot-{s["id"]}" '
-                f'data-item-emoji="{escape(item["emoji"], quote=True)}" data-item-label="{escape(item["label"], quote=True)}" '
-                f'aria-pressed="false" hidden {_wt("take")}>{escape(item["emoji"])} <span class="ui-world-take-mark" aria-hidden="true">＋</span></button>')
+                f'data-item-emoji="{escape(item["emoji"], quote=True)}" data-item-label="{escape(item["label"], quote=True)}"{extra} '
+                f'aria-pressed="false" hidden {_wt(word)}>{escape(item["emoji"])} <span class="ui-world-take-mark" aria-hidden="true">{mark_glyph}</span></button>')
+    def link_html(s: dict[str, Any]) -> str:
+        link = s.get("link")
+        if not link:
+            return ""
+        ext = ' target="_blank" rel="noopener noreferrer"' if link["href"].startswith("https://") else ""
+        return f'<p class="ui-sheet-link"><a class="ui-button" href="{escape(link["href"], quote=True)}"{ext}>{escape(link["label"])}</a></p>'
     def go_btn(s: dict[str, Any]) -> str:
         if not (confirm and pl and "x" in s and "y" in s):
             return ""
         return (f'<button type="button" class="ui-world-go" data-go-floor="{f["id"]}" '
                 f'data-go-x="{s["x"]}" data-go-y="{s["y"]}" hidden {_wt("walk")}>🚶</button>')
-    sheet = [f'<article class="ui-sheet-item" id="{wid}-spot-{s["id"]}"><h3>{escape(s["label"])}</h3><p>{escape(s["body"])}</p>{take(s)}{go_btn(s)}{close}</article>'
+    sheet = [f'<article class="ui-sheet-item" id="{wid}-spot-{s["id"]}"><h3>{escape(s["label"])}</h3>{badges_html(s)}'
+             f'<p>{escape(s["body"])}</p>{quiz_html(s)}{take(s)}{link_html(s)}{talk_html(s)}{go_btn(s)}{close}</article>'
              for s in [*f["spots"], *f["actors"]]]
     return stage, sheet
 
@@ -1359,7 +1544,7 @@ def _tool_html(emoji: str, tool: dict[str, Any], *, wid: str = "", spot_rows: Ca
 def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tail: str, floor_labels: str) -> str:
     """A shell world keeps the page short and says it with icons (the words are the aria-label and title, in 11 languages):
 
-    header  the board and the tools of the whole world: 🏠 home, ⭐ favourites, ⚙️ settings, and any emoji of your own (``tools``)
+    header  the board and the tools of the whole world: 🏠 home, ⭐ favourites, 🎒 bag, 🏆 study log, ⚙️ settings, and any emoji of your own (``tools``)
     side    ☰ the places of this floor, ⋯ the controls of this screen; 48px buttons whose panel opens over the map
     footer  🚪 the pulldown that moves between floors (plain floor labels stand in for it until JS runs)
     """
@@ -1399,10 +1584,33 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
                  '</select></label>' if any(f["spots"] for f in floors) else ""))
     bag = (icon("bag", "🎒", _wt("bag"), '<p class="ui-world-empty" aria-hidden="true">🎒</p><ul class="ui-world-rows ui-world-bag"></ul>', hidden=True)
            if any("item" in s for f in floors for s in f["spots"]) else "")
+    progress = ""
+    if _world_has_progress(world):
+        quest_items = []
+        for f in floors:
+            for sp in f["spots"]:
+                kind = sp.get("item", {}).get("kind")
+                has_q = "quiz" in sp
+                if kind in ("drop", "chest") or has_q:
+                    qkind = "chest" if kind == "chest" else "drop" if kind == "drop" else "quiz"
+                    tag = "🎁" if qkind == "chest" else "✨" if qkind == "drop" else "🧩"
+                    quest_items.append(
+                        f'<li><a href="#{wid}-spot-{sp["id"]}" data-x="{sp["x"]}" data-y="{sp["y"]}" data-floor="{f["id"]}" '
+                        f'data-quest-id="{wid}-spot-{sp["id"]}" data-quest-kind="{qkind}">'
+                        f'<span class="ui-world-quest-mark" aria-hidden="true">⬜</span>'
+                        f'<span class="ui-world-quest-arrow" data-quest-arrow aria-hidden="true">{WORLD_HERE}</span>'
+                        f'{tag} {escape(sp["label"])}</a></li>')
+        progress_panel = (f'<div class="ui-world-progress">'
+                          f'<div class="ui-world-progress-head"><span class="ui-tag ui-world-rank">🌱 見学中</span>'
+                          f'<span class="ui-world-xp">0 EXP</span></div>'
+                          '<div class="ui-world-meter" aria-hidden="true"><div class="ui-world-meter-fill"></div></div>'
+                          '<p class="ui-world-stats"></p>'
+                          f'<ul class="ui-world-quests">{"".join(quest_items)}</ul></div>')
+        progress = icon("progress", "🏆", _wt("progress"), progress_panel, hidden=True)
     header_tools = (f'<a class="ui-world-home" href="#{wid}-map" data-home {_wt("home")}>🏠</a>' +
                     "".join(custom(e, t) for e, t in tools.items() if t["slot"] == "head") +
                     icon("favorites", "⭐", _wt("favorites"), '<p class="ui-world-empty" aria-hidden="true">☆</p><ul class="ui-world-rows ui-world-favs"></ul>', hidden=True) +
-                    bag +
+                    bag + progress +
                     icon("settings", "⚙️", _wt("settings"), settings, hidden=True))
     steps = "".join(f'<button type="button" data-step="{d}" {_wt(k)}>{g}</button>'
                     for d, k, g in (("0,-1", "up", "▲"), ("-1,0", "left", "◀"), ("1,0", "right", "▶"), ("0,1", "down", "▼")))
@@ -1486,14 +1694,22 @@ def _map_html(world: dict[str, Any]) -> str:
         labels += "".join(f'<label for="{wid}-cat-{"value-" + c if c else "all"}" data-cat="{c}">{escape(c or "all")}</label>' for c in cat_ids)
     close = f'<a class="ui-sheet-close" href="#{wid}-map"' + (f' {_wt("close")}>✖️</a>' if shell else ">Close</a>")          # an icon in a shell world
     confirm = world["move"] == "confirm"
-    built = [_floor_html(wid, f, close, confirm=confirm) for f in floors]
+    item_labels = {s["id"]: f'{s["item"]["emoji"]} {s["item"]["label"]}' for f in floors for s in f["spots"] if "item" in s}
+    built = [_floor_html(wid, f, close, confirm=confirm, item_labels=item_labels) for f in floors]
     scale = "" if world["mark_scale"] == [1, 1] else f' style="--mark-x:{world["mark_scale"][0]:g};--mark-y:{world["mark_scale"][1]:g}"'
     move_attr = ' data-move="confirm"' if confirm else ""
     head = (f'<section class="ui-world ui-world-map" id="{wid}-map" data-ui-world="map" data-zoom-max="{world["zoom_max"]}" data-names="{world["names"]}"'
             f'{move_attr}{scale}'
             f'{" data-grid" if any(f.get("tile") for f in floors) else ""}{" data-shell" if shell else ""} aria-label="{escape(world["title"], quote=True)}">')
     view = f'<div class="ui-world-view" tabindex="0"><div class="ui-world-cam" style="--fx:0;--fy:0;--z:1">{"".join(stage for stage, _ in built)}</div></div>'
-    tail = f'<aside class="ui-sheet" aria-live="polite">{"".join(a for _, articles in built for a in articles)}</aside>{_pick_html(wid, world.get("avatars", []), shell)}</section>'
+    talk_box = (f'<div class="ui-talk" role="region" aria-live="polite" {_wt("talk")} hidden>'
+                '<div class="ui-talk-head"><strong class="ui-talk-speaker"></strong><span class="ui-talk-page"></span></div>'
+                '<p class="ui-talk-text"></p>'
+                f'<div class="ui-talk-actions"><button type="button" class="ui-button ui-talk-next" {_wt("next")}>▶</button>'
+                '<button type="button" class="ui-button ui-talk-act" hidden></button>'
+                f'<button type="button" class="ui-button ui-talk-close" {_wt("close")}>✖️</button></div></div>'
+                f'<div class="ui-world-toast" hidden>{status_html(id=f"{wid}-status")}</div>') if _world_has_game(world) else ""
+    tail = f'{talk_box}<aside class="ui-sheet" aria-live="polite">{"".join(a for _, articles in built for a in articles)}</aside>{_pick_html(wid, world.get("avatars", []), shell)}</section>'
     if shell:
         return _shell_html(world, head=head, radios=radios, view=view, tail=tail, floor_labels=floor_labels)
     return _classic_html(world, head=head, radios=radios, labels=labels, view=view, tail=tail)
@@ -1665,6 +1881,58 @@ _WALL_CSS = (
     ".ui-wall-cell h3{margin:0 0 8px}"
 )
 
+_GAME_CSS = (
+    css_source("status.css").removeprefix("@layer components{").removesuffix("}")
+    + ".ui-spot[data-item-kind=drop]:not([data-collected]){background:color-mix(in srgb,var(--ui-accent) 16%,var(--ui-bg));border-color:var(--ui-accent);font-weight:600}"
+    ".ui-spot[data-item-kind=drop][data-collected]{opacity:.5}.ui-spot[data-item-kind=drop][data-collected]::after{content:\" ✓\"}"
+    ".ui-spot[data-item-kind=chest]:not([data-opened]){background:color-mix(in srgb,#d97706 18%,var(--ui-bg));border-color:#d97706;font-weight:600}"
+    ".ui-spot[data-item-kind=chest][data-opened]{opacity:.7}.ui-spot[data-item-kind=chest][data-opened]::before{content:\"📭\"}"
+    ".ui-sheet-tags{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 .5rem;font-size:.8rem}"
+    ".ui-sheet-tags .ui-tag{border-radius:999px;background:var(--ui-bg)}"
+    ".ui-talk-static{margin:.5rem 0;padding:.5rem .75rem;border-left:3px solid var(--ui-accent);background:var(--ui-bg);border-radius:var(--ui-radius)}"
+    ".ui-talk-static-who{margin:0 0 .25rem;font-weight:700;font-size:.85rem}"
+    ".ui-talk-static ul{margin:0;padding-left:1.1rem;font-size:.9rem}"
+    ".ui-quiz{margin:.6rem 0;padding:.65rem;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-bg)}"
+    ".ui-quiz-q{margin:0 0 .5rem}"
+    ".ui-quiz-choices{display:flex;flex-direction:column;gap:6px;margin-bottom:.5rem}.ui-quiz-choices[hidden]{display:none}"
+    ".ui-quiz-btn{text-align:left;padding:.45rem .7rem;min-height:40px}"
+    ".ui-quiz-btn[data-correct]{background:var(--ui-accent);color:var(--ui-bg);border-color:var(--ui-accent);font-weight:700}"
+    ".ui-quiz-btn[data-wrong]{border-color:var(--ui-danger);opacity:.65}"
+    ".ui-quiz-msg{margin:.25rem 0 0;font-size:.9rem}.ui-quiz[data-cleared] .ui-quiz-msg{color:var(--ui-accent);font-weight:600}"
+    ".ui-world[data-js] .ui-quiz-static{display:none}"
+    ".ui-sheet-link{margin:.5rem 0}.ui-sheet-link a{display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:.35rem .75rem}"
+    ".ui-talk{position:absolute;z-index:4;left:8px;right:80px;bottom:calc(var(--ui-world-foot,0px) + 8px);max-width:calc(100% - 16px);box-sizing:border-box;"
+    "padding:.75rem .9rem;border:2px solid var(--ui-accent);background:color-mix(in srgb,var(--ui-panel) 96%,transparent);color:var(--ui-fg);"
+    "border-radius:var(--ui-radius);box-shadow:0 8px 24px rgb(0 0 0 / .28)}"
+    ".ui-talk[hidden]{display:none}"
+    ".ui-world[data-shell]:not(:has(.ui-world-foot)) .ui-talk{bottom:8px}"
+    ".ui-talk-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:.3rem;font-size:.85rem}"
+    ".ui-talk-speaker{color:var(--ui-accent)}.ui-talk-page{color:var(--ui-muted);font-variant-numeric:tabular-nums}"
+    ".ui-talk-text{margin:0 0 .5rem;line-height:1.5;font-size:.95rem;overflow-wrap:anywhere}"
+    ".ui-talk-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center}"
+    ".ui-talk-actions button{min-height:36px;padding:.25rem .65rem;font-size:.9rem}.ui-talk-act[hidden]{display:none}"
+    ".ui-world-toast{position:absolute;z-index:4;left:8px;top:60px;max-width:calc(100% - 88px);box-sizing:border-box;padding:.3rem .7rem;"
+    "border:1px solid var(--ui-accent);background:color-mix(in srgb,var(--ui-panel) 95%,transparent);border-radius:var(--ui-radius);pointer-events:none}"
+    ".ui-world-toast[hidden]{display:none}.ui-world-toast .ui-status{margin:0;min-height:0;font-size:.85rem;font-weight:600}"
+    ".ui-world[data-shell] .ui-sheet{max-height:54%}"
+    ".ui-world-progress{width:100%;display:flex;flex-direction:column;gap:8px}"
+    ".ui-world-progress-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}"
+    ".ui-world-xp{font-family:var(--ui-font-mono);font-size:.85rem;font-weight:700}"
+    ".ui-world-meter{width:100%;height:10px;border-radius:999px;background:var(--ui-bg);border:1px solid var(--ui-border);overflow:hidden}"
+    ".ui-world-meter-fill{height:100%;width:0%;background:var(--ui-accent);transition:width .25s ease-out}"
+    ".ui-world-stats{font-size:.85rem;color:var(--ui-muted)}"
+    ".ui-world-quests{list-style:none;margin:0;padding:0;width:100%}"
+    ".ui-world-quests li{display:flex;align-items:center}"
+    ".ui-world-quests a{display:flex;align-items:center;gap:6px;flex:1;min-width:0;min-height:38px;padding:0 6px;color:inherit;text-decoration:none;border-radius:var(--ui-radius);font-size:.9rem}"
+    ".ui-world-quests a:hover,.ui-world-quests a:focus-visible{background:var(--ui-bg)}"
+    ".ui-world-quests a[data-done]{color:var(--ui-muted)}"
+    ".ui-world-quest-mark,.ui-world-quest-arrow{flex:none;width:1.4em;text-align:center}"
+    ".ui-world-tools .ui-world-menu>summary{position:relative}"
+    ".ui-world-menu>summary[data-count]::after{content:attr(data-count);position:absolute;right:-4px;top:-4px;min-width:16px;padding:0 4px;"
+    "border-radius:999px;background:var(--ui-accent);color:var(--ui-bg);font-size:.65rem;line-height:16px;text-align:center;font-weight:700}"
+    "@media(max-width:480px){.ui-talk{right:8px;bottom:calc(var(--ui-world-foot,0px) + 8px)}}"
+)
+
 
 def world_css(spec: Any, *, base: bool = True) -> str:
     """CSS for a world: fixed rules plus one rule per floor, category and shot (radios and data-lit drive them through :has).
@@ -1673,6 +1941,8 @@ def world_css(spec: Any, *, base: bool = True) -> str:
     """
     world = world_validate(spec)
     wid, rules = world["id"], [_WORLD_CSS] if base else []
+    if _world_has_game(world):
+        rules.append(_GAME_CSS)
     for f in world["floors"]:
         radio = f"#{wid}-floor-{f['id']}"
         rules.append(f'.ui-world:has({radio}:checked) .ui-floor[data-floor="{f["id"]}"]{{display:block}}')
@@ -1957,10 +2227,10 @@ const open=id=>{for(const i of el.querySelectorAll(".ui-sheet-item"))i.toggleAtt
 const shut=bindMenus(el),goto=el.querySelector('.ui-world-goto'),rows='.ui-world-rows a';
 // The spot the player stands by (the closest within 1.5 tiles) carries data-near: in the dots layer it alone shows its name.
 const near=p=>{const f=floor(),t=(Number(f.dataset.tile)||16)*1.5;let best=null,bd=Infinity;for(const a of f.querySelectorAll(".ui-spot[data-x]")){const d=Math.max(Math.abs(Number(a.dataset.x)-p[0]),Math.abs(Number(a.dataset.y)-p[1]));if(d<=t&&d<bd){best=a;bd=d}}for(const a of f.querySelectorAll(".ui-spot[data-near]"))if(a!==best)a.removeAttribute("data-near");if(best&&!best.hasAttribute("data-near"))best.setAttribute("data-near","")};
-const aim=p=>{near(p);for(const a of el.querySelectorAll(rows)){if(!a.offsetParent)continue;const out=a.querySelector('.ui-world-arrow'),f=floor(),g=a.dataset.floor===f.dataset.floor?direction(p,[Number(a.dataset.x),Number(a.dataset.y)],Number(f.dataset.tile)||16):'🚪';if(out.textContent!==g)out.textContent=g}if(goto){const r=shown();if(r&&goto.value!==r.value)goto.value=r.value}};
+const aim=p=>{near(p);const f=floor(),t=Number(f.dataset.tile)||16;for(const a of el.querySelectorAll(rows)){if(!a.offsetParent)continue;const out=a.querySelector('.ui-world-arrow'),g=a.dataset.floor===f.dataset.floor?direction(p,[Number(a.dataset.x),Number(a.dataset.y)],t):'🚪';if(out&&out.textContent!==g)out.textContent=g}for(const a of el.querySelectorAll('.ui-world-quests a')){if(!a.offsetParent)continue;const out=a.querySelector('[data-quest-arrow]'),g=a.dataset.floor===f.dataset.floor?direction(p,[Number(a.dataset.x),Number(a.dataset.y)],t):'🚪';if(out&&out.textContent!==g)out.textContent=g}if(goto){const r=shown();if(r&&goto.value!==r.value)goto.value=r.value}checkContact(p)};
 // While a sheet is open the camera aims below the player or the spot, so they stay in the view above the sheet.
 const lift=()=>sheetInset()/(2*z);
-let follow=false,lx,ly;const walk=bindPlayer(el,floor,p=>{if(follow&&(p[0]!==lx||p[1]!==ly)){lx=p[0];ly=p[1];go(p[0],p[1]+lift(),z)}aim(p)});
+let follow=false,lx,ly,checkContact=()=>{};const walk=bindPlayer(el,floor,p=>{if(follow&&(p[0]!==lx||p[1]!==ly)){lx=p[0];ly=p[1];go(p[0],p[1]+lift(),z)}aim(p)});
 view.addEventListener('pointerdown',shut);
 // ⭐ favourites, 🌐 language and 🏷️ the name layer are all a world keeps, as a small cache in this browser (one key per world, nothing else is written):
 // the emoji you pick and the board messages you post stay in the page.
@@ -1970,29 +2240,170 @@ let lang='ja';const sel=el.querySelector('[data-lang]'),
  say=root=>sayIn(root,lang),
  setLang=to=>{if(!WORLD_LANGS.includes(to))return;lang=to;el.lang=to;if(sel)sel.value=to;say(el)};
 sel?.addEventListener('change',()=>{setLang(sel.value);save({lang})});
-// 🎒 items collected from spots (kept in localStorage beside fav, lang, names, alpha).
-const spotRows=()=>[...el.querySelectorAll('.ui-world-spots a')],bagList=el.querySelector('.ui-world-bag'),bag=new Set(),takeBtns=()=>[...el.querySelectorAll('.ui-sheet-item .ui-world-take')],
- showBag=()=>{for(const b of takeBtns()){const on=bag.has(b.dataset.itemId);b.setAttribute('aria-pressed',String(on));b.querySelector('.ui-world-take-mark').textContent=on?'✓':'＋'}
-  if(!bagList)return;
-  bagList.replaceChildren(...takeBtns().filter(b=>bag.has(b.dataset.itemId)).map(b=>{
-   const id=b.dataset.itemId,src=spotRows().find(a=>a.getAttribute('href')==='#'+id),li=document.createElement('li');
-   const a=src?src.cloneNode(true):document.createElement('a');
-   if(!src)a.href='#'+id;
-   a.lastChild.textContent=b.dataset.itemEmoji+' '+b.dataset.itemLabel;
-   const rm=document.createElement('button');rm.type='button';rm.className='ui-world-bag-rm ui-world-take';rm.dataset.itemId=id;rm.setAttribute('aria-pressed','true');rm.dataset.t='take';rm.textContent='✕';
-   li.append(a,rm);return li}));say(bagList)};
+// 🎒 items collected from spots, 🧩 cleared quizzes, 💬 contact dialogue & 🏆 study progress.
+const spotRows=()=>[...el.querySelectorAll('.ui-world-spots a')],bagList=el.querySelector('.ui-world-bag'),bag=new Set(),done=new Set(),
+ takeBtns=()=>[...el.querySelectorAll('.ui-sheet-item .ui-world-take')],
+ quizBoxes=()=>[...el.querySelectorAll('.ui-quiz')],
+ takeBtnOf=id=>takeBtns().find(b=>b.dataset.itemId===id),
+ toastWrap=el.querySelector('.ui-world-toast'),toastLine=toastWrap?.querySelector('[data-ui-status-line]');
+let toastTimer=0;
+const toast=(msg,tone='info')=>{if(!toastWrap||!toastLine)return;clearTimeout(toastTimer);toastLine.textContent=msg;if(tone==='error')toastLine.dataset.uiTone='error';else delete toastLine.dataset.uiTone;toastWrap.hidden=false;toastTimer=setTimeout(()=>{toastWrap.hidden=true},4200)};
+const syncProgress=()=>{
+ const bagSum=el.querySelector('[data-menu="bag"] > summary');
+ if(bagSum){if(bag.size)bagSum.dataset.count=String(bag.size);else delete bagSum.dataset.count}
+ const prog=el.querySelector('.ui-world-progress');if(!prog)return;
+ let xp=0,maxXp=0,drops=0,dropsDone=0,chests=0,chestsDone=0,qTotal=0,qDone=0;
+ for(const b of takeBtns()){const k=b.dataset.itemKind,v=Number(b.dataset.xp||0);if(k==='drop'){drops++;maxXp+=v;if(bag.has(b.dataset.itemId)){dropsDone++;xp+=v}}else if(k==='chest'){chests++;maxXp+=v;if(bag.has(b.dataset.itemId)){chestsDone++;xp+=v}}}
+ for(const q of quizBoxes()){const v=Number(q.dataset.xp||25);qTotal++;maxXp+=v;if(done.has(q.dataset.quizId)){qDone++;xp+=v}}
+ const pct=maxXp?Math.round(xp*100/maxXp):0;
+ const rank=pct>=100?'🎓 ポートフォリオ学園マスター':pct>=75?'📚 知識グラフ案内人':pct>=50?'🔬 バイオ＆データ研究員':pct>=25?'🎒 学園探検家':xp>0?'🌱 探検スタート':'🌱 見学中';
+ const rEl=prog.querySelector('.ui-world-rank'),xEl=prog.querySelector('.ui-world-xp'),fEl=prog.querySelector('.ui-world-meter-fill'),sEl=prog.querySelector('.ui-world-stats');
+ if(rEl)rEl.textContent=rank;if(xEl)xEl.textContent=xp+' / '+maxXp+' EXP ('+pct+'%)';
+ if(fEl)fEl.style.width=pct+'%';
+ if(sEl)sEl.textContent='✨ どうぐ '+dropsDone+'/'+drops+' · 🎁 宝箱 '+chestsDone+'/'+chests+' · 🧩 クイズ '+qDone+'/'+qTotal;
+ let questsDone=0,questsTotal=0;
+ for(const a of prog.querySelectorAll('.ui-world-quests a')){
+  questsTotal++;const qid=a.dataset.questId,qk=a.dataset.questKind,ok=qk==='quiz'?done.has(qid):bag.has(qid);
+  if(ok)questsDone++;a.toggleAttribute('data-done',ok);const m=a.querySelector('.ui-world-quest-mark');if(m)m.textContent=ok?'✅':'⬜';
+ }
+ const pSum=el.querySelector('[data-menu="progress"] > summary');
+ if(pSum){if(questsDone)pSum.dataset.count=questsDone+'/'+questsTotal;else delete pSum.dataset.count}
+};
+const showBag=()=>{for(const b of takeBtns()){const id=b.dataset.itemId,on=bag.has(id),kind=b.dataset.itemKind,mark=b.querySelector('.ui-world-take-mark');
+  b.setAttribute('aria-pressed',String(on));
+  if(mark)mark.textContent=on?'✓':kind==='chest'?'🔓':'＋';
+  const sp=el.querySelector(`.ui-spot[data-item-id="${id}"]`);
+  if(sp){if(kind==='drop')sp.toggleAttribute('data-collected',on);if(kind==='chest')sp.toggleAttribute('data-opened',on)}}
+ if(!bagList){syncProgress();return}
+ bagList.replaceChildren(...takeBtns().filter(b=>bag.has(b.dataset.itemId)).map(b=>{
+  const id=b.dataset.itemId,src=spotRows().find(a=>a.getAttribute('href')==='#'+id),li=document.createElement('li');
+  const a=src?src.cloneNode(true):document.createElement('a');
+  if(!src)a.href='#'+id;
+  a.lastChild.textContent=b.dataset.itemEmoji+' '+b.dataset.itemLabel;
+  const rm=document.createElement('button');rm.type='button';rm.className='ui-world-bag-rm ui-world-take';rm.dataset.itemId=id;rm.setAttribute('aria-pressed','true');rm.dataset.t='take';rm.textContent='✕';
+  li.append(a,rm);return li}));say(bagList);syncProgress()};
+const tryTake=(b,{silent=false}={})=>{
+ const id=b.dataset.itemId,kind=b.dataset.itemKind;
+ if(bag.has(id)){bag.delete(id);showBag();save({bag:[...bag]});return false}
+ if(b.dataset.need&&!bag.has(b.dataset.need)){if(!silent)toast('🔒 先に「'+b.dataset.needLabel+'」を手に入れよう！','error');return false}
+ if(b.dataset.quizGate&&!done.has(b.dataset.quizGate)){if(!silent)toast('🧩 上のクイズに正解すると宝箱があくよ！');return false}
+ bag.add(id);showBag();save({bag:[...bag]});
+ const xp=Number(b.dataset.xp||0),xpTxt=xp?'（+'+xp+' EXP）':'';
+ if(!silent){if(kind==='chest')toast('🎉 宝箱をあけた！「'+b.dataset.itemEmoji+' '+b.dataset.itemLabel+'」を手に入れた！'+xpTxt);
+  else if(kind==='drop')toast('✨ 「'+b.dataset.itemEmoji+' '+b.dataset.itemLabel+'」を拾った！'+xpTxt)}
+ return true};
+const paintQuiz=(box,cleared)=>{
+ const choices=box.querySelector('.ui-quiz-choices'),msg=box.querySelector('.ui-quiz-msg'),ans=Number(box.dataset.answer);
+ if(choices)choices.hidden=false;
+ box.toggleAttribute('data-cleared',cleared);
+ for(const btn of box.querySelectorAll('.ui-quiz-btn')){
+  const c=Number(btn.dataset.choice);
+  btn.disabled=cleared;btn.toggleAttribute('data-correct',cleared&&c===ans);
+  if(cleared)btn.removeAttribute('data-wrong');
+ }
+ if(cleared&&msg)msg.textContent='🎉 正解！ '+box.dataset.explain;
+};
 if(bagList){for(const b of takeBtns())b.hidden=false;
- el.addEventListener('click',e=>{const b=e.target.closest('.ui-world-take');if(!b)return;const id=b.dataset.itemId;if(bag.has(id))bag.delete(id);else bag.add(id);showBag();save({bag:[...bag]})})}
+ el.addEventListener('click',e=>{const b=e.target.closest('.ui-world-take');if(!b)return;
+  const mainBtn=b.classList.contains('ui-world-bag-rm')?takeBtnOf(b.dataset.itemId)||b:b;
+  if(b.classList.contains('ui-world-bag-rm')){bag.delete(b.dataset.itemId);showBag();save({bag:[...bag]});return}
+  tryTake(mainBtn)})}
+for(const box of quizBoxes())paintQuiz(box,false);
+el.addEventListener('click',e=>{const btn=e.target.closest('.ui-quiz-btn');if(!btn)return;
+ const box=btn.closest('.ui-quiz');if(!box)return;const qid=box.dataset.quizId;if(done.has(qid))return;
+ const choice=Number(btn.dataset.choice),ans=Number(box.dataset.answer),msg=box.querySelector('.ui-quiz-msg');
+ if(choice!==ans){btn.dataset.wrong='';if(msg)msg.textContent='💡 ヒント: '+(box.dataset.hint||'もういちど考えてみよう！');return}
+ done.add(qid);paintQuiz(box,true);save({done:[...done]});
+ const chestBtn=takeBtnOf(qid);
+ if(chestBtn&&chestBtn.dataset.itemKind==='chest'&&!bag.has(qid)&&(!chestBtn.dataset.need||bag.has(chestBtn.dataset.need))){
+  bag.add(qid);showBag();save({bag:[...bag]});
+  toast('🎉 正解＆宝箱オープン！「'+chestBtn.dataset.itemEmoji+' '+chestBtn.dataset.itemLabel+'」を手に入れた！');
+ }else{toast('🎉 クイズ正解！（+'+Number(box.dataset.xp||25)+' EXP）');syncProgress()}});
 const kept=load();
 bindFavs(el,say,kept,save);
 if(bagList){for(const b of takeBtns())if(Array.isArray(kept.bag)&&kept.bag.includes(b.dataset.itemId))bag.add(b.dataset.itemId);if(bag.size)showBag()}
+if(quizBoxes().length){for(const q of quizBoxes())if(Array.isArray(kept.done)&&kept.done.includes(q.dataset.quizId)){done.add(q.dataset.quizId);paintQuiz(q,true)}syncProgress()}
+else if(bagList){syncProgress()}
 if(typeof kept.lang==='string'&&kept.lang!=='ja')setLang(kept.lang);
+// 💬 RPG contact dialogue bar (non-blocking: arrow keys / WASD stay active; Space/Enter advances).
+const talkBox=el.querySelector('.ui-talk');
+let talkState=null,lastContact=null,contactOrigin=null,contactRange=48,lastActorScan=0;
+const hideTalk=()=>{if(!talkBox)return;talkBox.hidden=true;talkState=null};
+const renderTalk=()=>{if(!talkBox||!talkState)return;
+ const{speaker,lines,idx,action}=talkState;
+ talkBox.querySelector('.ui-talk-speaker').textContent=speaker;
+ talkBox.querySelector('.ui-talk-page').textContent=(idx+1)+'/'+lines.length;
+ talkBox.querySelector('.ui-talk-text').textContent=lines[idx];
+ const nxt=talkBox.querySelector('.ui-talk-next'),act=talkBox.querySelector('.ui-talk-act');
+ nxt.hidden=idx>=lines.length-1;
+ if(action&&idx>=lines.length-1){act.hidden=false;act.textContent=action.label}else{act.hidden=true}
+ talkBox.hidden=false};
+const showTalk=(speaker,lines,action=null)=>{if(!talkBox||!lines||!lines.length)return;talkState={speaker,lines,idx:0,action};renderTalk()};
+const resolveTalk=(node,id)=>{const raw=node.dataset.talk;if(!raw)return null;const d=JSON.parse(raw);
+ if(d.afterQuiz&&done.has(id))return{speaker:d.speaker,lines:d.afterQuiz,contact:d.contact!==false};
+ if(d.ifItem&&d.hasLines&&bag.has(d.ifItem))return{speaker:d.speaker,lines:d.hasLines,contact:d.contact!==false};
+ return{speaker:d.speaker,lines:d.lines,contact:d.contact!==false}};
+if(talkBox){
+ talkBox.querySelector('.ui-talk-next')?.addEventListener('click',()=>{if(!talkState)return;if(talkState.idx<talkState.lines.length-1){talkState.idx++;renderTalk()}else hideTalk()});
+ talkBox.querySelector('.ui-talk-close')?.addEventListener('click',hideTalk);
+ talkBox.querySelector('.ui-talk-act')?.addEventListener('click',()=>{if(talkState?.action?.run)talkState.action.run()});
+ checkContact=p=>{
+  if(el.hasAttribute('data-pick')||el.hasAttribute('data-ask')||el.querySelector('.ui-sheet-item[data-open]'))return;
+  const f=floor();if(!f)return;
+  const tile=Number(f.dataset.tile)||32;
+  if(lastContact&&contactOrigin&&Math.hypot(p[0]-contactOrigin[0],p[1]-contactOrigin[1])>contactRange*1.7){lastContact=null;contactOrigin=null;hideTalk()}
+  for(const sp of f.querySelectorAll('.ui-spot[data-x]')){
+   const sx=Number(sp.dataset.x),sy=Number(sp.dataset.y),dist=Math.hypot(sx-p[0],sy-p[1]);
+   const id=sp.getAttribute('href').slice(1),kind=sp.dataset.itemKind;
+   if(kind==='drop'&&!bag.has(id)&&dist<=tile*0.9){
+    const btn=takeBtnOf(id);
+    if(btn&&tryTake(btn,{silent:true})){
+     const xp=Number(btn.dataset.xp||10);
+     lastContact=id;contactOrigin=[sx,sy];contactRange=tile;
+     toast('✨ 「'+btn.dataset.itemEmoji+' '+btn.dataset.itemLabel+'」を拾った！（+'+xp+' EXP）');
+     showTalk('✨ おとしものをひろった！',['「'+btn.dataset.itemEmoji+' '+btn.dataset.itemLabel+'」を手に入れた！ 🎒 どうぐに入ったよ！（+'+xp+' EXP）'],
+      {label:'📖 くわしく',run:()=>{hideTalk();open(id);focusSpot(sp)}});
+     return}}
+   if(kind==='chest'&&dist<=tile*1.15){
+    if(lastContact===id)return;
+    const btn=takeBtnOf(id),tk=resolveTalk(sp,id);
+    lastContact=id;contactOrigin=[sx,sy];contactRange=tile*1.15;
+    if(bag.has(id)){showTalk(tk?tk.speaker:'📭 '+sp.textContent,tk?tk.lines:['この宝箱はすでに開いているよ！'],{label:'📖 くわしく',run:()=>{hideTalk();open(id);focusSpot(sp)}});return}
+    if(btn&&btn.dataset.need&&!bag.has(btn.dataset.need)){
+     showTalk(tk?tk.speaker:'🔒 '+sp.textContent,tk?tk.lines:['鍵がかかっている！（「'+btn.dataset.needLabel+'」が必要）']);return}
+    if(btn&&btn.dataset.quizGate&&!done.has(btn.dataset.quizGate)){
+     showTalk(tk?tk.speaker:'🎁 '+sp.textContent,tk?tk.lines:['知識の宝箱だ！クイズに答えてあけよう！'],
+      {label:'🧩 クイズに挑戦',run:()=>{hideTalk();open(id);focusSpot(sp)}});return}
+    showTalk(tk?tk.speaker:'🎁 '+sp.textContent,tk?tk.lines:['宝箱を見つけた！'],
+     {label:'🔓 宝箱をあける',run:()=>{if(btn&&tryTake(btn))hideTalk()}});return}
+   if(sp.dataset.talk&&dist<=tile*1.15){
+    const tk=resolveTalk(sp,id);
+    if(tk&&tk.contact&&lastContact!==id){
+     lastContact=id;contactOrigin=[sx,sy];contactRange=tile*1.15;
+     showTalk(tk.speaker,tk.lines,{label:'📖 くわしく',run:()=>{hideTalk();open(id);focusSpot(sp)}});return}}
+  }
+  const nowMs=performance.now();
+  if(nowMs-lastActorScan>=120){
+   lastActorScan=nowMs;
+   const actors=f.querySelectorAll('.ui-actor[data-talk]');
+   if(actors.length){
+    const fr=f.getBoundingClientRect();
+    if(fr.width>0&&fr.height>0){
+     for(const ac of actors){
+      const ar=ac.getBoundingClientRect(),ax=(ar.left+ar.width/2-fr.left)*Number(f.dataset.w)/fr.width,ay=(ar.top+ar.height/2-fr.top)*Number(f.dataset.h)/fr.height;
+      if(Math.hypot(ax-p[0],ay-p[1])<=36){
+       const aid=ac.getAttribute('href').slice(1),tk=resolveTalk(ac,aid);
+       if(tk&&tk.contact&&lastContact!==aid){
+        lastContact=aid;contactOrigin=[p[0],p[1]];contactRange=40;
+        showTalk(tk.speaker,tk.lines,{label:'📖 プロフィール',run:()=>{hideTalk();open(aid)}});return}}}}}}
+ };
+}
 // 🏷️ the name layer (names / dots / off) switches without a reload and is kept with the language.
 const namesPick=el.querySelector('[data-names-pick]'),setNames=to=>{if(!['names','dots','off'].includes(to))return;el.dataset.names=to;if(namesPick)namesPick.value=to};
 if(typeof kept.names==='string')setNames(kept.names);
 if(typeof kept.alpha==='number')setAlpha(kept.alpha);
 namesPick?.addEventListener('change',()=>{setNames(namesPick.value);save({names:namesPick.value})});
-goto?.addEventListener('change',()=>setFloor(goto.value,true));
+goto?.addEventListener('change',()=>{setFloor(goto.value,true);view.focus({preventScroll:true})});
 // Emoji picker: shown first (JS only); the choice replaces every floor's player emoji. Dragging the map stops the camera following.
 const pick=el.querySelector('.ui-world-pick'),showPick=on=>{pick.hidden=!on;el.toggleAttribute('data-pick',on)},choose=g=>{for(const s of el.querySelectorAll('.ui-player span'))s.textContent=g;showPick(false);follow=true;view.focus({preventScroll:true})};
 if(pick){showPick(true);pick.addEventListener('click',e=>{const b=e.target.closest('[data-emoji]');if(b)choose(b.dataset.emoji)});pick.querySelector('form').addEventListener('submit',e=>{e.preventDefault();const box=e.target.elements.emoji,g=cleanAvatar(box.value);if(g)choose(g);else{box.setCustomValidity(WORLD_TEXT.invalid[WORLD_LANGS.indexOf(lang)]);box.reportValidity()}});pick.querySelector('input').addEventListener('input',e=>e.target.setCustomValidity(''));el.querySelector('[data-pick-open]')?.addEventListener('click',()=>showPick(true))}
@@ -2029,7 +2440,7 @@ form.addEventListener("submit",e=>{e.preventDefault();const input=form.elements.
 for(const hidden of [false,true]){for(const note of notes){const span=document.createElement("span");span.className="ui-board-item ui-board-note";if(hidden)span.setAttribute("aria-hidden","true");const stamp=document.createElement("span");stamp.className="ui-board-stamp";stamp.textContent=note.at;span.append(stamp,document.createTextNode(" "+note.text));run.append(span)}for(const item of base){const copy=item.cloneNode(true);if(hidden)copy.setAttribute("aria-hidden","true");run.append(copy)}}
 const chars=baseChars+notes.reduce((n,note)=>n+[...note.text].length+6,0);board.dataset.chars=chars;run.style.animationDuration=boardSeconds(chars)+"s";tick()})}}
 // 🏠 asks first (the shared dialog: 🏠 goes, ✖️ stays): home resets the floor, the filter and the sheet.
-const goHome=()=>{shut();close();follow=false;allCategories();setFloor(el.querySelector('input[name$="-floor"]')?.value,true);home()};
+const goHome=()=>{shut();close();hideTalk();lastContact=null;contactOrigin=null;follow=false;allCategories();setFloor(el.querySelector('input[name$="-floor"]')?.value,true);home()};
 el.querySelector('[data-home]')?.addEventListener('click',e=>{e.preventDefault();shut();ask('🏠❓',[{glyph:'🏠',t:'home',value:true}],'home').then(v=>{if(v)goHome()})});
 const close=()=>{open(null);apply();if([...el.querySelectorAll(".ui-sheet-item")].some(i=>"#"+i.id===location.hash))history.replaceState(null,"",location.pathname+location.search)};
 const focusSpot=a=>{allCategories();setFloor(a.closest(".ui-floor").dataset.floor);const zoom=Math.max(z,2);go(Number(a.dataset.x),Number(a.dataset.y)+lift()*z/zoom,zoom)};
@@ -2038,10 +2449,10 @@ view.addEventListener("pointermove",e=>{const p=pts.get(e.pointerId);if(!p)retur
 const end=e=>{const tapping=pts.has(e.pointerId)&&pts.size===1&&moved<=8&&e.type==="pointerup"&&view.contains(e.target)&&!e.target.closest("a,button,input");pts.delete(e.pointerId);if(!pts.size)delete el.dataset.drag;if(tapping&&walk&&!confirmMove){const f=floor(),r=f.getBoundingClientRect();walk((e.clientX-r.left)*Number(f.dataset.w)/r.width,(e.clientY-r.top)*Number(f.dataset.h)/r.height)}};
 addEventListener("pointerup",end);addEventListener("pointercancel",end);view.addEventListener("lostpointercapture",end);
 view.addEventListener("wheel",e=>{e.preventDefault();z*=e.deltaY<0?1.1:1/1.1;apply()},{passive:false});
-el.addEventListener("click",e=>{const g=e.target.closest(".ui-world-go");if(g){e.preventDefault();shut();close();setFloor(g.dataset.goFloor);follow=true;lx=ly=undefined;walk(Number(g.dataset.goX),Number(g.dataset.goY));return}const l=e.target.closest(".ui-world-rows a"),a=l?[...el.querySelectorAll(".ui-spot")].find(s=>s.getAttribute("href")===l.getAttribute("href")):e.target.closest(".ui-spot,.ui-actor");if(e.target.closest(".ui-world-rows a,[data-me],[data-pick-open]"))shut();if(a){e.preventDefault();if(l)moved=0;if(e.detail!==0&&moved>8){moved=0;return}const id=a.getAttribute("href").slice(1);if(!l){const sg=a.dataset.sign!==undefined,two=a.dataset.flip;if(sg||two!==undefined){if(a.dataset.own===undefined)a.dataset.own=a.textContent;const cur=a.dataset.show||(sg?"":"label"),next=sg?(cur===""?"label":cur==="label"&&two?"flip":""):(cur==="label"?"flip":"label");if(next)a.dataset.show=next;else delete a.dataset.show;a.textContent=next==="flip"?two:a.dataset.own}}open(id);history.replaceState(null,"","#"+id);if(a.dataset.x!==undefined){focusSpot(a);if(!confirmMove)walk(Number(a.dataset.x),Number(a.dataset.y))}}else if(e.target.closest(".ui-sheet-close")){e.preventDefault();close()}});
+el.addEventListener("click",e=>{const g=e.target.closest(".ui-world-go");if(g){e.preventDefault();shut();close();hideTalk();setFloor(g.dataset.goFloor);follow=true;lx=ly=undefined;walk(Number(g.dataset.goX),Number(g.dataset.goY));return}const l=e.target.closest(".ui-world-rows a,.ui-world-quests a"),a=l?[...el.querySelectorAll(".ui-spot")].find(s=>s.getAttribute("href")===l.getAttribute("href")):e.target.closest(".ui-spot,.ui-actor");if(e.target.closest(".ui-world-rows a,.ui-world-quests a,[data-me],[data-pick-open]"))shut();if(a){e.preventDefault();if(l)moved=0;if(e.detail!==0&&moved>8){moved=0;return}const id=a.getAttribute("href").slice(1);if(!l){const sg=a.dataset.sign!==undefined,two=a.dataset.flip;if(sg||two!==undefined){if(a.dataset.own===undefined)a.dataset.own=a.textContent;const cur=a.dataset.show||(sg?"":"label"),next=sg?(cur===""?"label":cur==="label"&&two?"flip":""):(cur==="label"?"flip":"label");if(next)a.dataset.show=next;else delete a.dataset.show;a.textContent=next==="flip"?two:a.dataset.own}}hideTalk();lastContact=id;contactOrigin=a.dataset.x!==undefined?[Number(a.dataset.x),Number(a.dataset.y)]:null;contactRange=48;open(id);history.replaceState(null,"","#"+id);if(a.dataset.x!==undefined){focusSpot(a);if(!confirmMove)walk(Number(a.dataset.x),Number(a.dataset.y))}}else if(e.target.closest(".ui-sheet-close")){e.preventDefault();close()}});
 const KEYS={ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0]};
-el.addEventListener("keydown",e=>{if(e.key==="Escape"){close();shut()}const k=KEYS[e.key.length>1?e.key:e.key.toLowerCase()];if(k&&walk.step&&!(e.altKey||e.ctrlKey||e.metaKey)&&!e.target.closest("input,textarea,select,button,a")&&!el.hasAttribute("data-pick")&&!el.hasAttribute("data-ask")&&walk.step(...k))e.preventDefault()});
-el.addEventListener("change",e=>{if(e.target.name&&e.target.name.endsWith("-floor"))home()});
+el.addEventListener("keydown",e=>{if(e.key==="Escape"){close();hideTalk();shut()}if((e.key===" "||e.key==="Enter")&&talkState&&talkBox&&!talkBox.hidden&&!e.target.closest("input,textarea,select,button,a")&&!el.hasAttribute("data-pick")&&!el.hasAttribute("data-ask")){e.preventDefault();if(talkState.idx<talkState.lines.length-1){talkState.idx++;renderTalk()}else if(talkState.action?.run){talkState.action.run()}else hideTalk();return}const k=KEYS[e.key.length>1?e.key:e.key.toLowerCase()];if(k&&walk.step&&!(e.altKey||e.ctrlKey||e.metaKey)&&!e.target.closest("input,textarea,select,button,a")&&!el.hasAttribute("data-pick")&&!el.hasAttribute("data-ask")&&walk.step(...k))e.preventDefault()});
+el.addEventListener("change",e=>{if(e.target.name&&e.target.name.endsWith("-floor")){hideTalk();lastContact=null;contactOrigin=null;home()}});
 if(typeof ResizeObserver!=="undefined")new ResizeObserver(apply).observe(view);
 const fromHash=()=>{const hash=location.hash.slice(1),a=hash&&el.querySelector(`.ui-spot[href="#${CSS.escape(hash)}"],.ui-actor[href="#${CSS.escape(hash)}"]`);if(a){open(hash);if(a.dataset.x!==undefined)focusSpot(a)}else open(null)};
 addEventListener("hashchange",fromHash);home();fromHash();
@@ -2330,25 +2741,316 @@ _PARIS_LINKS = [["gare-du-nord", "poissonniere"], ["gare-du-nord", "barbes"], ["
 _SEINE = {"line": [[48.833, 2.38], [48.8372, 2.3737], [48.845, 2.3668], [48.8506, 2.3622], [48.8545, 2.354], [48.856, 2.349], [48.8573, 2.3413], [48.8585, 2.3377], [48.8609, 2.3306], [48.8637, 2.3203], [48.864, 2.3135], [48.8638, 2.3012], [48.8613, 2.2935], [48.855, 2.2877], [48.848, 2.276]], "width": 1}
 
 
-EXAMPLES.update({
-    "school": {
-        "schema": WORLD_SCHEMA, "id": "school", "title": "School (prototype)", "zoom_max": 4,
+def _school_example() -> dict[str, Any]:
+    """🏫 ポートフォリオ学園: 5 floors of educational content x gamification (contact dialogue, ground drops, key/quiz chests, repo & tool links)."""
+    tile = 32
+    def room(fid: str, label: str, cols: int, rows: int, prop_list: list[tuple[Any, ...]], spots: list[dict[str, Any]],
+             *, actors: list[dict[str, Any]] | None = None, start: tuple[float, float] | None = None) -> dict[str, Any]:
+        prop, _ = _floor_kit(tile, fid)
+        sx, sy = start or (cols // 2 - 0.5, rows - 0.5)
+        return {"id": fid, "label": label, "width": cols * tile, "height": rows * tile, "tile": tile,
+                "props": [prop(*args) for args in prop_list], "spots": spots, "actors": actors or [],
+                "player": {"emoji": "🙂", "x": int(sx * tile), "y": int(sy * tile), "speed": 96}}
+
+    base_room = classroom_floor()
+    base_room["label"] = "🏫 教室"
+    base_room["spots"] = [
+        {"id": "classroom-board", "x": 192, "y": 16, "label": "黒板", "category": "lesson", "mark": "📋",
+         "body": "今日の連絡と探検目標が書かれています。5つのエリアを巡って、落ちているどうぐと宝箱の知識を集めよう！",
+         "talk": {"speaker": "📋 黒板", "lines": [
+             "【今日のめあて】歩いて話しかけ、落ちているどうぐを拾い、宝箱のクイズに挑戦しよう！",
+             "フッターの 🚪 から 🌿 校庭・🔬 理科室・📚 図書室・💻 情報実習室 へ移動できるよ。"]}},
+        {"id": "classroom-teacher", "x": 192, "y": 112, "label": "先生の机", "category": "npc", "mark": "👩‍🏫",
+         "body": "担任の先生の席。学園探検のヒントを教えてくれます。",
+         "talk": {"speaker": "👩‍🏫 担任の先生", "lines": [
+             "おはよう！ポートフォリオ学園へようこそ。実験と観察で学ぶ仮想の学校だよ。",
+             "まずは教室の右後ろで『📝 観察メモ』、左前で『🔑 理科室の鍵』を拾ってみよう！"],
+             "if_item": "classroom-note",
+             "has_lines": [
+                 "おっ、『📝 観察メモ』を拾えたね！事実をそのまま記録するのが研究の第一歩だよ。",
+                 "右前の宝箱クイズに挑戦したら、🚪 から 🌿 校庭 や 🔬 理科室 も探検してみて！"]}},
+        {"id": "classroom-door", "x": 192, "y": 432, "label": "出入口", "category": "guide",
+         "body": "廊下や特別教室へつながる出入口です。画面下の 🚪 プルダウンからフロアを移動できます。"},
+        {"id": "classroom-mate", "x": 48, "y": 368, "label": "クラスメイト", "category": "npc", "mark": "🧑‍🎓",
+         "body": "ノートを広げているクラスメイト。学園のヒミツを知っています。",
+         "talk": {"speaker": "🧑‍🎓 クラスメイト", "lines": [
+             "ねえ知ってる？この学校は外部サーバーなしで、1枚の静的HTMLだけで動いてるんだって！",
+             "左前の通路に『🔑 理科室の鍵』が落ちてたよ。理科室の鍵付き宝箱に使えるらしい！"],
+             "if_item": "classroom-key",
+             "has_lines": [
+                 "あ、その『🔑 理科室の鍵』！さっそく 🚪 で 🔬 理科室 に行って、鍵付きの宝箱をあけてみよう！"]}},
+        {"id": "classroom-note", "x": 336, "y": 432, "label": "観察メモ", "category": "drop", "mark": "✨",
+         "body": "後ろの棚のそばに落ちていた観察メモ。「まず観測し、あとから解釈する」と書かれています。",
+         "item": {"emoji": "📝", "label": "観察メモ",
+                  "body": "気づいたことをそのまま記録するメモ（BlueProbe / DRAgoWing の基本姿勢）。", "kind": "drop", "xp": 15},
+         "link": {"label": "🔍 BlueProbe (GitHub)", "href": "https://github.com/myon-bioinformatics/BlueProbe"}},
+        {"id": "classroom-key", "x": 48, "y": 112, "label": "理科室の鍵", "category": "drop", "mark": "🔑",
+         "body": "教壇の左側に落ちていた金属の鍵。「🔬 理科室 流体実験箱」のタグがついています。",
+         "item": {"emoji": "🔑", "label": "理科室の鍵",
+                  "body": "理科室の鍵付き宝箱をあけるための鍵。", "kind": "drop", "xp": 15}},
+        {"id": "classroom-chest", "x": 336, "y": 80, "label": "オリエンテーション宝箱", "category": "chest", "mark": "🎁",
+         "body": "教室のすみにある知識の宝箱。クイズに正解すると『🧭 探検コンパス』が手に入ります！",
+         "talk": {"speaker": "🎁 オリエンテーション宝箱",
+                  "lines": ["『標準ライブラリ中心・再現可能な検証』のクイズに答えて宝箱をあけよう！"],
+                  "after_quiz": ["宝箱はあいている！『🧭 探検コンパス』は 💻 情報実習室 の最終宝箱にも役立つよ。"]},
+         "quiz": {"question": "Pythonの標準ライブラリだけで道具を作る大きな利点はどれ？",
+                  "choices": ["追加インストールなしで動く環境が多く、再現しやすい",
+                              "必ずC言語より100倍速く動く",
+                              "インターネット接続が常に必須になる"],
+                  "answer": 0,
+                  "hint": "依存パッケージが少ないほど、別のPCやCIでも同じように動かしやすくなります。",
+                  "explain": "標準ライブラリ中心なら依存の衝突や取得失敗が減り、CIや閉域環境でも確実に再現できます（PySaiyanWeBoo / xprobe / yourself / cli_args）。",
+                  "xp": 25},
+         "item": {"emoji": "🧭", "label": "探検コンパス",
+                  "body": "学園のすべての教室とポートフォリオの道具を指し示すコンパス。", "kind": "chest", "xp": 20},
+         "link": {"label": "🧰 ポートフォリオの Tools 一覧へ", "href": "../../index.html#tools"}},
+    ]
+
+    yard = {
+        "id": "yard", "label": "🌿 校庭", "width": 640, "height": 448,
+        "spots": [
+            {"id": "bar", "x": 160, "y": 128, "label": "鉄棒", "category": "lesson", "mark": "🤸",
+             "body": "ここで体を動かします。振り子のように回る動きは、エネルギー保存や運動の観察にもつながります。",
+             "talk": {"speaker": "🤸 鉄棒", "lines": [
+                 "鉄棒の近くで『⏱️ ストップウォッチ』が光っているよ！",
+                 "スポーツの動きを正確に測ると、データ分析のタネが見つかるんだ。"]}},
+            {"id": "flowers", "x": 480, "y": 96, "label": "花だん", "category": "lesson", "mark": "🌼",
+             "body": "季節の花が咲いています。サツマイモの仲間（ヒルガオ科）や植物の分類を観察できます。",
+             "talk": {"speaker": "🌼 花だん", "lines": [
+                 "花びらの数や葉の形を見比べてみよう！",
+                 "共通点（属）とちがい（種差）で分けると、分類とオントロジー（TaxOntOy）がよくわかるよ。"]}},
+            {"id": "yard-stopwatch", "x": 128, "y": 224, "label": "ストップウォッチ", "category": "drop", "mark": "⏱️",
+             "body": "校庭のすみで光っていたストップウォッチ。試合や実験の記録を残せます。",
+             "item": {"emoji": "⏱️", "label": "ストップウォッチ",
+                      "body": "時間や試行回数を記録する計測器（SakAnalytics / QueRyu）。", "kind": "drop", "xp": 15}},
+            {"id": "yard-chest", "x": 512, "y": 320, "label": "データ観察の宝箱", "category": "chest", "mark": "🎁",
+             "body": "校庭のベンチわきにある宝箱。野球データ分析フレームワーク Aoi からの出題です！",
+             "talk": {"speaker": "🎁 データ観察の宝箱",
+                      "lines": ["仮説をたしかめる科学的な考え方についてのクイズだよ！"],
+                      "after_quiz": ["ナイス観察！『⚾ 観測スコアブック』を手に入れたよ。"]},
+             "quiz": {"question": "データ分析で『ある仮説が本当に正しいか』を確かめるのに特に大切なのはどれ？",
+                      "choices": ["当てはまらない反例や境界条件がないかも検証する",
+                                  "都合の良い1試合だけを選んで結論にする",
+                                  "元データの記録を残さずに上書きする"],
+                      "answer": 0,
+                      "hint": "PythDRagoras のテーマは『命題・先例・反論』です。",
+                      "explain": "良い問いを見つけるには、都合の良い例だけでなく反例や感度分析で仮説の限界を確かめることが大切です（Aoi / PythDRagoras / SakAnalytics）。",
+                      "xp": 25},
+             "item": {"emoji": "⚾", "label": "観測スコアブック",
+                      "body": "事実と仮説を分けて記録するスコアブック（Aoi プロジェクト）。", "kind": "chest", "xp": 20},
+             "link": {"label": "⚾ Aoi (GitHub)", "href": "https://github.com/myon-bioinformatics/Aoi"}},
+        ],
+        "actors": [
+            {"id": "kid", "emoji": "🧒", "label": "こども", "body": "走り回っています。校庭のおとしものの場所を知っています。", "speed": 48,
+             "talk": {"speaker": "🧒 こども",
+                      "lines": ["わーい！校庭でかけっこしてるんだ！", "鉄棒の近くでピカピカ光る『⏱️ ストップウォッチ』を見つけたよ！"],
+                      "if_item": "yard-stopwatch",
+                      "has_lines": ["あ！『⏱️ ストップウォッチ』拾ってくれたんだ！右下の『🎁 データ観察の宝箱』にも挑戦してみて！"]}},
+            {"id": "dog", "emoji": "🐕", "label": "いぬ", "body": "校庭に遊びに来た元気ないぬ。", "speed": 64,
+             "talk": {"speaker": "🐕 いぬ", "lines": ["ワンワン！（いっしょに歩こう！）", "クンクン…花だんのほうからいいにおいがするワン！"]}},
+            {"id": "bird", "emoji": "🐦", "label": "とり", "body": "校庭の上をゆっくり見渡しています。", "speed": 32,
+             "talk": {"speaker": "🐦 とり", "lines": [
+                 "チュン！空から見ると、教室・理科室・図書室・情報実習室が全部つながって見えるよ。",
+                 "右上の 🏆 学習手帳 を開くと、まだ見つけていない宝箱への矢印が出るんだって！"]}},
+        ],
+        "player": {"emoji": "🙂", "x": 320, "y": 320, "speed": 96},
+    }
+
+    lab = room(
+        "lab", "🔬 理科室", 14, 12,
+        [("board", 3, 0, 8, 1), ("plant", 1, 1, 1, 1), ("plant", 12, 1, 1, 1),
+         ("lab", 2, 3, 3, 1), *[("chair", x, 4, 1, 1) for x in range(2, 5)],
+         ("lab", 9, 3, 3, 1), *[("chair", x, 4, 1, 1) for x in range(9, 12)],
+         ("lab", 2, 6, 3, 1), *[("chair", x, 7, 1, 1) for x in range(2, 5)],
+         ("lab", 9, 6, 3, 1), *[("chair", x, 7, 1, 1) for x in range(9, 12)],
+         ("shelf", 0, 11, 6, 1), ("shelf", 8, 11, 6, 1)],
+        [
+            {"id": "lab-scientist", "x": 224, "y": 80, "label": "バイオ研究員", "category": "npc", "mark": "🧪",
+             "body": "DNA・タンパク質配列解析と流体シミュレーションを研究している先生。",
+             "talk": {"speaker": "🧪 バイオ研究員", "lines": [
+                 "ようこそ理科室へ！ここではバイオインフォマティクスと流体実験を学べるよ。",
+                 "左の実験台のそばに『🧬 DNA塩基カード』が落ちているから拾ってみて！"],
+                 "if_item": "lab-dna-card",
+                 "has_lines": [
+                     "『🧬 DNA塩基カード』を見つけたね！教室の『🔑 理科室の鍵』があれば、右奥の鍵付き流体宝箱もあけられるよ！"]}},
+            {"id": "lab-dna-card", "x": 48, "y": 144, "label": "DNA塩基カード", "category": "drop", "mark": "🧬",
+             "body": "実験台のわきに落ちていたDNA配列カード。「A↔T、G↔C が相補的に対をつくる」とメモがあります。",
+             "item": {"emoji": "🧬", "label": "DNA塩基カード",
+                      "body": "塩基対 A-T / G-C と可変スペーサー探索のメモ（search_seq_including_spaces）。", "kind": "drop", "xp": 15},
+             "link": {"label": "🧬 search_seq_including_spaces (GitHub)", "href": "https://github.com/myon-bioinformatics/search_seq_including_spaces"}},
+            {"id": "lab-bio-chest", "x": 48, "y": 272, "label": "配列探索の宝箱", "category": "chest", "mark": "🎁",
+             "body": "バイオインフォマティクスの宝箱。DNA塩基対のクイズに答えてあけよう！",
+             "talk": {"speaker": "🎁 配列探索の宝箱",
+                      "lines": ["DNAの相補塩基対クイズだよ！『🧬 DNA塩基カード』がヒントになるかも。"],
+                      "after_quiz": ["正解済み！『🔬 配列ルーペ』で配列パターンを観察しよう。"]},
+             "quiz": {"question": "DNAの二重らせんで、塩基 A（アデニン）と対をつくるのはどれ？",
+                      "choices": ["T（チミン）", "G（グアニン）", "C（シトシン）"],
+                      "answer": 0,
+                      "hint": "DNAの4塩基は A-T と G-C の2組でペアを作ります。",
+                      "explain": "DNAでは A と T、G と C が相補的に結合します。search_seq_including_spaces では前後が固定で間（スペーサー）の長さが変わるDNA/タンパク質パターンを標準ライブラリのみで検索できます。",
+                      "xp": 30},
+             "item": {"emoji": "🔬", "label": "配列ルーペ",
+                      "body": "FASTA/FASTQ 配列のパターンを見つける拡大鏡。", "kind": "chest", "xp": 20},
+             "link": {"label": "🧬 search_seq_including_spaces (GitHub)", "href": "https://github.com/myon-bioinformatics/search_seq_including_spaces"}},
+            {"id": "lab-flow-chest", "x": 400, "y": 272, "label": "鍵付き流体実験の宝箱", "category": "chest", "mark": "🔐",
+             "body": "頑丈な鍵がかかった流体シミュレーションの宝箱。教室の『🔑 理科室の鍵』が必要です！",
+             "talk": {"speaker": "🔐 鍵付き流体実験の宝箱",
+                      "lines": ["鍵がかかっている！教室の左前に落ちている『🔑 理科室の鍵』を持ってこよう。"],
+                      "if_item": "classroom-key",
+                      "has_lines": ["『🔑 理科室の鍵』がカチッと合った！流体クイズに答えて宝箱をあけよう！"],
+                      "after_quiz": ["流体実験の宝箱は開放済み！『🌊 流れの実験室』で実物の動くシミュレーションも見られるよ。"]},
+             "quiz": {"question": "ピタゴラスの杯（欲張りカップ）で、液体を一定以上注ぐと全部流れ出てしまう仕組みは？",
+                      "choices": ["内部のサイフォン管が満たされ、水位差で一気に吸い出される",
+                                  "コップの底が温度で溶ける",
+                                  "液体が重力に逆らって蒸発する"],
+                      "answer": 0,
+                      "hint": "ストローで低い位置へ水を流し続ける『サイフォン効果』を思い出してみよう！",
+                      "explain": "一定水位を超えると内部のサイフォン管が満水になり、低い出口へ一気に流出します。PortfolIOの『🌊 流れの実験室』（FluidFullSpeedSimulation × DRAgoWing）で動きと内訳図を見られます！",
+                      "xp": 35},
+             "item": {"emoji": "🌊", "label": "流体チャート",
+                      "body": "流れと遅れ・収支を可視化する実験記録（FFSS × DRAgoWing）。", "kind": "chest", "need": "classroom-key", "xp": 25},
+             "link": {"label": "🌊 流れの実験室を開く", "href": "../flow/"}},
+        ],
+    )
+
+    library = room(
+        "library", "📚 図書室", 14, 12,
+        [("book", 1, 1, 3, 1), ("book", 10, 1, 3, 1), ("book", 1, 5, 2, 1), ("book", 11, 5, 2, 1),
+         ("desk", 5, 3, 4, 1), *[("chair", x, 4, 1, 1) for x in range(5, 9)], ("rug", 5, 7, 4, 2),
+         ("plant", 1, 9, 1, 1), ("plant", 12, 9, 1, 1),
+         ("shelf", 0, 11, 6, 1), ("shelf", 8, 11, 6, 1)],
+        [
+            {"id": "lib-owl", "x": 224, "y": 80, "label": "図書委員", "category": "npc", "mark": "🦉",
+             "body": "知識グラフとオントロジー、文字コードの本を守っている図書委員。",
+             "talk": {"speaker": "🦉 図書委員", "lines": [
+                 "しーっ、図書室へようこそ！ここでは『言葉の定義』と『文字コード』のしくみを学べるよ。",
+                 "ラグのそばに落ちている『🔖 オントロジーのしおり』を拾ってから、2つの宝箱に挑んでみて！"],
+                 "if_item": "lib-bookmark",
+                 "has_lines": [
+                     "『🔖 オントロジーのしおり』を手に入れたね！『属＋種差』は 💬 横断チャット の /onto でも試せるよ！"]}},
+            {"id": "lib-bookmark", "x": 208, "y": 240, "label": "オントロジーのしおり", "category": "drop", "mark": "🔖",
+             "body": "閲覧スペースのラグの上に落ちていたしおり。根拠（hypothesis / derived / observed / proof）が書かれています。",
+             "item": {"emoji": "🔖", "label": "オントロジーのしおり",
+                      "body": "概念を『属（共通点）＋種差（決め手）』で定義するしおり（OnTautoLogy）。", "kind": "drop", "xp": 15},
+             "link": {"label": "💬 横断チャットで /onto を試す", "href": "../chat/"}},
+            {"id": "lib-onto-chest", "x": 48, "y": 240, "label": "分類と循環の宝箱", "category": "chest", "mark": "🎁",
+             "body": "知識グラフの棚にある宝箱。有向非巡回グラフ（DAG）と循環検出のクイズです！",
+             "talk": {"speaker": "🎁 分類と循環の宝箱",
+                      "lines": ["『定義がぐるぐる回る循環参照』を見抜くクイズだよ！"],
+                      "after_quiz": ["グラフ理論クリア！『🕸️ 知識グラフの地図』を手に入れたよ。"]},
+             "quiz": {"question": "用語Aの定義にBを使い、Bの定義にAを使うような『循環』があるとき、トポロジカルソートはどうなる？",
+                      "choices": ["循環が検出され、依存順には並べられない（エラーになる）",
+                                  "必ずアルファベット順に並ぶ",
+                                  "循環している用語だけが自動で2倍に増える"],
+                      "answer": 0,
+                      "hint": "Python 標準ライブラリの graphlib.TopologicalSorter は循環（CycleError）を検出します。",
+                      "explain": "循環定義があると『どちらを先に定義すべきか』が決まらないため、トポロジカルソートは CycleError で循環を検出します（OnTautoLogy / TopOntoLogy / TaxOntOy）。",
+                      "xp": 30},
+             "item": {"emoji": "🕸️", "label": "知識グラフの地図",
+                      "body": "概念どうしの依存と循環を見通す知識グラフ図（OnTautoLogy）。", "kind": "chest", "xp": 20},
+             "link": {"label": "🧬 OnTautoLogy (GitHub)", "href": "https://github.com/myon-bioinformatics/OnTautoLogy"}},
+            {"id": "lib-sjis-chest", "x": 400, "y": 240, "label": "文字化けの謎宝箱", "category": "chest", "mark": "🎁",
+             "body": "古い文字コード資料の宝箱。Shift_JIS の有名な罠「ダメ文字」に関するクイズです！",
+             "talk": {"speaker": "🎁 文字化けの謎宝箱",
+                      "lines": ["日本語エンジニアがハマりやすい Shift_JIS の『ダメ文字』クイズだよ！"],
+                      "after_quiz": ["文字コードの達人！『📜 UTF-8の巻物』を手に入れたよ。"]},
+             "quiz": {"question": "Shift_JISの『表』『能』『十』などがプログラムで誤動作しやすい（ダメ文字と呼ばれる）理由は？",
+                      "choices": ["2バイト目がバックスラッシュ（0x5C）と同じ値で、エスケープ文字と誤認されるため",
+                                  "文字数が3バイト固定で長すぎるため",
+                                  "英数字とまったく同じ1バイト文字だから"],
+                      "answer": 0,
+                      "hint": "文字列の中の \\\" や改行エスケープを思い出してみよう！",
+                      "explain": "Shift_JISの一部漢字は2バイト目が 0x5C（\\）と一致し、ASCII前提のパーサがエスケープと誤解釈します。UTF-8では多バイト文字にASCIIバイトが現れないため安全です（AttentionToJapaneseBeginners）。",
+                      "xp": 30},
+             "item": {"emoji": "📜", "label": "UTF-8の巻物",
+                      "body": "文字コード事故を防ぐ知恵の巻物（AttentionToJapaneseBeginners）。", "kind": "chest", "xp": 20},
+             "link": {"label": "📜 AttentionToJapaneseBeginners (GitHub)", "href": "https://github.com/myon-bioinformatics/AttentionToJapaneseBeginners"}},
+        ],
+    )
+
+    comp = room(
+        "computer-lab", "💻 情報実習室", 14, 12,
+        [("board", 3, 0, 8, 1), ("mat", 6, 2, 2, 9),
+         ("pc", 2, 3, 4, 1), *[("chair", x, 4, 1, 1) for x in range(2, 6)],
+         ("pc", 8, 3, 4, 1), *[("chair", x, 4, 1, 1) for x in range(8, 12)],
+         ("pc", 2, 6, 4, 1), *[("chair", x, 7, 1, 1) for x in range(2, 6)],
+         ("pc", 8, 6, 4, 1), *[("chair", x, 7, 1, 1) for x in range(8, 12)],
+         ("shelf", 0, 11, 6, 1), ("shelf", 8, 11, 6, 1)],
+        [
+            {"id": "comp-guide", "x": 224, "y": 80, "label": "システム案内人", "category": "npc", "mark": "🤖",
+             "body": "CLI・セキュリティ・MCP・ブラウザ自動テストを案内するロボット。",
+             "talk": {"speaker": "🤖 システム案内人", "lines": [
+                 "ピポッ！情報実習室へようこそ。CLI・セキュリティ・MCP・静的WebUIの工房だよ。",
+                 "落ちている『🧷 ワンライナー辞典』を拾って、右奥の『👑 卒業認定の宝箱』をめざそう！"],
+                 "if_item": "comp-grad-chest",
+                 "has_lines": [
+                     "おめでとう！ポートフォリオ学園の卒業認定をクリアしたね！右上の 🏆 学習手帳 で全コンプリートも確認してみよう！"]}},
+            {"id": "comp-oneliner", "x": 48, "y": 272, "label": "ワンライナー辞典", "category": "drop", "mark": "🧷",
+             "body": "PC端末のわきに置かれたポケット辞典。よく使う bash/zsh ワンライナーや標準ライブラリ起動コマンドがまとまっています。",
+             "item": {"emoji": "🧷", "label": "ワンライナー辞典",
+                      "body": "閉域環境でも使えるコマンド辞典（OneLaunchNumerousModules / cli_args）。", "kind": "drop", "xp": 15},
+             "link": {"label": "🧷 OneLaunchNumerousModules (GitHub)", "href": "https://github.com/myon-bioinformatics/OneLaunchNumerousModules"}},
+            {"id": "comp-sec-chest", "x": 48, "y": 112, "label": "セキュリティの宝箱", "category": "chest", "mark": "🎁",
+             "body": "脆弱性評価と境界テストの宝箱。セキュリティ基礎クイズに答えよう！",
+             "talk": {"speaker": "🎁 セキュリティの宝箱",
+                      "lines": ["脆弱性情報（CVE / CVSS）と安全なテストの基本クイズだよ！"],
+                      "after_quiz": ["セキュリティ知識を習得！『🛡️ セキュリティ盾』を手に入れたよ。"]},
+             "quiz": {"question": "既知の脆弱性に付けられる世界共通の識別番号と、深刻度スコアの仕組みはどれ？",
+                      "choices": ["CVE と CVSS（NVD API などで公開）", "HTML と CSS", "FPS と DPI"],
+                      "answer": 0,
+                      "hint": "nvd_nist_known_vulns は NVD の CVE API 2.0 から脆弱性とスコアを取得します。",
+                      "explain": "CVE は個別の脆弱性ID、CVSS はその深刻度（0.0〜10.0）を表す共通指標です。nvd_nist_known_vulns は標準ライブラリだけで NVD API 2.0 から決定的に JSONL 出力します。",
+                      "xp": 30},
+             "item": {"emoji": "🛡️", "label": "セキュリティ盾",
+                      "body": "脆弱性トリアージと境界テストの盾（nvd_nist_known_vulns / xprobe）。", "kind": "chest", "xp": 20},
+             "link": {"label": "🛡️ nvd_nist_known_vulns (GitHub)", "href": "https://github.com/myon-bioinformatics/nvd_nist_known_vulns"}},
+            {"id": "comp-grad-chest", "x": 400, "y": 112, "label": "卒業認定の宝箱", "category": "chest", "mark": "👑",
+             "body": "ポートフォリオ学園の最終宝箱！教室の『🧭 探検コンパス』を持っていると開くことができます。",
+             "talk": {"speaker": "👑 卒業認定の宝箱",
+                      "lines": ["教室のオリエンテーション宝箱から『🧭 探検コンパス』を手に入れてから挑戦しよう！"],
+                      "if_item": "classroom-chest",
+                      "has_lines": ["『🧭 探検コンパス』が光っている！最後の総合クイズに答えて修了証を手に入れよう！"],
+                      "after_quiz": ["🎓 ポートフォリオ学園修了おめでとう！ポートフォリオの各種ツールでも冒険をつづけよう！"]},
+             "quiz": {"question": "LLMが外部ツールを呼ぶ MCP やブラウザ実行で、安全・確実に運用する基本はどれ？",
+                      "choices": ["入力と権限を明示的に検証・制限し、結果をテストで記録する",
+                                  "どんな引数でも確認せずそのままシェルに渡す",
+                                  "失敗したログはすべて見ずに消す"],
+                      "answer": 0,
+                      "hint": "mcp-toolcall-lab や PySaiyanWeBoo の設計（検証・エスケープ・CI証拠）を思い出してみよう！",
+                      "explain": "道具の入力スキーマや許可範囲を検証し、失敗や境界もテスト証拠として残すことで、LLM連携も静的ツールも安全に運用できます（mcp-toolcall-lab / BrowserTestKit / PySaiyanWeBoo）。",
+                      "xp": 40},
+             "item": {"emoji": "🎓", "label": "ポートフォリオ学園修了証",
+                      "body": "5つのエリアを巡り、観察・配列・知識グラフ・セキュリティを学んだ証！", "kind": "chest", "need": "classroom-chest", "xp": 30},
+             "link": {"label": "🔌 MCP 実験室を開く", "href": "../mcp/"}},
+        ],
+    )
+
+    return {
+        "schema": WORLD_SCHEMA, "id": "school", "title": "School (ポートフォリオ学園)", "zoom_max": 4,
         "avatars": ["🙂", "😎", "🤓", "🐱", "🐶", "🐰", "🦊", "🐼", "🐸", "🦄", "🐙", "🌸", "⭐", "🍎", "⚽", "🚀", "先生", "A"],
-        "tools": {"🗺️": {"label": "見どころ", "label_en": "Highlights", "spots": ["classroom-board", "flowers"]},
-                  "🏫": {"label": "学校", "label_en": "School", "body": "教室と校庭があります。フッターの🚪で行き来できます。"}},
-        "board": {"title": "INFO", "items": [
+        "tools": {
+            "🗺️": {"label": "見どころ", "label_en": "Highlights",
+                   "spots": ["classroom-board", "flowers", "lab-scientist", "lib-owl", "comp-guide"]},
+            "🏫": {"label": "学校", "label_en": "School",
+                   "body": "教室・校庭・理科室・図書室・情報実習室の5エリアがあります。歩くと会話が始まり、落ちているどうぐや宝箱のクイズで学びながら集められます（フッターの🚪で移動）。"},
+            "🧰": {"label": "関連ツール", "label_en": "Portfolio Tools", "links": [
+                {"label": "💬 横断チャット", "href": "../chat/"},
+                {"label": "🌊 流れの実験室", "href": "../flow/"},
+                {"label": "🧠 リポジトリ地図", "href": "../repo-map/"},
+                {"label": "🗺️ 地図URL・ピン留め", "href": "../maps/"},
+                {"label": "🎞 GIF工房", "href": "../gif/"},
+                {"label": "🏠 Tools 一覧", "href": "../../index.html#tools"}]},
+        },
+        "board": {"title": "SCHOOL", "items": [
             {"text": "朝の会", "at": "08:40"}, {"text": "1時間目", "at": "09:00"}, {"text": "給食", "at": "12:20"},
-            {"text": "下校", "at": "15:30"}, {"text": "今日の授業", "gauge": {"from": "09:00", "to": "15:30"}}]},
-        "floors": [
-            classroom_floor(),
-            {"id": "yard", "label": "校庭", "width": 640, "height": 448,
-             "spots": [{"id": "bar", "x": 160, "y": 128, "label": "鉄棒", "body": "ここで体を動かします。"},
-                       {"id": "flowers", "x": 480, "y": 96, "label": "花だん", "body": "季節の花が咲いています。"}],
-             "actors": [{"id": "kid", "emoji": "🧒", "label": "こども", "body": "走り回っています。", "speed": 48},
-                        {"id": "dog", "emoji": "🐕", "label": "いぬ", "body": "迷い込んだようです。", "speed": 64},
-                        {"id": "bird", "emoji": "🐦", "label": "とり", "body": "屋根にとまっています。", "speed": 32}],
-             "player": {"emoji": "🙂", "x": 320, "y": 320, "speed": 96}}],
-    },
+            {"text": "下校", "at": "15:30"}, {"text": "今日の授業", "gauge": {"from": "09:00", "to": "15:30"}},
+            {"text": "歩いて話しかけ、落ちているどうぐ＆宝箱クイズを集めよう！"}]},
+        "floors": [base_room, yard, lab, library, comp],
+    }
+
+
+EXAMPLES.update({
+    "school": _school_example(),
     "overworld": {
         "schema": WORLD_SCHEMA, "id": "overworld", "title": "Overworld (prototype)", "zoom_max": 4, "move": "confirm",
         "avatars": ["🙂", "🧙", "🧝", "🦸", "🐱", "🐶", "🦊", "🐉", "🦄", "⚔️", "🛡️", "🚀"],
@@ -2713,6 +3415,34 @@ def _floors(page, cam, tmp):
     cam.hold(1600)
     page.click(".ui-sheet-close:visible")
     cam.hold(600)
+
+
+@scene("quest")
+def _quest(page, cam, tmp):
+    """Educational RPG loop: pick up a dropped item on contact, talk to the teacher, open a quiz chest, check 🏆 study log and visit the lab."""
+    choose(page, "🤓")
+    cam.hold(400)
+    tap(page, cam, 10, 14)                      # walk right below dropped 📝 観察メモ
+    key(page, cam, "ArrowUp")                   # step onto (10, 13) -> auto-pickup on contact!
+    cam.hold(900)
+    page.click(".ui-talk-close:visible")
+    tap(page, cam, 6, 4)                        # walk right below 👩‍🏫 teacher -> item-aware contact dialogue!
+    cam.hold(900)
+    page.click(".ui-talk-next:visible")
+    cam.hold(900)
+    page.click(".ui-talk-close:visible")
+    tap(page, cam, 10, 3)                       # walk right below 🎁 quiz chest -> open quiz via contact action!
+    cam.hold(800)
+    page.click(".ui-talk-act:visible")
+    cam.hold(800)
+    page.click('#school-spot-classroom-chest .ui-quiz-btn[data-choice="0"]')
+    cam.hold(1100)
+    page.click(".ui-sheet-close:visible")
+    cam.hold(400)
+    more(page, cam, "progress", 1200)
+    page.keyboard.press("Escape")
+    page.select_option(".ui-world-goto", "lab")
+    cam.hold(900)
 
 
 @scene("lands", world="overworld")

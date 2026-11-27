@@ -16,14 +16,22 @@ open("school.html", "w").write(world.world_document(spec))
 | --- | --- | --- |
 | `tile` | floor | Tile size in map units: 16..128, a multiple of 8, dividing `width` and `height` |
 | `props` | floor | Up to 512 `{kind, x, y, w, h}` rectangles, all on tiles and inside the floor |
-| `kind` | prop | `desk`, `board`, `wall`, `shelf` are **solid**; `chair`, `rug` can be walked over (sit on a chair) |
+| `kind` | prop | `desk`, `board`, `wall`, `shelf`, `plant`, `lab`, `book`, `pc` are **solid**; `chair`, `rug`, `mat` can be walked over (sit on a chair) |
 | `avatars` | world | Up to 24 different labels offered first (emoji, short text such as `先生` or `A`, or both; 1..16 characters); the choice replaces every floor's player label |
+| `talk` | spot / actor | `{lines, speaker?, if_item?, has_lines?, after_quiz?, contact?}`: canned RPG dialogue triggered on contact (walking near a spot or moving actor) or read in the sheet; switches to `has_lines` once the referenced item is in 🎒 or `after_quiz` after clearing the spot's quiz |
+| `item` | spot | `{emoji, label, body?, kind?, need?, xp?}`: collectible item for 🎒 (`take` default sheet toggle, `drop` auto-picked up on ground contact, `chest` treasure chest that flips to 📭 when opened; optional `need` key item from any floor and `xp`) |
+| `quiz` | spot | `{question, choices, answer, explain, hint?, xp?}`: educational multiple-choice quiz (with static `<details>` fallback without JS); clearing awards EXP, saves in `done`, and unlocks a chest on the same spot |
+| `link` | spot | `{label, href}`: safe link (`./`, `../`, `/` or `https://`) to a related portfolio tool or GitHub repository |
 
 | `classroom` | floor | `{rows, groups, per_group, tile}` (all optional) in place of `width`/`height`/`tile`/`props`: the floor is `classroom_floor(...)`. `id`, `label` and `spots`/`actors`/`player` may sit beside it and replace the generated ones |
 
 A floor's `player` must start on a free tile. `classroom_floor(rows, groups, per_group=2, tile=32)` writes a whole classroom
 floor (rows of desks, one chair under each, aisles, blackboard, teacher's desk, back shelves with a door gap) with every size a
 multiple of the tile. A floor without `tile` keeps the old free walking.
+
+The bundled `school` example (**ポートフォリオ学園**) spans 5 floors (`🏫 教室`, `🌿 校庭`, `🔬 理科室`, `📚 図書室`, `💻 情報実習室`) with
+contact-triggered dialogues on NPCs and moving schoolyard actors, dropped items to pick up on the floor, key- and quiz-gated treasure chests,
+a 🏆 study log tracking EXP and rank, and links to the portfolio's tools and GitHub repositories.
 
 ## From another repository (one line)
 
@@ -38,7 +46,7 @@ python -c "import sys;sys.path.insert(0,'scripts');import world as u;sys.stdout.
 ```
 
 A bad spec exits with status 2 and one `error:` line on stderr (no traceback, nothing on stdout). Add `--theme NAME` for another theme.
-Python, the CLI and `py_launch.cjs` return identical bytes; `tests/test_worlds.py` checks that.
+Python, the CLI and `py_launch.cjs` return identical bytes; `tests/test_world.py` checks that.
 
 ## Who does what
 
@@ -55,11 +63,12 @@ Python, the CLI and `py_launch.cjs` return identical bytes; `tests/test_worlds.p
 A grid world (or any world with `"shell": true`, or with `tools`) keeps the page short: nothing is stacked under the map, so a phone and a PC need no
 vertical scrolling and nothing changes page. The screen is icons; the words are each button's `aria-label` and tooltip, in 11 languages (below).
 
-* **Header** (the whole world): the info board, then 🏠 / ⭐ / ⚙️ and the emoji tools you add.
+* **Header** (the whole world): the info board, then 🏠 / ⭐ / 🎒 / 🏆 / ⚙️ and the emoji tools you add.
   * **🏠** home: first floor, everything in view, sheet and menus closed.
   * **⭐** favourites: a ☆ in the ☰ list stars a place; the ⭐ panel lists them (on any floor) and takes you there. They are a light cache: kept in this browser
-    (`localStorage` key `ui-world:<id>`, only the starred places, the language and the name layer) and restored on the next visit. No dialog, no per-floor favourites, no export.
-  * **🎒** bag (shown when any spot defines `item: {emoji, label, body?}`): the spot's sheet offers a button to add/remove the item, and the 🎒 panel lists collected items (kept in `localStorage` beside `fav`) with arrows back to each spot.
+    (`localStorage` key `ui-world:<id>`, only the starred places, language, name layer, overlay opacity, collected item IDs and cleared quiz IDs) and restored on the next visit. No dialog, no per-floor favourites, no export.
+  * **🎒** bag (shown when any spot defines `item: {emoji, label, body?, kind?, need?, xp?}`): the spot's sheet offers a button to add/remove or open the item (ground `drop` items also auto-pick up on contact), and the 🎒 panel lists collected items (kept in `localStorage` beside `fav`) with arrows back to each spot.
+  * **🏆** study log (shown when any spot defines a `quiz` or a `drop`/`chest` item): tracks rank, EXP progress bar, item/chest/quiz counts, and a clickable cross-floor checklist with direction arrows.
   * **⚙️** settings: ⏸️ pause the motion, 🙂✏️ change the emoji, 🌐 pick the language (a `<select>` of native names), 🏷️ the name layer (names / dots / off), 🔍 a dial for the zoom (turn it, or the wheel on the map turns it), 🫥 a slider for how see-through the controls over the map are (the pad, `data-overlay`; `--ui-overlay-alpha` .2–1, kept with the language).
 * **Side** (this screen): 48px buttons that open a panel over the map (one menu open at a time; Escape, a tap on the map or choosing an item closes it).
   * **☰**: the places of this floor (and the category chips, if any). Each row has an arrow from you to the place (⬆️ ↗️ ➡️ ↘️ ⬇️ ↙️ ⬅️ ↖️, 📍 within one tile,
@@ -280,6 +289,7 @@ the browser tests name their GIFs through them from `PSWB_GIFS="DIR [--prefix P]
 | `school-menu.gif` | the ☰ list with its arrows; tap **黒板** and the arrow turns into 📍 as you arrive |
 | `school-header.gif` | the header: ⭐ stars on two floors and their list, the 🗺️ tool, 🌐 the language, 🏠 home |
 | `school-floors.gif` | the footer pulldown to the schoolyard, a spot's sheet, back to the classroom, the board spot |
+| `school-quest.gif` | ground drop auto-pickup on contact, item-aware teacher dialogue, opening a quiz treasure chest, 🏆 study log and visiting the lab |
 | `overworld-lands.gif` | six lands by the 🚪 pulldown (forest, mountain, desert, coast, castle), then walking to the castle town from the ☰ list |
 | `overworld-real.gif` | the real floor: ⋯ → 🖼️📷 → 🖼️ choose a photo, walk over it, then 🧹 (the photo is drawn by the recorder) |
 | `cities-tokyo.gif` | Parallel Tokyo: the 🚉 tool (the six exits of Tokyo Station), Marunouchi to Yaesu through the concourse, the electronic board's dot and text, on to Kanda by ☰ |

@@ -84,7 +84,7 @@ WORLD_PAGES = {
     'world': (lambda ui: world_page('overworld'), '🌍 ワールド', 'World',
               '🚪 で土地をわたる旅のワールド：絵文字のキャラで歩き、時刻・お気に入り・地図・言語を切り替える'),
     'school': (lambda ui: world_page('school'), '🏫 スクール', 'School',
-               '教室を歩く：絵文字を選び、タップ・矢印キー・パッドで机のあいだを移動（机・黒板・棚には入らない）'),
+               '教室・校庭・理科室・図書室・情報実習室を歩く：接触時の定型会話・落ちているどうぐ・クイズ付き宝箱・🏆学習手帳'),
     'cities': (lambda ui: world_page('cities'), '🗼 パラレル', 'Parallel cities',
                'パラレル東京・リバースロンドン・フェイクパリ：緯度・経度から、駅から駅へ歩く'),
     'world-shots': (lambda ui: world_page('world'), '🎬 カメラ', 'World camera',

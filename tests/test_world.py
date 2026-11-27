@@ -187,7 +187,7 @@ def test_school_html_has_props_grid_pad_and_picker_and_escapes_text():
     school = W.example_data("school")
     school["floors"][0]["spots"][0]["label"] = "<b>黒板</b>"
     html = W.world_html(school)
-    assert html.count('class="ui-prop"') == len(W.world_validate(school)["floors"][0]["props"])
+    assert html.count('class="ui-prop"') == sum(len(f.get("props", [])) for f in W.world_validate(school)["floors"])
     assert 'data-grid' in html and html.count('data-step="') == 4 and 'data-me' in html and 'data-pick-open' in html
     assert html.count('data-emoji="') == len(school["avatars"]) and 'name="emoji"' in html and 'maxlength="32"' in html
     assert "<b>黒板</b>" not in html and "&lt;b&gt;" in html
@@ -706,7 +706,8 @@ def test_the_chrome_speaks_the_eleven_languages_of_flutter_navigation_basic():
         assert len(words) == 11 and all(w.strip() for w in words), key
         assert len(set(words)) >= 6, key                                       # a few are the same word in several languages (Hotel-like), not all
     runtime = ("invalid", "camera", "photo", "clear", "unavailable")           # said by the script (a validity message, the ask() choices), not in the markup
-    assert all(f'data-t="{k}"' in W.world_html(W.EXAMPLES["overworld"]) or k in runtime for k in W.WORLD_TEXT)
+    rendered = W.world_html(W.EXAMPLES["overworld"]) + W.world_html(W.EXAMPLES["school"])
+    assert all(f'data-t="{k}"' in rendered or k in runtime for k in W.WORLD_TEXT)
     assert all(f"'{k}'" in W.WORLD_JS for k in runtime[1:])
     assert W.WORLD_JS.startswith(W.WORLD_MOTION_JS + W.WORLD_SHARED_JS + W.WORLD_TEXT_JS)
     catalogue = json.loads(W.WORLD_TEXT_JS.split("WORLD_TEXT=")[1].rstrip(";\n"))
@@ -778,8 +779,9 @@ def test_a_land_is_one_line_of_json_and_the_school_is_untouched():
     for bad in ({"land": {"theme": "meadow", "color": "red"}}, {"land": "meadow"}, {"land": {}, "classroom": {}}, {"land": {}, "width": 64}):
         with pytest.raises(ValueError):
             W.world_validate({**spec, "floors": [{"id": "n", **bad}]})
+    plain_room = W.world_css({"schema": W.WORLD_SCHEMA, "id": "room", "floors": [W.classroom_floor()]})
     school = W.world_css(W.example_data("school"))
-    assert "data-kind=water" not in school and "svg+xml" not in school                # no land rule leaks into a world without lands
+    assert "data-kind=water" not in plain_room and "svg+xml" not in plain_room and "data-kind=water" not in school
 
 
 def test_the_overworld_example_swaps_objects_and_ships_only_the_kinds_it_uses():
@@ -1500,7 +1502,7 @@ def test_approved_example_destination():
 
 
 def test_spot_item_validates_and_renders_bag_menu():
-    spec = _world(shell=True)
+    spec = {"schema": W.WORLD_SCHEMA, "id": "school", "shell": True, "floors": [W.classroom_floor()]}
     assert 'ui-world-bag' not in W.world_html(spec) and 'ui-world-take' not in W.world_html(spec)
     spec["floors"][0]["spots"][0]["item"] = {"emoji": "🍠", "label": "サツマイモ", "body": "ヒルガオ科のいも。"}
     checked = W.world_validate(spec)
@@ -1508,11 +1510,85 @@ def test_spot_item_validates_and_renders_bag_menu():
     html = W.world_html(checked)
     assert 'data-menu="bag"' in html and 'class="ui-world-rows ui-world-bag"' in html
     assert 'class="ui-world-take"' in html and 'data-item-emoji="🍠"' in html and 'data-item-label="サツマイモ"' in html
-    for bad in ({"emoji": "🍠"}, {"label": "x"}, {"emoji": "x", "label": "y"}, {"emoji": "🍠", "label": "y", "extra": 1}, "🍠"):
-        bad_spec = _world()
+    for bad in ({"emoji": "🍠"}, {"label": "x"}, {"emoji": "x", "label": "y"}, {"emoji": "🍠", "label": "y", "extra": 1},
+                {"emoji": "🍠", "label": "y", "kind": "magic"}, {"emoji": "🍠", "label": "y", "xp": 0}, "🍠"):
+        bad_spec = {"schema": W.WORLD_SCHEMA, "id": "school", "floors": [W.classroom_floor()]}
         bad_spec["floors"][0]["spots"][0]["item"] = bad
         with pytest.raises(ValueError):
             W.world_validate(bad_spec)
+
+
+def test_talk_quiz_chest_and_link_validate_escape_and_reject_bad_references():
+    base = lambda: {"schema": W.WORLD_SCHEMA, "id": "edu", "shell": True, "floors": [W.classroom_floor()]}
+    spec = base()
+    spec["floors"][0]["spots"][0]["item"] = {"emoji": "🔑", "label": "かぎ", "kind": "drop", "xp": 15}
+    spec["floors"][0]["spots"][1]["talk"] = {"speaker": "<b>先生</b>", "lines": ["こんにちは", "<i>ようこそ</i>"],
+                                             "if_item": "classroom-board", "has_lines": ["かぎ発見！"],
+                                             "after_quiz": ["クリア！"], "contact": True}
+    spec["floors"][0]["spots"][1]["quiz"] = {"question": "1+1は？", "choices": ["2", "3"], "answer": 0,
+                                             "hint": "指を折って数えよう", "explain": "1+1=2 です。", "xp": 30}
+    spec["floors"][0]["spots"][1]["item"] = {"emoji": "🧭", "label": "コンパス", "kind": "chest", "need": "classroom-board", "xp": 20}
+    spec["floors"][0]["spots"][1]["link"] = {"label": "関連ツール", "href": "../chat/"}
+    checked = W.world_validate(spec)
+    assert W.world_validate(checked) == checked
+    html = W.world_html(checked)
+    assert 'data-menu="progress"' in html and 'class="ui-talk"' in html and 'class="ui-quiz"' in html
+    assert 'data-item-kind="drop"' in html and 'data-item-kind="chest"' in html and 'data-need="edu-spot-classroom-board"' in html
+    assert 'data-quiz-gate="edu-spot-classroom-teacher"' in html and 'href="../chat/"' in html
+    assert "<b>先生</b>" not in html and "&lt;b&gt;先生&lt;/b&gt;" in html and "<i>ようこそ</i>" not in html
+    assert "ui-quiz-static" in html and "1+1=2 です。" in html                      # works without JS too
+    # invalid cross-references, bad quizzes, unsafe links
+    bad_cases = [
+        lambda s: s["floors"][0]["spots"][1].update(item={"emoji": "🧭", "label": "x", "kind": "chest", "need": "no-such-spot"}),
+        lambda s: s["floors"][0]["spots"][0].update(item={"emoji": "🔑", "label": "x", "kind": "chest", "need": "classroom-board"}),
+        lambda s: s["floors"][0]["spots"][1].update(talk={"lines": ["hi"], "if_item": "classroom-board"}),
+        lambda s: s["floors"][0]["spots"][1].update(talk={"lines": ["hi"], "if_item": "classroom-door", "has_lines": ["ok"]}),
+        lambda s: s["floors"][0]["spots"][1].update(talk={"lines": ["hi"], "after_quiz": ["done"]}),
+        lambda s: s["floors"][0]["spots"][1].update(quiz={"question": "q", "choices": ["a"], "answer": 0, "explain": "e"}),
+        lambda s: s["floors"][0]["spots"][1].update(quiz={"question": "q", "choices": ["a", "b"], "answer": 2, "explain": "e"}),
+        lambda s: s["floors"][0]["spots"][1].update(link={"label": "bad", "href": "javascript:alert(1)"}),
+    ]
+    for mutate in bad_cases:
+        bad = base()
+        mutate(bad)
+        with pytest.raises(ValueError):
+            W.world_validate(bad)
+
+
+def test_school_example_has_five_walkable_floors_quests_dialogues_and_valid_repo_links():
+    world = W.world_validate(W.example_data("school"))
+    assert [f["id"] for f in world["floors"]] == ["classroom", "yard", "lab", "library", "computer-lab"]
+    repos = {r["name"] for r in json.loads((ROOT / "api/repos.json").read_text(encoding="utf-8"))["repos"]}
+    drops, chests, quizzes, talks = [], [], [], []
+    for f in world["floors"]:
+        if f.get("tile"):
+            reach, blocked = _reach(f)
+            tile = f["tile"]
+            for sp in f["spots"]:
+                cx, cy = sp["x"] // tile, sp["y"] // tile
+                # Either the spot itself sits on a reachable free tile or touches one (e.g. blackboard on row 0)
+                touching = [(cx + dx, cy + dy) for dx, dy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1))]
+                assert any(c in reach for c in touching), (f["id"], sp["id"])
+        for sp in f["spots"]:
+            kind = sp.get("item", {}).get("kind")
+            if kind == "drop":
+                drops.append(sp["id"])
+            elif kind == "chest":
+                chests.append(sp["id"])
+            if "quiz" in sp:
+                quizzes.append(sp["id"])
+            if "talk" in sp:
+                talks.append(sp["id"])
+            href = sp.get("link", {}).get("href", "")
+            if href.startswith("https://github.com/myon-bioinformatics/"):
+                repo_name = href.rstrip("/").split("/")[-1]
+                assert repo_name in repos, (sp["id"], repo_name)
+        for ac in f["actors"]:
+            if "talk" in ac:
+                talks.append(ac["id"])
+    assert len(drops) >= 5 and len(chests) >= 6 and len(quizzes) >= 6 and len(talks) >= 10
+    html = W.world_html(world)
+    assert 'data-menu="bag"' in html and 'data-menu="progress"' in html and 'class="ui-talk"' in html and 'class="ui-status"' in html
 
 
 def test_overworld_meadow_has_hirugaoka_and_sweet_potato_item():
@@ -1865,7 +1941,7 @@ class WorldPageTests(unittest.TestCase):
         for word in ("canvas", "drawImage", "FileReader", "ImageCapture", "MediaRecorder", "toDataURL", "toBlob", "createImageBitmap", "arrayBuffer", "readAsDataURL"):
             self.assertTrue(word not in W.WORLD_JS, word)
         self.assertEqual(sorted(re.findall(r"localStorage\.(\w+)", W.WORLD_JS)), ["getItem", "setItem"])
-        self.assertEqual(sorted(set(re.findall(r"save\(\{(\w+)", W.WORLD_JS))), ["alpha", "bag", "fav", "lang", "names"])  # only these five fields are written
+        self.assertEqual(sorted(set(re.findall(r"save\(\{(\w+)", W.WORLD_JS))), ["alpha", "bag", "done", "fav", "lang", "names"])  # only these six fields are written
         self.assertEqual(sorted(set(re.findall(r"save\(\{(\w+)", W.SHELL_JS))), ["fav", "lang"])              # 🧰 a tool page's chrome writes two of them
         self.assertIn("'ui-world:'+el.id", W.WORLD_JS)
         self.assertEqual(W.WORLD_JS.count("fetch("), 1)
