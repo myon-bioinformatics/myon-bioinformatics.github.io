@@ -67,7 +67,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 
 主な workflow（いずれもイベントまたは定期実行あり）:
 
-- **Update repos API**（[`.github/workflows/repos-api.yml`](.github/workflows/repos-api.yml)）— 毎日 06:00 JST（`cron: "0 21 * * *"`）と、カタログ用スクリプト / Pages workflow の変更時。`api/repos.json` を更新する。`GITHUB_TOKEN` による commit は `push` workflow を起こさないため、成功時だけ **Pages** を `workflow_run` で起動する。失敗・キャンセルではサイトを出し直さない。
+- **Update repos API**（[`.github/workflows/repos-api.yml`](.github/workflows/repos-api.yml)）— 毎日 06:00 JST（`cron: "0 21 * * *"`）と、カタログ用スクリプト / Pages workflow の変更時。`api/repos.json` を更新し、週が替わった月曜には 🗓️ `docs/weekly-view.md`（前の週にマージした PR）も書き直す。`GITHUB_TOKEN` による commit は `push` workflow を起こさないため、成功時だけ **Pages** を `workflow_run` で起動する。失敗・キャンセルではサイトを出し直さない。
 - **Pages**（[`.github/workflows/pages.yml`](.github/workflows/pages.yml)）— `main` への push、および上記の成功後。公開用に指定した静的ファイルを `--copy-source` で配置し、動く見本 GIF・流れの実験室・リポジトリ地図・他リポジトリから組む道具をベストエフォートで足し、検証済みの共有資産を書いて公開する。
 - **CI** など — 変更の検証。[HTML import published](.github/workflows/html-import-published.yml) は Pages 完了後に、公開済みの HTML 取込をブラウザで確認する。
 
@@ -285,6 +285,16 @@ add_back_nav(page, 'tools/maps/index.html', {'🗼': {'label': 'パラレル都�
 
 🗓️ 2026-11-27 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k door_to_door` writes `test-results/door-to-door/door-to-door-pulldown-<UTC>.gif`（`docs/evidence/door-to-door.gif` へコピー）。
 部品は PySaiyanWeBoo（`component_parts('chrome' | 'door' | 'gaze-avatar')`・`door_html(foot=True)`・`add_part`・`stamp_page_size`）、ポートフォリオ側は指定だけ：`scripts/project_pages.py`（`tools_chrome` / `tools_places` / `tools_door` / `add_back_nav`）。
+
+### 🎥 Tools カードの動く見本と 🗓️ 週次ノート
+
+- 🎥 🧰 Tools の各カードにも、🚀 Projects のカードと同じ動く見本（GIF）が付きます。絵を押すと、その道具が開きます（🧭 統合運用のような別リポジトリのページも同じ）。絵があるカードでは、文字のリンクは開き先が複数ある（似た道具が並ぶ）カードにだけ残します。公開のたびに `--record-samples` が、いま公開中の道具のページを撮ります（`media/pages/tools/<id>.gif`）。ページを開けなかったカードには、名前と 🎥 ⏳ のかわりの絵を付け、どのカードも同じ形にそろえます。
+- 🗓️ 週次ノートは `docs/weekly-view.md`（ふつうの Markdown）です。前の週（月〜日、日本時間）にマージした PR を、毎日の Update repos API が月曜に書き直します（`scripts/repos_catalog.py --weekly`、GitHub の REST 検索）。
+- 📊 ビルド時に markdown.py で HTML にし、表の数値だけの列は棒にします（`table_bars`、JS なし）。別の `.md` を載せるときは `site.config.json` の `documents` に 1 行足します。
+
+![Tools カードの動く見本を押すと 🎞 GIF工房が開き、戻って 🗓️ 週次ノートの表が棒で描かれている（Chromium 560×480）](docs/evidence/tools-sample-weekly-bars.gif)
+
+🗓️ 2026-11-27 · `uv run --locked --group browser python -m pytest tests/test_front_page.py -k tools_card_picture` writes `test-results/front-page/front-page-tools-sample-weekly-bars-<UTC>.gif`（`docs/evidence/tools-sample-weekly-bars.gif` へコピー）。
 
 ### 💬 横断チャット
 

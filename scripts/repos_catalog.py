@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Build api/repos.json from public GitHub repositories and their README summaries."""
+"""Build api/repos.json from public GitHub repositories and their README summaries, and 🗓️ the weekly note
+(docs/weekly-view.md: the pull requests merged last week, as Markdown the front page draws)."""
 
-import argparse, base64, json, os, re, urllib.error, urllib.request
-from datetime import datetime, timezone
+import argparse, base64, json, os, re, urllib.error, urllib.parse, urllib.request
+from datetime import datetime, time, timedelta, timezone
 
 API_ROOT = "https://api.github.com"
 SUMMARY_LIMIT = 300
@@ -158,10 +159,66 @@ def build(owner):
     }
 
 
+# ── 🗓️ The weekly note: last week's merged pull requests of this repository, as plain Markdown ──
+JST = timezone(timedelta(hours=9))
+WEEKDAYS = "月火水木金土日"
+
+
+def last_week(now=None):
+    """The Monday of the last complete week (Monday to Sunday, Japan time): the note changes once a week."""
+    today = (now or datetime.now(JST)).astimezone(JST).date()
+    return today - timedelta(days=today.weekday() + 7)
+
+
+def _merged_query(repository, monday):
+    start = datetime.combine(monday, time.min, JST)
+    return f"repo:{repository} is:pr is:merged merged:{start.isoformat()}..{(start + timedelta(days=7, seconds=-1)).isoformat()}"
+
+
+def fetch_merged(repository, monday):
+    """The pull requests of ``owner/name`` merged in the week that starts on ``monday`` (GitHub's REST search, 100 a page)."""
+    query, pulls = urllib.parse.quote(_merged_query(repository, monday), safe=""), []
+    for page in range(1, 11):
+        items = _get_json(f"{API_ROOT}/search/issues?q={query}&per_page=100&page={page}")["items"]
+        pulls += [{"number": item["number"], "title": item["title"], "url": item["html_url"], "merged": item["pull_request"]["merged_at"],
+                   "labels": [label["name"] for label in item["labels"]]} for item in items]
+        if len(items) < 100:
+            break
+    return pulls
+
+
+def weekly_note(pulls, monday, repository, limit=20):
+    """🗓️ The week as Markdown: how many were merged each day and under each label (tables of numbers: the front page draws
+    them as bars), then the newest ``limit`` with their links. Ordinary Markdown, so it reads the same on GitHub."""
+    day = lambda at: f"{monday + timedelta(days=at):%m-%d}（{WEEKDAYS[at]}）"
+    merged = lambda pull: datetime.fromisoformat(pull["merged"].replace("Z", "+00:00")).astimezone(JST)
+    per_day = [sum((merged(pull).date() - monday).days == at for pull in pulls) for at in range(7)]
+    labels = {}
+    for pull in pulls:
+        for name in pull["labels"] or ["（なし）"]:
+            labels[name] = labels.get(name, 0) + 1
+    cell = lambda text: " ".join(str(text).split()).replace("|", "\\|")
+    lines = [f"# 🗓️ {monday:%Y-%m-%d}（月）〜 {monday + timedelta(days=6):%m-%d}（日）", "",
+             f"この週にマージした PR は {len(pulls)} 本です。", "", "## 📊 日ごと", "", "| 日付（JST） | PR |", "|---|---:|",
+             *(f"| {day(at)} | {count} |" for at, count in enumerate(per_day))]
+    if pulls:
+        newest = sorted(pulls, key=merged, reverse=True)
+        lines += ["", "## 🏷️ ラベルごと", "", "| ラベル | PR |", "|---|---:|",
+                  *(f"| {cell(name)} | {count} |" for name, count in sorted(labels.items(), key=lambda item: (-item[1], item[0]))),
+                  "", "## 🧾 マージした PR", "",       # "](" is opened up so a title cannot write a link of its own
+                  *(f"- [#{pull['number']}]({pull['url']}) {' '.join(pull['title'].split()).replace('](', '] (')}" for pull in newest[:limit])]
+        if len(newest) > limit:
+            search = f"https://github.com/{repository}/pulls?q=" + urllib.parse.quote(_merged_query(repository, monday).split(" ", 1)[1], safe="")
+            lines += ["", f"ほか {len(newest) - limit} 本は [GitHub の一覧]({search}) にあります。"]
+    lines += ["", "🤖 このノートは `scripts/repos_catalog.py --weekly` が、毎週月曜に前の週の分を作り直します。"]
+    return "\n".join(lines) + "\n"
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--owner", default="myon-bioinformatics")
     parser.add_argument("--output", default="api/repos.json")
+    parser.add_argument("--weekly", metavar="FILE", help="🗓️ also write last week's merged pull requests as Markdown (docs/weekly-view.md)")
     args = parser.parse_args(argv)
 
     output_dir = os.path.dirname(args.output)
@@ -170,6 +227,15 @@ def main(argv=None):
     with open(args.output, "w", encoding="utf-8") as output:
         json.dump(build(args.owner), output, ensure_ascii=False, indent=2)
         output.write("\n")
+    if args.weekly:
+        repository, monday = os.environ.get("GITHUB_REPOSITORY") or f"{args.owner}/{args.owner}.github.io", last_week()
+        try:
+            note = weekly_note(fetch_merged(repository, monday), monday, repository)
+        except (urllib.error.URLError, KeyError, ValueError) as error:      # the catalog is refreshed all the same; the note stays as it was
+            print(f"⏸ weekly note: {type(error).__name__}")
+        else:
+            with open(args.weekly, "w", encoding="utf-8") as output:
+                output.write(note)
 
 
 if __name__ == "__main__":

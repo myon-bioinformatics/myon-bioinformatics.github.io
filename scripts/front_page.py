@@ -25,7 +25,7 @@ def _service_url(project: str, endpoint: str, *, relative: bool = False) -> str:
 # 🧰 Tools: one card each, named for what it does — practical tools only. ``from`` names the repositories a card is built from (🧩, plain
 # text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. ``points`` are trusted HTML (they carry <code>);
 # everything else is escaped.
-PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル選択から、端末内で本文・見出し・リンクを抽出。', 'links': [('Open HTML Import →', './tools/html-import/')]},
+PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル選択から、端末内で本文・見出し・リンクを抽出。', 'id': 'html-import', 'links': [('Open HTML Import →', './tools/html-import/')]},
  {'title': '地図URL・ピン留め',
   'text': '緯度・経度からApple MapsとGoogle MapsのURLを作成。地点のピン留め・共有と、パラレル東京の対応地点へ。',
   'id': 'maps',
@@ -90,17 +90,26 @@ LINKS = {'🔗': {'label': 'リンク', 'label_en': 'Links', 'links': [
     {'label': '🌳 Linktree', 'href': 'https://linktr.ee/myon123'}, {'label': '🐦 X (Twitter)', 'href': 'https://twitter.com/myonitbusiness'}]}}
 
 
-def portal_cards() -> str:
-    """The 🧰 Tools cards (each repository's own Pages are linked from its 🚀 Projects card)."""
+def portal_cards(samples=frozenset()) -> str:
+    """The 🧰 Tools cards (each repository's own Pages are linked from its 🚀 Projects card). 🎥 A card whose moving sample this
+    build recorded (``tools/<id>`` in ``samples``: media/pages/tools/<id>.gif) shows it, and the picture opens the card's first
+    link, as a 🚀 Projects card's does. The picture is the way in: the links in words stay only where a card opens several pages
+    of a kind (its relatives, side by side), or where no picture was recorded."""
     out = []
     for card in PORTAL:
-        heading = f'<h3 id="{html.escape(card["id"], quote=True)}">' if 'id' in card else '<h3>'
-        parts = [heading + html.escape(card['title'], quote=False) + '</h3>', '<p>' + html.escape(card['text'], quote=False) + '</p>']
+        key = html.escape(card['id'], quote=True)
+        parts = [f'<h3 id="{key}">' + html.escape(card['title'], quote=False) + '</h3>']
+        shown = f'tools/{card["id"]}' in samples
+        if shown:
+            parts.append(f'<a class="project-sample" href="{html.escape(card["links"][0][1], quote=True)}"><img src="./media/pages/tools/{key}.gif" '
+                         f'alt="🎥 {html.escape(card["title"], quote=True)}" loading="lazy" width="240" height="456"></a>')
+        parts.append('<p>' + html.escape(card['text'], quote=False) + '</p>')
         if 'from' in card:
             parts.append('<p class="portal-from">🧩 出どころ: ' + ' · '.join(html.escape(name, quote=False) for name in card['from']) + '</p>')
         if 'points' in card:
             parts.append('<ul class="portal-points">' + ''.join(f'<li>{point}</li>' for point in card['points']) + '</ul>')
-        parts += [f'<a href="{html.escape(href, quote=True)}">{html.escape(label, quote=False)}</a>' for label, href in card['links']]
+        if not shown or len(card['links']) > 1:
+            parts += [f'<a href="{html.escape(href, quote=True)}">{html.escape(label, quote=False)}</a>' for label, href in card['links']]
         out.append('        <article class="card portal-card">' + ''.join(parts) + '</article>\n')
     return '      <div class="portal-grid">\n' + ''.join(out)
 
@@ -342,9 +351,30 @@ def markdown_fragment(root: Path, relative: str) -> str:
     return md_market.markdown_to_html(path.read_text(encoding='utf-8'))
 
 
+def table_bars(fragment: str) -> str:
+    """📊 A table column whose every cell is a number gets a bar per row, as long as the number against the column's largest (the
+    👩‍💻 Skills bars' rules, no script). The .md stays an ordinary table: the picture is made from it at build time."""
+    number = re.compile(r'\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?')
+    value = lambda cell: float(cell.strip().replace(',', ''))
+
+    def draw(body: re.Match) -> str:
+        rows = [re.findall(r'<td>(.*?)</td>', row, re.S) for row in re.findall(r'<tr>(.*?)</tr>', body[2], re.S)]
+        if not rows or '<td ' in body[2] or len({len(row) for row in rows}) != 1:
+            return body[0]
+        tops = {at: max(value(row[at]) for row in rows) for at in range(len(rows[0])) if all(number.fullmatch(row[at].strip()) for row in rows)}
+        if not any(tops.values()):
+            return body[0]
+        bar = lambda at, cell: (f'<td class="document-number">{cell}<span class="skill-bar-track" aria-hidden="true"><span class="skill-bar-fill" '
+                                f'style="--level:{value(cell) / tops[at] * 100 if tops[at] else 0:.0f}%"></span></span></td>')
+        return body[1] + '\n' + ''.join('<tr>' + ''.join(bar(at, cell) if at in tops else f'<td>{cell}</td>' for at, cell in enumerate(row)) + '</tr>\n'
+                                        for row in rows) + body[3]
+    return re.sub(r'(<tbody>)(.*?)(</tbody>)', draw, fragment, flags=re.S)
+
+
 def documents_html(root: Path, documents) -> str:
     """📄 The reviewed .md files site.config.json lists (``documents``: ``[{"id", "title", "source", "note"?}]``), each one a section
-    of this page at ``#id`` (so ☰ lists it), turned into HTML at build time. A new document is a new row there, not a new page."""
+    of this page at ``#id`` (so ☰ lists it), turned into HTML at build time. A new document is a new row there, not a new page.
+    📊 A table's number columns are drawn as bars (``table_bars``)."""
     if not isinstance(documents, list) or len(documents) > 8:
         raise ValueError('documents lists up to 8 {id, title, source, note}')
     seen, parts = set(), []
@@ -357,7 +387,7 @@ def documents_html(root: Path, documents) -> str:
         seen.add(entry['id'])
         note = f'      <p class="section-sub">{_e(entry["note"])}</p>\n' if 'note' in entry else ''
         parts.append(f'    <section id="{entry["id"]}" class="container document" aria-label="{_a(entry["title"])}">\n      <h2>{_e(entry["title"])}</h2>\n{note}'
-                     f'      <article class="document-markdown">{markdown_fragment(root, entry["source"])}</article>\n    </section>\n\n')
+                     f'      <article class="document-markdown">{table_bars(markdown_fragment(root, entry["source"]))}</article>\n    </section>\n\n')
     return ''.join(parts)
 
 
@@ -373,7 +403,7 @@ def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
     script = ui.module_script('\n'.join((ui.js_source('collection.js'), SCRIPT)))
     page = SHELL
     documents = documents_html(root, read('site.config.json').get('documents', []))
-    for mark, value in (('@@PORTAL@@', portal_cards()), ('@@THEMES@@', theme_options(ui)), ('@@TOPICS@@', topic_buttons(projects)),
+    for mark, value in (('@@PORTAL@@', portal_cards(samples)), ('@@THEMES@@', theme_options(ui)), ('@@TOPICS@@', topic_buttons(projects)),
                         ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + ui.tabs_css() + '\n' + STYLE + '\n  '),
                         ('@@DOCUMENTS@@', documents), ('@@SCRIPT@@', script)):
         assert page.count(mark) == 1, mark
@@ -537,6 +567,11 @@ h2{margin:0 0 .75rem}
 .document-markdown{border:1px solid var(--border);border-radius:10px;padding:1rem;overflow-wrap:anywhere}
 .document-markdown a{overflow-wrap:anywhere}
 .document-markdown pre{overflow:auto}
+.document-markdown table{border-collapse:collapse;max-width:100%;margin:0 0 16px}
+.document-markdown th,.document-markdown td,.document-markdown td a{padding:4px 16px 4px 0;text-align:left;vertical-align:middle;overflow-wrap:break-word}
+.document-markdown td a{padding:0}
+.document-markdown td.document-number{min-width:160px;font-variant-numeric:tabular-nums}
+.document-markdown td.document-number .skill-bar-track,.document-markdown td.document-number .skill-bar-fill{display:block}
 
 .intro{padding-top:.5rem}
 
@@ -1118,6 +1153,7 @@ body[data-view-mode="modern"] #projects .section-sub { color: var(--terminal-mut
   margin-top: auto;
   font-weight: 600;
 }
+.portal-card > a.project-sample { margin: 0 0 8px; }
 .portal-points {
   margin: 0 0 12px;
   padding-left: 1.2em;
