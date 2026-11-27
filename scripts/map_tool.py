@@ -42,7 +42,7 @@ __STATUS__</section>
 <section class="ui-panel" id="nearby" hidden><h2>範囲内の東京の地点</h2><p id="nearby-status"></p><ul id="nearby-list"></ul></section>
 <section class="ui-panel"><h2>ピン留めした地点</h2><p id="pin-storage">このブラウザに保存。地点リンクを渡せば、相手も同じ座標を開けます。</p>
 <ul id="pins"></ul></section>
-<noscript><p>座標の入力・ピン留めにはJavaScriptが必要です。<a href="../demos/cities.html">パラレル東京を開く</a></p></noscript>
+<noscript><p>座標の入力・ピン留めにはJavaScriptが必要です。<a href="../demos/world.html#tokyo">パラレル東京を開く</a></p></noscript>
 </main>'''
 
 CSS = '''label{display:block;margin:1rem 0 .35rem}.ui-input{width:100%;box-sizing:border-box}
@@ -82,7 +82,7 @@ try{const saved=JSON.parse(localStorage.getItem(key)||'[]');if(!Array.isArray(sa
 function save(){try{localStorage.setItem(key,JSON.stringify(pins));$('pin-storage').textContent='このブラウザに保存しました。'}
  catch{$('pin-storage').textContent='ブラウザに保存できません。この画面を閉じるまでのピン留めです。'}}
 function shareURL(p){const url=new URL('./',location.href);url.search=new URLSearchParams({lat:round(p.lat),lon:round(p.lon),name:p.label,radius_m:String(p.radius_m)});return url.href}
-function tokyoURL(p,spot){const url=new URL('../demos/cities.html',location.href);url.search=new URL(shareURL(p)).search;url.hash='cities-spot-'+spot.id;return url.href}
+function tokyoURL(p,spot){const url=new URL('../demos/world.html',location.href);url.search=new URL(shareURL(p)).search;url.hash='cities-spot-'+spot.id;return url.href}
 function shareText(p){const links=mapsUrls(p.lat,p.lon),text=[p.label||coordinateText(p.lat,p.lon),'Google Maps: '+links.google,'Apple Maps: '+links.apple];
  if(p.radius_m>0){const area=areaTexts(toleranceArea(p.lat,p.lon,p.radius_m));text.push('半径: '+p.radius_m+' m','Google Maps（範囲）: '+area.google_area_url,'Apple Maps（範囲）: '+area.apple_area_url)}
  text.push('地点リンク: '+shareURL(p));return text.join('\n')}
@@ -180,7 +180,7 @@ def map_document(ui, points):
     return ui.render_document(title='地図URL・ピン留め', trusted_html=body, css=ui.bundled_css() + CSS)
 
 
-def add_map_links(ui, world, points):
+def tokyo_links(ui, world, points):
     # Keep PSWB's world behaviour and favorites; add a real-coordinate link to each existing sheet.
     for p in points:
         href = '../maps/?' + urlencode({'lat': ui.fixed(p['lat'], 6), 'lon': ui.fixed(p['lon'], 6), 'name': p['label']})
@@ -190,6 +190,8 @@ def add_map_links(ui, world, points):
         if count != 1:
             raise ValueError(f'PSWB city sheet missing: {p["id"]}')
     banner = '<p id="tokyo-range" hidden><span id="tokyo-range-label"></span></p><p><a id="area-return" hidden>元の指定範囲へ戻る</a></p>'
-    world = world.replace('<main>', '<main>' + banner, 1)
-    return world.replace('</body>', COORDINATES_MODULE
-                         + ui.module_script(TOKYO_SCRIPT.replace('__RANGE_HELPERS__', RANGE_HELPERS)) + '</body>', 1)
+    return banner + world
+
+
+def tokyo_modules(ui):
+    return COORDINATES_MODULE + ui.module_script(TOKYO_SCRIPT.replace('__RANGE_HELPERS__', RANGE_HELPERS))

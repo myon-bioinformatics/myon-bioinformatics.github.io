@@ -68,12 +68,12 @@ def test_map_links_pins_share_and_tokyo_with_gif(site, browser):
             other.close()
 
         page.locator('#tokyo-link').click()
-        assert urlsplit(page.url).path == '/tools/demos/cities.html'
+        assert urlsplit(page.url).path == '/tools/demos/world.html'
         assert page.locator('.map-point-link').count() == 21
-        assert set(page.locator('.ui-floor').evaluate_all('(floors) => floors.map(f => f.dataset.floor)')) >= {'tokyo', 'london', 'paris'}
+        assert set(page.locator('#cities-map .ui-floor').evaluate_all('(floors) => floors.map(f => f.dataset.floor)')) >= {'tokyo', 'london', 'paris'}
         # PSWB asks for the walking avatar on entry; choose it through the normal UI.
-        expect(page.locator('.ui-world-pick')).to_be_visible()
-        page.locator('.ui-world-pick-grid [data-emoji]').first.click()
+        expect(page.locator('#cities-map .ui-world-pick')).to_be_visible()
+        page.locator('#cities-map .ui-world-pick-grid [data-emoji]').first.click()
         expect(page.locator('#tokyo-range')).to_contain_text('半径 350 m')
         sheet = page.locator('#cities-spot-tokyo-kanda')
         expect(sheet).to_be_visible()
@@ -210,14 +210,14 @@ def test_nearby_city_handoff_preserves_radius_and_original_area(site, browser):
         expect(page.locator('#nearby-list')).to_contain_text('八重洲中央口')
         expect(page.locator('#nearby-list')).not_to_contain_text('大手町')
         page.locator('#nearby-list').get_by_role('link', name='丸の内中央口', exact=False).click()
-        page.locator('.ui-world-pick-grid [data-emoji]').first.click()
+        page.locator('#cities-map .ui-world-pick-grid [data-emoji]').first.click()
         expect(page.locator('#cities-spot-tokyo-marunouchi-c')).to_be_visible()
         page.locator('#area-return').click()
         expect(page.locator('#latitude')).to_have_value('35.681350')
         expect(page.locator('#point-name')).to_have_value('中心')
         expect(page.locator('#radius')).to_have_value('350')
         page.locator('#nearby-list').get_by_role('link', name='丸の内中央口', exact=False).click()
-        page.locator('.ui-world-pick-grid [data-emoji]').first.click()
+        page.locator('#cities-map .ui-world-pick-grid [data-emoji]').first.click()
         page.locator('#cities-spot-tokyo-marunouchi-c .map-point-link').click()
         expect(page.locator('#latitude')).to_have_value('35.681340')
         expect(page.locator('#radius')).to_have_value('350')
@@ -233,11 +233,77 @@ def test_city_bookmark_restores_spot_and_area(site, browser):
     try:
         suffix = '?lat=35.68135&lon=139.7665&name=Centre&radius_m=0#cities-spot-tokyo-kanda'
         assert page.request.get(site[1] + '/tools/maps/tokyo.html').status == 404
-        page.goto(site[1] + '/tools/demos/cities.html' + suffix)
-        page.locator('.ui-world-pick-grid [data-emoji]').first.click()
+        page.goto(site[1] + '/tools/demos/world.html' + suffix)
+        page.locator('#cities-map .ui-world-pick-grid [data-emoji]').first.click()
         expect(page.locator('#cities-spot-tokyo-kanda')).to_be_visible()
         page.locator('#area-return').click()
         expect(page.locator('#point-name')).to_have_value('Centre')
         expect(page.locator('#radius')).to_have_value('0')
     finally:
         page.close()
+
+
+@pytest.mark.parametrize('width', [390, 1280])
+def test_world_shell_routes_and_shared_favorites(site, browser, width):
+    context = browser.new_context(viewport={'width': width, 'height': 844}, is_mobile=width == 390, has_touch=width == 390)
+    context.add_init_script("""if (location.protocol === 'http:' && !sessionStorage.getItem('seeded')) {
+      localStorage.setItem('ui-world:cities-map', JSON.stringify({fav:['#cities-spot-tokyo-kanda']}));
+      sessionStorage.setItem('seeded','1');
+    }""")
+    page = context.new_page()
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    path = site[1] + '/tools/demos/world.html'
+    space = page.locator('[data-world-shell]')
+
+    def choose(name):
+        page.locator('[data-world-nav] summary').click()
+        page.locator(f'[data-world-nav] [href="#{name}"]').click()
+        expect(space).to_have_attribute('data-world-route', name)
+
+    try:
+        for name, label in [('paris', 'Fake Paris'), ('london', 'Reverse London')]:
+            page.goto('about:blank')
+            page.goto(path + '#' + name)
+            expect(space).to_have_attribute('data-world-route', name)
+            expect(page.locator('#world-space-name')).to_contain_text(label)
+            expect(page.locator('#cities-map .ui-world-goto')).to_have_value(name)
+            expect(page.locator(f'#cities-map [data-floor="{name}"].ui-floor')).to_be_visible()
+        page.goto(path + '#school')
+        page.evaluate('window.sameWorldDocument = true')
+        school = page.locator('#school-map')
+        school.locator('.ui-world-pick-grid [data-emoji]').first.click()
+        school.locator('.ui-world-menu[data-menu="spots"] > summary').click()
+        star = school.locator('.ui-world-spots:visible .ui-world-star:visible').first
+        star.click()
+        expect(star).to_have_attribute('aria-pressed', 'true')
+        choose('london')
+        assert page.evaluate('window.sameWorldDocument')
+        expect(page.locator('#cities-map .ui-world-goto')).to_have_value('london')
+        page.locator('#cities-map .ui-world-pick-grid [data-emoji]').first.click()
+        choose('paris')
+        expect(page.locator('#cities-map .ui-world-goto')).to_have_value('paris')
+        page.go_back()
+        expect(page.locator('#cities-map .ui-world-goto')).to_have_value('london')
+        page.get_by_text('⭐ お気に入り', exact=True).click()
+        expect(page.locator('#world-favorites a')).to_have_count(2)
+        page.locator('#world-favorites a[href="#cities-spot-tokyo-kanda"]').click()
+        expect(page.locator('#cities-spot-tokyo-kanda')).to_be_visible()
+        page.locator('#cities-spot-tokyo-kanda .ui-sheet-close').click()
+        expect(page).to_have_url(path + '#tokyo')
+        page.reload()
+        page.get_by_text('⭐ お気に入り', exact=True).click()
+        expect(page.locator('#world-favorites a')).to_have_count(2)
+        page.get_by_text('🧰 道具', exact=True).click()
+        expect(page.locator('#world-switcher a[href="../../tools/maps/"]')).to_be_visible()
+        choose('camera')
+        expect(page.locator('#demo-shots')).to_be_visible()
+        choose('world')
+        page.locator('#overworld-map .ui-world-pick-grid [data-emoji]').first.click()
+        expect(page.locator('#overworld-map .ui-rpg-hud')).to_be_visible()
+        page.locator('#overworld-map [data-rpg-explore]').click()
+        expect(page.locator('#overworld-map .ui-rpg-battle')).to_be_visible()
+        assert page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth') == 0
+        assert not errors, errors
+    finally:
+        context.close()
