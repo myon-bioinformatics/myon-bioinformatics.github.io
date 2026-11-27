@@ -2855,13 +2855,15 @@ export function bindWorldRpg(el){
  const startBattle=spotId=>{
   const foeTpl=rpg.enemies[spotId];if(!foeTpl)return;
   const foe={...foeTpl,spotId,maxHp:foeTpl.hp,turn:0};
+  const nextAttackIsHeavy=()=>(foe.turn+1)%3===0;
+  const forage=explorationScroll.battle;
   const logLines=[foe.taunt||`${foe.emoji} ${foe.name} があらわれた！`];
   let orbState=rpgOrbEffect(0,false,rpg.orbs),subMode="",ended=false;
   const foeHpText=rpgEl("span"),foeHpFill=rpgEl("i"),intentBadge=rpgEl("span",{className:"ui-rpg-intent"}),orbBox=rpgEl("div"),logBox=rpgEl("p",{className:"ui-rpg-log"}),subPanel=rpgEl("div",{className:"ui-rpg-subpanel",hidden:true}),cmdBox=rpgEl("div",{className:"ui-rpg-cmd-grid"});
   const syncBattle=()=>{
    foeHpText.textContent=`HP ${foe.hp}/${foe.maxHp}`;
    foeHpFill.style.width=`${Math.round(100*foe.hp/Math.max(1,foe.maxHp))}%`;
-   const heavy=(foe.turn+1)%3===0;
+   const heavy=nextAttackIsHeavy();
    intentBadge.textContent=heavy?"⚠️ 次ターン強攻撃！ぼうぎょ推奨":"🗡️ 通常こうげき構え";
    orbBox.replaceChildren(renderOrbs(orbState));
    logBox.textContent=logLines.slice(-4).join("\n");
@@ -2885,7 +2887,7 @@ export function bindWorldRpg(el){
   };
   const enemyTurn=(guarding=false)=>{
    if(foe.hp<=0){finishVictory();return}
-   const st=stats(),heavy=(foe.turn+1)%3===0,hit=rpgDamage(foe.atk,st.def,nextRoll(),{multPct:heavy?155:100,guarding,critPct:heavy?20:8});
+   const st=stats(),heavy=nextAttackIsHeavy(),hit=rpgDamage(foe.atk,st.def,nextRoll(),{multPct:heavy?155:100,guarding,critPct:heavy?20:8});
    state.hp=Math.max(0,state.hp-hit.damage);
    foe.turn+=1;
    logLines.push(`${foe.emoji} ${foe.name}の${heavy?"強烈な一撃":"攻撃"}！${guarding?" (🛡️軽減)":""}${hit.crit?" 💥痛恨！":""} ${hit.damage} のダメージ！`);
@@ -2932,13 +2934,20 @@ export function bindWorldRpg(el){
   const cmds=[
    ["⚔️ こうげき",()=>{if(ended)return;subMode="";rebuildSub();const st=stats(),res=rpgDamage(st.atk,foe.def,nextRoll(),{multPct:100,critPct:14});foe.hp=Math.max(0,foe.hp-res.damage);orbState=res.effect;logLines.push(`⚔️ こうげき！${res.crit?" 💥会心の一撃！":""} ${foe.name}に ${res.damage} のダメージ！`);enemyTurn(false)},true],
    ["💡 ヒント",()=>{
+    const statsNow=stats(),heavy=nextAttackIsHeavy();
     const heal=[...state.consumables.values()].find(it=>it.hp>0);
     const skill=rpg.skills.find(sk=>sk.mp<=state.mp&&sk.kind==="attack"&&foe.weakness&&sk.desc.includes(foe.weakness));
     let hint="こうげきならMPを使わずに攻められます。";
-    if(state.hp*2<=stats().maxHp&&heal)hint="HPが半分以下です。どうぐの「"+heal.label+"」で回復できます。";
-    else if((foe.turn+1)%3===0)hint="次は強攻撃です。ぼうぎょでダメージを半減できます。";
+    if(state.hp*2<=statsNow.maxHp&&heal)hint="HPが半分以下です。どうぐの「"+heal.label+"」で回復できます。";
+    else if(heavy)hint="次は強攻撃です。ぼうぎょでダメージを半減できます。";
     else if(skill)hint="弱点は「"+foe.weakness+"」。とくぎの「"+skill.label+"」が効きます。";
     else if(state.mp<2)hint="ぼうぎょするとMPが2回復します。";
+    const maxNormalHit=Math.floor((foe.atk+1)*1.5); // Worst normal critical hit before defense.
+    const canForage=herb&&state.consumables.has(scrollKey)&&forage.chance_percent>0;
+    const needsHerb=!state.consumables.has("spot:"+forage.item_id)&&!state.consumables.has(herbKey);
+    if(canForage&&needsHerb&&!heavy&&state.hp>Math.max(statsNow.maxHp/2,maxNormalHit)){
+     hint+=` ${forage.target}を補充するなら、${explorationScroll.label}で探せます（${forage.chance_percent}%）。`;
+    }
     logLines.push("💡 "+hint);syncBattle();
    },false],
    ["✨ とくぎ",()=>{subMode=subMode==="skill"?"":"skill";rebuildSub()},false],
@@ -2947,7 +2956,6 @@ export function bindWorldRpg(el){
    ["💨 にげる",()=>{if(ended)return;showToast("💨 うまく にげきった！");closeModal()},false]
   ];
   for(const[lbl,fn,prim]of cmds)cmdBox.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",...(prim?{"data-primary":""}:{}),textContent:lbl,onclick:fn}));
-  const forage=explorationScroll.battle;
   if(herb&&state.consumables.has(scrollKey))cmdBox.append(rpgEl("button",{type:"button",className:"ui-rpg-btn","data-battle-search":"",
    textContent:`📜 ${explorationScroll.label}（${forage.target}${forage.chance_percent}%）`,onclick:()=>{
    if(ended||!useExplorationScroll())return;

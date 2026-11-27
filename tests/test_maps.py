@@ -684,15 +684,17 @@ def test_reusable_scrolls_in_field_and_battle(site, browser):
         world.locator('[data-rpg-explore]').click()
         battle = world.locator('.ui-rpg-battle')
         hp = battle.locator('.ui-rpg-foe-meta').filter(has_text='HP').inner_text()
-        for _ in range(2):
-            battle.get_by_role('button', name='💡 ヒント').click()
-            expect(battle.locator('.ui-rpg-log')).to_contain_text('弱点')
+        log = battle.locator('.ui-rpg-log')
+        battle.get_by_role('button', name='💡 ヒント').click()
+        expect(log).to_contain_text('探索の巻物で探せます（30%）')
+        expect(log).to_contain_text('弱点')
         for result in ('1個拾った', '見つからなかった'):
             battle.get_by_role('button', name='探索の巻物', exact=False).click()
-            expect(battle.locator('.ui-rpg-log')).to_contain_text(result)
+            expect(log).to_contain_text(result)
             assert battle.locator('.ui-rpg-foe-meta').filter(has_text='HP').inner_text() == hp
-        battle.get_by_role('button', name='💡 ヒント').click()
-        expect(battle.locator('.ui-rpg-log')).to_contain_text('次は強攻撃')
+            battle.get_by_role('button', name='💡 ヒント').click()
+            assert '探索の巻物で探せます' not in log.text_content().splitlines()[-1]
+        expect(log).to_contain_text('次は強攻撃')
         battle.get_by_role('button', name='📜 竜の巻物').click()
         expect(battle.locator('.ui-rpg-log')).to_contain_text('ドラゴンの加勢')
         assert battle.locator('.ui-rpg-foe-meta').filter(has_text='HP').inner_text() != hp
