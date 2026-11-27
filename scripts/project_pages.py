@@ -471,40 +471,171 @@ def record_flow(output: Path, remote: str = 'https://github.com/') -> list[str]:
             f"📊 {len(receipt['figures'])} 図: " + ' '.join(receipt['figures'])]
 
 
+FLOW_RECORDS = 'tools/flow/records.html'
+FLOW_MARKDOWN = 'tools/flow/records.md'
+FLOW_RIG_JS = 'tools/flow/rig.mjs'
+FLOW_RIG = """
+<section id="workbench" aria-labelledby="flow-heading">
+<h2 id="flow-heading">モニアック式の実験台</h2>
+<p>入口と出口の弁を動かし、観察槽の残量を比べます。4素材は同じ収支モデルの例で、物性の再現ではありません。</p>
+<div class="flow-fields">
+<label>素材 <select id="flow-medium"><option value="water">水</option><option value="gold">金</option>
+<option value="currency">通貨</option><option value="noodles">そうめん</option></select></label>
+<label>入口 / 秒 <input id="flow-in" type="number" min="0" max="100" step="1" value="5" required></label>
+<label>出口 / 秒 <input id="flow-out" type="number" min="0" max="100" step="1" value="2" required></label>
+</div>
+<div class="flow-controls">
+<button id="flow-run" type="button" disabled>開始</button>
+<button id="flow-step" type="button" disabled>1秒進める</button>
+<button id="flow-reset" type="button" disabled>初期化</button>
+</div>
+<noscript><p>操作するにはJavaScriptを有効にしてください。</p></noscript>
+<div class="flow-fields">
+<label>供給槽 <meter id="flow-source" min="0" max="100" value="100"></meter></label>
+<label>観察槽 <meter id="flow-middle" min="0" max="100" value="0"></meter></label>
+<label>回収槽 <meter id="flow-sink" min="0" max="100" value="0"></meter></label>
+</div>
+<p id="flow-status">0秒 · 供給 100 L · 観察 0 L · 回収 0 L</p>
+<figure><figcaption>観察槽の残量（直近60秒・縦軸0〜100）</figcaption>
+<svg id="flow-chart" viewBox="0 0 240 104" role="img" aria-label="観察槽の残量グラフ">
+<path d="M2 2v100h236" fill="none" stroke="currentColor" opacity=".45"/>
+<polyline id="flow-line" points="2,102" fill="none" stroke="currentColor" stroke-width="2"/>
+</svg></figure>
+</section>
+"""
+FLOW_RIG_CSS = """<style>
+.flow-fields,.flow-controls{display:flex;gap:.75rem;flex-wrap:wrap;margin-block:1rem}
+.flow-fields label{display:grid;gap:.25rem}
+.flow-fields input{width:5em}
+#workbench :is(input, select, button){font:inherit}
+#flow-chart{width:min(100%,420px);display:block}
+</style>"""
+FLOW_RIG_SOURCE = r"""
+const total = 100;
+const limit = n => Number.isFinite(n) ? Math.min(total, Math.max(0, n)) : 0;
+export function flowStep({source, middle, sink}, inlet, outlet) {
+  const incoming = Math.min(source, limit(inlet));
+  const outgoing = Math.min(middle + incoming, limit(outlet));
+  return {source: source - incoming, middle: middle + incoming - outgoing, sink: sink + outgoing};
+}
+if (typeof document !== "undefined") {
+  const get = id => document.getElementById("flow-" + id);
+  const units = {water: "L", gold: "g", currency: "円", noodles: "束"};
+  let tanks, elapsed, history, timer = null;
+  function render() {
+    const unit = units[get("medium").value];
+    for (const [name, n] of Object.entries(tanks)) get(name).value = n;
+    get("status").textContent =
+      `${elapsed}秒 · 供給 ${tanks.source} ${unit} · 観察 ${tanks.middle} ${unit} · 回収 ${tanks.sink} ${unit}`;
+    get("line").setAttribute("points", history.map((n, i) => `${2 + (236 * i / 60)},${102 - n}`).join(" "));
+  }
+  function stop() {
+    if (timer !== null) clearInterval(timer);
+    timer = null;
+    get("run").textContent = "開始";
+    get("step").disabled = false;
+  }
+  function tick() {
+    if (!get("in").reportValidity() || !get("out").reportValidity()) { stop(); return; }
+    tanks = flowStep(tanks, get("in").valueAsNumber, get("out").valueAsNumber);
+    elapsed++;
+    history.push(tanks.middle);
+    if (history.length > 61) history.shift();
+    render();
+  }
+  function reset() {
+    stop();
+    tanks = {source: total, middle: 0, sink: 0};
+    elapsed = 0;
+    history = [0];
+    render();
+  }
+  get("run").onclick = () => {
+    if (timer !== null) { stop(); return; }
+    if (!get("in").reportValidity() || !get("out").reportValidity()) return;
+    timer = setInterval(tick, 1000);
+    get("run").textContent = "一時停止";
+    get("step").disabled = true;
+  };
+  get("step").onclick = tick;
+  get("reset").onclick = reset;
+  get("medium").onchange = reset;
+  for (const name of ["run", "reset"]) get(name).disabled = false;
+  reset();
+}
+"""
+
+
+def flow_markdown(demos: list[dict], figures: list[str]) -> str:
+    """One record of all displayed media, in FFSS order, with unmatched figures last."""
+    def label(value: str) -> str:
+        return str(value).replace('\n', ' ').replace('[', '（').replace(']', '）').replace('<', '＜').replace('>', '＞')
+
+    named = {name.split('_', 1)[-1]: name for name in figures}
+    lines = ['# 流れの実験記録']
+    used = set()
+
+    def figure(name):
+        return f'![📊 DRAgoWing {label(name)}](../../{FLOW}{name}.svg)'
+
+    for demo in demos:
+        name, scene = demo['id'], demo['scene']
+        fluid = '' if demo['fluid'] == 'water' else f" · {demo['fluid']}"
+        title = label(f"{demo['icon']} {name} {scene}{fluid}")
+        lines += [f'## {title}', f'![🌊 FFSS {label(name)}: {label(scene)}](../../{FLOW}{name}.gif)']
+        for key in FLOW_FIGURES.get(scene, ()):
+            if key in named:
+                used.add(named[key])
+                lines.append(figure(named[key]))
+    remaining = [name for name in figures if name not in used]
+    if remaining:
+        lines += ['## 📊 ほかの図', *map(figure, remaining)]
+    if not demos and not figures:
+        lines.append('⏸ このビルドでは記録していない')
+    return '\n\n'.join(lines) + '\n'
+
+
 def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
-    """The 🌊 lab page from what this build recorded under ``output/media/flow/`` (not in the lock, like the front page:
-    the media change with the two repositories): every FFSS scene in FFSS's own order with the DRAgoWing figures that
-    belong to it (FLOW_FIGURES), then every other figure, so nothing that was made is left out."""
+    """Render the lab and a Markdown-derived archive from the same published flow receipt."""
+    import markdown as md_market
+
     path = Path(output) / FLOW / 'receipt.json' if output else None
     receipt = json.loads(path.read_text(encoding='utf-8')) if path and path.is_file() else {}
     commits, demos, figures = receipt.get('commits', {}), receipt.get('demos', []), receipt.get('figures', [])
     link = lambda key: (f"https://github.com/{FLOW_REPOSITORIES[key]}/tree/{commits[key]}"
                         if key in commits else f"https://github.com/{FLOW_REPOSITORIES[key]}")
-    named = {figure.split('_', 1)[1]: figure for figure in figures}
-    svg = lambda figure: {'type': 'image', 'src': f'../../{FLOW}{figure}.svg', 'alt': f'📊 DRAgoWing {figure}'}
-    blocks = [{'type': 'text', 'text': 'FFSS の全場面を 🌊 動く像（流れと遅れ）で、その記録から描ける DRAgoWing の全図を 📊 静止図（行き先の内訳）で。'
-                                       'どちらも公開のたびに、そのとき最新のコミットで作り直す。'},
+    blocks = [{'type': 'text', 'text': '水・金・通貨・そうめんを選んで、入口と出口の流量を比べます。'},
+              {'type': 'text', 'text': 'FLOW_RIG_SLOT'},
               {'type': 'kv', 'rows': [['🌊', f"FFSS {commits.get('ffss', '—')[:7]} · 🎞 {len(demos)} 場面"],
-                                      ['📊', f"DRAgoWing {commits.get('dragowing', '—')[:7]} · {len(figures)} 図"]]}]
+                                      ['📊', f"DRAgoWing {commits.get('dragowing', '—')[:7]} · {len(figures)} 図"]]},
+              {'type': 'links', 'items': [{'label': '実験記録を見る', 'href': './records.html'},
+                                          {'label': 'Markdown原本', 'href': './records.md'},
+                                          {'label': '🌊 FFSS', 'href': link('ffss')},
+                                          {'label': '📊 DRAgoWing', 'href': link('dragowing')}]}]
     if not demos and not figures:
         blocks.append({'type': 'text', 'text': '⏸ このビルドでは記録していない'})
-    used = set()
-    for demo in demos:
-        inner = [{'type': 'image', 'src': f"../../{FLOW}{demo['id']}.gif", 'alt': f"🌊 FFSS {demo['id']}: {demo['scene']}"}]
-        for name in FLOW_FIGURES.get(demo['scene'], ()):
-            if name in named:
-                inner.append(svg(named[name]))
-                used.add(named[name])
-        fluid = '' if demo['fluid'] == 'water' else f" · {demo['fluid']}"
-        blocks.append({'type': 'section', 'title': f"{demo['icon']} {demo['id']} {demo['scene']}{fluid}", 'blocks': inner})
-    rest = [figure for figure in figures if figure not in used]
-    if rest:
-        blocks.append({'type': 'section', 'title': '📊 ほかの図', 'blocks': [svg(figure) for figure in rest]})
-    blocks.append({'type': 'links', 'items': [{'label': '🌊 FFSS', 'href': link('ffss')}, {'label': '📊 DRAgoWing', 'href': link('dragowing')}]})
-    page = ui.page_document({'schema': 'web-ui-page/1', 'title': '🌊 流れの実験室', 'blocks': blocks}).replace(
-        '</head>', '<style>.ui-page img{max-width:100%;height:auto}</style></head>', 1)       # 📱 the GIF and SVG fit a phone
-    page = page.replace('<img src="../../media/flow/', '<img loading="lazy" src="../../media/flow/')   # 🐢 40-odd GIFs: load on scroll
-    return {FLOW_PAGE: add_home_label(add_back_nav(page, FLOW_PAGE), '🌊 流れ実験', icons_from='../../').encode('utf-8')}   # fits an 80 px tile
+    page = ui.page_document({'schema': 'web-ui-page/1', 'title': '🌊 流れの実験室', 'blocks': blocks})
+    slot = '<p>FLOW_RIG_SLOT</p>'
+    if page.count(slot) != 1:
+        raise ValueError('flow workbench placeholder missing')
+    page = page.replace(slot, FLOW_RIG, 1).replace('</head>', FLOW_RIG_CSS + '</head>', 1)
+    page = page.replace('</body>', '<script type="module" src="./rig.mjs"></script></body>', 1)
+
+    records = flow_markdown(demos, figures)
+    archive = ui.page_document({'schema': 'web-ui-page/1', 'title': '流れの実験記録',
+                                'blocks': [{'type': 'links', 'items': [
+                                    {'label': '実験台に戻る', 'href': './'},
+                                    {'label': 'Markdown原本', 'href': './records.md'}]},
+                                           {'type': 'text', 'text': 'FLOW_RECORDS_SLOT'}]})
+    slot = '<p>FLOW_RECORDS_SLOT</p>'
+    if archive.count(slot) != 1:
+        raise ValueError('flow records placeholder missing')
+    archive = archive.replace(slot, md_market.markdown_to_html(records), 1)
+    archive = archive.replace('<img src="../../media/flow/', '<img loading="lazy" src="../../media/flow/')
+    archive = archive.replace('</head>', '<style>.ui-page img{max-width:100%;height:auto}</style></head>', 1)
+    return {FLOW_PAGE: add_home_label(add_back_nav(page, FLOW_PAGE), '🌊 流れ実験', icons_from='../../').encode('utf-8'),
+            FLOW_RECORDS: add_back_nav(archive, FLOW_RECORDS).encode('utf-8'),
+            FLOW_MARKDOWN: records.encode('utf-8'), FLOW_RIG_JS: FLOW_RIG_SOURCE.encode('utf-8')}
 
 
 # ── 🧠 リポジトリ地図: who copies what from whom, read from each repository's own vendor.lock.json (and Aoi's subtrees) ──
