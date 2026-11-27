@@ -26,10 +26,10 @@ permissions:
   id-token: write
 
 # Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+# Cancel obsolete PR previews while production deployments run to completion.
 concurrency:
   group: ${{ github.event_name == 'pull_request' && format('pages-preview-{0}', github.event.pull_request.number) || 'pages' }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # Build job
