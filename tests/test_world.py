@@ -1591,6 +1591,58 @@ def test_school_example_has_five_walkable_floors_quests_dialogues_and_valid_repo
     assert 'data-menu="bag"' in html and 'data-menu="progress"' in html and 'class="ui-talk"' in html and 'class="ui-status"' in html
 
 
+def test_tokyo_vigilance_rpg_has_dialogues_evidence_drops_crime_safes_and_valid_repo_links():
+    world = W.world_validate(W.example_data("cities"))
+    tokyo = next(f for f in world["floors"] if f["id"] == "tokyo")
+    spot_ids = {s["id"] for s in tokyo["spots"]}
+    repos = {r["name"] for r in json.loads((ROOT / "api/repos.json").read_text(encoding="utf-8"))["repos"]}
+
+    drops, chests, quizzes, talks = [], [], [], []
+    for sp in tokyo["spots"]:
+        kind = sp.get("item", {}).get("kind")
+        if kind == "drop":
+            drops.append(sp["id"])
+        elif kind == "chest":
+            chests.append(sp["id"])
+            need = sp["item"].get("need")
+            assert need in spot_ids, f"Need reference {need} must exist in Tokyo spots"
+        if "quiz" in sp:
+            quizzes.append(sp["id"])
+            q = sp["quiz"]
+            assert 2 <= len(q["choices"]) <= 4
+            assert 0 <= q["answer"] < len(q["choices"])
+            assert q.get("explain")
+        if "talk" in sp:
+            talks.append(sp["id"])
+            tk = sp["talk"]
+            assert tk.get("speaker") and len(tk.get("lines", [])) >= 1
+            if_item = tk.get("if_item")
+            if if_item:
+                assert if_item in spot_ids, f"if_item reference {if_item} must exist in Tokyo spots"
+                assert len(tk.get("has_lines", [])) >= 1
+        href = sp.get("link", {}).get("href", "")
+        if href.startswith("https://github.com/myon-bioinformatics/"):
+            repo_name = href.rstrip("/").split("/")[-1]
+            assert repo_name in repos, (sp["id"], repo_name)
+
+    assert len(drops) >= 5, f"Expected at least 5 evidence drops, got {len(drops)}"
+    assert len(chests) == 5, f"Expected 5 crime safes (loan shark, corruption, bid-rigging, fraud, syndicate), got {len(chests)}"
+    assert len(quizzes) == 5, f"Expected 5 takedown quizzes, got {len(quizzes)}"
+    assert len(talks) >= 15, f"Expected at least 15 spot dialogues, got {len(talks)}"
+
+    # Moving actors: patrol car, patrol dog, patrol drone
+    actor_ids = {a["id"] for a in tokyo["actors"]}
+    assert {"patrol-car", "patrol-dog", "patrol-drone"} <= actor_ids
+    for ac in tokyo["actors"]:
+        assert "talk" in ac and ac["talk"].get("speaker")
+
+    html = W.world_html(world)
+    assert 'data-menu="bag"' in html and 'data-menu="progress"' in html
+    assert 'class="ui-talk"' in html and 'class="ui-actor"' in html
+    assert '🌱 見回り見習い' in html
+    assert '🚨 パラレル東京治安見守り隊：悪人成敗ミッション' in html
+
+
 def test_overworld_meadow_has_hirugaoka_and_sweet_potato_item():
     world = W.world_validate(W.example_data("overworld"))
     meadow = next(f for f in world["floors"] if f["id"] == "meadow")

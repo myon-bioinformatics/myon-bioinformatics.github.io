@@ -972,7 +972,7 @@ def land_floor(theme: str = "meadow", cols: int = 24, rows: int = 16, *, seed: i
 # points, and rivers as bands of water that roads cross as bridges. The projection and the box come from the coordinate tools below (the same
 # Earth radius and ``tolerance_area``), so a place is only data: a list of points, nothing drawn by hand.
 _PLACE_KEYS = {"points", "meters", "tile", "links", "rivers", "area", "start", "scatter", "marks", "always_named"}
-_PLACE_POINT_KEYS = {"id", "label", "lat", "lon", "maps", "category", "body", "flip", "sign", "mark"}
+_PLACE_POINT_KEYS = {"id", "label", "lat", "lon", "maps", "category", "body", "flip", "sign", "mark", "talk", "item", "quiz", "link"}
 
 
 def _place_point(point: Any, seen: set[str]) -> dict[str, Any]:
@@ -994,7 +994,8 @@ def _place_point(point: Any, seen: set[str]) -> dict[str, Any]:
     return {"id": _world_id(point.get("id"), "point id", seen), "label": _world_text(point.get("label"), "label", 40), "lat": lat, "lon": lon,
             "category": category, "body": _world_text(point.get("body", ""), "body", 400, required=False),
             **({"flip": _world_text(point["flip"], "flip", 16)} if "flip" in point else {}),
-            **({"sign": point["sign"]} if "sign" in point else {}), **({"mark": _world_mark(point["mark"])} if "mark" in point else {})}
+            **({"sign": point["sign"]} if "sign" in point else {}), **({"mark": _world_mark(point["mark"])} if "mark" in point else {}),
+            **({k: point[k] for k in ("talk", "item", "quiz", "link") if k in point})}
 
 
 def _place_meters(lat: float, lon: float, north: float, west: float, mid: float) -> tuple[float, float]:
@@ -1177,10 +1178,33 @@ def place_floor(points: list[dict[str, Any]], *, meters: int = 64, tile: int = 3
     middle = sum(group) / len(group) if group else 0                                  # names hang away from the middle of their group, so two rows
     named = lambda p: ({"always_named": "left" if p["cell"][0] < middle else "right" if p["cell"][0] > middle else True}   # noqa: E731  (do not cover
                        if p["category"] in always_named else {})                                                          # each other)
+
+    def _fix_ref(val: Any) -> Any:
+        return f"{id}-{val}" if isinstance(val, str) and "-" not in val else val
+
+    def _normalize_point_extras(p: dict[str, Any]) -> dict[str, Any]:
+        extras: dict[str, Any] = {}
+        if "item" in p:
+            it = dict(p["item"])
+            if "need" in it:
+                it["need"] = _fix_ref(it["need"])
+            extras["item"] = it
+        if "talk" in p:
+            tk = dict(p["talk"])
+            if "if_item" in tk:
+                tk["if_item"] = _fix_ref(tk["if_item"])
+            extras["talk"] = tk
+        for k in ("quiz", "link"):
+            if k in p:
+                extras[k] = p[k]
+        return extras
+
     spots = [{"id": f"{id}-{p['id']}", "x": int((p["cell"][0] + .5) * tile), "y": int((p["cell"][1] + .5) * tile), "label": p["label"],
-              "category": p["category"], "body": p["body"], **({"flip": p["flip"]} if "flip" in p else {}), **mark(p), **named(p)} for p in pts]
+              "category": p["category"], "body": p["body"], **({"flip": p["flip"]} if "flip" in p else {}), **mark(p), **named(p),
+              **_normalize_point_extras(p)} for p in pts]
     spots += [{"id": f"{id}-{p['id']}", "x": p["corner"][0] * tile, "y": p["corner"][1] * tile, "label": p["label"], "category": p["category"],
-               "body": p["body"], "sign": p["sign"], **({"flip": p["flip"]} if "flip" in p else {}), **mark(p)} for p in signs]
+               "body": p["body"], "sign": p["sign"], **({"flip": p["flip"]} if "flip" in p else {}), **mark(p),
+               **_normalize_point_extras(p)} for p in signs]
     return {"id": id, "label": label, "width": cols * tile, "height": rows * tile, "tile": tile, "props": props, "actors": [], "spots": spots,
             "player": {"emoji": "🙂", "x": int((first["cell"][0] + .5) * tile), "y": int((first["cell"][1] + .5) * tile), "speed": 96}}
 
@@ -1600,8 +1624,9 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
                         f'<span class="ui-world-quest-mark" aria-hidden="true">⬜</span>'
                         f'<span class="ui-world-quest-arrow" data-quest-arrow aria-hidden="true">{WORLD_HERE}</span>'
                         f'{tag} {escape(sp["label"])}</a></li>')
+        initial_rank = "🌱 見回り見習い" if "cities" in wid or "tokyo" in wid else "🌱 見学中"
         progress_panel = (f'<div class="ui-world-progress">'
-                          f'<div class="ui-world-progress-head"><span class="ui-tag ui-world-rank">🌱 見学中</span>'
+                          f'<div class="ui-world-progress-head"><span class="ui-tag ui-world-rank">{initial_rank}</span>'
                           f'<span class="ui-world-xp">0 EXP</span></div>'
                           '<div class="ui-world-meter" aria-hidden="true"><div class="ui-world-meter-fill"></div></div>'
                           '<p class="ui-world-stats"></p>'
@@ -1810,14 +1835,14 @@ _WORLD_CSS = (
     # Header: the info board. Side: this screen's own controls, as 48px buttons that open a panel over the map (the page never grows taller).
     # Footer: the door-to-door pulldown.
     ".ui-world-body{position:relative;display:flex}.ui-world-body>.ui-world-view{flex:1;min-width:0}"
-    ".ui-world-side{display:flex;flex-direction:column;gap:8px;padding:8px;z-index:2;border-left:1px solid var(--ui-border);background:var(--ui-panel)}"
+    ".ui-world-side{display:flex;flex-direction:column;gap:8px;padding:8px;z-index:5;border-left:1px solid var(--ui-border);background:var(--ui-panel)}"
     ".ui-world-menu[hidden]{display:none}"
     ".ui-world-menu>summary{display:flex;align-items:center;justify-content:center;width:48px;height:48px;box-sizing:border-box;list-style:none;cursor:pointer;"
     "user-select:none;-webkit-user-select:none;font-size:1.25rem;line-height:1;border:1px solid var(--ui-border);background:var(--ui-bg);color:var(--ui-fg);border-radius:var(--ui-radius)}"
     ".ui-world-menu>summary::-webkit-details-marker{display:none}.ui-world-menu[open]>summary{background:var(--ui-accent);color:var(--ui-bg)}"
     ".ui-world-home,.ui-world-tool{display:flex;align-items:center;justify-content:center;width:48px;height:48px;box-sizing:border-box;text-decoration:none;color:var(--ui-fg);cursor:pointer;"
     "font-size:1.25rem;line-height:1;border:1px solid var(--ui-border);background:var(--ui-bg);border-radius:var(--ui-radius)}"
-    ".ui-world-head{position:relative;z-index:3;display:flex;align-items:center;border-bottom:1px solid var(--ui-border);background:var(--ui-panel)}"
+    ".ui-world-head{position:relative;z-index:6;display:flex;align-items:center;border-bottom:1px solid var(--ui-border);background:var(--ui-panel)}"
     ".ui-world-head .ui-board{flex:1;min-width:0;border-bottom:0}.ui-world-head .ui-board-track{flex:4 1 4rem}"
     ".ui-world-tools{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;padding:4px 8px}"   # at 320px seven 40px tools wrap into two rows instead of leaving the window
     ".ui-world-tools .ui-world-home,.ui-world-tools .ui-world-tool,.ui-world-tools .ui-world-menu>summary{width:40px;height:40px}"
@@ -1859,7 +1884,7 @@ _WORLD_CSS = (
     "color:var(--ui-fg);border-radius:var(--ui-radius);cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}"
     ".ui-world-dpad [data-step=\"0,-1\"]{grid-column:2}.ui-world-dpad [data-step=\"-1,0\"]{grid-column:1;grid-row:2}"
     ".ui-world-dpad [data-step=\"1,0\"]{grid-column:3;grid-row:2}.ui-world-dpad [data-step=\"0,1\"]{grid-column:2;grid-row:3}"
-    ".ui-world-pick{position:absolute;inset:0;z-index:3;display:flex;padding:16px;overflow:auto;background:color-mix(in srgb,var(--ui-bg) 90%,transparent)}"
+    ".ui-world-pick{position:absolute;inset:0;z-index:7;display:flex;padding:16px;overflow:auto;background:color-mix(in srgb,var(--ui-bg) 90%,transparent)}"
     ".ui-world-pick[hidden]{display:none}"
     ".ui-world-pick>div{margin:auto;max-width:384px;width:100%;box-sizing:border-box;text-align:center;border:1px solid var(--ui-border);"
     "background:var(--ui-panel);border-radius:var(--ui-radius);padding:16px}"
@@ -1904,7 +1929,7 @@ _GAME_CSS = (
     ".ui-talk{position:absolute;z-index:4;left:8px;right:80px;bottom:calc(var(--ui-world-foot,0px) + 8px);max-width:calc(100% - 16px);box-sizing:border-box;"
     "padding:.75rem .9rem;border:2px solid var(--ui-accent);background:color-mix(in srgb,var(--ui-panel) 96%,transparent);color:var(--ui-fg);"
     "border-radius:var(--ui-radius);box-shadow:0 8px 24px rgb(0 0 0 / .28)}"
-    ".ui-talk[hidden]{display:none}"
+    ".ui-talk[hidden],.ui-world:has(.ui-world-menu[open]) .ui-talk{display:none}"
     ".ui-world[data-shell]:not(:has(.ui-world-foot)) .ui-talk{bottom:8px}"
     ".ui-talk-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:.3rem;font-size:.85rem}"
     ".ui-talk-speaker{color:var(--ui-accent)}.ui-talk-page{color:var(--ui-muted);font-variant-numeric:tabular-nums}"
@@ -2158,7 +2183,7 @@ export function bindBoard(board){const hm=t=>{const[h,m]=t.split(":").map(Number
 const run=board.querySelector(".ui-board-run");if(run)run.style.animationDuration=boardSeconds(Number(board.dataset.chars))+"s";   // also where a strict CSP drops the style attribute
 tick();const timer=setInterval(()=>{if(board.isConnected)tick();else clearInterval(timer)},1000);return{tick,clockNow}}
 // ☰ ⋯ ⭐ ⚙️ and the emoji of your own: the menus show once the script runs, one open at a time; the returned shut() closes them all.
-function bindMenus(el){const menus=[...el.querySelectorAll('.ui-world-menu')];for(const m of menus){m.hidden=false;m.addEventListener('toggle',()=>{if(m.open)for(const o of menus)if(o!==m)o.open=false})}return()=>{for(const m of menus)m.open=false}}
+function bindMenus(el){const menus=[...el.querySelectorAll('.ui-world-menu')];for(const m of menus){m.hidden=false;m.addEventListener('toggle',()=>{if(m.open){const t=el.querySelector('.ui-talk');if(t)t.hidden=true;for(const o of menus)if(o!==m)o.open=false}})}return()=>{for(const m of menus)m.open=false}}
 // A small cache in this browser, one key per world or chrome: [load, save(part)]. Nothing else is written.
 const stored=slot=>{const load=()=>{try{const v=JSON.parse(localStorage.getItem(slot));return v&&typeof v==='object'?v:{}}catch(e){return{}}};return[load,part=>{try{localStorage.setItem(slot,JSON.stringify({...load(),...part}))}catch(e){}}]};
 // 🌐: aria-labels and tooltips in one of eleven languages (data-t names a catalogue word, data-labels carries a tool's own words).
@@ -2256,11 +2281,12 @@ const syncProgress=()=>{
  for(const b of takeBtns()){const k=b.dataset.itemKind,v=Number(b.dataset.xp||0);if(k==='drop'){drops++;maxXp+=v;if(bag.has(b.dataset.itemId)){dropsDone++;xp+=v}}else if(k==='chest'){chests++;maxXp+=v;if(bag.has(b.dataset.itemId)){chestsDone++;xp+=v}}}
  for(const q of quizBoxes()){const v=Number(q.dataset.xp||25);qTotal++;maxXp+=v;if(done.has(q.dataset.quizId)){qDone++;xp+=v}}
  const pct=maxXp?Math.round(xp*100/maxXp):0;
- const rank=pct>=100?'🎓 ポートフォリオ学園マスター':pct>=75?'📚 知識グラフ案内人':pct>=50?'🔬 バイオ＆データ研究員':pct>=25?'🎒 学園探検家':xp>0?'🌱 探検スタート':'🌱 見学中';
+ const isCity=el.id.includes('cities')||el.id.includes('tokyo')||document.title.includes('東京')||document.title.includes('Tokyo');
+ const rank=isCity?(pct>=100?'🛡️ パラレル東京治安防衛隊長':pct>=75?'⚖️ 不正摘発官':pct>=50?'🔍 治安捜査班員':pct>=25?'📋 パトロール隊員':xp>0?'🚶 見守り開始':'🌱 見回り見習い'):(pct>=100?'🎓 ポートフォリオ学園マスター':pct>=75?'📚 知識グラフ案内人':pct>=50?'🔬 バイオ＆データ研究員':pct>=25?'🎒 学園探検家':xp>0?'🌱 探検スタート':'🌱 見学中');
  const rEl=prog.querySelector('.ui-world-rank'),xEl=prog.querySelector('.ui-world-xp'),fEl=prog.querySelector('.ui-world-meter-fill'),sEl=prog.querySelector('.ui-world-stats');
  if(rEl)rEl.textContent=rank;if(xEl)xEl.textContent=xp+' / '+maxXp+' EXP ('+pct+'%)';
  if(fEl)fEl.style.width=pct+'%';
- if(sEl)sEl.textContent='✨ どうぐ '+dropsDone+'/'+drops+' · 🎁 宝箱 '+chestsDone+'/'+chests+' · 🧩 クイズ '+qDone+'/'+qTotal;
+ if(sEl)sEl.textContent=isCity?('✨ 証拠品 '+dropsDone+'/'+drops+' · 🎁 金庫 '+chestsDone+'/'+chests+' · 🧩 成敗クイズ '+qDone+'/'+qTotal):('✨ どうぐ '+dropsDone+'/'+drops+' · 🎁 宝箱 '+chestsDone+'/'+chests+' · 🧩 クイズ '+qDone+'/'+qTotal);
  let questsDone=0,questsTotal=0;
  for(const a of prog.querySelectorAll('.ui-world-quests a')){
   questsTotal++;const qid=a.dataset.questId,qk=a.dataset.questKind,ok=qk==='quiz'?done.has(qid):bag.has(qid);
@@ -2348,7 +2374,7 @@ if(talkBox){
  talkBox.querySelector('.ui-talk-close')?.addEventListener('click',hideTalk);
  talkBox.querySelector('.ui-talk-act')?.addEventListener('click',()=>{if(talkState?.action?.run)talkState.action.run()});
  checkContact=p=>{
-  if(el.hasAttribute('data-pick')||el.hasAttribute('data-ask')||el.querySelector('.ui-sheet-item[data-open]'))return;
+  if(el.hasAttribute('data-pick')||el.hasAttribute('data-ask')||el.querySelector('.ui-sheet-item[data-open]')||el.querySelector('.ui-world-menu[open]'))return;
   const f=floor();if(!f)return;
   const tile=Number(f.dataset.tile)||32;
   if(lastContact&&contactOrigin&&Math.hypot(p[0]-contactOrigin[0],p[1]-contactOrigin[1])>contactRange*1.7){lastContact=null;contactOrigin=null;hideTalk()}
@@ -2632,33 +2658,230 @@ EXAMPLES: dict[str, Any] = {
 _CITY_MARKS = {"exit": "🎫", "station": "🚉", "terminus": "🚆"}   # the mark drawn instead of the dot, by category: the cities are their transport (🚪 is the footer's)
 
 
-def _pt(id: str, label: str, lat: float, lon: float, category: str, body: str = "", flip: str = "", sign: str = "") -> dict[str, Any]:
-    return {"id": id, "label": label, "lat": lat, "lon": lon, "category": category, "body": body, **({"flip": flip} if flip else {}),
-            **({"sign": sign} if sign else {})}
+def _pt(id: str, label: str, lat: float, lon: float, category: str, body: str = "", flip: str = "", sign: str = "",
+        *, talk: Any = None, item: Any = None, quiz: Any = None, link: Any = None) -> dict[str, Any]:
+    return {"id": id, "label": label, "lat": lat, "lon": lon, "category": category, "body": body,
+            **({"flip": flip} if flip else {}), **({"sign": sign} if sign else {}),
+            **({"talk": talk} if talk is not None else {}),
+            **({"item": item} if item is not None else {}),
+            **({"quiz": quiz} if quiz is not None else {}),
+            **({"link": link} if link is not None else {})}
 
 
 _TOKYO_POINTS = [
-    _pt("marunouchi-c", "丸の内中央口", 35.68134, 139.7665, "exit", "東京駅の丸の内側、ちょうど真ん中の出入口です。"),
-    _pt("marunouchi-n", "丸の内北口", 35.6824, 139.7664, "exit", "東京駅の丸の内側、北の出入口です。"),
-    _pt("marunouchi-s", "丸の内南口", 35.68025, 139.76625, "exit", "東京駅の丸の内側、南の出入口です。"),
-    _pt("yaesu-c", "八重洲中央口", 35.6813, 139.7686, "exit", "東京駅の八重洲側、ちょうど真ん中の出入口です。"),
-    _pt("yaesu-n", "八重洲北口", 35.6825, 139.7685, "exit", "東京駅の八重洲側、北の出入口です。"),
-    _pt("yaesu-s", "八重洲南口", 35.6801, 139.7684, "exit", "東京駅の八重洲側、南の出入口です。"),
-    _pt("otemachi", "大手町", 35.6867, 139.7631, "station", "東京駅の北西、歩いて行ける駅です。"),
-    _pt("nijubashimae", "二重橋前", 35.6804, 139.7612, "station", "東京駅の西、丸の内の駅です。"),
-    _pt("yurakucho", "有楽町", 35.6751, 139.7631, "station", "東京駅の南、ひと駅となりです。"),
-    _pt("hibiya", "日比谷", 35.674, 139.7598, "station", "有楽町の西にある駅です。"),
-    _pt("ginza", "銀座", 35.6719, 139.7639, "station", "有楽町の南にある駅です。"),
-    _pt("ginza-itchome", "銀座一丁目", 35.6745, 139.7672, "station", "銀座の北東にある駅です。"),
-    _pt("kyobashi", "京橋", 35.6768, 139.7702, "station", "東京駅の南東、八重洲のむこうの駅です。"),
-    _pt("nihombashi", "日本橋", 35.682, 139.7743, "station", "東京駅の東、八重洲のむこうの駅です。"),
-    _pt("mitsukoshimae", "三越前", 35.6868, 139.7737, "station", "日本橋の北にある駅です。"),
-    _pt("shin-nihombashi", "新日本橋", 35.6898, 139.7741, "station", "三越前の北にある駅です。"),
-    _pt("kanda", "神田", 35.6918, 139.7709, "station", "東京駅の北、ひと駅となりです。"),
-    _pt("takebashi", "竹橋", 35.6906, 139.7586, "station", "大手町の北西にある駅です。"),
-    _pt("shimbashi", "新橋", 35.6663, 139.7583, "station", "有楽町の南、ふた駅となりです。"),
-    _pt("concourse", "◀ 丸の内 | 八重洲 ▶", 35.68075, 139.76755, "sign", "東京駅の、丸の内口と八重洲口のあいだです。", "", "led"),
-    _pt("north-south", "▲ 神田 | 有楽町 ▼", 35.6838, 139.7676, "sign", "東京駅の北と南、となりの駅の方向です。", "", "led"),
+    _pt("marunouchi-c", "丸の内中央口", 35.68134, 139.7665, "exit",
+        "東京駅の丸の内側、ちょうど真ん中の出入口です。治安見守り隊の本部が置かれています。",
+        item={"emoji": "📓", "label": "見守り隊の捜査手帳", "body": "治安見守り隊員必携の手帳。街にはびこる悪人の情報と成敗の記録が記される。", "kind": "take", "xp": 20},
+        talk={"speaker": "🛡️ 見守り隊長",
+              "contact": False,
+              "lines": ["治安見守り隊の本部へようこそ！今、パラレル東京はヤミ金・裏金政治・談合・特殊詐欺の危機にある。",
+                        "まずはこの『📓 見守り隊の捜査手帳』を受け取り、街を歩いて証拠と情報を集めてくれ！"],
+              "if_item": "tokyo-nihombashi",
+              "has_lines": ["見事だ！ヤミ金、腐敗政治家、談合カルテル、特殊詐欺、マネロン組織をすべて成敗してくれたな！",
+                            "君こそがパラレル東京の真の守護者、『🛡️ パラレル東京治安防衛隊長』だ！"]},
+        link={"label": "🚨 治安見守り指令書 (詳細)", "href": "#cities-spot-tokyo-marunouchi-c"}),
+    _pt("marunouchi-n", "丸の内北口", 35.6824, 139.7664, "exit",
+        "東京駅の丸の内側、北の出入口です。大手町の官庁・ビジネス街方面を見守っています。",
+        talk={"speaker": "🧑‍✈️ 丸の内北口警備員",
+              "contact": False,
+              "lines": ["大手町方面で公共事業の入札に関する怪しい密談が行われているとの通報がありました。",
+                        "竹橋のほうに内部告発者がいるとの噂です。調査をお願いします！"]}),
+    _pt("marunouchi-s", "丸の内南口", 35.68025, 139.76625, "exit",
+        "東京駅の丸の内側、南の出入口です。二重橋前や有楽町方面を見守っています。",
+        talk={"speaker": "🧑‍💼 丸の内南口案内人",
+              "contact": False,
+              "lines": ["二重橋前の方面に、高級外車で乗り付ける政治家とブローカーが頻繁に出入りしています。",
+                        "有楽町の記者が何か掴んでいるようです。気をつけてください！"]}),
+    _pt("yaesu-c", "八重洲中央口", 35.6813, 139.7686, "exit",
+        "東京駅の八重洲側、ちょうど真ん中の出入口です。駅前広場で防犯啓発が行われています。",
+        item={"emoji": "📢", "label": "防犯パトロールメガホン", "body": "駅前広場で不審者への警戒と特殊詐欺防止を呼びかける大音量メガホン。", "kind": "drop", "xp": 20},
+        talk={"speaker": "👮 駅前防犯指導員",
+              "contact": False,
+              "lines": ["八重洲中央口から防犯啓発放送を行っています。",
+                        "メガホンで呼びかけるだけでも、ATMでの還付金詐欺やヤミ金の声かけを未然に防げます！"]}),
+    _pt("yaesu-n", "八重洲北口", 35.6825, 139.7685, "exit",
+        "東京駅の八重洲側、北の出入口です。人通りの多い通路で不審なビラが配られていました。",
+        item={"emoji": "📱", "label": "闇バイト勧誘ビラ", "body": "「即日入金・荷物を受け取るだけ・リスクなし」と虚偽で若者を罠にかける危険な募集用紙。", "kind": "drop", "xp": 30},
+        talk={"speaker": "🧑‍💼 八重洲北口の見守りボランティア",
+              "contact": False,
+              "lines": ["八重洲北口の通路で不審な人物が怪しいチラシを配っていました。",
+                        "これは特殊詐欺の受け子を募集する『📱 闇バイト勧誘ビラ』です！銀座のアジト追及に使ってください！"]}),
+    _pt("yaesu-s", "八重洲南口", 35.6801, 139.7684, "exit",
+        "東京駅の八重洲側、南の出入口です。高速バス乗り場近くのロッカーが並んでいます。",
+        talk={"speaker": "🧳 八重洲旅行者",
+              "contact": False,
+              "lines": ["八重洲のロッカーに荷物を預けたら、怪しい男たちが暗号メモをやり取りしていました。",
+                        "街の安全を守る見守り隊の皆さん、応援しています！"]}),
+    _pt("otemachi", "大手町", 35.6867, 139.7631, "station",
+        "東京駅の北西、歩いて行ける駅です。巨大ビル地下で談合カルテルが暗躍しています。",
+        talk={"speaker": "🏗️ 官製談合カルテル元締め",
+              "lines": ["大手町のオフィスビル街を牛耳る公共事業カルテルだ。落札業者と金額はすでに談合で決定済み！",
+                        "競争入札など形式だけ。税金をみんなで山分けするのが業界の知恵というものさ！"],
+              "if_item": "tokyo-takebashi",
+              "has_lines": ["ま、まさか…！竹橋の官庁街から流出した『📜 官製談合の暗号表』と予定価格漏洩メモだと…！？",
+                            "公正取引委員会の調査が入れば課徴金と入札停止で全社倒産だ…金庫を開けるから見逃してくれ！"],
+              "after_quiz": ["独占禁止法の不当な取引制限とリーニエンシー（減免制度）で談合が完全崩壊した…成敗だ〜！"]},
+        item={"emoji": "💼", "label": "談合カルテルの秘密金庫", "body": "大手町地下の不正入札台帳とキックバック契約書が収められたアタッシュケース。", "kind": "chest", "need": "tokyo-takebashi", "xp": 60},
+        quiz={"question": "公正取引委員会が談合やカルテルを発見・抑止するために導入している、最初に違反を自主申告した事業者の課徴金を全額免除する制度の名称は？",
+              "choices": ["課徴金減免制度（リーニエンシー制度）", "予定価格事前協議制度", "随意契約促進制度"],
+              "answer": 0,
+              "hint": "自主的に不正を申告・協力した事業者に対し課徴金を全額または一部減額する制度です。",
+              "explain": "リーニエンシー（Leniency）制度により、カルテルや入札談合に関与した企業が公取委に自首することで課徴金の免除・軽減を受けられるため、秘密裏の談合カルテルを内部崩壊させる強力な抑止力となっています。",
+              "xp": 30},
+        link={"label": "⚡ 自動化ツール (OneLaunchNumerousModules)", "href": "https://github.com/myon-bioinformatics/OneLaunchNumerousModules"}),
+    _pt("nijubashimae", "二重橋前", 35.6804, 139.7612, "station",
+        "東京駅の西、丸の内の駅です。お堀端の高級料亭で腐敗代議士が裏金をプールしています。",
+        talk={"speaker": "🎩 腐敗代議士・利権フィクサー",
+              "lines": ["永田町の裏口たるこの二重橋前で、ワシの政治資金集めに口を出す者は許さんぞ。",
+                        "パーティー券のキックバックを裏帳簿に隠すのは、政界の慣例というものだ！"],
+              "if_item": "tokyo-yurakucho",
+              "has_lines": ["な、何だと！？有楽町の調査記者が嗅ぎ回っていた『💾 裏金のフロッピー』だと…！？",
+                            "政治資金収支報告書の不記載と裏金プールの全記録が残っていたのか…観念するしかない…！"],
+              "after_quiz": ["政治資金規正法の透明性原則と収支報告書の虚偽記載罪を突きつけられた…成敗だ〜！"]},
+        item={"emoji": "🗄️", "label": "政治資金の隠し金庫", "body": "使途不明の裏金と虚偽記載の収支報告書原本が封印された重厚な金庫。", "kind": "chest", "need": "tokyo-yurakucho", "xp": 60},
+        quiz={"question": "政治資金規正法において、民主政治の健全な発展のために最も基本とされている基本理念はどれ？",
+              "choices": ["政治資金の収支を国民の前に公表し、透明性を確保すること", "政治資金の出所や使途は機密として永久非公開にすること", "議員個人が自由な裁量で領収書なしに現金を使うこと"],
+              "answer": 0,
+              "hint": "国民の不断の監視と批判の下に置くため、収支の公開と透明化が法律の基本理念（第2条）です。",
+              "explain": "政治資金規正法は「政治資金の収支の状況を国民の前に明らかにすること」を目的としており、収支報告書の不記載・虚偽記載は5年以下の禁錮または100万円以下の罰金刑となります。",
+              "xp": 30},
+        link={"label": "🕸️ 分類と構造分析 (OnTautoLogy)", "href": "https://github.com/myon-bioinformatics/OnTautoLogy"}),
+    _pt("yurakucho", "有楽町", 35.6751, 139.7631, "station",
+        "東京駅の南、ひと駅となりです。夜のガード下で政治資金パーティーの調査が行われています。",
+        item={"emoji": "💾", "label": "裏金のフロッピー", "body": "政界ルートへの違法キックバックとプール資金が詳細に記された秘密データ。", "kind": "drop", "xp": 30},
+        talk={"speaker": "📰 調査報道ジャーナリスト",
+              "contact": False,
+              "lines": ["有楽町ガード下で政治資金パーティーの取材を続けています。巨額の裏金が動いています。",
+                        "この『💾 裏金のフロッピー』に決定的な裏金リストがあります！二重橋前のフィクサーに突きつけてください！"]}),
+    _pt("hibiya", "日比谷", 35.674, 139.7598, "station",
+        "有楽町の西にある駅です。法律事務所が集まり、被害者無料相談窓口が開設されています。",
+        item={"emoji": "🧾", "label": "違法金利の領収書", "body": "出資法の上限年20%をはるかに超える暴利（トイチ）が記された証拠書類。", "kind": "drop", "xp": 30},
+        talk={"speaker": "⚖️ 街頭無料法律相談員",
+              "contact": False,
+              "lines": ["日比谷の相談窓口です。ヤミ金や法外な利息に悩む市民からの相談が急増しています。",
+                        "足元に落ちている『🧾 違法金利の領収書』を拾って、神田のヤミ金アジトを追及してください！"]},
+        link={"label": "💬 PortfolIO Chat (相談AI)", "href": "../chat/index.html"}),
+    _pt("ginza", "銀座", 35.6719, 139.7639, "station",
+        "有楽町の南にある駅です。高級繁華街の裏で特殊詐欺グループが暗号通信を行っています。",
+        talk={"speaker": "🕶️ 特殊詐欺グループ幹部",
+              "lines": ["銀座の雑居ビルから全国へ架空請求と還付金詐欺の電話をかけまくっているのさ。",
+                        "SNSで『高額闇バイト』と釣れば、捨て駒の受け子や出し子がいくらでも集まるんだよ！"],
+              "if_item": "tokyo-yaesu-n",
+              "has_lines": ["ひっ…！八重洲北口でばら撒いていた『📱 闇バイト勧誘ビラ』と暗号チャット履歴を押収されたのか！？",
+                            "受け子だけ逮捕させて逃げ切るはずが…アジトの場所まで特定されるとは…！"],
+              "after_quiz": ["闇バイトは末端でも強盗・詐欺の共同正犯で実刑…逃げ道なし！完全成敗された〜！"]},
+        item={"emoji": "💻", "label": "詐欺グループの暗号PC", "body": "架空請求先の名簿と海外送金指示が記録されたアジトのメイン端末。", "kind": "chest", "need": "tokyo-yaesu-n", "xp": 60},
+        quiz={"question": "「簡単に稼げる」とSNS等で募集されるいわゆる『闇バイト』に応募し、特殊詐欺の受け子・出し子や強盗に加担した場合の法的責任について正しいのは？",
+              "choices": ["「指示されただけ」という言い訳は通用せず、詐欺罪や強盗罪の共同正犯として重い実刑判決を受ける",
+                          "学生や未成年であれば注意だけで釈放され、前科もつかない",
+                          "アルバイト代を返還すれば罪に問われることはない"],
+              "answer": 0,
+              "hint": "闇バイトは単なるアルバイトではなく重大犯罪の実行行為そのものであり、実刑判決となるケースが極めて多いです。",
+              "explain": "警察庁および裁判所の判例でも「闇バイトは犯罪」と明確に警告されており、末端の受け子・出し子であっても組織的詐欺や強盗の共犯として懲役刑などの厳しい刑事罰が科されます。",
+              "xp": 30},
+        link={"label": "📜 不審テキスト分析 (AttentionToJapaneseBeginners)", "href": "https://github.com/myon-bioinformatics/AttentionToJapaneseBeginners"}),
+    _pt("ginza-itchome", "銀座一丁目", 35.6745, 139.7672, "station",
+        "銀座の北東にある駅です。消費者ホットラインや消費生活センターの案内が掲示されています。",
+        talk={"speaker": "👩‍⚖️ 消費者被害救済アドバイザー",
+              "contact": False,
+              "lines": ["銀座一丁目の相談室です。マルチ商法や投資詐欺の手口も巧妙化しています。",
+                        "おかしいと思ったら契約前に公的窓口（消費者ホットライン188）へ相談することが大切です！"]}),
+    _pt("kyobashi", "京橋", 35.6768, 139.7702, "station",
+        "東京駅の南東、八重洲のむこうの駅です。サイバーセキュリティ調査班が拠点としています。",
+        item={"emoji": "🔍", "label": "デジタルフォレンジック証拠品", "body": "消去された通信記録と防犯カメラ映像を復元したサイバー捜査データ。", "kind": "drop", "xp": 20},
+        talk={"speaker": "💻 サイバー防犯ボランティア",
+              "contact": False,
+              "lines": ["京橋のオフィスからサイバーパトロールを行っています。",
+                        "削除された詐欺グループの通信記録をフォレンジック復元しました！証拠として活用してください！"]},
+        link={"label": "🌊 判定フロー (PortfolIO Flow)", "href": "../flow/index.html"}),
+    _pt("nihombashi", "日本橋", 35.682, 139.7743, "station",
+        "東京駅の東、八重洲のむこうの駅です。金融街の地下で巨額のマネーロンダリングが行われています。",
+        talk={"speaker": "🏦 組織犯罪マネーロンダリング統括",
+              "lines": ["日本橋の老舗問屋街の地下に、不正資金をマネーロンダリングする秘密拠点を築いた。",
+                        "ヤミ金、裏金、談合、詐欺の全収益を架空名義口座と暗号資産で洗い流してやる！"],
+              "if_item": "tokyo-shin-nihombashi",
+              "has_lines": ["バカな…！新日本橋の地下通路に隠した『🔑 地下金庫のマスターキー』を破られたというのか！？",
+                            "世界中に分散送金した口座情報がすべて差し押さえられてしまう…！"],
+              "after_quiz": ["犯罪収益移転防止法とKYC（本人確認）の壁に阻まれ、資金洗浄ルート完全壊滅！成敗だ〜！"]},
+        item={"emoji": "🏆", "label": "治安回復のマスター黄金宝箱", "body": "パラレル東京のヤミ金・政治腐敗・談合・特殊詐欺・組織犯罪をすべて成敗し、街の治安を守り抜いた証！", "kind": "chest", "need": "tokyo-shin-nihombashi", "xp": 100},
+        quiz={"question": "金融機関や暗号資産交換業者に「疑わしい取引の届出」や「取引時確認（本人確認・KYC）」を義務付けている日本の法律はどれ？",
+              "choices": ["犯罪による収益の移転防止に関する法律（犯罪収益移転防止法）", "道路交通法", "著作権法"],
+              "answer": 0,
+              "hint": "マネー・ローンダリング（資金洗浄）やテロ資金供与を防ぐための国際基準（FATF）に対応した法律です。",
+              "explain": "犯罪収益移転防止法により、金融機関・暗号資産交換業者・宅建業者等は厳格な本人確認（KYC）と疑わしい取引の行政への届出が義務付けられており、犯罪組織の資金遮断の要となっています。",
+              "xp": 40},
+        link={"label": "🔬 検証プローブ (BlueProbe)", "href": "https://github.com/myon-bioinformatics/BlueProbe"}),
+    _pt("mitsukoshimae", "三越前", 35.6868, 139.7737, "station",
+        "日本橋の北にある駅です。老舗商店街が地域ぐるみで防犯ネットワークを構築しています。",
+        item={"emoji": "📹", "label": "防犯カメラ録画テープ", "body": "闇バイトの出し子やヤミ金の取り立て屋の顔を鮮明に記録した商店街の監視データ。", "kind": "drop", "xp": 20},
+        talk={"speaker": "🏬 日本橋三越前商店街会長",
+              "contact": False,
+              "lines": ["地域の商店街防犯カメラを総動員して見守りを強化しています。",
+                        "不審者の行動記録を録画テープにまとめました。治安維持に役立ててください！"]}),
+    _pt("shin-nihombashi", "新日本橋", 35.6898, 139.7741, "station",
+        "三越前の北にある駅です。深い地下通路で組織犯罪の地下金庫の鍵が発見されました。",
+        item={"emoji": "🔑", "label": "地下金庫のマスターキー", "body": "日本橋の地下に隠された組織犯罪の最終資金庫を開ける精密なキー。", "kind": "drop", "xp": 30},
+        talk={"speaker": "🚇 地下道見守りパトロール員",
+              "contact": False,
+              "lines": ["新日本橋の地下通路を巡回中です。怪しい黒塗りの車から何かが落とされました。",
+                        "これは日本橋の地下金庫につながる『🔑 地下金庫のマスターキー』です！最後の巨悪を成敗してください！"]}),
+    _pt("kanda", "神田", 35.6918, 139.7709, "station",
+        "東京駅の北、ひと駅となりです。雑居ビル街に違法金融「トイチ・ローン」が潜伏しています。",
+        talk={"speaker": "💸 闇金融「トイチ・ローン」幹部",
+              "lines": ["へへっ、金に困ったらウチに来な！10日で1割（トイチ）なんて良心的だろ？",
+                        "返せねえなら職場にも実家にも昼夜問わず取り立てに行ってやるよ！"],
+              "if_item": "tokyo-hibiya",
+              "has_lines": ["な、なんだその領収書は…！年利1000%超えの出資法違反の決定的な証拠だと…！？",
+                            "金庫の鍵を渡すから勘弁してくれ…！貸金業法違反で警察に突き出すのは待ってくれ〜！"],
+              "after_quiz": ["ぐあっ…出資法第5条の上限金利（年20%）も違法取立の無効も完全に暴かれた…成敗された〜！"]},
+        item={"emoji": "💰", "label": "ヤミ金の裏金庫", "body": "被害者から巻き上げた違法利息の帳簿と現金が収められた金庫。解錠して被害金を保全しよう！", "kind": "chest", "need": "tokyo-hibiya", "xp": 60},
+        quiz={"question": "貸金業者が個人に貸し付ける際、出資法第5条で定められた刑事罰の対象となる上限金利（年利）は何%？",
+              "choices": ["年20%", "年100%", "年50%", "上限なし（契約自由）"],
+              "answer": 0,
+              "hint": "利息制限法（15〜20%）を超え、出資法の上限（20%）を超えると刑事罰（懲役・罰金）が科されます。",
+              "explain": "貸金業法および出資法では上限金利は年20%と定められており、これを超える金利契約は無効かつ刑事罰の対象です。さらに年109.5%を超える契約は利息支払義務すらありません。",
+              "xp": 30},
+        link={"label": "🛡️ 脆弱性DB (nvd_nist_known_vulns)", "href": "https://github.com/myon-bioinformatics/nvd_nist_known_vulns"}),
+    _pt("takebashi", "竹橋", 35.6906, 139.7586, "station",
+        "大手町の北西にある駅です。官公庁に近く、公共工事の入札情報が集まります。",
+        item={"emoji": "📜", "label": "官製談合の暗号表", "body": "発注側の予定価格を事前に漏洩させ、持ち回り落札を定めたカルテルの暗号表。", "kind": "drop", "xp": 30},
+        talk={"speaker": "🕵️ 公共調達の内部告発者",
+              "contact": False,
+              "lines": ["官庁街に近い竹橋から告発します。インフラ工事の入札が特定の談合グループに牛耳られています。",
+                        "足元にある『📜 官製談合の暗号表』を回収し、大手町のカルテル元締めを摘発してください！"]}),
+    _pt("shimbashi", "新橋", 35.6663, 139.7583, "station",
+        "有楽町の南、ふた駅となりです。烏森口やSL広場周辺をボランティアが見守っています。",
+        talk={"speaker": "🏮 新橋SL広場のサラリーマン",
+              "contact": False,
+              "lines": ["仕事帰りに『審査なしで即日融資』という甘い言葉でヤミ金に誘われそうになったよ。",
+                        "絶対に手を出してはダメだ。見守り隊が巡回してくれて心強いよ！"]}),
+    _pt("concourse", "◀ 丸の内 | 八重洲 ▶", 35.68075, 139.76755, "sign",
+        "東京駅の、丸の内口と八重洲口のあいだです。防犯電光掲示板が注意を呼びかけています。", "", "led",
+        talk={"speaker": "🚨 防犯電光掲示板",
+              "contact": False,
+              "lines": ["【東京駅構内防犯警戒中】不審な電話や甘い融資話にご注意ください。",
+                        "街頭の落とし物や証拠品を見つけたら、治安見守り隊へお届けください。"]}),
+    _pt("north-south", "▲ 神田 | 有楽町 ▼", 35.6838, 139.7676, "sign",
+        "東京駅の北と南、となりの駅の方向です。治安警報電光掲示板が最新情報を流しています。", "", "led",
+        talk={"speaker": "🚨 治安情報電光掲示板",
+              "contact": False,
+              "lines": ["【警戒速報】神田方面でヤミ金、銀座方面で特殊詐欺アジトの潜伏情報あり。",
+                        "証拠を確保し、右上の 🏆 治安レポート から成敗状況をご確認ください。"]}),
+]
+
+_TOKYO_ACTORS = [
+    {"id": "patrol-car", "emoji": "🚓", "label": "防犯パトロールカー", "body": "街頭を巡回し犯罪を未然に防ぐ青色回転灯パトロール車両。", "speed": 64,
+     "talk": {"speaker": "🚓 青色防犯パトロールカー",
+              "lines": ["ウ〜〜！パラレル東京の街頭を巡回パトロール中！",
+                        "見守り隊員、お疲れ様です！街の犯罪抑止のため、怪しい兆候を見つけたら成敗してください！"]}},
+    {"id": "patrol-dog", "emoji": "🐕", "label": "見守り犬ポチ", "body": "違法マネーの怪しいにおいを嗅ぎ分ける頼もしい見守り犬。", "speed": 48,
+     "talk": {"speaker": "🐕 見守り犬「ポチ」",
+              "lines": ["ワンワン！（神田や日本橋のほうから、違法マネーの怪しいにおいがするワン！）",
+                        "クンクン…！落ちている証拠品を見つけたら、ぜんぶ拾ってバッグ 🎒 に集めるワン！"]}},
+    {"id": "patrol-drone", "emoji": "🛸", "label": "防犯ドローン", "body": "銀座〜大手町〜二重橋前の上空から治安状況を監視するパトロール機。", "speed": 32,
+     "talk": {"speaker": "🛸 防犯監視ドローン",
+              "lines": ["ピピピッ…上空からパラレル東京の治安状況をリアルタイム監視中。",
+                        "右上の 🏆 治安レポート を開くと、まだ成敗していない悪人や未回収の証拠への方位矢印が表示されます！"]}},
 ]
 _TOKYO_LINKS = [["marunouchi-n", "marunouchi-c"], ["marunouchi-c", "marunouchi-s"], ["yaesu-n", "yaesu-c"], ["yaesu-c", "yaesu-s"], ["marunouchi-c", "yaesu-c"],
     ["otemachi", "marunouchi-n"], ["takebashi", "otemachi"], ["nijubashimae", "marunouchi-s"], ["yurakucho", "marunouchi-s"], ["hibiya", "yurakucho"],
@@ -3080,8 +3303,8 @@ EXAMPLES.update({
                   "🥖": {"label": "フェイクパリ", "label_en": "Fake Paris", "floor": "paris"},
                   "🚉": {"label": "東京駅", "label_en": "Tokyo Station",
                          "spots": ["tokyo-marunouchi-n", "tokyo-marunouchi-c", "tokyo-marunouchi-s", "tokyo-yaesu-n", "tokyo-yaesu-c", "tokyo-yaesu-s"]}},
-        "board": {"title": "PARALLEL", "items": [{"text": "実在の街の、もうひとつの姿"}, {"text": "🚪で3つの街を行き来"}, {"text": "歩いて駅から駅へ"}]},
-        "floors": [{"id": "tokyo", "label": "Parallel Tokyo", "place": {"points": _TOKYO_POINTS, "meters": 32, "links": _TOKYO_LINKS, "marks": _CITY_MARKS, "always_named": ["exit"]}},
+        "board": {"title": "PARALLEL", "items": [{"text": "実在の街の、もうひとつの姿"}, {"text": "🚨 パラレル東京治安見守り隊：悪人成敗ミッション"}, {"text": "🚪で3つの街を行き来"}, {"text": "歩いて駅から駅へ"}]},
+        "floors": [{"id": "tokyo", "label": "Parallel Tokyo", "place": {"points": _TOKYO_POINTS, "meters": 32, "links": _TOKYO_LINKS, "marks": _CITY_MARKS, "always_named": ["exit"]}, "actors": _TOKYO_ACTORS},
                    {"id": "london", "label": "Reverse London",
                     "place": {"points": _LONDON_POINTS, "meters": 150, "links": _LONDON_LINKS, "rivers": [_THAMES], "marks": _CITY_MARKS}},
                    {"id": "paris", "label": "Fake Paris",
@@ -3532,6 +3755,30 @@ def _tokyo(page, cam, tmp):
     sign(page, cam, "tokyo", "tokyo-concourse", 2)
     spot(page, cam, "tokyo", "tokyo-kanda")
     cam.zoom(PLAYER, factor=1.6, hold_ms=1200)
+
+
+@scene("patrol", world="cities", width=560, height=720)
+def _patrol(page, cam, tmp):
+    """Parallel Tokyo civic vigilance patrol: collect illegal loan receipt evidence at Hibiya, confront loan shark at Kanda, solve usury quiz, crack safe, and view vigilance report."""
+    choose(page, "🗼")
+    cam.hold(600)
+    spot(page, cam, "tokyo", "tokyo-hibiya", 600)
+    cam.hold(800)
+    page.click(".ui-talk-close:visible")
+    spot(page, cam, "tokyo", "tokyo-kanda", 800)
+    cam.hold(800)
+    page.click(".ui-talk-next:visible")
+    cam.hold(600)
+    page.click(".ui-talk-act:visible")
+    cam.hold(800)
+    page.click('#cities-spot-tokyo-kanda .ui-quiz-btn[data-choice="0"]')
+    cam.hold(1000)
+    page.click('#cities-spot-tokyo-kanda .ui-world-take')
+    cam.hold(900)
+    page.click(".ui-sheet-close:visible")
+    cam.hold(400)
+    more(page, cam, "progress", 1400)
+    cam.hold(800)
 
 
 @scene("london", world="cities", width=560, height=720)

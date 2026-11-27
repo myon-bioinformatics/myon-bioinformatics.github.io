@@ -293,6 +293,7 @@ the browser tests name their GIFs through them from `PSWB_GIFS="DIR [--prefix P]
 | `overworld-lands.gif` | six lands by the 🚪 pulldown (forest, mountain, desert, coast, castle), then walking to the castle town from the ☰ list |
 | `overworld-real.gif` | the real floor: ⋯ → 🖼️📷 → 🖼️ choose a photo, walk over it, then 🧹 (the photo is drawn by the recorder) |
 | `cities-tokyo.gif` | Parallel Tokyo: the 🚉 tool (the six exits of Tokyo Station), Marunouchi to Yaesu through the concourse, the electronic board's dot and text, on to Kanda by ☰ |
+| `cities-patrol.gif` | Parallel Tokyo: civic vigilance patrol, pickup illegal loan receipt at Hibiya, confront loan shark at Kanda, solve usury quiz, crack safe, and view 🏆 vigilance report |
 | `cities-london.gif` | Reverse London: 🎡 in the header, King's Cross to Waterloo over the Thames bridge, the wooden **nogard** board: dot, text, 🐉, dot |
 | `cities-paris.gif` | Fake Paris: 🥖 in the header, a 🔥 in each block, west from Gare du Nord to Saint-Lazare |
 | `school-oneliner.gif` | the one command from another repository; the byte count and time shown are that run's real output |

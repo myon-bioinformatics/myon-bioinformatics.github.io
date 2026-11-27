@@ -1382,6 +1382,67 @@ class CitiesTests(unittest.TestCase):
                 self.shot(page, "fire", f["id"], "fit", f"{f['label']}: 🔥{sum(p['kind'] == 'fire' for p in f['props'])} 🌊{sum(p['kind'] == 'water' for p in f['props'])} 🌉{sum(p['kind'] == 'bridge' for p in f['props'])}")
         self.assertEqual(self.errors, [])
 
+    def test_tokyo_contact_dialogue_drops_chests_quizzes_and_vigilance_log(self):
+        """Parallel Tokyo vigilance RPG: collecting illegal loan receipt at Hibiya, confronting loan shark at Kanda, answering usury quiz, cracking safe, and verifying vigilance report progress and ranks."""
+        page = self.open("desktop")
+        self.start(page, "🗼")
+        self.show(page, "tokyo")
+
+        # 1) Walk to Hibiya via spots menu -> pickup dropped 🧾 違法金利の領収書 into 🎒 (+25 EXP)
+        self.menu(page, "spots")
+        page.click('.ui-world-spots[data-floor="tokyo"] a[href="#cities-spot-tokyo-hibiya"]')
+        page.click(".ui-sheet-close:visible")
+        page.wait_for_selector('.ui-spot[data-item-id="cities-spot-tokyo-hibiya"][data-collected]')
+        self.assertIn("領収書", page.text_content(".ui-talk-text"))
+        self.assertEqual(page.get_attribute('[data-menu="bag"] > summary', "data-count"), "1")
+        page.click(".ui-talk-close")
+
+        # 2) Walk to Kanda via spots menu -> chest needs Hibiya receipt, confronts loan shark with quiz gate
+        self.menu(page, "spots")
+        page.click('.ui-world-spots[data-floor="tokyo"] a[href="#cities-spot-tokyo-kanda"]')
+        page.click(".ui-sheet-close:visible")
+        page.wait_for_selector(".ui-talk:not([hidden])")
+        self.assertIn("トイチ・ローン", page.text_content(".ui-talk-speaker"))
+        self.assertIn("出資法違反", page.text_content(".ui-talk-text"))
+        self.assertEqual(page.text_content(".ui-talk-page"), "1/2")
+        page.click(".ui-talk-next")
+        self.assertEqual(page.text_content(".ui-talk-page"), "2/2")
+        page.click(".ui-talk-act")
+
+        # 3) Solve usury quiz on Kanda sheet: wrong choice explains hint, correct choice (年20%) marks done & cracks safe
+        self.assertTrue(page.is_visible("#cities-spot-tokyo-kanda"))
+        self.assertEqual(page.get_attribute("#cities-spot-tokyo-kanda .ui-world-take", "aria-pressed"), "false")
+        page.click('#cities-spot-tokyo-kanda .ui-quiz-btn[data-choice="1"]')
+        self.assertIn("出資法の上限", page.text_content("#cities-spot-tokyo-kanda .ui-quiz-msg"))
+        page.click('#cities-spot-tokyo-kanda .ui-quiz-btn[data-choice="0"]')
+        self.assertIn("正解", page.text_content("#cities-spot-tokyo-kanda .ui-quiz-msg"))
+
+        # 4) Safe is now cracked (ui-world-take button is aria-pressed true)
+        self.assertEqual(page.get_attribute("#cities-spot-tokyo-kanda .ui-world-take", "aria-pressed"), "true")
+        page.click(".ui-sheet-close:visible")
+
+        # 5) Open 🏆 vigilance report: verify rank progression, quest checks, and stats text
+        self.menu(page, "progress")
+        rank = page.text_content(".ui-world-rank")
+        self.assertIn("見守り開始", rank)
+        self.assertIn("EXP", page.text_content(".ui-world-xp"))
+        self.assertIn("証拠品", page.text_content(".ui-world-stats"))
+        self.assertIn("金庫", page.text_content(".ui-world-stats"))
+        self.assertIn("成敗クイズ", page.text_content(".ui-world-stats"))
+        page.keyboard.press("Escape")
+        self.assertEqual(self.errors, [])
+
+    def test_tokyo_patrol_actor_contact_dialogue(self):
+        """Approaching or clicking a patrol vehicle/actor in Parallel Tokyo shows its contact vigilance dialogue."""
+        page = self.open("desktop")
+        self.start(page, "🗼")
+        self.show(page, "tokyo")
+        page.click('#cities-actor-patrol-car')
+        self.assertTrue(page.is_visible("#cities-spot-patrol-car"))
+        self.assertIn("青色防犯パトロールカー", page.text_content("#cities-spot-patrol-car .ui-talk-static-who"))
+        page.click(".ui-sheet-close:visible")
+        self.assertEqual(self.errors, [])
+
 
 class ToolChromeTests(unittest.TestCase):
     """🧰 The chrome of a tool page (chrome_html, add_chrome) on two pages of one site: the board's clock in seconds, ☰ this page's own
