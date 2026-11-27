@@ -63,7 +63,7 @@ function readRadius(raw){
 '''
 
 SCRIPT = r'''
-import { copyText } from '../vendor/web-ui/js/ui.js';
+import { copyText } from './vendor/web-ui/js/ui.js';   // 🧰 from the screen, tools/
 
 const {parseCoordinate,tryParseMapsUrl,mapsUrls,coordinateText,toleranceArea,areaTexts}=globalThis.webUiCoordinates;
 const points=__POINTS__, $=id=>document.getElementById(id), key='portfolio-map-pins/1';
@@ -83,8 +83,8 @@ try{const saved=JSON.parse(localStorage.getItem(key)||'[]');if(!Array.isArray(sa
 }catch{$('pin-storage').textContent='保存済みピンを読めませんでした。この画面ではピン留めできます。'}
 function save(){try{localStorage.setItem(key,JSON.stringify(pins));$('pin-storage').textContent='このブラウザに保存しました。'}
  catch{$('pin-storage').textContent='ブラウザに保存できません。この画面を閉じるまでのピン留めです。'}}
-function shareURL(p){const url=new URL('./',location.href);url.search=new URLSearchParams({lat:round(p.lat),lon:round(p.lon),name:p.label,radius_m:String(p.radius_m)});return url.href}
-function tokyoURL(p,spot){const url=new URL('../demos/world.html',location.href);url.search=new URL(shareURL(p)).search;url.hash='cities-spot-'+spot.id;return url.href}
+function shareURL(p){const url=new URL(location.href);url.search=new URLSearchParams({lat:round(p.lat),lon:round(p.lon),name:p.label,radius_m:String(p.radius_m)});return url.href}
+function tokyoURL(p,spot){const url=new URL('./demos/world.html',location.href);url.search=new URL(shareURL(p)).search;url.hash='cities-spot-'+spot.id;return url.href}
 function shareText(p){const links=mapsUrls(p.lat,p.lon),text=[p.label||coordinateText(p.lat,p.lon),'Google Maps: '+links.google,'Apple Maps: '+links.apple];
  if(p.radius_m>0){const area=areaTexts(toleranceArea(p.lat,p.lon,p.radius_m));text.push('半径: '+p.radius_m+' m','Google Maps（範囲）: '+area.google_area_url,'Apple Maps（範囲）: '+area.apple_area_url)}
  text.push('地点リンク: '+shareURL(p));return text.join('\n')}
@@ -155,7 +155,7 @@ try{const radius=readRadius(query.get('radius_m')??'100');
  for(const link of document.querySelectorAll('.map-point-link')){const url=new URL(link.href);url.searchParams.set('radius_m',String(radius));link.href=url.href}
  if(query.has('lat')||query.has('lon')){
   const [lat,lon]=globalThis.webUiCoordinates.parseCoordinate(query.get('lat')||'',query.get('lon')||'');
-  const back=new URL('../maps/',location.href);back.search=new URLSearchParams({lat:lat.toFixed(6),lon:lon.toFixed(6),name:(query.get('name')||'').slice(0,80),radius_m:String(radius)});
+  const back=new URL('../',location.href);back.search=new URLSearchParams({lat:lat.toFixed(6),lon:lon.toFixed(6),name:(query.get('name')||'').slice(0,80),radius_m:String(radius)});back.hash='maps';
   document.getElementById('area-return').href=back.href;document.getElementById('area-return').hidden=false;
  }
  if(radius>0&&query.has('radius_m')){banner.hidden=false;document.getElementById('tokyo-range-label').textContent='指定範囲：半径 '+radius+' m。地点を選んだ後も半径を引き継ぎます。'}
@@ -185,7 +185,7 @@ def map_document(ui, points):
 def tokyo_links(ui, world, points):
     # Keep PSWB's world behaviour and favorites; add a real-coordinate link to each existing sheet.
     for p in points:
-        href = '../maps/?' + urlencode({'lat': ui.fixed(p['lat'], 6), 'lon': ui.fixed(p['lon'], 6), 'name': p['label']})
+        href = '../?' + urlencode({'lat': ui.fixed(p['lat'], 6), 'lon': ui.fixed(p['lon'], 6), 'name': p['label']}) + '#maps'   # 🧰 the screen's map panel
         link = f'<p><a class="ui-button map-point-link" href="{html.escape(href, quote=True)}">この地点の地図URL・座標ピン留め</a></p>'
         pattern = r'(<article\b[^>]*\bid="cities-spot-' + re.escape(p['id']) + r'"[^>]*>.*?)(</article>)'
         world, count = re.subn(pattern, lambda m: m[1] + link + m[2], world, count=1, flags=re.S)

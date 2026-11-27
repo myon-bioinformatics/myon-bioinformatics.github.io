@@ -77,19 +77,21 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 
 トップの **🧰 Tools** は、実用の道具だけを置く棚です（リポジトリカードとは別に手で管理）。各リポジトリの使い方・検証・GIF は、そのリポジトリの Pages（🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ）にあり、ここでは写しません。組み立ての要るもの（ビルド）だけをここで作ります。カード名は用途、🧩 出どころはその部品のリポジトリです。公開時に他リポジトリの default branch から組むもの（Ironmate のスタジオ、mcp-toolcall-lab、DRAgoWing のヒートマップなど）は、組み立てに失敗すると ⏸ ページになります。コード本体は各リポジトリに残します。
 
+🧰 このサイトが組む道具は **1 つの画面** `tools/` の `#gif`・`#maps`・`#test-report`・`#flow`・`#repo-map` です（`scripts/project_pages.py` の `render_shell`）。ヘッダー・フッター・⚙️ 設定は画面に 1 つだけで、道具はリロードなしで切り替わり、開いたときに初めて読み込まれます（それまでは `<template>` の中で眠っている）。`#records` のような道具の中の見出しへのリンクは、その道具を開いてそこへ移ります。
+
 | 案内 | リンク |
 | --- | --- |
 | HTML文書取込 | [tools/html-import/](https://myon-bioinformatics.github.io/tools/html-import/) |
-| 📍地図URL・座標ピン留め | [tools/maps/](https://myon-bioinformatics.github.io/tools/maps/) · [パラレル東京](https://myon-bioinformatics.github.io/tools/demos/world.html#tokyo) |
+| 📍地図URL・座標ピン留め | [tools/#maps](https://myon-bioinformatics.github.io/tools/#maps) · [パラレル東京](https://myon-bioinformatics.github.io/tools/demos/world.html#tokyo) |
 | 🖼️ スライド・画像工房（Ironmate） | [Image Studio](https://myon-bioinformatics.github.io/tools/image-studio/) · [Browser Tools](https://myon-bioinformatics.github.io/tools/browser-tools/) · [Slide Studio](https://myon-bioinformatics.github.io/tools/slide-studio/) |
 | 🌡️ ヒートマップ（DRAgoWing · Ironmate） | [tools/heatmap/](https://myon-bioinformatics.github.io/tools/heatmap/) |
 | 🔌 MCP 実験室（mcp-toolcall-lab） | [Tool Lab](https://myon-bioinformatics.github.io/tools/mcp/) · [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) · [MCP 接続試験](https://myon-bioinformatics.github.io/tools/mcp/#protocol) |
-| 🧾 テスト結果（PySaiyanWeBoo） | [tools/test-report/](https://myon-bioinformatics.github.io/tools/test-report/) |
+| 🧾 テスト結果（PySaiyanWeBoo） | [tools/#test-report](https://myon-bioinformatics.github.io/tools/#test-report) |
 | 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab） | [tools/chat/](https://myon-bioinformatics.github.io/tools/chat/) |
 | 🧭 統合運用 | [Dashboard](https://myon-bioinformatics.github.io/myon-bioinformatics/) |
-| 🎞 GIF工房（PySaiyanWeBoo） | [tools/gif/](https://myon-bioinformatics.github.io/tools/gif/) |
-| 🌊 流れの実験室（FluidFullSpeedSimulation · DRAgoWing） | [tools/flow/](https://myon-bioinformatics.github.io/tools/flow/) |
-| 🧠 リポジトリ地図 | [tools/repo-map/](https://myon-bioinformatics.github.io/tools/repo-map/) |
+| 🎞 GIF工房（PySaiyanWeBoo） | [tools/#gif](https://myon-bioinformatics.github.io/tools/#gif) |
+| 🌊 流れの実験室（FluidFullSpeedSimulation · DRAgoWing） | [tools/#flow](https://myon-bioinformatics.github.io/tools/#flow) |
+| 🧠 リポジトリ地図 | [tools/#repo-map](https://myon-bioinformatics.github.io/tools/#repo-map) |
 
 新しい道具を足すときは、生成元の `scripts/front_page.py`（`PORTAL`）と `tests/test_site.py` をいっしょに直し、行き先と HTTPS の Pages 契約を同じ変更で確認します。
 
@@ -271,10 +273,10 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 | 🚪 | ドア to ドア：フッターのプルダウンで道具から道具へ（🏠 でカードへ）。行は `scripts/front_page.py` の `PORTAL` から作るので、カードを足せば増える。ヘッダーとは別の部品で、PySaiyanWeBoo の共通機能 Door-to-Door のプルダウンだけの形（`door_html(compact=True)` / door.css / door.js）をそのまま使っている（「戻る」で戻っても今のページの表示に戻る）。何も保存しない |
 
 絵文字は用途に応じて key-value で足せます（`href`＝リンク、`links`＝リンクの一覧、`body`＝ひとこと。`slot` は `head` か `side`）。
-📍地図URL・座標ピン留めのページは 🗼（パラレル都市）を足しています。
+🧰 1 つの画面（`tools/`）は、地図のために 🗼（パラレル都市）を足しています。
 
 ```python
-add_back_nav(page, 'tools/maps/index.html', {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': '../demos/world.html#tokyo'}})
+add_site_chrome(page, 'tools/index.html', {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './demos/world.html#tokyo'}})
 ```
 
 ![Tools の共通ヘッダー：☰（このページと見出し）で ☆ を付け、⭐ に並び、🌐 を English にして次の道具へ移っても両方が引き継がれ、⭐ から見出しへ戻る（Chromium 560×480）](docs/evidence/tools-chrome.gif)
@@ -355,7 +357,7 @@ uv run --locked --only-group browser python tests/world_browser.py -v           
 
 ### 📍地図URL・座標ピン留め
 
-🧰 Tools → **📍地図URL・座標ピン留め** (`tools/maps/`) で、緯度・経度からApple MapsとGoogle MapsのURLを生成できます。地図URLからの座標入力、端末内のピン保存・解除、地点リンクのコピー、端末の共有メニューに対応します。共有先は保存操作なしで同じ座標を開けます。ピンはブラウザごとの保存で、端末間では同期しません。保存やコピーが許可されていない場合は画面に表示します。
+🧰 Tools → **📍地図URL・座標ピン留め** (`tools/#maps`) で、緯度・経度からApple MapsとGoogle MapsのURLを生成できます。地図URLからの座標入力、端末内のピン保存・解除、地点リンクのコピー、端末の共有メニューに対応します。共有先は保存操作なしで同じ座標を開けます。ピンはブラウザごとの保存で、端末間では同期しません。保存やコピーが許可されていない場合は画面に表示します。
 
 パラレル都市 (`tools/demos/world.html#tokyo`) 内の東京21地点と相互に移動できます。座標・地図URL生成は固定済みPSWB、ミニチュアは `scripts/world.py` から再利用します。東京の座標はミニチュア用の概略値で、施設の正確な入口を保証するものではありません。URLだけを作るため地図APIキーは不要です。
 

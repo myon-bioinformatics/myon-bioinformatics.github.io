@@ -245,7 +245,7 @@ jobs:
             }
 
             const map = await browser.newPage({permissions: ['clipboard-read', 'clipboard-write']});
-            await map.goto('http://127.0.0.1:8000/tools/maps/?lat=0&lon=0');
+            await map.goto('http://127.0.0.1:8000/tools/?lat=0&lon=0#maps');   // 🧰 the one screen's map panel
             await map.locator('#copy-apple').click();
             await map.waitForFunction(() => document.querySelector('#map-status')?.textContent === 'コピーしました。');
             assert.equal(await map.evaluate(() => navigator.clipboard.readText()),

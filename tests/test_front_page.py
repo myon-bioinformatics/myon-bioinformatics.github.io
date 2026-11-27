@@ -83,7 +83,7 @@ def test_gif_workshop_turns_picked_images_into_one_gif(page, tmp_path):
     (tmp_path / "blue.png").write_bytes(_png(48, 64, (30, 136, 229)))
     requests = []
     page.on("request", lambda request: requests.append(request.url))
-    page.goto("/tools/gif/")
+    page.goto("/tools/#gif")
     page.set_input_files("#gif-files", [str(tmp_path / "red.png"), str(tmp_path / "blue.png")])
     page.check("#gif-names")
     page.click("#gif-make")
@@ -99,7 +99,7 @@ def test_moving_sample_is_recorded_for_a_pages_url(site, browser, tmp_path):
     pages = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(pages)
     lines = pages.record_samples(tmp_path, {"Portfolio": site[1] + "/index.html", "Gone": site[1] + "/no-such-page/",
-                                            "tools/gif": site[1] + "/tools/gif/", "tools/new": site[1] + "/tools/not-published-yet/"},
+                                            "tools/gif": site[1] + "/tools/#gif", "tools/new": site[1] + "/tools/not-published-yet/"},
                                  browser=browser, captions={"tools/gif": "🎞 GIF工房", "tools/new": "🆕 新しい道具"},
                                  stand_ins={"tools/new": pages.sample_stand_in("🆕 新しい道具")})
     gif = (tmp_path / "media/pages/portfolio.gif").read_bytes()
@@ -120,20 +120,20 @@ def test_a_tools_card_picture_opens_the_tool_and_the_weekly_note_draws_its_bars_
     import pysaiyanweboo as ui
     world, copy = pages._world(), site[0] / "with-samples.html"
     try:
-        lines = pages.record_samples(site[0], {"tools/gif": site[1] + "/tools/gif/"}, browser=browser, captions={"tools/gif": "🎞 GIF工房"})
+        lines = pages.record_samples(site[0], {"tools/gif": site[1] + "/tools/#gif"}, browser=browser, captions={"tools/gif": "🎞 GIF工房"})
         assert lines[0].startswith("🎥 tools/gif: ")
         copy.write_bytes(pages.render_front(ROOT, pages.recorded_samples(site[0]))["index.html"])   # the front page as the deploy builds it
         page.set_viewport_size({"width": 560, "height": 480})
         page.goto("/with-samples.html")
-        picture = page.locator('.portal-card a.project-sample[href="./tools/gif/"] img')
+        picture = page.locator('.portal-card a.project-sample[href="./tools/#gif"] img')
         expect(page.locator(".portal-card a.project-sample")).to_have_count(1)                  # only what was recorded
-        expect(page.locator(".portal-card", has=page.locator('a.project-sample[href="./tools/gif/"]')).locator("a")).to_have_count(1)   # one page: the picture, no words
+        expect(page.locator(".portal-card", has=page.locator('a.project-sample[href="./tools/#gif"]')).locator("a")).to_have_count(1)   # one page: the picture, no words
         picture.scroll_into_view_if_needed()
         page.wait_for_function("img => img.complete && img.naturalWidth === 240 && img.naturalHeight === 456", arg=picture.element_handle())
         cam = world.Camera(page)
         cam.hold(1200)
         picture.click()                                                                         # 🎥 the picture is the way in
-        page.wait_for_url(site[1] + "/tools/gif/")
+        page.wait_for_url(site[1] + "/tools/#gif")
         expect(page.locator("#gif-files")).to_be_visible()
         cam.hold(900)
         page.go_back()

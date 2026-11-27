@@ -154,17 +154,17 @@ def test_a_tools_card_shows_its_moving_sample_and_the_picture_opens_the_tool(tmp
     cards = front.portal_cards(frozenset({"tools/gif", "tools/operations", "tools/maps", "gif", "tools/no-such-tool"}))
     assert cards.count('class="project-sample"') == 3
     assert "GIF をつくる →" not in cards and "Open Dashboard →" not in cards and ">実験室へ →</a>" in cards        # one page: the picture; no picture: the words
-    assert ('<a href="./tools/maps/">地図URLを作成 →</a><a href="./tools/demos/world.html#tokyo">パラレル東京 →</a>' in cards
-            and '<a class="project-sample" href="./tools/maps/">' in cards)                                    # relatives stay side by side
+    assert ('<a href="./tools/#maps">地図URLを作成 →</a><a href="./tools/demos/world.html#tokyo">パラレル東京 →</a>' in cards
+            and '<a class="project-sample" href="./tools/#maps">' in cards)                                    # relatives stay side by side
     everything = front.portal_cards(frozenset(f"tools/{key}" for key in ids))
     several = [card for card in front.PORTAL if len(card["links"]) > 1]
     assert everything.count('class="project-sample"') == len(ids) and several
     assert everything.count("<a href=") == sum(len(card["links"]) for card in several)
-    assert ('<h3 id="gif">🎞 GIF工房</h3><a class="project-sample" href="./tools/gif/"><img src="./media/pages/tools/gif.gif" '
+    assert ('<h3 id="gif">🎞 GIF工房</h3><a class="project-sample" href="./tools/#gif"><img src="./media/pages/tools/gif.gif" '
             'alt="🎥 🎞 GIF工房" loading="lazy" width="240" height="456"></a><p>') in cards
     assert '<a class="project-sample" href="https://myon-bioinformatics.github.io/myon-bioinformatics/"><img src="./media/pages/tools/operations.gif"' in cards
     samples = PAGES.tools_samples()                                              # what --record-samples opens: the card's first link, on the site
-    assert list(samples) == [f"tools/{key}" for key in ids] and samples["tools/gif"] == ("https://myon-bioinformatics.github.io/tools/gif/", "🎞 GIF工房")
+    assert list(samples) == [f"tools/{key}" for key in ids] and samples["tools/gif"] == ("https://myon-bioinformatics.github.io/tools/#gif", "🎞 GIF工房")
     assert all(url.startswith("https://myon-bioinformatics.github.io/") for url, _ in samples.values())
     (tmp_path / "media/pages/tools").mkdir(parents=True)
     (tmp_path / "media/pages/tools/gif.gif").write_bytes(b"GIF89a")
@@ -215,7 +215,7 @@ def test_flow_lab_shows_every_ffss_scene_and_every_dragowing_figure(tmp_path):
         assert record.index("D24.gif") < record.index("F09_blood-flow.svg") < record.index("ほかの図") < record.index("F03_losses.svg")
         assert "🍷 D13 pythagorean-cup · poison-water" in record
     assert "🎞 3 場面" in page and "2 図" in page and "FFSS aaaaaaa" in page and "/tree/" + "b" * 40 in page
-    staged = (SITE / PAGES.FLOW_PAGE).read_text(encoding="utf-8")
+    staged = shell_panel("flow")                                                         # 🧰 a #panel of the one screen
     assert "⏸ このビルドでは記録していない" in staged and "media/flow/" not in staged
 
 
@@ -273,15 +273,16 @@ def test_repository_map_reads_each_lock_and_aois_subtrees(tmp_path):
     assert "🗄 Old" in PAGES.map_svg([{"from": "Old", "to": "Aoi", "kind": "vendor", "files": ["LICENSE"]}], {"Old"})   # archived is marked
     page = PAGES.render_map(ui, tmp_path / "site")[PAGES.MAP_PAGE].decode()
     assert 'src="../../media/map/map.svg"' in page and "📥 xprobe" in page and "⏸" not in page
-    assert "⏸" in (SITE / "tools/repo-map/index.html").read_text(encoding="utf-8")        # nothing recorded in the staged site
+    assert "⏸" in shell_panel("repo-map")                                                # nothing recorded in the staged site
 
 
 def test_gif_workshop_page_keeps_images_in_the_browser():
-    page = (SITE / "tools/gif/index.html").read_text(encoding="utf-8")
-    assert 'id="gif-files"' in page and 'accept="image/*"' in page and "function bindMaker" in page   # PySaiyanWeBoo's gif_maker_document
+    tool = shell_panel("gif")                                                                     # 🧰 the #gif panel of the one screen
+    assert 'id="gif-files"' in tool and 'accept="image/*"' in tool and "function bindMaker" in tool   # PySaiyanWeBoo's gif_maker_document
     import pysaiyanweboo as ui
-    tool, _, chrome = page.partition('<script type="module">' + ui.component_parts('chrome')['js'][:64])    # 🧰 the chrome's module, then 🚪 the door's
-    assert "bindChrome();" in chrome and "bindDoor()" in chrome and "fetch(" not in page and "XMLHttpRequest" not in page   # nothing is sent
+    page = (SITE / PAGES.SHELL_PAGE).read_text(encoding="utf-8")
+    chrome = page.partition('<script type="module">' + ui.component_parts('chrome')['js'][:64])[2]    # 🧰 the chrome's module, then 🚪 the door's
+    assert "bindChrome();" in chrome and "bindDoor()" in chrome and "fetch(" not in tool and "XMLHttpRequest" not in tool   # nothing is sent
     assert "localStorage" not in tool                                                             # the tool keeps nothing: no image, no setting
     assert sorted(set(re.findall(r"save\(\{(\w+)", chrome))) == ["fav", "lang"]                     # the chrome keeps ⭐ and 🌐 only
 
@@ -375,11 +376,15 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
 
 
 # PySaiyanWeBoo's tool documents (PSWB_TOOLS) and the 🌍 world pages (WORLD_PAGE, tools/demos/) come from scripts/project_pages.py; they are tool pages too.
+def shell_panel(name: str) -> str:
+    """🧰 The markup of the one screen's ``#name`` panel (inert in its <template> until it is opened)."""
+    page = (SITE / PAGES.SHELL_PAGE).read_text(encoding="utf-8")
+    return re.search(rf'<section id="{name}" data-tools-panel[^>]*><template>(.*?)</template></section>', page, re.S)[1]
+
+
 TOOL_PAGES = ("tools/html-import/index.html",
               *(("tools/mcp/index.html",) if LAB_BUILT else ()),
-              "tools/maps/index.html", "tools/gif/index.html", "tools/chat/index.html", "tools/flow/index.html",
-              "tools/test-report/index.html",
-              "tools/repo-map/index.html",
+              PAGES.SHELL_PAGE, "tools/chat/index.html",   # 🧰 the one screen: #gif #maps #test-report #flow #repo-map
               PAGES.WORLD_PAGE)
 
 
@@ -507,12 +512,15 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_adds_what_it_l
         doors = re.findall(r'<option value="([^"]+)"( selected disabled)?>([^<]+)</option>', page[page.index('<div class="ui-door-foot">'):page.index(module[1])])
         assert doors[0] == (f'{prefix}index.html#tools', '', '🏠 Tools') and [href for href, _, _ in doors[1:1 + len(rows)]] == [href for href, _ in rows], name   # 🚪 = 🏠 + the tools
         here = [(href, words) for href, mark, words in doors if mark]              # the door you came in by: this very page
+        if name == PAGES.SHELL_PAGE:                                               # 🧰 the one screen: each #panel is a door; the screen marks the open one
+            assert here == [] and len(doors) == 1 + len(rows) and all(f'../tools/#{panel.split("/")[1]}' in dict(rows) for panel in PAGES.PANEL_PAGES), name
+            continue
         assert len(here) == 1 and ((SITE / name).parent / here[0][0]).resolve() in ((SITE / name).resolve(), (SITE / name).parent.resolve()), (name, here)
         assert len(doors) == 1 + len(rows) + (here[0][1].startswith('📌 ')), name   # 📌 a page that is no tool of the cards is its own door
         assert len({words.split(' ')[0] for _, _, words in doors}) == len(doors), name                    # one emoji, one page
-    maps = (SITE / 'tools/maps/index.html').read_text(encoding='utf-8')            # 🗼 an emoji a page adds for its own use
-    assert '<a class="ui-world-tool" href="../demos/world.html#tokyo" aria-label="パラレル都市"' in maps
-    assert '>🗼</summary>' not in (SITE / 'tools/gif/index.html').read_text(encoding='utf-8')
+    maps = (SITE / PAGES.SHELL_PAGE).read_text(encoding='utf-8')                    # 🗼 an emoji a page adds for its own use (the map's)
+    assert '<a class="ui-world-tool" href="./demos/world.html#tokyo" aria-label="パラレル都市"' in maps
+    assert '>🗼</summary>' not in (SITE / 'tools/html-import/index.html').read_text(encoding='utf-8')
 
 
 def test_every_page_turns_modern_on_its_body_only():
@@ -595,36 +603,35 @@ def test_door_to_door_in_chromium_with_a_gif():
                 for width, height in ((392, 848), (1280, 800)):                   # a phone and a desktop: one row at the window's foot
                     page = browser.new_page(viewport={'width': width, 'height': height})
                     page.on('pageerror', lambda error: errors.append(str(error)))
-                    page.goto(base + 'tools/maps/')
+                    page.goto(base + 'tools/#maps')
                     page.wait_for_selector('#door[data-door_ready]')
                     foot, select = page.locator('.ui-door-foot').bounding_box(), page.locator('.ui-door-foot [data-door-select]')
                     assert (foot['x'], foot['width'], round(foot['y'] + foot['height'])) == (0, width, height) and foot['height'] <= 64, foot
-                    assert select.bounding_box()['height'] == 40 and page.evaluate(shown) == '🗺️ 地図URLを作成 (current)'
+                    assert select.bounding_box()['height'] == 40 and page.evaluate(shown) == '🗺️ 地図URLを作成'
                     visible = page.evaluate("[...document.querySelectorAll('.ui-door-foot .ui-door *')].filter(e => e.offsetParent && e.tagName !== 'OPTION' && e.getBoundingClientRect().width > 1).map(e => e.tagName)")
                     assert visible == ['LABEL', 'SPAN', 'SELECT'], visible                 # 🚪 and the pull-down (compact): no panel
                     assert page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth') == 0
                     page.close()
                 page = browser.new_page(viewport={'width': 560, 'height': 480})
                 page.on('pageerror', lambda error: errors.append(str(error)))
-                page.goto(base + 'tools/gif/')
+                page.goto(base + 'tools/#gif')
                 page.wait_for_selector('#door[data-door_ready]')
                 cam = world.Camera(page)
-                assert page.evaluate(shown) == '🎞 GIF工房 (current)'
+                page.wait_for_function(shown + " === '🎞 GIF工房'")             # 🧰 the screen's panel: the pull-down shows where you are
                 cam.hold(900)
                 page.locator('.ui-door-foot [data-door-select]').select_option(label='🌊 流れの実験室')
-                page.wait_for_url(base + 'tools/flow/')
-                page.wait_for_selector('#door[data-door_ready]')
-                assert page.evaluate(shown) == '🌊 流れの実験室 (current)'
+                page.wait_for_url(base + 'tools/#flow')
+                page.wait_for_function(shown + " === '🌊 流れの実験室'")
                 assert page.locator('.ui-chrome .ui-world-spots a').first.text_content().startswith('📍')   # the chrome's ☰ is this page's own
                 assert not page.evaluate("[...document.querySelectorAll('.ui-chrome .ui-world-spots a')].some(a => a.pathname !== location.pathname)")
                 cam.hold(900)
                 page.go_back()                                                    # ← the browser's own way back: the pull-down follows
-                page.wait_for_url(base + 'tools/gif/')
-                page.wait_for_function(shown + " === '🎞 GIF工房 (current)'")
+                page.wait_for_url(base + 'tools/#gif')
+                page.wait_for_function(shown + " === '🎞 GIF工房'")
                 cam.hold(700)
                 page.locator('.ui-door-foot [data-door-select]').select_option(label='🌊 流れの実験室')       # the same door again still opens
-                page.wait_for_url(base + 'tools/flow/')
-                page.wait_for_selector('#door[data-door_ready]')
+                page.wait_for_url(base + 'tools/#flow')
+                page.wait_for_function(shown + " === '🌊 流れの実験室'")
                 cam.hold(600)
                 page.locator('.ui-door-foot [data-door-select]').select_option(label='🏠 Tools')
                 page.wait_for_url(base + 'index.html#tools')
@@ -648,8 +655,9 @@ def test_every_tool_page_has_the_same_back_link_first_in_main():
         main = re.search(r"<main[^>]*>", html)
         assert main, page
         after = html[main.end():]
+        prefix = '../' * page.relative_to(SITE).as_posix().count('/')
         assert after.startswith('<nav class="ui-back" aria-label="関連リンク" data-ui-back data-testid="portfolio-back">'
-                                '<p class="ui-links"><a href="../../index.html#tools">← 🧰 Tools</a>'), page
+                                f'<p class="ui-links"><a href="{prefix}index.html#tools">← 🧰 Tools</a>'), page
         assert html.count('data-ui-back') == 1, page
         assert "Back to portfolio" not in html, page
 
@@ -1798,9 +1806,9 @@ def test_a_tool_page_board_reads_its_card():
     assert len(chrome['board']['items']) <= 12 and chrome['home'] == '../../index.html#tools'
     assert 'home' not in PAGES.tools_chrome('./', home=False) and PAGES.tools_chrome('./', title='MYON')['board']['title'] == 'MYON'
     assert PAGES.tools_chrome(description='x' * 200)['board']['items'][0]['text'] == 'x' * 119 + '…'
-    card = next(card for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL if card.get('id') == 'gif')
-    gif = (SITE / 'tools/gif/index.html').read_text(encoding='utf-8')
-    assert card['text'].split('。')[0] + '。' in gif[:gif.index('<nav class="ui-world-tools">')]
+    card = next(card for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL if card.get('id') == 'html-import')
+    page = (SITE / 'tools/html-import/index.html').read_text(encoding='utf-8')
+    assert card['text'].split('。')[0] + '。' in page[:page.index('<nav class="ui-world-tools">')]
 
 
 def test_a_document_table_draws_its_number_columns_as_bars():

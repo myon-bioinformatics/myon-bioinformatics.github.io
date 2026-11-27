@@ -25,7 +25,7 @@ def test_map_links_pins_share_and_tokyo_with_gif(site, browser):
                        'caption': label, 'ok': True, 'delay': 1200})
 
     try:
-        page.goto(site[1] + '/tools/maps/')
+        page.goto(site[1] + '/tools/#maps')
         expect(page).to_have_title('📍地図URL・座標ピン留め')
         expect(page.get_by_role('heading', level=1)).to_have_text('📍地図URL・座標ピン留め')
         page.locator('#radius-preset').select_option('350')
@@ -125,7 +125,7 @@ def test_map_links_pins_share_and_tokyo_with_gif(site, browser):
 def test_invalid_coordinates_clear_stale_links(site, browser, lat, lon):
     page = browser.new_page()
     try:
-        page.goto(site[1] + '/tools/maps/')
+        page.goto(site[1] + '/tools/#maps')
         page.locator('#latitude').fill(lat)
         page.locator('#longitude').fill(lon)
         expect(page.locator('#point-error')).not_to_be_empty()
@@ -143,7 +143,7 @@ def test_maps_url_storage_and_clipboard_fallbacks(site, browser):
         page.add_init_script('''Storage.prototype.setItem=()=>{throw Error('denied')};
             Object.defineProperty(navigator,'clipboard',{value:{writeText:async()=>{throw Error('denied')}}});
             Object.defineProperty(navigator,'share',{value:undefined});''')
-        page.goto(site[1] + '/tools/maps/?lat=0&lon=0&name=%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E')
+        page.goto(site[1] + '/tools/?lat=0&lon=0&name=%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E#maps')
         expect(page.locator('#latitude')).to_have_value('0')
         page.locator('#pin').click()
         expect(page.locator('#pin-storage')).to_contain_text('保存できません')
@@ -188,7 +188,7 @@ def test_maps_url_storage_and_clipboard_fallbacks(site, browser):
 def test_invalid_radius_clears_range_and_disables_pin(site, browser, radius):
     page = browser.new_page()
     try:
-        page.goto(site[1] + '/tools/maps/')
+        page.goto(site[1] + '/tools/#maps')
         expect(page.locator('#area-result')).to_be_visible()
         page.locator('#radius').fill(radius)
         expect(page.locator('#range-error')).not_to_be_empty()
@@ -205,7 +205,7 @@ def test_invalid_radius_clears_range_and_disables_pin(site, browser, radius):
 def test_range_handles_date_line_and_pole(site, browser, lat, lon, radius, wraps):
     page = browser.new_page()
     try:
-        page.goto(site[1] + f'/tools/maps/?lat={lat}&lon={lon}&radius_m={radius}')
+        page.goto(site[1] + f'/tools/?lat={lat}&lon={lon}&radius_m={radius}#maps')
         expect(page.locator('#area-result')).to_be_visible()
         area = json.loads(page.locator('#area-json').text_content())
         assert area['radius_m'] == radius
@@ -221,7 +221,7 @@ def test_range_handles_date_line_and_pole(site, browser, lat, lon, radius, wraps
 def test_nearby_city_handoff_preserves_radius_and_original_area(site, browser):
     page = browser.new_page()
     try:
-        page.goto(site[1] + '/tools/maps/?lat=35.68135&lon=139.7665&name=中心&radius_m=350')
+        page.goto(site[1] + '/tools/?lat=35.68135&lon=139.7665&name=中心&radius_m=350#maps')
         expect(page.locator('#tokyo-link')).to_be_hidden()  # arbitrary centre, rather than an exact city coordinate
         expect(page.locator('#nearby-list')).to_contain_text('丸の内北口')
         expect(page.locator('#nearby-list')).to_contain_text('八重洲中央口')
@@ -312,7 +312,7 @@ def test_world_shell_routes_and_shared_favorites(site, browser, width):
         page.get_by_text('⭐ お気に入り', exact=True).click()
         expect(page.locator('#world-favorites a')).to_have_count(2)
         page.get_by_text('🧰 道具', exact=True).click()
-        expect(page.locator('#world-switcher a[href="../../tools/maps/"]')).to_be_visible()
+        expect(page.locator('#world-switcher a[href="../../tools/#maps"]')).to_be_visible()
         choose('camera')
         expect(page.locator('#demo-shots')).to_be_visible()
         choose('world')
