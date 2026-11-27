@@ -426,6 +426,7 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
         " p = root / name; p.parent.mkdir(parents=True, exist_ok=True); p.write_text('<main>' + text + '</main>')\n"
         "(root / 'studio.js').write_text('shared')\n"
         "(root / 'brand').mkdir()\n"
+        "(root / 'brand/index.html').write_text('<meta http-equiv=\\\"refresh\\\" content=\\\"0;url=../tools/#brand\\\">')\n"
         "(root / 'brand/manifest.webmanifest').write_text('{\\\"shortcuts\\\":[{\\\"url\\\":\\\"../slides/\\\"}]}')\n",
         encoding='utf-8',
     )
@@ -442,6 +443,7 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
     assert 'href="../../image-studio/"' in phone and 'src="../../image-studio/studio.js"' in phone
     assert 'href="../../../index.html#tools"' in phone
     assert (tools / 'image-studio/studio.js').read_text() == 'shared'
+    assert not (tools / 'image-studio/brand/index.html').exists()            # 🚫 Ironmate's forward page is not published here
     manifest = json.loads((tools / 'image-studio/brand/manifest.webmanifest').read_text())
     assert manifest['scope'] == '../../'
     assert manifest['shortcuts'] == [{'url': '../../slide-studio/'}]
