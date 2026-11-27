@@ -103,13 +103,17 @@ def dialogue_graph(world):
     scrolls = "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/831cf43785329c799966775153147b82ddc28638/scripts/world.py"
     reusable = "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/2f27ccdf682ad02d717b894889f1dc225d894925/scripts/world.py"
     pswb = "https://github.com/myon-bioinformatics/PySaiyanWeBoo/blob/e249a7c33071a5e70ff4866492506ebfd7719875/pysaiyanweboo.py"
+    scroll_rules = "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/904cff96506cb6b8d8e2afeaeb171d0da63f41eb/scripts/world.py#L2280-L2287"
+    scroll = world.EXPLORATION_SCROLL
+    scroll_text = world.exploration_scroll_text()
+    field_target, battle_target = (scroll[mode]["target"] for mode in ("field", "battle"))
     nodes = {
         "昼ヶ丘": ("場所", ["ヒルガオカ"]), "サツマイモ": ("道具", ["さつまいも", "おいも", "いも", "🍠"]),
         "ドラゴン": ("住人", ["竜", "りゅう", "🐉"]), "木の看板": ("目印", ["看板", "nogard"]),
         "リバースロンドン": ("場所", ["ロンドン", "London"]), "癒しの水": ("道具", ["いやしの水", "マナのしずく"]),
         "火": ("地形", ["炎", "🔥"]), "パリ": ("場所", ["Paris"]), "MP": ("能力", ["魔力"]),
-        "竜の巻物": ("道具", ["竜のまきもの"]), "探索の巻物": ("道具", ["探索のまきもの"]), "敵": ("相手", ["魔物"]),
-        "未取得のどうぐ": ("道具", ["未取得のアイテム"]), "やくそう": ("道具", ["薬草"]),
+        "竜の巻物": ("道具", ["竜のまきもの"]), scroll["label"]: ("道具", ["探索のまきもの"]), "敵": ("相手", ["魔物"]),
+        field_target: ("道具", ["未取得のアイテム"]), battle_target: ("道具", ["薬草"]),
         "冒険手帳": ("道具", ["手帳"]), "復活の呪文": ("形式", ["呪文", "じゅもん"]),
     }
     vocabulary = {"産物": (["場所"], "道具"), "好物": (["住人"], "道具"), "現れる": (["住人"], "目印"),
@@ -118,8 +122,8 @@ def dialogue_graph(world):
     vocabulary.update({"発見対象": (["道具"], "道具"), "呼べる": (["道具"], "住人"), "攻撃対象": (["道具"], "相手")})
     facts = [
         ("竜の巻物", "呼べる", "ドラゴン", "ロンドンで初めてドラゴンをなでると竜の巻物を受け取る。旅先でも同じドラゴンを呼べる。", scrolls + "#L2571", scrolls + "#L2604"),
-        ("探索の巻物", "発見対象", "未取得のどうぐ", "移動中は同じ階の6マス以内のどうぐを3秒間光らせる。何度でも使える。", reusable + "#L2529"),
-        ("探索の巻物", "発見対象", "やくそう", "戦闘中は1ターン使い、30%の確率でやくそうを1個拾う。巻物は手元に残る。", reusable + "#L2917"),
+        (scroll["label"], "発見対象", field_target, scroll_text["field"] + scroll_text["reuse"], scroll_rules),
+        (scroll["label"], "発見対象", battle_target, scroll_text["battle"] + scroll_text["reuse"], scroll_rules),
         ("竜の巻物", "攻撃対象", "敵", "戦闘中はドラゴンが敵1体を攻撃する。巻物は何度でも使える。", reusable + "#L2925"),
         ("昼ヶ丘", "産物", "サツマイモ", "昼ヶ丘でサツマイモが育つ。", source + "#L3322"),
         ("ドラゴン", "好物", "サツマイモ", world.POTATO_RUMOR, source + "#L3302"),
@@ -145,6 +149,14 @@ def dialogue_graph(world):
                 steps[row["node"]] = [*steps.get(chain[-2], []), row["edge"]["fact"]]
         paths[start] = list(steps.values())
     records = [{"edge": f"{a} → {r} → {b}", "text": msg, "urls": urls} for a, r, b, msg, *urls in facts]
+    contexts = {
+        field_target: ("field", "移動", "探索中", "非戦闘"),
+        battle_target: ("battle", "戦闘", "バトル"),
+    }
+    for index, (subject, _, target, *_) in enumerate(facts):
+        if subject == scroll["label"]:
+            mode, *aliases = contexts[target]
+            records[index].update(mode=mode, context=[scroll[mode]["context"], *aliases])
     return {"terms": {name: [name, *aliases] for name, (_, aliases) in nodes.items()}, "facts": records, "paths": paths}
 
 
