@@ -49,7 +49,7 @@ DISTRIBUTION = 'pysaiyanweboo'
 DEMO_BASE = 'tools/demos/'
 HTML_IMPORT_PAGE = 'tools/html-import/index.html'
 HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
-MAP_PAGES = {'tools/maps/index.html', 'tools/maps/tokyo.html'}
+MAP_PINS_PAGE = 'tools/maps/index.html'
 
 # Files served verbatim. The generators write every other public file to the output tree.
 PUBLIC_SOURCE_FILES = (
@@ -101,11 +101,17 @@ def _world() -> ModuleType:
 
 def world_page(name: str) -> str:
     """🌍 A world spec of scripts/world.py as one page, its body in <main> so the way back has its place (as in Parallel Tokyo)."""
-    page = _world().world_document(_world().example_data(name))
+    data = _world().example_data(name)
+    page = _world().world_document(data)
     body = '<body data-ui-theme="modern">'
     if page.count(body) != 1 or page.count('</body>') != 1:
         raise ValueError(f'world page {name} has no single body')
-    return page.replace(body, body + '<main>', 1).replace('</body>', '</main></body>', 1)
+    page = page.replace(body, body + '<main>', 1).replace('</body>', '</main></body>', 1)
+    if name == 'cities':
+        import pysaiyanweboo as ui
+        maps = load_module('map_tool', 'scripts/map_tool.py')
+        page = maps.add_map_links(ui, page, maps.tokyo_points(data))
+    return page
 
 
 def installed_commit(distribution: str = DISTRIBUTION) -> str:
@@ -180,7 +186,7 @@ def tools_places(prefix: str = '../../') -> list[dict]:
     Every label is ``emoji words``, one emoji per page (the door knows a page by its emoji): the card's own, or the one named here
     for a link that has none or shares its card's."""
     site, places = 'https://myon-bioinformatics.github.io/tools/', {}
-    marks = {'html-import': '📄', 'maps': '🗺️', 'maps-tokyo': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'mcp-protocol': '🤝'}
+    marks = {'html-import': '📄', 'maps': '🗺️', 'demos-cities': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'mcp-protocol': '🤝'}
     for card in _front_module().PORTAL:
         mark, _, title = card['title'].partition(' ')
         if not title or any(c.isalnum() for c in mark):                  # a title without an emoji: all of it is words
@@ -952,10 +958,11 @@ def render_tools(ui, output: Path | None = None) -> dict[str, bytes]:
 
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     """Every hash-locked page: the demos and world pages, HTML import, map tools and the GIF workshop, keyed by published path."""
-    cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'links': [
-        {'label': '🗼 パラレル東京', 'href': './tokyo.html'}, {'label': '🌍 東京・ロンドン・パリ', 'href': '../demos/cities.html'}]}}
-    maps = {path: add_home_label(add_back_nav(document, path, cities), '地図・ピン', icons_from='../../').encode('utf-8')
-            for path, document in load_module('map_tool', 'scripts/map_tool.py').render(ui, _world()).items()}
+    map_tool = load_module('map_tool', 'scripts/map_tool.py')
+    cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': '../demos/cities.html'}}
+    document = map_tool.map_document(ui, map_tool.tokyo_points(_world().example_data('cities')))
+    document = document.replace('<html lang="en">', '<html lang="ja">', 1)
+    maps = {MAP_PINS_PAGE: add_home_label(add_back_nav(document, MAP_PINS_PAGE, cities), '地図・ピン', icons_from='../../').encode()}
     pages = {**render_demos(ui), **render_pswb_tools(ui), **render_html_import(ui), **maps, **render_gif_tool(ui), **render_chat_tool(ui)}
     for sheet, builder in STYLESHEET_BUNDLES.items():
         prefix = b'<style>' + getattr(ui, builder)().encode()
@@ -979,7 +986,7 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
     if set(lock['outputs']) != {HTML_IMPORT_MODULE, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
-    expected = ({HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, *PSWB_TOOLS} | MAP_PAGES | {DEMO_BASE + name + '.html' for name in WORLD_PAGES})
+    expected = ({HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, MAP_PINS_PAGE, *PSWB_TOOLS} | {DEMO_BASE + name + '.html' for name in WORLD_PAGES})
     if set(lock.get('pages', {})) != expected:
         raise ValueError('generated page paths differ from the tool and world lists')
     if ui is None:

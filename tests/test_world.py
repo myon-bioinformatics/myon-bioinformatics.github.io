@@ -549,9 +549,9 @@ def test_a_world_takes_link_tools_too():
     """``href`` and ``links`` are tool kinds of a world as well: one validator (tools_validate) and one markup (_tool_html)."""
     spec = W.example_data("school")
     spec = {**spec, "tools": {"🧰": {"label": "Tools", "href": "../../index.html#tools"},
-                              "🗼": {"label": "街", "slot": "side", "links": [{"label": "東京", "href": "./tokyo.html"}]}}}
+                              "🗼": {"label": "街", "slot": "side", "links": [{"label": "東京", "href": "../demos/cities.html"}]}}}
     html = W.world_html(spec)
-    assert '<a class="ui-world-tool" href="../../index.html#tools"' in html and '<li><a href="./tokyo.html">東京</a></li>' in html
+    assert '<a class="ui-world-tool" href="../../index.html#tools"' in html and '<li><a href="../demos/cities.html">東京</a></li>' in html
     with pytest.raises(ValueError, match="exactly one of floor, spots, href, links, body"):
         W.world_validate({**spec, "tools": {"🧰": {"label": "Tools"}}})
 

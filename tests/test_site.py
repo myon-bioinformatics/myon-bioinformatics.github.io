@@ -342,7 +342,7 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
 # PySaiyanWeBoo's tool documents (PSWB_TOOLS) and the 🌍 world pages (WORLD_PAGES, tools/demos/) come from scripts/project_pages.py; they are tool pages too.
 TOOL_PAGES = ("tools/html-import/index.html",
               *(("tools/mcp/index.html", "tools/mcp/repository-diagnostics.html") if LAB_BUILT else ()),
-              "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html", "tools/chat/index.html", "tools/flow/index.html",
+              "tools/maps/index.html", "tools/gif/index.html", "tools/chat/index.html", "tools/flow/index.html",
               "tools/test-report/index.html", "tools/mcp-protocol/index.html",
               "tools/repo-map/index.html",
               *sorted(str(path.relative_to(SITE)) for path in (SITE / "tools/demos").glob("*.html")))
@@ -465,7 +465,7 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_adds_what_it_l
         assert len(doors) == 1 + len(rows) + (here[0][1].startswith('📌 ')), name   # 📌 a page that is no tool of the cards is its own door
         assert len({words.split(' ')[0] for _, _, words in doors}) == len(doors), name                    # one emoji, one page
     maps = (SITE / 'tools/maps/index.html').read_text(encoding='utf-8')            # 🗼 an emoji a page adds for its own use
-    assert '>🗼</summary>' in maps and '<li><a href="./tokyo.html">🗼 パラレル東京</a></li>' in maps
+    assert '<a class="ui-world-tool" href="../demos/cities.html" aria-label="パラレル都市"' in maps
     assert '>🗼</summary>' not in (SITE / 'tools/gif/index.html').read_text(encoding='utf-8')
 
 

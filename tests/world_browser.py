@@ -1289,7 +1289,7 @@ class ToolChromeTests(unittest.TestCase):
     The star-and-language run is recorded to test-results/tools-chrome/tools-chrome-star-and-language-<UTC>.gif."""
     SPEC = {"board": {"title": "TOOLS", "items": [{"text": "🎞 GIF工房"}, {"text": "🌊 流れの実験室"}]}, "home": "../../index.html#tools",
             "places": [{"label": "🌊 流れの実験室へ", "href": "../flow/index.html"}],
-            "tools": {"🗼": {"label": "パラレル都市", "label_en": "Parallel cities", "links": [{"label": "🗼 パラレル東京", "href": "../maps/tokyo.html"}]}}}
+            "tools": {"🗼": {"label": "パラレル都市", "label_en": "Parallel cities", "links": [{"label": "🗼 パラレル東京", "href": "../demos/cities.html"}]}}}
 
     @classmethod
     def setUpClass(cls):
@@ -1355,7 +1355,7 @@ class ToolChromeTests(unittest.TestCase):
         links = self.menu(page, "tool")                                                                          # 🗼 opens, ☰ closes
         page.wait_for_function("() => document.querySelectorAll('.ui-chrome .ui-world-menu[open]').length === 1")
         self.assertEqual(page.evaluate("[...document.querySelectorAll('.ui-chrome .ui-world-menu[open]')].map(m => m.dataset.menu)"), ["tool"])
-        self.assertEqual(links.locator("a").get_attribute("href"), "../maps/tokyo.html")
+        self.assertEqual(links.locator("a").get_attribute("href"), "../demos/cities.html")
         page.keyboard.press("Escape")
         self.assertEqual(page.locator(".ui-chrome .ui-world-menu[open]").count(), 0)
         self.menu(page, "settings")
