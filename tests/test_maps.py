@@ -325,15 +325,14 @@ def test_world_shell_routes_and_shared_favorites(site, browser, width):
 
 
 
-def test_old_world_links_forward_queries_and_spots(site, browser):
+def test_the_world_is_one_document_entered_by_fragment_with_queries_and_spots(site, browser):
     page = browser.new_page()
     base = site[1] + '/tools/demos/'
     try:
-        for old, fragment in [('school.html', 'school'), ('cities.html', 'tokyo'), ('world-shots.html', 'camera')]:
-            page.goto(base + old)
-            expect(page).to_have_url(base + 'world.html#' + fragment)
+        for old in ('school.html', 'cities.html', 'world-shots.html'):   # 🌍 no forwarding pages: the scenes are world.html#…
+            assert page.goto(base + old).status == 404
         query = '?lat=35.68135&lon=139.7665&name=Centre&radius_m=0#cities-spot-tokyo-kanda'
-        page.goto(base + 'cities.html' + query)
+        page.goto(base + 'world.html' + query)
         expect(page).to_have_url(base + 'world.html' + query)
         expect(page.locator('[data-world-shell]')).to_have_attribute('data-world-route', 'tokyo')
     finally:
