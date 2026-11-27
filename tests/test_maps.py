@@ -447,6 +447,7 @@ def test_village_items_work_in_cities_and_on_hero(site, browser):
             sign.evaluate('e => e.click()')
         feed.click()
         expect(cities.locator('output').filter(has_text='累計 20')).to_be_visible()
+        expect(sign).to_have_attribute('data-reaction', '😋')
         travel('paris')
         water = cities.get_by_role('button', name='💧 目の前の火を消す')
         water.click()
@@ -485,5 +486,68 @@ def test_village_items_work_in_cities_and_on_hero(site, browser):
         expect(fires).to_have_count(count - 1)
         export.click()
         assert ui.save_state(box.input_value()) == progress
+    finally:
+        page.close()
+
+
+def test_london_dragon_care_and_colors(site, browser):
+    import pysaiyanweboo as ui
+
+    page = browser.new_page(viewport={'width': 390, 'height': 844}, has_touch=True)
+    try:
+        page.goto(site[1] + '/tools/demos/world.html#london')
+        cities = page.locator('#cities-map')
+        cities.locator('.ui-world-pick-grid [data-emoji]').first.tap()
+        sign = cities.locator('.ui-spot[href="#cities-spot-london-nogard"]')
+        care = cities.locator('.dragon-care')
+        expect(care).to_be_hidden()
+        for _ in range(2):
+            sign.evaluate('e=>e.click()')
+        pet = care.get_by_role('button', name='ドラゴンをなでる')
+        assert care.locator('img').evaluate('img=>[img.naturalWidth,img.naturalHeight]') == [20, 15]
+        with page.expect_download() as download:
+            care.get_by_text('原画JSONを保存').tap()
+        from pathlib import Path
+        assert json.loads(Path(download.value.path()).read_text()) == json.loads(
+            (ROOT / 'scripts/london-dragon.json').read_text())
+        for reaction in ('💕', '🎵', '💤'):
+            pet.tap()
+            expect(sign).to_have_attribute('data-reaction', reaction)
+            expect(care.locator('output')).to_contain_text(reaction)
+        hue = care.get_by_label('ドラゴンの体色')
+        fill = care.get_by_label('背景の塗りつぶし')
+        hue.select_option('2')
+        fill.fill('#000000')
+        expect(care.locator('.dragon-portrait')).to_have_css('filter', 'hue-rotate(180deg)')
+        expect(pet).to_have_css('background-color', 'rgb(0, 0, 0)')
+        page.evaluate("location.hash='world'")
+        village = page.locator('#overworld-map')
+        village.locator('[data-emoji="🧙"]').tap()
+        village.locator('[data-rpg-journal-btn]').tap()
+        village.get_by_role('button', name='💾 セーブ').tap()
+        box = village.get_by_role('textbox', name='冒険データ')
+        export = village.get_by_text('セーブ文字列を作る', exact=True)
+        export.tap()
+        save = ui.save_state(box.input_value())
+        assert (save['version'], save['data']['dragonHue'], save['data']['dragonFill']) == (3, 2, 1)
+        village.get_by_text('復活の呪文を作る', exact=True).tap()
+        expect(village.get_by_text('空白・改行を含めてコピーできます')).to_be_visible()
+        spell = box.input_value()
+        old = {k: v for k, v in save['data'].items() if k not in ('dragonHue', 'dragonFill')}
+        box.fill(ui.save_text({**save, 'version': 1, 'data': old}))
+        load = village.get_by_role('button', name='読み込む')
+        load.tap()
+        expect(hue).to_have_value('0')
+        box.fill(spell)
+        load.tap()
+        expect(hue).to_have_value('2')
+        expect(fill).to_have_value('#000000')
+        village.locator('.ui-rpg-close').tap()
+        page.evaluate("location.hash='london'")
+        # Reopen the sheet if the scene switch closed it.
+        cities.locator('.ui-world-spots a[href="#cities-spot-london-nogard"]').evaluate('a=>a.click()')
+        care.get_by_role('button', name='元の色に戻す').tap()
+        expect(hue).to_have_value('0')
+        expect(fill).to_have_value('#ffffff')
     finally:
         page.close()

@@ -2323,7 +2323,7 @@ export function bindWorldRpg(el){
   talked:new Set(),looted:new Set(),defeated:new Set(),quizSolved:new Set(),quizIdx:0,
   visitedFloors:new Set([el.querySelector("input[name$='-floor']:checked")?.value||"meadow"]),
   consumables:new Map(),equipment:new Set(),completedQuests:new Set(),badges:new Set(),
-  boughtCount:0,healedCount:0,dragonExp:0,fireX:0,fireY:0
+  boughtCount:0,healedCount:0,dragonExp:0,fireX:0,fireY:0,dragonHue:0,dragonFill:0
  };
  const equipIds=()=>[...state.equipment];
  const equipBonus=()=>equipIds().reduce((acc,sid)=>{const it=rpg.loot[sid];if(!it)return acc;acc.hp+=it.hp;acc.mp+=it.mp;acc.atk+=it.atk;acc.def+=it.def;return acc},{hp:0,mp:0,atk:0,def:0});
@@ -2358,6 +2358,8 @@ export function bindWorldRpg(el){
  // Bind positional spells to this world and layout, even across same-length catalogue edits.
  const extraWidths={dragonExp:16,fireX:16,fireY:16};
  const extendedLayout=[...layout,...Object.entries(extraWidths)];
+ const layouts=[null,layout,extendedLayout,[...extendedLayout,["dragonHue",2],["dragonFill",25]]];
+ const optionalKeys=[...Object.keys(extraWidths),"dragonHue","dragonFill"];
  const catalogue=async(fields)=>new DataView(await crypto.subtle.digest("SHA-256",
   new TextEncoder().encode(JSON.stringify([wid,fields])))).getUint32(0);
  const snapshot=()=>{
@@ -2365,20 +2367,21 @@ export function bindWorldRpg(el){
   const bag=new Set(bagButtons.filter(b=>b.getAttribute("aria-pressed")==="true").map(b=>b.dataset.itemId));
   for(const [group,id,key] of flags)if((group==="bag"?bag:state[group]).has(id))data[key]=1;
   for(const [key,it] of state.consumables)data[key]=it.count;
-  for(const key of Object.keys(extraWidths))if(state[key])data[key]=state[key];
+  for(const key of optionalKeys)if(state[key])data[key]=state[key];
   return data;
  };
  const restore=(data,version)=>{
   const invalid=()=>{throw new Error("invalid save")};
   if(!data||typeof data!=="object"||Array.isArray(data))invalid();
-  const known=new Set((version===1?layout:extendedLayout).slice(2).map(([key])=>key));
+  const known=new Set(layouts[version].slice(2).map(([key])=>key));
   for(const [key,n] of Object.entries(data))if(!known.has(key)||!Number.isSafeInteger(n)||n<0)invalid();
   const next={consumables:new Map(),equipment:new Set()};
   for(const key of Object.keys(scalarWidths)){
    if(!Object.hasOwn(data,key))invalid();
    next[key]=data[key];
   }
-  for(const key of Object.keys(extraWidths))next[key]=data[key]??0;
+  for(const key of optionalKeys)next[key]=data[key]??0;
+  if(next.dragonHue>3||next.dragonFill>0x1000000)invalid();
   if(Boolean(next.fireX)!==Boolean(next.fireY)||next.fireX>65535||next.fireY>65535)invalid();
   if(next.fireX&&fires.length&&!fires.some(f=>atSavedFire(f,next)))invalid();
   if(next.seed>0xffffffff||next.quizIdx>=Math.max(1,rpg.quizzes.length))invalid();
@@ -2394,7 +2397,7 @@ export function bindWorldRpg(el){
   }
   const {bag,...adventure}=next;
   Object.assign(state,adventure);
-  syncCityItems();
+  syncCityItems();syncDragon?.();
   el.dispatchEvent(new CustomEvent("world-restore-bag",{detail:bag}));
   renderHud();
  };
@@ -2522,6 +2525,7 @@ export function bindWorldRpg(el){
  const paris=cities?.querySelector('.ui-floor[data-floor="paris"]'),tile=Number(paris?.dataset.tile);
  const fires=[...(paris?.querySelectorAll('.ui-prop[data-kind="fire"]')||[])];
  const atSavedFire=(fire,save)=>Math.floor(parseFloat(fire.style.left)/tile)+1===save.fireX&&Math.floor(parseFloat(fire.style.top)/tile)+1===save.fireY;
+ let syncDragon;
  const syncCityItems=()=>{for(const fire of fires)fire.hidden=atSavedFire(fire,state)};
  if(cities){
   const cityTools=cities.querySelector(".ui-world-tools"),note=rpgEl("output",{"aria-live":"polite"});
@@ -2538,10 +2542,39 @@ export function bindWorldRpg(el){
    if(!consume("spot:meadow-drop-mana"))return "癒しの水がありません";
    Object.assign(state,front);syncCityItems();return "火を一つ消しました";
   });
+  const sign=cities.querySelector('.ui-spot[href="#cities-spot-london-nogard"]');
+  const sheet=cities.querySelector("#cities-spot-london-nogard");
+  const art=cities.closest("[data-world-shell]").querySelector("#dragon-art").content;
+  const portrait=art.querySelector("img").cloneNode(true);
+  cities.style.setProperty("--dragon-sprite",`url("${portrait.src}")`);
+  const mood=rpgEl("output",{"aria-live":"polite"});
+  let pats=0,restTimer;
+  const react=(emoji,words)=>{
+   clearTimeout(restTimer);sign.dataset.reaction=emoji;mood.textContent=emoji+" "+words;
+   restTimer=setTimeout(()=>{delete sign.dataset.reaction;mood.textContent=""},4500);
+  };
+  const pet=rpgEl("button",{type:"button","aria-label":"ドラゴンをなでる",onclick:()=>{
+   const moods=[["💕","すり寄ってきた"],["🎵","のどを鳴らした"],["💤","安心してうとうとしている"]];
+   react(...moods[pats++%moods.length]);
+  }},portrait,"なでる");
+  const hue=rpgEl("select",{"aria-label":"ドラゴンの体色"},...["元の色","青系","紫系","桃色系"].map((label,i)=>rpgEl("option",{value:i,textContent:label})));
+  const fill=rpgEl("input",{type:"color","aria-label":"背景の塗りつぶし"});
+  syncDragon=()=>{
+   hue.value=String(state.dragonHue);fill.value=state.dragonFill?"#"+(state.dragonFill-1).toString(16).padStart(6,"0"):"#ffffff";
+   portrait.style.filter=["none","hue-rotate(120deg)","hue-rotate(180deg)","hue-rotate(225deg)"][state.dragonHue];
+   pet.style.backgroundColor=state.dragonFill?fill.value:"";
+   cities.style.setProperty("--dragon-hue",portrait.style.filter);
+   if(state.dragonFill)cities.style.setProperty("--dragon-fill",fill.value);else cities.style.removeProperty("--dragon-fill");
+  };
+  hue.onchange=()=>{state.dragonHue=Number(hue.value);syncDragon()};
+  fill.oninput=()=>{state.dragonFill=parseInt(fill.value.slice(1),16)+1;syncDragon()};
+  const reset=rpgEl("button",{type:"button",textContent:"元の色に戻す",onclick:()=>{state.dragonHue=0;state.dragonFill=0;syncDragon()}});
+  const care=rpgEl("div",{className:"dragon-care"},pet,mood,rpgEl("label",{},"体色 ",hue),rpgEl("label",{},"背景 ",fill),reset,art.querySelector("a").cloneNode(true));
+  sheet.querySelector(".ui-sheet-close").before(care);syncDragon();
   cityButton("london","🍠 ドラゴンにあげる",()=>{
-   if(!cities.querySelector('[href="#cities-spot-london-nogard"][data-show="flip"]'))return "nogardの看板のドラゴンを探してください";
+   if(sign.dataset.show!=="flip")return "nogardの看板のドラゴンを探してください";
    if(!consume("spot:meadow-hirugaoka"))return `サツマイモがありません（ドラゴン経験値 ${state.dragonExp}）`;
-   state.dragonExp+=foodExp;return `🐉 ドラゴン経験値 +${foodExp}（累計 ${state.dragonExp}）`;
+   state.dragonExp+=foodExp;react("😋","ほくほくのサツマイモをぺろり！");return `🐉 ドラゴン経験値 +${foodExp}（累計 ${state.dragonExp}）`;
   });
   cityTools.append(note);cities.addEventListener("change",()=>{note.textContent=""});
  }
@@ -2770,26 +2803,26 @@ export function bindWorldRpg(el){
   const body=rpgEl("div"),tabBtns=[];
   const drawBody=()=>{
    if(activeTab==="save"){
-    const saveVersion=()=>Object.keys(extraWidths).some(k=>state[k])?2:1;
+    const saveVersion=()=>state.dragonHue||state.dragonFill?3:Object.keys(extraWidths).some(k=>state[k])?2:1;
     const box=rpgEl("textarea",{"aria-label":"冒険データ",rows:5}),message=rpgEl("p",{role:"status"});
     const button=(label,run)=>rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:label,onclick:run});
     body.replaceChildren(box,rpgEl("div",{className:"ui-rpg-actions"},
      button("セーブ文字列を作る",()=>{const data=snapshot();box.value=saveText({version:saveVersion(),world:wid,data});box.select();message.textContent="別の端末にコピーできます"}),
      button("復活の呪文を作る",async()=>{
-      try{const version=saveVersion(),fields=version===1?layout:extendedLayout;box.value=spellText(bitsPack(fields,{version,catalogue:await catalogue(fields),...snapshot()}));box.select();message.textContent="空白・改行を含めてコピーできます"}
+      try{const version=saveVersion(),fields=layouts[version];box.value=spellText(bitsPack(fields,{version,catalogue:await catalogue(fields),...snapshot()}));box.select();message.textContent="空白・改行を含めてコピーできます"}
       catch{message.textContent="呪文を作れません。セーブ文字列を使ってください"}
      }),
      button("読み込む",async()=>{
       try{
        const text=box.value.trim();
        if(/[ぁ-ヶ]/u.test(text)){
-        const bytes=spellBytes(text),fields=bytes[0]===1?layout:extendedLayout;
+        const bytes=spellBytes(text),fields=layouts[bytes[0]];
         const {version,catalogue:tag,...data}=bitsUnpack(fields,bytes);
-        if(![1,2].includes(version)||tag!==await catalogue(fields))throw new Error("incompatible spell");
+        if(![1,2,3].includes(version)||tag!==await catalogue(fields))throw new Error("incompatible spell");
         restore(data,version);
        }else{
         const save=saveState(text);
-        if(![1,2].includes(save.version)||save.world!==wid)throw new Error("incompatible save");
+        if(![1,2,3].includes(save.version)||save.world!==wid)throw new Error("incompatible save");
         restore(save.data,save.version);
        }
        message.textContent="冒険データを復元しました";

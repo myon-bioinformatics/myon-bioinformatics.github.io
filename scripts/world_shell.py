@@ -1,5 +1,9 @@
 """The Portfolio's one published world. Individual specs and standalone exports stay in world.py."""
+import base64
+import json
 from html import escape
+from pathlib import Path
+from urllib.parse import quote
 
 # Public fragments are stable and independent of the map engine's internal IDs.
 SPACES = {
@@ -23,6 +27,14 @@ CSS = """
 .world-switcher summary{cursor:pointer;padding:.45rem;min-height:44px;display:grid;align-items:center}
 .world-switcher details[open]>div{position:absolute;top:100%;left:0;z-index:30;min-width:min(10rem, 76vw);max-height:65vh;max-width:min(85vw,22rem);width:max-content;overflow:auto;background:var(--ui-bg);color:var(--ui-fg);border:1px solid var(--ui-border);border-radius:var(--ui-radius);padding:.35rem;box-shadow:0 6px 20px #0005}
 .world-switcher{position:relative;z-index:5}
+.dragon-care{display:none}
+#cities-map:has(.ui-spot[data-flip="🐉"][data-show="flip"]) .dragon-care{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.dragon-care button,.dragon-care input,.dragon-care select{min-height:44px}
+.dragon-portrait{display:block;width:80px;image-rendering:pixelated}
+#cities-map .ui-spot[data-flip="🐉"][data-show="flip"]{font-size:0;background-color:var(--dragon-fill,var(--ui-panel))}
+#cities-map .ui-spot[data-flip="🐉"][data-show="flip"]::before{content:"";display:inline-block;width:32px;height:24px;background:var(--dragon-sprite) center/contain no-repeat;image-rendering:pixelated;filter:var(--dragon-hue)}
+#cities-map .ui-spot[data-reaction]::after{font-size:1rem}
+.ui-spot[data-show="flip"][data-reaction]::after{content:attr(data-reaction)}
 .world-switcher a{display:block;padding:.5rem;color:var(--ui-fg)}
 .world-switcher [aria-current="location"]{font-weight:bold;text-decoration:underline}
 .world-switcher .ui-world-tools>*{flex-shrink:0}
@@ -99,7 +111,11 @@ def document(ui, world, maps, places, css_href, js_href):
               '<strong id="world-space-name">🌍 ワールド</strong>'
               '<details><summary>⭐ お気に入り</summary><div id="world-favorites">まだありません</div></details>'
               f'<details><summary>🧰 道具</summary><div>{tools}</div></details></nav></div></header>')
-    body = ('<main><div data-world-shell>' + header + ''.join(sections) + '</div></main>'
+    grid = Path(__file__).with_name("london-dragon.json").read_text(encoding="utf-8")
+    png = base64.b64encode(ui.pixel_grid_png(json.loads(grid))).decode("ascii")
+    sprite = (f'<template id="dragon-art"><img class="dragon-portrait" alt="" src="data:image/png;base64,{png}">'
+              f'<a download="london-dragon.json" href="data:application/json,{quote(grid, safe="")}">原画JSONを保存</a></template>')
+    body = ('<main><div data-world-shell>' + sprite + header + ''.join(sections) + '</div></main>'
             + ui.module_script(JS) + f'<script type="module" src="{js_href}"></script>'
             + ui.module_script(f'import "{js_href}";\n' + world.rpg_module("../vendor/web-ui/js/records.js")) + maps.tokyo_modules(ui))
     css = ''.join(world.world_css(data, base=False) for data in specs.values()) + f'@layer components{{{CSS}}}'
