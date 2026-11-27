@@ -6,6 +6,7 @@ import json
 import re
 import socket
 import struct
+import subprocess
 import sys
 import tempfile
 from html.parser import HTMLParser
@@ -202,13 +203,46 @@ def test_flow_lab_shows_every_ffss_scene_and_every_dragowing_figure(tmp_path):
     receipt = PAGES.collect_flow(tmp_path / "site", ffss, dragowing, {"ffss": "a" * 40, "dragowing": "b" * 40})
     assert [d["id"] for d in receipt["demos"]] == ["D01", "D13", "D24"] and receipt["figures"] == ["F03_losses", "F09_blood-flow"]
     assert (tmp_path / "site/media/flow/D13.gif").read_bytes() == b"GIF89aD13"
-    page = PAGES.render_flow(ui, tmp_path / "site")[PAGES.FLOW_PAGE].decode()
-    assert page.count('<img loading="lazy" src="../../media/flow/') == 3 + 2 and "⏸" not in page
-    assert page.index("D24.gif") < page.index("F09_blood-flow.svg") < page.index("📊 ほかの図") < page.index("F03_losses.svg")
-    assert "🍷 D13 pythagorean-cup · poison-water" in page and "🎞 3 場面" in page and "2 図" in page
-    assert "FFSS aaaaaaa" in page and "/tree/" + "b" * 40 in page
-    staged = (SITE / "tools/flow/index.html").read_text(encoding="utf-8")                # nothing recorded: one ⏸
+    rendered = PAGES.render_flow(ui, tmp_path / "site")
+    page = rendered[PAGES.FLOW_PAGE].decode()
+    archive = rendered[PAGES.FLOW_RECORDS].decode()
+    records = rendered[PAGES.FLOW_MARKDOWN].decode()
+    assert 'id="workbench"' in page and 'src="./rig.mjs"' in page
+    assert 'href="./records.html"' in page and 'href="./records.md"' in page
+    assert "media/flow/" not in page and "⏸" not in page
+    assert archive.count('loading="lazy"') == 3 + 2
+    for record in (archive, records):
+        assert record.index("D24.gif") < record.index("F09_blood-flow.svg") < record.index("ほかの図") < record.index("F03_losses.svg")
+        assert "🍷 D13 pythagorean-cup · poison-water" in record
+    assert "🎞 3 場面" in page and "2 図" in page and "FFSS aaaaaaa" in page and "/tree/" + "b" * 40 in page
+    staged = (SITE / PAGES.FLOW_PAGE).read_text(encoding="utf-8")
     assert staged.count("⏸") == 1 and "media/flow/" not in staged
+
+
+def test_flow_rig_conserves_material(tmp_path):
+    import shutil
+    import pysaiyanweboo as ui
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node is required for the flow rig model")
+    module = tmp_path / "rig.mjs"
+    module.write_bytes(PAGES.render_flow(ui)[PAGES.FLOW_RIG_JS])
+    script = tmp_path / "check.mjs"
+    script.write_text("""
+import assert from 'node:assert/strict';
+import {flowStep} from './rig.mjs';
+let state = {source: 100, middle: 0, sink: 0};
+assert.deepEqual(flowStep(state, 5, 2), {source: 95, middle: 3, sink: 2});
+assert.deepEqual(flowStep(state, -1, 500), state);
+for (let sec = 0; sec < 70; sec++) {
+  state = flowStep(state, 5, 2);
+  assert.equal(state.source + state.middle + state.sink, 100);
+  assert(Object.values(state).every(amount => amount >= 0));
+}
+assert.deepEqual(state, {source: 0, middle: 0, sink: 100});
+""", encoding="utf-8")
+    subprocess.run([node, str(script)], check=True, timeout=15)
 
 
 def test_repository_map_reads_each_lock_and_aois_subtrees(tmp_path):
