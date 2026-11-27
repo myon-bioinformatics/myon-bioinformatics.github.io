@@ -2277,6 +2277,27 @@ globalThis.webUiWorld={fitZoom,clampFocus,travelSeconds,minutesUntil,boardClock,
 bindWorlds();
 """
 
+EXPLORATION_SCROLL = {
+    "id": "meadow-drop-scroll",
+    "label": "探索の巻物",
+    "reusable": True,
+    "field": {"context": "移動中", "target": "未取得のどうぐ", "radius_tiles": 6, "duration_seconds": 3},
+    "battle": {"context": "戦闘中", "target": "やくそう", "item_id": "meadow-drop-herb",
+               "chance_percent": 30, "quantity": 1, "uses_turn": True},
+}
+
+
+def exploration_scroll_text() -> dict[str, str]:
+    field, battle = EXPLORATION_SCROLL["field"], EXPLORATION_SCROLL["battle"]
+    field_text = (f'{field["context"]}は同じ階の{field["radius_tiles"]}マス以内にある'
+                  f'{field["target"]}が{field["duration_seconds"]}秒間光ります。')
+    turn = "1ターン使い、" if battle["uses_turn"] else "ターンを使わず、"
+    battle_text = (f'{battle["context"]}は{turn}{battle["chance_percent"]}%の確率で'
+                   f'{battle["target"]}を{battle["quantity"]}個拾います。')
+    return {"field": field_text, "battle": battle_text,
+            "reuse": "何度でも使えます。" if EXPLORATION_SCROLL["reusable"] else "使うと巻物を消費します。"}
+
+
 WORLD_RPG_JS = r"""
 export const RPG_LEVEL_THRESHOLDS=[0,30,75,140,230,350,500,700,950,1250];
 const DEFAULT_ORBS={attack:["🔥","💧","🌳","💡","🔮"],heal:["❤️","💚","✨"],max:6};
@@ -2373,7 +2394,8 @@ export function bindWorldRpg(el){
   state.topic3=state.topic2;state.topic2=state.topic1;state.topic1=Math.max(0,topics.indexOf(name));
  };
  layouts.push([...layouts[3],["dragonScroll",1],...memoryKeys.map(key=>[key,8])]);
- const herbKey="found:herb",herb=stock.get("spot:meadow-drop-herb");
+ const scrollKey="spot:"+explorationScroll.id,herbKey="found:herb";
+ const herb=stock.get("spot:"+explorationScroll.battle.item_id);
  if(herb)stock.set(herbKey,{...herb,spotId:null});
  layouts.push([...layouts[4],[herbKey,12]]);
  const optionalKeys=[...Object.keys(extraWidths),"dragonHue","dragonFill","dragonScroll",...memoryKeys];
@@ -2413,7 +2435,8 @@ export function bindWorldRpg(el){
    if(item.spotId&&(!next.looted.has(item.spotId)||data[key]!==1))invalid();
    next.consumables.set(key,{...item,key,count:data[key]});
   }
-  for(const [key,item] of stock)if(item.item_type==="scroll"&&next.looted.has(item.spotId)){
+  if(explorationScroll.reusable&&stock.has(scrollKey)&&next.looted.has(explorationScroll.id)){
+   const key=scrollKey,item=stock.get(key);
    next.consumables.set(key,{...item,key,count:1});
    next.bag.add(wid+"-spot-"+item.spotId);
   }
@@ -2437,7 +2460,7 @@ export function bindWorldRpg(el){
   }
  };
  const renderHud=()=>{
-  if(searchButton)searchButton.hidden=!state.looted.has("meadow-drop-scroll");
+  if(searchButton)searchButton.hidden=!state.consumables.has(scrollKey);
   clampVitals();if(!hud)return;
   const st=stats(),heroGlyph=el.querySelector(".ui-player span")?.textContent||"🧙";
   const qDone=state.completedQuests.size,qTotal=rpg.quests.length;
@@ -2535,7 +2558,7 @@ export function bindWorldRpg(el){
   clearTimeout(clearScan);clear();
   const names=[];
   if(player){
-   const x=parseFloat(player.style.getPropertyValue("--px")),y=parseFloat(player.style.getPropertyValue("--py")),radius=6*(Number(floor.dataset.tile)||32);
+   const x=parseFloat(player.style.getPropertyValue("--px")),y=parseFloat(player.style.getPropertyValue("--py")),radius=explorationScroll.field.radius_tiles*(Number(floor.dataset.tile)||32);
    for(const spot of floor.querySelectorAll(".ui-spot[data-x]")){
     if(Math.hypot(Number(spot.dataset.x)-x,Number(spot.dataset.y)-y)>radius)continue;
     const id=spot.getAttribute("href").slice(1),take=document.getElementById(id)?.querySelector(".ui-world-take");
@@ -2543,12 +2566,17 @@ export function bindWorldRpg(el){
     spot.setAttribute("data-scroll-found","");names.push(take.dataset.itemLabel);
    }
   }
-  clearScan=setTimeout(clear,3000);
+  clearScan=setTimeout(clear,explorationScroll.field.duration_seconds*1000);
   return names.length?"✨ 近くのどうぐ："+names.join("、"):"近くに未取得のどうぐはありません";
+ };
+ const useExplorationScroll=()=>{
+  if(!state.consumables.has(scrollKey))return false;
+  if(!explorationScroll.reusable)consume(scrollKey);
+  return true;
  };
  const foodExp=20;
  const useConsumable=key=>{
-  if(state.consumables.get(key)?.item_type==="scroll")return {text:scanItems(),scan:true};
+  if(key===scrollKey)return useExplorationScroll()?{text:scanItems(),scan:true}:null;
   const item=consume(key);if(!item)return null;
   if(item.item_type==="food"){
    gainExp(foodExp);renderHud();
@@ -2637,10 +2665,12 @@ export function bindWorldRpg(el){
   };
   const searchNote=rpgEl("output",{"aria-live":"polite"});
   let noteTimer;
-  searchButton=rpgEl("button",{type:"button",textContent:"📜 探索の巻物",hidden:true,onclick:()=>{
+  searchButton=rpgEl("button",{type:"button",textContent:"📜 "+explorationScroll.label,hidden:true,onclick:()=>{
    const battle=overlay.querySelector(".ui-rpg-battle");
    if(!overlay.hidden&&battle&&!el.closest("[data-world-space]")?.hidden){battle.querySelector("[data-battle-search]")?.click();return}
-   searchNote.textContent=scanItems();clearTimeout(noteTimer);noteTimer=setTimeout(()=>{searchNote.textContent=""},3000);
+   const result=useConsumable(scrollKey);if(!result)return;
+   searchNote.textContent=result.text;renderHud();clearTimeout(noteTimer);
+   noteTimer=setTimeout(()=>{searchNote.textContent=""},explorationScroll.field.duration_seconds*1000);
   }});
   summon.after(searchButton,searchNote);
   scroll.addEventListener("close",()=>sheet.querySelector(".ui-sheet-close").before(care));
@@ -2655,13 +2685,18 @@ export function bindWorldRpg(el){
   });
   return matches.filter(([,length])=>length).sort((a,b)=>b[1]-a[1]).map(([name])=>name);
  }
- function relatedFacts(seeds){
+ function relatedFacts(seeds,question){
   const paths=seeds.flatMap(name=>worldKnowledge.paths[name]).sort((a,b)=>a.length-b.length);
   const selected=new Set();
   for(const path of paths){
    if(new Set([...selected,...path]).size<=5)for(const id of path)selected.add(id);
   }
-  return [...selected].map(id=>worldKnowledge.facts[id]);
+  const facts=[...selected].map(id=>worldKnowledge.facts[id]);
+  const contextual=facts.filter(f=>f.context?.some(term=>question.includes(term)));
+  const field=contextual.some(f=>f.mode==="field");
+  const battle=contextual.some(f=>f.mode==="battle")&&!question.includes("非戦闘");
+  if(field===battle)return facts;
+  return facts.filter(f=>!f.mode||f.mode===(field?"field":"battle"));
  }
  function talkMore(speaker,context){
   if(typeof worldAnswer!=="function")return null;
@@ -2680,7 +2715,7 @@ export function bindWorldRpg(el){
      const topic=previous&&topics[state[memoryKeys[previous-1]]];
      if(topic)seeds.push(topic);
     }
-    const facts=relatedFacts(seeds);
+    const facts=relatedFacts(seeds,question);
     sources.replaceChildren(...facts.map(f=>rpgEl("li",{},f.edge+" ",...f.urls.map(url=>rpgEl("a",{href:url,target:"_blank",rel:"noopener",textContent:url.split("/")[4]+" "})))));
     evidence.hidden=!facts.length;
     const grounding=facts.map(f=>f.edge+"："+f.text).join("\n")||"この質問に対応する関係は台帳にない。";
@@ -2912,13 +2947,18 @@ export function bindWorldRpg(el){
    ["💨 にげる",()=>{if(ended)return;showToast("💨 うまく にげきった！");closeModal()},false]
   ];
   for(const[lbl,fn,prim]of cmds)cmdBox.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",...(prim?{"data-primary":""}:{}),textContent:lbl,onclick:fn}));
-  if(herb&&state.looted.has("meadow-drop-scroll"))cmdBox.append(rpgEl("button",{type:"button",className:"ui-rpg-btn","data-battle-search":"",textContent:"📜 探索の巻物（薬草30%）",onclick:()=>{
-   if(ended)return;
-   if(nextRoll()/0x100000000<0.30){
+  const forage=explorationScroll.battle;
+  if(herb&&state.consumables.has(scrollKey))cmdBox.append(rpgEl("button",{type:"button",className:"ui-rpg-btn","data-battle-search":"",
+   textContent:`📜 ${explorationScroll.label}（${forage.target}${forage.chance_percent}%）`,onclick:()=>{
+   if(ended||!useExplorationScroll())return;
+   if(!state.consumables.has(scrollKey))cmdBox.querySelector("[data-battle-search]").remove();
+   if(nextRoll()/0x100000000<forage.chance_percent/100){
     const item=state.consumables.get(herbKey)||{...stock.get(herbKey),key:herbKey,count:0};
-    item.count++;state.consumables.set(herbKey,item);logLines.push("🌿 やくそうを1個拾った！");
-   }else logLines.push("📜 やくそうは見つからなかった。");
-   subMode="";rebuildSub();enemyTurn(false);
+    item.count+=forage.quantity;state.consumables.set(herbKey,item);
+    logLines.push(`🌿 ${forage.target}を${forage.quantity}個拾った！`);
+   }else logLines.push(`📜 ${forage.target}は見つからなかった。`);
+   subMode="";rebuildSub();
+   if(forage.uses_turn)enemyTurn(false);else syncBattle();
   }}));
   if(state.dragonScroll)cmdBox.append(rpgEl("button",{type:"button",className:"ui-rpg-btn","data-dragon-attack":"",textContent:"📜 竜の巻物",onclick:()=>{
    if(ended)return;
@@ -3130,6 +3170,7 @@ bindRpgWorlds();
 
 def rpg_module(records_url: str) -> str:
     return (f'import {{saveText,saveState,spellText,spellBytes,bitsPack,bitsUnpack}} from {json.dumps(records_url)};\n'
+            + f'const explorationScroll = {json.dumps(EXPLORATION_SCROLL, ensure_ascii=False)};\n'
             + WORLD_RPG_JS)
 
 
@@ -3455,9 +3496,10 @@ def _overworld_spec() -> dict[str, Any]:
         spot("meadow-drop-mana", 6, 7, "💧 癒しの水", "item",
              "人に使うとMPを10回復。パリでは目の前の火を一つ消せます。",
              item={"emoji": "💧", "label": "癒しの水", "body": "MP回復か消火に一度だけ使える水。"}, mark="💧"),
-        spot("meadow-drop-scroll", 20, 12, "📜 探索の巻物", "item",
-             "近くのどうぐの在りかを照らす古い巻物。何度でも使えます。",
-             item={"emoji": "📜", "label": "探索の巻物", "body": "同じ階の6マス以内にある未取得のどうぐが光ります。戦闘中は1ターン使い、30%の確率でやくそうを1個拾います。"}, mark="📜"),
+        spot(EXPLORATION_SCROLL["id"], 20, 12, "📜 " + EXPLORATION_SCROLL["label"], "item",
+             "近くのどうぐの在りかを照らす古い巻物。" + exploration_scroll_text()["reuse"],
+             item={"emoji": "📜", "label": EXPLORATION_SCROLL["label"],
+                   "body": "".join(exploration_scroll_text().values())}, mark="📜"),
         spot("meadow-chest-sword", 9, 9, "🎁 はじまりの剣", "item",
              "村の片隅に置かれた宝箱。装備すると攻撃力（ATK）が上がります。",
              item={"emoji": "🗡️", "label": "はじまりの剣", "body": "PySaiyanWeBooの剣。持っているだけで ATK +4。"}, mark="🎁"),
@@ -3595,7 +3637,7 @@ def _overworld_spec() -> dict[str, Any]:
             "loot": {
                 "meadow-drop-herb": {"kind": "drop", "item_type": "heal", "hp": 15, "exp": 5},
                 "meadow-drop-mana": {"kind": "drop", "item_type": "mana", "mp": 10, "exp": 5},
-                "meadow-drop-scroll": {"kind": "drop", "item_type": "scroll", "exp": 8},
+                EXPLORATION_SCROLL["id"]: {"kind": "drop", "item_type": "scroll", "exp": 8},
                 "meadow-chest-sword": {"kind": "chest", "item_type": "weapon", "atk": 4, "exp": 10, "gold": 15, "opened_mark": "📭"},
                 "meadow-chest-shield": {"kind": "chest", "item_type": "armor", "def": 3, "hp": 6, "exp": 10, "gold": 15, "opened_mark": "📭"},
                 "meadow-chest-charm": {"kind": "chest", "item_type": "charm", "atk": 2, "def": 2, "mp": 5, "exp": 25, "gold": 40,
