@@ -145,60 +145,37 @@ def test_the_one_slide_editor_opens_a_deck_and_exports_pptx(browser, studio_orig
         expect(page.locator(".ui-chrome a.ui-world-home")).to_have_count(1)
         page.locator('[data-act="text"]').click()
         page.keyboard.type("Portfolio fixture")
-        deck = json.loads(_download(page, '[data-act="save"]'))
+        page.locator('[data-act="export"]').click()                              # 📤 then the format, in the candidate row
+        deck = json.loads(_download(page, '#phone-candidates button[title^="全スライドJSON"]'))
         assert deck["schema"] == "ironmate-slide-deck/1" and deck["slides"][0]["layers"][0]["text"] == "Portfolio fixture"
         deck["slides"][0]["layers"][0]["text"] = "Imported fixture title"
         page.locator('input[data-file="open"]').set_input_files({
             "name": "fixture.json", "mimeType": "application/json", "buffer": json.dumps(deck).encode(),
         })
         page.wait_for_function("() => IronmatePhone.deck.slides[0].layers[0].text === 'Imported fixture title'")
-        pptx = _download(page, '[data-act="pptx"]')
+        pptx = _download(page, '#phone-candidates button[title^="PPTX"]')
         with zipfile.ZipFile(BytesIO(pptx)) as office:
             xml = ElementTree.fromstring(office.read("ppt/slides/slide1.xml"))
             text = [node.text for node in xml.iter("{http://schemas.openxmlformats.org/drawingml/2006/main}t")]
             assert "Imported fixture title" in text
-        assert page.locator('[data-act="studio"]').get_attribute("href") == "pc/"
     finally:
         page.context.close()
 
 
-def test_slide_studio_import_edit_and_export_pptx(browser, studio_origin):
-    """🖥️ /tools/slide-studio/pc/: the PC studio the one editor replaces, kept as it was until its remaining tools move."""
-    from io import BytesIO
-
+@pytest.mark.parametrize("old", ["phone/", "pc/"])
+def test_the_old_slide_addresses_send_on_to_the_one_editor(browser, studio_origin, old):
+    """↪️ /tools/slide-studio/phone/ (the editor's address before) and pc/ (the PC studio it replaced) only send on."""
     page = _page(browser, studio_origin)
     try:
-        assert page.goto(studio_origin + "/tools/slide-studio/pc/").ok
-        assert page.locator('[data-testid="portfolio-back"]').count() == 0
-        expect(page.locator(".ui-chrome a.ui-world-home")).to_have_count(1)
-        expect(page.locator("#slide-select option")).to_have_count(1)
-        deck = json.loads(_saved(page, "deck-json"))
-        assert deck["schema"] == "ironmate-slide-deck/1"
-        deck["slides"][0]["layers"].append({
-            "id": "fixture-title", "kind": "text", "name": "title", "x": 64, "y": 64, "w": 800, "h": 80, "rotation": 0,
-            "opacity": 1, "text": "Imported fixture title", "fill": "#000000", "fontSize": 48, "font": "sans", "mono": False,
-            "bold": True, "wrap": True})
-        page.locator("#deck-open").set_input_files({
-            "name": "fixture.json", "mimeType": "application/json", "buffer": json.dumps(deck).encode(),
-        })
-        expect(page.locator("#deck-status")).to_have_text("全スライドを読み込みました。")
-        title_id = deck["slides"][0]["layers"][0]["id"]
-        page.locator(f'[data-layer-id="{title_id}"]').click()
-        page.locator("#edit-text").fill("Edited fixture title")
-        page.locator("#apply-text").click()
-        saved = json.loads(_saved(page, "deck-json"))
-        assert saved["slides"][0]["layers"][0]["text"] == "Edited fixture title"
-        pptx = _saved(page, "pptx")
-        with zipfile.ZipFile(BytesIO(pptx)) as office:
-            xml = ElementTree.fromstring(office.read("ppt/slides/slide1.xml"))
-            text = [node.text for node in xml.iter("{http://schemas.openxmlformats.org/drawingml/2006/main}t")]
-            assert "Edited fixture title" in text
+        assert page.goto(studio_origin + "/tools/slide-studio/" + old).ok
+        page.wait_for_url(studio_origin + "/tools/slide-studio/")
+        page.wait_for_function("() => !!window.IronmatePhone")
     finally:
         page.context.close()
 
 
 @pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
-@pytest.mark.parametrize("route", ["image-studio/", "slide-studio/", "slide-studio/pc/", "browser-tools/"])
+@pytest.mark.parametrize("route", ["image-studio/", "slide-studio/", "browser-tools/"])
 def test_studio_has_one_tools_destination(browser, studio_origin, mobile, route):
     page = _page(browser, studio_origin, mobile=mobile)
     try:

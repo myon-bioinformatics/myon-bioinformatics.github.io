@@ -10,8 +10,8 @@ import re
 import shutil
 from urllib.parse import urlsplit, urlunsplit
 
-# 📽️ slide-studio/ is Ironmate's one slide editor (phone-first, the same page on a PC); slide-studio/pc/ is the PC studio it
-# replaces, kept until its remaining tools are in the one editor; slide-studio/phone/ is the editor's old address and sends on.
+# 📽️ slide-studio/ is Ironmate's one slide editor (phone-first, the same page on a PC); slide-studio/phone/ (its address before)
+# and slide-studio/pc/ (the PC studio it replaced) only send on to it.
 PUBLIC_STUDIO_ENTRIES = ('image-studio/', 'browser-tools/', 'slide-studio/', 'slide-studio/pc/', 'slide-studio/phone/')
 _IRONMATE_ENTRY_PAGES = ('index.html', 'tools/index.html', 'slides/index.html', 'slides/phone/index.html')
 
