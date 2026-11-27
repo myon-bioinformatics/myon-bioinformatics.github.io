@@ -471,7 +471,6 @@ def record_flow(output: Path, remote: str = 'https://github.com/') -> list[str]:
             f"📊 {len(receipt['figures'])} 図: " + ' '.join(receipt['figures'])]
 
 
-FLOW_RECORDS = 'tools/flow/records.html'
 FLOW_MARKDOWN = 'tools/flow/records.md'
 FLOW_RIG_JS = 'tools/flow/rig.mjs'
 FLOW_RIG = """
@@ -608,12 +607,13 @@ def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
               {'type': 'text', 'text': 'FLOW_RIG_SLOT'},
               {'type': 'kv', 'rows': [['🌊', f"FFSS {commits.get('ffss', '—')[:7]} · 🎞 {len(demos)} 場面"],
                                       ['📊', f"DRAgoWing {commits.get('dragowing', '—')[:7]} · {len(figures)} 図"]]},
-              {'type': 'links', 'items': [{'label': '実験記録を見る', 'href': './records.html'},
+              {'type': 'links', 'items': [{'label': '📜 実験記録を見る', 'href': '#records'},
                                           {'label': 'Markdown原本', 'href': './records.md'},
                                           {'label': '🌊 FFSS', 'href': link('ffss')},
                                           {'label': '📊 DRAgoWing', 'href': link('dragowing')}]}]
     if not demos and not figures:
         blocks.append({'type': 'text', 'text': '⏸ このビルドでは記録していない'})
+    blocks.append({'type': 'section', 'title': '📜 実験記録', 'blocks': [{'type': 'text', 'text': 'FLOW_RECORDS_SLOT'}]})   # #records, one page
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '🌊 流れの実験室', 'blocks': blocks})
     slot = '<p>FLOW_RIG_SLOT</p>'
     if page.count(slot) != 1:
@@ -621,20 +621,14 @@ def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
     page = page.replace(slot, FLOW_RIG, 1).replace('</head>', FLOW_RIG_CSS + '</head>', 1)
     page = page.replace('</body>', '<script type="module" src="./rig.mjs"></script></body>', 1)
 
-    records = flow_markdown(demos, figures)
-    archive = ui.page_document({'schema': 'web-ui-page/1', 'title': '流れの実験記録',
-                                'blocks': [{'type': 'links', 'items': [
-                                    {'label': '実験台に戻る', 'href': './'},
-                                    {'label': 'Markdown原本', 'href': './records.md'}]},
-                                           {'type': 'text', 'text': 'FLOW_RECORDS_SLOT'}]})
+    records = flow_markdown(demos, figures)   # 📜 the same page, below the rig: its pictures load only when scrolled to
     slot = '<p>FLOW_RECORDS_SLOT</p>'
-    if archive.count(slot) != 1:
+    if page.count(slot) != 1:
         raise ValueError('flow records placeholder missing')
-    archive = archive.replace(slot, md_market.markdown_to_html(records), 1)
-    archive = archive.replace('<img src="../../media/flow/', '<img loading="lazy" src="../../media/flow/')
-    archive = archive.replace('</head>', '<style>.ui-page img{max-width:100%;height:auto}</style></head>', 1)
+    archive = md_market.markdown_to_html(records).replace('<img src="../../media/flow/', '<img loading="lazy" src="../../media/flow/')
+    page = page.replace(slot, f'<div id="records">{archive}</div>', 1)
+    page = page.replace('</head>', '<style>#records img{max-width:100%;height:auto}</style></head>', 1)
     return {FLOW_PAGE: add_home_label(add_back_nav(page, FLOW_PAGE), '🌊 流れ実験', icons_from='../../').encode('utf-8'),
-            FLOW_RECORDS: add_back_nav(archive, FLOW_RECORDS).encode('utf-8'),
             FLOW_MARKDOWN: records.encode('utf-8'), FLOW_RIG_JS: FLOW_RIG_SOURCE.encode('utf-8')}
 
 
@@ -1001,6 +995,8 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                     run('scripts/build_portable_pages.py', '--source-sha', commits[key], '--out', str(Path(tmp) / 'lab'),
                         env={**os.environ, 'PYTHONPATH': 'src'})
                     shutil.move(str(Path(tmp) / 'lab' / 'execution'), str(built))
+                    for copy in built.glob('runtime/**/*.html'):   # 🚫 a source copy of the page (it is index.html); runtime.zip keeps it
+                        copy.unlink()
                 if key == 'ironmate':
                     mapped = Path(tmp) / 'mapped'
                     _STUDIO_ROUTES.stage_ironmate_studios(built, mapped, _back_to_tools)
