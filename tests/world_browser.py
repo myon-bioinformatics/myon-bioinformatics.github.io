@@ -871,6 +871,27 @@ class CitiesTests(unittest.TestCase):
     def test_every_spot_on_a_desktop(self):
         self.sweep("desktop")
 
+    def test_paris_marker_accepts_click_immediately_after_sheet_closes(self):
+        page = self.open("desktop")
+        self.start(page)
+        self.show(page, "paris")
+        self.menu(page, "spots")
+        sheet = "#cities-spot-paris-saint-marcel"
+        page.click(f'.ui-world-spots[data-floor="paris"] a[href="{sheet}"]')
+        page.wait_for_selector(sheet, state="visible")
+        page.evaluate(CITY_WALK, "paris")
+        self.still(page)
+        page.click(f"{sheet} .ui-sheet-close")
+
+        # Click the marker where it is now, not after Playwright waits for a stable box.
+        marker = f'{CITY_FLOOR.format("paris")} .ui-spot[href="{sheet}"]'
+        hit = page.evaluate(CITY_TOP, marker)
+        self.assertTrue(hit["self"], hit)
+        page.mouse.click(hit["x"], hit["y"], delay=40)
+        page.wait_for_selector(sheet, state="visible", timeout=3000)
+        self.assertEqual(page.evaluate("location.hash"), sheet)
+        self.assertEqual(self.errors, [])
+
     def test_every_sign_shows_its_faces(self):
         """A sign is a dot until touched; then its text; then its second face if it has one (nogard 🐉); then the dot again."""
         for size in SIZES:
