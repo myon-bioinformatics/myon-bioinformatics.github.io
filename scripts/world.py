@@ -119,7 +119,7 @@ def world_motion_sample(segment: dict[str, Any], elapsed: float) -> list[float]:
 # is planned on the grid (breadth first, fixed neighbour order, so Python and the browser pick the same path) and
 # played as a chain of the same constant-speed segments as above.
 WORLD_PROPS = {"desk": True, "board": True, "wall": True, "shelf": True, "chair": False, "rug": False, "fire": False,
-               "grass": False, "sand": False, "road": False, "bridge": False,
+               "shadow": False, "grass": False, "sand": False, "road": False, "bridge": False,
                "water": True, "tree": True, "cactus": True, "mountain": True, "house": True, "castle": True}   # kind -> blocks walking
 # Ground kinds are laid first and open the tiles they cover (a road through trees, a bridge over water); the other kinds only block.
 WORLD_GROUND = frozenset({"grass", "sand", "road", "bridge"})
@@ -128,7 +128,7 @@ WORLD_GROUND = frozenset({"grass", "sand", "road", "bridge"})
 # all the grid needs.
 WORLD_LOOK = {"grass": ("#8fd694", "", False), "sand": ("#efd9a0", "", False), "road": ("#d2b48c", "", False), "bridge": ("#a9784a", "", False),
               "water": ("#5aaae0", "🌊", False), "mountain": ("#b8a58f", "⛰️", False), "tree": ("", "🌲", False), "cactus": ("", "🌵", False),
-              "house": ("", "🏠", False), "castle": ("", "🏰", True), "fire": ("", "🔥", False)}
+              "house": ("", "🏠", False), "castle": ("", "🏰", True), "fire": ("", "🔥", False), "shadow": ("", "👤", False)}
 _WORLD_STEPS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 WORLD_SIGNS = ("led", "wood")      # a spot drawn as a small board on a bold dot: an electronic one (amber on black) or a wooden one
 
@@ -1159,12 +1159,313 @@ def rescue_validate(rescue_in: Any, *, floors: list[dict[str, Any]]) -> dict[str
             "quests": quests, "badges": badges, "quizzes": quizzes}
 
 
+DETECTIVE_RANK_THRESHOLDS = (0, 35, 90, 170, 280, 420, 600)
+DETECTIVE_RANK_TITLES = ("見習い浪速調査員", "街角リサーチ探偵", "船場聞き込み名人", "堂島ロジック警部", "ミナミの推理マイスター", "天下の西の名探偵", "浪速の伝説推理王")
+DETECTIVE_NODE_KINDS = ("npc", "drop", "chest", "stand")
+DETECTIVE_ITEM_TYPES = ("stamina", "heal", "logic", "shoes", "coat", "canteen", "hat")
+DETECTIVE_QUEST_KINDS = ("talk", "drop", "chest", "clue", "boss_clue", "refill", "quiz")
+DETECTIVE_TACTIC_KINDS = ("inspect", "logic_burst", "pokerface")
+DETECTIVE_LOGIC_ORBS = ("🔍", "💡", "⚡", "✨", "🔎")
+DETECTIVE_TRICK_ORBS = ("👤", "💨", "❓")
+DETECTIVE_GARDEN_REWARDS = ("⭐", "🎵", "🎨", "🏆", "🌈", "💎", "🚀", "👑")
+
+
+def detective_next_seed(seed: int) -> int:
+    """Deterministic xorshift32 step delegated to PySaiyanWeBoo's ``play_random``."""
+    return play_random(_bounded_int(seed, "seed", 0, 0xFFFFFFFF))
+
+
+def detective_orb_effect(amount: int, *, logic: bool = True) -> dict[str, Any]:
+    """Logic/trick orb readout backed by PySaiyanWeBoo's ``counter_effect`` count clamping."""
+    amount = _bounded_int(amount, "amount", 0, 9999)
+    base = counter_effect(-amount if logic else amount)
+    if base["idle"]:
+        return {"counter": 0, "amount": 0, "logic": False, "idle": True, "orbs": [], "label": counter_label(0)}
+    palette = DETECTIVE_LOGIC_ORBS if logic else DETECTIVE_TRICK_ORBS
+    n = len(base["orbs"])
+    return {"counter": base["counter"], "amount": amount, "logic": logic, "idle": False,
+            "orbs": [palette[i % len(palette)] for i in range(n)],
+            "label": f"🔍 閃き {amount}" if logic else f"👤 幻惑 {amount}"}
+
+
+def detective_rank_for_exp(exp: int) -> dict[str, Any]:
+    """Detective investigation rank and cumulative stat bonuses from total EXP (Lv 1..7)."""
+    exp = _bounded_int(exp, "exp", 0, 999999)
+    level = 1
+    for idx, threshold in enumerate(DETECTIVE_RANK_THRESHOLDS, start=1):
+        if exp >= threshold:
+            level = idx
+    next_exp = DETECTIVE_RANK_THRESHOLDS[level] if level < len(DETECTIVE_RANK_THRESHOLDS) else DETECTIVE_RANK_THRESHOLDS[-1]
+    return {"level": level, "title": DETECTIVE_RANK_TITLES[level - 1], "exp": exp, "next_exp": next_exp,
+            "bonus_hp": (level - 1) * 6, "bonus_stamina": (level - 1) * 8,
+            "bonus_logic": (level - 1) * 2, "bonus_pokerface": (level - 1) * 1}
+
+
+def detective_clue_profile(index: int, tx: int, ty: int, seed: int = 20261127, *,
+                           boss_cell: tuple[int, int] = (38, 33), start_cell: tuple[int, int] = (30, 2)) -> dict[str, Any]:
+    """Deterministic mystery shadow tier, trick HP, rewards and PySaiyanWeBoo ``GARDEN_GLYPHS`` bloom for one scattered shadow."""
+    index = _bounded_int(index, "index", 0, 511)
+    tx, ty = _bounded_int(tx, "tx", 0, 511), _bounded_int(ty, "ty", 0, 511)
+    seed = _bounded_int(seed, "seed", 0, 0xFFFFFFFF)
+    mixed = (seed ^ ((tx * 73856093) & 0xFFFFFFFF) ^ ((ty * 19349663) & 0xFFFFFFFF) ^ (((index + 1) * 83492791) & 0xFFFFFFFF)) & 0xFFFFFFFF
+    word = play_random(mixed)
+    bloom = GARDEN_GLYPHS[word % len(GARDEN_GLYPHS)]
+    if (tx, ty) == tuple(boss_cell):
+        tier, name, emoji, trick, confusion, exp, medals, step = 3, "怪盗黒幕シャドウ", "🎭", 42, 11, 65, 55, 10
+    elif abs(tx - start_cell[0]) + abs(ty - start_cell[1]) <= 6 or (word % 3) != 0:
+        tier, name, emoji, trick, confusion, exp, medals, step = 1, "街角の不審な痕跡", "👤", 10, 4, 16, 12, 5
+    else:
+        tier, name, emoji, trick, confusion, exp, medals, step = 2, "難解な暗号トリック", "👤", 22, 7, 28, 22, 5
+    return {"id": f"shadow-{index}", "index": index, "tx": tx, "ty": ty, "tier": tier, "boss": tier == 3,
+            "name": name, "emoji": emoji, "trick": trick, "confusion": confusion, "exp": exp, "medals": medals,
+            "garden_step": step, "bloom": bloom}
+
+
+def detective_strike(logic: int, roll_word: int, *, mult_pct: int = 100) -> dict[str, Any]:
+    """Pure integer logic deduction cracking matching ``WORLD_DETECTIVE_JS``."""
+    logic = _bounded_int(logic, "logic", 1, 999)
+    roll_word = _bounded_int(roll_word, "roll_word", 0, 0xFFFFFFFF)
+    mult_pct = _bounded_int(mult_pct, "mult_pct", 10, 500)
+    crit = (roll_word % 100) < 18
+    variance = ((roll_word >> 8) % 3) - 1
+    unravel = max(2, (logic * mult_pct) // 100 + variance)
+    if crit:
+        unravel = max(4, (unravel * 3) // 2)
+    return {"unravel": unravel, "crit": crit, "effect": detective_orb_effect(unravel, logic=True)}
+
+
+def detective_contradiction_hit(confusion: int, pokerface: int, roll_word: int, *, guarding: bool = False) -> dict[str, Any]:
+    """Pure integer confusion damage from an unsolved mystery."""
+    confusion = _bounded_int(confusion, "confusion", 1, 999)
+    pokerface = _bounded_int(pokerface, "pokerface", 0, 999)
+    roll_word = _bounded_int(roll_word, "roll_word", 0, 0xFFFFFFFF)
+    if not isinstance(guarding, bool):
+        raise ValueError("guarding must be bool")
+    variance = (roll_word % 3) - 1
+    dmg = max(1, confusion - pokerface // 2 + variance)
+    if guarding:
+        dmg = max(1, dmg // 2)
+    return {"damage": dmg, "effect": detective_orb_effect(dmg, logic=False)}
+
+
+def detective_garden_step(current_value: int, magnitude: int = 5) -> int:
+    """Choose +/-5 or +/-10 so ``counter_garden`` never saturates at +/-100 and every solved shadow plants a cell."""
+    current_value = _bounded_int(current_value, "current_value", -100, 100)
+    if magnitude not in (1, 5, 10):
+        raise ValueError("magnitude is 1, 5 or 10")
+    return magnitude if current_value + magnitude <= 100 else -magnitude
+
+
+def detective_garden(seed: int, actions: list[int]) -> dict[str, Any]:
+    """Greening state of Seyakate Osaka delegated directly to PySaiyanWeBoo's ``counter_garden``."""
+    return counter_garden(seed, actions)
+
+
+def detective_nearest_clue(px: float, py: float, shadows: list[dict[str, Any]], tile: int = 32) -> dict[str, Any] | None:
+    """Nearest active mystery shadow and its ``world_direction`` compass arrow from ``(px, py)``."""
+    if not shadows:
+        return None
+    best = min(shadows, key=lambda f: ((f["x"] - px) ** 2 + (f["y"] - py) ** 2, f["y"], f["x"]))
+    dist = math.hypot(best["x"] - px, best["y"] - py)
+    return {"id": best["id"], "x": best["x"], "y": best["y"],
+            "arrow": world_direction([px, py], [best["x"], best["y"]], tile),
+            "tiles": round(dist / max(1, tile))}
+
+
+def detective_validate(detective_in: Any, *, floors: list[dict[str, Any]]) -> dict[str, Any]:
+    """Checked copy of optional ``detective`` investigation & gamification spec."""
+    allowed = {"floor", "seed", "boss_cell", "start_cell", "hero", "nodes", "tactics", "shop", "quests", "badges", "quizzes"}
+    if not isinstance(detective_in, dict) or set(detective_in) - allowed:
+        raise ValueError("detective has floor, seed, boss_cell, hero, nodes, tactics, shop, quests, badges and quizzes")
+    floor_id = detective_in.get("floor")
+    fl = next((f for f in floors if f["id"] == floor_id), None)
+    if fl is None:
+        raise ValueError(f"detective floor {floor_id!r} must name one of the world's floors")
+    tile = fl.get("tile")
+    if not tile or not fl.get("player"):
+        raise ValueError("detective floor requires a tile grid and a player")
+    shadow_props = [p for p in fl.get("props", []) if p["kind"] == "shadow"]
+    if not shadow_props:
+        raise ValueError("detective floor requires at least one shadow prop")
+    cols, rows = fl["width"] // tile, fl["height"] // tile
+    start_cell = (fl["player"]["x"] // tile, fl["player"]["y"] // tile)
+    seed = _bounded_int(detective_in.get("seed", 20261127), "detective seed", 0, 0xFFFFFFFF)
+    boss_in = detective_in.get("boss_cell")
+    if not isinstance(boss_in, (list, tuple)) or len(boss_in) != 2:
+        raise ValueError("boss_cell is [tx, ty]")
+    boss_cell = (_bounded_int(boss_in[0], "boss tx", 0, cols - 1), _bounded_int(boss_in[1], "boss ty", 0, rows - 1))
+    if not any(p["x"] // tile == boss_cell[0] and p["y"] // tile == boss_cell[1] for p in shadow_props):
+        raise ValueError(f"boss_cell {boss_cell} must match one of the floor's shadow props")
+    hero_in = detective_in.get("hero", {})
+    if not isinstance(hero_in, dict) or set(hero_in) - {"hp", "stamina", "logic", "pokerface", "medals"}:
+        raise ValueError("detective hero has hp, stamina, logic, pokerface and medals")
+    hero = {
+        "hp": _bounded_int(hero_in.get("hp", 40), "hero hp", 10, 500),
+        "stamina": _bounded_int(hero_in.get("stamina", 48), "hero stamina", 10, 500),
+        "logic": _bounded_int(hero_in.get("logic", 8), "hero logic", 1, 100),
+        "pokerface": _bounded_int(hero_in.get("pokerface", 2), "hero pokerface", 0, 100),
+        "medals": _bounded_int(hero_in.get("medals", 0), "hero medals", 0, 9999),
+    }
+    nodes_in = detective_in.get("nodes", [])
+    if not isinstance(nodes_in, list) or not 1 <= len(nodes_in) <= 48:
+        raise ValueError("detective nodes lists 1..48 entries")
+    blocked = world_blocked(fl["width"], fl["height"], tile, fl.get("props", []))
+    occupied_cells = {(p["x"] // tile, p["y"] // tile) for p in fl.get("props", []) if p["kind"] == "shadow"}
+    occupied_cells |= {(s["x"] // tile, s["y"] // tile) for s in fl.get("spots", [])}
+    nodes, seen_ids, seen_cells = [], set(), set()
+    for nd in nodes_in:
+        if not isinstance(nd, dict):
+            raise ValueError("detective node must be a dict")
+        nid = _world_id(nd.get("id"), "detective node id", seen_ids)
+        nkind = nd.get("kind")
+        if nkind not in DETECTIVE_NODE_KINDS:
+            raise ValueError(f"detective node kind is one of {', '.join(DETECTIVE_NODE_KINDS)}")
+        tx, ty = _bounded_int(nd.get("tx"), "node tx", 0, cols - 1), _bounded_int(nd.get("ty"), "node ty", 0, rows - 1)
+        if (tx, ty) in occupied_cells or (tx, ty) in seen_cells:
+            raise ValueError(f"detective node {nid!r} collides with another node, spot or shadow at {(tx, ty)}")
+        if blocked[ty][tx] == "1":
+            raise ValueError(f"detective node {nid!r} at {(tx, ty)} is blocked or unreachable")
+        seen_cells.add((tx, ty))
+        base_node = {
+            "id": nid, "kind": nkind, "tx": tx, "ty": ty,
+            "x": int((tx + 0.5) * tile), "y": int((ty + 0.5) * tile),
+            "emoji": _world_emoji(nd.get("emoji")),
+            "label": _world_text(nd.get("label"), "node label", 40),
+        }
+        if nkind == "npc":
+            lines_in = nd.get("lines", [])
+            if not isinstance(lines_in, list) or not 1 <= len(lines_in) <= 6:
+                raise ValueError("npc node lines lists 1..6 strings")
+            base_node.update({
+                "speaker": _world_text(nd.get("speaker", nd.get("label")), "npc speaker", 32),
+                "greeting": _world_text(nd.get("greeting"), "npc greeting", 240),
+                "lines": [_world_text(ln, "npc line", 240) for ln in lines_in],
+                **({"shop": True} if nd.get("shop") else {}),
+                **({"refill": True} if nd.get("refill") else {}),
+                **({"quiz": True} if nd.get("quiz") else {}),
+            })
+        elif nkind == "stand":
+            base_node.update({
+                "greeting": _world_text(nd.get("greeting", "給水・茶房スタンドで水分と体力を補給した！"), "stand greeting", 240),
+            })
+        elif nkind in ("drop", "chest"):
+            itype = nd.get("item_type")
+            if itype not in DETECTIVE_ITEM_TYPES:
+                raise ValueError(f"detective item_type is one of {', '.join(DETECTIVE_ITEM_TYPES)}")
+            base_node.update({
+                "item_emoji": _world_emoji(nd.get("item_emoji", nd.get("emoji"))),
+                "item_label": _world_text(nd.get("item_label", nd.get("label")), "item label", 40),
+                "desc": _world_text(nd.get("desc"), "item desc", 160),
+                "item_type": itype,
+                "hp": _bounded_int(nd.get("hp", 0), "item hp", 0, 500),
+                "stamina": _bounded_int(nd.get("stamina", 0), "item stamina", 0, 500),
+                "logic": _bounded_int(nd.get("logic", 0), "item logic", 0, 100),
+                "pokerface": _bounded_int(nd.get("pokerface", 0), "item pokerface", 0, 100),
+                "exp": _bounded_int(nd.get("exp", 0), "item exp", 0, 9999),
+                "medals": _bounded_int(nd.get("medals", 0), "item medals", 0, 9999),
+                **({"opened_emoji": _world_emoji(nd.get("opened_emoji", "📭"))} if nkind == "chest" else {}),
+                **({"requires_clues": _bounded_int(nd.get("requires_clues", 0), "requires_clues", 0, 99)} if "requires_clues" in nd else {}),
+            })
+        nodes.append(base_node)
+    tactics_in = detective_in.get("tactics", [])
+    if not isinstance(tactics_in, list) or not 1 <= len(tactics_in) <= 8:
+        raise ValueError("detective tactics lists up to 8 entries")
+    tactics, seen_t = [], set()
+    for j in tactics_in:
+        if not isinstance(j, dict) or set(j) - {"id", "emoji", "label", "stamina", "kind", "mult_pct", "heal_hp", "desc"}:
+            raise ValueError("detective tactic has id, emoji, label, stamina, kind, mult_pct, desc and optional heal_hp")
+        tkind = j.get("kind")
+        if tkind not in DETECTIVE_TACTIC_KINDS:
+            raise ValueError(f"tactic kind is one of {', '.join(DETECTIVE_TACTIC_KINDS)}")
+        tactics.append({
+            "id": _world_id(j.get("id"), "tactic id", seen_t),
+            "emoji": _world_emoji(j.get("emoji")),
+            "label": _world_text(j.get("label"), "tactic label", 40),
+            "stamina": _bounded_int(j.get("stamina", 0), "tactic stamina", 0, 100),
+            "kind": tkind,
+            "mult_pct": _bounded_int(j.get("mult_pct", 100), "mult_pct", 10, 500),
+            **({"heal_hp": _bounded_int(j.get("heal_hp", 0), "heal_hp", 0, 100)} if "heal_hp" in j else {}),
+            "desc": _world_text(j.get("desc"), "tactic desc", 120),
+        })
+    shop_in = detective_in.get("shop", [])
+    if not isinstance(shop_in, list) or len(shop_in) > 16:
+        raise ValueError("detective shop lists up to 16 entries")
+    shop, seen_s = [], set()
+    for s in shop_in:
+        if not isinstance(s, dict) or set(s) - {"id", "emoji", "label", "cost", "item_type", "hp", "stamina", "logic", "pokerface", "desc"}:
+            raise ValueError("detective shop item has id, emoji, label, cost, item_type, hp, stamina, logic, pokerface and desc")
+        shop.append({
+            "id": _world_id(s.get("id"), "shop item id", seen_s),
+            "emoji": _world_emoji(s.get("emoji")),
+            "label": _world_text(s.get("label"), "shop item label", 40),
+            "cost": _bounded_int(s.get("cost"), "cost", 1, 9999),
+            "item_type": s.get("item_type"),
+            "hp": _bounded_int(s.get("hp", 0), "shop hp", 0, 500),
+            "stamina": _bounded_int(s.get("stamina", 0), "shop stamina", 0, 500),
+            "logic": _bounded_int(s.get("logic", 0), "shop logic", 0, 100),
+            "pokerface": _bounded_int(s.get("pokerface", 0), "shop pokerface", 0, 100),
+            "desc": _world_text(s.get("desc"), "shop desc", 120),
+        })
+    quests_in = detective_in.get("quests", [])
+    if not isinstance(quests_in, list) or len(quests_in) > 24:
+        raise ValueError("detective quests lists up to 24 entries")
+    quests, seen_q = [], set()
+    for q in quests_in:
+        if not isinstance(q, dict) or set(q) - {"id", "title", "desc", "kind", "count", "reward_exp", "reward_medals"}:
+            raise ValueError("detective quest has id, title, desc, kind, count, reward_exp and reward_medals")
+        qkind = q.get("kind")
+        if qkind not in DETECTIVE_QUEST_KINDS:
+            raise ValueError(f"detective quest kind is one of {', '.join(DETECTIVE_QUEST_KINDS)}")
+        quests.append({
+            "id": _world_id(q.get("id"), "quest id", seen_q),
+            "title": _world_text(q.get("title"), "quest title", 48),
+            "desc": _world_text(q.get("desc"), "quest desc", 160),
+            "kind": qkind,
+            "count": _bounded_int(q.get("count", 1), "quest count", 1, 99),
+            "reward_exp": _bounded_int(q.get("reward_exp", 0), "reward_exp", 0, 9999),
+            "reward_medals": _bounded_int(q.get("reward_medals", 0), "reward_medals", 0, 9999),
+        })
+    badges_in = detective_in.get("badges", [])
+    if not isinstance(badges_in, list) or len(badges_in) > 24:
+        raise ValueError("detective badges lists up to 24 entries")
+    badges, seen_b = [], set()
+    for b in badges_in:
+        if not isinstance(b, dict) or set(b) - {"id", "emoji", "label", "desc"}:
+            raise ValueError("detective badge has id, emoji, label and desc")
+        badges.append({
+            "id": _world_id(b.get("id"), "badge id", seen_b),
+            "emoji": _world_emoji(b.get("emoji")),
+            "label": _world_text(b.get("label"), "badge label", 40),
+            "desc": _world_text(b.get("desc"), "badge desc", 120),
+        })
+    quizzes_in = detective_in.get("quizzes", [])
+    if not isinstance(quizzes_in, list) or len(quizzes_in) > 24:
+        raise ValueError("detective quizzes lists up to 24 entries")
+    quizzes = []
+    for qz in quizzes_in:
+        if not isinstance(qz, dict) or set(qz) - {"prompt", "choices", "correct", "explanation", "repo"}:
+            raise ValueError("quiz has prompt, choices (3), correct (0..2), explanation and optional repo")
+        choices = qz.get("choices")
+        if not isinstance(choices, list) or len(choices) != 3:
+            raise ValueError("quiz choices must have 3 items")
+        quizzes.append({
+            "prompt": _world_text(qz.get("prompt"), "quiz prompt", 200),
+            "choices": [_world_text(c, "quiz choice", 80) for c in choices],
+            "correct": _bounded_int(qz.get("correct"), "quiz correct", 0, 2),
+            "explanation": _world_text(qz.get("explanation"), "quiz explanation", 240),
+            **({"repo": _world_text(qz["repo"], "quiz repo", 60)} if "repo" in qz else {}),
+        })
+    return {"floor": floor_id, "seed": seed, "boss_cell": list(boss_cell), "start_cell": list(start_cell),
+            "hero": hero, "nodes": nodes, "tactics": tactics, "shop": shop,
+            "quests": quests, "badges": badges, "quizzes": quizzes}
+
+
 def world_validate(spec: Any) -> dict[str, Any]:
     """Checked copy of a ``web-ui-world/1`` spec: optional ``shots`` (scroll scenes) and ``floors`` (maps with spots)."""
     if not isinstance(spec, dict) or spec.get("schema") != WORLD_SCHEMA:
         raise ValueError(f"expected schema {WORLD_SCHEMA}")
-    if set(spec) - {"schema", "id", "title", "shots", "floors", "zoom_max", "board", "avatars", "shell", "tools", "names", "mark_scale", "move", "rpg", "rescue"}:
-        raise ValueError("a world has schema, id, title, shots, floors, zoom_max, board, avatars, shell, tools, names, mark_scale, move, rpg and rescue")
+    if set(spec) - {"schema", "id", "title", "shots", "floors", "zoom_max", "board", "avatars", "shell", "tools", "names", "mark_scale", "move", "rpg", "rescue", "detective"}:
+        raise ValueError("a world has schema, id, title, shots, floors, zoom_max, board, avatars, shell, tools, names, mark_scale, move, rpg, rescue and detective")
     move = spec.get("move", "direct")
     if move not in ("direct", "confirm"):
         raise ValueError("move is direct or confirm")
@@ -1293,10 +1594,12 @@ def world_validate(spec: Any) -> dict[str, Any]:
     if rpg is not None and not floors:
         raise ValueError("rpg requires a world with floors")
     rescue = rescue_validate(spec["rescue"], floors=floors) if spec.get("rescue") is not None else None
+    detective = detective_validate(spec["detective"], floors=floors) if spec.get("detective") is not None else None
     return {"schema": WORLD_SCHEMA, "id": world_id, "title": _world_text(spec.get("title", "World"), "title", 80),
             "shots": shots, "floors": floors, "zoom_max": zoom_max, "board": board, "names": names, "move": move, "mark_scale": [float(v) for v in mark_scale], **({"avatars": avatars} if avatars else {}),
             **({"shell": True} if shell else {}), **({"tools": tools} if tools else {}), **({"rpg": rpg} if rpg is not None else {}),
-            **({"rescue": rescue} if rescue is not None else {})}
+            **({"rescue": rescue} if rescue is not None else {}),
+            **({"detective": detective} if detective is not None else {})}
 
 
 def _floor_kit(tile: int, id: str) -> tuple[Any, Any]:
@@ -1846,7 +2149,8 @@ def _world_playable(world: dict[str, Any]) -> bool:
 
 
 def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = False,
-                rpg: dict[str, Any] | None = None, rescue: dict[str, Any] | None = None) -> tuple[str, list[str]]:
+                rpg: dict[str, Any] | None = None, rescue: dict[str, Any] | None = None,
+                detective: dict[str, Any] | None = None) -> tuple[str, list[str]]:
     """One floor's stage (props, spots, actors, player) and the info sheet articles of its spots and actors (``close`` is their closing link)."""
     flip = lambda s: (f' data-flip="{escape(s["flip"], quote=True)}"' if s.get("flip") else "") + (f' data-sign="{s["sign"]}"' if s.get("sign") else "") + (f' data-named="{"" if s["always_named"] is True else s["always_named"]}"' if s.get("always_named") else "")   # noqa: E731
     mark = lambda s: f';--mark:\'{escape(s["mark"], quote=True)}\'' if s.get("mark") else ""   # noqa: E731  (the dot's replacement, read by CSS content)
@@ -1875,6 +2179,15 @@ def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = Fals
         f'<span class="ui-rescue-label">{escape(nd["label"])}</span></button>'
         for nd in (rescue["nodes"] if on_rescue else ())
     )
+    on_detective = bool(detective and f["id"] == detective["floor"])
+    detective_nodes = "".join(
+        f'<button type="button" class="ui-detective-node" data-detective-id="{nd["id"]}" data-detective-kind="{nd["kind"]}" '
+        f'data-x="{nd["x"]}" data-y="{nd["y"]}" style="left:{nd["x"]}px;top:{nd["y"]}px" '
+        f'aria-label="{escape(nd["emoji"] + " " + nd["label"], quote=True)}">'
+        f'<span class="ui-detective-glyph" aria-hidden="true">{escape(nd["emoji"])}</span>'
+        f'<span class="ui-detective-label">{escape(nd["label"])}</span></button>'
+        for nd in (detective["nodes"] if on_detective else ())
+    )
     pl = f["player"]
     player = (f'<span class="ui-player" data-x="{pl["x"]}" data-y="{pl["y"]}" data-speed="{pl["speed"]}" '
               f'style="--px:{pl["x"]};--py:{pl["y"]}" role="img" aria-label="自分"><span>{escape(pl["emoji"])}</span></span>') if pl else ""
@@ -1883,7 +2196,7 @@ def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = Fals
                     f'style="left:{q["x"]}px;top:{q["y"]}px;width:{q["w"]}px;height:{q["h"]}px"></div>' for q in f.get("props", []))
     grid = (f' data-tile="{tile}" data-blocked="{",".join(world_blocked(f["width"], f["height"], tile, f["props"]))}"') if tile else ""
     stage = (f'<div class="ui-floor" data-floor="{f["id"]}" data-w="{f["width"]}" data-h="{f["height"]}"{grid}{" data-real" if f.get("real") else ""} '
-             f'style="width:{f["width"]}px;height:{f["height"]}px{f";--tile:{tile}px" if tile else ""}">{props}{rescue_nodes}{spots}{actors}{player}</div>')
+             f'style="width:{f["width"]}px;height:{f["height"]}px{f";--tile:{tile}px" if tile else ""}">{props}{rescue_nodes}{detective_nodes}{spots}{actors}{player}</div>')
     def take(s: dict[str, Any]) -> str:
         item = s.get("item")
         if not item:
@@ -1916,6 +2229,22 @@ def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = Fals
         )
         if rescue_takes:
             sheet.append(f'<div class="ui-sheet-item ui-rescue-items" id="{wid}-rescue-items" hidden>{rescue_takes}</div>')
+    if on_detective:
+        detective_takes = "".join(
+            f'<button type="button" class="ui-world-take" data-item-id="{wid}-detective-{nd["id"]}" '
+            f'data-item-emoji="{escape(nd["item_emoji"], quote=True)}" data-item-label="{escape(nd["item_label"], quote=True)}" '
+            f'data-item-floor="{f["id"]}" data-item-x="{nd["x"]}" data-item-y="{nd["y"]}" '
+            f'aria-pressed="false" hidden {_wt("take")}>{escape(nd["item_emoji"])} <span class="ui-world-take-mark" aria-hidden="true">＋</span></button>'
+            for nd in detective["nodes"] if nd["kind"] in ("drop", "chest")
+        ) + "".join(
+            f'<button type="button" class="ui-world-take" data-item-id="{wid}-detective-shop-{sh["id"]}" '
+            f'data-item-emoji="{escape(sh["emoji"], quote=True)}" data-item-label="{escape(sh["label"], quote=True)}" '
+            f'data-item-floor="{f["id"]}" data-item-x="{pl["x"] if pl else 0}" data-item-y="{pl["y"] if pl else 0}" '
+            f'aria-pressed="false" hidden {_wt("take")}>{escape(sh["emoji"])} <span class="ui-world-take-mark" aria-hidden="true">＋</span></button>'
+            for sh in detective["shop"]
+        )
+        if detective_takes:
+            sheet.append(f'<div class="ui-sheet-item ui-detective-items" id="{wid}-detective-items" hidden>{detective_takes}</div>')
     return stage, sheet
 
 
@@ -2007,6 +2336,27 @@ def _rescue_hud_html(rescue: dict[str, Any] | None, floors: list[dict[str, Any]]
     )
 
 
+def _detective_hud_html(detective: dict[str, Any] | None, floors: list[dict[str, Any]]) -> str:
+    """Compact Osaka detective investigation HUD shown only on the ``detective`` floor (hidden until script binds)."""
+    if not detective:
+        return ""
+    hero = detective["hero"]
+    total_q = len(detective["quests"])
+    total_shadows = sum(1 for f in floors if f["id"] == detective["floor"] for q in f.get("props", []) if q["kind"] == "shadow")
+    return (
+        '<div class="ui-detective-hud" hidden aria-label="浪速探偵ステータス">'
+        '<span class="ui-rpg-stat ui-rpg-hero" data-detective-hero>🕵️‍♂️ Lv.1 見習い浪速調査員</span>'
+        f'<span class="ui-rpg-stat" data-detective-hp-wrap><span class="ui-rpg-meter"><i data-detective-hp-bar style="width:100%"></i></span><b data-detective-hp>❤️ {hero["hp"]}/{hero["hp"]}</b></span>'
+        f'<span class="ui-rpg-stat" data-detective-stamina-wrap><span class="ui-rpg-meter ui-rpg-meter-mp"><i data-detective-stamina-bar style="width:100%"></i></span><b data-detective-stamina>⚡ {hero["stamina"]}/{hero["stamina"]}</b></span>'
+        f'<span class="ui-rpg-stat" data-detective-clues>🔍 解決 0/{total_shadows} (0%)</span>'
+        f'<span class="ui-rpg-stat" data-detective-medals>🪙 {hero["medals"]}</span>'
+        f'<span class="ui-rpg-stat" data-detective-gear>💡 {hero["logic"]} 🛡️ {hero["pokerface"]}</span>'
+        f'<button type="button" class="ui-rpg-pill" data-detective-journal-btn aria-label="浪速探偵手帳（事件ファイル・バッジ・どうぐ・緑化）">📋 <span data-detective-qcount>0/{total_q}</span></button>'
+        '<button type="button" class="ui-rpg-pill" data-detective-radar-btn aria-label="一番近い謎・事件現場へ急行する">🧭 <span data-detective-radar>📍 現場へ</span></button>'
+        '</div>'
+    )
+
+
 def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tail: str, floor_labels: str, embedded: bool) -> str:
     """A shell world keeps the page short and says it with icons (the words are the aria-label and title, in 11 languages):
 
@@ -2049,7 +2399,7 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
                  "".join(f'<option value="{v}"{" selected" if v == world["names"] else ""}>{t}</option>' for v, t in zip(WORLD_NAMES, ("🏷️", "●", "✖️"))) +
                  '</select></label>' if any(f["spots"] for f in floors) else ""))
     bag = (icon("bag", "🎒", _wt("bag"), '<p class="ui-world-empty" aria-hidden="true">🎒</p><ul class="ui-world-rows ui-world-bag"></ul>', hidden=True)
-           if any("item" in s for f in floors for s in f["spots"]) or bool(world.get("rescue")) else "")
+           if any("item" in s for f in floors for s in f["spots"]) or bool(world.get("rescue")) or bool(world.get("detective")) else "")
     header_tools = (f'<a class="ui-world-home" href="#{wid}-map" data-home {_wt("home")}>🏠</a>' +
                     "".join(custom(e, t) for e, t in tools.items() if t["slot"] == "head") +
                     icon("favorites", "⭐", _wt("favorites"), '<p class="ui-world-empty" aria-hidden="true">☆</p><ul class="ui-world-rows ui-world-favs"></ul>', hidden=True) +
@@ -2064,14 +2414,15 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
             '</select></label></footer>') if len(floors) > 1 else ""
     rpg_hud = _rpg_hud_html(world.get("rpg"))
     rescue_hud = _rescue_hud_html(world.get("rescue"), floors)
+    detective_hud = _detective_hud_html(world.get("detective"), floors)
     toolbar = "div" if embedded else "header"
     return (f'{head}{radios}<{toolbar} class="ui-world-head">{_board_html(world["board"])}<nav class="ui-world-tools">{header_tools}</nav></{toolbar}>'
-            f'{rpg_hud}{rescue_hud}<div class="ui-world-body">{view}{dpad}<div class="ui-world-side">{side}</div></div>{foot}{tail}')
+            f'{rpg_hud}{rescue_hud}{detective_hud}<div class="ui-world-body">{view}{dpad}<div class="ui-world-side">{side}</div></div>{foot}{tail}')
 
 
 def _map_html(world: dict[str, Any], *, embedded: bool = False) -> str:
     wid, floors, shell = world["id"], world["floors"], _world_shell(world)
-    rpg, rescue = world.get("rpg"), world.get("rescue")
+    rpg, rescue, detective = world.get("rpg"), world.get("rescue"), world.get("detective")
     categories = _world_categories(floors)
     cat_ids = [""] + categories
     radios = "".join(
@@ -2085,18 +2436,20 @@ def _map_html(world: dict[str, Any], *, embedded: bool = False) -> str:
         labels += "".join(f'<label for="{wid}-cat-{"value-" + c if c else "all"}" data-cat="{c}">{escape(c or "all")}</label>' for c in cat_ids)
     close = f'<a class="ui-sheet-close" href="#{wid}-map"' + (f' {_wt("close")}>✖️</a>' if shell else ">Close</a>")          # an icon in a shell world
     confirm = world["move"] == "confirm"
-    built = [_floor_html(wid, f, close, confirm=confirm, rpg=rpg, rescue=rescue) for f in floors]
+    built = [_floor_html(wid, f, close, confirm=confirm, rpg=rpg, rescue=rescue, detective=detective) for f in floors]
     scale = "" if world["mark_scale"] == [1, 1] else f' style="--mark-x:{world["mark_scale"][0]:g};--mark-y:{world["mark_scale"][1]:g}"'
     move_attr = ' data-move="confirm"' if confirm else ""
     rpg_attr = ' data-rpg' if rpg else ""
     rescue_attr = f' data-rescue="{rescue["floor"]}"' if rescue else ""
+    detective_attr = f' data-detective="{detective["floor"]}"' if detective else ""
     rpg_json = ('<script type="application/json" class="ui-rpg-data">' + json.dumps(rpg, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + '</script>') if rpg else ""
     rescue_json = ('<script type="application/json" class="ui-rescue-data">' + json.dumps(rescue, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + '</script>') if rescue else ""
+    detective_json = ('<script type="application/json" class="ui-detective-data">' + json.dumps(detective, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + '</script>') if detective else ""
     head = (f'<section class="ui-world ui-world-map" id="{wid}-map" data-ui-world="map" data-zoom-max="{world["zoom_max"]}" data-names="{world["names"]}"'
-            f'{move_attr}{rpg_attr}{rescue_attr}{scale}'
+            f'{move_attr}{rpg_attr}{rescue_attr}{detective_attr}{scale}'
             f'{" data-grid" if any(f.get("tile") for f in floors) else ""}{" data-shell" if shell else ""} aria-label="{escape(world["title"], quote=True)}">')
     view = f'<div class="ui-world-view" tabindex="0"><div class="ui-world-cam" style="--fx:0;--fy:0;--z:1">{"".join(stage for stage, _ in built)}</div></div>'
-    tail = f'<aside class="ui-sheet" aria-live="polite">{"".join(a for _, articles in built for a in articles)}</aside>{_pick_html(wid, world.get("avatars", []), shell)}{rpg_json}{rescue_json}</section>'
+    tail = f'<aside class="ui-sheet" aria-live="polite">{"".join(a for _, articles in built for a in articles)}</aside>{_pick_html(wid, world.get("avatars", []), shell)}{rpg_json}{rescue_json}{detective_json}</section>'
     if shell:
         return _shell_html(world, head=head, radios=radios, view=view, tail=tail, floor_labels=floor_labels, embedded=embedded)
     return _classic_html(world, head=head, radios=radios, labels=labels, view=view, tail=tail)
@@ -2344,6 +2697,31 @@ _WORLD_RESCUE_CSS = (
     "@media(prefers-reduced-motion:reduce){.ui-floor[data-floor=\"paris\"] .ui-prop[data-kind=\"fire\"][data-fire-tier=\"3\"]{animation:none!important}}"
 )
 
+_WORLD_DETECTIVE_CSS = (
+    ".ui-detective-hud{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:4px 8px;border-bottom:1px solid var(--ui-border);background:var(--ui-panel);font-size:.78rem;line-height:1.2}"
+    ".ui-detective-hud[hidden]{display:none}"
+    ".ui-detective-node{position:absolute;transform:translate(-50%,-50%);z-index:3;display:inline-flex;align-items:center;justify-content:center;min-width:28px;min-height:28px;padding:1px 5px;border-radius:999px;border:1px solid var(--ui-border);background:var(--ui-bg);color:var(--ui-fg);font:inherit;font-size:.76rem;font-weight:600;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.22);transition:transform .12s ease,border-color .12s ease}"
+    ".ui-detective-node:hover,.ui-detective-node:focus-visible{border-color:var(--ui-accent);transform:translate(-50%,-50%) scale(1.12);outline:none}"
+    "[data-detective-kind=\"npc\"]{border-color:color-mix(in srgb,var(--ui-accent) 45%,transparent)}"
+    "[data-detective-kind=\"stand\"]{border-color:#14b8a6;box-shadow:0 0 0 2px color-mix(in srgb,#14b8a6 28%,transparent)}"
+    "[data-detective-kind=\"chest\"]{border-color:#f59e0b;box-shadow:0 0 0 2px color-mix(in srgb,#f59e0b 28%,transparent)}"
+    "[data-detective-kind=\"drop\"]{border-color:#10b981;box-shadow:0 0 0 2px color-mix(in srgb,#10b981 28%,transparent)}"
+    ".ui-detective-node[data-detective-collected=\"true\"],.ui-detective-node[data-detective-opened=\"true\"]{opacity:.52;box-shadow:none}"
+    ".ui-detective-glyph{font-size:1.15rem;line-height:1}"
+    ".ui-detective-label{display:none}"
+    ".ui-floor[data-floor=\"osaka\"] .ui-prop[data-kind=\"shadow\"]{cursor:pointer;pointer-events:auto;border-radius:4px;transition:box-shadow .15s ease}"
+    ".ui-floor[data-floor=\"osaka\"] .ui-prop[data-kind=\"shadow\"]:hover{outline:2px solid #6366f1;outline-offset:1px}"
+    ".ui-floor[data-floor=\"osaka\"] .ui-prop[data-kind=\"shadow\"][data-shadow-tier=\"3\"]{outline:2px solid #e11d48;box-shadow:0 0 10px color-mix(in srgb,#e11d48 60%,transparent);animation:ui-shadow-pulse 1.4s ease-in-out infinite}"
+    "@keyframes ui-shadow-pulse{0%,100%{outline-color:#e11d48}50%{outline-color:#fb7185}}"
+    ".ui-floor[data-floor=\"osaka\"] .ui-prop[data-kind=\"shadow\"][data-cleared]{pointer-events:none;opacity:.88;outline:none!important;box-shadow:none!important;animation:none!important}"
+    ".ui-detective-garden{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px;padding:8px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-panel);max-width:320px;margin:0 auto}"
+    ".ui-detective-cell{display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;font-size:1.05rem;background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:4px;line-height:1}"
+    ".ui-detective-rewards{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-panel);font-size:.82rem}"
+    "@media(max-height:450px){.ui-detective-hud{padding:2px 6px;gap:2px 6px;font-size:.70rem}}"
+    "@media(max-width:420px){.ui-detective-hud{padding:2px 4px;gap:2px 4px;font-size:.68rem}}"
+    "@media(prefers-reduced-motion:reduce){.ui-floor[data-floor=\"osaka\"] .ui-prop[data-kind=\"shadow\"][data-shadow-tier=\"3\"]{animation:none!important}}"
+)
+
 _WALL_CSS = (
     ".ui-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}"
     ".ui-wall-cell{border:1px solid var(--ui-border);padding:16px;border-radius:var(--ui-radius);background:var(--ui-bg);color:var(--ui-fg)}"
@@ -2363,7 +2741,7 @@ def world_css(spec: Any, *, base: bool = True) -> str:
     """
     world = world_validate(spec)
     wid, rules = world["id"], [world_base_css()] if base else []
-    if world.get("rpg") or world.get("rescue"):
+    if world.get("rpg") or world.get("rescue") or world.get("detective"):
         rules.append(_WORLD_RPG_CSS)
     if world.get("rescue"):
         rules.append(_WORLD_RESCUE_CSS)
@@ -2371,6 +2749,12 @@ def world_css(spec: Any, *, base: bool = True) -> str:
         rules.append(f'#{wid}-map:not(:has(#{wid}-floor-{rfloor}:checked)) .ui-rescue-hud{{display:none!important}}')
         rules.append(f'#{wid}-map[data-shell]:has(#{wid}-floor-{rfloor}:checked){{--ui-world-h:min(44vh,452px)}}')
         rules.append(f'@media(max-height:450px){{#{wid}-map[data-shell]:has(#{wid}-floor-{rfloor}:checked){{--ui-world-h:min(36vh,160px)}}}}')
+    if world.get("detective"):
+        rules.append(_WORLD_DETECTIVE_CSS)
+        dfloor = world["detective"]["floor"]
+        rules.append(f'#{wid}-map:not(:has(#{wid}-floor-{dfloor}:checked)) .ui-detective-hud{{display:none!important}}')
+        rules.append(f'#{wid}-map[data-shell]:has(#{wid}-floor-{dfloor}:checked){{--ui-world-h:min(44vh,452px)}}')
+        rules.append(f'@media(max-height:450px){{#{wid}-map[data-shell]:has(#{wid}-floor-{dfloor}:checked){{--ui-world-h:min(36vh,160px)}}}}')
     for f in world["floors"]:
         radio = f"#{wid}-floor-{f['id']}"
         rules.append(f'.ui-world:has({radio}:checked) .ui-floor[data-floor="{f["id"]}"]{{display:block}}')
@@ -4308,6 +4692,753 @@ bindRescueWorlds();
 """
 
 
+WORLD_DETECTIVE_JS = r"""
+export const DETECTIVE_RANK_THRESHOLDS=[0,35,90,170,280,420,600];
+export const DETECTIVE_RANK_TITLES=["見習い浪速調査員","街角リサーチ探偵","船場聞き込み名人","堂島ロジック警部","ミナミの推理マイスター","天下の西の名探偵","浪速の伝説推理王"];
+const DETECTIVE_LOGIC_ORBS=["🔍","💡","⚡","✨","🔎"];
+const DETECTIVE_TRICK_ORBS=["👤","💨","❓"];
+const DETECTIVE_GARDEN_GLYPHS=["🌱","🌷","🌳","🍄","🌻","🪨"];
+export const DETECTIVE_GARDEN_REWARDS=["⭐","🎵","🎨","🏆","🌈","💎","🚀","👑"];
+
+export function detectiveRandomWord(seed){
+ let x=(Number(seed)>>>0)||0x6D2B79F5;
+ x^=((x<<13)&0xFFFFFFFF);x>>>=0;
+ x^=(x>>>17);
+ x^=((x<<5)&0xFFFFFFFF);
+ return x>>>0;
+}
+
+export function detectiveOrbEffect(amount,logic=true){
+ const amt=Math.max(0,Math.floor(Number(amount)||0));
+ if(amt===0)return{counter:0,amount:0,logic:false,idle:true,orbs:[],label:"Orbs ready…"};
+ const pal=logic?DETECTIVE_LOGIC_ORBS:DETECTIVE_TRICK_ORBS,n=Math.min(Math.max(amt,1),6);
+ return{counter:logic?-amt:amt,amount:amt,logic:Boolean(logic),idle:false,
+        orbs:Array.from({length:n},(_,i)=>pal[i%pal.length]),
+        label:logic?`🔍 閃き ${amt}`:`👤 幻惑 ${amt}`};
+}
+
+export function detectiveRankForExp(exp){
+ const xp=Math.max(0,Math.floor(Number(exp)||0));let level=1;
+ for(let i=0;i<DETECTIVE_RANK_THRESHOLDS.length;i++)if(xp>=DETECTIVE_RANK_THRESHOLDS[i])level=i+1;
+ const next=level<DETECTIVE_RANK_THRESHOLDS.length?DETECTIVE_RANK_THRESHOLDS[level]:DETECTIVE_RANK_THRESHOLDS[DETECTIVE_RANK_THRESHOLDS.length-1];
+ return{level,title:DETECTIVE_RANK_TITLES[level-1],exp:xp,next_exp:next,
+        bonus_hp:(level-1)*6,bonus_stamina:(level-1)*8,bonus_logic:(level-1)*2,bonus_pokerface:(level-1)*1};
+}
+
+export function detectiveClueProfile(index,tx,ty,seed=20261127,{bossCell=[38,33],startCell=[30,2]}={}){
+ const idx=Math.max(0,Math.floor(Number(index)||0)),x=Math.max(0,Math.floor(Number(tx)||0)),y=Math.max(0,Math.floor(Number(ty)||0));
+ const s=(Number(seed)>>>0)||20261127;
+ const mx=(Math.imul(x,73856093)>>>0),my=(Math.imul(y,19349663)>>>0),mi=(Math.imul(idx+1,83492791)>>>0);
+ const mixed=(s^mx^my^mi)>>>0,word=detectiveRandomWord(mixed),bloom=DETECTIVE_GARDEN_GLYPHS[word%DETECTIVE_GARDEN_GLYPHS.length];
+ let tier=1,name="街角の不審な痕跡",emoji="👤",trick=10,confusion=4,exp=16,medals=12,step=5;
+ if(x===bossCell[0]&&y===bossCell[1]){
+  tier=3;name="怪盗黒幕シャドウ";emoji="🎭";trick=42;confusion=11;exp=65;medals=55;step=10;
+ }else if(Math.abs(x-startCell[0])+Math.abs(y-startCell[1])<=6||(word%3)!==0){
+  tier=1;name="街角の不審な痕跡";emoji="👤";trick=10;confusion=4;exp=16;medals=12;step=5;
+ }else{
+  tier=2;name="難解な暗号トリック";emoji="👤";trick=22;confusion=7;exp=28;medals=22;step=5;
+ }
+ return{id:`shadow-${idx}`,index:idx,tx:x,ty:y,tier,boss:tier===3,name,emoji,trick,confusion,exp,medals,garden_step:step,bloom};
+}
+
+export function detectiveStrike(logic,rollWord,{multPct=100}={}){
+ const p=Math.max(1,Math.floor(Number(logic)||1)),w=Number(rollWord)>>>0,m=Math.max(10,Math.floor(Number(multPct)||100));
+ const crit=(w%100)<18,variance=((w>>>8)%3)-1;
+ let unravel=Math.max(2,Math.floor((p*m)/100)+variance);
+ if(crit)unravel=Math.max(4,Math.floor((unravel*3)/2));
+ return{unravel,crit,effect:detectiveOrbEffect(unravel,true)};
+}
+
+export function detectiveContradictionHit(confusion,pokerface,rollWord,{guarding=false}={}){
+ const c=Math.max(1,Math.floor(Number(confusion)||1)),s=Math.max(0,Math.floor(Number(pokerface)||0)),w=Number(rollWord)>>>0;
+ const variance=(w%3)-1;
+ let dmg=Math.max(1,c-Math.floor(s/2)+variance);
+ if(guarding)dmg=Math.max(1,Math.floor(dmg/2));
+ return{damage:dmg,effect:detectiveOrbEffect(dmg,false)};
+}
+
+export function detectiveGardenStep(currentValue,magnitude=5){
+ const v=Math.max(-100,Math.min(100,Math.floor(Number(currentValue)||0))),mag=[1,5,10].includes(magnitude)?magnitude:5;
+ return v+mag<=100?mag:-mag;
+}
+
+export function detectiveGarden(seed,actions){
+ const s=(Number(seed)>>>0)||0;
+ let state=s,value=0,history=[0];
+ const cells=new Map();
+ for(const d of actions||[]){
+  if(![-10,-5,-1,1,5,10].includes(d))continue;
+  const nextVal=Math.max(-100,Math.min(100,value+d));
+  if(nextVal===value)continue;
+  value=nextVal;history=[value,...history].slice(0,8);
+  state=detectiveRandomWord(state);const cell=state%64;
+  state=detectiveRandomWord(state);cells.set(cell,DETECTIVE_GARDEN_GLYPHS[state%DETECTIVE_GARDEN_GLYPHS.length]);
+ }
+ let mask=0n;
+ for(const c of cells.keys())mask|=1n<<BigInt(c);
+ return{schema:"web-ui-play/1",seed:s,value,history,cells:[...cells.entries()].sort((a,b)=>a[0]-b[0]),
+        mask:mask.toString(16).padStart(16,"0"),rewards:DETECTIVE_GARDEN_REWARDS.slice(0,Math.floor(cells.size/8)),
+        actions:[...(actions||[])]};
+}
+
+export function detectiveNearestClue(px,py,shadows,tile=32){
+ if(!shadows||!shadows.length)return null;
+ let best=null,bestSq=Infinity;
+ for(const f of shadows){
+  const sq=(f.x-px)**2+(f.y-py)**2;
+  if(sq<bestSq||(sq===bestSq&&(f.y<best.y||(f.y===best.y&&f.x<best.x)))){best=f;bestSq=sq}
+ }
+ if(!best)return null;
+ const dist=Math.hypot(best.x-px,best.y-py);
+ const dx=best.x-px,dy=best.y-py,adx=Math.abs(dx),ady=Math.abs(dy);
+ let arrow="📍";
+ if(adx>tile*0.5||ady>tile*0.5){
+  const sx=adx>tile*0.5?(dx>0?1:-1):0,sy=ady>tile*0.5?(dy>0?1:-1):0;
+  const arrows={"1,0":"➡️","1,1":"↘️","0,1":"⬇️","-1,1":"↙️","-1,0":"⬅️","-1,-1":"↖️","0,-1":"⬆️","1,-1":"↗️"};
+  arrow=arrows[`${sx},${sy}`]||"📍";
+ }
+ return{id:best.id,x:best.x,y:best.y,arrow,tiles:Math.round(dist/Math.max(1,tile))};
+}
+
+function detectiveEl(tag,props={},...kids){
+ const node=document.createElement(tag);
+ for(const[k,v]of Object.entries(props)){
+  if(v===undefined||v===null)continue;
+  if(k==="className")node.className=v;
+  else if(k==="hidden")node.hidden=Boolean(v);
+  else if(k==="disabled")node.disabled=Boolean(v);
+  else if(k.startsWith("data-")||k.startsWith("aria-"))node.setAttribute(k,String(v));
+  else node[k]=v;
+ }
+ node.append(...kids.filter(c=>c!==undefined&&c!==null));
+ return node;
+}
+
+export function bindWorldDetective(el){
+ if(el.hasAttribute("data-detective-bound"))return el;
+ const dataEl=el.querySelector(".ui-detective-data");if(!dataEl)return el;
+ let detective=null;try{detective=JSON.parse(dataEl.textContent)}catch{return el}
+ el.setAttribute("data-detective-bound","");
+ const wid=el.id.replace(/-map$/,""),hud=el.querySelector(".ui-detective-hud");
+ if(hud)hud.hidden=false;
+ const overlay=el.querySelector(".ui-rpg-overlay")||detectiveEl("div",{className:"ui-rpg-overlay",hidden:true});
+ if(!overlay.isConnected)el.append(overlay);
+ const toast=el.querySelector(".ui-rpg-toast")||detectiveEl("div",{className:"ui-rpg-toast",hidden:true,"aria-live":"polite"});
+ if(!toast.isConnected)el.append(toast);
+ let toastTimer=0;
+ const showToast=msg=>{toast.textContent=msg;toast.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{toast.hidden=true},3200)};
+
+ const hero=detective.hero;
+ const state={
+  exp:0,hp:hero.hp,stamina:hero.stamina,medals:hero.medals,seed:detective.seed>>>0||20261127,
+  talked:new Set(),looted:new Set(),openedChests:new Set(),solvedShadows:new Set(),
+  standUses:0,quizzesSolved:new Set(),quizIdx:0,
+  consumables:new Map(),equipment:new Set(),completedQuests:new Set(),badges:new Set(),
+  boughtCount:0,gardenActions:[]
+ };
+
+ const equipBonus=()=>[...state.equipment].reduce((acc,nid)=>{
+  const n=detective.nodes.find(nd=>nd.id===nid);if(!n)return acc;
+  acc.hp+=n.hp||0;acc.stamina+=n.stamina||0;acc.logic+=n.logic||0;acc.pokerface+=n.pokerface||0;return acc;
+ },{hp:0,stamina:0,logic:0,pokerface:0});
+
+ const stats=()=>{
+  const r=detectiveRankForExp(state.exp),eq=equipBonus();
+  return{rank:r,maxHp:hero.hp+r.bonus_hp+eq.hp,maxStamina:hero.stamina+r.bonus_stamina+eq.stamina,
+         logic:hero.logic+r.bonus_logic+eq.logic,pokerface:hero.pokerface+r.bonus_pokerface+eq.pokerface};
+ };
+
+ const clampVitals=()=>{
+  const st=stats();state.hp=Math.max(0,Math.min(st.maxHp,state.hp));state.stamina=Math.max(0,Math.min(st.maxStamina,state.stamina));
+ };
+ const nextRoll=()=>{state.seed=detectiveRandomWord(state.seed);return state.seed};
+
+ const curFloorEl=()=>el.querySelector(`.ui-floor[data-floor="${CSS.escape(detective.floor)}"]`);
+ const tile=Number(curFloorEl()?.dataset.tile)||32;
+
+ const shadowMap=new Map();
+ const refreshShadowProps=()=>{
+  const f=curFloorEl();if(!f)return;
+  const props=[...f.querySelectorAll('.ui-prop[data-kind="shadow"]')];
+  props.forEach((prop,idx)=>{
+   const tx=Math.floor(parseFloat(prop.style.left)/tile),ty=Math.floor(parseFloat(prop.style.top)/tile);
+   const prof=detectiveClueProfile(idx,tx,ty,detective.seed,{bossCell:detective.boss_cell,startCell:detective.start_cell});
+   prop.setAttribute("data-shadow-id",prof.id);prop.setAttribute("data-shadow-tier",String(prof.tier));
+   if(prof.boss)prop.setAttribute("data-shadow-boss","true");
+   shadowMap.set(prof.id,{prop,prof,tx,ty,x:tx*tile+tile/2,y:ty*tile+tile/2});
+  });
+ };
+ refreshShadowProps();
+
+ const updateRadar=()=>{
+  const checkedFloor=el.querySelector("input[name$='-floor']:checked")?.value||"";
+  if(checkedFloor!==detective.floor)return;
+  const pl=curFloorEl()?.querySelector(".ui-player");if(!pl)return;
+  const px=parseFloat(pl.style.getPropertyValue("--px"))||Number(pl.dataset.x)||0;
+  const py=parseFloat(pl.style.getPropertyValue("--py"))||Number(pl.dataset.y)||0;
+  const activeShadows=[...shadowMap.values()].filter(f=>!state.solvedShadows.has(f.prof.id));
+  const radarSpan=hud?.querySelector("[data-detective-radar]");
+  if(!radarSpan)return;
+  if(!activeShadows.length){radarSpan.textContent="✅ 全事件解明達成！";return}
+  const nr=detectiveNearestClue(px,py,activeShadows.map(f=>({id:f.prof.id,x:f.x,y:f.y})),tile);
+  if(nr)radarSpan.textContent=`${nr.arrow} ${nr.tiles}m`;
+ };
+
+ const renderHud=()=>{
+  clampVitals();if(!hud)return;
+  const st=stats(),playerGlyph=el.querySelector(".ui-player span")?.textContent||"🕵️‍♂️";
+  const totalShadows=shadowMap.size||42,solvedCount=state.solvedShadows.size;
+  const pct=totalShadows?Math.round(100*solvedCount/totalShadows):0;
+  const qDone=state.completedQuests.size,qTotal=detective.quests.length;
+  hud.querySelector("[data-detective-hero]").textContent=`${playerGlyph} Lv.${st.rank.level} ${st.rank.title}`;
+  hud.querySelector("[data-detective-hp]").textContent=`❤️ ${state.hp}/${st.maxHp}`;
+  hud.querySelector("[data-detective-hp-bar]").style.width=`${Math.round(100*state.hp/Math.max(1,st.maxHp))}%`;
+  hud.querySelector("[data-detective-stamina]").textContent=`⚡ ${state.stamina}/${st.maxStamina}`;
+  hud.querySelector("[data-detective-stamina-bar]").style.width=`${Math.round(100*state.stamina/Math.max(1,st.maxStamina))}%`;
+  hud.querySelector("[data-detective-clues]").textContent=`🔍 解決 ${solvedCount}/${totalShadows} (${pct}%)`;
+  hud.querySelector("[data-detective-medals]").textContent=`🪙 ${state.medals}`;
+  hud.querySelector("[data-detective-gear]").textContent=`💡 ${st.logic} 🛡️ ${st.pokerface}`;
+  hud.querySelector("[data-detective-qcount]").textContent=`${qDone}/${qTotal}`;
+  updateRadar();
+ };
+
+ const gainExp=amount=>{
+  if(!amount)return false;
+  const prevRank=detectiveRankForExp(state.exp).level;
+  state.exp+=amount;
+  const newRank=detectiveRankForExp(state.exp).level;
+  if(newRank>prevRank){
+   const st=stats();state.hp=st.maxHp;state.stamina=st.maxStamina;
+   showToast(`🎉 ランクアップ！ Lv.${newRank}【${st.rank.title}】へ昇格！ (全能力アップ＆全快)`);
+  }
+  renderHud();return true;
+ };
+
+ const questProgress=q=>{
+  if(q.kind==="talk")return state.talked.size;
+  if(q.kind==="clue")return state.solvedShadows.size;
+  if(q.kind==="boss_clue"){
+   const bossProf=[...shadowMap.values()].find(s=>s.prof.boss)?.prof;
+   return bossProf&&state.solvedShadows.has(bossProf.id)?1:0;
+  }
+  if(q.kind==="drop")return state.looted.size;
+  if(q.kind==="chest")return state.openedChests.size;
+  if(q.kind==="refill")return state.standUses;
+  if(q.kind==="quiz")return state.quizzesSolved.size;
+  return 0;
+ };
+
+ const checkQuests=()=>{
+  for(const q of detective.quests){
+   if(state.completedQuests.has(q.id))continue;
+   const p=questProgress(q);
+   if(p>=q.count){
+    state.completedQuests.add(q.id);gainExp(q.reward_exp);state.medals+=q.reward_medals;
+    showToast(`📜 事件解決:【${q.title}】達成！ (+${q.reward_exp}EXP / +${q.reward_medals}🪙)`);
+   }
+  }
+  const checkBadge=(id,cond)=>{
+   if(!cond||state.badges.has(id))return;
+   state.badges.add(id);const b=detective.badges.find(bd=>bd.id===id);
+   if(b)showToast(`🏅 探偵バッジ獲得:【${b.emoji} ${b.label}】！`);
+  };
+  checkBadge("b-first-clue",state.solvedShadows.size>=1);
+  checkBadge("b-clue-five",state.solvedShadows.size>=5);
+  const bossProf=[...shadowMap.values()].find(s=>s.prof.boss)?.prof;
+  checkBadge("b-boss-down",bossProf&&state.solvedShadows.has(bossProf.id));
+  checkBadge("b-geared-up",state.equipment.size>=4);
+  checkBadge("b-stand-master",state.standUses>=3);
+  checkBadge("b-quiz-scholar",state.quizzesSolved.size>=3);
+  const curG=detectiveGarden(detective.seed,state.gardenActions);
+  checkBadge("b-green-osaka",curG.cells.length>=8);
+  renderHud();
+ };
+
+ const closeModal=()=>{overlay.hidden=true;overlay.replaceChildren()};
+ const showCard=cardEl=>{overlay.replaceChildren(cardEl);overlay.hidden=false};
+
+ const renderOrbs=effect=>{
+  const bar=detectiveEl("div",{className:"ui-rpg-orbs",role:"status","aria-label":effect.label});
+  for(const o of effect.orbs)bar.append(detectiveEl("span",{className:"ui-rpg-orb",textContent:o}));
+  return bar;
+ };
+
+ const syncBagTake=itemId=>{
+  const take=el.querySelector(`.ui-world-take[data-item-id="${CSS.escape(itemId)}"]`);
+  if(take&&take.getAttribute("aria-pressed")!=="true")take.click();
+ };
+
+ const solveShadow=(prof,staminaUsed=0)=>{
+  if(state.solvedShadows.has(prof.id))return;
+  state.solvedShadows.add(prof.id);state.stamina=Math.max(0,state.stamina-staminaUsed);
+  state.medals+=prof.medals;gainExp(prof.exp);
+  const curG=detectiveGarden(detective.seed,state.gardenActions);
+  const step=detectiveGardenStep(curG.value,prof.garden_step);
+  state.gardenActions.push(step);
+  const item=shadowMap.get(prof.id);
+  if(item&&item.prop){
+   item.prop.setAttribute("data-cleared","true");
+   const bloomSvg=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='25' font-size='26' text-anchor='middle'>${prof.bloom}</text></svg>`;
+   item.prop.style.backgroundImage=`url("data:image/svg+xml,${encodeURIComponent(bloomSvg)}")`;
+  }
+  checkQuests();renderHud();
+ };
+
+ const useConsumable=key=>{
+  const item=state.consumables.get(key);if(!item||item.count<=0)return null;
+  item.count-=1;
+  if(item.count===0){
+   state.consumables.delete(key);
+   const take=el.querySelector(`.ui-world-take[data-item-id="${CSS.escape(item.itemId)}"]`);
+   if(take&&take.getAttribute("aria-pressed")==="true")take.click();
+  }
+  const st=stats();
+  if(item.hp)state.hp=Math.min(st.maxHp,state.hp+item.hp);
+  if(item.stamina)state.stamina=Math.min(st.maxStamina,state.stamina+item.stamina);
+  renderHud();
+  return item;
+ };
+
+ const openShadowModal=shadowId=>{
+  const item=shadowMap.get(shadowId);if(!item||state.solvedShadows.has(shadowId))return;
+  const prof=item.prof;
+  let foeTrick=prof.trick;
+  let st=stats(),guarding=false;
+  let staminaSpent=0;
+
+  const foeBar=detectiveEl("i",{style:"width:100%"});
+  const trickMeter=detectiveEl("div",{className:"ui-rpg-meter"},foeBar);
+  const trickText=detectiveEl("b",{textContent:`${foeTrick}/${prof.trick}`});
+  const heroHpText=detectiveEl("span",{textContent:`❤️ ${state.hp}/${st.maxHp}`});
+  const heroStaminaText=detectiveEl("span",{textContent:`⚡ ${state.stamina}/${st.maxStamina}`});
+  const logEl=detectiveEl("p",{className:"ui-rpg-text",textContent:`現場検証開始！【${prof.name}】のトリックを見破れ！`});
+  const orbsWrap=detectiveEl("div");
+
+  const syncVitals=()=>{
+   st=stats();
+   foeBar.style.width=`${Math.round(100*foeTrick/prof.trick)}%`;
+   trickText.textContent=`${Math.max(0,foeTrick)}/${prof.trick}`;
+   heroHpText.textContent=`❤️ ${state.hp}/${st.maxHp}`;
+   heroStaminaText.textContent=`⚡ ${state.stamina}/${st.maxStamina}`;
+   renderHud();
+  };
+
+  const executeTactic=tactic=>{
+   if(state.stamina<tactic.stamina){
+    logEl.textContent="スタミナ⚡が足りへん！給水・茶房スタンドかたこ焼きで回復するんや！";return;
+   }
+   state.stamina-=tactic.stamina;staminaSpent+=tactic.stamina;
+   guarding=tactic.kind==="pokerface";
+   if(tactic.heal_hp)state.hp=Math.min(st.maxHp,state.hp+tactic.heal_hp);
+
+   const roll=nextRoll();
+   const strike=detectiveStrike(st.logic,roll,{multPct:tactic.mult_pct});
+   foeTrick-=strike.unravel;
+   orbsWrap.replaceChildren(renderOrbs(strike.effect));
+   const critTxt=strike.crit?" 💥 会心のロジック閃き！":"";
+   logEl.textContent=`${tactic.emoji}【${tactic.label}】！影のトリックを ${strike.unravel} 解明した！${critTxt}`;
+   syncVitals();
+
+   if(foeTrick<=0){
+    setTimeout(()=>{
+     solveShadow(prof,staminaSpent);
+     showToast(`✨【${prof.name}】のトリックを解明！街に${prof.bloom}が咲いた！ (+${prof.exp}EXP / +${prof.medals}🪙)`);
+     closeModal();
+    },550);
+    return;
+   }
+
+   setTimeout(()=>{
+    const foeRoll=nextRoll();
+    const hit=detectiveContradictionHit(prof.confusion,st.pokerface,foeRoll,{guarding});
+    state.hp=Math.max(1,state.hp-hit.damage);
+    orbsWrap.replaceChildren(renderOrbs(hit.effect));
+    const guardTxt=guarding?" (ポーカーフェイスで半減！)":"";
+    logEl.textContent=`👤 影の幻惑が襲いかかる！ ${hit.damage} のメンタルダメージを受けた！${guardTxt}`;
+    syncVitals();
+   },650);
+  };
+
+  const actionBtnsWrap=detectiveEl("div",{className:"ui-rpg-actions"});
+  for(const j of detective.tactics){
+   actionBtnsWrap.append(detectiveEl("button",{
+    type:"button",className:"ui-rpg-btn",
+    textContent:`${j.emoji} ${j.label} (${j.stamina}⚡)`,
+    onclick:()=>executeTactic(j)
+   }));
+  }
+  actionBtnsWrap.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"💨 一旦退避",onclick:closeModal}));
+  const consumablesWrap=detectiveEl("div",{className:"ui-rpg-actions"});
+  const rebuildConsumables=()=>{
+   consumablesWrap.replaceChildren();
+   for(const[k,v]of state.consumables.entries()){
+    if(v.count<=0)continue;
+    consumablesWrap.append(detectiveEl("button",{
+     type:"button",className:"ui-rpg-btn",
+     textContent:`${v.emoji} ${v.label} ×${v.count}`,
+     onclick:()=>{
+      const used=useConsumable(k);
+      if(used){
+       if(used.logic){
+        foeTrick-=used.logic;
+        logEl.textContent=`${used.emoji}【${used.label}】を使用！影のトリックを ${used.logic} 解明した！`;
+        syncVitals();
+        if(foeTrick<=0){
+         setTimeout(()=>{
+          solveShadow(prof,staminaSpent);
+          showToast(`✨【${prof.name}】のトリックを解明！街に${prof.bloom}が咲いた！ (+${prof.exp}EXP / +${prof.medals}🪙)`);
+          closeModal();
+         },550);
+         return;
+        }
+       }else{
+        logEl.textContent=`${used.emoji}【${used.label}】を使用！バイタルを回復した！`;
+        syncVitals();
+       }
+       rebuildConsumables();
+      }
+     }
+    }));
+   }
+  };
+  rebuildConsumables();
+
+  const card=detectiveEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":`${prof.name}現場検証`},
+   detectiveEl("div",{className:"ui-rpg-card-head"},
+    detectiveEl("h3",{className:"ui-rpg-card-title",textContent:`${prof.emoji} ${prof.name} (Lv.${prof.tier})`}),
+    detectiveEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   detectiveEl("div",{className:"ui-rpg-row"},
+    detectiveEl("span",{textContent:"難解度・トリックHP:"}),
+    trickMeter,
+    trickText),
+   detectiveEl("div",{className:"ui-rpg-row ui-rpg-row-top"},
+    heroHpText,
+    heroStaminaText),
+   orbsWrap,logEl,actionBtnsWrap,consumablesWrap);
+  showCard(card);
+ };
+
+ const openNpcDialog=(nodeId,pageIdx=0)=>{
+  const node=detective.nodes.find(nd=>nd.id===nodeId);if(!node)return;
+  state.talked.add(nodeId);checkQuests();
+  const pages=[node.greeting,...(node.lines||[])];
+  let idx=Math.min(pageIdx,pages.length-1);
+  const textEl=detectiveEl("p",{className:"ui-rpg-text"}),orbsWrap=detectiveEl("div"),actionsEl=detectiveEl("div",{className:"ui-rpg-actions"});
+  const renderPage=()=>{
+   textEl.textContent=`[${idx+1}/${pages.length}] ${pages[idx]}`;
+   actionsEl.replaceChildren();
+   if(idx>0)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"◀ もどる",onclick:()=>{idx-=1;renderPage()}}));
+   if(idx<pages.length-1)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"つぎへ ▶",onclick:()=>{idx+=1;renderPage()}}));
+   if(node.refill)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🔬 科学捜査補給（全快）",onclick:()=>{
+    const st=stats();state.hp=st.maxHp;state.stamina=st.maxStamina;state.standUses+=1;
+    orbsWrap.replaceChildren(renderOrbs(detectiveOrbEffect(st.maxStamina,true)));
+    textEl.textContent="✨ 科学捜査研究所のバイタルケアにより、スタミナと気力が満タンまで急速補給された！";checkQuests();
+   }}));
+   if(node.shop)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🛒 船場どうぐ屋",onclick:()=>openShopDialog(nodeId)}));
+   if(node.quiz)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🎓 推理クイズに挑戦",onclick:()=>openQuizDialog(nodeId)}));
+   actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",...(idx===pages.length-1?{"data-primary":""}:{}),textContent:"とじる",onclick:closeModal}));
+  };
+  renderPage();
+  const card=detectiveEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":`${node.label}との対話`},
+   detectiveEl("div",{className:"ui-rpg-card-head"},
+    detectiveEl("h3",{className:"ui-rpg-card-title",textContent:`${node.emoji} ${node.speaker}`}),
+    detectiveEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   textEl,orbsWrap,actionsEl);
+  showCard(card);
+ };
+
+ const openShopDialog=nodeId=>{
+  const node=detective.nodes.find(nd=>nd.id===nodeId);
+  const list=detectiveEl("div",{className:"ui-rpg-list"});
+  const medalTag=detectiveEl("p",{className:"ui-rpg-subnote",textContent:`所持メダル: 🪙 ${state.medals}`});
+  const rebuild=()=>{
+   medalTag.textContent=`所持メダル: 🪙 ${state.medals}`;
+   list.replaceChildren(...detective.shop.map(sh=>detectiveEl("div",{className:"ui-rpg-row"},
+    detectiveEl("div",{className:"ui-rpg-row-top"},
+     detectiveEl("b",{textContent:`${sh.emoji} ${sh.label}`}),
+     detectiveEl("span",{textContent:`🪙 ${sh.cost}`})),
+    detectiveEl("p",{className:"ui-rpg-subnote",textContent:sh.desc}),
+    detectiveEl("button",{
+     type:"button",className:"ui-rpg-btn",
+     textContent:`購入 (🪙 ${sh.cost})`,
+     disabled:state.medals<sh.cost,
+     onclick:()=>{
+      if(state.medals<sh.cost)return;
+      state.medals-=sh.cost;state.boughtCount+=1;
+      const key="shop:"+sh.id,cur=state.consumables.get(key)||{key,itemId:`${wid}-detective-shop-${sh.id}`,emoji:sh.emoji,label:sh.label,item_type:sh.item_type,hp:sh.hp,stamina:sh.stamina,logic:sh.logic,pokerface:sh.pokerface,count:0};
+      cur.count+=1;state.consumables.set(key,cur);
+      syncBagTake(cur.itemId);
+      showToast(`🛒 ${sh.emoji} ${sh.label} を購入した！`);
+      rebuild();renderHud();
+     }
+    }))));
+  };
+  rebuild();
+  const card=detectiveEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":"船場どうぐ屋"},
+   detectiveEl("div",{className:"ui-rpg-card-head"},
+    detectiveEl("h3",{className:"ui-rpg-card-title",textContent:`🛒 ${node.speaker}の船場どうぐ屋`}),
+    detectiveEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   medalTag,list,
+   detectiveEl("div",{className:"ui-rpg-actions"},detectiveEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"会話にもどる",onclick:()=>openNpcDialog(nodeId)})));
+  showCard(card);
+ };
+
+ const openQuizDialog=nodeId=>{
+  const node=detective.nodes.find(nd=>nd.id===nodeId);
+  const qz=detective.quizzes[state.quizIdx%detective.quizzes.length];
+  state.quizIdx=(state.quizIdx+1)%detective.quizzes.length;
+  const resultBox=detectiveEl("div",{className:"ui-rpg-subpanel",hidden:true});
+  const choiceBtns=[];
+  const card=detectiveEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":"技術推理クイズ"},
+   detectiveEl("div",{className:"ui-rpg-card-head"},
+    detectiveEl("h3",{className:"ui-rpg-card-title",textContent:`📚 ${node.speaker}の技術推理クイズ`}),
+    detectiveEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   qz.repo?detectiveEl("p",{className:"ui-rpg-subnote",textContent:`📦 関連リポジトリ: ${qz.repo}`}):null,
+   detectiveEl("p",{className:"ui-rpg-text",textContent:qz.prompt}),
+   detectiveEl("div",{className:"ui-rpg-actions"},...qz.choices.map((c,idx)=>{
+    const btn=detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:`${idx+1}. ${c}`,onclick:()=>{
+     for(const b of choiceBtns)b.disabled=true;
+     const ok=idx===qz.correct;resultBox.hidden=false;
+     let rewardNote="";
+     if(ok&&!state.quizzesSolved.has(qz.prompt)){
+      state.quizzesSolved.add(qz.prompt);gainExp(20);state.medals+=20;rewardNote=" (+20 EXP / +20🪙)";checkQuests();
+     }
+     resultBox.replaceChildren(
+      detectiveEl("p",{className:"ui-rpg-text",textContent:(ok?"⭕ 正解！":"❌ 残念！")+rewardNote}),
+      detectiveEl("p",{className:"ui-rpg-subnote",textContent:qz.explanation}),
+      detectiveEl("div",{className:"ui-rpg-actions"},
+       detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"つぎの問題 ▶",onclick:()=>openQuizDialog(nodeId)}),
+       detectiveEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"会話にもどる",onclick:()=>openNpcDialog(nodeId)})));
+    }});
+    choiceBtns.push(btn);return btn;
+   })),
+   resultBox);
+  showCard(card);
+ };
+
+ const interactNode=nodeId=>{
+  const node=detective.nodes.find(nd=>nd.id===nodeId);if(!node)return;
+  if(node.kind==="npc")return openNpcDialog(nodeId);
+  if(node.kind==="stand"){
+   const st=stats();state.hp=st.maxHp;state.stamina=st.maxStamina;state.standUses+=1;
+   showToast(`🍵 ${node.label}で休憩！ (スタミナ・気力全快)`);checkQuests();return;
+  }
+  if(node.kind==="drop"){
+   if(state.looted.has(nodeId))return;
+   state.looted.add(nodeId);
+   const nodeEl=curFloorEl()?.querySelector(`.ui-detective-node[data-detective-id="${CSS.escape(nodeId)}"]`);
+   if(nodeEl)nodeEl.setAttribute("data-detective-collected","true");
+   const itemId=`${wid}-detective-${nodeId}`;syncBagTake(itemId);
+   const key="drop:"+nodeId,cur=state.consumables.get(key)||{key,itemId,emoji:node.item_emoji,label:node.item_label,item_type:node.item_type,hp:node.hp,stamina:node.stamina,logic:node.logic,count:0};
+   cur.count+=1;state.consumables.set(key,cur);
+   gainExp(node.exp);state.medals+=node.medals;
+   showToast(`✨ ${node.item_emoji} ${node.item_label}を拾った！ (+${node.exp}EXP / +${node.medals}🪙)`);
+   checkQuests();return;
+  }
+  if(node.kind==="chest"){
+   if(state.openedChests.has(nodeId))return;
+   if(node.requires_clues&&state.solvedShadows.size<node.requires_clues){
+    const left=node.requires_clues-state.solvedShadows.size;
+    showToast(`🔒 暗号ロックがかかっていて開かない！（あと ${left} 箇所の事件解明が必要）`);return;
+   }
+   state.openedChests.add(nodeId);state.equipment.add(nodeId);
+   const nodeEl=curFloorEl()?.querySelector(`.ui-detective-node[data-detective-id="${CSS.escape(nodeId)}"]`);
+   if(nodeEl){
+    nodeEl.setAttribute("data-detective-opened","true");
+    const glyph=nodeEl.querySelector(".ui-detective-glyph");if(glyph&&node.opened_emoji)glyph.textContent=node.opened_emoji;
+   }
+   const itemId=`${wid}-detective-${nodeId}`;syncBagTake(itemId);
+   gainExp(node.exp);state.medals+=node.medals;
+   showToast(`🎁 宝箱を開けた！ ${node.item_emoji} ${node.item_label} を装備！ (+${node.exp}EXP / +${node.medals}🪙)`);
+   checkQuests();return;
+  }
+ };
+
+ const openJournal=(defaultTab="quests")=>{
+  let activeTab=defaultTab;
+  const tabs=[["quests","📋 事件ファイル"],["badges","🏅 探偵バッジ"],["gear","🕵️‍♂️ 装備・どうぐ"],["garden","🌸 浪速緑化"]];
+  const tabBtns=[];
+  const body=detectiveEl("div",{className:"ui-rpg-journal-body"});
+
+  const drawBody=()=>{
+   body.replaceChildren();
+   if(activeTab==="quests"){
+    body.append(detectiveEl("div",{className:"ui-rpg-list"},...detective.quests.map(q=>{
+     const cur=questProgress(q),done=cur>=q.count;
+     return detectiveEl("div",{className:"ui-rpg-row"},
+      detectiveEl("div",{className:"ui-rpg-row-top"},
+       detectiveEl("span",{textContent:(done?"✅ ":"⏳ ")+q.title}),
+       detectiveEl("span",{textContent:`${Math.min(cur,q.count)}/${q.count}`})),
+      detectiveEl("p",{className:"ui-rpg-subnote",textContent:q.desc}),
+      detectiveEl("p",{className:"ui-rpg-subnote",textContent:`報酬: +${q.reward_exp}EXP / +${q.reward_medals}🪙`}));
+    })));
+   }else if(activeTab==="badges"){
+    body.append(detectiveEl("div",{className:"ui-rpg-list"},...detective.badges.map(b=>{
+     const earned=state.badges.has(b.id);
+     return detectiveEl("div",{className:"ui-rpg-row"},
+      detectiveEl("div",{className:"ui-rpg-row-top"},
+       detectiveEl("b",{textContent:`${b.emoji} ${b.label}`}),
+       detectiveEl("span",{textContent:earned?"獲得済み ✅":"未獲得 🔒"})),
+      detectiveEl("p",{className:"ui-rpg-subnote",textContent:b.desc}));
+    })));
+   }else if(activeTab==="gear"){
+    const st=stats();
+    const rows=[
+     detectiveEl("p",{className:"ui-rpg-text",textContent:`🕵️‍♂️ 現在の階級: Lv.${st.rank.level}【${st.rank.title}】 (EXP: ${state.exp}/${st.rank.next_exp})`}),
+     detectiveEl("p",{className:"ui-rpg-subnote",textContent:`能力値: 最大HP ❤️ ${st.maxHp} / 最大スタミナ ⚡ ${st.maxStamina} / ロジック 💡 ${st.logic} / ポーカーフェイス 🛡️ ${st.pokerface}`}),
+     detectiveEl("h4",{className:"ui-rpg-subtitle",textContent:"装備品 (宝箱から入手)"})
+    ];
+    for(const eqId of state.equipment){
+     const n=detective.nodes.find(nd=>nd.id===eqId);
+     if(n)rows.push(detectiveEl("div",{className:"ui-rpg-row"},
+      detectiveEl("b",{textContent:`${n.item_emoji} ${n.item_label}`}),
+      detectiveEl("p",{className:"ui-rpg-subnote",textContent:n.desc})));
+    }
+    if(!state.equipment.size)rows.push(detectiveEl("p",{className:"ui-rpg-subnote",textContent:"装備品はまだありません。街角の宝箱を探してみよう！"}));
+    rows.push(detectiveEl("h4",{className:"ui-rpg-subtitle",textContent:"所持どうぐ・補給品"}));
+    for(const[,v]of state.consumables.entries()){
+     if(v.count<=0)continue;
+     rows.push(detectiveEl("div",{className:"ui-rpg-row"},
+      detectiveEl("b",{textContent:`${v.emoji} ${v.label} ×${v.count}`}),
+      detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"つかう",onclick:()=>{useConsumable(v.key);drawBody()}})));
+    }
+    body.append(detectiveEl("div",{className:"ui-rpg-list"},...rows));
+   }else if(activeTab==="garden"){
+    const g=detectiveGarden(detective.seed,state.gardenActions);
+    const cellsGrid=detectiveEl("div",{className:"ui-detective-garden"});
+    const cellMap=new Map(g.cells);
+    for(let i=0;i<64;i++){
+     const glyph=cellMap.get(i)||"";
+     cellsGrid.append(detectiveEl("div",{className:"ui-detective-cell",textContent:glyph}));
+    }
+    const rewardBar=detectiveEl("div",{className:"ui-detective-rewards"},
+     detectiveEl("strong",{textContent:`緑化進捗: ${cellMap.size}/64マス `}),
+     ...g.rewards.map(r=>detectiveEl("span",{textContent:` ${r}記念スタンプ`}))
+    );
+    body.append(
+     detectiveEl("p",{className:"ui-rpg-text",textContent:"事件の影を解明するごとに、浪速の街に草木や花々の緑が広がっていきます。"}),
+     cellsGrid,rewardBar
+    );
+   }
+  };
+
+  const nav=detectiveEl("nav",{className:"ui-rpg-journal-tabs"},...tabs.map(([id,title])=>{
+   const btn=detectiveEl("button",{
+    type:"button",className:"ui-rpg-pill",
+    textContent:title,
+    ...(id===activeTab?{"data-active":""}:{}),
+    onclick:()=>{
+     activeTab=id;
+     for(const b of tabBtns)b.removeAttribute("data-active");
+     btn.setAttribute("data-active","");
+     drawBody();
+    }
+   });
+   tabBtns.push(btn);return btn;
+  }));
+
+  drawBody();
+  const card=detectiveEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":"浪速探偵手帳"},
+   detectiveEl("div",{className:"ui-rpg-card-head"},
+    detectiveEl("h3",{className:"ui-rpg-card-title",textContent:"📋 浪速探偵手帳"}),
+    detectiveEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   nav,body);
+  showCard(card);
+ };
+
+ hud?.querySelector("[data-detective-journal-btn]")?.addEventListener("click",()=>openJournal("quests"));
+ hud?.querySelector("[data-detective-radar-btn]")?.addEventListener("click",()=>{
+  const checkedFloor=el.querySelector("input[name$='-floor']:checked")?.value||"";
+  if(checkedFloor!==detective.floor)return;
+  const pl=curFloorEl()?.querySelector(".ui-player");if(!pl)return;
+  const px=parseFloat(pl.style.getPropertyValue("--px"))||Number(pl.dataset.x)||0;
+  const py=parseFloat(pl.style.getPropertyValue("--py"))||Number(pl.dataset.y)||0;
+  const activeShadows=[...shadowMap.values()].filter(f=>!state.solvedShadows.has(f.prof.id));
+  if(!activeShadows.length){showToast("✅ オオサカの全事件を解明済みです！");return}
+  const nr=detectiveNearestClue(px,py,activeShadows.map(f=>({id:f.prof.id,x:f.x,y:f.y})),tile);
+  if(nr){
+   const walkForm=el.querySelector(".ui-world-walk");
+   if(walkForm){
+    walkForm.elements.x.value=nr.x;walkForm.elements.y.value=nr.y;
+    walkForm.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));
+    showToast(`🧭 一番近い事件現場 (${nr.x}, ${nr.y}) へ急行中！`);
+   }
+  }
+ });
+
+ el.addEventListener("click",e=>{
+  const shadowEl=e.target.closest('.ui-prop[data-kind="shadow"]');
+  if(shadowEl){
+   const sid=shadowEl.getAttribute("data-shadow-id");
+   if(sid&&!state.solvedShadows.has(sid))openShadowModal(sid);
+   return;
+  }
+  const nodeEl=e.target.closest('.ui-detective-node');
+  if(nodeEl){
+   const nid=nodeEl.getAttribute("data-detective-id");
+   if(nid)interactNode(nid);
+  }
+ });
+
+ let lastContact="";
+ const watch=()=>{
+  if(!el.isConnected)return;
+  const curFloor=el.querySelector("input[name$='-floor']:checked")?.value||"";
+  if(curFloor===detective.floor){
+   const f=curFloorEl();
+   const pl=f?.querySelector(".ui-player");
+   if(pl){
+    const px=parseFloat(pl.style.getPropertyValue("--px"))||Number(pl.dataset.x)||0;
+    const py=parseFloat(pl.style.getPropertyValue("--py"))||Number(pl.dataset.y)||0;
+    const ptx=Math.floor(px/tile),pty=Math.floor(py/tile);
+    const hitShadow=[...shadowMap.values()].find(s=>s.tx===ptx&&s.ty===pty&&!state.solvedShadows.has(s.prof.id));
+    const hitNode=detective.nodes.find(nd=>nd.tx===ptx&&nd.ty===pty);
+    const spotWalk=Boolean(el.querySelector(".ui-sheet-item:target"));
+    const blocked=spotWalk||!overlay.hidden||el.hasAttribute("data-pick")||el.hasAttribute("data-ask")||el.querySelector(".ui-sheet-item[data-open]");
+    if(!blocked){
+     if(hitShadow){
+      if(lastContact!==hitShadow.prof.id){
+       lastContact=hitShadow.prof.id;
+       if(hitShadow.prof.tier===1&&state.stamina>=6){
+        solveShadow(hitShadow.prof,6);
+        showToast(`🔍 ${hitShadow.prof.name}を解明！${hitShadow.prof.bloom}が咲いた！ +${hitShadow.prof.exp}EXP +${hitShadow.prof.medals}🪙`);
+       }else{
+        openShadowModal(hitShadow.prof.id);
+       }
+      }
+     }else if(hitNode){
+      if(lastContact!==hitNode.id){
+       lastContact=hitNode.id;
+       interactNode(hitNode.id);
+      }
+     }else if(lastContact){
+      lastContact="";
+     }
+    }
+    updateRadar();
+   }
+  }
+  setTimeout(()=>requestAnimationFrame(watch),110);
+ };
+
+ checkQuests();renderHud();requestAnimationFrame(watch);
+ return el;
+}
+
+export function bindDetectiveWorlds(root=document){
+ return[...root.querySelectorAll("[data-ui-world][data-detective]")].map(el=>bindWorldDetective(el));
+}
+
+globalThis.webUiWorld={
+ ...globalThis.webUiWorld,
+ detectiveRandomWord,detectiveOrbEffect,detectiveRankForExp,detectiveClueProfile,
+ detectiveStrike,detectiveContradictionHit,detectiveGardenStep,detectiveGarden,detectiveNearestClue,
+ bindWorldDetective,bindDetectiveWorlds
+};
+bindDetectiveWorlds();
+"""
+
+
 def world_document(spec: Any, *, theme: str = "modern") -> str:
     """A single-file page: bundled CSS, the world's CSS, the world's HTML and one inline module."""
     world = world_validate(spec)
@@ -4316,6 +5447,8 @@ def world_document(spec: Any, *, theme: str = "modern") -> str:
         js += "\n" + rpg_module("data:text/javascript," + quote(js_source("records.js"), safe=""))
     if world.get("rescue"):
         js += "\n" + WORLD_RESCUE_JS
+    if world.get("detective"):
+        js += "\n" + WORLD_DETECTIVE_JS
     # 🌍 world.js lives here now (WORLD_JS), not in PySaiyanWeBoo: the same inline module, after the body.
     return render_document(trusted_html=world_html(world) + module_script(js), title=world["title"], theme=theme,
                            css=bundled_css() + world_css(world))
@@ -4589,6 +5722,60 @@ _PARIS_LINKS = [["gare-du-nord", "poissonniere"], ["gare-du-nord", "barbes"], ["
     "quai-de-la-rapee"], ["quai-de-la-rapee", "austerlitz"], ["austerlitz", "saint-marcel"], ["austerlitz", "jussieu"], ["montparnasse",
     "edgar-quinet"], ["montparnasse", "vavin"], ["montparnasse", "falguiere"]]
 _SEINE = {"line": [[48.833, 2.38], [48.8372, 2.3737], [48.845, 2.3668], [48.8506, 2.3622], [48.8545, 2.354], [48.856, 2.349], [48.8573, 2.3413], [48.8585, 2.3377], [48.8609, 2.3306], [48.8637, 2.3203], [48.864, 2.3135], [48.8638, 2.3012], [48.8613, 2.2935], [48.855, 2.2877], [48.848, 2.276]], "width": 1}
+
+_OSAKA_POINTS = [
+    _pt("shin-osaka", "新大阪駅", 34.7335, 135.5003, "terminus", "新幹線が発着する大阪の北の玄関口です。"),
+    _pt("osaka-umeda", "大阪・梅田", 34.7025, 135.4959, "terminus", "巨大な地下街と百貨店が広がるキタの中心駅です。"),
+    _pt("namba", "なんば", 34.6629, 135.5022, "terminus", "道頓堀や千日前が広がるミナミの中心駅です。"),
+    _pt("abeno", "あべの橋", 34.6458, 135.5142, "terminus", "南大阪へ向かう列車が発着する南のターミナルです。"),
+    _pt("kyobashi", "京橋", 34.6969, 135.5342, "terminus", "下町の活気があふれる東の交通結節点です。"),
+    _pt("nishikujo", "西九条", 34.6828, 135.4667, "terminus", "ベイエリアへ線路が分岐する西の結節点です。"),
+    _pt("nakatsu", "中津", 34.7110, 135.4980, "station", "梅田のすぐ北に位置する下町の駅です。"),
+    _pt("minamimorimachi", "南森町", 34.6985, 135.5115, "station", "日本一長い商店街の入口に近い駅です。"),
+    _pt("yodoyabashi", "淀屋橋", 34.6920, 135.5020, "station", "大阪市役所と中之島へ続くビジネス街の駅です。"),
+    _pt("honmachi", "本町", 34.6820, 135.5015, "station", "繊維街・船場商人の歴史が息づく商業の中心です。"),
+    _pt("shinsaibashi", "心斎橋", 34.6720, 135.5010, "station", "華やかなブティックやアーケードが連なる駅です。"),
+    _pt("daikokucho", "大国町", 34.6540, 135.4985, "station", "木津卸売市場に近く庶民的な活気のある駅です。"),
+    _pt("morinomiya", "森ノ宮", 34.6815, 135.5340, "station", "大きな公園と歴史的な城跡が広がる駅です。"),
+    _pt("osakajo-koen", "大阪城公園", 34.6888, 135.5335, "station", "緑豊かな本丸の堀と木々を望む駅です。"),
+    _pt("tenmabashi", "天満橋", 34.6905, 135.5180, "station", "大川の舟運と水辺の景色が美しい駅です。"),
+    _pt("tamatsukuri", "玉造", 34.6735, 135.5325, "station", "古代の勾玉作りの歴史が伝わる駅です。"),
+    _pt("dotonbori-sign", "▶ Dotonbori", 34.6687, 135.5015, "sign", "道頓堀の看板と賑わいがすぐそこに見えます。", "", "led"),
+    _pt("semba-sign", "Semba 商い ▼", 34.6850, 135.5030, "sign", "船場の商人と知恵が息づく街筋角です。", "", "wood"),
+]
+_OSAKA_LINKS = [
+    ["shin-osaka", "nakatsu"],
+    ["nakatsu", "osaka-umeda"],
+    ["osaka-umeda", "yodoyabashi"],
+    ["osaka-umeda", "minamimorimachi"],
+    ["osaka-umeda", "nishikujo"],
+    ["yodoyabashi", "honmachi"],
+    ["yodoyabashi", "tenmabashi"],
+    ["honmachi", "shinsaibashi"],
+    ["shinsaibashi", "namba"],
+    ["namba", "daikokucho"],
+    ["daikokucho", "abeno"],
+    ["minamimorimachi", "tenmabashi"],
+    ["tenmabashi", "osakajo-koen"],
+    ["osakajo-koen", "kyobashi"],
+    ["osakajo-koen", "morinomiya"],
+    ["morinomiya", "tamatsukuri"],
+    ["tamatsukuri", "abeno"],
+    ["nishikujo", "namba"],
+    ["kyobashi", "minamimorimachi"],
+    ["honmachi", "morinomiya"],
+]
+_YODO = {
+    "line": [
+        [34.7350, 135.4500],
+        [34.7300, 135.4700],
+        [34.7230, 135.4900],
+        [34.7170, 135.5100],
+        [34.7100, 135.5350],
+        [34.7000, 135.5600],
+    ],
+    "width": 2,
+}
 
 
 POTATO_RUMOR = "昼ヶ丘のいもを焼くと、リバースロンドンの木の看板の陰から鼻先がのぞくんだって。ドラゴンもあの甘い匂いが好きみたいだよ。"
@@ -5041,6 +6228,151 @@ def _paris_rescue_spec() -> dict[str, Any]:
     }
 
 
+def _osaka_detective_spec() -> dict[str, Any]:
+    """Western Great Detective investigation & gamification spec for Seyakate Osaka."""
+    return {
+        "floor": "osaka",
+        "seed": 20261127,
+        "boss_cell": [32, 33],
+        "hero": {"hp": 40, "stamina": 48, "logic": 8, "pokerface": 2, "medals": 20},
+        "nodes": [
+            {"id": "npc-heita", "kind": "npc", "tx": 15, "ty": 3, "emoji": "🕵️‍♂️", "label": "熱血探偵ヘイタ", "speaker": "熱血探偵ヘイタ",
+             "greeting": "せやかて工藤！……やのうて新人探偵はん！オオサカの街に怪しい影や暗号トリックがうごめいとるんや！",
+             "lines": ["現場検証では体力⚡を消費して閃きロジックをぶつけるんや。息切れしたら街の茶房や給水処🍵でひと息入れや！",
+                       "街角にはたこ焼き🐙やルーペ🔍、それに名探偵装備の宝箱🎁が落ちとる。見つけたら手帳に収めて身なりを固めるんや！",
+                       "影の謎を解くと街に緑🌱が咲いて浪速手帳📋に記録される。全35箇所の影を解き明かして、西の名探偵の座を掴むんやで！"]},
+            {"id": "npc-ayaka", "kind": "npc", "tx": 15, "ty": 14, "emoji": "🧢", "label": "助手アヤカ", "speaker": "助手アヤカ",
+             "greeting": "ヘイタ先輩の助手をやってますアヤカです！右上のコンパス🧭を見れば、一番近い未解明の影の方向と距離が一発で分かりますよ！",
+             "lines": ["この調査支援通信網は TalkCompress や cli_args の極限圧縮プロトコルを応用してるんです。",
+                       "現場へ急行するときは、コンパスボタンを直接クリック・タップすれば自動で一番近い影へ歩いて誘導してくれますよ！"]},
+            {"id": "npc-semba", "kind": "npc", "tx": 17, "ty": 28, "emoji": "📰", "label": "船場情報屋センバ", "speaker": "船場情報屋センバ", "shop": True,
+             "greeting": "まいど！捜査ご苦労さんなこってす！現場解決で貯めた調査メダル🪙で、船場名物のおやつや捜査アイテム仕入れていきまへんか！",
+             "lines": ["ウチの船場せんべい🍘とアツアツたこ焼き🐙は特製で、捜査体力⚡と精神力がいっぺんにみなぎりまっせ！",
+                       "奥の鑑識班から融通してもらった鑑識ブラックライト🔦も置いてまっせ。手強い暗号にぶつけてみなはれ！"]},
+            {"id": "npc-hakase", "kind": "npc", "tx": 23, "ty": 22, "emoji": "🔬", "label": "科学捜査官ハカセ", "speaker": "科学捜査官ハカセ", "refill": True,
+             "greeting": "科学捜査研究所へようこそ！水都大阪の分析技術と鑑識データで、君の体力⚡と推理コンディションを満タンまで即時回復しよう！",
+             "lines": ["大川と中之島の水流解析には FluidFullSpeedSimulation や DRAgoWing の計算流体力学アルゴリズムを取り入れているんじゃ。",
+                       "理路整然とした論理のメスを入れれば、どんな難解な暗号トリックも必ず綻びを見せるはずじゃよ！"]},
+            {"id": "npc-archivist", "kind": "npc", "tx": 29, "ty": 27, "emoji": "📚", "label": "オオサカ記録官", "speaker": "オオサカ記録官", "quiz": True,
+             "greeting": "私はポートフォリオの浪速記録官。街の事件簿と技術リポジトリの軌跡を編纂している。君の探偵リテラシーを試すクイズに挑んでみるかね？",
+             "lines": ["クイズに正解すれば、探偵経験値と調査メダルを進呈しよう。技術の真理を解き明かすことこそ、名探偵への最短経路なのだ。"]},
+            {"id": "npc-conductor", "kind": "npc", "tx": 14, "ty": 2, "emoji": "🧑‍✈️", "label": "新大阪駅長", "speaker": "新大阪駅長",
+             "greeting": "新大阪駅へようこそ。南の玉造・城東方面の奥地に、最大級の快盗黒幕シャドウ🎩が潜伏しているとの緊急通報が入っています！",
+             "lines": ["黒幕シャドウに挑む前に、街角の宝箱からスーパートルクキックシューズ⚡や撥水トレンチコート🧥を揃えておくことをお勧めします。",
+                       "さらに東の区画には3箇所以上の謎解きで封印が解ける黄金の名探偵ハット⛑️の宝箱が眠っているそうです！"]},
+            {"id": "stand-shin-osaka", "kind": "stand", "tx": 16, "ty": 2, "emoji": "🍵", "label": "新大阪茶房",
+             "greeting": "新大阪駅前の茶房スタンドや。淹れたての宇治茶を一杯飲んで、調査体力⚡を満タンまで急速補給したで！"},
+            {"id": "stand-umeda", "kind": "stand", "tx": 13, "ty": 17, "emoji": "🚰", "label": "梅田給水処",
+             "greeting": "梅田地下街前の給水処や。清涼な冷水で喉を潤して、調査体力⚡を満タンまで補給したで！"},
+            {"id": "stand-semba", "kind": "stand", "tx": 16, "ty": 27, "emoji": "🍵", "label": "船場茶房",
+             "greeting": "船場商人の路地裏茶房や。香ばしいほうじ茶をいただいて、調査体力⚡と気力を満タンまで補給したで！"},
+            {"id": "stand-namba", "kind": "stand", "tx": 17, "ty": 37, "emoji": "🐙", "label": "難波茶房処",
+             "greeting": "道頓堀近くの茶房処や。名物のお茶で一服して、長距離捜査の疲れと体力⚡を満タンまで急速補給したで！"},
+            {"id": "drop-takoyaki", "kind": "drop", "tx": 15, "ty": 4, "emoji": "🐙", "label": "アツアツたこ焼き",
+             "item_emoji": "🐙", "item_label": "アツアツたこ焼き", "desc": "出汁の効いた浪速名物たこ焼き。HPを20、調査体力を14回復する。",
+             "item_type": "heal", "hp": 20, "stamina": 14, "exp": 8, "medals": 5},
+            {"id": "drop-loupe", "kind": "drop", "tx": 14, "ty": 16, "emoji": "🔍", "label": "探偵ルーペ",
+             "item_emoji": "🔍", "item_label": "探偵ルーペ", "desc": "微細な痕跡も見逃さない精密ルーペ。閃き論理力+5。",
+             "item_type": "logic", "logic": 5, "exp": 18, "medals": 15},
+            {"id": "drop-notebook", "kind": "drop", "tx": 17, "ty": 29, "emoji": "📓", "label": "捜査手帳",
+             "item_emoji": "📓", "item_label": "捜査手帳", "desc": "証言と矛盾を整理する黒革手帳。ポーカーフェイス+4、最大HP+14。",
+             "item_type": "logic", "pokerface": 4, "hp": 14, "exp": 20, "medals": 18},
+            {"id": "drop-senbei", "kind": "drop", "tx": 22, "ty": 24, "emoji": "🍘", "label": "船場せんべい",
+             "item_emoji": "🍘", "item_label": "船場せんべい", "desc": "パリッと香ばしい伝統の醤油せんべい。HPを24、体力を16回復する。",
+             "item_type": "heal", "hp": 24, "stamina": 16, "exp": 10, "medals": 6},
+            {"id": "drop-blacklight", "kind": "drop", "tx": 28, "ty": 28, "emoji": "🔦", "label": "鑑識ブラックライト",
+             "item_emoji": "🔦", "item_label": "鑑識ブラックライト", "desc": "潜在痕跡を蛍光発光させる鑑識用ライト。現場検証で大ダメージを与える。",
+             "item_type": "logic", "logic": 28, "exp": 12, "medals": 8},
+            {"id": "chest-shoes", "kind": "chest", "tx": 15, "ty": 1, "emoji": "🎁", "label": "スーパートルクキックシューズ",
+             "opened_emoji": "📭", "item_emoji": "⚡", "item_label": "スーパートルクキックシューズ",
+             "desc": "電磁トルクで犯人を追い詰める特製キックシューズ。閃き論理力+6、体力+20。",
+             "item_type": "shoes", "logic": 6, "stamina": 20, "exp": 25, "medals": 20},
+            {"id": "chest-coat", "kind": "chest", "tx": 13, "ty": 18, "emoji": "🎁", "label": "撥水トレンチコート",
+             "opened_emoji": "📭", "item_emoji": "🧥", "item_label": "撥水トレンチコート",
+             "desc": "水都の小雨を弾く仕立てのトレンチコート。ポーカーフェイス+5、最大HP+16。",
+             "item_type": "coat", "pokerface": 5, "hp": 16, "exp": 22, "medals": 20},
+            {"id": "chest-canteen", "kind": "chest", "tx": 24, "ty": 23, "emoji": "🎁", "label": "船場大容量水筒",
+             "opened_emoji": "📭", "item_emoji": "🛢️", "item_label": "船場大容量水筒",
+             "desc": "保温性に優れた船場特製の大容量水筒。最大体力容量+36。",
+             "item_type": "canteen", "stamina": 36, "exp": 22, "medals": 20},
+            {"id": "chest-hat", "kind": "chest", "tx": 29, "ty": 31, "emoji": "🎁", "label": "黄金の名探偵ハット",
+             "opened_emoji": "📭", "item_emoji": "⛑️", "item_label": "黄金の名探偵ハット",
+             "desc": "東西の名探偵に受け継がれる栄誉のハット。論理力+8、ポーカーフェイス+6、HP+15、体力+25。",
+             "item_type": "hat", "logic": 8, "pokerface": 6, "hp": 15, "stamina": 25, "exp": 45, "medals": 50,
+             "requires_clues": 3},
+        ],
+        "tactics": [
+            {"id": "tac-standard", "emoji": "🔍", "label": "現場検証", "stamina": 4, "kind": "inspect", "mult_pct": 100,
+             "desc": "慎重な痕跡調査。確実に影の矛盾を解明する。"},
+            {"id": "tac-burst", "emoji": "💡", "label": "閃きロジックバースト", "stamina": 8, "kind": "logic_burst", "mult_pct": 180,
+             "desc": "直感と論理を一気に爆発。大威力の推理で急解明する。"},
+            {"id": "tac-poker", "emoji": "🛡️", "label": "ポーカーフェイス", "stamina": 3, "kind": "pokerface", "mult_pct": 60, "heal_hp": 6,
+             "desc": "冷静沈着な探偵の構え。影の揺さぶりを半減しつつ精神集中する。"},
+        ],
+        "shop": [
+            {"id": "shop-takoyaki", "emoji": "🐙", "label": "アツアツたこ焼き", "cost": 10, "item_type": "heal",
+             "hp": 22, "stamina": 14, "logic": 0, "pokerface": 0, "desc": "出汁の効いたたこ焼き。HP+22, 体力+14。"},
+            {"id": "shop-stamina", "emoji": "🧯", "label": "高濃度ブレイク水筒", "cost": 12, "item_type": "stamina",
+             "hp": 0, "stamina": 32, "logic": 0, "pokerface": 0, "desc": "急速回復ドリンク。調査体力+32。"},
+            {"id": "shop-light", "emoji": "🔦", "label": "鑑識高輝度ブラックライト", "cost": 18, "item_type": "logic",
+             "hp": 0, "stamina": 0, "logic": 30, "pokerface": 0, "desc": "瞬時に矛盾を暴くライト。影に30ダメージ。"},
+        ],
+        "quests": [
+            {"id": "q-talk-heita", "title": "熱血探偵ヘイタへ着任挨拶", "desc": "熱血探偵ヘイタ(15, 3)に話しかけてオオサカ調査の基本を教わる。",
+             "kind": "talk", "count": 1, "reward_exp": 15, "reward_medals": 10},
+            {"id": "q-first-clue", "title": "初めての現場解決", "desc": "オオサカの不審な影を1箇所解明して街に緑を咲かせる。",
+             "kind": "clue", "count": 1, "reward_exp": 25, "reward_medals": 15},
+            {"id": "q-three-clues", "title": "街角の謎解きラッシュ", "desc": "影を3箇所以上解明して黄金ハット宝箱の封印を解く。",
+             "kind": "clue", "count": 3, "reward_exp": 40, "reward_medals": 25},
+            {"id": "q-find-drop", "title": "捜査どうぐの発見", "desc": "路上に落ちているたこ焼きやルーペを拾って道具箱に収める。",
+             "kind": "drop", "count": 1, "reward_exp": 15, "reward_medals": 10},
+            {"id": "q-open-chest", "title": "名探偵装備の獲得", "desc": "街の宝箱を開けてキックシューズやトレンチコートを装備する。",
+             "kind": "chest", "count": 1, "reward_exp": 25, "reward_medals": 20},
+            {"id": "q-stand-refill", "title": "茶房・給水処で急速補給", "desc": "街の給水処や茶房スタンドで調査体力を満タンにする。",
+             "kind": "refill", "count": 1, "reward_exp": 15, "reward_medals": 10},
+            {"id": "q-solve-quiz", "title": "浪速記録官の推理試練", "desc": "オオサカ記録官の技術ポートフォリオクイズに正解する。",
+             "kind": "quiz", "count": 1, "reward_exp": 20, "reward_medals": 15},
+            {"id": "q-boss-shadow", "title": "快盗黒幕シャドウ完全解決", "desc": "城東奥地の快盗黒幕シャドウ(32, 33)のトリックを完全看破する！",
+             "kind": "boss_clue", "count": 1, "reward_exp": 80, "reward_medals": 60},
+        ],
+        "badges": [
+            {"id": "b-first-clue", "emoji": "🌱", "label": "初動解決", "desc": "最初の影を解明し街に花を咲かせた"},
+            {"id": "b-clue-five", "emoji": "🌷", "label": "名推理エキスパート", "desc": "5箇所以上の影を解明した"},
+            {"id": "b-boss-down", "emoji": "🎩", "label": "黒幕撃破", "desc": "最大規模の快盗黒幕シャドウを看破した"},
+            {"id": "b-geared-up", "emoji": "⛑️", "label": "一級探偵フル装備", "desc": "宝箱からシューズ・コート・水筒・ハットを揃えた"},
+            {"id": "b-stand-master", "emoji": "🍵", "label": "茶房マイスター", "desc": "茶房や給水処で3回以上補給した"},
+            {"id": "b-quiz-scholar", "emoji": "📚", "label": "浪速知識人", "desc": "技術リポジトリクイズに3問以上正解した"},
+            {"id": "b-green-osaka", "emoji": "🌳", "label": "緑化の名探偵", "desc": "ガーデン緑化セルが8マス以上に達した"},
+        ],
+        "quizzes": [
+            {"repo": "PySaiyanWeBoo",
+             "prompt": "PySaiyanWeBooの counter_garden で、事件解決ごとに街に花を咲かせる緑化グリッドは何マスで構成されている？",
+             "choices": ["64マス (8×8)", "16マス (4×4)", "100マス (10×10)"], "correct": 0,
+             "explanation": "counter_garden は xorshift32 乱数で 64マス (8×8) のグリッドに花や樹木を咲かせ、8セルごとに記念スタンプ報酬を解放します。"},
+            {"repo": "FluidFullSpeedSimulation",
+             "prompt": "FluidFullSpeedSimulation で追求されている大川・水都大阪の流体シミュレーションの中核方針はどれ？",
+             "choices": ["格子ボルツマン法による高速並列シミュレーション", "手動でのセル単位ペイント", "外部GPUクラウドへの全フレーム依存"], "correct": 0,
+             "explanation": "FluidFullSpeedSimulation は格子ボルツマン法 (LBM) 等の流体物理計算を極限まで軽量・高速化し、リアルタイムでの水流再現を可能にしています。"},
+            {"repo": "TalkCompress",
+             "prompt": "探偵無線との超高速通信で活躍する TalkCompress の主な目的はどれ？",
+             "choices": ["テキスト文脈の意味を保ちつつトークン数を大幅に圧縮する", "音声を録音してMP3に変換する", "画像をドット絵にモザイク処理する"], "correct": 0,
+             "explanation": "TalkCompress は大規模言語モデルのコンテキストウィンドウを効率活用するため、意味を損なわずにトークン表現を凝縮します。"},
+            {"repo": "OnTautoLogy",
+             "prompt": "OnTautoLogy のツール群が検証する命題論理の性質はどれ？",
+             "choices": ["常に真となる恒真式（トートロジー）の自動判定と簡約", "画像のアスペクト比の自動補正", "CSSグリッドの折り返し計算"], "correct": 0,
+             "explanation": "OnTautoLogy は論理式の真理値表生成や構文解析を通じて、恒真式（トートロジー）の厳密な判定と教育的可視化を行います。"},
+            {"repo": "BrowserTestKit",
+             "prompt": "本ポートフォリオのブラウザテスト自動化を支える BrowserTestKit の役割はどれ？",
+             "choices": ["実ブラウザ環境での操作再現と画面乱れ・回帰テストの堅牢化", "動画のストリーミング配信サーバー", "3Dポリゴンモデルのテクスチャベイク"], "correct": 0,
+             "explanation": "BrowserTestKit は Headless Chrome / Playwright 等を統合し、実画面でのレイアウト・キー操作・回帰テストを決定論的に検証します。"},
+            {"repo": "CaChereCyCle",
+             "prompt": "捜査リソースや街の状態を無駄なく循環利用する発想に通じる CaChereCyCle の特徴は？",
+             "choices": ["計算結果やメモリキャッシュの効率的なライフサイクル管理", "自転車の走行ルート記録", "ゴミ分別のスケジュール通知"], "correct": 0,
+             "explanation": "CaChereCyCle はキャッシュの生存期間と再利用サイクルを最適化し、低オーバーヘッドで高スループットを実現します。"},
+        ],
+    }
+
+
 EXAMPLES.update({
     "school": {
         "schema": WORLD_SCHEMA, "id": "school", "title": "School (prototype)", "zoom_max": 4,
@@ -5067,16 +6399,21 @@ EXAMPLES.update({
         "tools": {"🗼": {"label": "パラレル東京", "label_en": "Parallel Tokyo", "floor": "tokyo"},
                   "🎡": {"label": "リバースロンドン", "label_en": "Reverse London", "floor": "london"},
                   "🥖": {"label": "フェイクパリ", "label_en": "Fake Paris", "floor": "paris"},
+                  "🐙": {"label": "せやかて大阪", "label_en": "Seyakate Osaka", "floor": "osaka"},
                   "🚉": {"label": "東京駅", "label_en": "Tokyo Station",
                          "spots": ["tokyo-marunouchi-n", "tokyo-marunouchi-c", "tokyo-marunouchi-s", "tokyo-yaesu-n", "tokyo-yaesu-c", "tokyo-yaesu-s"]}},
-        "board": {"title": "PARALLEL", "items": [{"text": "実在の街の、もうひとつの姿"}, {"text": "🛗で3つの街を行き来"}, {"text": "歩いて駅から駅へ"}]},
+        "board": {"title": "PARALLEL", "items": [{"text": "実在の街の、もうひとつの姿"}, {"text": "🛗で4つの街を行き来"}, {"text": "歩いて駅から駅へ"}]},
         "floors": [{"id": "tokyo", "label": "Parallel Tokyo", "place": {"points": _TOKYO_POINTS, "meters": 32, "links": _TOKYO_LINKS, "marks": _CITY_MARKS, "always_named": ["exit"]}},
                    {"id": "london", "label": "Reverse London",
                     "place": {"points": _LONDON_POINTS, "meters": 150, "links": _LONDON_LINKS, "rivers": [_THAMES], "marks": _CITY_MARKS}},
                    {"id": "paris", "label": "Fake Paris",
                     "place": {"points": _PARIS_POINTS, "meters": 150, "links": _PARIS_LINKS, "rivers": [_SEINE],
-                              "scatter": {"kind": "fire", "every": 8, "seed": 5}, "marks": _CITY_MARKS}}],
+                              "scatter": {"kind": "fire", "every": 8, "seed": 5}, "marks": _CITY_MARKS}},
+                   {"id": "osaka", "label": "Seyakate Osaka",
+                    "place": {"points": _OSAKA_POINTS, "meters": 220, "links": _OSAKA_LINKS, "rivers": [_YODO],
+                              "scatter": {"kind": "shadow", "every": 8, "seed": 7}, "marks": _CITY_MARKS}}],
         "rescue": _paris_rescue_spec(),
+        "detective": _osaka_detective_spec(),
     },
 })
 

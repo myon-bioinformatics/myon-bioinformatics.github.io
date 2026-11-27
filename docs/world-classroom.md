@@ -272,6 +272,25 @@ Worlds that set optional `"rescue"` (`EXAMPLES["cities"]`, active on the Fake Pa
   - **Greening blooms & Hero Journal (`counter_garden`)**: Each extinguished fire plants a bloom (`🌱`, `🌷`, `🌳`, `🍄`, `🌻`, `🪨`) via PySaiyanWeBoo's deterministic `counter_garden`, viewable on an 8×8 (64 cells) greening grid inside the Hero Journal (`📋`), unlocking souvenir stamp badges.
   - **Nearest-fire compass radar (`world_direction`)**: The HUD compass (`🧭`) continuously computes distance and direction to the nearest unextinguished fire; clicking it dispatches the hero toward that fire.
 
+## Seyakate Osaka Detective Investigation & Gamification (`detective`)
+
+Worlds that set optional `"detective"` (`EXAMPLES["cities"]`, active on the Seyakate Osaka floor `#osaka`) provide a dedicated Western Great Detective × Investigation Gamification experience scoped to Osaka's 33×49 tile grid and 35 scattered mystery shadow props:
+
+* **Contact canned dialogue (`nodes` / `npc`)**: Walking within tile contact range of Osaka NPCs (or clicking them) opens multi-page lore and assistance with Kansai detective flavor without interrupting navigation:
+  - **🕵️‍♂️ 熱血探偵ヘイタ** (`(15, 3)`): Detective briefing on mystery shadows, stamina management, and street greening.
+  - **🧢 助手アヤカ** (`(15, 14)`): Lore on `TalkCompress` & `cli_args` protocol design and the `🧭` shadow radar.
+  - **📰 船場情報屋センバ** (`(17, 28)`): Medal shop exchanging investigation medals `🪙` for hot takoyaki `🐙`, break canteens `🧯`, and forensic blacklights `🔦`.
+  - **🔬 科学捜査官ハカセ** (`(23, 22)`): Lore on `FluidFullSpeedSimulation` & `DRAgoWing` hydrodynamics; instant full HP and stamina refill.
+  - **📚 オオサカ記録官** (`(29, 27)`): 3-choice quizzes covering `PySaiyanWeBoo`, `FluidFullSpeedSimulation`, `TalkCompress`, `OnTautoLogy`, `BrowserTestKit`, and `CaChereCyCle` with medal/EXP rewards.
+  - **🧑‍✈️ 新大阪駅長** (`(14, 2)`): Guidance on eastern boss shadow `(32, 33)` and sealed equipment.
+* **Ground drops & treasure chests (`drops`, `chests`)**: Walkable ground items (`🐙`, `🔍`, `📓`, `🍘`, `🔦`) and treasure chests (`🎁` → `📭`, including a 3-clue sealed golden detective hat chest) that grant permanent gear bonuses (`💡 Logic`, `🛡️ Pokerface`, `❤️ MaxHP`, `⚡ MaxStamina`) and sync into the world `🎒` Bag.
+* **Western Detective Investigation × Gamification (shadows, orbs & greening)**:
+  - **Shadow tiers**: 35 scattered mystery shadows range from Lv.1 街角の不審な痕跡 to Lv.2 難解な暗号トリック and the Lv.3 怪盗黒幕シャドウ boss.
+  - **Smooth auto-unravel on the move**: Walking onto or adjacent to a Tier 1 shadow with `stamina >= 6` automatically unravels it with a non-blocking toast and plants a `GARDEN_GLYPHS` bloom on the tile without modal interruption.
+  - **Tactical investigation modal**: Tapping a shadow prop or engaging higher-tier shadows opens the interactive deduction view (`🔍 現場検証`, `💡 閃きロジックバースト`, `🛡️ ポーカーフェイス`, `🎒 どうぐ`, `💨 一旦退避`) with logic/confusion orb bursts (`detectiveOrbEffect`), confusion contradiction retaliation, and stamina management.
+  - **Greening blooms & Detective Journal (`counter_garden`)**: Each solved mystery plants a bloom (`🌱`, `🌷`, `🌳`, `🍄`, `🌻`, `🪨`) via PySaiyanWeBoo's deterministic `counter_garden`, viewable on an 8×8 (64 cells) greening grid inside the Detective Journal (`📋 浪速探偵手帳`), unlocking souvenir stamp badges.
+  - **Nearest-shadow compass radar (`world_direction`)**: The HUD compass (`🧭`) continuously computes distance and direction to the nearest unsolved shadow; clicking it dispatches the detective toward that shadow.
+
 ## Not included
 
 ## Demos

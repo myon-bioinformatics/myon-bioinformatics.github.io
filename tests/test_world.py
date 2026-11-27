@@ -1198,8 +1198,8 @@ def by_id(floor):
     return {s["id"].split("-", 1)[1]: s for s in floor["spots"]}
 
 
-def test_the_cities_are_three_floors_with_every_spot_walkable(cities):
-    assert list(cities) == ["tokyo", "london", "paris"]
+def test_the_cities_are_four_floors_with_every_spot_walkable(cities):
+    assert list(cities) == ["tokyo", "london", "paris", "osaka"]
     for floor in cities.values():
         reach = walkable(floor)
         assert len(floor["props"]) <= 512 and len(floor["spots"]) <= 64
@@ -1282,6 +1282,22 @@ def test_fake_paris_has_its_stations_a_seine_with_bridges_and_a_fire_in_each_blo
     assert 20 <= len(fires) <= 40
     tile = floor["tile"]
     assert len({(p["x"] // tile // 8, p["y"] // tile // 8) for p in fires}) == len(fires)                         # one per block of eight tiles
+
+
+def test_osaka_has_its_stations_a_yodo_river_with_bridges_and_a_shadow_in_each_block(cities):
+    floor = cities["osaka"]
+    spots = by_id(floor)
+    kinds = {}
+    for key, spot in spots.items():
+        kinds.setdefault(spot["category"], []).append(key)
+    assert sorted(kinds) == ["sign", "station", "terminus"] and len(kinds["terminus"]) == 6
+    assert spots["shin-osaka"]["y"] < spots["osaka-umeda"]["y"] < spots["namba"]["y"] < spots["abeno"]["y"]
+    assert spots["nishikujo"]["x"] < spots["osaka-umeda"]["x"] < spots["kyobashi"]["x"]
+    assert {"water", "bridge", "shadow"} <= {p["kind"] for p in floor["props"]}
+    shadows = [p for p in floor["props"] if p["kind"] == "shadow"]
+    assert 20 <= len(shadows) <= 45
+    tile = floor["tile"]
+    assert len({(p["x"] // tile // 8, p["y"] // tile // 8) for p in shadows}) == len(shadows)
 
 
 def test_no_city_lists_a_religious_building(cities):
@@ -2062,3 +2078,105 @@ class FakeParisRescueTests(unittest.TestCase):
             with self.subTest(bad=bad if isinstance(bad, str) else list(bad)):
                 with self.assertRaises(ValueError):
                     W.rescue_validate(bad, floors=floors)
+
+
+class OsakaDetectiveTests(unittest.TestCase):
+    def test_cities_spec_has_detective_and_validation_is_idempotent(self):
+        cities = W.example_data("cities")
+        world = W.world_validate(cities)
+        self.assertEqual(W.world_validate(world), world)
+        detective = world["detective"]
+        self.assertEqual(detective["floor"], "osaka")
+        self.assertEqual(detective["boss_cell"], [32, 33])
+        self.assertEqual(len(detective["nodes"]), 19)
+        self.assertEqual(len(detective["tactics"]), 3)
+        self.assertEqual(len(detective["shop"]), 3)
+        self.assertEqual(len(detective["quests"]), 8)
+        self.assertEqual(len(detective["badges"]), 7)
+        self.assertEqual(len(detective["quizzes"]), 6)
+
+    def test_detective_nodes_and_shadows_are_walkable_and_reachable_from_start(self):
+        world = W.world_validate(W.example_data("cities"))
+        floor = next(f for f in world["floors"] if f["id"] == "osaka")
+        tile = floor["tile"]
+        blocked = W.world_blocked(floor["width"], floor["height"], tile, floor["props"])
+        start = (floor["player"]["x"] // tile, floor["player"]["y"] // tile)
+        reach = W.world_reach(blocked, start)
+        self.assertEqual(start, (15, 2))
+        for nd in world["detective"]["nodes"]:
+            with self.subTest(node=nd["id"]):
+                self.assertEqual(blocked[nd["ty"]][nd["tx"]], "0")
+                self.assertIn((nd["tx"], nd["ty"]), reach)
+        shadows = [(p["x"] // tile, p["y"] // tile) for p in floor["props"] if p["kind"] == "shadow"]
+        self.assertGreaterEqual(len(shadows), 30)
+        self.assertIn(tuple(world["detective"]["boss_cell"]), shadows)
+        for sh in shadows:
+            self.assertIn(sh, reach)
+
+    def test_detective_texts_contain_no_religious_or_forbidden_words(self):
+        forbidden = ("大聖堂", "寺院", "教会", "聖堂", "神社", "寺", "モスク", "霊廟", "エッフェル塔", "タワー・ブリッジ")
+        detective_str = json.dumps(W.example_data("cities")["detective"], ensure_ascii=False)
+        for word in forbidden:
+            self.assertNotIn(word, detective_str)
+
+    def test_node_detective_parity_matches_python_and_pysaiyanweboo_oracles(self):
+        for seed in (0, 1, 20261127, 0xFFFFFFFF):
+            self.assertEqual(W.detective_next_seed(seed), W.play_random(seed))
+        self.assertTrue(W.detective_orb_effect(0)["idle"])
+        self.assertEqual(W.detective_orb_effect(8, logic=True)["label"], "🔍 閃き 8")
+        self.assertEqual(W.detective_rank_for_exp(0)["level"], 1)
+        self.assertEqual(W.detective_rank_for_exp(35)["level"], 2)
+        self.assertEqual(W.detective_rank_for_exp(600)["level"], 7)
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node binary unavailable")
+        pure_js = W.WORLD_DETECTIVE_JS.replace("bindDetectiveWorlds();\n", "")
+        probe = (
+            pure_js
+            + '\nconst seeds = [0, 1, 20261127, 4294967295].map(s => detectiveRandomWord(s));\n'
+            + 'const orbs = [detectiveOrbEffect(0), detectiveOrbEffect(8, true), detectiveOrbEffect(6, false)];\n'
+            + 'const ranks = [0, 34, 35, 90, 600, 9999].map(e => detectiveRankForExp(e));\n'
+            + 'const clues = [detectiveClueProfile(0, 15, 4, 20261127), detectiveClueProfile(34, 32, 33, 20261127, {bossCell: [32, 33]} )];\n'
+            + 'const strike = [detectiveStrike(8, 123456), detectiveStrike(14, 654321, {multPct: 180})];\n'
+            + 'const hit = [detectiveContradictionHit(7, 2, 112233), detectiveContradictionHit(11, 4, 334455, {guarding: true})];\n'
+            + 'const garden = detectiveGarden(20261127, [5, 5, 5, 5, 5]);\n'
+            + 'console.log(JSON.stringify({seeds, orbs, ranks, clues, strike, hit, garden}));\n'
+        )
+        res = subprocess.run([node, "--input-type=module", "-e", probe], capture_output=True, text=True, check=True)
+        data = json.loads(res.stdout)
+        self.assertEqual(data["seeds"], [W.detective_next_seed(s) for s in (0, 1, 20261127, 0xFFFFFFFF)])
+        self.assertEqual(data["orbs"], [W.detective_orb_effect(0), W.detective_orb_effect(8, logic=True), W.detective_orb_effect(6, logic=False)])
+        self.assertEqual(data["ranks"], [W.detective_rank_for_exp(e) for e in (0, 34, 35, 90, 600, 9999)])
+        self.assertEqual(data["clues"], [W.detective_clue_profile(0, 15, 4, 20261127), W.detective_clue_profile(34, 32, 33, 20261127, boss_cell=[32, 33])])
+        self.assertEqual(data["strike"], [W.detective_strike(8, 123456), W.detective_strike(14, 654321, mult_pct=180)])
+        self.assertEqual(data["hit"], [W.detective_contradiction_hit(7, 2, 112233), W.detective_contradiction_hit(11, 4, 334455, guarding=True)])
+        self.assertEqual(data["garden"], W.detective_garden(20261127, [5, 5, 5, 5, 5]))
+
+    def test_world_detective_script_has_no_forbidden_tokens_and_school_is_untouched(self):
+        for forbidden in ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "fetch(",
+                          "XMLHttpRequest", "WebSocket", "sendBeacon", "localStorage", "sessionStorage", "indexedDB", "document.cookie", "<canvas"):
+            self.assertNotIn(forbidden, W.WORLD_DETECTIVE_JS)
+        cities_doc = W.world_document(W.example_data("cities"))
+        self.assertIn("ui-detective-hud", cities_doc)
+        self.assertIn("bindWorldDetective", cities_doc)
+        school_doc = W.world_document(W.example_data("school"))
+        self.assertNotIn("ui-detective-hud", school_doc)
+        self.assertNotIn("bindWorldDetective", school_doc)
+
+    def test_detective_validation_rejects_malformed_specs(self):
+        floors = W.world_validate(W.example_data("cities"))["floors"]
+        valid = W.example_data("cities")["detective"]
+        bad_specs = [
+            "not-a-dict",
+            {**valid, "floor": "nonexistent"},
+            {**valid, "boss_cell": [99, 99]},
+            {**valid, "hero": {"hp": -1}},
+            {**valid, "nodes": []},
+            {**valid, "nodes": [{**valid["nodes"][0], "tx": 0, "ty": 0}]},  # out-of-bounds or blocked
+            {**valid, "quizzes": [{**valid["quizzes"][0], "choices": ["only two"]}]},
+            {**valid, "unknown_key": True},
+        ]
+        for bad in bad_specs:
+            with self.subTest(bad=bad if isinstance(bad, str) else list(bad)):
+                with self.assertRaises(ValueError):
+                    W.detective_validate(bad, floors=floors)

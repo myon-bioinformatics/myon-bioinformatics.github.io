@@ -21,7 +21,7 @@
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/world.html": "f408d10385b141e5d5ca8adbf02097f637830b94135dd0b0978120678b74d320",
+    "tools/demos/world.html": "731e21ca474184a15f18ff1747baeed623fc43d817d1cfd7389e37685c313799",
     "tools/test-report/index.html": "67368e97f1a442db506a211f422811be7a80dced0b2f145f097af7f8499b6463",
     "tools/mcp-protocol/index.html": "dca50571acb4331ee7b5c1a164d46a2756c11e664e3cc632a676391c1a0e384c",
     "tools/html-import/index.html": "3f4e09e9ef2b4e6d8c099adaca5a6a57f2f6921456dcec84779c87d697f37d6c",
