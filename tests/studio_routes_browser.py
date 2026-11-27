@@ -77,6 +77,12 @@ def _download(page, selector):
     return pending.value.path().read_bytes()
 
 
+def _saved(page, key):
+    """💾 A studio's save goes through the one header: open 💾 and press the row the page declared (its own menus are hidden)."""
+    page.locator('details[data-menu="tool"] > summary[title="保存"]').click()
+    return _download(page, f'.ui-world-rows [data-chrome-action="{key}"]')
+
+
 @pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
 def test_image_studio_import_edit_and_download(browser, studio_origin, mobile):
     page = _page(browser, studio_origin, mobile=mobile)
@@ -89,11 +95,12 @@ def test_image_studio_import_edit_and_download(browser, studio_origin, mobile):
         expect(page.locator("#layers button").filter(has_text="fixture.png")).to_have_count(1)
         page.locator("#cell").fill("7")
         page.locator("#cell").dispatch_event("change")
-        scene = json.loads(_download(page, "#save"))
+        expect(page.locator("#studio-export")).to_be_hidden()                    # 💾 is the header's, not the page's
+        scene = json.loads(_saved(page, "json"))
         assert scene["schema"] == "ironmate-image-studio/1"
         assert scene["layers"][-1]["kind"] == "image"
         assert scene["layers"][-1]["cell"] == 7
-        png = _download(page, "#png")
+        png = _saved(page, "png")
         assert png[:8] == b"\x89PNG\r\n\x1a\n"
         assert int.from_bytes(png[16:20], "big") == scene["width"]
         assert int.from_bytes(png[20:24], "big") == scene["height"]
@@ -124,41 +131,51 @@ def test_studio_csp_admits_the_tools_chrome(browser, studio_origin, mobile):
         page.context.close()
 
 
-def test_slide_studio_import_edit_and_export_pptx(browser, studio_origin):
+@pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
+def test_the_one_slide_editor_opens_a_deck_and_exports_pptx(browser, studio_origin, mobile):
+    """📽️ /tools/slide-studio/ is Ironmate's one slide editor, phone-first and the same page on a PC; its old phone address sends on."""
     from io import BytesIO
 
-    page = _page(browser, studio_origin)
+    page = _page(browser, studio_origin, mobile=mobile)
     try:
-        assert page.goto(studio_origin + "/tools/slide-studio/").ok
+        assert page.goto(studio_origin + "/tools/slide-studio/phone/").ok
+        page.wait_for_url(studio_origin + "/tools/slide-studio/")
+        page.wait_for_function("() => !!window.IronmatePhone")
         assert page.locator('[data-testid="portfolio-back"]').count() == 0
         expect(page.locator(".ui-chrome a.ui-world-home")).to_have_count(1)
-        expect(page.locator("#slide-select option")).to_have_count(1)
-        page.locator("#slide-template").click()
-        expect(page.locator("#layers button")).to_have_count(2)
-        deck = json.loads(_download(page, "#deck-save"))
-        assert deck["schema"] == "ironmate-slide-deck/1"
+        page.locator('[data-act="text"]').click()
+        page.keyboard.type("Portfolio fixture")
+        page.locator('[data-act="export"]').click()                              # 📤 then the format, in the candidate row
+        deck = json.loads(_download(page, '#phone-candidates button[title^="全スライドJSON"]'))
+        assert deck["schema"] == "ironmate-slide-deck/1" and deck["slides"][0]["layers"][0]["text"] == "Portfolio fixture"
         deck["slides"][0]["layers"][0]["text"] = "Imported fixture title"
-        page.locator("#deck-open").set_input_files({
+        page.locator('input[data-file="open"]').set_input_files({
             "name": "fixture.json", "mimeType": "application/json", "buffer": json.dumps(deck).encode(),
         })
-        expect(page.locator("#deck-status")).to_have_text("全スライドを読み込みました。")
-        title_id = deck["slides"][0]["layers"][0]["id"]
-        page.locator(f'[data-layer-id="{title_id}"]').click()
-        page.locator("#text").fill("Edited fixture title")
-        page.locator("#apply-text").click()
-        saved = json.loads(_download(page, "#deck-save"))
-        assert saved["slides"][0]["layers"][0]["text"] == "Edited fixture title"
-        pptx = _download(page, "#deck-pptx")
+        page.wait_for_function("() => IronmatePhone.deck.slides[0].layers[0].text === 'Imported fixture title'")
+        pptx = _download(page, '#phone-candidates button[title^="PPTX"]')
         with zipfile.ZipFile(BytesIO(pptx)) as office:
             xml = ElementTree.fromstring(office.read("ppt/slides/slide1.xml"))
             text = [node.text for node in xml.iter("{http://schemas.openxmlformats.org/drawingml/2006/main}t")]
-            assert "Edited fixture title" in text
+            assert "Imported fixture title" in text
+    finally:
+        page.context.close()
+
+
+@pytest.mark.parametrize("old", ["phone/", "pc/"])
+def test_the_old_slide_addresses_send_on_to_the_one_editor(browser, studio_origin, old):
+    """↪️ /tools/slide-studio/phone/ (the editor's address before) and pc/ (the PC studio it replaced) only send on."""
+    page = _page(browser, studio_origin)
+    try:
+        assert page.goto(studio_origin + "/tools/slide-studio/" + old).ok
+        page.wait_for_url(studio_origin + "/tools/slide-studio/")
+        page.wait_for_function("() => !!window.IronmatePhone")
     finally:
         page.context.close()
 
 
 @pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
-@pytest.mark.parametrize("route", ["image-studio/", "slide-studio/", "slide-studio/phone/", "browser-tools/"])
+@pytest.mark.parametrize("route", ["image-studio/", "slide-studio/", "browser-tools/"])
 def test_studio_has_one_tools_destination(browser, studio_origin, mobile, route):
     page = _page(browser, studio_origin, mobile=mobile)
     try:
