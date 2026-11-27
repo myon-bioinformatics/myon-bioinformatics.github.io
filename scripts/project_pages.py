@@ -829,6 +829,7 @@ _STUDIO_ROUTES = load_module('studio_routes', '_src/tools/studio_routes.py')
 TOOL_SOURCES = {'ironmate': ('myon-bioinformatics/Ironmate', 'tools', _STUDIO_ROUTES.PUBLIC_STUDIO_ENTRIES),
                 'mcp-toolcall-lab': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp', ('',)),
                 'mcp-toolcall-lab-execution': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp/execution', ('',)),
+                'format-lab': ('myon-bioinformatics/myon-bioinformatics', 'tools/format-lab', ('',)),
                 'dragowing': ('myon-bioinformatics/DRAgoWing', 'tools/heatmap', ('',))}
 CHECKOUTS = '.test-deps'   # 🧪 local checkouts (CI pins them) that --stage builds the tools from, one folder per repository
 
@@ -854,6 +855,8 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                                                              capture_output=True, timeout=900, env=env)
                 if key == 'ironmate':
                     run('image_studio.py', '--build-site', str(built))
+                elif key == 'format-lab':
+                    run('tools/format-lab/build.py', str(built))
                 elif key == 'dragowing':                          # 🌡️ one page on stdout; its scenes open in Image Studio
                     built.mkdir()
                     (built / 'index.html').write_bytes(run('scripts/build_heatmap_page.py').stdout)
@@ -880,7 +883,10 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                     continue
                 for entry in entries:                             # the way back (a page that has one keeps it)
                     page = built / entry / 'index.html'
-                    page.write_text(_back_to_tools(page.read_text(encoding='utf-8'), f'{folder}/{entry}index.html'), encoding='utf-8')
+                    document = _back_to_tools(page.read_text(encoding='utf-8'), f'{folder}/{entry}index.html')
+                    if key == 'format-lab':
+                        document = add_home_label(document, '🗃️ 形式検証', icons_from='../../')
+                    page.write_text(document, encoding='utf-8')
                 for _, inner, _ in TOOL_SOURCES.values():      # a tool inside this one (the execution lab) stays as it was
                     nested = inner[len(folder) + 1:] if inner.startswith(folder + '/') else ''
                     if nested and (dest / nested).exists() and not (built / nested).exists():
