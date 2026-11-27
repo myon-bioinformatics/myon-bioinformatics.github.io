@@ -623,6 +623,18 @@ def test_shop_rumor_and_optional_world_dialogue(site, browser):
             card.get_by_role('button', name='送る').click()
             page.wait_for_function('q=>window.dialogueMessages[1].content===q', arg=question)
             assert expected in page.evaluate('window.dialogueMessages[0].content')
+        card.get_by_label('話しかける').fill('探索の巻物の効果は？')
+        card.get_by_role('button', name='送る').click()
+        expect(evidence).to_contain_text('探索の巻物 → 攻撃対象 → 敵')
+        assert '竜の巻物' not in evidence.inner_text()
+        card.locator('.ui-rpg-close').click()
+        village.locator('[data-rpg-journal-btn]').click()
+        village.get_by_role('button', name='💾 セーブ').click()
+        village.get_by_text('セーブ文字列を作る', exact=True).click()
+        import pysaiyanweboo as ui
+        saved = ui.save_state(village.get_by_label('冒険データ').input_value())
+        assert saved['version'] == 4
+        assert [saved['data'][f'topic{i}'] for i in (1, 2, 3)] == [13, 11, 11]
         assert len(loads) == 1
     finally:
         page.close()

@@ -100,18 +100,23 @@ def dialogue_graph(world):
     from ontautology_shared.ontology import violations
 
     source = "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py"
+    scrolls = "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/831cf43785329c799966775153147b82ddc28638/scripts/world.py"
     pswb = "https://github.com/myon-bioinformatics/PySaiyanWeBoo/blob/e249a7c33071a5e70ff4866492506ebfd7719875/pysaiyanweboo.py"
     nodes = {
         "昼ヶ丘": ("場所", ["ヒルガオカ"]), "サツマイモ": ("道具", ["さつまいも", "おいも", "いも", "🍠"]),
         "ドラゴン": ("住人", ["竜", "りゅう", "🐉"]), "木の看板": ("目印", ["看板", "nogard"]),
         "リバースロンドン": ("場所", ["ロンドン", "London"]), "癒しの水": ("道具", ["いやしの水", "マナのしずく"]),
         "火": ("地形", ["炎", "🔥"]), "パリ": ("場所", ["Paris"]), "MP": ("能力", ["魔力"]),
+        "竜の巻物": ("道具", ["竜のまきもの"]), "探索の巻物": ("道具", ["探索のまきもの"]), "敵": ("相手", ["魔物"]),
         "冒険手帳": ("道具", ["手帳"]), "復活の呪文": ("形式", ["呪文", "じゅもん"]),
     }
     vocabulary = {"産物": (["場所"], "道具"), "好物": (["住人"], "道具"), "現れる": (["住人"], "目印"),
                   "所在地": (["目印", "地形"], "場所"), "消す": (["道具"], "地形"), "回復": (["道具"], "能力"),
                   "保存形式": (["道具"], "形式")}
+    vocabulary.update({"呼べる": (["道具"], "住人"), "攻撃対象": (["道具"], "相手")})
     facts = [
+        ("竜の巻物", "呼べる", "ドラゴン", "ロンドンで初めてドラゴンをなでると竜の巻物を受け取る。旅先でも同じドラゴンを呼べる。", scrolls + "#L2571", scrolls + "#L2604"),
+        ("探索の巻物", "攻撃対象", "敵", "戦闘で使うと敵1体に自分の攻撃力＋18のダメージを与える。1枚を消費する。", scrolls + "#L2524", source + "#L3499"),
         ("昼ヶ丘", "産物", "サツマイモ", "昼ヶ丘でサツマイモが育つ。", source + "#L3322"),
         ("ドラゴン", "好物", "サツマイモ", world.POTATO_RUMOR, source + "#L3302"),
         ("ドラゴン", "現れる", "木の看板", "木の看板の陰にドラゴンがいるらしい。", source + "#L2580"),

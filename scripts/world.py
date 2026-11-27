@@ -2364,7 +2364,7 @@ export function bindWorldRpg(el){
  const extendedLayout=[...layout,...Object.entries(extraWidths)];
  const layouts=[null,layout,extendedLayout,[...extendedLayout,["dragonHue",2],["dragonFill",25]]];
  // Stored topic IDs are append-only. Slot 1 is the most recent exchange.
- const topics=["","昼ヶ丘","サツマイモ","ドラゴン","木の看板","リバースロンドン","癒しの水","火","パリ","MP","冒険手帳","復活の呪文"];
+ const topics=["","昼ヶ丘","サツマイモ","ドラゴン","木の看板","リバースロンドン","癒しの水","火","パリ","MP","冒険手帳","復活の呪文","竜の巻物","探索の巻物","敵"];
  const memoryKeys=["topic1","topic2","topic3"];
  const remember=name=>{
   state.topic3=state.topic2;state.topic2=state.topic1;state.topic1=Math.max(0,topics.indexOf(name));
@@ -2608,7 +2608,11 @@ export function bindWorldRpg(el){
  function queryTopics(question){
   const normalize=text=>text.normalize("NFKC").toLowerCase();
   const words=normalize(question);
-  return Object.keys(worldKnowledge.terms).filter(name=>worldKnowledge.terms[name].some(alias=>words.includes(normalize(alias))));
+  const matches=Object.entries(worldKnowledge.terms).map(([name,aliases])=>{
+   const lengths=aliases.map(normalize).filter(alias=>words.includes(alias)).map(alias=>alias.length);
+   return [name,Math.max(0,...lengths)];
+  });
+  return matches.filter(([,length])=>length).sort((a,b)=>b[1]-a[1]).map(([name])=>name);
  }
  function relatedFacts(seeds){
   const paths=seeds.flatMap(name=>worldKnowledge.paths[name]).sort((a,b)=>a.length-b.length);
