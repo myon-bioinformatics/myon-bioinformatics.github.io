@@ -418,12 +418,13 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
     (checkout / 'image_studio.py').write_text(
         "import pathlib,sys\n"
         "root = pathlib.Path(sys.argv[2])\n"
-        "pages = {'index.html': '<a href=\\\"slides/phone/\\\">phone</a><script src=\\\"studio.js\\\"></script>',\n"
+        "pages = {'index.html': '<a href=\\\"slides/\\\">slides</a><script src=\\\"studio.js\\\"></script>',\n"
         " 'tools/index.html': '<a href=\\\"../slides/#target\\\">slides</a>',\n"
-        " 'slides/index.html': '<a href=\\\"../tools/\\\">tools</a>',\n"
-        " 'slides/phone/index.html': '<a href=\\\"../../\\\">image</a><script src=\\\"../../studio.js\\\"></script>'}\n"
+        " 'slides/index.html': '<a href=\\\"../tools/\\\">tools</a><a href=\\\"../\\\">image</a><script src=\\\"../studio.js\\\"></script>'}\n"
         "for name, text in pages.items():\n"
         " p = root / name; p.parent.mkdir(parents=True, exist_ok=True); p.write_text('<main>' + text + '</main>')\n"
+        "for old in ('slides/phone', 'slides/pc'):\n"
+        " (root / old).mkdir(); (root / old / 'index.html').write_text('<meta http-equiv=\\\"refresh\\\" content=\\\"0; url=../\\\" />')\n"
         "(root / 'studio.js').write_text('shared')\n"
         "(root / 'brand').mkdir()\n"
         "(root / 'brand/index.html').write_text('<meta http-equiv=\\\"refresh\\\" content=\\\"0;url=../tools/#brand\\\">')\n"
@@ -436,14 +437,14 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
     assert not (out / 'tools/ironmate').exists()
     assert not (SITE / '_src/tools/studio_routes.py').exists()  # source is not a public artifact
     tools = out / 'tools'
-    assert 'href="../slide-studio/phone/"' in (tools / 'image-studio/index.html').read_text()
+    assert 'href="../slide-studio/"' in (tools / 'image-studio/index.html').read_text()
     assert 'href="../slide-studio/#target"' in (tools / 'browser-tools/index.html').read_text()
-    assert 'href="../browser-tools/"' in (tools / 'slide-studio/index.html').read_text()
-    phone = (tools / 'slide-studio/phone/index.html').read_text()
-    assert 'href="../../image-studio/"' in phone and 'src="../../image-studio/studio.js"' in phone
-    assert 'href="../../../index.html#tools"' in phone
+    slides = (tools / 'slide-studio/index.html').read_text()
+    assert 'href="../browser-tools/"' in slides and 'href="../image-studio/"' in slides and 'src="../image-studio/studio.js"' in slides
+    assert 'href="../../index.html#tools"' in slides
     assert (tools / 'image-studio/studio.js').read_text() == 'shared'
-    assert not (tools / 'image-studio/brand/index.html').exists()            # 🚫 Ironmate's forward page is not published here
+    for forward in ('image-studio/brand/index.html', 'slide-studio/phone/index.html', 'slide-studio/pc/index.html'):
+        assert not (tools / forward).exists(), forward                    # 🗑 Ironmate's forward-only pages are not published here
     manifest = json.loads((tools / 'image-studio/brand/manifest.webmanifest').read_text())
     assert manifest['scope'] == '../../'
     assert manifest['shortcuts'] == [{'url': '../../slide-studio/'}]

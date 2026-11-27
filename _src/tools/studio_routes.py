@@ -10,10 +10,12 @@ import re
 import shutil
 from urllib.parse import urlsplit, urlunsplit
 
-# 📽️ slide-studio/ is Ironmate's one slide editor (phone-first, the same page on a PC); slide-studio/phone/ (its address before)
-# and slide-studio/pc/ (the PC studio it replaced) only send on to it.
-PUBLIC_STUDIO_ENTRIES = ('image-studio/', 'browser-tools/', 'slide-studio/', 'slide-studio/pc/', 'slide-studio/phone/')
-_IRONMATE_ENTRY_PAGES = ('index.html', 'tools/index.html', 'slides/index.html', 'slides/phone/index.html')
+# 📽️ slide-studio/ is Ironmate's one slide editor (phone-first, the same page on a PC).
+PUBLIC_STUDIO_ENTRIES = ('image-studio/', 'browser-tools/', 'slide-studio/')
+_IRONMATE_ENTRY_PAGES = ('index.html', 'tools/index.html', 'slides/index.html')
+# 🗑 Ironmate's forward-only pages (its old slides/phone/ and slides/pc/, brand/ → its tools/#brand) are not published here:
+# one tool, one address; old links need not keep working.
+_FORWARD_ONLY = re.compile(r'<meta\s+http-equiv=["\']?refresh', re.IGNORECASE)
 
 _IRONMATE_ROUTES = {'tools/': 'browser-tools/', 'slides/': 'slide-studio/'}
 
@@ -54,13 +56,13 @@ def stage_ironmate_studios(built: Path, mapped: Path, add_navigation: Callable[[
         if not path.is_file() or path.name == '.nojekyll':
             continue
         source = path.relative_to(built).as_posix()
-        if source == 'brand/index.html':   # 🚫 Ironmate's own forward to its tools/#brand; here they are browser-tools/ (the folder keeps the manifest and icons)
+        page = path.read_text(encoding='utf-8') if path.suffix == '.html' else ''
+        if _FORWARD_ONLY.search(page):
             continue
         target = mapped / _studio_path(source)
         target.parent.mkdir(parents=True, exist_ok=True)
         if path.suffix == '.html':
-            page = _STUDIO_LINK.sub(lambda m: m['attr'] + m['quote'] + _studio_href(source, m['url']) + m['quote'],
-                                    path.read_text(encoding='utf-8'))
+            page = _STUDIO_LINK.sub(lambda m: m['attr'] + m['quote'] + _studio_href(source, m['url']) + m['quote'], page)
             target.write_text(add_navigation(page, 'tools/' + _studio_path(source)), encoding='utf-8')
         elif source == 'brand/manifest.webmanifest':
             manifest = json.loads(path.read_text(encoding='utf-8'))

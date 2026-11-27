@@ -133,13 +133,12 @@ def test_studio_csp_admits_the_tools_chrome(browser, studio_origin, mobile):
 
 @pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
 def test_the_one_slide_editor_opens_a_deck_and_exports_pptx(browser, studio_origin, mobile):
-    """📽️ /tools/slide-studio/ is Ironmate's one slide editor, phone-first and the same page on a PC; its old phone address sends on."""
+    """📽️ /tools/slide-studio/ is Ironmate's one slide editor, phone-first and the same page on a PC."""
     from io import BytesIO
 
     page = _page(browser, studio_origin, mobile=mobile)
     try:
-        assert page.goto(studio_origin + "/tools/slide-studio/phone/").ok
-        page.wait_for_url(studio_origin + "/tools/slide-studio/")
+        assert page.goto(studio_origin + "/tools/slide-studio/").ok
         page.wait_for_function("() => !!window.IronmatePhone")
         assert page.locator('[data-testid="portfolio-back"]').count() == 0
         expect(page.locator(".ui-chrome a.ui-world-home")).to_have_count(1)
@@ -162,14 +161,11 @@ def test_the_one_slide_editor_opens_a_deck_and_exports_pptx(browser, studio_orig
         page.context.close()
 
 
-@pytest.mark.parametrize("old", ["phone/", "pc/"])
-def test_the_old_slide_addresses_send_on_to_the_one_editor(browser, studio_origin, old):
-    """↪️ /tools/slide-studio/phone/ (the editor's address before) and pc/ (the PC studio it replaced) only send on."""
+def test_the_old_slide_addresses_are_gone(browser, studio_origin):
+    """🗑 /tools/slide-studio/phone/ and pc/ (Ironmate's forward-only pages) are not published: one editor, one address."""
     page = _page(browser, studio_origin)
     try:
-        assert page.goto(studio_origin + "/tools/slide-studio/" + old).ok
-        page.wait_for_url(studio_origin + "/tools/slide-studio/")
-        page.wait_for_function("() => !!window.IronmatePhone")
+        assert [page.request.get(studio_origin + "/tools/slide-studio/" + old).status for old in ("phone/", "pc/")] == [404, 404]
     finally:
         page.context.close()
 
