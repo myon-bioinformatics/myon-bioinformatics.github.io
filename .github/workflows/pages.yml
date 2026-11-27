@@ -154,7 +154,7 @@ jobs:
                   time.sleep(0.1)
           PY
 
-      - name: Exercise composition audio from the staged Pages artifact
+      - name: Exercise audio and map clipboard from the staged Pages artifact
         run: |
           node --input-type=module <<'JS'
           import { chromium } from 'playwright';
@@ -232,6 +232,13 @@ jobs:
             await stalled.locator('#song-play').click();
             await stalled.locator('#song-stop').click();
             assert.equal(await stalled.locator('#song-status').innerText(), '停止しました。');
+
+            const map = await browser.newPage({permissions: ['clipboard-read', 'clipboard-write']});
+            await map.goto('http://127.0.0.1:8000/tools/maps/?lat=0&lon=0');
+            await map.locator('#copy-apple').click();
+            await map.waitForFunction(() => document.querySelector('#map-status')?.textContent === 'コピーしました。');
+            assert.equal(await map.evaluate(() => navigator.clipboard.readText()),
+              await map.locator('#apple-link').getAttribute('href'));
           } finally {
             await browser.close();
           }
@@ -275,6 +282,7 @@ jobs:
 
   # Deployment job
   deploy:
+    timeout-minutes: 15
     if: github.event_name != 'pull_request'
     environment:
       name: github-pages
