@@ -1,7 +1,7 @@
 """Attach Portfolio's local Tone.js player to Ironmate's arrangement editor."""
+import argparse
 from pathlib import Path
 import shutil
-import sys
 
 
 def publish(site):
@@ -18,4 +18,6 @@ def publish(site):
 
 
 if __name__ == "__main__":
-    publish(Path(sys.argv[1]))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("site", type=Path, help="path to the staged site")
+    publish(parser.parse_args().site)
