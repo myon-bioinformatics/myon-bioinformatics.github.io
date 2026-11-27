@@ -82,7 +82,7 @@ PSWB_TOOLS = {
 # 🌍 name -> (how it is built, shortcut label, title, summary), for PySaiyanWeBoo's 🎞 GIF demo; not in the 🧰 Tools cards: they show, they are not tools
 WORLD_PAGES = {
     'world': (lambda ui: world_page('overworld'), '🌍 ワールド', 'World',
-              '🚪 で土地をわたる旅のワールド：絵文字のキャラで歩き、時刻・お気に入り・地図・言語を切り替える'),
+              '🛗 で土地をわたる旅のワールド：絵文字のキャラで歩き、時刻・お気に入り・地図・言語を切り替える'),
     'school': (lambda ui: world_page('school'), '🏫 スクール', 'School',
                '教室を歩く：絵文字を選び、タップ・矢印キー・パッドで机のあいだを移動（机・黒板・棚には入らない）'),
     'cities': (lambda ui: world_page('cities'), '🗼 パラレル', 'Parallel cities',
@@ -226,7 +226,11 @@ def add_site_chrome(page: str, path: str | None = None, tools: dict | None = Non
     below the root, and no door marked as this page): the header (``tools_chrome``: the board with ``description``, 🫧 the round face
     that follows the pointer, 🏠 ⭐ ⚙️), the side
     (☰ ⋯) and the foot (``tools_door``: 🚪 every tool as a pull-down, 🐦 X, 📦 the page's size). ``description`` left out is the text
-    of the 🧰 Tools card that leads here, else the page's own ``<meta name="description">``.
+    of the 🧰 Tools card that leads here, else the page's own ``<meta name="description">``, else a line any page can carry (its
+    title and where 🚪 🏠 lead; a placeholder until the page says what it is).
+
+    🌍 A world page already has the header and the side (``<header class="ui-world-head">``: its own board and menus, the same
+    parts), so it gets what it lacks: 🫧 in that header and the foot.
 
     🎨 Every page is published in one look: the shared sheet's ``modern`` theme, the front page's default. A page built with
     another palette on its ``<body>`` (Ironmate's studios: green; the MCP lab: terminal or github-like) is switched to it, and the
@@ -241,28 +245,34 @@ def add_site_chrome(page: str, path: str | None = None, tools: dict | None = Non
     if description is None:
         meta = re.search(r'<meta name="description" content="([^"]*)"', page)
         description = next((place['text'] for place in tools_places(prefix) if place['href'] == here), meta[1] if meta else '')
+    heading = re.search(r'<title>(.*?)</title>', page, re.S)
+    name = html.unescape(heading[1]).strip() if heading else ''
+    description = description or f'{name or "myon-bioinformatics"}：myon-bioinformatics の道具のページ。🚪 でほかの道具へ、🏠 で一覧へ。'
     body = re.search(r'<body\b[^>]*>', page)
     if body and 'data-ui-theme="' in body[0]:
         page = page[:body.start()] + re.sub(r'data-ui-theme="[^"]*"', 'data-ui-theme="modern"', body[0], count=1) + page[body.end():]
     own = 'data-ui-theme="modern"' in page        # 🎨 modern: the parts take the page's colours; else they bring theirs (add_part's scope)
-    heading = re.search(r'<title>(.*?)</title>', page, re.S)
     face, head = ui.component_parts('gaze-avatar'), ui.component_parts('chrome', tools_chrome(prefix, tools, description, title=title, home=home))
-    head['html'] = head['html'].replace('<nav class="ui-world-tools">', face['html'] + '<nav class="ui-world-tools">', 1)   # 🫧 after the board
-    page = ui.add_part(page, {'css': face['css'] + '.ui-chrome .ui-gaze{flex:none;margin:0 4px}main>nav.ui-back{grid-column:1/-1}', 'js': face['js']})
-    page = ui.add_part(page, head, at='top', scope=None if own else '.ui-chrome')
-    door = tools_door(ui, prefix, here if path and '/' in path else None, html.unescape(heading[1]).strip() if heading else '')
+    tools_nav, world = '<nav class="ui-world-tools">', '<header class="ui-world-head">' in page
+    page = ui.add_part(page, {'css': face['css'] + '.ui-world-head .ui-gaze{flex:none;margin:0 4px}main>nav.ui-back{grid-column:1/-1}', 'js': face['js']})
+    if world:
+        page = page.replace(tools_nav, face['html'] + tools_nav, 1)                                # 🫧 after the world's own board
+    else:
+        head['html'] = head['html'].replace(tools_nav, face['html'] + tools_nav, 1)               # 🫧 after the board
+        page = ui.add_part(page, head, at='top', scope=None if own else '.ui-chrome')
+    door = tools_door(ui, prefix, here if path and '/' in path else None, name)
     return ui.stamp_page_size(ui.add_part(page, door, scope=None if own else '.ui-door-foot'))
 
 
 def add_back_nav(page: str, path: str | None = None, tools: dict | None = None) -> str:
     """🏠 PySaiyanWeBoo's way back (``back_nav_html``) to the 🧰 Tools cards, right after <main> (else <body>), then the site's
-    shared header, side and foot (``add_site_chrome``); a page that already has them keeps them. A 🌍 world page has its own header
-    and side (the same parts), so it gets the way back only, and so does a fragment without <head> and <body>."""
+    shared header, side and foot (``add_site_chrome``; a 🌍 world page keeps its own header and side and gets 🫧 and the foot). A
+    page that already has them keeps them, and a fragment without <head> and <body> gets the way back only."""
     import pysaiyanweboo as ui
     prefix = '../' * path.count('/') if path else '../../'
     page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': prefix + 'index.html#tools'}], test_id='portfolio-back')
-    if 'data-ui-world="' in page or '<div class="ui-chrome ' in page or '</head>' not in page or '<body' not in page:
-        return page                               # a world, a page that has it, or a fragment with no <head> and <body> to carry it
+    if '<div class="ui-door-foot">' in page or '</head>' not in page or '<body' not in page:
+        return page                               # a page that has it, or a fragment with no <head> and <body> to carry it
     return add_site_chrome(page, path, tools)
 
 

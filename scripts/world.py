@@ -1233,7 +1233,7 @@ WORLD_TEXT = {
     "bag": ("どうぐ", "Bag", "Sac", "Bolsa", "Bolsa", "الحقيبة", "道具", "Сумка", "Tas", "Tasche", "Mkoba"),
     "take": ("どうぐに出し入れする", "Add or remove item", "Ajouter ou retirer l'objet", "Añadir o quitar objeto", "Adicionar ou remover item", "إضافة أو إزالة أداة", "放入或取出道具", "Добавить или убрать предмет", "Tambah atau hapus barang", "Gegenstand hinzufügen oder entfernen", "Ongeza au ondoa kifaa"),
 }
-WORLD_BUILTIN_TOOLS = ("🏠", "⭐", "🎒", "⚙", "🌐", "☰", "⋯", "🚪", "🖼", "📷", "🧹")       # emoji the page itself uses; a tool of your own takes another
+WORLD_BUILTIN_TOOLS = ("🏠", "⭐", "🎒", "⚙", "🌐", "☰", "⋯", "🛗", "🚪", "🖼", "📷", "🧹")   # emoji the page itself uses (🛗 its floors; 🚪 is the site foot's); a tool of your own takes another
 _WORLD_TOOL_KEYS = {"label", "label_en", "labels", "slot"}
 _WORLD_LANG_CODES = tuple(code for code, _ in WORLD_LANGS)
 # What the page's script needs: the language codes and the words by index (one list per key), written once ahead of the script.
@@ -1358,7 +1358,7 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
 
     header  the board and the tools of the whole world: 🏠 home, ⭐ favourites, ⚙️ settings, and any emoji of your own (``tools``)
     side    ☰ the places of this floor, ⋯ the controls of this screen; 48px buttons whose panel opens over the map
-    footer  🚪 the pulldown that moves between floors (plain floor labels stand in for it until JS runs)
+    footer  🛗 the pulldown that moves between floors (plain floor labels stand in for it until JS runs)
     """
     wid, floors, avatars, tools = world["id"], world["floors"], world.get("avatars", []), world.get("tools", {})
     categories, playable, tiled = _world_categories(floors), _world_playable(world), any(f.get("tile") for f in floors)
@@ -1405,7 +1405,7 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
                     for d, k, g in (("0,-1", "up", "▲"), ("-1,0", "left", "◀"), ("1,0", "right", "▶"), ("0,1", "down", "▼")))
     dpad = f'<div class="ui-world-dpad ui-world-grid-only" role="group" data-overlay {_wt("move")} hidden>{steps}</div>' if tiled and playable else ""
     foot = (f'<footer class="ui-world-foot"><nav class="ui-world-bar">{floor_labels}</nav>'
-            f'<label class="ui-world-goto-wrap">🚪 <select class="ui-world-goto" {_wt("floor")}>' +
+            f'<label class="ui-world-goto-wrap">🛗 <select class="ui-world-goto" {_wt("floor")}>' +
             "".join(f'<option value="{f["id"]}"{" selected" if i == 0 else ""}>{escape(f["label"])}</option>' for i, f in enumerate(floors)) +
             '</select></label></footer>') if len(floors) > 1 else ""
     return (f'{head}{radios}<header class="ui-world-head">{_board_html(world["board"])}<nav class="ui-world-tools">{header_tools}</nav></header>'
@@ -1814,7 +1814,7 @@ const open=id=>{for(const i of el.querySelectorAll(".ui-sheet-item"))i.toggleAtt
 const shut=bindMenus(el),goto=el.querySelector('.ui-world-goto'),rows='.ui-world-rows a';
 // The spot the player stands by (the closest within 1.5 tiles) carries data-near: in the dots layer it alone shows its name.
 const near=p=>{const f=floor(),t=(Number(f.dataset.tile)||16)*1.5;let best=null,bd=Infinity;for(const a of f.querySelectorAll(".ui-spot[data-x]")){const d=Math.max(Math.abs(Number(a.dataset.x)-p[0]),Math.abs(Number(a.dataset.y)-p[1]));if(d<=t&&d<bd){best=a;bd=d}}for(const a of f.querySelectorAll(".ui-spot[data-near]"))if(a!==best)a.removeAttribute("data-near");if(best&&!best.hasAttribute("data-near"))best.setAttribute("data-near","")};
-const aim=p=>{near(p);for(const a of el.querySelectorAll(rows)){if(!a.offsetParent)continue;const out=a.querySelector('.ui-world-arrow'),f=floor(),g=a.dataset.floor===f.dataset.floor?direction(p,[Number(a.dataset.x),Number(a.dataset.y)],Number(f.dataset.tile)||16):'🚪';if(out.textContent!==g)out.textContent=g}if(goto){const r=shown();if(r&&goto.value!==r.value)goto.value=r.value}};
+const aim=p=>{near(p);for(const a of el.querySelectorAll(rows)){if(!a.offsetParent)continue;const out=a.querySelector('.ui-world-arrow'),f=floor(),g=a.dataset.floor===f.dataset.floor?direction(p,[Number(a.dataset.x),Number(a.dataset.y)],Number(f.dataset.tile)||16):'🛗';if(out.textContent!==g)out.textContent=g}if(goto){const r=shown();if(r&&goto.value!==r.value)goto.value=r.value}};
 // While a sheet is open the camera aims below the player or the spot, so they stay in the view above the sheet.
 const lift=()=>sheetInset()/(2*z);
 let follow=false,lx,ly;const walk=bindPlayer(el,floor,p=>{if(follow&&(p[0]!==lx||p[1]!==ly)){lx=p[0];ly=p[1];go(p[0],p[1]+lift(),z)}aim(p)});
@@ -2075,7 +2075,7 @@ EXAMPLES: dict[str, Any] = {
 
 # Real places in miniature (the `place` floor): latitude and longitude in, tiles out. The coordinates are approximate (about 100 m, read off public
 # maps), which is all a miniature needs; the point is where things stand relative to each other, so nothing here is a facility's exact position.
-_CITY_MARKS = {"exit": "🎫", "station": "🚉", "terminus": "🚆"}   # the mark drawn instead of the dot, by category: the cities are their transport (🚪 is the footer's)
+_CITY_MARKS = {"exit": "🎫", "station": "🚉", "terminus": "🚆"}   # the mark drawn instead of the dot, by category: the cities are their transport (🛗 is the footer's)
 
 
 def _pt(id: str, label: str, lat: float, lon: float, category: str, body: str = "", flip: str = "", sign: str = "") -> dict[str, Any]:
@@ -2192,7 +2192,7 @@ EXAMPLES.update({
         "schema": WORLD_SCHEMA, "id": "school", "title": "School (prototype)", "zoom_max": 4,
         "avatars": ["🙂", "😎", "🤓", "🐱", "🐶", "🐰", "🦊", "🐼", "🐸", "🦄", "🐙", "🌸", "⭐", "🍎", "⚽", "🚀", "先生", "A"],
         "tools": {"🗺️": {"label": "見どころ", "label_en": "Highlights", "spots": ["classroom-board", "flowers"]},
-                  "🏫": {"label": "学校", "label_en": "School", "body": "教室と校庭があります。フッターの🚪で行き来できます。"}},
+                  "🏫": {"label": "学校", "label_en": "School", "body": "教室と校庭があります。フッターの🛗で行き来できます。"}},
         "board": {"title": "INFO", "items": [
             {"text": "朝の会", "at": "08:40"}, {"text": "1時間目", "at": "09:00"}, {"text": "給食", "at": "12:20"},
             {"text": "下校", "at": "15:30"}, {"text": "今日の授業", "gauge": {"from": "09:00", "to": "15:30"}}]},
@@ -2211,7 +2211,7 @@ EXAMPLES.update({
         "avatars": ["🙂", "🧙", "🧝", "🦸", "🐱", "🐶", "🦊", "🐉", "🦄", "⚔️", "🛡️", "🚀"],
         "tools": {"🧭": {"label": "町", "label_en": "Towns", "labels": {"fr": "Villes", "es": "Pueblos", "de": "Orte", "zh": "城镇"},
                          "spots": ["meadow-town", "forest-town", "desert-town", "coast-town", "castle-town"]}},
-        "board": {"title": "TRAVEL", "items": [{"text": "旅のはじまり"}, {"text": "🚪で土地をわたろう"}, {"text": "道をたどると町に着きます"}]},
+        "board": {"title": "TRAVEL", "items": [{"text": "旅のはじまり"}, {"text": "🛗で土地をわたろう"}, {"text": "道をたどると町に着きます"}]},
         "floors": [{"id": "meadow", "land": {"theme": "meadow", "seed": 1},
                     "spots": [*land_floor("meadow", seed=1, id="meadow")["spots"],
                               {"id": "meadow-hirugaoka", "x": 592, "y": 176, "label": "🍠 昼ヶ丘（ヒルガオカ）",
@@ -2235,7 +2235,7 @@ EXAMPLES.update({
                   "🥖": {"label": "フェイクパリ", "label_en": "Fake Paris", "floor": "paris"},
                   "🚉": {"label": "東京駅", "label_en": "Tokyo Station",
                          "spots": ["tokyo-marunouchi-n", "tokyo-marunouchi-c", "tokyo-marunouchi-s", "tokyo-yaesu-n", "tokyo-yaesu-c", "tokyo-yaesu-s"]}},
-        "board": {"title": "PARALLEL", "items": [{"text": "実在の街の、もうひとつの姿"}, {"text": "🚪で3つの街を行き来"}, {"text": "歩いて駅から駅へ"}]},
+        "board": {"title": "PARALLEL", "items": [{"text": "実在の街の、もうひとつの姿"}, {"text": "🛗で3つの街を行き来"}, {"text": "歩いて駅から駅へ"}]},
         "floors": [{"id": "tokyo", "label": "Parallel Tokyo", "place": {"points": _TOKYO_POINTS, "meters": 32, "links": _TOKYO_LINKS, "marks": _CITY_MARKS, "always_named": ["exit"]}},
                    {"id": "london", "label": "Reverse London",
                     "place": {"points": _LONDON_POINTS, "meters": 150, "links": _LONDON_LINKS, "rivers": [_THAMES], "marks": _CITY_MARKS}},
@@ -2574,7 +2574,7 @@ def _floors(page, cam, tmp):
 
 @scene("lands", world="overworld")
 def _lands(page, cam, tmp):
-    """Lands side by side: the 🚪 pulldown travels from land to land (swapped objects, nothing else), then walk to the castle town by its ☰ row."""
+    """Lands side by side: the 🛗 pulldown travels from land to land (swapped objects, nothing else), then walk to the castle town by its ☰ row."""
     choose(page, "🧙")
     cam.hold(900)
     for land in ("forest", "mountain", "desert", "coast", "castle"):

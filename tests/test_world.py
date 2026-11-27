@@ -362,11 +362,11 @@ def test_a_shell_world_is_icons_in_a_header_a_side_and_a_footer():
     head = html[html.index('<header class="ui-world-head">'):html.index("</header>")]
     side = html[html.index('<div class="ui-world-side">'):html.index('<footer class="ui-world-foot">')]
     assert [m for m in ("🏠", "🗺️", "🏫", "⭐", "⚙️") if m in head] == ["🏠", "🗺️", "🏫", "⭐", "⚙️"] and head.index("🏠") < head.index("🗺️") < head.index("⭐") < head.index("⚙️")
-    assert "☰" in side and "⋯" in side and "🛝" in side and 'for="school-floor-yard"' in side and "🚪" in html[html.index("<footer"):]
+    assert "☰" in side and "⋯" in side and "🛝" in side and 'for="school-floor-yard"' in side and "🛗" in html[html.index("<footer"):]
     assert 'aria-label="ホーム" title="ホーム" data-t="home"' in head and 'aria-label="地図" title="地図" data-labels="{&quot;ja&quot;:&quot;地図&quot;,&quot;en&quot;:&quot;Map&quot;}"' in head
     assert "<select data-lang" in head and head.count("<option ") == 11 + 3 and "<select data-names-pick" in head and "data-pick-open" in head and "data-pick-open" in head and 'class="ui-world-pause"' in head and " data-me " in side         # global in the header, local in the side
     assert 'class="ui-world-pause"' not in side and "data-pick-open" not in side
-    assert '<a href="#school-spot-flowers" data-x="480" data-y="96" data-floor="yard">' in html                                  # a place on another floor shows 🚪, not an arrow
+    assert '<a href="#school-spot-flowers" data-x="480" data-y="96" data-floor="yard">' in html                                  # a place on another floor shows 🛗, not an arrow
     assert html.count("ui-world-star") >= 5 and 'class="ui-world-rows ui-world-favs"' in head
     assert "✖️" in html   and ">Close<" not in html and "ほかの絵文字・文字 <input" not in html                                   # icons, with the words in aria-label
     assert 'data-grid data-shell' in html and ' data-shell' in html
@@ -790,7 +790,7 @@ def test_a_mark_is_an_emoji_in_place_of_the_dot_scaled_by_the_world():
     assert {s["category"]: s.get("mark") for f in cities["floors"] for s in f["spots"]} == {"exit": "🎫", "station": "🚉", "terminus": "🚆", "sign": None}
     html = W.world_html(W.example_data("cities"))
     assert 'style="--mark-x:1.5;--mark-y:1.5"' in html
-    assert "top:1232px;--mark:'🎫'\"" in html and "--mark:'🚪'" not in html           # 🚪 is the footer's: an exit is a ticket gate
+    assert "top:1232px;--mark:'🎫'\"" in html and "--mark:'🛗'" not in html           # 🛗 is the footer's: an exit is a ticket gate
     css = W.world_css(W.example_data("cities"))
     assert 'content:var(--mark,"●")' in css and "transform:scale(var(--mark-x,1),var(--mark-y,1))" in css
     spec = W.example_data("school")
