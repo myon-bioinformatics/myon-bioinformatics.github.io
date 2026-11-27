@@ -21,12 +21,12 @@
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/world.html": "10a8c1a801c14c221b02ae8118dfdef6819d4afd487ea94f8e0b2943e973500c",
-    "tools/test-report/index.html": "67368e97f1a442db506a211f422811be7a80dced0b2f145f097af7f8499b6463",
-    "tools/mcp-protocol/index.html": "dca50571acb4331ee7b5c1a164d46a2756c11e664e3cc632a676391c1a0e384c",
-    "tools/html-import/index.html": "3f4e09e9ef2b4e6d8c099adaca5a6a57f2f6921456dcec84779c87d697f37d6c",
-    "tools/maps/index.html": "b34e17a4ff07a8e39cc978507a8405351d722bbf08962afe9adaee3af3000ffe",
-    "tools/gif/index.html": "0292a1413dce84b98ec7478461094a95ca223f5d40e56e93e96cc3065e258666",
-    "tools/chat/index.html": "81e5f3eb75655a84b824e19de5746bcf4de2e413295ec614e17e5cef6962dab0"
+    "tools/demos/world.html": "5a901e08e422060bf36a0548c576c2ea79927382ff2f17a27df752425332e27d",
+    "tools/test-report/index.html": "6c41990f16c6818c9c7f3566f41e0dbe24e5096badce70c3da3cbcf9e7c1caa0",
+    "tools/mcp-protocol/index.html": "f8174f6c4eafbff1a1a1da54ebed02336490ca8c39c1a8e990d1ff5d6816e7ba",
+    "tools/html-import/index.html": "98ad2479243a64e7ad8eb817dc815454f742a51dbf3b3a6ce562a5112dca9ffd",
+    "tools/maps/index.html": "bfc70a5ab0c9dc6ee5d71e2da21a1efb4e22b45ef3ea37e987a1a8c8971e0d8c",
+    "tools/gif/index.html": "49f2863c1bc1797f5462428403a4fd7d1f04313f0631798f53a9e5c54e8072a6",
+    "tools/chat/index.html": "8d93d9fffd66be1a75cee63d779c0a0d5219ca421a80cfe2c14264f839098c96"
   }
 }
