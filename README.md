@@ -327,6 +327,16 @@ uv run --locked --only-group browser python -m pytest tests/test_site.py -k chat
 
 **🌍 ワールド**は [ひとつのページ](https://myon-bioinformatics.github.io/tools/demos/world.html) です。☰ で村（`#world`）、学校（`#school`）、パラレル東京（`#tokyo`）、Reverse London（`#london`）、Fake Paris（`#paris`）、カメラ（`#camera`）へ移動します。ページを読み直さず、直リンクやブラウザの「戻る」でも空間を切り替えられます。⭐ お気に入りと 🧰 道具は共通で、村のRPGや街の範囲指定など、その場の操作は各空間に残しています。
 
+村の **冒険手帳 → 💾 セーブ** で文字列を作り、移行先の同じ画面に貼り付けて「読み込む」を選びます。経験値、所持金、HP・MP、乱数の状態、装備、消費アイテムの個数、バッグ、会話・討伐・訪問・クイズ・クエスト・実績の記録を引き継ぎます。現在位置と戦闘途中の状態は保存対象外です。
+
+| 形式 | 用途と互換性 |
+|---|---|
+| セーブ文字列 v1 | コピー・保管用。ワールドIDと項目名を含むPSWBのBase64url JSON。未対応の版や未知の項目は読み込み時に拒否します。 |
+| 復活の呪文 v1 | 書き写し用。同じ進捗をPSWBのビット列に詰め、かなで表示します。ワールドとビット割り当ての識別値が一致する場合に復元できます。数値が割り当て幅を超えるときは通常のセーブ文字列を使います。 |
+
+どちらも手動保存です。読み込みに成功すると現在の冒険と村のバッグを置き換えます。お気に入りや表示設定は端末ごとに保持します。
+
+
 ```sh
 uv run --locked --only-group pages python scripts/world.py example school | uv run --locked --only-group pages python scripts/world.py page - > school.html
 uv run --locked --only-group samples python scripts/world.py record media/world --force     # 🎞 demo GIFs from real Chrome

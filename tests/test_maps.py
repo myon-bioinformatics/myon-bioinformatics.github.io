@@ -323,3 +323,71 @@ def test_old_world_links_forward_queries_and_spots(site, browser):
         expect(page.locator('[data-world-shell]')).to_have_attribute('data-world-route', 'tokyo')
     finally:
         page.close()
+
+
+def test_adventure_transfer_on_unified_world(site, browser, record_property):
+    import pysaiyanweboo as ui
+
+    def enter(page):
+        page.goto(site[1] + '/tools/demos/world.html#world')
+        world = page.locator('#overworld-map')
+        world.locator('[data-emoji="🧙"]').click()
+        return world
+
+    def journal(world):
+        world.locator('[data-rpg-journal-btn]').click()
+        world.get_by_role('button', name='💾 セーブ').click()
+        return world.get_by_role('textbox', name='冒険データ')
+
+    source = browser.new_page()
+    try:
+        world = enter(source)
+        for item in ('meadow-drop-herb', 'meadow-drop-mana', 'meadow-chest-sword'):
+            world.locator('[data-menu="spots"] summary').click()
+            world.locator(f'.ui-world-spots a[href="#overworld-spot-{item}"]').click()
+            world.locator(f'[data-rpg-spot="{item}"]').click()
+            world.get_by_role('button', name='やったね！').click()
+        gear = world.locator('[data-rpg-gear]').inner_text()
+        box = journal(world)
+        world.get_by_text('セーブ文字列を作る', exact=True).click()
+        normal = box.input_value()
+        saved = ui.save_state(normal)
+        assert saved['data']['exp'] > 0
+        assert any(k.startswith('completedQuests:') for k in saved['data'])
+        world.get_by_text('復活の呪文を作る', exact=True).click()
+        expect(world.get_by_role('status').filter(has_text='空白・改行')).to_be_visible()
+        spell = box.input_value()
+        kana = len(''.join(spell.split()))
+        record_property('save_characters', len(normal))
+        record_property('spell_kana', kana)
+        assert kana < len(normal)
+    finally:
+        source.close()
+
+    for token in (normal, spell):
+        recipient = browser.new_page()  # isolated context with no source storage
+        try:
+            world = enter(recipient)
+            box = journal(world)
+            for value in (token, token):  # importing twice cannot re-award loot or quests
+                box.fill(value)
+                world.get_by_role('button', name='読み込む').click()
+                expect(world.get_by_text('冒険データを復元しました')).to_be_visible()
+            expect(world.locator('[data-rpg-gear]')).to_have_text(gear)
+            bag = world.locator('.ui-world-bag')
+            assert 'はじまりの剣' in bag.text_content() and 'やくそう' in bag.text_content()
+            assert len(recipient.evaluate('JSON.parse(localStorage["ui-world:overworld-map"]).bag')) == 3
+            for bad in (token[:-2], ui.save_text({**saved, 'version': 2}),
+                        ui.save_text({**saved, 'world': 'school'}),
+                        ui.save_text({**saved, 'data': {**saved['data'], 'hp': -1}})):
+                box.fill(bad)
+                world.get_by_role('button', name='読み込む').click()
+                expect(world.get_by_text('読み込めません', exact=False)).to_be_visible()
+                world.get_by_text('セーブ文字列を作る', exact=True).click()
+                assert ui.save_state(box.input_value()) == saved
+            world.get_by_role('button', name='🧙 ステータス').click()
+            world.get_by_role('button', name='やくそう', exact=False).click()
+            assert 'やくそう' not in bag.text_content()
+            assert 'はじまりの剣' in bag.text_content()
+        finally:
+            recipient.close()

@@ -42,7 +42,7 @@ from urllib.parse import urljoin
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_BASE = 'tools/vendor/web-ui/'
 ASSETS = ('css/base.css', 'css/components.css', 'css/themes/modern.css',
-          'css/tokens.css', 'js/navigation.js', 'js/ui.js', 'js/controls.js',
+          'css/tokens.css', 'js/navigation.js', 'js/ui.js', 'js/records.js', 'js/controls.js',
           'js/coordinates.js')
 STYLESHEET_BUNDLES = {'css/bundle.css': 'bundled_css', 'css/core.css': 'core_css'}
 DISTRIBUTION = 'pysaiyanweboo'

@@ -99,7 +99,7 @@ def document(ui, world, maps, places, css_href, js_href):
               f'<details><summary>🧰 道具</summary><div>{tools}</div></details></nav></div></header>')
     body = ('<main><div data-world-shell>' + header + ''.join(sections) + '</div></main>'
             + ui.module_script(JS) + f'<script type="module" src="{js_href}"></script>'
-            + ui.module_script(f'import "{js_href}";\n' + world.WORLD_RPG_JS) + maps.tokyo_modules(ui))
+            + ui.module_script(f'import "{js_href}";\n' + world.rpg_module("../vendor/web-ui/js/records.js")) + maps.tokyo_modules(ui))
     css = ''.join(world.world_css(data, base=False) for data in specs.values()) + f'@layer components{{{CSS}}}'
     page = ui.render_document(title='🌍 ワールド', theme='modern', trusted_html=body, css=ui.bundled_css())
     return page.replace('</head>', f'<link rel="stylesheet" href="{css_href}"><style>{css}</style></head>', 1)

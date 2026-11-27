@@ -30,7 +30,7 @@ from typing import Any, Callable, NamedTuple
 from urllib.parse import quote, urlsplit
 
 from pysaiyanweboo import (COUNTER_ATTACK_ORBS, COUNTER_HEAL_ORBS, COUNTER_MAX_ORBS, DIAL_CSS, DIAL_JS, EARTH_RADIUS_M, bundled_css,
-                           counter_effect, counter_label, dial_html, module_script, parse_coordinate, play_random, render_document,
+                           counter_effect, counter_label, dial_html, js_source, module_script, parse_coordinate, play_random, render_document,
                            tolerance_area, try_parse_maps_url)
 
 # --- World: one page, a camera, no page changes (scrolling "shots" and a pan/zoom map) -----------------
@@ -2195,6 +2195,9 @@ const spotRows=()=>[...el.querySelectorAll('.ui-world-spots a')],bagList=el.quer
    const rm=document.createElement('button');rm.type='button';rm.className='ui-world-bag-rm ui-world-take';rm.dataset.itemId=id;rm.setAttribute('aria-pressed','true');rm.dataset.t='take';rm.textContent='✕';
    li.append(a,rm);return li}));say(bagList)};
 if(bagList){for(const b of takeBtns())b.hidden=false;
+ el.addEventListener("world-restore-bag",e=>{
+  bag.clear();for(const id of e.detail)bag.add(id);showBag();save({bag:[...bag]});
+ });
  el.addEventListener('click',e=>{const b=e.target.closest('.ui-world-take');if(!b)return;const id=b.dataset.itemId;if(bag.has(id))bag.delete(id);else bag.add(id);showBag();save({bag:[...bag]})})}
 const kept=load();
 bindFavs(el,say,kept,save);
@@ -2331,11 +2334,65 @@ export function bindWorldRpg(el){
   const take=art?.querySelector(".ui-world-take");
   return{node,art,label,emoji:take?.dataset.itemEmoji||"🎒",itemLabel:take?.dataset.itemLabel||label,take};
  };
+ // Both formats use the same v1 named fields. Zero flags are omitted from JSON.
+ const scalarWidths={exp:24,gold:24,hp:12,mp:12,seed:32,quizIdx:8,boughtCount:16,healedCount:16};
+ const bagButtons=[...el.querySelectorAll(".ui-sheet-item .ui-world-take")];
+ const groups={
+  talked:Object.keys(rpg.npcs),looted:Object.keys(rpg.loot),defeated:Object.keys(rpg.enemies),
+  quizSolved:rpg.quizzes.map(q=>q.prompt),visitedFloors:[...el.querySelectorAll("input[name$='-floor']")].map(b=>b.value),
+  completedQuests:rpg.quests.map(q=>q.id),badges:rpg.badges.map(b=>b.id),
+  bag:bagButtons.map(b=>b.dataset.itemId)
+ };
+ const stock=new Map();
+ for(const [id,it] of Object.entries(rpg.loot))if(it.consumable){
+  const meta=spotMeta(id);
+  stock.set("spot:"+id,{...it,spotId:id,emoji:meta.emoji,label:meta.itemLabel});
+ }
+ for(const it of rpg.shop)stock.set("shop:"+it.id,{...it,atk:0});
+ const flags=Object.entries(groups).flatMap(([group,ids])=>[...new Set(ids)].sort().map(id=>[group,id,group+":"+id]));
+ const layout=[["version",8],["catalogue",32],...Object.entries(scalarWidths),
+  ...flags.map(([,,key])=>[key,1]),...[...stock.keys()].sort().map(key=>[key,key.startsWith("spot:")?1:12])];
+ // Bind positional spells to this world and layout, even across same-length catalogue edits.
+ const catalogue=async()=>new DataView(await crypto.subtle.digest("SHA-256",
+  new TextEncoder().encode(JSON.stringify([wid,layout])))).getUint32(0);
+ const snapshot=()=>{
+  const data=Object.fromEntries(Object.keys(scalarWidths).map(k=>[k,state[k]]));
+  const bag=new Set(bagButtons.filter(b=>b.getAttribute("aria-pressed")==="true").map(b=>b.dataset.itemId));
+  for(const [group,id,key] of flags)if((group==="bag"?bag:state[group]).has(id))data[key]=1;
+  for(const [key,it] of state.consumables)data[key]=it.count;
+  return data;
+ };
+ const restore=data=>{
+  const invalid=()=>{throw new Error("invalid save")};
+  if(!data||typeof data!=="object"||Array.isArray(data))invalid();
+  const known=new Set(layout.slice(2).map(([key])=>key));
+  for(const [key,n] of Object.entries(data))if(!known.has(key)||!Number.isSafeInteger(n)||n<0)invalid();
+  const next={consumables:new Map(),equipment:new Set()};
+  for(const key of Object.keys(scalarWidths)){
+   if(!Object.hasOwn(data,key))invalid();
+   next[key]=data[key];
+  }
+  if(next.seed>0xffffffff||next.quizIdx>=Math.max(1,rpg.quizzes.length))invalid();
+  for(const group of Object.keys(groups))next[group]=new Set();
+  for(const [group,id,key] of flags){
+   if(data[key]>1)invalid();
+   if(data[key])next[group].add(id);
+  }
+  for(const id of next.looted)if(!rpg.loot[id].consumable)next.equipment.add(id);
+  for(const [key,item] of stock)if(data[key]){
+   if(item.spotId&&(!next.looted.has(item.spotId)||data[key]!==1))invalid();
+   next.consumables.set(key,{...item,key,count:data[key]});
+  }
+  const {bag,...adventure}=next;
+  Object.assign(state,adventure);
+  el.dispatchEvent(new CustomEvent("world-restore-bag",{detail:bag}));
+  renderHud();
+ };
  const syncSpotMarks=()=>{
   for(const[sid,it]of Object.entries(rpg.loot)){
    const node=spotNode(sid);if(!node)continue;
    const got=state.looted.has(sid);
-   if(it.kind==="chest"){node.toggleAttribute("data-rpg-opened",got);if(got&&it.opened_mark&&node.textContent.includes("🎁"))node.textContent=node.textContent.replace("🎁",it.opened_mark)}
+   if(it.kind==="chest"){node.toggleAttribute("data-rpg-opened",got);if(it.opened_mark){node.dataset.closedLabel??=node.textContent;node.textContent=got?node.dataset.closedLabel.replace("🎁",it.opened_mark):node.dataset.closedLabel}}
    else node.toggleAttribute("data-rpg-collected",got);
   }
   for(const[sid,foe]of Object.entries(rpg.enemies)){
@@ -2662,10 +2719,34 @@ export function bindWorldRpg(el){
   syncBattle();showCard(card);
  };
  const openJournal=(activeTab="quests")=>{
-  const tabs=[["quests","📋 クエスト"],["badges","🏅 実績"],["status","🧙 ステータス"],["bestiary","👾 図鑑"]];
+  const tabs=[["quests","📋 クエスト"],["badges","🏅 実績"],["status","🧙 ステータス"],["bestiary","👾 図鑑"],["save","💾 セーブ"]];
   const body=rpgEl("div"),tabBtns=[];
   const drawBody=()=>{
-   if(activeTab==="quests"){
+   if(activeTab==="save"){
+    const box=rpgEl("textarea",{"aria-label":"冒険データ",rows:5}),message=rpgEl("p",{role:"status"});
+    const button=(label,run)=>rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:label,onclick:run});
+    body.replaceChildren(box,rpgEl("div",{className:"ui-rpg-actions"},
+     button("セーブ文字列を作る",()=>{box.value=saveText({version:1,world:wid,data:snapshot()});box.select();message.textContent="別の端末にコピーできます"}),
+     button("復活の呪文を作る",async()=>{
+      try{box.value=spellText(bitsPack(layout,{version:1,catalogue:await catalogue(),...snapshot()}));box.select();message.textContent="空白・改行を含めてコピーできます"}
+      catch{message.textContent="呪文を作れません。セーブ文字列を使ってください"}
+     }),
+     button("読み込む",async()=>{
+      try{
+       const text=box.value.trim();
+       if(/[ぁ-ヶ]/u.test(text)){
+        const {version,catalogue:tag,...data}=bitsUnpack(layout,spellBytes(text));
+        if(version!==1||tag!==await catalogue())throw new Error("incompatible spell");
+        restore(data);
+       }else{
+        const save=saveState(text);
+        if(save.version!==1||save.world!==wid)throw new Error("incompatible save");
+        restore(save.data);
+       }
+       message.textContent="冒険データを復元しました";
+      }catch{message.textContent="読み込めません。文字列とバージョンを確認してください"}
+     })),message);
+   }else if(activeTab==="quests"){
     body.replaceChildren(rpgEl("ul",{className:"ui-rpg-list"},...rpg.quests.map(q=>{
      const p=Math.min(q.count,questProgress(q)),done=state.completedQuests.has(q.id);
      return rpgEl("li",{className:"ui-rpg-row"},
@@ -2824,10 +2905,17 @@ bindRpgWorlds();
 """
 
 
+def rpg_module(records_url: str) -> str:
+    return (f'import {{saveText,saveState,spellText,spellBytes,bitsPack,bitsUnpack}} from {json.dumps(records_url)};\n'
+            + WORLD_RPG_JS)
+
+
 def world_document(spec: Any, *, theme: str = "modern") -> str:
     """A single-file page: bundled CSS, the world's CSS, the world's HTML and one inline module."""
     world = world_validate(spec)
-    js = WORLD_JS + ("\n" + WORLD_RPG_JS if world.get("rpg") else "")
+    js = WORLD_JS
+    if world.get("rpg"):
+        js += "\n" + rpg_module("data:text/javascript," + quote(js_source("records.js"), safe=""))
     # 🌍 world.js lives here now (WORLD_JS), not in PySaiyanWeBoo: the same inline module, after the body.
     return render_document(trusted_html=world_html(world) + module_script(js), title=world["title"], theme=theme,
                            css=bundled_css() + world_css(world))
