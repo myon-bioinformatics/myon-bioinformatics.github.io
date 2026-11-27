@@ -94,6 +94,51 @@ route();listFavorites();
 """
 
 
+def dialogue_graph(world):
+    """Compile the GitHub-backed world facts into bounded paths using the pinned ONTO / OTL APIs."""
+    from ontautology import reach
+    from ontautology_shared.ontology import violations
+
+    source = "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py"
+    pswb = "https://github.com/myon-bioinformatics/PySaiyanWeBoo/blob/e249a7c33071a5e70ff4866492506ebfd7719875/pysaiyanweboo.py"
+    nodes = {
+        "昼ヶ丘": ("場所", ["ヒルガオカ"]), "サツマイモ": ("道具", ["さつまいも", "おいも", "いも", "🍠"]),
+        "ドラゴン": ("住人", ["竜", "りゅう", "🐉"]), "木の看板": ("目印", ["看板", "nogard"]),
+        "リバースロンドン": ("場所", ["ロンドン", "London"]), "癒しの水": ("道具", ["いやしの水", "マナのしずく"]),
+        "火": ("地形", ["炎", "🔥"]), "パリ": ("場所", ["Paris"]), "MP": ("能力", ["魔力"]),
+        "冒険手帳": ("道具", ["手帳"]), "復活の呪文": ("形式", ["呪文", "じゅもん"]),
+    }
+    vocabulary = {"産物": (["場所"], "道具"), "好物": (["住人"], "道具"), "現れる": (["住人"], "目印"),
+                  "所在地": (["目印", "地形"], "場所"), "消す": (["道具"], "地形"), "回復": (["道具"], "能力"),
+                  "保存形式": (["道具"], "形式")}
+    facts = [
+        ("昼ヶ丘", "産物", "サツマイモ", "昼ヶ丘でサツマイモが育つ。", source + "#L3322"),
+        ("ドラゴン", "好物", "サツマイモ", world.POTATO_RUMOR, source + "#L3302"),
+        ("ドラゴン", "現れる", "木の看板", "木の看板の陰にドラゴンがいるらしい。", source + "#L2580"),
+        ("木の看板", "所在地", "リバースロンドン", "ロンドンには nogard と書かれた木の看板がある。", source + "#L3259"),
+        ("癒しの水", "消す", "火", "癒しの水は正面の火を一つ消す。", source + "#L2540"),
+        ("火", "所在地", "パリ", "パリでは村で拾った水を火に使える。", source + "#L2540"),
+        ("癒しの水", "回復", "MP", "人に使うとMPを10回復する。", source + "#L3482"),
+        ("冒険手帳", "保存形式", "復活の呪文", "冒険手帳はPSWBのかなの呪文で進捗を保存できる。", source + "#L2838", pswb + "#L86"),
+    ]
+    edges = [{"source": a, "relation": r, "target": b} for a, r, b, *_ in facts]
+    findings = violations({"nodes": [{"id": n, "type": t} for n, (t, _) in nodes.items()], "edges": edges}, vocabulary)
+    if findings:
+        raise ValueError(f"invalid world dialogue graph: {findings}")
+    walks = [dict(source=start, kind=r, target=end, fact=i) for i, (a, r, b, *_) in enumerate(facts)
+             for start, end in ((a, b), (b, a))]
+    paths = {}
+    for start in nodes:
+        steps = {}
+        for row in reach(walks, [start])["rows"]:
+            if row["depth"] <= 2:
+                chain = row["via"]
+                steps[row["node"]] = [*steps.get(chain[-2], []), row["edge"]["fact"]]
+        paths[start] = list(steps.values())
+    records = [{"edge": f"{a} → {r} → {b}", "text": msg, "urls": urls} for a, r, b, msg, *urls in facts]
+    return {"terms": {name: [name, *aliases] for name, (_, aliases) in nodes.items()}, "facts": records, "paths": paths}
+
+
 def document(ui, world, maps, places, css_href, js_href, dialogue=""):
     specs = {name: world.example_data(name) for name in dict.fromkeys(spec for spec, _ in SPACES.values())}
     sections = []
@@ -111,6 +156,8 @@ def document(ui, world, maps, places, css_href, js_href, dialogue=""):
               '<strong id="world-space-name">🌍 ワールド</strong>'
               '<details><summary>⭐ お気に入り</summary><div id="world-favorites">まだありません</div></details>'
               f'<details><summary>🧰 道具</summary><div>{tools}</div></details></nav></div></header>')
+    knowledge = json.dumps(dialogue_graph(world), ensure_ascii=False, separators=(",", ":")).replace("<", r"\u003c")
+    dialogue += f"\nconst worldKnowledge={knowledge};\n"
     grid = Path(__file__).with_name("london-dragon.json").read_text(encoding="utf-8")
     png = base64.b64encode(ui.pixel_grid_png(json.loads(grid))).decode("ascii")
     sprite = (f'<template id="dragon-art"><img class="dragon-portrait" alt="" src="data:image/png;base64,{png}">'

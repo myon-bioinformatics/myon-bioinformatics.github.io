@@ -588,6 +588,22 @@ def test_shop_rumor_and_optional_world_dialogue(site, browser):
         messages = page.evaluate('window.dialogueMessages')
         assert rumor in messages[0]['content'] and '道具屋の店主' in messages[0]['content']
         assert messages[1]['content'] == 'おいもは誰が好き？'
+        evidence = card.locator('form details')
+        evidence.locator('summary').click()
+        expect(evidence).to_contain_text('ドラゴン → 好物 → サツマイモ')
+        expect(evidence).to_contain_text('ドラゴン → 現れる → 木の看板')
+        assert '癒しの水' not in evidence.inner_text()
+        for question in ('復活のじゅもんは？', '宇宙船の燃料は？'):
+            card.get_by_label('話しかける').fill(question)
+            card.get_by_role('button', name='送る').click()
+            page.wait_for_function('q=>window.dialogueMessages[1].content===q', arg=question)
+            if 'じゅもん' in question:
+                assert {link.split('/')[4] for link in evidence.locator('a').evaluate_all('a=>a.map(n=>n.href)')} == {
+                    'myon-bioinformatics.github.io', 'PySaiyanWeBoo'}
+            else:
+                expect(evidence).to_be_hidden()
+                system = page.evaluate('window.dialogueMessages[0].content')
+                assert 'この質問に対応する関係は台帳にない' in system and rumor not in system
         assert len(loads) == 1
     finally:
         page.close()

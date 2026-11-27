@@ -2584,17 +2584,33 @@ export function bindWorldRpg(el){
   });
   cityTools.append(note);cities.addEventListener("change",()=>{note.textContent=""});
  }
+ function relatedFacts(question){
+  const normalize=text=>text.normalize("NFKC").toLowerCase();
+  const words=normalize(question);
+  const seeds=Object.keys(worldKnowledge.terms).filter(name=>worldKnowledge.terms[name].some(alias=>words.includes(normalize(alias))));
+  const paths=seeds.flatMap(name=>worldKnowledge.paths[name]).sort((a,b)=>a.length-b.length);
+  const selected=new Set();
+  for(const path of paths){
+   if(new Set([...selected,...path]).size<=5)for(const id of path)selected.add(id);
+  }
+  return [...selected].map(id=>worldKnowledge.facts[id]);
+ }
  function talkMore(speaker,context){
   if(typeof worldAnswer!=="function")return null;
   const form=rpgEl("form"),input=rpgEl("input",{maxLength:160,required:true,"aria-label":"話しかける",placeholder:"何を聞いてみる？"});
   const send=rpgEl("button",{type:"submit",textContent:"送る"}),reply=rpgEl("p",{"aria-live":"polite"});
-  form.append(input,send,reply);
+  const evidence=rpgEl("details",{hidden:true}),sources=rpgEl("ul");
+  evidence.append(rpgEl("summary",{textContent:"GitHubの根拠"}),sources);
+  form.append(input,send,reply,evidence);
   form.onsubmit=async e=>{
    e.preventDefault();const question=input.value.trim();if(!question||send.disabled)return;
    send.disabled=true;
    try{
-    const rumor=rpg.npcs["meadow-npc-smith"]?.topic?.answer||"";
-    const messages=[{role:"system",content:`あなたは${speaker}。次の台詞と今の様子をもとに、日本語で短くひと言返して。知らないことは知らないと答えて。アイテムや報酬を与えたことにはしない。村で聞ける噂：${rumor}\n${context()}`},{role:"user",content:question}];
+    const facts=relatedFacts(question);
+    sources.replaceChildren(...facts.map(f=>rpgEl("li",{},f.edge+" ",...f.urls.map(url=>rpgEl("a",{href:url,target:"_blank",rel:"noopener",textContent:url.split("/")[4]+" "})))));
+    evidence.hidden=!facts.length;
+    const grounding=facts.map(f=>f.edge+"："+f.text).join("\n")||"この質問に対応する関係は台帳にない。";
+    const messages=[{role:"system",content:`あなたは${speaker}。次の台詞と今の様子をもとに、日本語で短くひと言返して。未知の事実は知らないと答えて。噂は噂として話し、アイテムや報酬を与えたことにはしない。\n${context()}\n質問からたどった根拠：\n${grounding}`},{role:"user",content:question}];
     const result=await worldAnswer(messages,s=>{reply.textContent=s},96);
     if(!result.output.trim())throw new Error("empty answer");
    }catch{reply.textContent="今はうまくおしゃべりできないみたい。"}
@@ -2693,7 +2709,7 @@ export function bindWorldRpg(el){
     rpgEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
    textEl,orbsWrap,actionsEl,
    npc.topic?rpgEl("button",{type:"button",textContent:npc.topic.question,onclick:()=>{idx=pages.length-1;renderPage()}}):null,
-   talkMore(npc.speaker,()=>pages.join(" ")));
+   talkMore(npc.speaker,()=>[npc.greeting,...npc.lines].join(" ")));
   renderPage();showCard(card);
  };
  const openLootDialog=spotId=>{
