@@ -289,8 +289,13 @@ def add_back_nav(page: str, path: str | None = None, tools: dict | None = None) 
     page that already has them keeps them, and a fragment without <head> and <body> gets the way back only."""
     import pysaiyanweboo as ui
     prefix = '../' * path.count('/') if path else '../../'
-    page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': prefix + 'index.html#tools'}], test_id='portfolio-back')
-    if '<div class="ui-door-foot">' in page or '</head>' not in page or '<body' not in page:
+    # Studio pages already have the same destination in the site's header.
+    # Keep the standalone back link for fragments and other page contracts.
+    studio = path in {f'tools/{entry}index.html' for entry in _STUDIO_ROUTES.PUBLIC_STUDIO_ENTRIES}
+    full_page = '</head>' in page and '<body' in page
+    if not (studio and full_page):
+        page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': prefix + 'index.html#tools'}], test_id='portfolio-back')
+    if '<div class="ui-door-foot">' in page or not full_page:
         return page                               # a page that has it, or a fragment with no <head> and <body> to carry it
     return add_site_chrome(page, path, tools)
 

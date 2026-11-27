@@ -390,7 +390,12 @@ def test_tools_built_from_other_repositories_never_404():
             name = f'{folder}/{entry}index.html'
             html = (SITE / name).read_text(encoding='utf-8')
             if key in MADE:                                   # built from a pinned checkout: the way back, no ⏸
-                assert 'data-testid="portfolio-back"' in html and '⏸' not in html, name
+                assert '⏸' not in html, name
+                if key == 'ironmate':
+                    assert 'data-testid="portfolio-back"' not in html, name
+                    assert f'<a class="ui-world-home" href="{"../" * name.count("/")}index.html#tools"' in html, name
+                else:
+                    assert 'data-testid="portfolio-back"' in html, name
                 continue
             assert '⏸' in html and f'https://github.com/{repository}' in html, name
             # the way back: the standalone link, or (a studio page) the header's 🏠, whose markup is PySaiyanWeBoo's to choose
