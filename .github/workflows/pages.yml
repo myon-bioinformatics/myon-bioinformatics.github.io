@@ -94,14 +94,9 @@ jobs:
 
       - name: Build Composition Studio and its licensed Tone.js subset
         run: |
-          pin=$(python3 -c 'import tomllib; print(tomllib.load(open("pyproject.toml","rb"))["tool"]["uv"]["sources"]["pysaiyanweboo"]["rev"])')
-          source_dir="$RUNNER_TEMP/pswb-audio"
-          git init -q "$source_dir"
-          git -C "$source_dir" fetch --quiet --depth=1 https://github.com/myon-bioinformatics/PySaiyanWeBoo.git "$pin"
-          git -C "$source_dir" checkout --quiet --detach FETCH_HEAD
-          npm ci --prefix "$source_dir/tools/build/studio-audio" --ignore-scripts
-          python3 -S "$source_dir/tools/build/studio-audio/build.py" _site/tools/vendor
-          uv run --locked --only-group pages python scripts/publish_composition.py _site
+          npm ci --prefix _src/audio --ignore-scripts
+          python3 -S _src/audio/build.py _site/tools/vendor
+          python3 -S scripts/publish_composition.py _site
 
       - name: Install npm dependencies
         run: npm ci --ignore-scripts
