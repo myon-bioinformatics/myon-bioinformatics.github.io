@@ -511,8 +511,8 @@ FLOW_RIG = """
 <p>入口と出口の弁を動かし、観察槽の残量を比べます。4素材は同じ収支モデルの例で、物性の再現ではありません。</p>
 <div class="flow-fields">
 <label>素材 <select id="flow-medium"><option value="water">水</option><option value="gold">金</option>
-<option value="currency">通貨</option><option value="noodles">そうめん</option></select></label>
-<label>入口 / 秒 <input id="flow-in" type="number" min="0" max="100" step="1" value="5" required></label>
+<option value="currency">通貨</option><option value="noodles">そうめん</option><option value="concept">概念</option></select></label>
+</div><div id="flow-physical"><div class="flow-fields"><label>入口 / 秒 <input id="flow-in" type="number" min="0" max="100" step="1" value="5" required></label>
 <label>出口 / 秒 <input id="flow-out" type="number" min="0" max="100" step="1" value="2" required></label>
 </div>
 <div class="flow-controls">
@@ -590,7 +590,12 @@ if (typeof document !== "undefined") {
   };
   get("step").onclick = tick;
   get("reset").onclick = reset;
-  get("medium").onchange = reset;
+  get("medium").onchange = () => {
+    const concept = get("medium").value === "concept";
+    document.getElementById("flow-physical").hidden = concept;
+    document.getElementById("knowledge-flow").hidden = !concept;
+    if (concept) stop(); else reset();
+  };
   for (const name of ["run", "reset"]) get(name).disabled = false;
   reset();
 }
@@ -628,53 +633,84 @@ def flow_markdown(demos: list[dict], figures: list[str]) -> str:
 
 KNOWLEDGE_FLOW_JS = 'tools/flow/knowledge.mjs'
 KNOWLEDGE_FLOW_HTML = """
-<section id="knowledge-flow">
+<section id="knowledge-flow" hidden>
 <h2>🧠 知識の流れ</h2>
-<p>架空の概念グラフ上の活性度の拡散。真偽・確信度・概念の同一性は表さない。</p>
+<p>TTLのIRI間の関係を無向の拡散経路として扱います。真偽・確信度とは別です。</p>
+<label>TTL（IRI三つ組の限定構文）<textarea id="knowledge-ttl" rows="6" style="width:100%">@prefix ex: &lt;urn:example:&gt; .
+ex:A ex:relatedTo ex:B .
+ex:B ex:relatedTo ex:C .</textarea></label>
+<label>TTLファイル <input id="knowledge-file" type="file" accept=".ttl,text/turtle"></label>
+<button id="knowledge-load">定義を適用</button>
+<label>刺激対象 <select id="knowledge-target"></select></label>
+<label>乱数シード <input id="knowledge-seed" type="number" value="1" min="0" max="4294967295" step="1"></label>
+<button id="knowledge-random">ランダム選択</button>
+<button id="knowledge-stimulate">刺激</button>
 <label>拡散係数 <input id="knowledge-rate" type="range" min="0" max="1" step="0.05" value="0.5"></label>
-<button id="knowledge-step" disabled>1ステップ進める</button>
-<button id="knowledge-reset" disabled>初期化</button>
-<svg id="knowledge-graph" viewBox="0 0 320 200" role="img" aria-label="概念の活性度グラフ" style="width:min(100%,420px)"></svg>
-<p id="knowledge-status" aria-live="polite">初期状態</p>
+<button id="knowledge-step">1ステップ進める</button>
+<button id="knowledge-reset">初期化</button>
+<svg id="knowledge-graph" viewBox="0 0 400 300" role="img" aria-label="概念の活性度グラフ" style="width:min(100%,500px)"></svg>
+<p id="knowledge-status" aria-live="polite"></p>
 </section>
 """
 KNOWLEDGE_FLOW_SOURCE = r"""
-const edges = [[0,1],[0,2],[1,3],[2,3],[3,4],[3,5],[4,5]];
-const points = [[30,100],[95,45],[95,155],[165,100],[260,45],[260,155]];
-const degree = points.map((_, i) => edges.filter(e => e.includes(i)).length);
-export function knowledgeStep(values, rate) {
-  if (values.length !== points.length || values.some(v => !Number.isFinite(v) || v < 0) || !Number.isFinite(rate) || rate < 0 || rate > 1) throw new RangeError("invalid diffusion input");
-  const next = [...values];
-  for (const [i,j] of edges) {
-    const flux = rate * (values[i] - values[j]) / Math.max(...degree);
-    next[i] -= flux; next[j] += flux;
+// Deliberately restricted Turtle subset: one IRI triple per line, prefix declarations.
+export function parseGraph(text) {
+  const prefixes = new Map(), nodes = new Map(), pairs = new Map();
+  const token = '(?:<[^<>\\s]+>|[A-Za-z][\\w-]*:[A-Za-z0-9_][\\w-]*)';
+  const triple = new RegExp('^(' + token + ')\\s+(' + token + ')\\s+(' + token + ')\\s*\\.$');
+  const expand = t => {
+    if (t.startsWith('<')) return t.slice(1,-1);
+    const i=t.indexOf(':'), p=t.slice(0,i);
+    if (!prefixes.has(p)) throw new Error('未定義の接頭辞: '+p);
+    return prefixes.get(p)+t.slice(i+1);
+  };
+  const index = t => {if(!nodes.has(t)) nodes.set(t,nodes.size);return nodes.get(t);};
+  if(text.length>100000) throw new Error('入力上限を超えました');
+  for (const [i,raw] of text.split(/\\r?\\n/).entries()) {
+    const line=raw.trim();
+    if(!line||line.startsWith('#')) continue;
+    const p=line.match(/^@prefix\\s+([A-Za-z][\\w-]*):\\s*<([^<>\\s]+)>\\s*\\.$/);
+    if(p){prefixes.set(p[1],p[2]);continue;}
+    const m=line.match(triple);
+    if(!m) throw new Error((i+1)+'行目: 未対応のTTL構文');
+    const a=index(expand(m[1])), predicate=expand(m[2]), b=index(expand(m[3]));
+    if(a!==b){const key=[Math.min(a,b),Math.max(a,b)].join(':');if(!pairs.has(key))pairs.set(key,{a:Math.min(a,b),b:Math.max(a,b),relations:new Set()});pairs.get(key).relations.add(predicate);}
   }
-  return next;
+  if(!nodes.size||nodes.size>100) throw new Error('概念数は1〜100');
+  return {nodes:[...nodes.keys()],edges:[...pairs.values()].map(e=>[e.a,e.b]),relations:[...pairs.values()].map(e=>[...e.relations])};
 }
-if (typeof document !== "undefined") {
-  const get = id => document.getElementById("knowledge-" + id);
-  const svg = get("graph");
-  let values, step;
-  function render() {
+export function knowledgeStep(values, rate, edges) {
+  if(!values.length||values.some(v=>!Number.isFinite(v)||v<0)||!Number.isFinite(rate)||rate<0||rate>1) throw new RangeError('invalid diffusion input');
+  const degree=values.map(()=>0);
+  for(const [i,j] of edges){if(!Number.isInteger(i)||!Number.isInteger(j)||i<0||j<0||i>=values.length||j>=values.length||i===j)throw new RangeError('invalid edge');degree[i]++;degree[j]++;}
+  const max=Math.max(1,...degree), next=[...values];
+  for(const [i,j] of edges){const f=rate*(values[i]-values[j])/max;next[i]-=f;next[j]+=f;}
+  return next.map(v=>Math.max(0,v));
+}
+export function seededIndex(seed,n){
+  if(!Number.isInteger(seed)||seed<0||seed>4294967295||!Number.isInteger(n)||n<1)throw new RangeError('invalid seed');
+  return Math.floor(((Math.imul(seed,1664525)+1013904223)>>>0)/4294967296*n);
+}
+if(typeof document!=='undefined'){
+  const get=id=>document.getElementById('knowledge-'+id), svg=get('graph');
+  let graph,values,step=0;
+  function render(){
     svg.replaceChildren();
-    const add = (tag, attrs, text) => {
-      const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
-      for (const [k,v] of Object.entries(attrs)) el.setAttribute(k, v);
-      if (text !== undefined) el.textContent = text;
-      svg.append(el);
-    };
-    for (const [i,j] of edges) add("line", {x1:points[i][0],y1:points[i][1],x2:points[j][0],y2:points[j][1],stroke:"currentColor",opacity:.35});
-    points.forEach(([x,y],i) => {
-      add("circle",{cx:x,cy:y,r:18,fill:"currentColor",opacity:.12+.75*values[i],stroke:"currentColor"});
-      add("text",{x,y:y+32,"text-anchor":"middle",fill:"currentColor","font-size":11},String.fromCharCode(65+i)+" "+(100*values[i]).toFixed(1)+"%");
-    });
-    get("status").textContent = step+" ステップ · 活性度合計 "+values.reduce((a,b)=>a+b,0).toFixed(6);
+    const points=graph.nodes.map((_,i)=>[200+125*Math.cos(2*Math.PI*i/graph.nodes.length),150+110*Math.sin(2*Math.PI*i/graph.nodes.length)]);
+    const add=(tag,attrs,text)=>{const el=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(text!==undefined)el.textContent=text;svg.append(el);return el;};
+    graph.edges.forEach(([i,j],k)=>{const line=add('line',{x1:points[i][0],y1:points[i][1],x2:points[j][0],y2:points[j][1],stroke:'currentColor',opacity:.35});const title=document.createElementNS('http://www.w3.org/2000/svg','title');title.textContent=graph.relations[k].join(', ');line.append(title);});
+    points.forEach(([x,y],i)=>{add('circle',{cx:x,cy:y,r:12,fill:'currentColor',opacity:.12+.75*Math.min(1,values[i])});add('text',{x,y:y+22,'text-anchor':'middle',fill:'currentColor','font-size':10},(i+1)+': '+values[i].toFixed(2));});
+    get('status').textContent=step+' ステップ · '+graph.nodes.length+' 概念 · 活性度合計 '+values.reduce((a,b)=>a+b,0).toFixed(6);
   }
-  function reset(){values=[1,0,0,0,0,0];step=0;render();}
-  get("step").onclick=()=>{values=knowledgeStep(values,Number(get("rate").value));step++;render();};
-  get("reset").onclick=reset;
-  get("step").disabled=get("reset").disabled=false;
-  reset();
+  function reset(){values=graph.nodes.map(()=>0);step=0;render();}
+  function load(){try{const candidate=parseGraph(get('ttl').value);graph=candidate;get('target').replaceChildren(...graph.nodes.map((n,i)=>new Option((i+1)+': '+n,i)));reset();}catch(e){get('status').textContent=e.message;}}
+  get('load').onclick=load;
+  get('file').onchange=async()=>{const f=get('file').files[0];if(f){if(f.size>100000){get('status').textContent='ファイル上限超過';return;}get('ttl').value=await f.text();load();}};
+  get('random').onclick=()=>{if(graph&&get('seed').reportValidity())get('target').value=seededIndex(Number(get('seed').value),graph.nodes.length);};
+  get('stimulate').onclick=()=>{if(graph){values[Number(get('target').value)]+=1;render();}};
+  get('step').onclick=()=>{if(graph){values=knowledgeStep(values,Number(get('rate').value),graph.edges);step++;render();}};
+  get('reset').onclick=()=>{if(graph)reset();};
+  load();
 }
 """
 
