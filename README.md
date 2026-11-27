@@ -77,17 +77,17 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 
 トップの **🧰 Tools** は、実用の道具だけを置く棚です（リポジトリカードとは別に手で管理）。各リポジトリの使い方・検証・GIF は、そのリポジトリの Pages（🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ）にあり、ここでは写しません。組み立ての要るもの（ビルド）だけをここで作ります。カード名は用途、🧩 出どころはその部品のリポジトリです。公開時に他リポジトリの default branch から組むもの（Ironmate のスタジオ、mcp-toolcall-lab、DRAgoWing のヒートマップなど）は、組み立てに失敗すると ⏸ ページになります。コード本体は各リポジトリに残します。
 
-🧰 このサイトが組む道具は **1 つの画面** `tools/` の `#gif`・`#maps`・`#test-report`・`#flow`・`#repo-map` です（`scripts/project_pages.py` の `render_shell`）。ヘッダー・フッター・⚙️ 設定は画面に 1 つだけで、道具はリロードなしで切り替わり、開いたときに初めて読み込まれます（それまでは `<template>` の中で眠っている）。`#records` のような道具の中の見出しへのリンクは、その道具を開いてそこへ移ります。
+🧰 道具は **1 つの画面** `tools/` の `#gif`・`#maps`・`#test-report`・`#flow`・`#repo-map`・`#chat`（Pyodide に渡す Python は開いたときに `tools/chat/sources.json` から読む）、ほかのリポジトリで組む `#heatmap`（DRAgoWing）・`#format-lab`（親）です（`scripts/project_pages.py` の `render_shell`、ほかのリポジトリの分は `TOOL_SOURCES` で入口のページを持たない `()` のもの）。🆔 道具どうしで id がぶつかると、このサイトの道具ならビルドが止まり、ほかのリポジトリの道具なら ⏸ に置き換わります。ヘッダー・フッター・⚙️ 設定は画面に 1 つだけで、道具はリロードなしで切り替わり、開いたときに初めて読み込まれます（それまでは `<template>` の中で眠っている）。`#records` のような道具の中の見出しへのリンクは、その道具を開いてそこへ移ります。
 
 | 案内 | リンク |
 | --- | --- |
 | HTML文書取込 | [tools/html-import/](https://myon-bioinformatics.github.io/tools/html-import/) |
 | 📍地図URL・座標ピン留め | [tools/#maps](https://myon-bioinformatics.github.io/tools/#maps) · [パラレル東京](https://myon-bioinformatics.github.io/tools/demos/world.html#tokyo) |
 | 🖼️ スライド・画像工房（Ironmate） | [Image Studio](https://myon-bioinformatics.github.io/tools/image-studio/) · [Browser Tools](https://myon-bioinformatics.github.io/tools/browser-tools/) · [Slide Studio](https://myon-bioinformatics.github.io/tools/slide-studio/) |
-| 🌡️ ヒートマップ（DRAgoWing · Ironmate） | [tools/heatmap/](https://myon-bioinformatics.github.io/tools/heatmap/) |
+| 🌡️ ヒートマップ（DRAgoWing · Ironmate） | [tools/#heatmap](https://myon-bioinformatics.github.io/tools/#heatmap) |
 | 🔌 MCP 実験室（mcp-toolcall-lab） | [Tool Lab](https://myon-bioinformatics.github.io/tools/mcp/) · [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) · [MCP 接続試験](https://myon-bioinformatics.github.io/tools/mcp/#protocol) |
 | 🧾 テスト結果（PySaiyanWeBoo） | [tools/#test-report](https://myon-bioinformatics.github.io/tools/#test-report) |
-| 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab） | [tools/chat/](https://myon-bioinformatics.github.io/tools/chat/) |
+| 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab） | [tools/#chat](https://myon-bioinformatics.github.io/tools/#chat) |
 | 🧭 統合運用 | [Dashboard](https://myon-bioinformatics.github.io/myon-bioinformatics/) |
 | 🎞 GIF工房（PySaiyanWeBoo） | [tools/#gif](https://myon-bioinformatics.github.io/tools/#gif) |
 | 🌊 流れの実験室（FluidFullSpeedSimulation · DRAgoWing） | [tools/#flow](https://myon-bioinformatics.github.io/tools/#flow) |
@@ -95,7 +95,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 
 新しい道具を足すときは、生成元の `scripts/front_page.py`（`PORTAL`）と `tests/test_site.py` をいっしょに直し、行き先と HTTPS の Pages 契約を同じ変更で確認します。
 
-🧰 Ironmate's Image Studio, Browser Tools and Slide Studio (`tools/image-studio/`, `tools/browser-tools/`, `tools/slide-studio/`), mcp-toolcall-lab's tools and execution lab (`tools/mcp/`, `tools/mcp/execution/`) and DRAgoWing's 🌡️ heatmap (`tools/heatmap/`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ page in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Studio route mapping is build source in `_src/tools/studio_routes.py`; the rendered pages live only in the Pages output tree. Ironmate still owns the generated editor and data formats, and the shared back navigation comes from PySaiyanWeBoo.
+🧰 Ironmate's Image Studio, Browser Tools and Slide Studio (`tools/image-studio/`, `tools/browser-tools/`, `tools/slide-studio/`), mcp-toolcall-lab's tools and execution lab (`tools/mcp/`, `tools/mcp/execution/`) and DRAgoWing's 🌡️ heatmap and the parent's 🗃️ format lab (the one screen's `tools/#heatmap`, `tools/#format-lab`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ page in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Studio route mapping is build source in `_src/tools/studio_routes.py`; the rendered pages live only in the Pages output tree. Ironmate still owns the generated editor and data formats, and the shared back navigation comes from PySaiyanWeBoo.
 
 ## 🚀 公開リポジトリ
 
@@ -299,7 +299,7 @@ add_site_chrome(page, 'tools/index.html', {'🗼': {'label': 'パラレル都市
 
 ### 💬 横断チャット
 
-🧰 Tools → **💬 横断チャット**（`tools/chat/`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args・ontautology.py（OnTautoLogy）・olnm.py（OLNM）は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。
+🧰 Tools → **💬 横断チャット**（`tools/#chat`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args・ontautology.py（OnTautoLogy）・olnm.py（OLNM）は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。
 
 | | コマンド | 出どころ |
 | --- | --- | --- |

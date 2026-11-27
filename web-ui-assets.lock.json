@@ -17,15 +17,16 @@
     "tools/world-assets/london-dragon.json": "96f1b4efbd5a900459688403900cd385bf600987e8f76023f2a7d538f9ed133b",
     "tools/world-assets/london-dragon.png": "2478a91c5d1c6cb04255b8247ca879f08f6a9ba30051bdb743f14a8a4a6429a9",
     "tools/html-import/extract.mjs": "22453239323b35f46e4ece66fea443ed6475f0e26324926ba8dbb1fade203fec",
+    "tools/chat/sources.json": "eb8696853fb288af9a936fcb3e8262fc5478511ecccd1f5d222f6841d3e46ed2",
     "tools/vendor/web-ui/css/bundle.css": "54604dd0960519a352fd521b850650435f01821982f20f4f94dd4deb72782a3c",
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/world.html": "d0e2355ed8ac46bea6a9be65f5a8eb016d806a05d3aa445b9689c0a7e106e32e",
-    "tools/html-import/index.html": "348475c692d2c2e60b63b341bdeb35ffaefd3bd028759d68ebcd2a2bc701a92e",
-    "tools/chat/index.html": "039e7aa02374cda2230a98003f71566ea75985bb2c8aa86f5bf1bc91e9f5e90f",
+    "tools/demos/world.html": "de26a535fb564dfbdf7e4fae23d533da23aa4b08d8f33ac037d3ac198e9b913b",
+    "tools/html-import/index.html": "abc9f6df6e54f1f205ebda77ceb95bb6a4be3a76e6e299543dea304ac714a11a",
     "tools/test-report/index.html": "6c480e545d331bd02c55d0092a65a81b5ee56eec04416d5342b10fb267812262",
     "tools/maps/index.html": "8c6f102ef7a6e4b10828a72c16bbf78c2658b8a41c24cf95bf66978f4eaac541",
-    "tools/gif/index.html": "e5221dbde7a928c089df460e72a5a2012f24e6fb4fd62ef2552f5d0dc26f586e"
+    "tools/gif/index.html": "e5221dbde7a928c089df460e72a5a2012f24e6fb4fd62ef2552f5d0dc26f586e",
+    "tools/chat/index.html": "682ddcb04542c8205f4ffcc5792d52520d3dfad2d9cfbd011e1370b5b3300957"
   }
 }
