@@ -22,6 +22,7 @@ from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, sync_pla
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 import world as W  # noqa: E402  (scripts/world.py: the engine, the specs and the demo recorder)
+import pysaiyanweboo as ui  # noqa: E402  (the pinned web UI: the tool page's chrome and add_part)
 
 SPEC = W.example_data("school")
 CLASSROOM = '.ui-floor[data-floor="classroom"]'
@@ -302,7 +303,7 @@ class SchoolTests(unittest.TestCase):
         page.click(f'{menu("tool")}:has(summary:text("🗺️")) summary')
         self.assertTrue(page.is_visible(f'{head} .ui-world-rows:not(.ui-world-favs) a[href="#school-spot-flowers"]'))
         page.wait_for_function("() => document.querySelector('.ui-world-head .ui-world-rows:not(.ui-world-favs) a .ui-world-arrow').textContent !== '📍'")
-        self.assertEqual(page.eval_on_selector_all(f"{head} .ui-world-rows:not(.ui-world-favs) .ui-world-arrow", "els => els.map(e => e.textContent)"), ["⬆️", "🚪"])
+        self.assertEqual(page.eval_on_selector_all(f"{head} .ui-world-rows:not(.ui-world-favs) .ui-world-arrow", "els => els.map(e => e.textContent)"), ["⬆️", "🛗"])
         page.click(f'{menu("tool")}:has(summary:text("🏫")) summary')
         page.wait_for_function("() => document.querySelectorAll('.ui-world-menu[open]').length === 1")
         self.assertIn("教室と校庭", page.inner_text(f'{menu("tool")}[open]'))
@@ -905,7 +906,7 @@ class CitiesTests(unittest.TestCase):
             self.assertEqual(self.errors, [])
 
     def test_city_tools_and_tokyo_station(self):
-        """🗼🎡🥖 open their city; 🚉 lists Tokyo Station's six exits (🚪 from another city: the floor's door, not the exits' 🎫), walks to each, and its arrows agree with Python."""
+        """🗼🎡🥖 open their city; 🚉 lists Tokyo Station's six exits (🛗 from another city: the floor's door, not the exits' 🎫), walks to each, and its arrows agree with Python."""
         tool = CITIES["tools"]["🚉"]
         tokyo = next(f for f in CITIES["floors"] if f["id"] == "tokyo")
         exits = [next(s for s in tokyo["spots"] if s["id"] == i) for i in tool["spots"]]
@@ -923,8 +924,8 @@ class CitiesTests(unittest.TestCase):
                 self.shot(page, "tool", fl, emoji, f"{emoji} {next(f['label'] for f in CITIES['floors'] if f['id'] == fl)}")
             self.show(page, "london")
             page.click('.ui-world-head .ui-world-menu[data-menu="tool"] > summary')
-            self.assertEqual(page.eval_on_selector_all(rows, "els => els.map(a => a.querySelector('.ui-world-arrow').textContent)"), ["🚪"] * 6)
-            self.shot(page, "tool", "london", "station-door", "🚉 from London: 🚪 ×6")
+            self.assertEqual(page.eval_on_selector_all(rows, "els => els.map(a => a.querySelector('.ui-world-arrow').textContent)"), ["🛗"] * 6)
+            self.shot(page, "tool", "london", "station-door", "🚉 from London: 🛗 ×6")
             page.keyboard.press("Escape")
             for s in exits:
                 with self.subTest(size=size, exit=s["id"]):
@@ -954,7 +955,7 @@ class CitiesTests(unittest.TestCase):
                 fl, tile = f["id"], f["tile"]
                 blocked = W.world_blocked(f["width"], f["height"], tile, f["props"])
                 self.show(page, fl)
-                page.focus(".ui-world-view")                                                         # the 🚪 pulldown kept the focus: keys go to the map again
+                page.focus(".ui-world-view")                                                         # the 🛗 pulldown kept the focus: keys go to the map again
                 steps = [((0, -1), "ArrowUp"), ((1, 0), "ArrowRight"), ((0, 1), "ArrowDown"), ((-1, 0), "ArrowLeft")]
                 for (dx, dy), key in steps:
                     with self.subTest(size=size, floor=fl, key=key):
@@ -1282,19 +1283,19 @@ class CitiesTests(unittest.TestCase):
 
 
 class ToolChromeTests(unittest.TestCase):
-    """🧰 The chrome of a tool page (chrome_html, add_chrome) on two pages of one site: the board's clock in seconds, ☰ this page's own
+    """🧰 The chrome of a tool page (PySaiyanWeBoo's chrome, put on by add_part) on two pages of one site: the board's clock in seconds, ☰ this page's own
     (itself with 📍, its sections, the rows it gives, each with ☆), ⭐ and 🌐 that follow to the next tool, ⏯️, ⋯ ⬆️ ⬇️, the emoji a page
     adds, a phone, and no JavaScript.
     The star-and-language run is recorded to test-results/tools-chrome/tools-chrome-star-and-language-<UTC>.gif."""
     SPEC = {"board": {"title": "TOOLS", "items": [{"text": "🎞 GIF工房"}, {"text": "🌊 流れの実験室"}]}, "home": "../../index.html#tools",
             "places": [{"label": "🌊 流れの実験室へ", "href": "../flow/index.html"}],
-            "tools": {"🗼": {"label": "パラレル都市", "label_en": "Parallel cities", "links": [{"label": "🗼 パラレル東京", "href": "../maps/tokyo.html"}]}}}
+            "tools": {"🗼": {"label": "パラレル都市", "label_en": "Parallel cities", "links": [{"label": "🗼 パラレル東京", "href": "../demos/cities.html"}]}}}
 
     @classmethod
     def setUpClass(cls):
         def tool(title, parts):
             body = f"<main><h1>{title}</h1>" + "".join(f'<h2>{part}</h2><p style="min-height:480px">{part}…</p>' for part in parts) + "</main>"
-            return W.add_chrome(W.render_document(trusted_html=body, title=title, css=W.bundled_css()), cls.SPEC)
+            return ui.add_part(W.render_document(trusted_html=body, title=title, css=W.bundled_css()), ui.component_parts("chrome", cls.SPEC), at="top")
         cls.pages = {"/tools/gif/": tool("🎞 GIF工房", ["えらぶ", "ならべる", "つくる"]), "/tools/flow/index.html": tool("🌊 流れの実験室", [])}
         cls.pw = sync_playwright().start()
         cls.browser = W.launch(cls.pw)
@@ -1354,7 +1355,7 @@ class ToolChromeTests(unittest.TestCase):
         links = self.menu(page, "tool")                                                                          # 🗼 opens, ☰ closes
         page.wait_for_function("() => document.querySelectorAll('.ui-chrome .ui-world-menu[open]').length === 1")
         self.assertEqual(page.evaluate("[...document.querySelectorAll('.ui-chrome .ui-world-menu[open]')].map(m => m.dataset.menu)"), ["tool"])
-        self.assertEqual(links.locator("a").get_attribute("href"), "../maps/tokyo.html")
+        self.assertEqual(links.locator("a").get_attribute("href"), "../demos/cities.html")
         page.keyboard.press("Escape")
         self.assertEqual(page.locator(".ui-chrome .ui-world-menu[open]").count(), 0)
         self.menu(page, "settings")
@@ -1452,6 +1453,142 @@ class ToolChromeTests(unittest.TestCase):
         self.assertTrue(rows.locator(".ui-world-star").first.is_hidden())                     # ☆ needs the script
         rows.locator("a").click()
         page.wait_for_url("http://tools.test/tools/flow/index.html")
+
+
+class OverworldRpgTests(unittest.TestCase):
+    """Overworld starting-village (meadow) RPG & gamification contract in Chromium."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        cls.page_path = Path(cls.tmp.name) / "overworld.html"
+        cls.page_path.write_text(W.world_document(W.example_data("overworld")), encoding="utf-8")
+        cls.pw = sync_playwright().start()
+        cls.browser = W.launch(cls.pw)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.browser.close()
+        cls.pw.stop()
+        cls.tmp.cleanup()
+
+    def open(self, width=1280, height=800, touch=False):
+        context = self.browser.new_context(viewport={"width": width, "height": height}, has_touch=touch, is_mobile=touch)
+        self.addCleanup(context.close)
+        page = context.new_page()
+        self.errors = []
+        page.on("pageerror", lambda e: self.errors.append(str(e)))
+        page.on("console", lambda m: m.type == "error" and self.errors.append(m.text))
+        page.goto(self.page_path.as_uri())
+        page.click('[data-emoji="🧙"]')
+        page.wait_for_function(W.PICKED)
+        page.wait_for_selector(".ui-rpg-hud", state="visible")
+        return page
+
+    def test_contact_npc_dialogue_and_fountain_heal(self):
+        page = self.open()
+        # Player starts at (12, 14); guide cat sits at (13, 13). Stepping Up then Right contacts it!
+        page.keyboard.press("ArrowUp")
+        page.wait_for_timeout(450)
+        page.keyboard.press("ArrowRight")
+        dialog = page.locator(".ui-rpg-card")
+        dialog.wait_for(state="visible", timeout=5000)
+        self.assertIn("案内猫ミョン", dialog.inner_text())
+        dialog.get_by_role("button", name="つぎへ ▶").click()
+        self.assertIn("[2/3]", dialog.inner_text())
+        dialog.locator(".ui-rpg-close").click()
+        dialog.wait_for(state="hidden")
+        # Interact with healing fountain via spots menu & sheet action button
+        page.click('.ui-world-menu[data-menu="spots"] > summary')
+        page.click('.ui-world-spots a[href="#overworld-spot-meadow-npc-fountain"]')
+        page.click('#overworld-spot-meadow-npc-fountain .ui-rpg-sheet-btn')
+        dialog.wait_for(state="visible")
+        dialog.get_by_role("button", name="💚 いやす（全回復）").click()
+        self.assertIn("全回復した", dialog.inner_text())
+        self.assertTrue(dialog.locator(".ui-rpg-orb").count() >= 1)
+        self.assertEqual(self.errors, [])
+
+    def test_drop_and_chest_collection_updates_bag_and_atk(self):
+        page = self.open()
+        # Collect ground drop 🌿 やくそう and open 🎁 はじまりの剣 chest via sheet buttons
+        page.click('.ui-world-menu[data-menu="spots"] > summary')
+        page.click('.ui-world-spots a[href="#overworld-spot-meadow-drop-herb"]')
+        page.click('#overworld-spot-meadow-drop-herb .ui-rpg-sheet-btn')
+        dialog = page.locator(".ui-rpg-card")
+        dialog.wait_for(state="visible")
+        self.assertIn("やくそう", dialog.inner_text())
+        dialog.get_by_role("button", name="やったね！").click()
+        dialog.wait_for(state="hidden")
+
+        page.click('.ui-world-menu[data-menu="spots"] > summary')
+        page.click('.ui-world-spots a[href="#overworld-spot-meadow-chest-sword"]')
+        page.click('#overworld-spot-meadow-chest-sword .ui-rpg-sheet-btn')
+        dialog.wait_for(state="visible")
+        self.assertIn("宝箱をあけた", dialog.inner_text())
+        dialog.get_by_role("button", name="やったね！").click()
+        dialog.wait_for(state="hidden")
+
+        # ATK rose from 6 to 10 (6 + 4 from sword) and both items are synced into 🎒 Bag
+        self.assertIn("⚔️ 10", page.locator("[data-rpg-gear]").inner_text())
+        self.assertEqual(page.get_attribute('.ui-spot[href="#overworld-spot-meadow-chest-sword"]', "data-rpg-opened"), "")
+        self.assertIn("📭", page.inner_text('.ui-spot[href="#overworld-spot-meadow-chest-sword"]'))
+        page.click('.ui-world-menu[data-menu="bag"] > summary')
+        bag_text = page.locator(".ui-world-bag").inner_text()
+        self.assertIn("やくそう", bag_text)
+        self.assertIn("はじまりの剣", bag_text)
+        self.assertEqual(self.errors, [])
+
+    def test_turn_based_battle_orbs_skill_item_and_victory(self):
+        page = self.open()
+        page.click("[data-rpg-explore]")
+        battle = page.locator(".ui-rpg-battle")
+        battle.wait_for(state="visible")
+        self.assertIn("バグスライム", battle.inner_text())
+        battle.get_by_role("button", name="✨ とくぎ").click()
+        battle.locator(".ui-rpg-subpanel button", has_text="バグバスター").click()
+        self.assertGreaterEqual(battle.locator(".ui-rpg-orb").count(), 1)
+        for _ in range(10):
+            if battle.get_by_role("button", name="🏆 勝利！マップにもどる").count():
+                break
+            battle.get_by_role("button", name="⚔️ こうげき").click()
+        battle.get_by_role("button", name="🏆 勝利！マップにもどる").click()
+        battle.wait_for(state="hidden")
+        # Gold and EXP increased from starting (25G, 0 EXP)
+        self.assertNotEqual(page.locator("[data-rpg-gold]").inner_text(), "🪙 25G")
+        self.assertFalse(page.locator("[data-rpg-exp]").inner_text().startswith("✨ 0/"))
+        self.assertEqual(self.errors, [])
+
+    def test_journal_quests_badges_quiz_and_responsive_layout(self):
+        for width, height, touch in ((1280, 800, False), (390, 844, True)):
+            with self.subTest(width=width):
+                page = self.open(width=width, height=height, touch=touch)
+                self.assertEqual(page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth"), 0)
+                if width == 1280:
+                    # Quiz with 🔬 研究員
+                    page.click('.ui-world-menu[data-menu="spots"] > summary')
+                    page.click('.ui-world-spots a[href="#overworld-spot-meadow-npc-researcher"]')
+                    page.click('#overworld-spot-meadow-npc-researcher .ui-rpg-sheet-btn')
+                    dialog = page.locator(".ui-rpg-card")
+                    dialog.wait_for(state="visible")
+                    dialog.get_by_role("button", name="🎓 クイズに挑戦").click()
+                    dialog.locator(".ui-rpg-actions button").first.click()
+                    self.assertIn("せいかい", dialog.inner_text())
+                    dialog.get_by_role("button", name="とじる").click()
+                    dialog.wait_for(state="hidden")
+                    # Open 📜 Journal and inspect tabs
+                    page.click("[data-rpg-journal-btn]")
+                    journal = page.locator(".ui-rpg-journal-card")
+                    journal.wait_for(state="visible")
+                    self.assertIn("村の案内を聞こう", journal.inner_text())
+                    journal.get_by_role("button", name="🏅 実績").click()
+                    self.assertIn("はじめの挨拶", journal.inner_text())
+                    journal.get_by_role("button", name="🧙 ステータス").click()
+                    self.assertIn("冒険者", journal.inner_text())
+                    journal.get_by_role("button", name="👾 図鑑").click()
+                    self.assertIn("スパゲッティゴーレム", journal.inner_text())
+                    page.keyboard.press("Escape")
+                    journal.wait_for(state="hidden")
+                self.assertEqual(self.errors, [])
 
 
 if __name__ == "__main__":

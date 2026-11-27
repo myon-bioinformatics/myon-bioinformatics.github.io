@@ -16,7 +16,7 @@ the cards. Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証
 
 ``tools/html-import/index.html`` (the HTML import tool page) is built here too and hash-locked with the other pages.
 Every generated or imported tool page gets the same way back, chrome and shortcut label: ``add_back_nav()`` (the way back and
-🧰 the chrome of scripts/world.py: the board with the clock, 🏠 ⭐ ⚙️ and each page's own ☰ ⋯, built by ``tools_chrome()``, and
+🧰 PySaiyanWeBoo's chrome: the board with the clock, 🏠 ⭐ ⚙️ and each page's own ☰ ⋯, from the spec ``tools_chrome()`` makes, and
 🚪 PySaiyanWeBoo's Door-to-Door, every 🧰 Tools link as a footer pull-down: ``tools_door()``) and
 ``add_home_label()`` (_src/tools/mcp_lab.py gets them for the lab pages). ``load_module()`` loads a file of this
 repository by path (a sibling script or a vendored module) without touching ``sys.path``.
@@ -37,6 +37,7 @@ import sys
 import tempfile
 from pathlib import Path
 from types import ModuleType
+from urllib.parse import urljoin
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSET_BASE = 'tools/vendor/web-ui/'
@@ -48,7 +49,7 @@ DISTRIBUTION = 'pysaiyanweboo'
 DEMO_BASE = 'tools/demos/'
 HTML_IMPORT_PAGE = 'tools/html-import/index.html'
 HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
-MAP_PAGES = {'tools/maps/index.html', 'tools/maps/tokyo.html'}
+MAP_PINS_PAGE = 'tools/maps/index.html'
 
 # Files served verbatim. The generators write every other public file to the output tree.
 PUBLIC_SOURCE_FILES = (
@@ -82,7 +83,7 @@ PSWB_TOOLS = {
 # 🌍 name -> (how it is built, shortcut label, title, summary), for PySaiyanWeBoo's 🎞 GIF demo; not in the 🧰 Tools cards: they show, they are not tools
 WORLD_PAGES = {
     'world': (lambda ui: world_page('overworld'), '🌍 ワールド', 'World',
-              '🚪 で土地をわたる旅のワールド：絵文字のキャラで歩き、時刻・お気に入り・地図・言語を切り替える'),
+              'はじまりの村と6つの土地を 🛗 で巡る RPG ワールド：接触会話・落とし物と宝箱（🎒）・ターン制バトル・クエスト・図鑑・クイズ'),
     'school': (lambda ui: world_page('school'), '🏫 スクール', 'School',
                '教室を歩く：絵文字を選び、タップ・矢印キー・パッドで机のあいだを移動（机・黒板・棚には入らない）'),
     'cities': (lambda ui: world_page('cities'), '🗼 パラレル', 'Parallel cities',
@@ -100,11 +101,17 @@ def _world() -> ModuleType:
 
 def world_page(name: str) -> str:
     """🌍 A world spec of scripts/world.py as one page, its body in <main> so the way back has its place (as in Parallel Tokyo)."""
-    page = _world().world_document(_world().example_data(name))
+    data = _world().example_data(name)
+    page = _world().world_document(data)
     body = '<body data-ui-theme="modern">'
     if page.count(body) != 1 or page.count('</body>') != 1:
         raise ValueError(f'world page {name} has no single body')
-    return page.replace(body, body + '<main>', 1).replace('</body>', '</main></body>', 1)
+    page = page.replace(body, body + '<main>', 1).replace('</body>', '</main></body>', 1)
+    if name == 'cities':
+        import pysaiyanweboo as ui
+        maps = load_module('map_tool', 'scripts/map_tool.py')
+        page = maps.add_map_links(ui, page, maps.tokyo_points(data))
+    return page
 
 
 def installed_commit(distribution: str = DISTRIBUTION) -> str:
@@ -179,7 +186,7 @@ def tools_places(prefix: str = '../../') -> list[dict]:
     Every label is ``emoji words``, one emoji per page (the door knows a page by its emoji): the card's own, or the one named here
     for a link that has none or shares its card's."""
     site, places = 'https://myon-bioinformatics.github.io/tools/', {}
-    marks = {'html-import': '📄', 'maps': '🗺️', 'maps-tokyo': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'mcp-protocol': '🤝'}
+    marks = {'html-import': '📄', 'maps': '🗺️', 'demos-cities': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'mcp-protocol': '🤝'}
     for card in _front_module().PORTAL:
         mark, _, title = card['title'].partition(' ')
         if not title or any(c.isalnum() for c in mark):                  # a title without an emoji: all of it is words
@@ -193,7 +200,7 @@ def tools_places(prefix: str = '../../') -> list[dict]:
 
 
 def tools_chrome(prefix: str = '../../', tools: dict | None = None, description: str = '', *, title: str = 'TOOLS', home: bool = True) -> dict:
-    """🧰 The chrome every page of the site carries (scripts/world.py ``chrome_validate``), for a page ``prefix`` below the site root:
+    """🧰 The chrome every page of the site carries (PySaiyanWeBoo's ``chrome_validate``), for a page ``prefix`` below the site root:
     the board (``title``, the clock, then ``description`` — what this page is, a sentence per item — and the cards' titles), 🏠 back
     to the cards (``home=False``: the front page itself) and ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``).
     ☰ is each page's own (itself and its sections, listed in the page); the tools themselves are 🚪 Door-to-Door's rows (``tools_places``)."""
@@ -204,39 +211,20 @@ def tools_chrome(prefix: str = '../../', tools: dict | None = None, description:
             'board': {'title': title, 'items': (about + [{'text': card['title']} for card in cards])[:12]}}
 
 
-def tools_door(ui, prefix: str = '../../', here: str | None = None, title: str = '', tokens: str = '') -> tuple[str, str, str]:
-    """🚪 PySaiyanWeBoo's Door-to-Door (``door_html``, door.css, door.js) for a tool page, as ``(html, css, js)``: 🏠 the cards, then
-    every tool (``tools_places``); ``here`` (this page's href) is the door you came in by, and a page that is no tool is added as 📌 ``title``.
-
-    The part is PySaiyanWeBoo's compact door (``door_html(compact=True)``: 🚪 and the pull-down, one 56px row; door.js shows this
-    page again after the browser's own way back). The sheet here keeps the row at the window's foot and styles the pull-down for a
-    page without the shared sheet, followed by the site's own line: 🐦 the X account and 📦 this page's size (``stamp_size`` writes
-    it once the page is whole)."""
+def tools_door(ui, prefix: str = '../../', here: str | None = None, title: str = '') -> dict[str, str]:
+    """🚪 PySaiyanWeBoo's Door-to-Door as the page's foot (``door_html(foot=True)``), as component parts: 🏠 the cards, then every
+    tool (``tools_places``); ``here`` (this page's href) is the door you came in by, and a page that is no tool is added as 📌 ``title``.
+    After the pull-down: 🐦 the X account and 📦 this page's size (``pysaiyanweboo.stamp_page_size`` writes it once the page is whole)."""
     pages = [{'emoji': '🏠', 'label': 'Tools', 'href': prefix + 'index.html#tools'},
              *({'emoji': mark, 'label': words, 'href': place['href']} for place in tools_places(prefix) for mark, _, words in [place['label'].partition(' ')])]
     if here and here not in {page['href'] for page in pages}:
         pages.append({'emoji': '📌', 'label': title[:40] or here, 'href': here})
     door = {'schema': ui.DOOR_SCHEMA, 'k': 0, 'pages': pages, **({'current': here} if here else {})}
-    css = ((f'.ui-door-foot{{{tokens}}}' if tokens else '') + ui.css_source('door.css') +
-           '.ui-door-foot{position:sticky;bottom:0;z-index:32;margin:0;padding:0;border-top:1px solid var(--ui-border);background:var(--ui-panel);'
-           'color:var(--ui-fg);font-family:var(--ui-font);font-size:1rem;line-height:1.5}.ui-door-foot *{box-sizing:border-box}'
-           '.ui-door-foot{display:flex;align-items:center}.ui-door-foot .ui-door{flex:1;min-width:0}'
-           '.ui-foot-info{display:flex;align-items:center;gap:8px;margin:0;padding:0 8px;font-size:.75rem;white-space:nowrap}'
-           '.ui-foot-info a{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;font-size:1.25rem;text-decoration:none}'
-           '.ui-door-foot .ui-door{margin:0;border:0;background:none}'
-           '.ui-door-foot select{margin:0;padding:0 8px;font:inherit;color:var(--ui-fg);background:var(--ui-bg);'
-           'border:1px solid var(--ui-border);border-radius:var(--ui-radius)}')
-    js = ui.js_source('door.js')
-    info = (f'<p class="ui-foot-info"><a href="{X_URL}" target="_blank" rel="noopener noreferrer" title="X (Twitter) @{X_URL.rpartition("/")[2]}" '
-            f'aria-label="X (Twitter) @{X_URL.rpartition("/")[2]}">🐦</a><span class="ui-foot-size" title="このページの HTML の大きさ">📦</span></p>')
-    return '<div class="ui-door-foot">' + ui.door_html(door, compact=True) + info + '</div>', css, js
+    x = [{'emoji': '🐦', 'label': f'X (Twitter) @{X_URL.rpartition("/")[2]}', 'href': X_URL}]
+    return ui.component_parts('door', door, foot=True, links=x, size=True)
 
 
 X_URL = 'https://twitter.com/myonitbusiness'
-def stamp_size(page: str) -> str:
-    """📦 The foot's size reads this page's own HTML, in KB (what the browser downloads first; shared sheets, scripts and media are apart).
-    Call it once more after a step that changes the page's size: it rewrites the number."""
-    return re.sub(r'(<span class="ui-foot-size"[^>]*>)[^<]*(</span>)', lambda m: f'{m[1]}📦 {len(page.encode("utf-8")) / 1024:.0f} KB{m[2]}', page)
 
 
 def add_site_chrome(page: str, path: str | None = None, tools: dict | None = None, description: str | None = None, *,
@@ -245,49 +233,53 @@ def add_site_chrome(page: str, path: str | None = None, tools: dict | None = Non
     below the root, and no door marked as this page): the header (``tools_chrome``: the board with ``description``, 🫧 the round face
     that follows the pointer, 🏠 ⭐ ⚙️), the side
     (☰ ⋯) and the foot (``tools_door``: 🚪 every tool as a pull-down, 🐦 X, 📦 the page's size). ``description`` left out is the text
-    of the 🧰 Tools card that leads here, else the page's own ``<meta name="description">``.
+    of the 🧰 Tools card that leads here, else the page's own ``<meta name="description">``, else a line any page can carry (its
+    title and where 🚪 🏠 lead; a placeholder until the page says what it is).
+
+    🌍 A world page already has the header and the side (``<header class="ui-world-head">``: its own board and menus, the same
+    parts), so it gets what it lacks: 🫧 in that header and the foot.
 
     🎨 Every page is published in one look: the shared sheet's ``modern`` theme, the front page's default. A page built with
     another palette on its ``<body>`` (Ironmate's studios: green; the MCP lab: terminal or github-like) is switched to it, and the
     chrome then takes the page's own colours; a page with no ``data-ui-theme`` keeps it and gets the chrome's colours with the chrome.
     The way back spans a grid ``<main>``'s whole first row, so it never takes the place of a column (Ironmate's three-column studio).
-    A page whose CSP lists its scripts or styles without ``'unsafe-inline'`` (HTML import, Ironmate's studios) gets
-    the modules and sheets of the chrome and the door listed too: their hashes, nothing wider."""
+    The parts are PySaiyanWeBoo's (``component_parts("chrome" | "door" | "gaze-avatar")``, put on the page by ``add_part``): a page
+    whose CSP lists its scripts or styles without ``'unsafe-inline'`` (HTML import, Ironmate's studios) gets their hashes listed,
+    nothing wider."""
     import pysaiyanweboo as ui
     prefix = ('../' * path.count('/') or './') if path else '../../'
     here = prefix + re.sub(r'index\.html$', '', path) if path else None
     if description is None:
         meta = re.search(r'<meta name="description" content="([^"]*)"', page)
         description = next((place['text'] for place in tools_places(prefix) if place['href'] == here), meta[1] if meta else '')
-    world = _world()
+    heading = re.search(r'<title>(.*?)</title>', page, re.S)
+    name = html.unescape(heading[1]).strip() if heading else ''
+    description = description or f'{name or "myon-bioinformatics"}：myon-bioinformatics の道具のページ。🚪 でほかの道具へ、🏠 で一覧へ。'
     body = re.search(r'<body\b[^>]*>', page)
     if body and 'data-ui-theme="' in body[0]:
         page = page[:body.start()] + re.sub(r'data-ui-theme="[^"]*"', 'data-ui-theme="modern"', body[0], count=1) + page[body.end():]
-    tokens = '' if 'data-ui-theme="modern"' in page else re.search(r':root\{([^}]*)\}', ui.css_source('tokens.css'))[1]
-    chrome, heading = tools_chrome(prefix, tools, description, title=title, home=home), re.search(r'<title>(.*?)</title>', page, re.S)
-    door, door_css, door_js = tools_door(ui, prefix, here if path and '/' in path else None, html.unescape(heading[1]).strip() if heading else '', tokens)
-    face = ui.component_parts('gaze-avatar')      # 🫧 PySaiyanWeBoo's round face that follows the pointer: in the header, after the board
-    head = world.chrome_html(chrome).replace('<nav class="ui-world-tools">', face['html'] + '<nav class="ui-world-tools">', 1)
-    for part, css, js in (({}, face['css'] + '.ui-chrome .ui-gaze{flex:none;margin:0 4px}main>nav.ui-back{grid-column:1/-1}', face['js']),
-                          ({'top': head}, world.chrome_css(tokens), world.SHELL_JS + 'bindChrome();\n'),
-                          ({'bottom': door}, door_css, door_js)):
-        page = world.add_part(page, css=css, js=js, **part)
-        for directive, block in (('script-src', js), ('style-src', css)):
-            listed = re.search(r'Content-Security-Policy"\s+content="[^"]*?\b' + directive + r'([^;"]*)', page.partition('</head>')[0])
-            if listed and "'unsafe-inline'" not in listed[1]:
-                page = page[:listed.end()] + ' ' + ui.module_csp_hash(block) + page[listed.end():]
-    return stamp_size(page)
+    own = 'data-ui-theme="modern"' in page        # 🎨 modern: the parts take the page's colours; else they bring theirs (add_part's scope)
+    face, head = ui.component_parts('gaze-avatar'), ui.component_parts('chrome', tools_chrome(prefix, tools, description, title=title, home=home))
+    tools_nav, world = '<nav class="ui-world-tools">', '<header class="ui-world-head">' in page
+    page = ui.add_part(page, {'css': face['css'] + '.ui-world-head .ui-gaze{flex:none;margin:0 4px}main>nav.ui-back{grid-column:1/-1}', 'js': face['js']})
+    if world:
+        page = page.replace(tools_nav, face['html'] + tools_nav, 1)                                # 🫧 after the world's own board
+    else:
+        head['html'] = head['html'].replace(tools_nav, face['html'] + tools_nav, 1)               # 🫧 after the board
+        page = ui.add_part(page, head, at='top', scope=None if own else '.ui-chrome')
+    door = tools_door(ui, prefix, here if path and '/' in path else None, name)
+    return ui.stamp_page_size(ui.add_part(page, door, scope=None if own else '.ui-door-foot'))
 
 
 def add_back_nav(page: str, path: str | None = None, tools: dict | None = None) -> str:
     """🏠 PySaiyanWeBoo's way back (``back_nav_html``) to the 🧰 Tools cards, right after <main> (else <body>), then the site's
-    shared header, side and foot (``add_site_chrome``); a page that already has them keeps them. A 🌍 world page has its own header
-    and side (the same parts), so it gets the way back only, and so does a fragment without <head> and <body>."""
+    shared header, side and foot (``add_site_chrome``; a 🌍 world page keeps its own header and side and gets 🫧 and the foot). A
+    page that already has them keeps them, and a fragment without <head> and <body> gets the way back only."""
     import pysaiyanweboo as ui
     prefix = '../' * path.count('/') if path else '../../'
     page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': prefix + 'index.html#tools'}], test_id='portfolio-back')
-    if 'data-ui-world="' in page or '<div class="ui-chrome ' in page or '</head>' not in page or '<body' not in page:
-        return page                               # a world, a page that has it, or a fragment with no <head> and <body> to carry it
+    if '<div class="ui-door-foot">' in page or '</head>' not in page or '<body' not in page:
+        return page                               # a page that has it, or a fragment with no <head> and <body> to carry it
     return add_site_chrome(page, path, tools)
 
 
@@ -297,7 +289,7 @@ def add_home_label(page: str, label: str, *, icons_from: str | None = None) -> s
     import pysaiyanweboo as ui
     icons = {} if icons_from is None else {'icon': f'{icons_from}assets/brand/favicon-32x32.png',
                                            'touch_icon': f'{icons_from}assets/brand/myon-profile-icon.png'}
-    return stamp_size(ui.home_label(page, label, **icons))
+    return ui.stamp_page_size(ui.home_label(page, label, **icons))
 
 
 def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
@@ -348,21 +340,40 @@ def render_gif_tool(ui) -> dict[str, bytes]:
 
 
 def recorded_samples(output: Path) -> frozenset[str]:
-    """The lower-case names whose 🎥 sample is under ``output`` (the front page shows only those)."""
-    return frozenset(path.stem for path in (Path(output) / SAMPLES).glob('*.gif'))
+    """The lower-case names whose 🎥 sample is under ``output`` (the front page shows only those): a repository's name, or
+    ``tools/<id>`` for a 🧰 Tools card."""
+    folder = Path(output) / SAMPLES
+    return frozenset(path.relative_to(folder).as_posix().removesuffix('.gif') for path in folder.rglob('*.gif'))
+
+
+def tools_samples() -> dict[str, tuple[str, str]]:
+    """🧰 ``tools/<id>`` → (the page the card opens first, the card's title): what ``--record-samples`` records for the 🧰 Tools cards."""
+    front = _front_module()
+    return {f'tools/{card["id"]}': (urljoin(front._site_url, card['links'][0][1]), card['title']) for card in front.PORTAL}
+
+
+def sample_stand_in(title: str) -> str:
+    """🖼 What a 🧰 Tools card's picture shows when its page could not be recorded: the page's name and ⏳, in the site's look,
+    so the cards stay alike (``record_samples(stand_ins=…)``)."""
+    import pysaiyanweboo as ui
+    return ui.page_document({'schema': 'web-ui-page/1', 'title': title, 'theme': 'modern', 'blocks': [
+        {'type': 'heading', 'text': '🎥 ⏳', 'level': 2}, {'type': 'text', 'text': 'このページはまだ撮れていません。次の公開で撮り直します。', 'muted': True}]})
 
 
 def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), size=(240, 432), max_bytes=300_000,
-                   browser=None) -> list[str]:
-    """🎥 Open each Pages in Chromium at phone size, keep the top and one screen further down, and write a two-frame GIF
-    per repository as ``output/media/pages/<name>.gif`` with gif.js. Best effort: one line per repository (🎥 / ⏸).
+                   browser=None, captions: dict[str, str] | None = None, stand_ins: dict[str, str] | None = None) -> list[str]:
+    """🎥 Open each page in Chromium at phone size, keep the top and one screen further down, and write a two-frame GIF
+    per name as ``output/media/pages/<name>.gif`` with gif.js (a name may hold a folder: ``tools/gif``). The caption is
+    ``captions[name]``, else ``🌐 name``. Best effort: one line per name (🎥 / ⏸). A name in ``stand_ins`` (name → HTML) whose
+    page cannot be opened gets that HTML as its picture instead (⏸ … 🖼), so it is never left without one.
     ``browser``: a launched Playwright browser to use (a caller already inside Playwright); otherwise Chromium is started."""
     if browser is None:
         from playwright.sync_api import sync_playwright
         with sync_playwright() as playwright:
             chromium = playwright.chromium.launch()
             try:
-                return record_samples(output, pages, viewport=viewport, size=size, max_bytes=max_bytes, browser=chromium)
+                return record_samples(output, pages, viewport=viewport, size=size, max_bytes=max_bytes, browser=chromium, captions=captions,
+                                      stand_ins=stand_ins)
             finally:
                 chromium.close()
     import base64
@@ -375,6 +386,15 @@ def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), 
     try:
         site, encoder = site_context.new_page(), encoder_context.new_page()
         encoder.set_content(ui.gif_recorder_document())
+        def save(name: str, frames: list[bytes]) -> int:
+            encoder.evaluate('o => { window.rec = new UiGif.Recorder(o); }', {'width': size[0], 'height': size[1], 'caption': 24})
+            encoder.evaluate('items => rec.add(items)', [{'png': base64.b64encode(png).decode('ascii'), 'caption': (captions or {}).get(name, f'🌐 {name}'),
+                                                         'ok': True, 'delay': 1500} for png in frames])
+            gif = base64.b64decode(encoder.evaluate('o => rec.encodeBase64(o)', {'maxBytes': max_bytes})['gif'])
+            (folder / f'{name.lower()}.gif').parent.mkdir(parents=True, exist_ok=True)
+            (folder / f'{name.lower()}.gif').write_bytes(gif)
+            return len(gif) // 1024
+
         for name, url in pages.items():
             try:
                 response = site.goto(url, wait_until='load', timeout=30_000)
@@ -386,14 +406,15 @@ def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), 
                 site.wait_for_timeout(500)
                 if (lower := site.screenshot()) != frames[0]:
                     frames.append(lower)
-                encoder.evaluate('o => { window.rec = new UiGif.Recorder(o); }', {'width': size[0], 'height': size[1], 'caption': 24})
-                encoder.evaluate('items => rec.add(items)', [{'png': base64.b64encode(png).decode('ascii'), 'caption': f'🌐 {name}',
-                                                             'ok': True, 'delay': 1500} for png in frames])
-                gif = base64.b64decode(encoder.evaluate('o => rec.encodeBase64(o)', {'maxBytes': max_bytes})['gif'])
-                (folder / f'{name.lower()}.gif').write_bytes(gif)
-                lines.append(f'🎥 {name}: {len(frames)} frames · {len(gif) // 1024} KiB')
+                lines.append(f'🎥 {name}: {len(frames)} frames · {save(name, frames)} KiB')
             except Exception as exc:                       # one Pages failing keeps the rest (and the deploy) going
                 lines.append(f'⏸ {name}: {type(exc).__name__}: {str(exc).splitlines()[0][:120] if str(exc) else ""}')
+                if name in (stand_ins or {}):
+                    try:
+                        site.set_content(stand_ins[name])
+                        lines[-1] += f' · 🖼 {save(name, [site.screenshot()])} KiB'
+                    except Exception:                      # no picture then: the card keeps its links in words
+                        pass
     finally:
         site_context.close()
         encoder_context.close()
@@ -937,10 +958,11 @@ def render_tools(ui, output: Path | None = None) -> dict[str, bytes]:
 
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     """Every hash-locked page: the demos and world pages, HTML import, map tools and the GIF workshop, keyed by published path."""
-    cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'links': [
-        {'label': '🗼 パラレル東京', 'href': './tokyo.html'}, {'label': '🌍 東京・ロンドン・パリ', 'href': '../demos/cities.html'}]}}
-    maps = {path: add_home_label(add_back_nav(document, path, cities), '地図・ピン', icons_from='../../').encode('utf-8')
-            for path, document in load_module('map_tool', 'scripts/map_tool.py').render(ui, _world()).items()}
+    map_tool = load_module('map_tool', 'scripts/map_tool.py')
+    cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': '../demos/cities.html'}}
+    document = map_tool.map_document(ui, map_tool.tokyo_points(_world().example_data('cities')))
+    document = document.replace('<html lang="en">', '<html lang="ja">', 1)
+    maps = {MAP_PINS_PAGE: add_home_label(add_back_nav(document, MAP_PINS_PAGE, cities), '地図・ピン', icons_from='../../').encode()}
     pages = {**render_demos(ui), **render_pswb_tools(ui), **render_html_import(ui), **maps, **render_gif_tool(ui), **render_chat_tool(ui)}
     for sheet, builder in STYLESHEET_BUNDLES.items():
         prefix = b'<style>' + getattr(ui, builder)().encode()
@@ -950,7 +972,7 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
                 href = os.path.relpath(ASSET_BASE + sheet, os.path.dirname(path)).replace(os.sep, '/')
                 link = f'<link rel="stylesheet" href="{href}">'.encode()
                 head = head.replace(prefix, link + b'<style>', 1).replace(link + b'<style></style>', link, 1)
-                pages[path] = stamp_size((head + end + body).decode('utf-8')).encode('utf-8')   # 📦 the page is smaller now
+                pages[path] = ui.stamp_page_size((head + end + body).decode('utf-8')).encode('utf-8')   # 📦 the page is smaller now
     return pages
 
 
@@ -964,7 +986,7 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
     if set(lock['outputs']) != {HTML_IMPORT_MODULE, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
-    expected = ({HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, *PSWB_TOOLS} | MAP_PAGES | {DEMO_BASE + name + '.html' for name in WORLD_PAGES})
+    expected = ({HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, MAP_PINS_PAGE, *PSWB_TOOLS} | {DEMO_BASE + name + '.html' for name in WORLD_PAGES})
     if set(lock.get('pages', {})) != expected:
         raise ValueError('generated page paths differ from the tool and world lists')
     if ui is None:
@@ -1049,7 +1071,7 @@ def main(argv=None):
     parser.add_argument('--refresh-lock', action='store_true',
                         help='rewrite web-ui-assets.lock.json from the installed generator')
     parser.add_argument('--record-samples', type=Path, metavar='DIR',
-                        help="🎥 record a moving sample of every repository's Pages under DIR/media/pages/ (Chromium; best effort)")
+                        help="🎥 record a moving sample of every repository's Pages and of every 🧰 Tools card's page under DIR/media/pages/ (Chromium; best effort)")
     parser.add_argument('--record-flow', type=Path, metavar='DIR',
                         help='🌊 run FFSS and DRAgoWing (their default branches) and put the flow lab media under DIR/media/flow/')
     parser.add_argument('--record-tools', type=Path, metavar='DIR',
@@ -1065,8 +1087,11 @@ def main(argv=None):
     if args.copy_source:
         copy_source(args.copy_source)
     if args.record_samples:
-        # 🎥 this portfolio too: its card shows the front page as Pages serves it now (the deploy before this one)
-        print('\n'.join(record_samples(args.record_samples, pages_urls())))
+        # 🎥 this portfolio too: its card shows the front page as Pages serves it now (the deploy before this one), and so do the 🧰 Tools
+        tools = tools_samples()
+        print('\n'.join(record_samples(args.record_samples, {**pages_urls(), **{name: url for name, (url, _) in tools.items()}},
+                                       captions={name: title for name, (_, title) in tools.items()},
+                                       stand_ins={name: sample_stand_in(title) for name, (_, title) in tools.items()})))
     if args.record_map:
         print('\n'.join(record_map(args.record_map)))
     if args.record_chat:

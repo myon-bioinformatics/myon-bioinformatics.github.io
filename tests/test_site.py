@@ -139,6 +139,40 @@ def test_front_page_shows_only_the_moving_samples_this_build_recorded(tmp_path):
     assert "myon-bioinformatics.github.io" in PAGES.recorded_samples(tmp_path)
 
 
+def test_a_tools_card_shows_its_moving_sample_and_the_picture_opens_the_tool(tmp_path):
+    """🎥 A 🧰 Tools card carries its sample only when the deploy recorded it (media/pages/tools/<id>.gif); the picture is a link to
+    the card's first page, as on a 🚀 Projects card. Every card has an id, so every card can have one (🧭 the dashboard on another
+    repository's Pages too). With its picture, a card keeps its links in words only when it opens several pages of a kind."""
+    from html import escape as html_escape
+    front = _front()
+    ids = [card["id"] for card in front.PORTAL]
+    assert len(ids) == len(set(ids)) and all(re.fullmatch(r"[a-z][a-z0-9-]*", key) for key in ids)
+    assert "project-sample" not in front.portal_cards() and "media/pages/tools/" not in (SITE / "index.html").read_text(encoding="utf-8")
+    plain = front.portal_cards()
+    assert all(f'<a href="{html_escape(href)}">{html_escape(label, quote=False)}</a>' in plain for card in front.PORTAL for label, href in card["links"])
+    cards = front.portal_cards(frozenset({"tools/gif", "tools/operations", "tools/maps", "gif", "tools/no-such-tool"}))
+    assert cards.count('class="project-sample"') == 3
+    assert "GIF をつくる →" not in cards and "Open Dashboard →" not in cards and ">実験室へ →</a>" in cards        # one page: the picture; no picture: the words
+    assert ('<a href="./tools/maps/">地図URLを作成 →</a><a href="./tools/demos/cities.html">パラレル東京 →</a>' in cards
+            and '<a class="project-sample" href="./tools/maps/">' in cards)                                    # relatives stay side by side
+    everything = front.portal_cards(frozenset(f"tools/{key}" for key in ids))
+    several = [card for card in front.PORTAL if len(card["links"]) > 1]
+    assert everything.count('class="project-sample"') == len(ids) and several
+    assert everything.count("<a href=") == sum(len(card["links"]) for card in several)
+    assert ('<h3 id="gif">🎞 GIF工房</h3><a class="project-sample" href="./tools/gif/"><img src="./media/pages/tools/gif.gif" '
+            'alt="🎥 🎞 GIF工房" loading="lazy" width="240" height="456"></a><p>') in cards
+    assert '<a class="project-sample" href="https://myon-bioinformatics.github.io/myon-bioinformatics/"><img src="./media/pages/tools/operations.gif"' in cards
+    samples = PAGES.tools_samples()                                              # what --record-samples opens: the card's first link, on the site
+    assert list(samples) == [f"tools/{key}" for key in ids] and samples["tools/gif"] == ("https://myon-bioinformatics.github.io/tools/gif/", "🎞 GIF工房")
+    assert all(url.startswith("https://myon-bioinformatics.github.io/") for url, _ in samples.values())
+    (tmp_path / "media/pages/tools").mkdir(parents=True)
+    (tmp_path / "media/pages/tools/gif.gif").write_bytes(b"GIF89a")
+    (tmp_path / "media/pages/aoi.gif").write_bytes(b"GIF89a")
+    assert PAGES.recorded_samples(tmp_path) == {"tools/gif", "aoi"}
+    page = PAGES.render_front(ROOT, PAGES.recorded_samples(tmp_path))["index.html"].decode("utf-8")
+    assert page.count('<img src="./media/pages/tools/') == 1 and '<img src="./media/pages/tools/gif.gif"' in page
+
+
 def test_flow_lab_shows_every_ffss_scene_and_every_dragowing_figure(tmp_path):
     """🌊 collect_flow keeps every demo FFSS lists (whose GIF was made) and every figure; render_flow puts each figure
     with its scene and the rest after the scenes, so nothing that was made is left out."""
@@ -211,7 +245,8 @@ def test_repository_map_reads_each_lock_and_aois_subtrees(tmp_path):
 def test_gif_workshop_page_keeps_images_in_the_browser():
     page = (SITE / "tools/gif/index.html").read_text(encoding="utf-8")
     assert 'id="gif-files"' in page and 'accept="image/*"' in page and "function bindMaker" in page   # PySaiyanWeBoo's gif_maker_document
-    tool, _, chrome = page.partition('<script type="module">' + PAGES._world().SHELL_JS[:64])    # 🧰 the chrome's module, then 🚪 the door's
+    import pysaiyanweboo as ui
+    tool, _, chrome = page.partition('<script type="module">' + ui.component_parts('chrome')['js'][:64])    # 🧰 the chrome's module, then 🚪 the door's
     assert "bindChrome();" in chrome and "bindDoor()" in chrome and "fetch(" not in page and "XMLHttpRequest" not in page   # nothing is sent
     assert "localStorage" not in tool                                                             # the tool keeps nothing: no image, no setting
     assert sorted(set(re.findall(r"save\(\{(\w+)", chrome))) == ["fav", "lang"]                     # the chrome keeps ⭐ and 🌐 only
@@ -307,7 +342,7 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
 # PySaiyanWeBoo's tool documents (PSWB_TOOLS) and the 🌍 world pages (WORLD_PAGES, tools/demos/) come from scripts/project_pages.py; they are tool pages too.
 TOOL_PAGES = ("tools/html-import/index.html",
               *(("tools/mcp/index.html", "tools/mcp/repository-diagnostics.html") if LAB_BUILT else ()),
-              "tools/maps/index.html", "tools/maps/tokyo.html", "tools/gif/index.html", "tools/chat/index.html", "tools/flow/index.html",
+              "tools/maps/index.html", "tools/gif/index.html", "tools/chat/index.html", "tools/flow/index.html",
               "tools/test-report/index.html", "tools/mcp-protocol/index.html",
               "tools/repo-map/index.html",
               *sorted(str(path.relative_to(SITE)) for path in (SITE / "tools/demos").glob("*.html")))
@@ -371,32 +406,34 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
     assert manifest['shortcuts'] == [{'url': '../../slide-studio/'}]
 
 
-def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
-    """🧰 tools_chrome + scripts/world.py chrome_html: the board with the clock, 🏠, ⭐ ⚙️ and ☰ ⋯ for the page's own (☰ lists nothing
+def test_every_tool_page_carries_the_same_chrome_and_a_world_page_adds_what_it_lacks():
+    """🧰 tools_chrome + PySaiyanWeBoo's chrome: the board with the clock, 🏠, ⭐ ⚙️ and ☰ ⋯ for the page's own (☰ lists nothing
     of other pages); and 🚪 tools_door: PySaiyanWeBoo's Door-to-Door with 🏠 and every 🧰 Tools link, this page marked as the door you
-    came in by. A 🌍 world page keeps its own header, side and 🚪 (floors), and every door leads to a page of this site."""
+    came in by. A 🌍 world page keeps its own header and side (the same parts) and gets what it lacks, 🫧 in that header and the
+    foot; a page with nothing to say of itself says a line any page can (📟 a placeholder). Every door leads to a page of this site."""
     import html
     import re
-    world = PAGES._world()
     import pysaiyanweboo as ui
-    module = ('<script type="module">' + world.SHELL_JS + 'bindChrome();\n</script><div class="ui-door-foot"><div class="ui-door ui-door-compact" id="door" data-ui-door ',
-              '</span></p></div><script type="module">' + PAGES.tools_door(ui)[2] + '</script></body>')
-    assert PAGES.tools_door(ui)[2] == ui.js_source('door.js') and 'addEventListener("pageshow",fill)' in module[1]   # PySaiyanWeBoo's door.js alone
+    module = ('<script type="module">' + ui.component_parts('chrome')['js'] + '</script><div class="ui-door-foot"><div class="ui-door ui-door-compact" id="door" data-ui-door ',
+              '</span></p></div><script type="module">' + PAGES.tools_door(ui)['js'] + '</script></body>')
+    assert PAGES.tools_door(ui)['js'] == ui.js_source('door.js') and 'addEventListener("pageshow",fill)' in module[1]   # PySaiyanWeBoo's door.js alone
     cards = [html.escape(card['title']) for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL]
     pages = {*TOOL_PAGES, *(f'{folder}/{entry}index.html' for _, folder, entries in PAGES.TOOL_SOURCES.values() for entry in entries)}
     assert len(pages) > len(TOOL_PAGES)
     for name in sorted(pages):
         page = (SITE / name).read_text(encoding='utf-8')
-        if 'data-ui-world="' in page:
-            assert '<div class="ui-chrome ' not in page and '<div class="ui-door-foot"' not in page, name   # 🌍 its own (or 🎬 none: scenes)
-            continue
         prefix = '../' * name.count('/')
         body = re.search(r'<body[^>]*>', page)
+        assert '<div class="ui-board"' in page and page.count('<button type="button" class="ui-gaze"') == page.count('<div class="ui-door-foot">') == 1, name   # 📟 🫧 🚪 on every page
+        if '<header class="ui-world-head">' in page:                               # 🌍 its own header and side: 🫧 after its board, then the foot
+            assert '<div class="ui-chrome ' not in page and '</div><button type="button" class="ui-gaze"' in page[:page.index('<nav class="ui-world-tools">')], name
+            assert page.count(module[1]) == 1 and f'<option value="{prefix}index.html#tools">🏠 Tools</option>' in page, name
+            continue
         assert page[body.end():].startswith('<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="ja">'), name
         assert page.count('<div class="ui-chrome') == 1 and '<span class="ui-board-clock" data-clock>--:--:--</span>' in page, name
         assert page.count(module[0]) == 1 and page.count(module[1]) == 1 and page.count('<div class="ui-door-foot">') == 1, name
-        foot = re.search(r'<p class="ui-foot-info"><a href="https://twitter\.com/myonitbusiness" target="_blank" rel="noopener noreferrer"[^>]*>🐦</a>'
-                         r'<span class="ui-foot-size"[^>]*>📦 (\d+) KB</span></p></div>', page)
+        foot = re.search(r'<p class="ui-door-extras"><a href="https://twitter\.com/myonitbusiness"[^>]* target="_blank" rel="noopener noreferrer">🐦</a>'
+                         r'<span class="ui-door-size"[^>]*>📦 (\d+) KB</span></p></div>', page)
         assert foot and abs(int(foot[1]) - len(page.encode('utf-8')) / 1024) <= 1, name                     # 🐦 X and 📦 this page's own size
         assert f'<a class="ui-world-home" href="{prefix}index.html#tools"' in page, name
         chrome = page[body.end():page.index('<div class="ui-world-side">', body.end())]          # the board and the header's tools; ☰ follows
@@ -409,6 +446,8 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
         here = next((place['text'] for place in PAGES.tools_places(prefix) if place['href'] == prefix + re.sub(r'index\.html$', '', name)), None)
         assert len(about) <= 3 and items[:half] == about + cards[:12 - len(about)], name
         assert (about and html.unescape(about[0]) in here) if here else True, name
+        if not here and '<meta name="description"' not in page:                    # 📟 nothing of its own to say: the line any page can carry
+            assert about[0].endswith('：myon-bioinformatics の道具のページ。') and about[1:] == ['🚪 でほかの道具へ、🏠 で一覧へ。'], (name, about)
         assert '<ul class="ui-world-rows ui-world-spots"></ul>' in page and 'data-fav' not in page, name   # ☰ this page's own: the script lists it
         assert page.count('data-scroll="top"') == page.count('data-scroll="bottom"') == 1, name            # ⋯ ⬆️ ⬇️
         rows = [(place['href'], place['id']) for place in PAGES.tools_places(prefix)]                      # 🚪 every tool
@@ -426,7 +465,7 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_its_own():
         assert len(doors) == 1 + len(rows) + (here[0][1].startswith('📌 ')), name   # 📌 a page that is no tool of the cards is its own door
         assert len({words.split(' ')[0] for _, _, words in doors}) == len(doors), name                    # one emoji, one page
     maps = (SITE / 'tools/maps/index.html').read_text(encoding='utf-8')            # 🗼 an emoji a page adds for its own use
-    assert '>🗼</summary>' in maps and '<li><a href="./tokyo.html">🗼 パラレル東京</a></li>' in maps
+    assert '<a class="ui-world-tool" href="../demos/cities.html" aria-label="パラレル都市"' in maps
     assert '>🗼</summary>' not in (SITE / 'tools/gif/index.html').read_text(encoding='utf-8')
 
 
@@ -443,9 +482,8 @@ def test_every_page_turns_modern_on_its_body_only():
 
 def test_html_import_csp_names_the_face_chrome_and_door_modules_and_nothing_else():
     import pysaiyanweboo as ui
-    world = PAGES._world()
     html = (SITE / PAGES.HTML_IMPORT_PAGE).read_text(encoding='utf-8')
-    chrome, doors = ui.module_csp_hash(world.SHELL_JS + 'bindChrome();\n'), ui.module_csp_hash(PAGES.tools_door(ui)[2])
+    chrome, doors = ui.module_csp_hash(ui.component_parts('chrome')['js']), ui.module_csp_hash(PAGES.tools_door(ui)['js'])
     face = ui.module_csp_hash(ui.component_parts('gaze-avatar')['js'])                    # 🫧 the header's round face is a module too
     assert f"script-src 'self' {face} {chrome} {doors}; style-src 'self' 'unsafe-inline';" in html
     assert html.count("'sha256-") == 3 and "'unsafe-inline'; img-src" in html and "connect-src 'none'" in html
@@ -1650,9 +1688,9 @@ def test_documents_of_the_site_config_become_sections_of_the_front_page():
     """📄 site.config.json ``documents``: each reviewed .md is a section at ``#id`` (☰ lists it); a new document is a new row, not a new page."""
     front = _front()
     page = front.document()
-    assert '<section id="weekly" class="container document" aria-label="🗓️ 週次台帳">' in page and '<h2>🗓️ 週次台帳</h2>' in page
-    assert '公開用週次台帳ビュー' in page and '@@DOCUMENTS@@' not in page and 'weekly-markdown' not in page
-    two = front.documents_html(ROOT, [{'id': 'weekly', 'title': '🗓️ 週次台帳', 'source': 'docs/weekly-view.md'},
+    assert '<section id="weekly" class="container document" aria-label="🗓️ 週次ノート">' in page and '<h2>🗓️ 週次ノート</h2>' in page
+    assert '<h2>📊 日ごと</h2>' in page and '@@DOCUMENTS@@' not in page and 'weekly-markdown' not in page
+    two = front.documents_html(ROOT, [{'id': 'weekly', 'title': '🗓️ 週次ノート', 'source': 'docs/weekly-view.md'},
                                       {'id': 'ssot', 'title': '📚 SSOT', 'source': 'docs/ssot.md', 'note': 'a <note>'}])
     assert two.count('<article class="document-markdown">') == 2 and '<section id="ssot" class="container document"' in two
     assert '<p class="section-sub">a &lt;note&gt;</p>' in two and two.count('section-sub') == 1
@@ -1674,16 +1712,15 @@ def test_the_front_page_carries_the_shared_header_side_and_foot():
     board = page[body.end():page.index('<nav class="ui-world-tools">')]
     assert '>MYON<' in board and 'Bioinformatics → Security/Backend engineer.' in board and 'Practical CLI and browser tools in Python' in board
     assert all(href in page for href in ('https://github.com/myon-bioinformatics', 'https://lit.link/myon123', 'https://linktr.ee/myon123'))
-    size = re.search(r'<span class="ui-foot-size"[^>]*>📦 (\d+) KB</span>', page)
+    size = re.search(r'<span class="ui-door-size"[^>]*>📦 (\d+) KB</span>', page)
     assert size and abs(int(size[1]) - len(page.encode('utf-8')) / 1024) <= 1 and 'href="https://twitter.com/myonitbusiness"' in page
     assert '<nav class="nav">' not in page and 'site-footer"' not in page and '📬 Contact' not in page
     assert page.count('class="ui-gaze"') == 1 and 'class="ui-gaze"' in page[body.end():page.index('<nav class="ui-world-tools">')]   # 🫧 in the shared header
     assert 'value="./tools/chat/"' in page or './tools/chat/' in page                       # 🚪 the doors lead from the root
 
 
-def test_a_tool_page_board_reads_its_card_and_stamp_size_follows_the_page():
-    """🧰 The board of a tool page starts with what its 🧰 Tools card says (a sentence per item, up to three, 120 characters each);
-    📦 stamp_size rewrites the number when the page changed."""
+def test_a_tool_page_board_reads_its_card():
+    """🧰 The board of a tool page starts with what its 🧰 Tools card says (a sentence per item, up to three, 120 characters each)."""
     chrome = PAGES.tools_chrome('../../', description='一つ目。二つ目！ Third one. markdown.py は切らない。五つ目。')
     assert [item['text'] for item in chrome['board']['items'][:4]] == ['一つ目。', '二つ目！', 'Third one.', PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL[0]['title']]
     assert len(chrome['board']['items']) <= 12 and chrome['home'] == '../../index.html#tools'
@@ -1692,8 +1729,27 @@ def test_a_tool_page_board_reads_its_card_and_stamp_size_follows_the_page():
     card = next(card for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL if card.get('id') == 'gif')
     gif = (SITE / 'tools/gif/index.html').read_text(encoding='utf-8')
     assert card['text'].split('。')[0] + '。' in gif[:gif.index('<nav class="ui-world-tools">')]
-    page = '<p><span class="ui-foot-size" title="t">📦</span></p>' + 'x' * 4096
-    assert '>📦 4 KB</span>' in PAGES.stamp_size(page) and PAGES.stamp_size(PAGES.stamp_size(page) + 'y' * 2048).count('📦 6 KB') == 1
+
+
+def test_a_document_table_draws_its_number_columns_as_bars():
+    """📊 table_bars: a column of numbers gets a bar per row against the column's largest; the .md itself is an ordinary table, and
+    the weekly note's counts add up to what its text says."""
+    import markdown as md_market
+    front = _front()
+    source = (ROOT / 'docs/weekly-view.md').read_text(encoding='utf-8')
+    counts = [int(row['PR']) for row in md_market.markdown_table_to_records(source)]           # the first table: a day a row
+    assert len(counts) == 7 and sum(counts) == int(re.search(r'マージした PR は (\d+) 本', source)[1]) and 'class=' not in source
+    weekly = front.documents_html(ROOT, [{'id': 'weekly', 'title': 't', 'source': 'docs/weekly-view.md'}])
+    levels = [int(level) for level in re.findall(r'<td class="document-number">\d+<span class="skill-bar-track" aria-hidden="true">'
+                                                 r'<span class="skill-bar-fill" style="--level:(\d+)%"></span></span></td>', weekly)]
+    assert levels[:7] == [round(count / max(counts) * 100) for count in counts] and levels.count(100) == weekly.count('<table>') == 2
+    assert weekly.count('document-number') == len(levels) and '<td>11-' in weekly                # the dates and labels keep their cells
+    body = '<table><tbody>\n<tr><td>a</td><td>1,200</td><td>x</td></tr>\n<tr><td>b</td><td>300</td><td>2</td></tr>\n</tbody></table>'
+    drawn = front.table_bars(body)
+    assert re.findall(r'--level:(\d+)%', drawn) == ['100', '25'] and '<td>x</td>' in drawn and '<td>2</td>' in drawn   # every cell a number, or none
+    for kept in ('<p>no table</p>', '<table><tbody>\n<tr><td>a</td><td>b</td></tr>\n</tbody></table>',
+                 '<table><tbody>\n<tr><td>0</td></tr>\n</tbody></table>', '<table><tbody>\n<tr><td align="right">3</td></tr>\n</tbody></table>'):
+        assert front.table_bars(kept) == kept
 
 
 def test_weekly_markdown_fragment_rejects_invalid_paths():

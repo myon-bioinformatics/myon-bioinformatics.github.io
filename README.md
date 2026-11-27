@@ -67,7 +67,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 
 主な workflow（いずれもイベントまたは定期実行あり）:
 
-- **Update repos API**（[`.github/workflows/repos-api.yml`](.github/workflows/repos-api.yml)）— 毎日 06:00 JST（`cron: "0 21 * * *"`）と、カタログ用スクリプト / Pages workflow の変更時。`api/repos.json` を更新する。`GITHUB_TOKEN` による commit は `push` workflow を起こさないため、成功時だけ **Pages** を `workflow_run` で起動する。失敗・キャンセルではサイトを出し直さない。
+- **Update repos API**（[`.github/workflows/repos-api.yml`](.github/workflows/repos-api.yml)）— 毎日 06:00 JST（`cron: "0 21 * * *"`）と、カタログ用スクリプト / Pages workflow の変更時。`api/repos.json` を更新し、週が替わった月曜には 🗓️ `docs/weekly-view.md`（前の週にマージした PR）も書き直す。`GITHUB_TOKEN` による commit は `push` workflow を起こさないため、成功時だけ **Pages** を `workflow_run` で起動する。失敗・キャンセルではサイトを出し直さない。
 - **Pages**（[`.github/workflows/pages.yml`](.github/workflows/pages.yml)）— `main` への push、および上記の成功後。公開用に指定した静的ファイルを `--copy-source` で配置し、動く見本 GIF・流れの実験室・リポジトリ地図・他リポジトリから組む道具をベストエフォートで足し、検証済みの共有資産を書いて公開する。
 - **CI** など — 変更の検証。[HTML import published](.github/workflows/html-import-published.yml) は Pages 完了後に、公開済みの HTML 取込をブラウザで確認する。
 
@@ -80,7 +80,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 | 案内 | リンク |
 | --- | --- |
 | HTML文書取込 | [tools/html-import/](https://myon-bioinformatics.github.io/tools/html-import/) |
-| 地図URL・ピン留め | [tools/maps/](https://myon-bioinformatics.github.io/tools/maps/) · [パラレル東京](https://myon-bioinformatics.github.io/tools/maps/tokyo.html) |
+| 地図URL・ピン留め | [tools/maps/](https://myon-bioinformatics.github.io/tools/maps/) · [パラレル東京](https://myon-bioinformatics.github.io/tools/demos/cities.html) |
 | 🖼️ スライド・画像工房（Ironmate） | [Image Studio](https://myon-bioinformatics.github.io/tools/image-studio/) · [Browser Tools](https://myon-bioinformatics.github.io/tools/browser-tools/) · [Slide Studio](https://myon-bioinformatics.github.io/tools/slide-studio/) |
 | 🌡️ ヒートマップ（DRAgoWing · Ironmate） | [tools/heatmap/](https://myon-bioinformatics.github.io/tools/heatmap/) |
 | 🔌 MCP 実験室（mcp-toolcall-lab） | [Tool Lab](https://myon-bioinformatics.github.io/tools/mcp/) · [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) · [MCP 接続試験](https://myon-bioinformatics.github.io/tools/mcp-protocol/) |
@@ -258,7 +258,7 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 
 ### 🧰 Tools の共通ヘッダー（電光掲示板・時計・☰ ⋯ ⭐ ⚙️）と 🚪 ドア to ドア
 
-🧰 Tools のページは、どれも同じヘッダーとサイド、そしてフッターの 🚪 プルダウンを持ちます（ワールドのページは同じ部品でできた自前のものを使います）。
+🧰 Tools のページは、どれも同じヘッダーとサイド、そしてフッターの 🚪 プルダウンを持ちます（`add_site_chrome` の 1 か所で付けるので、ページごとの作り込みはしません）。ワールドのページは同じ部品でできた自前のヘッダーとサイドを持つので、足りない 🫧 とフッターだけを足します。ワールドの中の移動（階・土地・街）は 🛗、道具から道具へは 🚪 です。📟 掲示板に流す説明は、カードの文、なければページの `<meta name="description">`、どちらもなければ仮置きの汎用の一文（ページ名＋「🚪 でほかの道具へ、🏠 で一覧へ。」）です。
 
 | | |
 |---|---|
@@ -274,17 +274,26 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 地図URL・ピン留めのページは 🗼（パラレル都市）を足しています。
 
 ```python
-add_back_nav(page, 'tools/maps/index.html', {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'links': [
-    {'label': '🗼 パラレル東京', 'href': './tokyo.html'}, {'label': '🌍 東京・ロンドン・パリ', 'href': '../demos/cities.html'}]}})
+add_back_nav(page, 'tools/maps/index.html', {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': '../demos/cities.html'}})
 ```
 
 ![Tools の共通ヘッダー：☰（このページと見出し）で ☆ を付け、⭐ に並び、🌐 を English にして次の道具へ移っても両方が引き継がれ、⭐ から見出しへ戻る（Chromium 560×480）](docs/evidence/tools-chrome.gif)
 
-🗓️ 2026-11-26 · `python tests/world_browser.py ToolChromeTests` writes `test-results/tools-chrome/tools-chrome-star-and-language-<UTC>.gif`; copy the newest one to `docs/evidence/tools-chrome.gif` to update this.
+🗓️ 2026-11-27 · `python tests/world_browser.py ToolChromeTests` writes `test-results/tools-chrome/tools-chrome-star-and-language-<UTC>.gif`; copy the newest one to `docs/evidence/tools-chrome.gif` to update this.
 ![ドア to ドア：フッターの 🚪 プルダウンで GIF工房 → 流れの実験室、ブラウザの「戻る」でも表示が付いてきて、同じドアをもう一度開け、🏠 でカードへ（Chromium 560×480）](docs/evidence/door-to-door.gif)
 
-🗓️ 2026-11-26 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k door_to_door` writes `test-results/door-to-door/door-to-door-pulldown-<UTC>.gif`（`docs/evidence/door-to-door.gif` へコピー）。
-作りは `scripts/world.py`（`chrome_html` / `chrome_css` / `add_chrome` / `add_part`、ワールドと共有する `SHELL_JS`）と `scripts/project_pages.py`（`tools_chrome` / `tools_places` / `tools_door` / `add_back_nav`）。
+🗓️ 2026-11-27 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k door_to_door` writes `test-results/door-to-door/door-to-door-pulldown-<UTC>.gif`（`docs/evidence/door-to-door.gif` へコピー）。
+部品は PySaiyanWeBoo（`component_parts('chrome' | 'door' | 'gaze-avatar')`・`door_html(foot=True)`・`add_part`・`stamp_page_size`）、ポートフォリオ側は指定だけ：`scripts/project_pages.py`（`tools_chrome` / `tools_places` / `tools_door` / `add_back_nav`）。
+
+### 🎥 Tools カードの動く見本と 🗓️ 週次ノート
+
+- 🎥 🧰 Tools の各カードにも、🚀 Projects のカードと同じ動く見本（GIF）が付きます。絵を押すと、その道具が開きます（🧭 統合運用のような別リポジトリのページも同じ）。絵があるカードでは、文字のリンクは開き先が複数ある（似た道具が並ぶ）カードにだけ残します。公開のたびに `--record-samples` が、いま公開中の道具のページを撮ります（`media/pages/tools/<id>.gif`）。ページを開けなかったカードには、名前と 🎥 ⏳ のかわりの絵を付け、どのカードも同じ形にそろえます。
+- 🗓️ 週次ノートは `docs/weekly-view.md`（ふつうの Markdown）です。前の週（月〜日、日本時間）にマージした PR を、毎日の Update repos API が月曜に書き直します（`scripts/repos_catalog.py --weekly`、GitHub の REST 検索）。
+- 📊 ビルド時に markdown.py で HTML にし、表の数値だけの列は棒にします（`table_bars`、JS なし）。別の `.md` を載せるときは `site.config.json` の `documents` に 1 行足します。
+
+![Tools カードの動く見本を押すと 🎞 GIF工房が開き、戻って 🗓️ 週次ノートの表が棒で描かれている（Chromium 560×480）](docs/evidence/tools-sample-weekly-bars.gif)
+
+🗓️ 2026-11-27 · `uv run --locked --group browser python -m pytest tests/test_front_page.py -k tools_card_picture` writes `test-results/front-page/front-page-tools-sample-weekly-bars-<UTC>.gif`（`docs/evidence/tools-sample-weekly-bars.gif` へコピー）。
 
 ### 💬 横断チャット
 
@@ -316,7 +325,7 @@ uv run --locked --only-group browser python -m pytest tests/test_site.py -k chat
 
 ### 🌍 ワールド
 
-**🌍 ワールド**（`tools/demos/` の4ページ。🧰 Tools には載せず、PySaiyanWeBoo の 🎞 GIF デモから開く）は、1ページの中を絵文字のキャラで歩くワールドです：🌍 旅（`world.html`、🚪 で土地をわたる）・🏫 スクール（`school.html`）・🗼 パラレルシティ（`cities.html`、パラレル東京・リバースロンドン・フェイクパリ）・🎬 カメラ（`world-shots.html`）。ページ遷移もリロードもなく、HTML・CSS・小さなスクリプトは `scripts/world.py` が書きます（見た目・テーマ・ダイヤル・座標は PySaiyanWeBoo）。
+**🌍 ワールド**（`tools/demos/` の4ページ。🧰 Tools には載せず、PySaiyanWeBoo の 🎞 GIF デモから開く）は、1ページの中を絵文字のキャラで歩くワールドです：🌍 旅（`world.html`、🛗 で土地をわたる）・🏫 スクール（`school.html`）・🗼 パラレルシティ（`cities.html`、パラレル東京・リバースロンドン・フェイクパリ）・🎬 カメラ（`world-shots.html`）。ページ遷移もリロードもなく、HTML・CSS・小さなスクリプトは `scripts/world.py` が書きます（見た目・テーマ・ダイヤル・座標は PySaiyanWeBoo）。
 
 ```sh
 uv run --locked --only-group pages python scripts/world.py example school | uv run --locked --only-group pages python scripts/world.py page - > school.html
@@ -330,7 +339,7 @@ uv run --locked --only-group browser python tests/world_browser.py -v           
 
 🧰 Tools → **地図URL・ピン留め** (`tools/maps/`) で、緯度・経度からApple MapsとGoogle MapsのURLを生成できます。地図URLからの座標入力、端末内のピン保存・解除、地点リンクのコピー、端末の共有メニューに対応します。共有先は保存操作なしで同じ座標を開けます。ピンはブラウザごとの保存で、端末間では同期しません。保存やコピーが許可されていない場合は画面に表示します。
 
-パラレル東京 (`tools/maps/tokyo.html`) の各地点と相互に移動できます。座標・地図URL生成は固定済みPSWB、ミニチュアは `scripts/world.py` から再利用します。東京の座標はミニチュア用の概略値で、施設の正確な入口を保証するものではありません。URLだけを作るため地図APIキーは不要です。
+パラレル都市 (`tools/demos/cities.html`) 内の東京21地点と相互に移動できます。座標・地図URL生成は固定済みPSWB、ミニチュアは `scripts/world.py` から再利用します。東京の座標はミニチュア用の概略値で、施設の正確な入口を保証するものではありません。URLだけを作るため地図APIキーは不要です。
 
 Flutterの範囲指定も引き継いでいます。中心＋半径（25 / 100 / 350 / 1,000 / 3,000 m・自由指定）から南北東西の境界と範囲URLを生成し、半径をピン・共有リンクに保存します。初期値は100 m、0は地点のみです。範囲内の東京の地点は中心からの直線距離で絞り込み、移動先から戻っても半径を保持します。「元の指定範囲へ戻る」は元の中心も復元します。範囲URLは表示範囲の指定で、円や矩形を地図上に描画するものではありません。日付変更線・極付近では表現できないApple Mapsの`spn`を省略します。
 
