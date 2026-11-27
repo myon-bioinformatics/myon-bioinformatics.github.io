@@ -511,8 +511,8 @@ FLOW_RIG = """
 <p>入口と出口の弁を動かし、観察槽の残量を比べます。4素材は同じ収支モデルの例で、物性の再現ではありません。</p>
 <div class="flow-fields">
 <label>素材 <select id="flow-medium"><option value="water">水</option><option value="gold">金</option>
-<option value="currency">通貨</option><option value="noodles">そうめん</option></select></label>
-<label>入口 / 秒 <input id="flow-in" type="number" min="0" max="100" step="1" value="5" required></label>
+<option value="currency">通貨</option><option value="noodles">そうめん</option><option value="concept">概念</option></select></label>
+</div><div id="flow-physical"><div class="flow-fields"><label>入口 / 秒 <input id="flow-in" type="number" min="0" max="100" step="1" value="5" required></label>
 <label>出口 / 秒 <input id="flow-out" type="number" min="0" max="100" step="1" value="2" required></label>
 </div>
 <div class="flow-controls">
@@ -532,7 +532,7 @@ FLOW_RIG = """
 <path d="M2 2v100h236" fill="none" stroke="currentColor" opacity=".45"/>
 <polyline id="flow-line" points="2,102" fill="none" stroke="currentColor" stroke-width="2"/>
 </svg></figure>
-</section>
+</div></section>
 """
 FLOW_RIG_CSS = """<style>
 .flow-fields,.flow-controls{display:flex;gap:.75rem;flex-wrap:wrap;margin-block:1rem}
@@ -590,7 +590,12 @@ if (typeof document !== "undefined") {
   };
   get("step").onclick = tick;
   get("reset").onclick = reset;
-  get("medium").onchange = reset;
+  get("medium").onchange = () => {
+    const concept = get("medium").value === "concept";
+    document.getElementById("flow-physical").hidden = concept;
+    document.getElementById("knowledge-flow").hidden = !concept;
+    if (concept) stop(); else reset();
+  };
   for (const name of ["run", "reset"]) get(name).disabled = false;
   reset();
 }
@@ -626,6 +631,235 @@ def flow_markdown(demos: list[dict], figures: list[str]) -> str:
     return '\n\n'.join(lines) + '\n'
 
 
+KNOWLEDGE_FLOW_JS = 'tools/flow/knowledge.mjs'
+KNOWLEDGE_FLOW_HTML = """
+<section id="knowledge-flow" hidden>
+<h2>🧠 知識の流れ</h2>
+<p>概念間の関係を無向の拡散経路として使います。活性度・確信度・数値属性は個別に表示します。</p>
+<details><summary>ONTOのTurtleを読み込む</summary>
+<p>ONTOの交換機能（RDFLib導入済み）でTurtleをグラフJSONに変換し、生成したJSONを下から読み込みます。無名ノードがある場合は、変換前に安定したIRIを付けてください。</p>
+<pre><code>python -c 'import json, sys; from ontology import read_graph, graph_json; print(json.dumps(graph_json(read_graph(sys.argv[1]))))' graph.ttl &gt; graph.json</code></pre>
+<p>初期活性度は <code>urn:knowledge-flow:activity</code>（0以上）、確信度は <code>urn:knowledge-flow:confidence</code>（0〜1）で指定できます。</p>
+</details>
+<details><summary>活性度の保存則</summary>
+<p>FFSSの槽間移送と概念の拡散では、各移送の減少分と増加分が打ち消し合います。FFSSは供給槽から回収槽まで含めた収支を固定小数点の量で照合します。概念の拡散では各辺で活性度差に係数を掛け、最大次数で割った量を移します。係数が0〜1なら各概念の活性度は非負に保たれ、拡散ステップで合計が保存されます（丸め誤差を除く）。刺激は活性度を加え、初期化は読み込んだ値に戻します。</p>
+</details>
+<label>TTL（1行1三つ組）またはONTOのグラフJSON<textarea id="knowledge-ttl" rows="6" style="width:100%">@prefix ex: &lt;urn:example:&gt; .
+ex:A ex:relatedTo ex:B .
+ex:B ex:relatedTo ex:C .</textarea></label>
+<label>TTL / JSONファイル <input id="knowledge-file" type="file" accept=".ttl,.json,text/turtle,application/json"></label>
+<button id="knowledge-load">定義を適用</button>
+<label>刺激対象 <select id="knowledge-target"></select></label>
+<label>乱数シード <input id="knowledge-seed" type="number" value="1" min="0" max="4294967295" step="1"></label>
+<button id="knowledge-random">ランダム選択</button>
+<button id="knowledge-stimulate">刺激</button>
+<label>拡散係数 <input id="knowledge-rate" type="range" min="0" max="1" step="0.05" value="0.5"></label>
+<button id="knowledge-step">1ステップ進める</button>
+<button id="knowledge-reset">初期化</button>
+<svg id="knowledge-graph" viewBox="0 0 400 300" role="img" aria-label="概念の活性度グラフ" style="width:min(100%,500px)"></svg>
+<pre id="knowledge-details" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+<p id="knowledge-status" aria-live="polite"></p>
+</section>
+"""
+KNOWLEDGE_FLOW_SOURCE = r'''
+const IRI = /^<([A-Za-z][\w+.-]*:[^<>"{}|^`\\\s]*)>$/;
+const XSD = 'http://www.w3.org/2001/XMLSchema#';
+const NUMBER = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
+const XSD_NUMBERS = new Set([
+  'decimal', 'double', 'float', 'integer', 'long', 'int', 'short', 'byte',
+  'nonPositiveInteger', 'negativeInteger', 'nonNegativeInteger', 'positiveInteger',
+  'unsignedLong', 'unsignedInt', 'unsignedShort', 'unsignedByte'
+].map(name => XSD + name));
+// ONTO uses RDFLib's n3() for object terms, including language tags and long strings.
+const LITERAL = /^("""(?:[^"\\]|\\[\s\S]|"(?!""))*"""|"(?:[^"\\\r\n]|\\.)*")(?:(?:\^\^<([^<>\s]+)>)|(@[a-z]+(?:-[a-z0-9]+)*))?$/i;
+
+function turtleStatements(text) {
+  const prefixes = new Map(), statements = [];
+  const iri = '(?:<[^<>\\s]+>|(?:[A-Za-z][\\w-]*)?:[\\w-]+)';
+  const triple = new RegExp('^(' + iri + ')\\s+(a|' + iri + ')\\s+(' + iri + '|[+\\d.\\-][\\d.eE+\\-]*)\\s*\\.$');
+  function expand(token, row) {
+    if (token.startsWith('<')) return token;
+    const colon = token.indexOf(':');
+    const prefix = token.slice(0, colon);
+    if (!prefixes.has(prefix)) throw new Error(row + '行目: 未定義の接頭辞 ' + prefix);
+    return '<' + prefixes.get(prefix) + token.slice(colon + 1) + '>';
+  }
+  for (const [index, raw] of text.split(/\r?\n/).entries()) {
+    const row = index + 1, line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const prefix = line.match(/^@prefix\s+([A-Za-z][\w-]*)?:\s*(<[^<>\s]+>)\s*\.$/);
+    if (prefix && IRI.test(prefix[2])) {
+      prefixes.set(prefix[1] ?? '', prefix[2].slice(1, -1));
+      continue;
+    }
+    const match = line.match(triple);
+    if (!match) throw new Error(row + '行目: 未対応のTTL構文。ONTOでJSONに変換してください。');
+    const [, subject, predicate, object] = match;
+    let term;
+    if (NUMBER.test(object)) {
+      const datatype = /e/i.test(object) ? 'double' : object.includes('.') ? 'decimal' : 'integer';
+      term = JSON.stringify(object) + '^^<' + XSD + datatype + '>';
+    } else {
+      if (!object.includes(':')) throw new Error(row + '行目: 未対応のRDF項 ' + object);
+      term = expand(object, row);
+    }
+    statements.push({
+      subject: expand(subject, row),
+      predicate: predicate === 'a' ? '<http://www.w3.org/1999/02/22-rdf-syntax-ns#type>' : expand(predicate, row),
+      object: term,
+      location: row + '行目'
+    });
+  }
+  return statements;
+}
+
+function ontoStatements(data) {
+  if (!Array.isArray(data?.nodes) || !Array.isArray(data.rels)) {
+    throw new Error('ONTOのグラフJSON（nodes / rels）が必要です');
+  }
+  const terms = new Set();
+  for (const node of data.nodes) {
+    if (typeof node?.id !== 'string' || node.properties?.term !== node.id ||
+        !Array.isArray(node.labels) || !node.labels.includes('OtlTerm') || terms.has(node.id)) {
+      throw new Error('ONTOのOtlTermノードが不正です');
+    }
+    terms.add(node.id);
+  }
+  const used = new Set();
+  const statements = data.rels.map((rel, index) => {
+    const subject = rel?.start?.id, object = rel?.end?.id, predicate = rel?.properties?.predicate;
+    const location = 'JSON文 ' + (index + 1);
+    if (rel?.label !== 'OtlStatement' || !terms.has(subject) || !terms.has(object) ||
+        typeof predicate !== 'string') throw new Error(location + ': ONTOの関係が不正です');
+    used.add(subject);
+    used.add(object);
+    return {subject, predicate, object, location};
+  });
+  if (used.size !== terms.size) throw new Error('ONTOに文から参照されないノードがあります');
+  return statements;
+}
+
+export function parseGraph(text) {
+  if (text.length > 100000) throw new Error('入力上限を超えました');
+  const statements = text.trimStart().startsWith('{') ? ontoStatements(JSON.parse(text)) : turtleStatements(text);
+  const nodes = new Map(), pairs = new Map();
+  const relations = [], attributes = [], initial = [], confidence = [];
+  const index = iri => {
+    if (!nodes.has(iri)) {
+      nodes.set(iri, nodes.size);
+      attributes.push([]);
+      initial.push(0);
+      confidence.push(null);
+    }
+    return nodes.get(iri);
+  };
+  const activityNodes = new Set();
+  for (const {subject, predicate, object, location} of statements) {
+    const from = subject.match(IRI), relation = predicate.match(IRI), to = object.match(IRI);
+    if (!from || !relation) throw new Error(location + ': 主語と述語に絶対IRIが必要です');
+    const a = index(from[1]), property = relation[1];
+    const isActivity = property === 'urn:knowledge-flow:activity';
+    const isConfidence = property === 'urn:knowledge-flow:confidence';
+    if (to && !isActivity && !isConfidence) {
+      const b = index(to[1]);
+      relations.push({source: a, predicate: property, target: b});
+      if (a !== b) {
+        const edge = [Math.min(a, b), Math.max(a, b)], key = edge.join(':');
+        if (!pairs.has(key)) pairs.set(key, edge);
+      }
+      continue;
+    }
+    const literal = object.match(LITERAL);
+    if (!literal) throw new Error(location + ': 未対応のRDF項 ' + object);
+    const [, lexical, datatype] = literal;
+    let numeric = null;
+    if (XSD_NUMBERS.has(datatype) && NUMBER.test(lexical.slice(1, -1))) {
+      const value = Number(lexical.slice(1, -1));
+      if (Number.isFinite(value)) numeric = value;
+    }
+    if (isActivity || isConfidence) {
+      if (numeric === null || numeric < 0 || (isConfidence && numeric > 1)) {
+        throw new Error(location + ': ' + property + ' の値が範囲外です');
+      }
+      if (isActivity ? activityNodes.has(a) : confidence[a] !== null) {
+        throw new Error(location + ': ' + property + ' が重複しています');
+      }
+      if (isActivity) {
+        activityNodes.add(a);
+        initial[a] = numeric;
+      } else {
+        confidence[a] = numeric;
+      }
+    } else {
+      attributes[a].push({predicate: property, term: object, numeric});
+    }
+  }
+  if (!nodes.size || nodes.size > 100) throw new Error('概念数は1〜100');
+  if (!Number.isFinite(initial.reduce((sum, value) => sum + value, 0))) {
+    throw new Error('初期活性度の合計が範囲外です');
+  }
+  return {nodes: [...nodes.keys()], edges: [...pairs.values()], relations, attributes, initial, confidence};
+}
+export function knowledgeStep(values, rate, edges) {
+  if(!values.length||values.some(v=>!Number.isFinite(v)||v<0)||!Number.isFinite(rate)||rate<0||rate>1) throw new RangeError('invalid diffusion input');
+  const degree=values.map(()=>0);
+  for(const [i,j] of edges){if(!Number.isInteger(i)||!Number.isInteger(j)||i<0||j<0||i>=values.length||j>=values.length||i===j)throw new RangeError('invalid edge');degree[i]++;degree[j]++;}
+  const maxDegree = Math.max(1, ...degree);
+  const weight = rate / maxDegree;
+  const next = values.map((value, i) => (1 - rate * (degree[i] / maxDegree)) * value);
+  for (const [i, j] of edges) {
+    next[i] += weight * values[j];
+    next[j] += weight * values[i];
+  }
+  return next;
+}
+export function seededIndex(seed,n){
+  if(!Number.isInteger(seed)||seed<0||seed>4294967295||!Number.isInteger(n)||n<1)throw new RangeError('invalid seed');
+  return Math.floor(((Math.imul(seed,1664525)+1013904223)>>>0)/4294967296*n);
+}
+if(typeof document!=='undefined'){
+  const get=id=>document.getElementById('knowledge-'+id), svg=get('graph');
+  let graph,values,step=0;
+  function render(){
+    svg.replaceChildren();
+    const points=graph.nodes.map((_,i)=>[200+125*Math.cos(2*Math.PI*i/graph.nodes.length),150+110*Math.sin(2*Math.PI*i/graph.nodes.length)]);
+    const add=(tag,attrs,text)=>{const el=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))el.setAttribute(k,v);if(text!==undefined)el.textContent=text;svg.append(el);return el;};
+    graph.edges.forEach(([i,j])=>add('line',{x1:points[i][0],y1:points[i][1],x2:points[j][0],y2:points[j][1],stroke:'currentColor',opacity:.35}));
+    points.forEach(([x,y],i)=>{add('circle',{cx:x,cy:y,r:12,fill:'currentColor',opacity:.12+.75*Math.min(1,values[i])});add('text',{x,y:y+22,'text-anchor':'middle',fill:'currentColor','font-size':10},(i+1)+': '+values[i].toFixed(2));});
+    showDetails();
+    get('status').textContent=step+' ステップ · '+graph.nodes.length+' 概念 · 活性度合計 '+values.reduce((a,b)=>a+b,0).toFixed(6);
+  }
+  function showDetails() {
+    const i = Number(get('target').value);
+    const details = [
+      '活性度: ' + values[i].toPrecision(6),
+      '確信度: ' + (graph.confidence[i] ?? '未指定'),
+      ...graph.attributes[i].map(({predicate, term, numeric}) =>
+        (numeric === null ? '属性: ' : '数値属性: ') + predicate + ' = ' + term),
+      ...graph.relations.filter(({source, target}) => source === i || target === i)
+        .map(({source, predicate, target}) => graph.nodes[source] + ' → ' + graph.nodes[target] + ' (' + predicate + ')')
+    ];
+    get('details').textContent = details.join('\n');
+  }
+  function reset(){values=[...graph.initial];step=0;render();}
+  function load(){try{const candidate=parseGraph(get('ttl').value);graph=candidate;get('target').replaceChildren(...graph.nodes.map((n,i)=>new Option((i+1)+': '+n,i)));reset();}catch(e){get('status').textContent=e.message;}}
+  get('load').onclick=load;
+  get('file').onchange=async()=>{const f=get('file').files[0];if(f){if(f.size>100000){get('status').textContent='ファイル上限超過';return;}get('ttl').value=await f.text();load();}};
+  get('target').onchange = () => {if (graph) showDetails();};
+  get('random').onclick = () => {
+    if (graph && get('seed').reportValidity()) {
+      get('target').value = seededIndex(Number(get('seed').value), graph.nodes.length);
+      showDetails();
+    }
+  };
+  get('stimulate').onclick=()=>{if(graph){values[Number(get('target').value)]+=1;render();}};
+  get('step').onclick=()=>{if(graph){values=knowledgeStep(values,Number(get('rate').value),graph.edges);step++;render();}};
+  get('reset').onclick=()=>{if(graph)reset();};
+  load();
+}
+'''
+
+
 def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
     """Render the lab and a Markdown-derived archive from the same published flow receipt."""
     import markdown as md_market
@@ -650,8 +884,8 @@ def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
     slot = '<p>FLOW_RIG_SLOT</p>'
     if page.count(slot) != 1:
         raise ValueError('flow workbench placeholder missing')
-    page = page.replace(slot, FLOW_RIG, 1).replace('</head>', FLOW_RIG_CSS + '</head>', 1)
-    page = page.replace('</body>', '<script type="module" src="./rig.mjs"></script></body>', 1)
+    page = page.replace(slot, FLOW_RIG + KNOWLEDGE_FLOW_HTML, 1).replace('</head>', FLOW_RIG_CSS + '</head>', 1)
+    page = page.replace('</body>', '<script type="module" src="./rig.mjs"></script><script type="module" src="./knowledge.mjs"></script></body>', 1)
 
     records = flow_markdown(demos, figures)   # 📜 the same page, below the rig: its pictures load only when scrolled to
     slot = '<p>FLOW_RECORDS_SLOT</p>'
@@ -661,7 +895,7 @@ def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
     page = page.replace(slot, f'<div id="records">{archive}</div>', 1)
     page = page.replace('</head>', '<style>#records img{max-width:100%;height:auto}</style></head>', 1)
     return {FLOW_PAGE: add_home_label(add_back_nav(page, FLOW_PAGE), '🌊 流れ実験', icons_from='../../').encode('utf-8'),
-            FLOW_MARKDOWN: records.encode('utf-8'), FLOW_RIG_JS: FLOW_RIG_SOURCE.encode('utf-8')}
+            FLOW_MARKDOWN: records.encode('utf-8'), FLOW_RIG_JS: FLOW_RIG_SOURCE.encode('utf-8'), KNOWLEDGE_FLOW_JS: KNOWLEDGE_FLOW_SOURCE.encode('utf-8')}
 
 
 # ── 🧠 リポジトリ地図: who copies what from whom, read from each repository's own vendor.lock.json (and Aoi's subtrees) ──
