@@ -2082,3 +2082,59 @@ class OverworldRpgTests(unittest.TestCase):
         self.assertIn("ui-rpg-hud", overworld_doc)
         self.assertIn("bindWorldRpg", overworld_doc)
 
+    def test_rpg_save_codec_matches_node_and_accepts_developer_preset(self):
+        import shutil
+        import subprocess
+        spec = W.example_data("overworld")
+        preset = {
+            "schema": W.RPG_SAVE_SCHEMA,
+            "seed": 777777,
+            "exp": 95,
+            "hp": 40,
+            "mp": 18,
+            "gold": 250,
+            "floor": "forest",
+            "talked": ["meadow-npc-cat"],
+            "looted": ["meadow-chest-sword", "meadow-drop-herb"],
+            "defeated": ["meadow-enemy-slime"],
+            "quiz_solved": [spec["rpg"]["quizzes"][0]["prompt"]],
+            "quiz_idx": 1,
+            "visited_floors": ["meadow", "forest"],
+            "equipment": ["meadow-chest-sword"],
+            "consumables": {"spot:meadow-drop-herb": 2, "shop:pot": 1},
+            "completed_quests": ["talk-cat", "first-battle"],
+            "badges": ["first-talk", "first-win"],
+            "bought_count": 1,
+            "healed_count": 0,
+        }
+        v_rpg = W.world_validate({**spec, "rpg": {**spec["rpg"], "save": preset}})
+        self.assertEqual(v_rpg["rpg"]["save"]["gold"], 250)
+        b64 = W.rpg_encode_save(preset, fmt="base64", rpg=v_rpg["rpg"], floor_ids={f["id"] for f in v_rpg["floors"]})
+        raw_json = W.rpg_encode_save(preset, fmt="json", rpg=v_rpg["rpg"], floor_ids={f["id"] for f in v_rpg["floors"]})
+        self.assertEqual(W.rpg_decode_save(b64, rpg=v_rpg["rpg"]), W.rpg_decode_save(raw_json, rpg=v_rpg["rpg"]))
+        urlsafe_nopad = b64.replace("+", "-").replace("/", "_").rstrip("=")
+        self.assertEqual(W.rpg_decode_save(urlsafe_nopad)["quiz_solved"], preset["quiz_solved"])
+        for bad in ("{}", "not-base64!", '{"schema":"wrong"}', {**preset, "looted": ["missing-id"]}):
+            with self.subTest(bad=str(bad)[:30]), self.assertRaises(ValueError):
+                W.rpg_decode_save(bad, rpg=v_rpg["rpg"])
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node binary unavailable")
+        pure_js = W.WORLD_RPG_JS.replace("bindRpgWorlds();\n", "")
+        probe = (
+            pure_js
+            + f"\nconst preset = {json.dumps(v_rpg['rpg']['save'], ensure_ascii=False)};"
+            + f"\nconst specRpg = {json.dumps(v_rpg['rpg'], ensure_ascii=False)};"
+            + "\nconst floors = new Set(['meadow','forest','mountain','desert','coast','castle','real']);"
+            + "\nconsole.log(JSON.stringify({json: rpgEncodeSave(preset,'json',specRpg,floors), b64: rpgEncodeSave(preset,'base64',specRpg,floors), dec: rpgDecodeSave("
+            + json.dumps(b64)
+            + ",specRpg,floors), decJson: rpgDecodeSave("
+            + json.dumps(raw_json)
+            + ",specRpg,floors)}));\n"
+        )
+        out = json.loads(subprocess.run([node, "--input-type=module", "-e", probe], capture_output=True, text=True, check=True).stdout)
+        self.assertEqual(out["json"], raw_json)
+        self.assertEqual(out["b64"], b64)
+        self.assertEqual(out["dec"], v_rpg["rpg"]["save"])
+        self.assertEqual(out["decJson"], v_rpg["rpg"]["save"])
+

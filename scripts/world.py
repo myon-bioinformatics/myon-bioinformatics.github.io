@@ -12,6 +12,7 @@ part of the script a world and that chrome share. scripts/project_pages.py puts 
 from __future__ import annotations
 
 import argparse
+import base64
 import bisect
 import contextlib
 import functools
@@ -644,10 +645,139 @@ def rpg_damage(atk: int, defense: int, roll_word: int, *, mult_pct: int = 100, g
     return {"damage": raw, "crit": crit, "effect": rpg_orb_effect(raw)}
 
 
+RPG_SAVE_SCHEMA = "web-ui-rpg-save/1"
+_RPG_SAVE_KEYS = (
+    "schema", "seed", "exp", "hp", "mp", "gold", "floor",
+    "talked", "looted", "defeated", "quiz_solved", "quiz_idx",
+    "visited_floors", "equipment", "consumables", "completed_quests",
+    "badges", "bought_count", "healed_count",
+)
+
+
+def rpg_save_validate(save_in: Any, *, rpg: dict[str, Any] | None = None, floor_ids: set[str] | None = None) -> dict[str, Any]:
+    """Checked copy of an RPG save/preset state (``web-ui-rpg-save/1``), shared identically between developer config and user export/import."""
+    if not isinstance(save_in, dict) or save_in.get("schema") != RPG_SAVE_SCHEMA:
+        raise ValueError(f"expected schema {RPG_SAVE_SCHEMA}")
+    if set(save_in) - set(_RPG_SAVE_KEYS):
+        raise ValueError("unknown key in rpg save")
+    hero = (rpg or {}).get("hero", {})
+    default_seed = (rpg or {}).get("seed", 20261126)
+    seed = _bounded_int(save_in.get("seed", default_seed), "save seed", 0, 0xFFFFFFFF)
+    exp = _bounded_int(save_in.get("exp", 0), "save exp", 0, 999999)
+    hp = _bounded_int(save_in.get("hp", hero.get("hp", 32)), "save hp", 0, 9999)
+    mp = _bounded_int(save_in.get("mp", hero.get("mp", 14)), "save mp", 0, 9999)
+    gold = _bounded_int(save_in.get("gold", hero.get("gold", 0)), "save gold", 0, 999999)
+    quiz_idx = _bounded_int(save_in.get("quiz_idx", 0), "save quiz_idx", 0, 999)
+    bought_count = _bounded_int(save_in.get("bought_count", 0), "save bought_count", 0, 9999)
+    healed_count = _bounded_int(save_in.get("healed_count", 0), "save healed_count", 0, 9999)
+
+    def str_list(key: str, allowed: set[str] | None = None, limit: int = 128, max_len: int = 80) -> list[str]:
+        raw = save_in.get(key, [])
+        if not isinstance(raw, list) or len(raw) > limit:
+            raise ValueError(f"save {key} must be a list of up to {limit} strings")
+        out: list[str] = []
+        seen: set[str] = set()
+        for item in raw:
+            if not isinstance(item, str) or not 1 <= len(item) <= max_len:
+                raise ValueError(f"save {key} item must be 1..{max_len} chars")
+            if allowed is not None and item not in allowed:
+                raise ValueError(f"unknown {key} id: {item!r}")
+            if item not in seen:
+                seen.add(item)
+                out.append(item)
+        return out
+
+    npc_ids = set(rpg.get("npcs", {})) if rpg else None
+    loot_ids = set(rpg.get("loot", {})) if rpg else None
+    enemy_ids = set(rpg.get("enemies", {})) if rpg else None
+    quest_ids = {q["id"] for q in rpg.get("quests", [])} if rpg else None
+    badge_ids = {b["id"] for b in rpg.get("badges", [])} if rpg else None
+    shop_ids = {s["id"] for s in rpg.get("shop", [])} if rpg else None
+    allowed_floors = set(floor_ids) if floor_ids is not None else None
+
+    talked = str_list("talked", npc_ids)
+    looted = str_list("looted", loot_ids)
+    defeated = str_list("defeated", enemy_ids)
+    quiz_solved = str_list("quiz_solved", None, limit=64, max_len=240)
+    default_floor = sorted(allowed_floors)[0] if allowed_floors and "meadow" not in allowed_floors else "meadow"
+    floor = save_in.get("floor", default_floor)
+    if not isinstance(floor, str) or (allowed_floors is not None and floor not in allowed_floors):
+        raise ValueError(f"unknown save floor: {floor!r}")
+    visited_raw = save_in.get("visited_floors", [floor])
+    if not isinstance(visited_raw, list) or not visited_raw or len(visited_raw) > 16:
+        raise ValueError("save visited_floors must list 1..16 floor ids")
+    visited_floors = []
+    for fid in visited_raw:
+        if not isinstance(fid, str) or (allowed_floors is not None and fid not in allowed_floors):
+            raise ValueError(f"unknown visited floor: {fid!r}")
+        if fid not in visited_floors:
+            visited_floors.append(fid)
+    equipment = str_list("equipment", loot_ids)
+    completed_quests = str_list("completed_quests", quest_ids)
+    badges = str_list("badges", badge_ids)
+
+    cons_in = save_in.get("consumables", {})
+    if not isinstance(cons_in, dict) or len(cons_in) > 64:
+        raise ValueError("save consumables maps up to 64 item keys to counts")
+    consumables: dict[str, int] = {}
+    for key, count in cons_in.items():
+        if not isinstance(key, str) or not (key.startswith("spot:") or key.startswith("shop:")):
+            raise ValueError(f"invalid consumable key: {key!r}")
+        item_id = key.split(":", 1)[1]
+        if key.startswith("spot:") and loot_ids is not None and item_id not in loot_ids:
+            raise ValueError(f"unknown consumable spot id: {item_id!r}")
+        if key.startswith("shop:") and shop_ids is not None and item_id not in shop_ids:
+            raise ValueError(f"unknown consumable shop id: {item_id!r}")
+        consumables[key] = _bounded_int(count, f"consumable {key}", 1, 99)
+
+    return {
+        "schema": RPG_SAVE_SCHEMA, "seed": seed, "exp": exp, "hp": hp, "mp": mp, "gold": gold,
+        "floor": floor, "talked": talked, "looted": looted, "defeated": defeated,
+        "quiz_solved": quiz_solved, "quiz_idx": quiz_idx, "visited_floors": visited_floors,
+        "equipment": equipment, "consumables": consumables, "completed_quests": completed_quests,
+        "badges": badges, "bought_count": bought_count, "healed_count": healed_count,
+    }
+
+
+def rpg_encode_save(save_in: Any, *, fmt: str = "base64", rpg: dict[str, Any] | None = None, floor_ids: set[str] | None = None) -> str:
+    """Encode an RPG save/preset dictionary as canonical JSON or UTF-8 Base64."""
+    clean = rpg_save_validate(save_in, rpg=rpg, floor_ids=floor_ids)
+    text = json.dumps(clean, ensure_ascii=False, separators=(",", ":"))
+    if fmt == "json":
+        return text
+    if fmt == "base64":
+        return base64.b64encode(text.encode("utf-8")).decode("ascii")
+    raise ValueError("fmt must be 'json' or 'base64'")
+
+
+def rpg_decode_save(raw: Any, *, rpg: dict[str, Any] | None = None, floor_ids: set[str] | None = None) -> dict[str, Any]:
+    """Decode and validate an RPG save/preset from JSON text, Base64 text, or dict."""
+    if isinstance(raw, dict):
+        data = raw
+    elif isinstance(raw, str):
+        text = raw.strip()
+        if not text:
+            raise ValueError("empty save input")
+        if not text.startswith("{"):
+            padded = text.replace("-", "+").replace("_", "/")
+            padded += "=" * (-len(padded) % 4)
+            try:
+                text = base64.b64decode(padded.encode("ascii"), validate=True).decode("utf-8")
+            except Exception as exc:
+                raise ValueError("invalid base64 save string") from exc
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as exc:
+            raise ValueError("invalid json save string") from exc
+    else:
+        raise ValueError("save input must be dict, json string, or base64 string")
+    return rpg_save_validate(data, rpg=rpg, floor_ids=floor_ids)
+
+
 def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dict[str, Any]:
     """Checked copy of the optional ``rpg`` spec for contact dialogue, drops/chests, battles and gamification."""
-    if not isinstance(rpg_in, dict) or set(rpg_in) - {"seed", "hero", "npcs", "loot", "enemies", "quests", "badges", "quizzes", "shop", "skills", "orbs"}:
-        raise ValueError("rpg has seed, hero, npcs, loot, enemies, quests, badges, quizzes, shop, skills and orbs")
+    if not isinstance(rpg_in, dict) or set(rpg_in) - {"seed", "hero", "npcs", "loot", "enemies", "quests", "badges", "quizzes", "shop", "skills", "orbs", "save"}:
+        raise ValueError("rpg has seed, hero, npcs, loot, enemies, quests, badges, quizzes, shop, skills, orbs and save")
     seed = _bounded_int(rpg_in.get("seed", 20261126), "rpg seed", 0, 0xFFFFFFFF)
     hero_in = rpg_in.get("hero", {})
     if not isinstance(hero_in, dict) or set(hero_in) - {"hp", "mp", "atk", "def", "gold"}:
@@ -833,8 +963,11 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
         orbs = {"attack": [_world_emoji(e) for e in orbs_in["attack"]],
                 "heal": [_world_emoji(e) for e in orbs_in["heal"]],
                 "max": _bounded_int(orbs_in["max"], "orbs max", 1, 12)}
-    return {"seed": seed, "hero": hero, "npcs": npcs, "loot": loot, "enemies": enemies,
-            "quests": quests, "badges": badges, "quizzes": quizzes, "shop": shop, "skills": skills, "orbs": orbs}
+    out = {"seed": seed, "hero": hero, "npcs": npcs, "loot": loot, "enemies": enemies,
+           "quests": quests, "badges": badges, "quizzes": quizzes, "shop": shop, "skills": skills, "orbs": orbs}
+    if rpg_in.get("save") is not None:
+        out["save"] = rpg_save_validate(rpg_in["save"], rpg=out, floor_ids=floor_ids)
+    return out
 
 
 def world_validate(spec: Any) -> dict[str, Any]:
@@ -1991,6 +2124,7 @@ _WORLD_RPG_CSS = (
     ".ui-rpg-badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:8px}"
     ".ui-rpg-badge{padding:8px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-panel);font-size:.78rem;display:flex;flex-direction:column;gap:2px}"
     ".ui-rpg-badge[data-unlocked=\"false\"]{opacity:.5}"
+    ".ui-rpg-io{width:100%;min-height:112px;padding:8px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-bg);color:var(--ui-fg);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.76rem;line-height:1.4;resize:vertical;box-sizing:border-box}"
     ".ui-rpg-toast{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);z-index:9;max-width:min(92%,420px);padding:6px 12px;border-radius:999px;border:1px solid var(--ui-accent);background:var(--ui-bg);color:var(--ui-fg);font-size:.8rem;font-weight:600;box-shadow:0 6px 18px rgba(0,0,0,.25);pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
     ".ui-rpg-toast[hidden]{display:none}"
     "@media(max-width:640px){.ui-rpg-hud{padding:5px 8px;gap:4px 8px;font-size:.75rem}.ui-rpg-meter{width:42px}.ui-rpg-cmd-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ui-rpg-card{padding:10px 11px}}"
@@ -2393,6 +2527,8 @@ bindWorlds();
 
 WORLD_RPG_JS = r"""
 export const RPG_LEVEL_THRESHOLDS=[0,30,75,140,230,350,500,700,950,1250];
+export const RPG_SAVE_SCHEMA="web-ui-rpg-save/1";
+const RPG_SAVE_KEYS=["schema","seed","exp","hp","mp","gold","floor","talked","looted","defeated","quiz_solved","quiz_idx","visited_floors","equipment","consumables","completed_quests","badges","bought_count","healed_count"];
 const DEFAULT_ORBS={attack:["🔥","💧","🌳","💡","🔮"],heal:["❤️","💚","✨"],max:6};
 export function rpgRandomWord(seed){let x=(Number(seed)>>>0)||0x6D2B79F5;x^=(x<<13);x>>>=0;x^=(x>>>17);x^=(x<<5);return x>>>0}
 export function rpgOrbEffect(amount,heal=false,orbs=DEFAULT_ORBS){
@@ -2414,6 +2550,76 @@ export function rpgDamage(atk,defense,rollWord,{multPct=100,guarding=false,critP
  if(guarding)raw=Math.max(1,Math.floor(raw/2));
  return{damage:raw,crit,effect:rpgOrbEffect(raw)};
 }
+const bInt=(v,lbl,lo,hi)=>{if(typeof v!=="number"||!Number.isInteger(v)||v<lo||v>hi)throw new Error(`${lbl} must be an integer from ${lo} to ${hi}`);return v};
+export function rpgSaveValidate(saveIn,rpg=null,floorIds=null){
+ if(!saveIn||typeof saveIn!=="object"||Array.isArray(saveIn)||saveIn.schema!==RPG_SAVE_SCHEMA)throw new Error(`expected schema ${RPG_SAVE_SCHEMA}`);
+ const allowedKeys=new Set(RPG_SAVE_KEYS);
+ for(const k of Object.keys(saveIn))if(!allowedKeys.has(k))throw new Error("unknown key in rpg save");
+ const hero=rpg?.hero||{},defSeed=rpg?.seed??20261126;
+ const seed=bInt(saveIn.seed??defSeed,"save seed",0,0xFFFFFFFF),exp=bInt(saveIn.exp??0,"save exp",0,999999),
+  hp=bInt(saveIn.hp??hero.hp??32,"save hp",0,9999),mp=bInt(saveIn.mp??hero.mp??14,"save mp",0,9999),
+  gold=bInt(saveIn.gold??hero.gold??0,"save gold",0,999999),quizIdx=bInt(saveIn.quiz_idx??0,"save quiz_idx",0,999),
+  boughtCount=bInt(saveIn.bought_count??0,"save bought_count",0,9999),healedCount=bInt(saveIn.healed_count??0,"save healed_count",0,9999);
+ const strList=(key,allowed=null,limit=128,maxLen=80)=>{
+  const raw=saveIn[key]??[];if(!Array.isArray(raw)||raw.length>limit)throw new Error(`save ${key} invalid`);
+  const out=[],seen=new Set();
+  for(const item of raw){
+   if(typeof item!=="string"||item.length<1||item.length>maxLen)throw new Error(`save ${key} item invalid`);
+   if(allowed&&!allowed.has(item))throw new Error(`unknown ${key} id: ${item}`);
+   if(!seen.has(item)){seen.add(item);out.push(item)}
+  }
+  return out;
+ };
+ const npcIds=rpg?new Set(Object.keys(rpg.npcs||{})):null,lootIds=rpg?new Set(Object.keys(rpg.loot||{})):null,
+  enemyIds=rpg?new Set(Object.keys(rpg.enemies||{})):null,questIds=rpg?new Set((rpg.quests||[]).map(q=>q.id)):null,
+  badgeIds=rpg?new Set((rpg.badges||[]).map(b=>b.id)):null,shopIds=rpg?new Set((rpg.shop||[]).map(s=>s.id)):null,
+  floors=floorIds?new Set(floorIds):null;
+ const talked=strList("talked",npcIds),looted=strList("looted",lootIds),defeated=strList("defeated",enemyIds),
+  quizSolved=strList("quiz_solved",null,64,240);
+ const defFloor=floors&&!floors.has("meadow")?[...floors].sort()[0]:"meadow",floor=saveIn.floor??defFloor;
+ if(typeof floor!=="string"||(floors&&!floors.has(floor)))throw new Error(`unknown save floor: ${floor}`);
+ const visRaw=saveIn.visited_floors??[floor];
+ if(!Array.isArray(visRaw)||!visRaw.length||visRaw.length>16)throw new Error("save visited_floors invalid");
+ const visitedFloors=[],visSeen=new Set();
+ for(const fid of visRaw){
+  if(typeof fid!=="string"||(floors&&!floors.has(fid)))throw new Error(`unknown visited floor: ${fid}`);
+  if(!visSeen.has(fid)){visSeen.add(fid);visitedFloors.push(fid)}
+ }
+ const equipment=strList("equipment",lootIds),completedQuests=strList("completed_quests",questIds),badges=strList("badges",badgeIds);
+ const consIn=saveIn.consumables??{};
+ if(!consIn||typeof consIn!=="object"||Array.isArray(consIn)||Object.keys(consIn).length>64)throw new Error("save consumables invalid");
+ const consumables={};
+ for(const[k,cnt]of Object.entries(consIn)){
+  if(!k.startsWith("spot:")&&!k.startsWith("shop:"))throw new Error(`invalid consumable key: ${k}`);
+  const itemId=k.slice(k.indexOf(":")+1);
+  if(k.startsWith("spot:")&&lootIds&&!lootIds.has(itemId))throw new Error(`unknown consumable spot id: ${itemId}`);
+  if(k.startsWith("shop:")&&shopIds&&!shopIds.has(itemId))throw new Error(`unknown consumable shop id: ${itemId}`);
+  consumables[k]=bInt(cnt,`consumable ${k}`,1,99);
+ }
+ return{schema:RPG_SAVE_SCHEMA,seed,exp,hp,mp,gold,floor,talked,looted,defeated,quiz_solved:quizSolved,quiz_idx:quizIdx,
+  visited_floors:visitedFloors,equipment,consumables,completed_quests:completedQuests,badges,bought_count:boughtCount,healed_count:healedCount};
+}
+export function rpgEncodeSave(saveIn,fmt="base64",rpg=null,floorIds=null){
+ const clean=rpgSaveValidate(saveIn,rpg,floorIds),text=JSON.stringify(clean);
+ if(fmt==="json")return text;
+ if(fmt==="base64"){const bytes=new TextEncoder().encode(text);let bin="";for(const b of bytes)bin+=String.fromCharCode(b);return btoa(bin)}
+ throw new Error("fmt must be 'json' or 'base64'");
+}
+export function rpgDecodeSave(raw,rpg=null,floorIds=null){
+ let data;
+ if(raw&&typeof raw==="object"&&!Array.isArray(raw))data=raw;
+ else if(typeof raw==="string"){
+  let text=raw.trim();if(!text)throw new Error("empty save input");
+  if(!text.startsWith("{")){
+   let norm=text.replace(/-/g,"+").replace(/_/g,"/");norm+="=".repeat((4-(norm.length%4))%4);
+   let bin;try{bin=atob(norm)}catch{throw new Error("invalid base64 save string")}
+   const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
+   try{text=new TextDecoder("utf-8",{fatal:true}).decode(bytes)}catch{throw new Error("invalid base64 save string")}
+  }
+  try{data=JSON.parse(text)}catch{throw new Error("invalid json save string")}
+ }else throw new Error("save input invalid");
+ return rpgSaveValidate(data,rpg,floorIds);
+}
 function rpgEl(tag,props={},...kids){
  const node=document.createElement(tag);
  for(const[k,v]of Object.entries(props)){
@@ -2433,16 +2639,18 @@ export function bindWorldRpg(el){
  const dataEl=el.querySelector(".ui-rpg-data");if(!dataEl)return el;
  let rpg=null;try{rpg=JSON.parse(dataEl.textContent)}catch{return el}
  el.setAttribute("data-rpg-bound","");
- const wid=el.id.replace(/-map$/,""),hud=el.querySelector(".ui-rpg-hud");
+ const wid=el.id.replace(/-map$/,""),hud=el.querySelector(".ui-rpg-hud"),
+  floorIds=new Set([...el.querySelectorAll(".ui-floor")].map(f=>f.dataset.floor)),
+  currentFloor=()=>el.querySelector("input[name$='-floor']:checked")?.value||"meadow";
  if(hud)hud.hidden=false;
  const overlay=rpgEl("div",{className:"ui-rpg-overlay",hidden:true}),toast=rpgEl("div",{className:"ui-rpg-toast",hidden:true,"aria-live":"polite"});
  el.append(overlay,toast);
- let toastTimer=0;
+ let toastTimer=0,syncingTake=false;
  const showToast=msg=>{toast.textContent=msg;toast.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{toast.hidden=true},3200)};
  const state={
   exp:0,hp:rpg.hero.hp,mp:rpg.hero.mp,gold:rpg.hero.gold,seed:rpg.seed>>>0||20261126,
   talked:new Set(),looted:new Set(),defeated:new Set(),quizSolved:new Set(),quizIdx:0,
-  visitedFloors:new Set([el.querySelector("input[name$='-floor']:checked")?.value||"meadow"]),
+  visitedFloors:new Set([currentFloor()]),
   consumables:new Map(),equipment:new Set(),completedQuests:new Set(),badges:new Set(),
   boughtCount:0,healedCount:0
  };
@@ -2462,8 +2670,11 @@ export function bindWorldRpg(el){
   for(const[sid,it]of Object.entries(rpg.loot)){
    const node=spotNode(sid);if(!node)continue;
    const got=state.looted.has(sid);
-   if(it.kind==="chest"){node.toggleAttribute("data-rpg-opened",got);if(got&&it.opened_mark&&node.textContent.includes("🎁"))node.textContent=node.textContent.replace("🎁",it.opened_mark)}
-   else node.toggleAttribute("data-rpg-collected",got);
+   if(it.kind==="chest"){
+    node.toggleAttribute("data-rpg-opened",got);
+    if(got&&it.opened_mark&&node.textContent.includes("🎁"))node.textContent=node.textContent.replace("🎁",it.opened_mark);
+    if(!got&&it.opened_mark&&node.textContent.includes(it.opened_mark))node.textContent=node.textContent.replace(it.opened_mark,"🎁");
+   }else node.toggleAttribute("data-rpg-collected",got);
   }
   for(const[sid,foe]of Object.entries(rpg.enemies)){
    const node=spotNode(sid);if(!node)continue;
@@ -2788,8 +2999,60 @@ export function bindWorldRpg(el){
    orbBox,logBox,subPanel,cmdBox);
   syncBattle();showCard(card);
  };
+ const exportSaveObj=()=>rpgSaveValidate({
+  schema:RPG_SAVE_SCHEMA,seed:state.seed>>>0,exp:state.exp,hp:state.hp,mp:state.mp,gold:state.gold,
+  floor:currentFloor(),talked:[...state.talked],looted:[...state.looted],defeated:[...state.defeated],
+  quiz_solved:[...state.quizSolved],quiz_idx:state.quizIdx,visited_floors:[...state.visitedFloors],
+  equipment:[...state.equipment],
+  consumables:Object.fromEntries([...state.consumables.entries()].map(([k,v])=>[k,v.count])),
+  completed_quests:[...state.completedQuests],badges:[...state.badges],
+  bought_count:state.boughtCount,healed_count:state.healedCount
+ },rpg,floorIds);
+ const defaultSaveObj=exportSaveObj();
+ const syncBagButtons=()=>{
+  syncingTake=true;
+  try{
+   for(const b of el.querySelectorAll(".ui-sheet-item .ui-world-take")){
+    const p=wid+"-spot-";if(!b.dataset.itemId?.startsWith(p))continue;
+    const sid=b.dataset.itemId.slice(p.length);if(!rpg.loot[sid])continue;
+    const want=state.equipment.has(sid)||(state.consumables.get("spot:"+sid)?.count||0)>0;
+    if((b.getAttribute("aria-pressed")==="true")!==want)b.click();
+   }
+  }finally{syncingTake=false}
+ };
+ const applySave=raw=>{
+  const d=rpgDecodeSave(raw,rpg,floorIds);
+  state.seed=d.seed;state.exp=d.exp;state.gold=d.gold;state.quizIdx=d.quiz_idx;
+  state.boughtCount=d.bought_count;state.healedCount=d.healed_count;
+  state.talked=new Set(d.talked);state.looted=new Set(d.looted);state.defeated=new Set(d.defeated);
+  state.quizSolved=new Set(d.quiz_solved);state.visitedFloors=new Set(d.visited_floors);
+  state.equipment=new Set(d.equipment);state.completedQuests=new Set(d.completed_quests);state.badges=new Set(d.badges);
+  state.consumables=new Map();
+  for(const[k,cnt]of Object.entries(d.consumables)){
+   if(k.startsWith("spot:")){
+    const sid=k.slice(5),it=rpg.loot[sid],meta=spotMeta(sid);
+    if(it)state.consumables.set(k,{key:k,spotId:sid,emoji:meta.emoji,label:meta.itemLabel,item_type:it.item_type,hp:it.hp,mp:it.mp,atk:it.atk,count:cnt});
+   }else if(k.startsWith("shop:")){
+    const shId=k.slice(5),sh=(rpg.shop||[]).find(x=>x.id===shId);
+    if(sh)state.consumables.set(k,{key:k,emoji:sh.emoji,label:sh.label,item_type:sh.item_type,hp:sh.hp,mp:sh.mp,atk:0,count:cnt});
+   }
+  }
+  state.hp=d.hp;state.mp=d.mp;clampVitals();
+  if(d.floor){
+   const radio=el.querySelector(`input[name$='-floor'][value="${CSS.escape(d.floor)}"]`);
+   if(radio){
+    const changed=d.floor!==currentFloor();
+    radio.checked=true;
+    const goto=el.querySelector(".ui-world-goto");
+    if(goto)goto.value=radio.value;
+    if(changed)radio.dispatchEvent(new Event("change",{bubbles:true}));
+   }
+  }
+  syncBagButtons();checkQuests();renderHud();
+  return exportSaveObj();
+ };
  const openJournal=(activeTab="quests")=>{
-  const tabs=[["quests","📋 クエスト"],["badges","🏅 実績"],["status","🧙 ステータス"],["bestiary","👾 図鑑"]];
+  const tabs=[["quests","📋 クエスト"],["badges","🏅 実績"],["status","🧙 ステータス"],["bestiary","👾 図鑑"],["save","💾 記録/再開"]];
   const body=rpgEl("div"),tabBtns=[];
   const drawBody=()=>{
    if(activeTab==="quests"){
@@ -2818,7 +3081,7 @@ export function bindWorldRpg(el){
      rpgEl("div",{className:"ui-rpg-row"},
       rpgEl("strong",{textContent:"🎒 つかえるどうぐ"}),
       bagItems.length?rpgEl("div",{className:"ui-rpg-actions"},...bagItems.map(it=>rpgEl("button",{type:"button",className:"ui-rpg-btn",disabled:it.item_type==="scroll",textContent:`${it.emoji} ${it.label} ×${it.count}`,onclick:()=>{useConsumable(it.key);drawBody();showToast(`${it.emoji} ${it.label} を使った！`)}}))):rpgEl("p",{className:"ui-rpg-subnote",textContent:"まだ消費アイテムがないよ"})));
-   }else{
+   }else if(activeTab==="bestiary"){
     body.replaceChildren(rpgEl("ul",{className:"ui-rpg-list"},...Object.entries(rpg.enemies).map(([id,f])=>{
      const seen=state.defeated.has(id);
      return rpgEl("li",{className:"ui-rpg-row"},
@@ -2826,11 +3089,26 @@ export function bindWorldRpg(el){
       rpgEl("p",{className:"ui-rpg-subnote",textContent:`HP ${f.hp} / ATK ${f.atk} / DEF ${f.def} / +${f.exp}EXP +${f.gold}G`+(f.weakness?` / 弱点:${f.weakness}`:"")}),
       rpgEl("div",{className:"ui-rpg-actions"},rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"⚔️ 戦ってみる",onclick:()=>startBattle(id)})));
     })));
+   }else{
+    const io=rpgEl("textarea",{className:"ui-rpg-io","aria-label":"セーブデータ（JSON または Base64）",placeholder:"JSON または Base64 を貼り付けて「入力して再開」を押してください",value:rpgEncodeSave(exportSaveObj(),"json",rpg,floorIds)});
+    const statusNote=rpgEl("p",{className:"ui-rpg-subnote",textContent:`共通フォーマット (${RPG_SAVE_SCHEMA})：そのまま保存・共有・初期値の書き換えに使えます。`});
+    const fileIn=rpgEl("input",{type:"file",accept:".json,.txt,application/json,text/plain",hidden:true});
+    fileIn.addEventListener("change",async()=>{const f=fileIn.files?.[0];fileIn.value="";if(!f)return;try{const txt=await f.text();io.value=txt;applySave(txt);statusNote.textContent="✅ ファイルを読み込んで再開しました！";showToast("💾 ファイルから再開しました！")}catch(err){statusNote.textContent=`❌ 読込エラー: ${err.message}`}});
+    body.replaceChildren(rpgEl("div",{className:"ui-rpg-row"},
+     statusNote,io,fileIn,
+     rpgEl("div",{className:"ui-rpg-actions"},
+      rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"📄 JSON出力",onclick:()=>{io.value=rpgEncodeSave(exportSaveObj(),"json",rpg,floorIds);statusNote.textContent="📄 現在の状態を JSON で出力しました。"}}),
+      rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🔑 Base64出力",onclick:()=>{io.value=rpgEncodeSave(exportSaveObj(),"base64",rpg,floorIds);statusNote.textContent="🔑 現在の状態を Base64 で出力しました。"}}),
+      rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"📋 コピー",onclick:async()=>{io.select();try{await navigator.clipboard?.writeText(io.value);statusNote.textContent="📋 クリップボードにコピーしました。"}catch{statusNote.textContent="📋 テキストを選択しました（コピーしてください）。"}}}),
+      rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"⬇️ 保存(.json)",onclick:()=>{const txt=rpgEncodeSave(exportSaveObj(),"json",rpg,floorIds);io.value=txt;const url=URL.createObjectURL(new Blob([txt],{type:"application/json"}));const a=rpgEl("a",{href:url,download:"overworld-rpg-save.json"});a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);statusNote.textContent="⬇️ overworld-rpg-save.json を書き出しました。"}}),
+      rpgEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"▶️ 入力して再開",onclick:()=>{try{applySave(io.value);statusNote.textContent="✅ データを読み込んで再開しました！";showToast("💾 セーブデータを再開しました！")}catch(err){statusNote.textContent=`❌ 読込エラー: ${err.message}`}}}),
+      rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"📂 ファイル読込",onclick:()=>fileIn.click()}),
+      rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🔄 初期状態へ",onclick:()=>{applySave(rpg.save||defaultSaveObj);io.value=rpgEncodeSave(exportSaveObj(),"json",rpg,floorIds);statusNote.textContent="🔄 初期状態にもどしました。";showToast("🔄 初期状態にもどしました")}}))));
    }
   };
   const card=rpgEl("div",{className:"ui-rpg-card ui-rpg-journal-card",role:"dialog","aria-modal":"true","aria-label":"冒険手帳"},
    rpgEl("div",{className:"ui-rpg-card-head"},
-    rpgEl("h3",{className:"ui-rpg-card-title",textContent:"📜 冒険手帳（クエスト・実績・図鑑）"}),
+    rpgEl("h3",{className:"ui-rpg-card-title",textContent:"📜 冒険手帳（クエスト・実績・記録）"}),
     rpgEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
    rpgEl("div",{className:"ui-rpg-tabs"},...tabs.map(([k,lbl])=>{
     const b=rpgEl("button",{type:"button",className:"ui-rpg-btn","aria-selected":String(k===activeTab),textContent:lbl,onclick:()=>{
@@ -2857,6 +3135,7 @@ export function bindWorldRpg(el){
   art.insertBefore(btn,anchor);
  }
  el.addEventListener("click",e=>{
+  if(syncingTake)return;
   const takeBtn=e.target.closest(".ui-sheet-item .ui-world-take");
   if(!takeBtn)return;
   const id=takeBtn.dataset.itemId,prefix=wid+"-spot-";
@@ -2872,9 +3151,12 @@ export function bindWorldRpg(el){
   if(!nextId){showToast("🕊️ この空間には 魔物の気配はないようだ。");return}
   startBattle(nextId);
  });
+ if(rpg.save)applySave(rpg.save);
  for(const b of el.querySelectorAll(".ui-world-take[aria-pressed='true']")){
   const p=wid+"-spot-";if(b.dataset.itemId?.startsWith(p)){const sid=b.dataset.itemId.slice(p.length);if(rpg.loot[sid])addLoot(sid)}
  }
+ el.exportRpgSave=(fmt="json")=>rpgEncodeSave(exportSaveObj(),fmt,rpg,floorIds);
+ el.importRpgSave=raw=>applySave(raw);
  let goTarget=null,lastContactId="",prevPx=null,prevPy=null,movedSteps=0;
  el.addEventListener("click",e=>{
   const g=e.target.closest(".ui-world-go");
@@ -2902,7 +3184,7 @@ export function bindWorldRpg(el){
  };
  const watch=()=>{
   if(!el.isConnected)return;
-  const curFloor=el.querySelector("input[name$='-floor']:checked")?.value||"meadow";
+  const curFloor=currentFloor();
   const f=el.querySelector(`.ui-floor[data-floor="${CSS.escape(curFloor)}"]`)||el.querySelector(".ui-floor");
   const pl=f?.querySelector(".ui-player");
   if(pl){
@@ -2946,7 +3228,7 @@ export function bindWorldRpg(el){
  return el;
 }
 export function bindRpgWorlds(root=document){return[...root.querySelectorAll("[data-ui-world][data-rpg]")].map(el=>bindWorldRpg(el))}
-globalThis.webUiWorld={...globalThis.webUiWorld,rpgRandomWord,rpgOrbEffect,rpgLevelForExp,rpgDamage,bindWorldRpg,bindRpgWorlds};
+globalThis.webUiWorld={...globalThis.webUiWorld,RPG_SAVE_SCHEMA,rpgRandomWord,rpgOrbEffect,rpgLevelForExp,rpgDamage,rpgSaveValidate,rpgEncodeSave,rpgDecodeSave,bindWorldRpg,bindRpgWorlds};
 bindRpgWorlds();
 """
 

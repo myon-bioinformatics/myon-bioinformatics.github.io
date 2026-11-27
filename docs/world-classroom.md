@@ -252,6 +252,7 @@ Worlds that set optional `"rpg"` (`EXAMPLES["overworld"]`, starting in `meadow` 
 * **Contact dialogue (`npcs`)**: Walking within tile contact range of village NPCs (or tapping them) opens multi-page dialogue with optional healing (`heal`), shop purchases (`shop`), and 3-choice portfolio/GitHub quizzes (`quiz`).
 * **Ground drops & chests (`loot`)**: Collecting ground drops (`🌿`, `💧`, `📜`) or chests (`🎁` → `📭`, optionally gated by `requires_enemy`) syncs `.ui-world-take` into `🎒` and applies gear (`ATK`/`DEF`/`MaxHP`/`MaxMP`) or consumables.
 * **Turn-based battle (`enemies`, `skills`, `orbs`)**: Five commands (`⚔️`, `✨`, `🎒`, `🛡️`, `💨`), telegraphed 3-turn heavy enemy strikes, PSWB attribute/heal orb animations, EXP/Lv/Gold, and an Adventure Journal modal (`📜`) tracking quests, badges, equipment, and the bestiary.
+* **Save / Resume (`web-ui-rpg-save/1`)**: Export the active RPG state as canonical JSON or UTF-8 Base64 from `📜 → 💾 記録/再開` and paste/load either format back to resume. The exact same schema can be set on `rpg.save` in the world spec to pre-seed any state.
 
 ## Not included
 

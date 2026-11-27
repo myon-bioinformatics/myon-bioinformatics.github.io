@@ -1589,6 +1589,45 @@ class OverworldRpgTests(unittest.TestCase):
                     journal.wait_for(state="hidden")
                 self.assertEqual(self.errors, [])
 
+    def test_save_export_and_resume_with_json_and_base64(self):
+        page = self.open()
+        # Collect sword chest so ATK boosts to 10 and chest shows 📭
+        page.click('.ui-world-menu[data-menu="spots"] > summary')
+        page.click('.ui-world-spots a[href="#overworld-spot-meadow-chest-sword"]')
+        page.click('#overworld-spot-meadow-chest-sword .ui-rpg-sheet-btn')
+        page.locator(".ui-rpg-card").get_by_role("button", name="やったね！").click()
+        page.locator(".ui-rpg-card").wait_for(state="hidden")
+        self.assertIn("⚔️ 10", page.locator("[data-rpg-gear]").inner_text())
+
+        # Export as Base64, reset to initial state (ATK returns to 6, chest returns to 🎁), then resume from Base64
+        page.click("[data-rpg-journal-btn]")
+        journal = page.locator(".ui-rpg-journal-card")
+        journal.wait_for(state="visible")
+        journal.get_by_role("button", name="💾 記録/再開").click()
+        journal.get_by_role("button", name="🔑 Base64出力").click()
+        saved_b64 = journal.locator(".ui-rpg-io").input_value().strip()
+        self.assertFalse(saved_b64.startswith("{"))
+
+        journal.get_by_role("button", name="🔄 初期状態へ").click()
+        self.assertIn("⚔️ 6", page.locator("[data-rpg-gear]").inner_text())
+        self.assertIn("🎁", page.inner_text('.ui-spot[href="#overworld-spot-meadow-chest-sword"]'))
+
+        journal.locator(".ui-rpg-io").fill(saved_b64)
+        journal.get_by_role("button", name="▶️ 入力して再開").click()
+        self.assertIn("⚔️ 10", page.locator("[data-rpg-gear]").inner_text())
+        self.assertIn("📭", page.inner_text('.ui-spot[href="#overworld-spot-meadow-chest-sword"]'))
+
+        # Value-tweaked JSON directly resumes custom gold and floor using the exact same schema
+        journal.get_by_role("button", name="📄 JSON出力").click()
+        edited = json.loads(journal.locator(".ui-rpg-io").input_value())
+        edited["gold"] = 777
+        edited["floor"] = "forest"
+        journal.locator(".ui-rpg-io").fill(json.dumps(edited, ensure_ascii=False))
+        journal.get_by_role("button", name="▶️ 入力して再開").click()
+        self.assertIn("🪙 777G", page.locator("[data-rpg-gold]").inner_text())
+        self.assertEqual(page.locator(".ui-world-goto").input_value(), "forest")
+        self.assertEqual(self.errors, [])
+
 
 if __name__ == "__main__":
     unittest.main()
