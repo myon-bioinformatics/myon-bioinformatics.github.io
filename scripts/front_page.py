@@ -31,7 +31,7 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'text': 'ファイルや貼り付けた原文を静的検査し、Base64の復元差分と検証記録を確認。CaChereCyCleのJSONLは資産のSHA-256も照合。',
   'from': ('myon-bioinformatics', 'PySaiyanWeBoo'),
   'links': [('Format Lab を開く →', './tools/format-lab/')]},
- {'title': '地図URL・ピン留め',
+ {'title': '📍地図URL・座標ピン留め',
   'text': '緯度・経度からApple MapsとGoogle MapsのURLを作成。地点のピン留め・共有と、パラレル東京の対応地点へ。',
   'id': 'maps',
   'links': [('地図URLを作成 →', './tools/maps/'), ('パラレル東京 →', './tools/demos/world.html#tokyo')]},
