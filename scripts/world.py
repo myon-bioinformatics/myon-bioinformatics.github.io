@@ -1633,7 +1633,7 @@ def _rpg_hud_html(rpg: dict[str, Any] | None) -> str:
     )
 
 
-def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tail: str, floor_labels: str) -> str:
+def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tail: str, floor_labels: str, embedded: bool) -> str:
     """A shell world keeps the page short and says it with icons (the words are the aria-label and title, in 11 languages):
 
     header  the board and the tools of the whole world: 🏠 home, ⭐ favourites, ⚙️ settings, and any emoji of your own (``tools``)
@@ -1654,7 +1654,7 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
         return _tool_html(emoji, tool, wid=wid, spot_rows=lambda ids: rows("", [by_id[i] for i in ids]))
     chips = ("".join(f'<label for="{wid}-cat-{"value-" + c if c else "all"}" data-cat="{c}">{escape(c or "all")}</label>' for c in ["", *categories])
              if categories else "")
-    side = icon("spots", "☰", _wt("places"), (f'<nav class="ui-world-chips">{chips}</nav>' if chips else "") +
+    side = icon("spots", "📍" if embedded else "☰", _wt("places"), (f'<nav class="ui-world-chips">{chips}</nav>' if chips else "") +
                 "".join(rows("ui-world-spots", f["spots"], star=True, data=f' data-floor="{f["id"]}"') for f in floors))
     side += "".join(custom(e, t) for e, t in tools.items() if t["slot"] == "side")
     real = any(f.get("real") for f in floors)
@@ -1689,11 +1689,12 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
             "".join(f'<option value="{f["id"]}"{" selected" if i == 0 else ""}>{escape(f["label"])}</option>' for i, f in enumerate(floors)) +
             '</select></label></footer>') if len(floors) > 1 else ""
     rpg_hud = _rpg_hud_html(world.get("rpg"))
-    return (f'{head}{radios}<header class="ui-world-head">{_board_html(world["board"])}<nav class="ui-world-tools">{header_tools}</nav></header>'
+    toolbar = "div" if embedded else "header"
+    return (f'{head}{radios}<{toolbar} class="ui-world-head">{_board_html(world["board"])}<nav class="ui-world-tools">{header_tools}</nav></{toolbar}>'
             f'{rpg_hud}<div class="ui-world-body">{view}{dpad}<div class="ui-world-side">{side}</div></div>{foot}{tail}')
 
 
-def _map_html(world: dict[str, Any]) -> str:
+def _map_html(world: dict[str, Any], *, embedded: bool = False) -> str:
     wid, floors, shell = world["id"], world["floors"], _world_shell(world)
     rpg = world.get("rpg")
     categories = _world_categories(floors)
@@ -1720,14 +1721,14 @@ def _map_html(world: dict[str, Any]) -> str:
     view = f'<div class="ui-world-view" tabindex="0"><div class="ui-world-cam" style="--fx:0;--fy:0;--z:1">{"".join(stage for stage, _ in built)}</div></div>'
     tail = f'<aside class="ui-sheet" aria-live="polite">{"".join(a for _, articles in built for a in articles)}</aside>{_pick_html(wid, world.get("avatars", []), shell)}{rpg_json}</section>'
     if shell:
-        return _shell_html(world, head=head, radios=radios, view=view, tail=tail, floor_labels=floor_labels)
+        return _shell_html(world, head=head, radios=radios, view=view, tail=tail, floor_labels=floor_labels, embedded=embedded)
     return _classic_html(world, head=head, radios=radios, labels=labels, view=view, tail=tail)
 
 
-def world_html(spec: Any) -> str:
+def world_html(spec: Any, *, embedded: bool = False) -> str:
     """Semantic HTML for a world; every label and body is escaped. Works without JavaScript (scroll, :target, radios)."""
     world = world_validate(spec)
-    return (_shots_html(world) if world["shots"] else "") + (_map_html(world) if world["floors"] else "")
+    return (_shots_html(world) if world["shots"] else "") + (_map_html(world, embedded=embedded) if world["floors"] else "")
 
 
 
@@ -1957,7 +1958,7 @@ def world_css(spec: Any, *, base: bool = True) -> str:
     """
     world = world_validate(spec)
     wid, rules = world["id"], [world_base_css()] if base else []
-    if base and world.get("rpg"):
+    if world.get("rpg"):
         rules.append(_WORLD_RPG_CSS)
     for f in world["floors"]:
         radio = f"#{wid}-floor-{f['id']}"
@@ -2166,7 +2167,17 @@ let follow=false,lx,ly;const walk=bindPlayer(el,floor,p=>{if(follow&&(p[0]!==lx|
 view.addEventListener('pointerdown',shut);
 // ⭐ favourites, 🌐 language and 🏷️ the name layer are all a world keeps, as a small cache in this browser (one key per world, nothing else is written):
 // the emoji you pick and the board messages you post stay in the page.
-const[load,save]=stored('ui-world:'+el.id);
+const slot='ui-world:'+el.id,[loadLocal,saveLocal]=stored(slot),unified=el.closest('[data-world-shell]');
+const [readStars,saveStars]=stored('portfolio-world:favorites/1');
+const load=()=>{const state=loadLocal(),all=unified&&readStars();
+ if(!all)return state;
+ if(Array.isArray(all[el.id]))return {...state,fav:all[el.id]};
+ if(Array.isArray(state.fav))saveStars({[el.id]:state.fav});
+ return state};
+const save=patch=>{if(unified&&Array.isArray(patch.fav)){
+ const {fav,...other}=patch;saveStars({[el.id]:fav});
+ if(Object.keys(other).length)saveLocal(other);
+ }else saveLocal(patch)};
 // 🌐: aria-labels and tooltips in one of eleven languages (data-t names a catalogue word, data-labels carries a tool's own words).
 let lang='ja';const sel=el.querySelector('[data-lang]'),
  say=root=>sayIn(root,lang),
@@ -2233,14 +2244,14 @@ const chars=baseChars+notes.reduce((n,note)=>n+[...note.text].length+6,0);board.
 // 🏠 asks first (the shared dialog: 🏠 goes, ✖️ stays): home resets the floor, the filter and the sheet.
 const goHome=()=>{shut();close();follow=false;allCategories();setFloor(el.querySelector('input[name$="-floor"]')?.value,true);home()};
 el.querySelector('[data-home]')?.addEventListener('click',e=>{e.preventDefault();shut();ask('🏠❓',[{glyph:'🏠',t:'home',value:true}],'home').then(v=>{if(v)goHome()})});
-const close=()=>{open(null);apply();if([...el.querySelectorAll(".ui-sheet-item")].some(i=>"#"+i.id===location.hash))history.replaceState(null,"",location.pathname+location.search)};
+const close=()=>{open(null);apply();if([...el.querySelectorAll(".ui-sheet-item")].some(i=>"#"+i.id===location.hash))history.replaceState(null,"",location.pathname+location.search+(unified?.dataset.worldRoute?'#'+unified.dataset.worldRoute:''))};
 const focusSpot=a=>{allCategories();setFloor(a.closest(".ui-floor").dataset.floor);const zoom=Math.max(z,2);go(Number(a.dataset.x),Number(a.dataset.y)+lift()*z/zoom,zoom)};
 view.addEventListener("pointerdown",e=>{if(e.button!==0)return;pts.set(e.pointerId,[e.clientX,e.clientY]);if(pts.size===1)moved=0;else moved=9;el.dataset.drag=""});
 view.addEventListener("pointermove",e=>{const p=pts.get(e.pointerId);if(!p)return;if(pts.size===1){const dx=e.clientX-p[0],dy=e.clientY-p[1];moved+=Math.abs(dx)+Math.abs(dy);if(moved>8){follow=false;if(!view.hasPointerCapture(e.pointerId))view.setPointerCapture(e.pointerId)}fx-=dx/z;fy-=dy/z;apply()}else if(pts.size===2){const q=[...pts].find(([id])=>id!==e.pointerId)[1],d0=Math.hypot(p[0]-q[0],p[1]-q[1]),d1=Math.hypot(e.clientX-q[0],e.clientY-q[1]);moved+=9;if(d0)z*=d1/d0;apply()}p[0]=e.clientX;p[1]=e.clientY});
 const end=e=>{const tapping=pts.has(e.pointerId)&&pts.size===1&&moved<=8&&e.type==="pointerup"&&view.contains(e.target)&&!e.target.closest("a,button,input");pts.delete(e.pointerId);if(!pts.size)delete el.dataset.drag;if(tapping&&walk&&!confirmMove){const f=floor(),r=f.getBoundingClientRect();walk((e.clientX-r.left)*Number(f.dataset.w)/r.width,(e.clientY-r.top)*Number(f.dataset.h)/r.height)}};
 addEventListener("pointerup",end);addEventListener("pointercancel",end);view.addEventListener("lostpointercapture",end);
 view.addEventListener("wheel",e=>{e.preventDefault();z*=e.deltaY<0?1.1:1/1.1;apply()},{passive:false});
-el.addEventListener("click",e=>{const g=e.target.closest(".ui-world-go");if(g){e.preventDefault();shut();close();setFloor(g.dataset.goFloor);follow=true;lx=ly=undefined;walk(Number(g.dataset.goX),Number(g.dataset.goY));return}const l=e.target.closest(".ui-world-rows a"),a=l?[...el.querySelectorAll(".ui-spot")].find(s=>s.getAttribute("href")===l.getAttribute("href")):e.target.closest(".ui-spot,.ui-actor");if(e.target.closest(".ui-world-rows a,[data-me],[data-pick-open]"))shut();if(a){e.preventDefault();if(l)moved=0;if(e.detail!==0&&moved>8){moved=0;return}const id=a.getAttribute("href").slice(1);if(!l){const sg=a.dataset.sign!==undefined,two=a.dataset.flip;if(sg||two!==undefined){if(a.dataset.own===undefined)a.dataset.own=a.textContent;const cur=a.dataset.show||(sg?"":"label"),next=sg?(cur===""?"label":cur==="label"&&two?"flip":""):(cur==="label"?"flip":"label");if(next)a.dataset.show=next;else delete a.dataset.show;a.textContent=next==="flip"?two:a.dataset.own}}open(id);history.replaceState(null,"","#"+id);if(a.dataset.x!==undefined){focusSpot(a);if(!confirmMove)walk(Number(a.dataset.x),Number(a.dataset.y))}}else if(e.target.closest(".ui-sheet-close")){e.preventDefault();close()}});
+el.addEventListener("click",e=>{const g=e.target.closest(".ui-world-go");if(g){e.preventDefault();shut();close();setFloor(g.dataset.goFloor);follow=true;lx=ly=undefined;walk(Number(g.dataset.goX),Number(g.dataset.goY));return}const l=e.target.closest(".ui-world-rows a"),a=l?[...el.querySelectorAll(".ui-spot")].find(s=>s.getAttribute("href")===l.getAttribute("href")):e.target.closest(".ui-spot,.ui-actor");if(e.target.closest(".ui-world-rows a,[data-me],[data-pick-open]"))shut();if(a){e.preventDefault();if(l)moved=0;if(e.detail!==0&&moved>8){moved=0;return}const id=a.getAttribute("href").slice(1);if(!l){const sg=a.dataset.sign!==undefined,two=a.dataset.flip;if(sg||two!==undefined){if(a.dataset.own===undefined)a.dataset.own=a.textContent;const cur=a.dataset.show||(sg?"":"label"),next=sg?(cur===""?"label":cur==="label"&&two?"flip":""):(cur==="label"?"flip":"label");if(next)a.dataset.show=next;else delete a.dataset.show;a.textContent=next==="flip"?two:a.dataset.own}}open(id);history.replaceState(null,"","#"+id);if(unified)unified.dispatchEvent(new Event("world-location"));if(a.dataset.x!==undefined){focusSpot(a);if(!confirmMove)walk(Number(a.dataset.x),Number(a.dataset.y))}}else if(e.target.closest(".ui-sheet-close")){e.preventDefault();close()}});
 const KEYS={ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0]};
 el.addEventListener("keydown",e=>{if(e.key==="Escape"){close();shut()}const k=KEYS[e.key.length>1?e.key:e.key.toLowerCase()];if(k&&walk.step&&!(e.altKey||e.ctrlKey||e.metaKey)&&!e.target.closest("input,textarea,select,button,a")&&!el.hasAttribute("data-pick")&&!el.hasAttribute("data-ask")&&walk.step(...k))e.preventDefault()});
 el.addEventListener("change",e=>{if(e.target.name&&e.target.name.endsWith("-floor"))home()});

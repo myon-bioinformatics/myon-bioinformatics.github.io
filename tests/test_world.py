@@ -939,7 +939,7 @@ const startSpot=node(), nextSpot=node();startSpot.dataset={x:'64',y:'32'};nextSp
 f.querySelectorAll=s=>s==='.ui-spot[data-x]'?[startSpot,nextSpot]:s==='.ui-spot[data-near]'?[startSpot,nextSpot].filter(a=>a.hasAttribute('data-near')):[];
 other.querySelectorAll=()=>[];
 const radio={value:'one'}, view=node(),cam=node();view.clientWidth=128;view.clientHeight=64;view.contains=t=>t===view;view.closest=()=>null;view.hasPointerCapture=()=>false;view.setPointerCapture=()=>{};
-const el=node();el.isConnected=true;el.dataset.zoomMax=4;
+const el=node();el.isConnected=true;el.dataset.zoomMax=4;el.closest=()=>null;
 el.querySelector=s=>s==='.ui-world-pause'?button:s==='.ui-world-view'?view:s==='.ui-world-cam'?cam:s==='.ui-world-motion-controls'?controls:s==='.ui-board'?board:s.includes('input[name$="-floor"]')?radio:s.includes('data-floor="two"')?other:s==='.ui-floor'||s.includes('data-floor="one"')?f:null;
 el.querySelectorAll=s=>s==='.ui-floor'?[f,other]:[];
 bindMap(el);
@@ -1303,7 +1303,8 @@ def test_the_nogard_sign_stands_by_a_station_and_turns_into_a_dragon(cities):
 
 def test_the_demo_page_and_the_cli_carry_the_cities():
     import project_pages
-    page = project_pages.world_page("cities")                     # 🗼 tools/demos/cities.html
+    import pysaiyanweboo as ui
+    page = project_pages.world_page(ui)                            # 🌍 tools/demos/world.html#tokyo
     for text in ("丸の内中央口", "リバースロンドン", "Fake Paris", "Parallel Tokyo", 'data-category="exit"', 'data-category="terminus"',
                  'data-flip="🐉"'):
         assert text in page

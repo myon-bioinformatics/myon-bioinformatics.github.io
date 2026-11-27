@@ -46,7 +46,9 @@ ASSETS = ('css/base.css', 'css/components.css', 'css/themes/modern.css',
           'js/coordinates.js')
 STYLESHEET_BUNDLES = {'css/bundle.css': 'bundled_css', 'css/core.css': 'core_css'}
 DISTRIBUTION = 'pysaiyanweboo'
-DEMO_BASE = 'tools/demos/'
+WORLD_PAGE = 'tools/demos/world.html'
+# Old bookmarks and PSWB's guide can still enter the canonical world; no other scene is rendered as a document.
+WORLD_REDIRECTS = {'tools/demos/school.html': 'school', 'tools/demos/cities.html': 'tokyo', 'tools/demos/world-shots.html': 'camera'}
 HTML_IMPORT_PAGE = 'tools/html-import/index.html'
 HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
 WORLD_CSS_ASSET = 'tools/world-assets/world.css'
@@ -83,38 +85,18 @@ PSWB_TOOLS = {
     'tools/test-report/index.html': (lambda ui: ui.report_document(), '🧾 テスト結果'),
     'tools/mcp-protocol/index.html': (lambda ui: ui.mcp_document(), '🤝 MCP接続'),
 }
-# 🌍 name -> (how it is built, shortcut label, title, summary), for PySaiyanWeBoo's 🎞 GIF demo; not in the 🧰 Tools cards: they show, they are not tools
-WORLD_PAGES = {
-    'world': (lambda ui: world_page('overworld'), '🌍 ワールド', 'World',
-              'はじまりの村と6つの土地を 🛗 で巡る RPG ワールド：接触会話・落とし物と宝箱（🎒）・ターン制バトル・クエスト・図鑑・クイズ'),
-    'school': (lambda ui: world_page('school'), '🏫 スクール', 'School',
-               '教室を歩く：絵文字を選び、タップ・矢印キー・パッドで机のあいだを移動（机・黒板・棚には入らない）'),
-    'cities': (lambda ui: world_page('cities'), '🗼 パラレル', 'Parallel cities',
-               'パラレル東京・リバースロンドン・フェイクパリ：緯度・経度から、駅から駅へ歩く'),
-    'world-shots': (lambda ui: world_page('world'), '🎬 カメラ', 'World camera',
-                    'ページ遷移なしの1ページ：スクロールで場面、ドラッグ・ホイール・ピンチで地図を動かしスポットを開く'),
-}
-
-
 @functools.lru_cache(maxsize=None)
 def _world() -> ModuleType:
     """🌍 scripts/world.py (the world engine and its specs), loaded once."""
     return load_module('world', 'scripts/world.py')
 
 
-def world_page(name: str) -> str:
-    """🌍 A world spec of scripts/world.py as one page, its body in <main> so the way back has its place (as in Parallel Tokyo)."""
-    data = _world().example_data(name)
-    page = _world().world_document(data)
-    body = '<body data-ui-theme="modern">'
-    if page.count(body) != 1 or page.count('</body>') != 1:
-        raise ValueError(f'world page {name} has no single body')
-    page = page.replace(body, body + '<main>', 1).replace('</body>', '</main></body>', 1)
-    if name == 'cities':
-        import pysaiyanweboo as ui
-        maps = load_module('map_tool', 'scripts/map_tool.py')
-        page = maps.add_map_links(ui, page, maps.tokyo_points(data))
-    return page
+def world_page(ui) -> str:
+    shell = load_module('world_shell', 'scripts/world_shell.py')
+    maps = load_module('map_tool', 'scripts/map_tool.py')
+    css, js = (os.path.relpath(path, os.path.dirname(WORLD_PAGE)).replace(os.sep, '/') for path in WORLD_ASSETS)
+    places = [p for p in tools_places('../../') if p['href'].split('#', 1)[0] != '../../' + WORLD_PAGE]
+    return shell.document(ui, _world(), maps, places, css, js)
 
 
 def installed_commit(distribution: str = DISTRIBUTION) -> str:
@@ -191,7 +173,7 @@ def tools_places(prefix: str = '../../') -> list[dict]:
     Every label is ``emoji words``, one emoji per page (the door knows a page by its emoji): the card's own, or the one named here
     for a link that has none or shares its card's."""
     site, places = 'https://myon-bioinformatics.github.io/tools/', {}
-    marks = {'html-import': '📄', 'maps': '🗺️', 'demos-cities': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'mcp-protocol': '🤝'}
+    marks = {'html-import': '📄', 'maps': '🗺️', 'demos-world-html-tokyo': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'mcp-protocol': '🤝'}
     for card in _front_module().PORTAL:
         mark, _, title = card['title'].partition(' ')
         if not title or any(c.isalnum() for c in mark):                  # a title without an emoji: all of it is words
@@ -306,10 +288,18 @@ def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
     return {'index.html': add_site_chrome(front.document(root, samples=samples), 'index.html', front.LINKS, title='MYON', home=False).encode('utf-8')}
 
 
-def render_demos(ui) -> dict[str, bytes]:
-    """Every 🌍 world page (``WORLD_PAGES``), keyed by published path (two levels below the site root)."""
-    return {DEMO_BASE + name + '.html': add_home_label(add_back_nav(build(ui), DEMO_BASE + name + '.html'), label, icons_from='../../').encode('utf-8')
-            for name, (build, label, _, _) in WORLD_PAGES.items()}
+def render_world(ui) -> dict[str, bytes]:
+    page = add_back_nav(world_page(ui), WORLD_PAGE)
+    pages = {WORLD_PAGE: add_home_label(page, '🌍 ワールド', icons_from='../../').encode('utf-8')}
+    for path, fragment in WORLD_REDIRECTS.items():
+        target = os.path.relpath(WORLD_PAGE, os.path.dirname(path)).replace(os.sep, '/') + '#' + fragment
+        # The actual world paths and fragments above are build-time constants. Transfer only the existing query and hash.
+        redirect = (f'const url=new URL({json.dumps(target)},location.href);'
+                    'url.search=location.search;if(location.hash)url.hash=location.hash;location.replace(url);')
+        pages[path] = (f'<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>ワールドへ移動</title>'
+                       f'<link rel="canonical" href="{target}"></head><body><a href="{target}">🌍 ワールドを開く</a>'
+                       + ui.module_script(redirect) + '</body></html>').encode('utf-8')
+    return pages
 
 
 def render_pswb_tools(ui) -> dict[str, bytes]:
@@ -961,35 +951,14 @@ def render_tools(ui, output: Path | None = None) -> dict[str, bytes]:
     return pages
 
 
-def link_world_assets(ui, page: bytes, path: str) -> bytes:
-    """Move only the common engine; leave scene rules and later page-specific modules in place."""
-    head, end, body = page.partition(b'</head>')
-    world = _world()
-    inline_css = b'<style>@layer components{' + world.world_base_css().encode('utf-8')
-    inline_js = ui.module_script(world.WORLD_JS).encode('utf-8')
-    rpg_js = ui.module_script(world.WORLD_JS + '\n' + world.WORLD_RPG_JS).encode('utf-8')
-    has_rpg = rpg_js in body
-    if has_rpg:
-        inline_js = rpg_js
-    if not end or head.count(inline_css) != 1 or body.count(inline_js) != 1:
-        raise ValueError(f'expected one inline world engine in {path}')
-    css, js = (os.path.relpath(asset, os.path.dirname(path)).replace(os.sep, '/') for asset in WORLD_ASSETS)
-    head = head.replace(inline_css, f'<link rel="stylesheet" href="{css}"><style>@layer components{{'.encode(), 1)
-    engine = f'<script type="module" src="{js}"></script>'
-    if has_rpg:
-        engine += ui.module_script(f'import "{js}";\n' + world.WORLD_RPG_JS)
-    body = body.replace(inline_js, engine.encode(), 1)
-    return ui.stamp_page_size((head + end + body).decode('utf-8')).encode('utf-8')
-
-
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     """Every hash-locked page: the demos and world pages, HTML import, map tools and the GIF workshop, keyed by published path."""
     map_tool = load_module('map_tool', 'scripts/map_tool.py')
-    cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': '../demos/cities.html'}}
+    cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': '../demos/world.html#tokyo'}}
     document = map_tool.map_document(ui, map_tool.tokyo_points(_world().example_data('cities')))
     document = document.replace('<html lang="en">', '<html lang="ja">', 1)
     maps = {MAP_PINS_PAGE: add_home_label(add_back_nav(document, MAP_PINS_PAGE, cities), '地図・ピン', icons_from='../../').encode()}
-    pages = {**render_demos(ui), **render_pswb_tools(ui), **render_html_import(ui), **maps, **render_gif_tool(ui), **render_chat_tool(ui)}
+    pages = {**render_world(ui), **render_pswb_tools(ui), **render_html_import(ui), **maps, **render_gif_tool(ui), **render_chat_tool(ui)}
     for sheet, builder in STYLESHEET_BUNDLES.items():
         prefix = b'<style>' + getattr(ui, builder)().encode()
         for path, page in pages.items():
@@ -999,9 +968,6 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
                 link = f'<link rel="stylesheet" href="{href}">'.encode()
                 head = head.replace(prefix, link + b'<style>', 1).replace(link + b'<style></style>', link, 1)
                 pages[path] = ui.stamp_page_size((head + end + body).decode('utf-8')).encode('utf-8')   # 📦 the page is smaller now
-    for name in WORLD_PAGES:
-        path = DEMO_BASE + name + '.html'
-        pages[path] = link_world_assets(ui, pages[path], path)
     return pages
 
 
@@ -1015,7 +981,7 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
     if set(lock['outputs']) != {HTML_IMPORT_MODULE, *WORLD_ASSETS, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
-    expected = ({HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, MAP_PINS_PAGE, *PSWB_TOOLS} | {DEMO_BASE + name + '.html' for name in WORLD_PAGES})
+    expected = {HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, MAP_PINS_PAGE, WORLD_PAGE, *WORLD_REDIRECTS, *PSWB_TOOLS}
     if set(lock.get('pages', {})) != expected:
         raise ValueError('generated page paths differ from the tool and world lists')
     if ui is None:

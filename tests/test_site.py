@@ -153,7 +153,7 @@ def test_a_tools_card_shows_its_moving_sample_and_the_picture_opens_the_tool(tmp
     cards = front.portal_cards(frozenset({"tools/gif", "tools/operations", "tools/maps", "gif", "tools/no-such-tool"}))
     assert cards.count('class="project-sample"') == 3
     assert "GIF をつくる →" not in cards and "Open Dashboard →" not in cards and ">実験室へ →</a>" in cards        # one page: the picture; no picture: the words
-    assert ('<a href="./tools/maps/">地図URLを作成 →</a><a href="./tools/demos/cities.html">パラレル東京 →</a>' in cards
+    assert ('<a href="./tools/maps/">地図URLを作成 →</a><a href="./tools/demos/world.html#tokyo">パラレル東京 →</a>' in cards
             and '<a class="project-sample" href="./tools/maps/">' in cards)                                    # relatives stay side by side
     everything = front.portal_cards(frozenset(f"tools/{key}" for key in ids))
     several = [card for card in front.PORTAL if len(card["links"]) > 1]
@@ -339,13 +339,13 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
         assert not any(f'/tools/{name}/' in href.lower() for _, href in links for name in names), card['title']
 
 
-# PySaiyanWeBoo's tool documents (PSWB_TOOLS) and the 🌍 world pages (WORLD_PAGES, tools/demos/) come from scripts/project_pages.py; they are tool pages too.
+# PySaiyanWeBoo's tool documents (PSWB_TOOLS) and the 🌍 world pages (WORLD_PAGE, tools/demos/) come from scripts/project_pages.py; they are tool pages too.
 TOOL_PAGES = ("tools/html-import/index.html",
               *(("tools/mcp/index.html", "tools/mcp/repository-diagnostics.html") if LAB_BUILT else ()),
               "tools/maps/index.html", "tools/gif/index.html", "tools/chat/index.html", "tools/flow/index.html",
               "tools/test-report/index.html", "tools/mcp-protocol/index.html",
               "tools/repo-map/index.html",
-              *sorted(str(path.relative_to(SITE)) for path in (SITE / "tools/demos").glob("*.html")))
+              PAGES.WORLD_PAGE)
 
 
 def test_tools_built_from_other_repositories_never_404():
@@ -456,8 +456,9 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_adds_what_it_l
             if href.startswith('https://'):
                 assert href == 'https://myon-bioinformatics.github.io/myon-bioinformatics/', href      # 🧭 another repository's Pages
                 continue
-            target = (SITE / name).parent / href
-            assert (target / 'index.html' if href.endswith('/') else target).resolve().is_file(), (name, href)
+            path = urlparse(href).path
+            target = (SITE / name).parent / path
+            assert (target / 'index.html' if path.endswith('/') else target).resolve().is_file(), (name, href)
         doors = re.findall(r'<option value="([^"]+)"( selected disabled)?>([^<]+)</option>', page[page.index('<div class="ui-door-foot">'):page.index(module[1])])
         assert doors[0] == (f'{prefix}index.html#tools', '', '🏠 Tools') and [href for href, _, _ in doors[1:1 + len(rows)]] == [href for href, _ in rows], name   # 🚪 = 🏠 + the tools
         here = [(href, words) for href, mark, words in doors if mark]              # the door you came in by: this very page
@@ -465,7 +466,7 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_adds_what_it_l
         assert len(doors) == 1 + len(rows) + (here[0][1].startswith('📌 ')), name   # 📌 a page that is no tool of the cards is its own door
         assert len({words.split(' ')[0] for _, _, words in doors}) == len(doors), name                    # one emoji, one page
     maps = (SITE / 'tools/maps/index.html').read_text(encoding='utf-8')            # 🗼 an emoji a page adds for its own use
-    assert '<a class="ui-world-tool" href="../demos/cities.html" aria-label="パラレル都市"' in maps
+    assert '<a class="ui-world-tool" href="../demos/world.html#tokyo" aria-label="パラレル都市"' in maps
     assert '>🗼</summary>' not in (SITE / 'tools/gif/index.html').read_text(encoding='utf-8')
 
 
@@ -1771,20 +1772,22 @@ def test_portfolio_worlds_share_one_engine_and_standalone_stays_self_contained()
     assert (SITE / css).read_text(encoding='utf-8') == '@layer components{' + world.world_base_css() + '}'
     css_link = '<link rel="stylesheet" href="../world-assets/world.css">'
     js_link = '<script type="module" src="../world-assets/world.js"></script>'
-    pages = [f'tools/demos/{name}.html' for name in PAGES.WORLD_PAGES]
-    for path in pages:
-        page = (SITE / path).read_text(encoding='utf-8')
-        assert page.count(css_link) == page.count(js_link) == 1
-        assert page.index('css/bundle.css') < page.index(css_link)
-        assert page.split(css_link, 1)[1].startswith('<style>@layer components{')
-        assert world.world_base_css() not in page and world.WORLD_JS not in page
-    cities = (SITE / 'tools/demos/cities.html').read_text(encoding='utf-8')
-    assert cities.index(js_link) < cities.index('js/coordinates.js') < cities.index("getElementById('tokyo-range')")
-    assert cities.count('class="ui-button map-point-link"') == 21
-    overworld = (SITE / 'tools/demos/world.html').read_text(encoding='utf-8')
-    assert overworld.index(js_link) < overworld.index('export function bindRpgWorlds')
-    assert all('export function bindRpgWorlds' not in (SITE / path).read_text(encoding='utf-8')
-               for path in pages if path != 'tools/demos/world.html')
+    page = (SITE / PAGES.WORLD_PAGE).read_text(encoding='utf-8')
+    files = {str(p.relative_to(SITE)) for p in (SITE / 'tools/demos').glob('*.html')}
+    assert files == {PAGES.WORLD_PAGE, *PAGES.WORLD_REDIRECTS}
+    for path, fragment in PAGES.WORLD_REDIRECTS.items():
+        alias = (SITE / path).read_text(encoding='utf-8')
+        assert f'href="world.html#{fragment}"' in alias and 'location.replace(url)' in alias
+        assert 'data-world-shell' not in alias and len(alias.encode('utf-8')) < 600
+    assert page.count(css_link) == page.count(js_link) == 1
+    assert page.index('css/bundle.css') < page.index(css_link)
+    assert world.world_base_css() not in page and world.WORLD_JS not in page
+    assert page.index(js_link) < page.index('export function bindRpgWorlds') < page.index('js/coordinates.js')
+    assert page.index('js/coordinates.js') < page.index("getElementById('tokyo-range')")
+    assert page.count('class="ui-button map-point-link"') == 21
+    assert page.count('id="world-switcher"') == page.count('id="world-favorites"') == 1
+    for route in ('world', 'school', 'tokyo', 'london', 'paris', 'camera'):
+        assert f'href="#{route}"' in page and f'id="{route}"' in page
     standalone = world.world_document(world.example_data('school'))
     assert world.world_base_css() in standalone and ui.module_script(world.WORLD_JS) in standalone
     assert 'world-assets/' not in standalone
