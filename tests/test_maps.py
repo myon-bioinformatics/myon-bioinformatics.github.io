@@ -625,7 +625,7 @@ def test_shop_rumor_and_optional_world_dialogue(site, browser):
             assert expected in page.evaluate('window.dialogueMessages[0].content')
         card.get_by_label('話しかける').fill('探索の巻物の効果は？')
         card.get_by_role('button', name='送る').click()
-        expect(evidence).to_contain_text('探索の巻物 → 攻撃対象 → 敵')
+        expect(evidence).to_contain_text('探索の巻物 → 発見対象 → 未取得のどうぐ')
         assert '竜の巻物' not in evidence.inner_text()
         card.locator('.ui-rpg-close').click()
         village.locator('[data-rpg-journal-btn]').click()
@@ -636,5 +636,64 @@ def test_shop_rumor_and_optional_world_dialogue(site, browser):
         assert saved['version'] == 4
         assert [saved['data'][f'topic{i}'] for i in (1, 2, 3)] == [13, 11, 11]
         assert len(loads) == 1
+    finally:
+        page.close()
+
+
+def test_reusable_scrolls_in_field_and_battle(site, browser):
+    import re
+    import pysaiyanweboo as ui
+
+    page = browser.new_page(reduced_motion='reduce')
+    try:
+        page.goto(site[1] + '/tools/demos/world.html#world')
+        world = page.locator('#overworld-map')
+        world.locator('[data-emoji="🧙"]').click()
+        world.locator('[data-rpg-journal-btn]').click()
+        world.get_by_role('button', name='💾 セーブ').click()
+        world.get_by_text('セーブ文字列を作る', exact=True).click()
+        box = world.get_by_label('冒険データ')
+        saved = ui.save_state(box.input_value())
+        # A pre-change save collected and spent the exploration scroll.
+        saved.update(version=4)
+        saved['data'].update({'looted:meadow-drop-scroll': 1, 'dragonScroll': 1, 'dragonExp': 20, 'seed': 1})
+        box.fill(ui.save_text(saved))
+        world.get_by_role('button', name='読み込む').click()
+        expect(world.get_by_text('冒険データを復元しました')).to_be_visible()
+        world.locator('.ui-rpg-close').click()
+        menu = page.locator('#world-switcher')
+        herb = world.locator('.ui-spot[href="#overworld-spot-meadow-drop-herb"]')
+        for _ in range(2):
+            menu.get_by_role('button', name='📜 探索の巻物').click()
+            expect(herb).to_have_attribute('data-scroll-found', '')
+        assert world.locator('.ui-spot[href="#overworld-spot-meadow-drop-scroll"][data-scroll-found]').count() == 0
+        world.locator('[data-rpg-explore]').click()
+        battle = world.locator('.ui-rpg-battle')
+        hp = battle.locator('.ui-rpg-foe-meta').filter(has_text='HP').inner_text()
+        for _ in range(2):
+            battle.get_by_role('button', name='💡 ヒント').click()
+            expect(battle.locator('.ui-rpg-log')).to_contain_text('弱点')
+        for result in ('1個拾った', '見つからなかった'):
+            battle.get_by_role('button', name='探索の巻物', exact=False).click()
+            expect(battle.locator('.ui-rpg-log')).to_contain_text(result)
+            assert battle.locator('.ui-rpg-foe-meta').filter(has_text='HP').inner_text() == hp
+        battle.get_by_role('button', name='💡 ヒント').click()
+        expect(battle.locator('.ui-rpg-log')).to_contain_text('次は強攻撃')
+        battle.get_by_role('button', name='📜 竜の巻物').click()
+        expect(battle.locator('.ui-rpg-log')).to_contain_text('ドラゴンの加勢')
+        assert battle.locator('.ui-rpg-foe-meta').filter(has_text='HP').inner_text() != hp
+        battle.locator('.ui-rpg-close').click()
+        menu.get_by_role('button', name='📜 竜の巻物').click()
+        expect(page.get_by_role('dialog', name='竜の巻物')).to_be_visible()
+        page.get_by_role('dialog', name='竜の巻物').get_by_role('button', name='閉じる').click()
+        world.locator('[data-rpg-journal-btn]').click()
+        world.get_by_role('button', name='💾 セーブ').click()
+        world.get_by_text('セーブ文字列を作る', exact=True).click()
+        data = ui.save_state(box.input_value())
+        assert data['version'] == 5 and data['data']['found:herb'] == 1
+        world.get_by_text('復活の呪文を作る', exact=True).click()
+        expect(box).to_have_value(re.compile('[ぁ-ヶ]'))
+        world.get_by_role('button', name='読み込む').click()
+        expect(world.get_by_text('冒険データを復元しました')).to_be_visible()
     finally:
         page.close()
