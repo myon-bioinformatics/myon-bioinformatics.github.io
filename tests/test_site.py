@@ -393,7 +393,8 @@ def test_tools_built_from_other_repositories_never_404():
                 assert 'data-testid="portfolio-back"' in html and '⏸' not in html, name
                 continue
             assert '⏸' in html and f'https://github.com/{repository}' in html, name
-            assert f'<a href="{"../" * name.count("/")}index.html#tools">' in html, name
+            # the way back: the standalone link, or (a studio page) the header's 🏠, whose markup is PySaiyanWeBoo's to choose
+            assert re.search(rf'<a (?:class="ui-world-home" )?href="{"../" * name.count("/")}index\.html#tools"', html), name
     front = LinkParser()
     front.feed((SITE / "index.html").read_text(encoding="utf-8"))
     assert "./tools/heatmap/" in front.links                                         # 🌡️ the 🧰 Tools card opens it
