@@ -345,7 +345,7 @@ TOOL_PAGES = ("tools/html-import/index.html",
               "tools/maps/index.html", "tools/gif/index.html", "tools/chat/index.html", "tools/flow/index.html",
               "tools/test-report/index.html", "tools/mcp-protocol/index.html",
               "tools/repo-map/index.html",
-              *sorted(str(path.relative_to(SITE)) for path in (SITE / "tools/demos").glob("*.html")))
+              PAGES.WORLD_PAGE)
 
 
 def test_tools_built_from_other_repositories_never_404():
@@ -1773,7 +1773,12 @@ def test_portfolio_worlds_share_one_engine_and_standalone_stays_self_contained()
     css_link = '<link rel="stylesheet" href="../world-assets/world.css">'
     js_link = '<script type="module" src="../world-assets/world.js"></script>'
     page = (SITE / PAGES.WORLD_PAGE).read_text(encoding='utf-8')
-    assert sorted(p.name for p in (SITE / 'tools/demos').glob('*.html')) == ['world.html']
+    files = {str(p.relative_to(SITE)) for p in (SITE / 'tools/demos').glob('*.html')}
+    assert files == {PAGES.WORLD_PAGE, *PAGES.WORLD_REDIRECTS}
+    for path, fragment in PAGES.WORLD_REDIRECTS.items():
+        alias = (SITE / path).read_text(encoding='utf-8')
+        assert f'href="world.html#{fragment}"' in alias and 'location.replace(url)' in alias
+        assert 'data-world-shell' not in alias and len(alias.encode('utf-8')) < 600
     assert page.count(css_link) == page.count(js_link) == 1
     assert page.index('css/bundle.css') < page.index(css_link)
     assert world.world_base_css() not in page and world.WORLD_JS not in page
