@@ -245,7 +245,8 @@ def add_site_chrome(page: str, path: str | None = None, tools: dict | None = Non
     title and where 🚪 🏠 lead; a placeholder until the page says what it is).
 
     🌍 A world page already has the header and the side (``<header class="ui-world-head">``: its own board and menus, the same
-    parts), so it gets what it lacks: 🫧 in that header and the foot.
+    parts), so it gets what it lacks: 🫧 in that header (in each scene's, when one page holds several: the school and the cities
+    have it like the village) and the foot.
 
     🎨 Every page is published in one look: the shared sheet's ``modern`` theme, the front page's default. A page built with
     another palette on its ``<body>`` (Ironmate's studios: green; the MCP lab: terminal or github-like) is switched to it, and the
@@ -275,7 +276,7 @@ def add_site_chrome(page: str, path: str | None = None, tools: dict | None = Non
     hide = rows['replaces'] + '{display:none}' if rows.get('replaces') else ''
     page = ui.add_part(page, {'css': face['css'] + '.ui-world-head .ui-gaze{flex:none;margin:0 4px}main>nav.ui-back{grid-column:1/-1}' + hide, 'js': face['js']})
     if world:
-        page = page.replace(tools_nav, face['html'] + tools_nav, 1)                                # 🫧 after the world's own board
+        page = page.replace(tools_nav, face['html'] + tools_nav)                                   # 🫧 after each scene's own board (one shows at a time)
     else:
         head['html'] = head['html'].replace(tools_nav, face['html'] + tools_nav, 1)               # 🫧 after the board
         page = ui.add_part(page, head, at='top', scope=None if own else '.ui-chrome')
