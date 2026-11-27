@@ -274,7 +274,7 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 地図URL・ピン留めのページは 🗼（パラレル都市）を足しています。
 
 ```python
-add_back_nav(page, 'tools/maps/index.html', {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': '../demos/cities.html'}})
+add_back_nav(page, 'tools/maps/index.html', {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': '../demos/world.html#tokyo'}})
 ```
 
 ![Tools の共通ヘッダー：☰（このページと見出し）で ☆ を付け、⭐ に並び、🌐 を English にして次の道具へ移っても両方が引き継がれ、⭐ から見出しへ戻る（Chromium 560×480）](docs/evidence/tools-chrome.gif)

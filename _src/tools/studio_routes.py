@@ -54,14 +54,14 @@ def stage_ironmate_studios(built: Path, mapped: Path, add_navigation: Callable[[
         if not path.is_file() or path.name == '.nojekyll':
             continue
         source = path.relative_to(built).as_posix()
+        if source == 'brand/index.html':   # 🚫 Ironmate's own forward to its tools/#brand; here they are browser-tools/ (the folder keeps the manifest and icons)
+            continue
         target = mapped / _studio_path(source)
         target.parent.mkdir(parents=True, exist_ok=True)
         if path.suffix == '.html':
             page = _STUDIO_LINK.sub(lambda m: m['attr'] + m['quote'] + _studio_href(source, m['url']) + m['quote'],
                                     path.read_text(encoding='utf-8'))
-            if source != 'brand/index.html':
-                page = add_navigation(page, 'tools/' + _studio_path(source))
-            target.write_text(page, encoding='utf-8')
+            target.write_text(add_navigation(page, 'tools/' + _studio_path(source)), encoding='utf-8')
         elif source == 'brand/manifest.webmanifest':
             manifest = json.loads(path.read_text(encoding='utf-8'))
             # One shared app can open its two sibling tools under /tools/.

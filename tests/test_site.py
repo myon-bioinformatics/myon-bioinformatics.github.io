@@ -426,6 +426,7 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
         " p = root / name; p.parent.mkdir(parents=True, exist_ok=True); p.write_text('<main>' + text + '</main>')\n"
         "(root / 'studio.js').write_text('shared')\n"
         "(root / 'brand').mkdir()\n"
+        "(root / 'brand/index.html').write_text('<meta http-equiv=\\\"refresh\\\" content=\\\"0;url=../tools/#brand\\\">')\n"
         "(root / 'brand/manifest.webmanifest').write_text('{\\\"shortcuts\\\":[{\\\"url\\\":\\\"../slides/\\\"}]}')\n",
         encoding='utf-8',
     )
@@ -442,6 +443,7 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
     assert 'href="../../image-studio/"' in phone and 'src="../../image-studio/studio.js"' in phone
     assert 'href="../../../index.html#tools"' in phone
     assert (tools / 'image-studio/studio.js').read_text() == 'shared'
+    assert not (tools / 'image-studio/brand/index.html').exists()            # 🚫 Ironmate's forward page is not published here
     manifest = json.loads((tools / 'image-studio/brand/manifest.webmanifest').read_text())
     assert manifest['scope'] == '../../'
     assert manifest['shortcuts'] == [{'url': '../../slide-studio/'}]
@@ -1839,11 +1841,7 @@ def test_portfolio_worlds_share_one_engine_and_standalone_stays_self_contained()
     js_link = '<script type="module" src="../world-assets/world.js"></script>'
     page = (SITE / PAGES.WORLD_PAGE).read_text(encoding='utf-8')
     files = {str(p.relative_to(SITE)) for p in (SITE / 'tools/demos').glob('*.html')}
-    assert files == {PAGES.WORLD_PAGE, *PAGES.WORLD_REDIRECTS}
-    for path, fragment in PAGES.WORLD_REDIRECTS.items():
-        alias = (SITE / path).read_text(encoding='utf-8')
-        assert f'href="world.html#{fragment}"' in alias and 'location.replace(url)' in alias
-        assert 'data-world-shell' not in alias and len(alias.encode('utf-8')) < 600
+    assert files == {PAGES.WORLD_PAGE}                               # 🌍 one document; the scenes are its #school, #tokyo, #camera
     assert page.count(css_link) == page.count(js_link) == 1
     assert page.index('css/bundle.css') < page.index(css_link)
     assert world.world_base_css() not in page and world.WORLD_JS not in page
