@@ -168,6 +168,11 @@ jobs:
           const browser = await chromium.launch();
           try {
             const page = await browser.newPage();
+            await page.addInitScript(() => {
+              window.compositionPolicyViolations = [];
+              document.addEventListener('securitypolicyviolation', event =>
+                window.compositionPolicyViolations.push(event.effectiveDirective + ': ' + event.blockedURI));
+            });
             await page.goto('http://127.0.0.1:8000/tools/browser-tools/#composition');
             // ⏸ Until Ironmate's default branch has the arrangement editor, there is no audio to exercise (publish_composition.py waits too).
             const editor = await page.locator('#song-parts').count() > 0;
@@ -222,6 +227,7 @@ jobs:
               return Math.abs(hz - 293.665) < 15;
             }, null, { timeout: 6000 });
             await page.locator('#song-stop').click();
+            assert.deepEqual(await page.evaluate(() => window.compositionPolicyViolations), []);
 
             const stalled = await browser.newPage();
             await stalled.route('**/tone-studio.min.js', route => route.fulfill({

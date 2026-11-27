@@ -29,9 +29,24 @@ def build(out):
     os.chdir(HERE)  # esbuild resolves the stdin entry's 'tone' from the working directory
     with tempfile.TemporaryDirectory() as tmp:
         meta = Path(tmp) / "meta.json"
+        # Use lazy submodules so the eager package entry cannot start a Blob worker.
+        entry = """import {Context} from 'tone/build/esm/core/context/Context.js';
+import {getContext, setContext, start as startTone} from 'tone/build/esm/core/Global.js';
+export {Synth} from 'tone/build/esm/instrument/Synth.js';
+export {getContext};
+export const now = () => getContext().now();
+let configured = false;
+export function start() {
+    if (!configured) {
+        setContext(new Context({clockSource: 'timeout'}));
+        configured = true;
+    }
+    return startTone();
+}
+"""
         _node("node_modules/esbuild/bin/esbuild", "--bundle", "--minify", "--format=esm", "--platform=browser", "--target=es2022",
               "--legal-comments=eof", "--log-level=warning", f"--metafile={meta}", f"--outfile={out / 'tone-studio.min.js'}",
-              input="export {" + ", ".join(exports) + "} from 'tone';\n")
+              input=entry)
         inputs = json.loads(meta.read_text(encoding="utf-8"))["inputs"]
     packages = sorted({m.group(1) for m in (re.search(r"node_modules/((?:@[^/]+/)?[^/]+)", name) for name in inputs) if m})
     licenses = []
