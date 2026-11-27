@@ -551,3 +551,43 @@ def test_london_dragon_care_and_colors(site, browser):
         expect(fill).to_have_value('#ffffff')
     finally:
         page.close()
+
+
+def test_shop_rumor_and_optional_world_dialogue(site, browser):
+    page = browser.new_page()
+    loads = []
+    try:
+        def engine(route):
+            loads.append(route.request.url)
+            route.fulfill(content_type='text/javascript', headers={'Access-Control-Allow-Origin': '*'}, body="""
+              export class Wllama {
+                async loadModelFromUrl(){}
+                async createChatCompletion({messages,onData}){
+                  window.dialogueMessages=messages;
+                  onData({choices:[{delta:{content:'木の看板の陰をのぞいてごらん。'}}]});
+                }
+              }
+            """)
+        page.route('**/wllama@*/esm/index.js', engine)
+        page.goto(site[1] + '/tools/demos/world.html#world')
+        village = page.locator('#overworld-map')
+        village.locator('[data-emoji="🧙"]').click()
+        village.locator('[data-menu="spots"] summary').click()
+        village.locator('.ui-world-spots a[href="#overworld-spot-meadow-npc-smith"]').click()
+        village.locator('[data-rpg-spot="meadow-npc-smith"]').click()
+        card = village.get_by_role('dialog', name='道具屋の店主')
+        card.get_by_role('button', name='サツマイモは誰にあげるといい？').click()
+        rumor = card.locator('.ui-rpg-text').inner_text().split('] ', 1)[1]
+        assert all(word in rumor for word in ('ドラゴン', '好き', 'リバースロンドン', '木の看板'))
+        assert '回' not in rumor and '経験値' not in rumor
+        card.get_by_text('もっと話す').click()
+        assert loads == []
+        card.get_by_label('話しかける').fill('おいもは誰が好き？')
+        card.get_by_role('button', name='送る').click()
+        expect(card.get_by_text('木の看板の陰をのぞいてごらん。')).to_be_visible()
+        messages = page.evaluate('window.dialogueMessages')
+        assert rumor in messages[0]['content'] and '道具屋の店主' in messages[0]['content']
+        assert messages[1]['content'] == 'おいもは誰が好き？'
+        assert len(loads) == 1
+    finally:
+        page.close()

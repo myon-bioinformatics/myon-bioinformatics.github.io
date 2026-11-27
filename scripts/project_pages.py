@@ -96,7 +96,9 @@ def world_page(ui) -> str:
     maps = load_module('map_tool', 'scripts/map_tool.py')
     css, js = (os.path.relpath(path, os.path.dirname(WORLD_PAGE)).replace(os.sep, '/') for path in WORLD_ASSETS)
     places = [p for p in tools_places('../../') if p['href'].split('#', 1)[0] != '../../' + WORLD_PAGE]
-    return shell.document(ui, _world(), maps, places, css, js)
+    runtime = {key: _chat().RUNTIME[key] for key in ('wllama', 'model')}
+    dialogue = WLLAMA_JS + f'\nconst worldAnswer = localModel({json.dumps(runtime)});\n'
+    return shell.document(ui, _world(), maps, places, css, js, dialogue)
 
 
 def installed_commit(distribution: str = DISTRIBUTION) -> str:
@@ -628,29 +630,44 @@ _CHAT_SLOT = '💬chat-slot'
 CHAT_CSS = '.ui-step [data-chat-say]{margin-top:8px}'    # 📇 the index's "💬 送る"; the chat itself is PySaiyanWeBoo's (chat.css)
 # 💬 the page's part of the chat: the bubbles, Enter, chips and 😀 reactions are PySaiyanWeBoo's chat component (chat.js, webUiChat);
 # here are only the bot (chat.py in Pyodide), 🤖 /ask (wllama) and the index's buttons
-CHAT_JS = r"""const $ = (s) => document.querySelector(s);
+WLLAMA_JS = r"""
+function localModel(runtime){
+ let llm=null,busy=false;
+ return async(messages,show,limit=256)=>{
+  if(busy)throw new Error("生成中です");
+  busy=true;
+  try{
+   if(!llm){
+    show("⏳ 🤖 llama.cpp…");
+    const {Wllama}=await import(runtime.wllama+"index.js");
+    const engine=new Wllama({default:runtime.wllama+"wasm/wllama.wasm"});
+    try{
+     await engine.loadModelFromUrl(runtime.model,{n_ctx:2048,progressCallback:({loaded,total})=>
+      show(`⏳ 🤖 ${total?Math.round(100*loaded/total):0}% · ${Math.round(loaded/2**20)} / ${Math.round(total/2**20)} MB`)});
+    }catch(error){await engine.exit?.();throw error}
+    llm=engine;
+   }
+   let output="",tokens=0;
+   const start=performance.now();
+   await llm.createChatCompletion({messages,max_tokens:limit,temperature:0.3,stream:true,
+    chat_template_kwargs:{enable_thinking:false},onData:chunk=>{
+     output+=chunk.choices?.[0]?.delta?.content??"";tokens++;show(output);
+    }});
+   return {output,tokens,seconds:(performance.now()-start)/1000,llm};
+  }finally{busy=false}
+ };
+}
+"""
+
+CHAT_JS = WLLAMA_JS + r"""const $ = (s) => document.querySelector(s);
 const cfg = JSON.parse($("#chat-config").textContent);
 const [chat] = webUiChat.bindChat(document);
-let bot = null, llm = null;
-async function ask(text, reply) {                      // 🤖 /ask: llama.cpp in WebAssembly (wllama), the model loaded once
-  if (!llm) {
-    reply.text("⏳ 🤖 llama.cpp…");
-    const {Wllama} = await import(cfg.runtime.wllama + "index.js");
-    llm = new Wllama({default: cfg.runtime.wllama + "wasm/wllama.wasm"});
-    await llm.loadModelFromUrl(cfg.runtime.model, {n_ctx: 2048, progressCallback: ({loaded, total}) => {
-      reply.text(`⏳ 🤖 ${total ? Math.round(loaded / total * 100) : 0}% · ${Math.round(loaded / 2 ** 20)} / ${Math.round(total / 2 ** 20)} MB`);
-    }});
-  }
-  let output = "", tokens = 0;
-  const started = performance.now();
-  await llm.createChatCompletion({messages: JSON.parse(bot.ask_messages(text)), max_tokens: 256, temperature: 0.3, stream: true,
-    chat_template_kwargs: {enable_thinking: false}, onData: (chunk) => {
-      output += chunk.choices?.[0]?.delta?.content ?? "";
-      tokens += 1;
-      reply.text(output);
-    }});
-  return bot.ask_html.callKwargs(output, tokens, (performance.now() - started) / 1000,
-                                 {threads: llm.isMultithread() ? navigator.hardwareConcurrency : 1, webgpu: llm.isSupportWebGPU()});
+let bot = null;
+const generateAnswer=localModel(cfg.runtime);
+async function ask(text,reply){
+ const {output,tokens,seconds,llm}=await generateAnswer(JSON.parse(bot.ask_messages(text)),s=>reply.text(s));
+ return bot.ask_html.callKwargs(output,tokens,seconds,
+     {threads:llm.isMultithread()?navigator.hardwareConcurrency:1,webgpu:llm.isSupportWebGPU()});
 }
 chat.respond = (text, reply) => /^\/ask(\s|$)/i.test(text.trim()) ? ask(text, reply) : bot.reply_html(text);
 document.addEventListener("click", (event) => {         // 📇 a step of the index (beside the chat) sends its command there

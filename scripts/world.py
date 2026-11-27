@@ -659,7 +659,7 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
         raise ValueError("rpg npcs maps up to 64 spot or actor ids")
     npcs: dict[str, dict[str, Any]] = {}
     for sid, entry in npcs_in.items():
-        if sid not in spot_ids or not isinstance(entry, dict) or set(entry) - {"speaker", "emoji", "greeting", "lines", "on_contact", "heal", "shop", "quiz"}:
+        if sid not in spot_ids or not isinstance(entry, dict) or set(entry) - {"speaker", "emoji", "greeting", "lines", "topic", "on_contact", "heal", "shop", "quiz"}:
             raise ValueError(f"rpg npc {sid!r} must reference an existing spot or actor")
         lines = entry.get("lines", [])
         if not isinstance(lines, list) or len(lines) > 8:
@@ -667,10 +667,14 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
         for flag in ("on_contact", "heal", "shop", "quiz"):
             if flag in entry and not isinstance(entry[flag], bool):
                 raise ValueError(f"rpg npc {flag} must be bool")
+        topic = entry.get("topic")
+        if topic is not None and (not isinstance(topic, dict) or set(topic) != {"question", "answer"}):
+            raise ValueError("npc topic requires a question and an answer")
         npcs[sid] = {"speaker": _world_text(entry.get("speaker"), "speaker", 40),
                      "emoji": _world_emoji(entry.get("emoji")),
                      "greeting": _world_text(entry.get("greeting"), "greeting", 200),
                      "lines": [_world_text(line, "line", 240) for line in lines],
+                     **({"topic": {k: _world_text(v, k, 240) for k, v in topic.items()}} if topic else {}),
                      **({"on_contact": True} if entry.get("on_contact") else {}),
                      **({"heal": True} if entry.get("heal") else {}),
                      **({"shop": True} if entry.get("shop") else {}),
@@ -2570,6 +2574,8 @@ export function bindWorldRpg(el){
   fill.oninput=()=>{state.dragonFill=parseInt(fill.value.slice(1),16)+1;syncDragon()};
   const reset=rpgEl("button",{type:"button",textContent:"元の色に戻す",onclick:()=>{state.dragonHue=0;state.dragonFill=0;syncDragon()}});
   const care=rpgEl("div",{className:"dragon-care"},pet,mood,rpgEl("label",{},"体色 ",hue),rpgEl("label",{},"背景 ",fill),reset,art.querySelector("a").cloneNode(true));
+  const chat=talkMore("リバースロンドンのドラゴン",()=>`今の様子：${mood.textContent||"看板から顔を出している"}。ドラゴン経験値：${state.dragonExp}`);
+  if(chat)care.append(chat);
   sheet.querySelector(".ui-sheet-close").before(care);syncDragon();
   cityButton("london","🍠 ドラゴンにあげる",()=>{
    if(sign.dataset.show!=="flip")return "nogardの看板のドラゴンを探してください";
@@ -2577,6 +2583,24 @@ export function bindWorldRpg(el){
    state.dragonExp+=foodExp;react("😋","ほくほくのサツマイモをぺろり！");return `🐉 ドラゴン経験値 +${foodExp}（累計 ${state.dragonExp}）`;
   });
   cityTools.append(note);cities.addEventListener("change",()=>{note.textContent=""});
+ }
+ function talkMore(speaker,context){
+  if(typeof worldAnswer!=="function")return null;
+  const form=rpgEl("form"),input=rpgEl("input",{maxLength:160,required:true,"aria-label":"話しかける",placeholder:"何を聞いてみる？"});
+  const send=rpgEl("button",{type:"submit",textContent:"送る"}),reply=rpgEl("p",{"aria-live":"polite"});
+  form.append(input,send,reply);
+  form.onsubmit=async e=>{
+   e.preventDefault();const question=input.value.trim();if(!question||send.disabled)return;
+   send.disabled=true;
+   try{
+    const rumor=rpg.npcs["meadow-npc-smith"]?.topic?.answer||"";
+    const messages=[{role:"system",content:`あなたは${speaker}。次の台詞と今の様子をもとに、日本語で短くひと言返して。知らないことは知らないと答えて。アイテムや報酬を与えたことにはしない。村で聞ける噂：${rumor}\n${context()}`},{role:"user",content:question}];
+    const result=await worldAnswer(messages,s=>{reply.textContent=s},96);
+    if(!result.output.trim())throw new Error("empty answer");
+   }catch{reply.textContent="今はうまくおしゃべりできないみたい。"}
+   finally{send.disabled=false}
+  };
+  return rpgEl("details",{},rpgEl("summary",{textContent:"もっと話す"}),rpgEl("small",{textContent:"初回送信時に約560 MBのモデルを読み込みます。"}),form);
  }
  const closeModal=()=>{overlay.hidden=true;overlay.replaceChildren();el.querySelector(".ui-world-view")?.focus({preventScroll:true})};
  const showCard=(card)=>{overlay.replaceChildren(card);overlay.hidden=false;const focusable=card.querySelector("[data-primary],button");focusable?.focus({preventScroll:true})};
@@ -2646,7 +2670,7 @@ export function bindWorldRpg(el){
  const openNpcDialog=(spotId,pageIdx=-1)=>{
   const npc=rpg.npcs[spotId];if(!npc)return;
   state.talked.add(spotId);checkQuests();
-  const pages=[npc.greeting,...npc.lines];
+  const pages=[npc.greeting,...npc.lines,...(npc.topic?[npc.topic.answer]:[])];
   let idx=pageIdx>=0?Math.min(pageIdx,pages.length-1):0;
   const textEl=rpgEl("p",{className:"ui-rpg-text"}),orbsWrap=rpgEl("div"),actionsEl=rpgEl("div",{className:"ui-rpg-actions"});
   const renderPage=()=>{
@@ -2667,7 +2691,9 @@ export function bindWorldRpg(el){
    rpgEl("div",{className:"ui-rpg-card-head"},
     rpgEl("h3",{className:"ui-rpg-card-title",textContent:`${npc.emoji} ${npc.speaker}`}),
     rpgEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
-   textEl,orbsWrap,actionsEl);
+   textEl,orbsWrap,actionsEl,
+   npc.topic?rpgEl("button",{type:"button",textContent:npc.topic.question,onclick:()=>{idx=pages.length-1;renderPage()}}):null,
+   talkMore(npc.speaker,()=>pages.join(" ")));
   renderPage();showCard(card);
  };
  const openLootDialog=spotId=>{
@@ -3273,6 +3299,9 @@ _PARIS_LINKS = [["gare-du-nord", "poissonniere"], ["gare-du-nord", "barbes"], ["
 _SEINE = {"line": [[48.833, 2.38], [48.8372, 2.3737], [48.845, 2.3668], [48.8506, 2.3622], [48.8545, 2.354], [48.856, 2.349], [48.8573, 2.3413], [48.8585, 2.3377], [48.8609, 2.3306], [48.8637, 2.3203], [48.864, 2.3135], [48.8638, 2.3012], [48.8613, 2.2935], [48.855, 2.2877], [48.848, 2.276]], "width": 1}
 
 
+POTATO_RUMOR = "昼ヶ丘のいもを焼くと、リバースロンドンの木の看板の陰から鼻先がのぞくんだって。ドラゴンもあの甘い匂いが好きみたいだよ。"
+
+
 def _overworld_spec() -> dict[str, Any]:
     """Overworld prototype centered on はじまりの村 (``meadow``) with contact dialogue, drops/chests, turn-based RPG battle and gamification."""
     def spot(sid: str, tx: int, ty: int, label: str, category: str, body: str, *, item: dict[str, Any] | None = None,
@@ -3292,7 +3321,7 @@ def _overworld_spec() -> dict[str, Any]:
     meadow_spots = land_spots("meadow", 1, [
         spot("meadow-hirugaoka", 18, 5, "🍠 昼ヶ丘（ヒルガオカ）", "landmark",
              "ヒルガオ科のサツマイモを育てている、日当たりのよい丘です。",
-             item={"emoji": "🍠", "label": "サツマイモ", "body": "昼ヶ丘で育てたヒルガオ科のいも。人かロンドンのドラゴンに経験値を20与えます。"}),
+             item={"emoji": "🍠", "label": "サツマイモ", "body": "昼ヶ丘で育てたヒルガオ科のいも。食べると経験値が20増えます。誰におすそ分けするか、村の道具屋に聞いてみよう。"}),
         spot("meadow-npc-cat", 13, 13, "🐱 案内猫ミョン", "npc",
              "はじまりの村の入口にいる案内猫。近づくと操作と冒険の基本を教えてくれます。", mark="🐱"),
         spot("meadow-npc-elder", 11, 8, "👴 村長", "npc",
@@ -3412,6 +3441,7 @@ def _overworld_spec() -> dict[str, Any]:
                     "speaker": "道具屋の店主", "emoji": "⚒️", "on_contact": True, "shop": True,
                     "greeting": "いらっしゃい！ 旅の支度はばっちりかい？ 魔物から得たゴールドで回復どうぐを買えるぞ。",
                     "lines": ["『おみせ』ボタンを押せば、昼ヶ丘名物のサツマイモだんごも並べてあるよ！"],
+                    "topic": {"question": "サツマイモは誰にあげるといい？", "answer": POTATO_RUMOR},
                 },
                 "meadow-npc-researcher": {
                     "speaker": "研究員", "emoji": "🔬", "on_contact": True, "quiz": True,

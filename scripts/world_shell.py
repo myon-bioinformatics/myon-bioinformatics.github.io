@@ -94,7 +94,7 @@ route();listFavorites();
 """
 
 
-def document(ui, world, maps, places, css_href, js_href):
+def document(ui, world, maps, places, css_href, js_href, dialogue=""):
     specs = {name: world.example_data(name) for name in dict.fromkeys(spec for spec, _ in SPACES.values())}
     sections = []
     for spec, data in specs.items():
@@ -117,7 +117,7 @@ def document(ui, world, maps, places, css_href, js_href):
               f'<a download="london-dragon.json" href="data:application/json,{quote(grid, safe="")}">原画JSONを保存</a></template>')
     body = ('<main><div data-world-shell>' + sprite + header + ''.join(sections) + '</div></main>'
             + ui.module_script(JS) + f'<script type="module" src="{js_href}"></script>'
-            + ui.module_script(f'import "{js_href}";\n' + world.rpg_module("../vendor/web-ui/js/records.js")) + maps.tokyo_modules(ui))
+            + ui.module_script(f'import "{js_href}";\n' + dialogue + world.rpg_module("../vendor/web-ui/js/records.js")) + maps.tokyo_modules(ui))
     css = ''.join(world.world_css(data, base=False) for data in specs.values()) + f'@layer components{{{CSS}}}'
     page = ui.render_document(title='🌍 ワールド', theme='modern', trusted_html=body, css=ui.bundled_css())
     return page.replace('</head>', f'<link rel="stylesheet" href="{css_href}"><style>{css}</style></head>', 1)
