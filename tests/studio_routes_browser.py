@@ -82,7 +82,8 @@ def test_image_studio_import_edit_and_download(browser, studio_origin, mobile):
     page = _page(browser, studio_origin, mobile=mobile)
     try:
         assert page.goto(studio_origin + "/tools/image-studio/").ok
-        assert page.locator('[data-testid="portfolio-back"]').count() == 1
+        assert page.locator('[data-testid="portfolio-back"]').count() == 0
+        expect(page.locator(".ui-chrome a.ui-world-home")).to_have_count(1)
         expect(page.locator("#board svg")).to_have_count(1)
         page.locator("#image").set_input_files({"name": "fixture.png", "mimeType": "image/png", "buffer": _fixture_png()})
         expect(page.locator("#layers button").filter(has_text="fixture.png")).to_have_count(1)
@@ -129,7 +130,8 @@ def test_slide_studio_import_edit_and_export_pptx(browser, studio_origin):
     page = _page(browser, studio_origin)
     try:
         assert page.goto(studio_origin + "/tools/slide-studio/").ok
-        assert page.locator('[data-testid="portfolio-back"]').count() == 1
+        assert page.locator('[data-testid="portfolio-back"]').count() == 0
+        expect(page.locator(".ui-chrome a.ui-world-home")).to_have_count(1)
         expect(page.locator("#slide-select option")).to_have_count(1)
         page.locator("#slide-template").click()
         expect(page.locator("#layers button")).to_have_count(2)
@@ -151,5 +153,24 @@ def test_slide_studio_import_edit_and_export_pptx(browser, studio_origin):
             xml = ElementTree.fromstring(office.read("ppt/slides/slide1.xml"))
             text = [node.text for node in xml.iter("{http://schemas.openxmlformats.org/drawingml/2006/main}t")]
             assert "Edited fixture title" in text
+    finally:
+        page.context.close()
+
+
+@pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
+@pytest.mark.parametrize("route", ["image-studio/", "slide-studio/", "slide-studio/phone/", "browser-tools/"])
+def test_studio_has_one_tools_destination(browser, studio_origin, mobile, route):
+    page = _page(browser, studio_origin, mobile=mobile)
+    try:
+        assert page.goto(studio_origin + "/tools/" + route).ok
+        target = studio_origin + "/index.html#tools"
+        links = page.locator("a[href]").evaluate_all(
+            "(anchors, target) => anchors.filter(a => a.href === target).length", target
+        )
+        assert links == 1
+        home = page.locator(".ui-chrome a.ui-world-home")
+        expect(home).to_be_visible()
+        home.click()
+        page.wait_for_url(target)
     finally:
         page.context.close()
