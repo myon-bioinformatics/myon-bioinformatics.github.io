@@ -1,0 +1,26 @@
+{
+  "nodes": [
+    {"id": "\"\"\"二行の\nノート\"\"\"", "labels": ["OtlTerm"], "properties": {"term": "\"\"\"二行の\nノート\"\"\""}},
+    {"id": "\"-2\"^^<http://www.w3.org/2001/XMLSchema#integer>", "labels": ["OtlTerm"], "properties": {"term": "\"-2\"^^<http://www.w3.org/2001/XMLSchema#integer>"}},
+    {"id": "\"0.75\"^^<http://www.w3.org/2001/XMLSchema#decimal>", "labels": ["OtlTerm"], "properties": {"term": "\"0.75\"^^<http://www.w3.org/2001/XMLSchema#decimal>"}},
+    {"id": "\"12.5\"^^<http://www.w3.org/2001/XMLSchema#decimal>", "labels": ["OtlTerm"], "properties": {"term": "\"12.5\"^^<http://www.w3.org/2001/XMLSchema#decimal>"}},
+    {"id": "\"4\"^^<http://www.w3.org/2001/XMLSchema#integer>", "labels": ["OtlTerm"], "properties": {"term": "\"4\"^^<http://www.w3.org/2001/XMLSchema#integer>"}},
+    {"id": "\"概念A\"@ja", "labels": ["OtlTerm"], "properties": {"term": "\"概念A\"@ja"}},
+    {"id": "<urn:example:A>", "labels": ["OtlTerm"], "properties": {"term": "<urn:example:A>"}},
+    {"id": "<urn:example:B>", "labels": ["OtlTerm"], "properties": {"term": "<urn:example:B>"}},
+    {"id": "<urn:example:C>", "labels": ["OtlTerm"], "properties": {"term": "<urn:example:C>"}},
+    {"id": "<urn:example:D>", "labels": ["OtlTerm"], "properties": {"term": "<urn:example:D>"}}
+  ],
+  "rels": [
+    {"label": "OtlStatement", "start": {"id": "<urn:example:A>"}, "end": {"id": "\"概念A\"@ja"}, "properties": {"predicate": "<urn:example:label>"}},
+    {"label": "OtlStatement", "start": {"id": "<urn:example:A>"}, "end": {"id": "\"\"\"二行の\nノート\"\"\""}, "properties": {"predicate": "<urn:example:note>"}},
+    {"label": "OtlStatement", "start": {"id": "<urn:example:A>"}, "end": {"id": "<urn:example:B>"}, "properties": {"predicate": "<urn:example:related>"}},
+    {"label": "OtlStatement", "start": {"id": "<urn:example:A>"}, "end": {"id": "<urn:example:C>"}, "properties": {"predicate": "<urn:example:related>"}},
+    {"label": "OtlStatement", "start": {"id": "<urn:example:A>"}, "end": {"id": "\"12.5\"^^<http://www.w3.org/2001/XMLSchema#decimal>"}, "properties": {"predicate": "<urn:example:score>"}},
+    {"label": "OtlStatement", "start": {"id": "<urn:example:A>"}, "end": {"id": "\"4\"^^<http://www.w3.org/2001/XMLSchema#integer>"}, "properties": {"predicate": "<urn:knowledge-flow:activity>"}},
+    {"label": "OtlStatement", "start": {"id": "<urn:example:A>"}, "end": {"id": "\"0.75\"^^<http://www.w3.org/2001/XMLSchema#decimal>"}, "properties": {"predicate": "<urn:knowledge-flow:confidence>"}},
+    {"label": "OtlStatement", "start": {"id": "<urn:example:B>"}, "end": {"id": "<urn:example:A>"}, "properties": {"predicate": "<urn:example:related>"}},
+    {"label": "OtlStatement", "start": {"id": "<urn:example:C>"}, "end": {"id": "<urn:example:C>"}, "properties": {"predicate": "<urn:example:related>"}},
+    {"label": "OtlStatement", "start": {"id": "<urn:example:D>"}, "end": {"id": "\"-2\"^^<http://www.w3.org/2001/XMLSchema#integer>"}, "properties": {"predicate": "<urn:example:score>"}}
+  ]
+}
