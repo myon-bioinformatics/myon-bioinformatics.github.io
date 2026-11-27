@@ -29,9 +29,9 @@ from pathlib import Path
 from typing import Any, Callable, NamedTuple
 from urllib.parse import quote, urlsplit
 
-from pysaiyanweboo import (COUNTER_ATTACK_ORBS, COUNTER_HEAL_ORBS, COUNTER_MAX_ORBS, DIAL_CSS, DIAL_JS, EARTH_RADIUS_M, bundled_css,
-                           counter_effect, counter_label, dial_html, js_source, module_script, parse_coordinate, play_random, render_document,
-                           tolerance_area, try_parse_maps_url)
+from pysaiyanweboo import (COUNTER_ATTACK_ORBS, COUNTER_HEAL_ORBS, COUNTER_MAX_ORBS, DIAL_CSS, DIAL_JS, EARTH_RADIUS_M,
+                           GARDEN_GLYPHS, GARDEN_REWARDS, bundled_css, counter_effect, counter_garden, counter_label, dial_html,
+                           js_source, module_script, parse_coordinate, play_random, render_document, tolerance_area, try_parse_maps_url)
 
 # --- World: one page, a camera, no page changes (scrolling "shots" and a pan/zoom map) -----------------
 # Everything is built here in memory: Python validates the data, does the arithmetic, and emits the HTML,
@@ -838,12 +838,333 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
             "quests": quests, "badges": badges, "quizzes": quizzes, "shop": shop, "skills": skills, "orbs": orbs}
 
 
+RESCUE_RANK_THRESHOLDS = (0, 35, 90, 170, 280, 420, 600)
+RESCUE_RANK_TITLES = ("見習い消防士", "街角レスキュー", "セーヌ機関士", "パリ守護隊長", "炎の制圧マイスター", "伝説のグラン・エロー", "フェイクパリ名誉英雄")
+RESCUE_NODE_KINDS = ("npc", "drop", "chest", "hydrant")
+RESCUE_ITEM_TYPES = ("water", "heal", "bomb", "nozzle", "suit", "tank", "helm")
+RESCUE_QUEST_KINDS = ("talk", "drop", "chest", "fire", "boss_fire", "refill", "quiz")
+RESCUE_JET_KINDS = ("splash", "guard")
+RESCUE_COOL_ORBS = ("💧", "🌊", "❄️", "💚", "✨")
+RESCUE_FLAME_ORBS = ("🔥", "💥", "⚡")
+
+
+def rescue_next_seed(seed: int) -> int:
+    """Deterministic xorshift32 step delegated to PySaiyanWeBoo's ``play_random``."""
+    return play_random(_bounded_int(seed, "seed", 0, 0xFFFFFFFF))
+
+
+def rescue_orb_effect(amount: int, *, cool: bool = True) -> dict[str, Any]:
+    """Cooling/heat orb readout backed by PySaiyanWeBoo's ``counter_effect`` count clamping."""
+    amount = _bounded_int(amount, "amount", 0, 9999)
+    base = counter_effect(-amount if cool else amount)
+    if base["idle"]:
+        return {"counter": 0, "amount": 0, "cool": False, "idle": True, "orbs": [], "label": counter_label(0)}
+    palette = RESCUE_COOL_ORBS if cool else RESCUE_FLAME_ORBS
+    n = len(base["orbs"])
+    return {"counter": base["counter"], "amount": amount, "cool": cool, "idle": False,
+            "orbs": [palette[i % len(palette)] for i in range(n)],
+            "label": f"💦 冷却 {amount}" if cool else f"🔥 熱波 {amount}"}
+
+
+def rescue_rank_for_exp(exp: int) -> dict[str, Any]:
+    """Hero firefighting rank and cumulative stat bonuses from total EXP (Lv 1..7)."""
+    exp = _bounded_int(exp, "exp", 0, 999999)
+    level = 1
+    for idx, threshold in enumerate(RESCUE_RANK_THRESHOLDS, start=1):
+        if exp >= threshold:
+            level = idx
+    next_exp = RESCUE_RANK_THRESHOLDS[level] if level < len(RESCUE_RANK_THRESHOLDS) else RESCUE_RANK_THRESHOLDS[-1]
+    return {"level": level, "title": RESCUE_RANK_TITLES[level - 1], "exp": exp, "next_exp": next_exp,
+            "bonus_hp": (level - 1) * 6, "bonus_water": (level - 1) * 8,
+            "bonus_power": (level - 1) * 2, "bonus_shield": (level - 1) * 1}
+
+
+def rescue_fire_profile(index: int, tx: int, ty: int, seed: int = 20261127, *,
+                        boss_cell: tuple[int, int] = (21, 31), start_cell: tuple[int, int] = (24, 4)) -> dict[str, Any]:
+    """Deterministic blaze tier, heat HP, rewards and PySaiyanWeBoo ``GARDEN_GLYPHS`` bloom for one scattered fire."""
+    index = _bounded_int(index, "index", 0, 511)
+    tx, ty = _bounded_int(tx, "tx", 0, 511), _bounded_int(ty, "ty", 0, 511)
+    seed = _bounded_int(seed, "seed", 0, 0xFFFFFFFF)
+    mixed = (seed ^ ((tx * 73856093) & 0xFFFFFFFF) ^ ((ty * 19349663) & 0xFFFFFFFF) ^ (((index + 1) * 83492791) & 0xFFFFFFFF)) & 0xFFFFFFFF
+    word = play_random(mixed)
+    bloom = GARDEN_GLYPHS[word % len(GARDEN_GLYPHS)]
+    if (tx, ty) == tuple(boss_cell):
+        tier, name, emoji, heat, flare, exp, medals, step = 3, "大火災インフェルノ", "🌋", 42, 11, 65, 55, 10
+    elif abs(tx - start_cell[0]) + abs(ty - start_cell[1]) <= 6 or (word % 3) != 0:
+        tier, name, emoji, heat, flare, exp, medals, step = 1, "小火スパーク", "🔥", 10, 4, 16, 12, 5
+    else:
+        tier, name, emoji, heat, flare, exp, medals, step = 2, "延焼ブレイズ", "🔥", 22, 7, 28, 22, 5
+    return {"id": f"fire-{index}", "index": index, "tx": tx, "ty": ty, "tier": tier, "boss": tier == 3,
+            "name": name, "emoji": emoji, "heat": heat, "flare": flare, "exp": exp, "medals": medals,
+            "garden_step": step, "bloom": bloom}
+
+
+def rescue_splash(power: int, roll_word: int, *, mult_pct: int = 100) -> dict[str, Any]:
+    """Pure integer water-jet cooling matching ``WORLD_RESCUE_JS``."""
+    power = _bounded_int(power, "power", 1, 999)
+    roll_word = _bounded_int(roll_word, "roll_word", 0, 0xFFFFFFFF)
+    mult_pct = _bounded_int(mult_pct, "mult_pct", 10, 500)
+    crit = (roll_word % 100) < 18
+    variance = ((roll_word >> 8) % 3) - 1
+    cooling = max(2, (power * mult_pct) // 100 + variance)
+    if crit:
+        cooling = max(4, (cooling * 3) // 2)
+    return {"cooling": cooling, "crit": crit, "effect": rescue_orb_effect(cooling, cool=True)}
+
+
+def rescue_flare_hit(flare: int, shield: int, roll_word: int, *, guarding: bool = False) -> dict[str, Any]:
+    """Pure integer heat damage from a burning blaze."""
+    flare = _bounded_int(flare, "flare", 1, 999)
+    shield = _bounded_int(shield, "shield", 0, 999)
+    roll_word = _bounded_int(roll_word, "roll_word", 0, 0xFFFFFFFF)
+    if not isinstance(guarding, bool):
+        raise ValueError("guarding must be bool")
+    variance = (roll_word % 3) - 1
+    dmg = max(1, flare - shield // 2 + variance)
+    if guarding:
+        dmg = max(1, dmg // 2)
+    return {"damage": dmg, "effect": rescue_orb_effect(dmg, cool=False)}
+
+
+def rescue_garden_step(current_value: int, magnitude: int = 5) -> int:
+    """Choose +/-5 or +/-10 so ``counter_garden`` never saturates at +/-100 and every extinguished fire plants a cell."""
+    current_value = _bounded_int(current_value, "current_value", -100, 100)
+    if magnitude not in (1, 5, 10):
+        raise ValueError("magnitude is 1, 5 or 10")
+    return magnitude if current_value + magnitude <= 100 else -magnitude
+
+
+def rescue_garden(seed: int, actions: list[int]) -> dict[str, Any]:
+    """Greening state of Fake Paris delegated directly to PySaiyanWeBoo's ``counter_garden``."""
+    return counter_garden(seed, actions)
+
+
+def rescue_nearest_fire(px: float, py: float, fires: list[dict[str, Any]], tile: int = 32) -> dict[str, Any] | None:
+    """Nearest active fire and its ``world_direction`` compass arrow from ``(px, py)``."""
+    if not fires:
+        return None
+    best = min(fires, key=lambda f: ((f["x"] - px) ** 2 + (f["y"] - py) ** 2, f["y"], f["x"]))
+    dist = math.hypot(best["x"] - px, best["y"] - py)
+    return {"id": best["id"], "x": best["x"], "y": best["y"],
+            "arrow": world_direction([px, py], [best["x"], best["y"]], tile),
+            "tiles": round(dist / max(1, tile))}
+
+
+def rescue_validate(rescue_in: Any, *, floors: list[dict[str, Any]]) -> dict[str, Any]:
+    """Checked copy of optional ``rescue`` firefighting hero & gamification spec."""
+    allowed = {"floor", "seed", "boss_cell", "start_cell", "hero", "nodes", "jets", "shop", "quests", "badges", "quizzes"}  # start_cell is derived
+    if not isinstance(rescue_in, dict) or set(rescue_in) - allowed:
+        raise ValueError("rescue has floor, seed, boss_cell, hero, nodes, jets, shop, quests, badges and quizzes")
+    by_floor = {f["id"]: f for f in floors}
+    floor_id = rescue_in.get("floor")
+    if not isinstance(floor_id, str) or floor_id not in by_floor:
+        raise ValueError(f"rescue floor {floor_id!r} must name one of the world's floors")
+    target_floor = by_floor[floor_id]
+    tile = target_floor.get("tile")
+    if not tile or not target_floor.get("player"):
+        raise ValueError("rescue floor requires a tile grid and a player")
+    fire_cells = {(p["x"] // tile, p["y"] // tile) for p in target_floor.get("props", []) if p["kind"] == "fire"}
+    if not fire_cells:
+        raise ValueError("rescue floor requires at least one fire prop")
+    cols, rows = target_floor["width"] // tile, target_floor["height"] // tile
+    blocked = world_blocked(target_floor["width"], target_floor["height"], tile, target_floor.get("props", []))
+    start_cell = (target_floor["player"]["x"] // tile, target_floor["player"]["y"] // tile)
+    reach = world_reach(blocked, start_cell)
+    seed = _bounded_int(rescue_in.get("seed", 20261127), "rescue seed", 0, 0xFFFFFFFF)
+    boss_in = rescue_in.get("boss_cell")
+    if boss_in is None:
+        boss_cell = max(fire_cells, key=lambda c: (c[1], c[0]))
+    else:
+        if not isinstance(boss_in, (list, tuple)) or len(boss_in) != 2:
+            raise ValueError("boss_cell must be [tx, ty]")
+        boss_cell = (_bounded_int(boss_in[0], "boss tx", 0, cols - 1), _bounded_int(boss_in[1], "boss ty", 0, rows - 1))
+        if boss_cell not in fire_cells:
+            raise ValueError("boss_cell must sit on a fire prop tile")
+    hero_in = rescue_in.get("hero", {})
+    if not isinstance(hero_in, dict) or set(hero_in) - {"hp", "water", "power", "shield", "medals"}:
+        raise ValueError("rescue hero has hp, water, power, shield and medals")
+    hero = {"hp": _bounded_int(hero_in.get("hp", 40), "hero hp", 1, 999),
+            "water": _bounded_int(hero_in.get("water", 48), "hero water", 1, 999),
+            "power": _bounded_int(hero_in.get("power", 8), "hero power", 1, 99),
+            "shield": _bounded_int(hero_in.get("shield", 2), "hero shield", 0, 99),
+            "medals": _bounded_int(hero_in.get("medals", 20), "hero medals", 0, 99999)}
+    nodes_in = rescue_in.get("nodes", [])
+    if not isinstance(nodes_in, list) or not 1 <= len(nodes_in) <= 48:
+        raise ValueError("rescue nodes lists 1..48 entries")
+    nodes, seen_ids, seen_cells = [], set(), set()
+    spot_cells = {(s["x"] // tile, s["y"] // tile) for s in target_floor["spots"] if "sign" not in s}
+    for nd in nodes_in:
+        if not isinstance(nd, dict):
+            raise ValueError("rescue node must be a dict")
+        nd = {k: v for k, v in nd.items() if k not in ("x", "y")}   # derived from tx/ty below
+        nid = _world_id(nd.get("id"), "rescue node id", seen_ids)
+        kind = nd.get("kind")
+        if kind not in RESCUE_NODE_KINDS:
+            raise ValueError(f"rescue node kind is one of {', '.join(RESCUE_NODE_KINDS)}")
+        tx, ty = _bounded_int(nd.get("tx"), "node tx", 0, cols - 1), _bounded_int(nd.get("ty"), "node ty", 0, rows - 1)
+        if (tx, ty) in seen_cells or (tx, ty) in fire_cells or (tx, ty) in spot_cells:
+            raise ValueError(f"rescue node {nid!r} collides with another node, spot or fire at {(tx, ty)}")
+        if blocked[ty][tx] != "0" or (tx, ty) not in reach:
+            raise ValueError(f"rescue node {nid!r} at {(tx, ty)} is blocked or unreachable")
+        seen_cells.add((tx, ty))
+        on_contact = nd.get("on_contact", True)
+        if not isinstance(on_contact, bool):
+            raise ValueError("on_contact must be bool")
+        base_node: dict[str, Any] = {
+            "id": nid, "kind": kind, "tx": tx, "ty": ty,
+            "x": tx * tile + tile // 2, "y": ty * tile + tile // 2,
+            "emoji": _world_emoji(nd.get("emoji")),
+            "label": _world_text(nd.get("label"), "node label", 40),
+            "on_contact": on_contact,
+        }
+        if kind == "npc":
+            if set(nd) - {"id", "kind", "tx", "ty", "emoji", "label", "on_contact", "speaker", "greeting", "lines", "refill", "shop", "quiz"}:
+                raise ValueError(f"npc node {nid!r} has unknown keys")
+            lines = nd.get("lines", [])
+            if not isinstance(lines, list) or len(lines) > 8:
+                raise ValueError("npc lines lists up to 8 strings")
+            for flag in ("refill", "shop", "quiz"):
+                if flag in nd and not isinstance(nd[flag], bool):
+                    raise ValueError(f"npc {flag} must be bool")
+            base_node.update({
+                "speaker": _world_text(nd.get("speaker", base_node["label"]), "speaker", 40),
+                "greeting": _world_text(nd.get("greeting"), "greeting", 200),
+                "lines": [_world_text(line, "line", 240) for line in lines],
+                **({"refill": True} if nd.get("refill") else {}),
+                **({"shop": True} if nd.get("shop") else {}),
+                **({"quiz": True} if nd.get("quiz") else {}),
+            })
+        elif kind == "hydrant":
+            if set(nd) - {"id", "kind", "tx", "ty", "emoji", "label", "on_contact", "greeting"}:
+                raise ValueError(f"hydrant node {nid!r} has unknown keys")
+            base_node["greeting"] = _world_text(nd.get("greeting"), "greeting", 200)
+        else:
+            allowed_loot = {"id", "kind", "tx", "ty", "emoji", "label", "on_contact", "item_emoji", "item_label", "desc",
+                            "item_type", "hp", "water", "power", "shield", "exp", "medals", "consumable", "opened_emoji", "requires_fires"}
+            if set(nd) - allowed_loot:
+                raise ValueError(f"loot node {nid!r} has unknown keys")
+            itype = nd.get("item_type")
+            if itype not in RESCUE_ITEM_TYPES:
+                raise ValueError(f"rescue item_type is one of {', '.join(RESCUE_ITEM_TYPES)}")
+            if "consumable" in nd and not isinstance(nd["consumable"], bool):
+                raise ValueError("consumable must be bool")
+            base_node.update({
+                "item_emoji": _world_emoji(nd.get("item_emoji", base_node["emoji"])),
+                "item_label": _world_text(nd.get("item_label", base_node["label"]), "item_label", 40),
+                "desc": _world_text(nd.get("desc"), "desc", 180),
+                "item_type": itype,
+                "hp": _bounded_int(nd.get("hp", 0), "loot hp", 0, 999),
+                "water": _bounded_int(nd.get("water", 0), "loot water", 0, 999),
+                "power": _bounded_int(nd.get("power", 0), "loot power", 0, 99),
+                "shield": _bounded_int(nd.get("shield", 0), "loot shield", 0, 99),
+                "exp": _bounded_int(nd.get("exp", 0), "loot exp", 0, 9999),
+                "medals": _bounded_int(nd.get("medals", 0), "loot medals", 0, 9999),
+                "consumable": bool(nd.get("consumable", itype in ("water", "heal", "bomb"))),
+                **({"opened_emoji": _world_emoji(nd["opened_emoji"])} if "opened_emoji" in nd else {}),
+                **({"requires_fires": _bounded_int(nd["requires_fires"], "requires_fires", 1, 99)} if "requires_fires" in nd else {}),
+            })
+        nodes.append(base_node)
+    jets_in = rescue_in.get("jets", [])
+    if not isinstance(jets_in, list) or len(jets_in) > 8:
+        raise ValueError("rescue jets lists up to 8 entries")
+    jets, seen_j = [], set()
+    for jt in jets_in:
+        if not isinstance(jt, dict) or set(jt) - {"id", "emoji", "label", "water", "kind", "mult_pct", "heal_hp", "desc"}:
+            raise ValueError("jet has id, emoji, label, water, kind, mult_pct, heal_hp and desc")
+        jkind = jt.get("kind", "splash")
+        if jkind not in RESCUE_JET_KINDS:
+            raise ValueError(f"jet kind is one of {', '.join(RESCUE_JET_KINDS)}")
+        jets.append({
+            "id": _world_id(jt.get("id"), "jet id", seen_j),
+            "emoji": _world_emoji(jt.get("emoji")),
+            "label": _world_text(jt.get("label"), "jet label", 40),
+            "water": _bounded_int(jt.get("water", 0), "jet water", 0, 99),
+            "kind": jkind,
+            "mult_pct": _bounded_int(jt.get("mult_pct", 100), "jet mult_pct", 10, 500),
+            "heal_hp": _bounded_int(jt.get("heal_hp", 0), "jet heal_hp", 0, 999),
+            "desc": _world_text(jt.get("desc"), "jet desc", 160),
+        })
+    shop_in = rescue_in.get("shop", [])
+    if not isinstance(shop_in, list) or len(shop_in) > 16:
+        raise ValueError("rescue shop lists up to 16 entries")
+    shop, seen_sh = [], set()
+    for sh in shop_in:
+        if not isinstance(sh, dict) or set(sh) - {"id", "emoji", "label", "cost", "item_type", "hp", "water", "power", "desc"}:
+            raise ValueError("rescue shop item has id, emoji, label, cost, item_type, hp, water, power and desc")
+        itype = sh.get("item_type")
+        if itype not in ("water", "heal", "bomb"):
+            raise ValueError("shop item_type is water, heal or bomb")
+        shop.append({
+            "id": _world_id(sh.get("id"), "shop id", seen_sh),
+            "emoji": _world_emoji(sh.get("emoji")),
+            "label": _world_text(sh.get("label"), "shop label", 40),
+            "cost": _bounded_int(sh.get("cost"), "shop cost", 1, 9999),
+            "item_type": itype,
+            "hp": _bounded_int(sh.get("hp", 0), "shop hp", 0, 999),
+            "water": _bounded_int(sh.get("water", 0), "shop water", 0, 999),
+            "power": _bounded_int(sh.get("power", 0), "shop power", 0, 999),
+            "desc": _world_text(sh.get("desc"), "shop desc", 160),
+        })
+    quests_in = rescue_in.get("quests", [])
+    if not isinstance(quests_in, list) or len(quests_in) > 24:
+        raise ValueError("rescue quests lists up to 24 entries")
+    quests, seen_q = [], set()
+    for q in quests_in:
+        if not isinstance(q, dict) or set(q) - {"id", "title", "desc", "kind", "count", "reward_exp", "reward_medals"}:
+            raise ValueError("rescue quest has id, title, desc, kind, count, reward_exp and reward_medals")
+        qkind = q.get("kind")
+        if qkind not in RESCUE_QUEST_KINDS:
+            raise ValueError(f"rescue quest kind is one of {', '.join(RESCUE_QUEST_KINDS)}")
+        quests.append({
+            "id": _world_id(q.get("id"), "quest id", seen_q),
+            "title": _world_text(q.get("title"), "quest title", 48),
+            "desc": _world_text(q.get("desc"), "quest desc", 160),
+            "kind": qkind,
+            "count": _bounded_int(q.get("count", 1), "quest count", 1, 99),
+            "reward_exp": _bounded_int(q.get("reward_exp", 0), "reward_exp", 0, 9999),
+            "reward_medals": _bounded_int(q.get("reward_medals", 0), "reward_medals", 0, 9999),
+        })
+    badges_in = rescue_in.get("badges", [])
+    if not isinstance(badges_in, list) or len(badges_in) > 24:
+        raise ValueError("rescue badges lists up to 24 entries")
+    badges, seen_b = [], set()
+    for b in badges_in:
+        if not isinstance(b, dict) or set(b) - {"id", "emoji", "label", "desc"}:
+            raise ValueError("rescue badge has id, emoji, label and desc")
+        badges.append({
+            "id": _world_id(b.get("id"), "badge id", seen_b),
+            "emoji": _world_emoji(b.get("emoji")),
+            "label": _world_text(b.get("label"), "badge label", 40),
+            "desc": _world_text(b.get("desc"), "badge desc", 120),
+        })
+    quizzes_in = rescue_in.get("quizzes", [])
+    if not isinstance(quizzes_in, list) or len(quizzes_in) > 24:
+        raise ValueError("rescue quizzes lists up to 24 entries")
+    quizzes = []
+    for qz in quizzes_in:
+        if not isinstance(qz, dict) or set(qz) - {"prompt", "choices", "correct", "explanation", "repo"}:
+            raise ValueError("quiz has prompt, choices (3), correct (0..2), explanation and optional repo")
+        choices = qz.get("choices")
+        if not isinstance(choices, list) or len(choices) != 3:
+            raise ValueError("quiz choices must have 3 items")
+        quizzes.append({
+            "prompt": _world_text(qz.get("prompt"), "quiz prompt", 200),
+            "choices": [_world_text(c, "quiz choice", 80) for c in choices],
+            "correct": _bounded_int(qz.get("correct"), "quiz correct", 0, 2),
+            "explanation": _world_text(qz.get("explanation"), "quiz explanation", 240),
+            **({"repo": _world_text(qz["repo"], "quiz repo", 60)} if "repo" in qz else {}),
+        })
+    return {"floor": floor_id, "seed": seed, "boss_cell": list(boss_cell), "start_cell": list(start_cell),
+            "hero": hero, "nodes": nodes, "jets": jets, "shop": shop,
+            "quests": quests, "badges": badges, "quizzes": quizzes}
+
+
 def world_validate(spec: Any) -> dict[str, Any]:
     """Checked copy of a ``web-ui-world/1`` spec: optional ``shots`` (scroll scenes) and ``floors`` (maps with spots)."""
     if not isinstance(spec, dict) or spec.get("schema") != WORLD_SCHEMA:
         raise ValueError(f"expected schema {WORLD_SCHEMA}")
-    if set(spec) - {"schema", "id", "title", "shots", "floors", "zoom_max", "board", "avatars", "shell", "tools", "names", "mark_scale", "move", "rpg"}:
-        raise ValueError("a world has schema, id, title, shots, floors, zoom_max, board, avatars, shell, tools, names, mark_scale, move and rpg")
+    if set(spec) - {"schema", "id", "title", "shots", "floors", "zoom_max", "board", "avatars", "shell", "tools", "names", "mark_scale", "move", "rpg", "rescue"}:
+        raise ValueError("a world has schema, id, title, shots, floors, zoom_max, board, avatars, shell, tools, names, mark_scale, move, rpg and rescue")
     move = spec.get("move", "direct")
     if move not in ("direct", "confirm"):
         raise ValueError("move is direct or confirm")
@@ -971,9 +1292,11 @@ def world_validate(spec: Any) -> dict[str, Any]:
     rpg = rpg_validate(spec["rpg"], spot_ids=spot_ids, floor_ids={f["id"] for f in floors}) if spec.get("rpg") is not None else None
     if rpg is not None and not floors:
         raise ValueError("rpg requires a world with floors")
+    rescue = rescue_validate(spec["rescue"], floors=floors) if spec.get("rescue") is not None else None
     return {"schema": WORLD_SCHEMA, "id": world_id, "title": _world_text(spec.get("title", "World"), "title", 80),
             "shots": shots, "floors": floors, "zoom_max": zoom_max, "board": board, "names": names, "move": move, "mark_scale": [float(v) for v in mark_scale], **({"avatars": avatars} if avatars else {}),
-            **({"shell": True} if shell else {}), **({"tools": tools} if tools else {}), **({"rpg": rpg} if rpg is not None else {})}
+            **({"shell": True} if shell else {}), **({"tools": tools} if tools else {}), **({"rpg": rpg} if rpg is not None else {}),
+            **({"rescue": rescue} if rescue is not None else {})}
 
 
 def _floor_kit(tile: int, id: str) -> tuple[Any, Any]:
@@ -1522,7 +1845,8 @@ def _world_playable(world: dict[str, Any]) -> bool:
     return bool(world["board"] or any(f["player"] or f["actors"] for f in world["floors"]))
 
 
-def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = False, rpg: dict[str, Any] | None = None) -> tuple[str, list[str]]:
+def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = False,
+                rpg: dict[str, Any] | None = None, rescue: dict[str, Any] | None = None) -> tuple[str, list[str]]:
     """One floor's stage (props, spots, actors, player) and the info sheet articles of its spots and actors (``close`` is their closing link)."""
     flip = lambda s: (f' data-flip="{escape(s["flip"], quote=True)}"' if s.get("flip") else "") + (f' data-sign="{s["sign"]}"' if s.get("sign") else "") + (f' data-named="{"" if s["always_named"] is True else s["always_named"]}"' if s.get("always_named") else "")   # noqa: E731
     mark = lambda s: f';--mark:\'{escape(s["mark"], quote=True)}\'' if s.get("mark") else ""   # noqa: E731  (the dot's replacement, read by CSS content)
@@ -1542,6 +1866,15 @@ def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = Fals
     actors = "".join(
         f'<a class="ui-actor" id="{wid}-actor-{a["id"]}" href="#{wid}-spot-{a["id"]}"{rpg_kind(a["id"])} aria-label="{escape(a["label"], quote=True)}">'
         f'<span>{escape(a["emoji"])}</span></a>' for a in f["actors"])
+    on_rescue = bool(rescue and f["id"] == rescue["floor"])
+    rescue_nodes = "".join(
+        f'<button type="button" class="ui-rescue-node" data-rescue-id="{nd["id"]}" data-rescue-kind="{nd["kind"]}" '
+        f'data-x="{nd["x"]}" data-y="{nd["y"]}" style="left:{nd["x"]}px;top:{nd["y"]}px" '
+        f'aria-label="{escape(nd["emoji"] + " " + nd["label"], quote=True)}">'
+        f'<span class="ui-rescue-glyph" aria-hidden="true">{escape(nd["emoji"])}</span>'
+        f'<span class="ui-rescue-label">{escape(nd["label"])}</span></button>'
+        for nd in (rescue["nodes"] if on_rescue else ())
+    )
     pl = f["player"]
     player = (f'<span class="ui-player" data-x="{pl["x"]}" data-y="{pl["y"]}" data-speed="{pl["speed"]}" '
               f'style="--px:{pl["x"]};--py:{pl["y"]}" role="img" aria-label="自分"><span>{escape(pl["emoji"])}</span></span>') if pl else ""
@@ -1550,7 +1883,7 @@ def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = Fals
                     f'style="left:{q["x"]}px;top:{q["y"]}px;width:{q["w"]}px;height:{q["h"]}px"></div>' for q in f.get("props", []))
     grid = (f' data-tile="{tile}" data-blocked="{",".join(world_blocked(f["width"], f["height"], tile, f["props"]))}"') if tile else ""
     stage = (f'<div class="ui-floor" data-floor="{f["id"]}" data-w="{f["width"]}" data-h="{f["height"]}"{grid}{" data-real" if f.get("real") else ""} '
-             f'style="width:{f["width"]}px;height:{f["height"]}px{f";--tile:{tile}px" if tile else ""}">{props}{spots}{actors}{player}</div>')
+             f'style="width:{f["width"]}px;height:{f["height"]}px{f";--tile:{tile}px" if tile else ""}">{props}{rescue_nodes}{spots}{actors}{player}</div>')
     def take(s: dict[str, Any]) -> str:
         item = s.get("item")
         if not item:
@@ -1567,6 +1900,22 @@ def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = Fals
                 f'data-go-x="{s["x"]}" data-go-y="{s["y"]}" hidden {_wt("walk")}>🚶</button>')
     sheet = [f'<article class="ui-sheet-item" id="{wid}-spot-{s["id"]}"><h3>{escape(s["label"])}</h3><p>{escape(s["body"])}</p>{take(s)}{go_btn(s)}{close}</article>'
              for s in [*f["spots"], *f["actors"]]]
+    if on_rescue:
+        rescue_takes = "".join(
+            f'<button type="button" class="ui-world-take" data-item-id="{wid}-rescue-{nd["id"]}" '
+            f'data-item-emoji="{escape(nd["item_emoji"], quote=True)}" data-item-label="{escape(nd["item_label"], quote=True)}" '
+            f'data-item-floor="{f["id"]}" data-item-x="{nd["x"]}" data-item-y="{nd["y"]}" '
+            f'aria-pressed="false" hidden {_wt("take")}>{escape(nd["item_emoji"])} <span class="ui-world-take-mark" aria-hidden="true">＋</span></button>'
+            for nd in rescue["nodes"] if nd["kind"] in ("drop", "chest")
+        ) + "".join(
+            f'<button type="button" class="ui-world-take" data-item-id="{wid}-rescue-shop-{sh["id"]}" '
+            f'data-item-emoji="{escape(sh["emoji"], quote=True)}" data-item-label="{escape(sh["label"], quote=True)}" '
+            f'data-item-floor="{f["id"]}" data-item-x="{pl["x"] if pl else 0}" data-item-y="{pl["y"] if pl else 0}" '
+            f'aria-pressed="false" hidden {_wt("take")}>{escape(sh["emoji"])} <span class="ui-world-take-mark" aria-hidden="true">＋</span></button>'
+            for sh in rescue["shop"]
+        )
+        if rescue_takes:
+            sheet.append(f'<div class="ui-sheet-item ui-rescue-items" id="{wid}-rescue-items" hidden>{rescue_takes}</div>')
     return stage, sheet
 
 
@@ -1637,6 +1986,27 @@ def _rpg_hud_html(rpg: dict[str, Any] | None) -> str:
     )
 
 
+def _rescue_hud_html(rescue: dict[str, Any] | None, floors: list[dict[str, Any]]) -> str:
+    """Compact firefighting hero HUD shown only on the ``rescue`` floor (hidden until script binds)."""
+    if not rescue:
+        return ""
+    hero = rescue["hero"]
+    total_q = len(rescue["quests"])
+    total_fires = sum(1 for f in floors if f["id"] == rescue["floor"] for q in f.get("props", []) if q["kind"] == "fire")
+    return (
+        '<div class="ui-rescue-hud" hidden aria-label="パリ消防ヒーローステータス">'
+        '<span class="ui-rpg-stat ui-rpg-hero" data-rescue-hero>🦸 Lv.1 見習い消防士</span>'
+        f'<span class="ui-rpg-stat" data-rescue-hp-wrap><span class="ui-rpg-meter"><i data-rescue-hp-bar style="width:100%"></i></span><b data-rescue-hp>❤️ {hero["hp"]}/{hero["hp"]}</b></span>'
+        f'<span class="ui-rpg-stat" data-rescue-water-wrap><span class="ui-rpg-meter ui-rpg-meter-mp"><i data-rescue-water-bar style="width:100%"></i></span><b data-rescue-water>💧 {hero["water"]}/{hero["water"]}</b></span>'
+        f'<span class="ui-rpg-stat" data-rescue-fires>🔥 鎮火 0/{total_fires} (0%)</span>'
+        f'<span class="ui-rpg-stat" data-rescue-medals>🪙 {hero["medals"]}</span>'
+        f'<span class="ui-rpg-stat" data-rescue-gear>🚿 {hero["power"]} 🛡️ {hero["shield"]}</span>'
+        f'<button type="button" class="ui-rpg-pill" data-rescue-journal-btn aria-label="ヒーロー手帳（ミッション・勲章・装備・緑化）">📋 <span data-rescue-qcount>0/{total_q}</span></button>'
+        '<button type="button" class="ui-rpg-pill" data-rescue-radar-btn aria-label="一番近い火災現場へ出動する">🧭 <span data-rescue-radar>📍 火災へ</span></button>'
+        '</div>'
+    )
+
+
 def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tail: str, floor_labels: str, embedded: bool) -> str:
     """A shell world keeps the page short and says it with icons (the words are the aria-label and title, in 11 languages):
 
@@ -1679,7 +2049,7 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
                  "".join(f'<option value="{v}"{" selected" if v == world["names"] else ""}>{t}</option>' for v, t in zip(WORLD_NAMES, ("🏷️", "●", "✖️"))) +
                  '</select></label>' if any(f["spots"] for f in floors) else ""))
     bag = (icon("bag", "🎒", _wt("bag"), '<p class="ui-world-empty" aria-hidden="true">🎒</p><ul class="ui-world-rows ui-world-bag"></ul>', hidden=True)
-           if any("item" in s for f in floors for s in f["spots"]) else "")
+           if any("item" in s for f in floors for s in f["spots"]) or bool(world.get("rescue")) else "")
     header_tools = (f'<a class="ui-world-home" href="#{wid}-map" data-home {_wt("home")}>🏠</a>' +
                     "".join(custom(e, t) for e, t in tools.items() if t["slot"] == "head") +
                     icon("favorites", "⭐", _wt("favorites"), '<p class="ui-world-empty" aria-hidden="true">☆</p><ul class="ui-world-rows ui-world-favs"></ul>', hidden=True) +
@@ -1693,14 +2063,15 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
             "".join(f'<option value="{f["id"]}"{" selected" if i == 0 else ""}>{escape(f["label"])}</option>' for i, f in enumerate(floors)) +
             '</select></label></footer>') if len(floors) > 1 else ""
     rpg_hud = _rpg_hud_html(world.get("rpg"))
+    rescue_hud = _rescue_hud_html(world.get("rescue"), floors)
     toolbar = "div" if embedded else "header"
     return (f'{head}{radios}<{toolbar} class="ui-world-head">{_board_html(world["board"])}<nav class="ui-world-tools">{header_tools}</nav></{toolbar}>'
-            f'{rpg_hud}<div class="ui-world-body">{view}{dpad}<div class="ui-world-side">{side}</div></div>{foot}{tail}')
+            f'{rpg_hud}{rescue_hud}<div class="ui-world-body">{view}{dpad}<div class="ui-world-side">{side}</div></div>{foot}{tail}')
 
 
 def _map_html(world: dict[str, Any], *, embedded: bool = False) -> str:
     wid, floors, shell = world["id"], world["floors"], _world_shell(world)
-    rpg = world.get("rpg")
+    rpg, rescue = world.get("rpg"), world.get("rescue")
     categories = _world_categories(floors)
     cat_ids = [""] + categories
     radios = "".join(
@@ -1714,16 +2085,18 @@ def _map_html(world: dict[str, Any], *, embedded: bool = False) -> str:
         labels += "".join(f'<label for="{wid}-cat-{"value-" + c if c else "all"}" data-cat="{c}">{escape(c or "all")}</label>' for c in cat_ids)
     close = f'<a class="ui-sheet-close" href="#{wid}-map"' + (f' {_wt("close")}>✖️</a>' if shell else ">Close</a>")          # an icon in a shell world
     confirm = world["move"] == "confirm"
-    built = [_floor_html(wid, f, close, confirm=confirm, rpg=rpg) for f in floors]
+    built = [_floor_html(wid, f, close, confirm=confirm, rpg=rpg, rescue=rescue) for f in floors]
     scale = "" if world["mark_scale"] == [1, 1] else f' style="--mark-x:{world["mark_scale"][0]:g};--mark-y:{world["mark_scale"][1]:g}"'
     move_attr = ' data-move="confirm"' if confirm else ""
     rpg_attr = ' data-rpg' if rpg else ""
+    rescue_attr = f' data-rescue="{rescue["floor"]}"' if rescue else ""
     rpg_json = ('<script type="application/json" class="ui-rpg-data">' + json.dumps(rpg, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + '</script>') if rpg else ""
+    rescue_json = ('<script type="application/json" class="ui-rescue-data">' + json.dumps(rescue, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + '</script>') if rescue else ""
     head = (f'<section class="ui-world ui-world-map" id="{wid}-map" data-ui-world="map" data-zoom-max="{world["zoom_max"]}" data-names="{world["names"]}"'
-            f'{move_attr}{rpg_attr}{scale}'
+            f'{move_attr}{rpg_attr}{rescue_attr}{scale}'
             f'{" data-grid" if any(f.get("tile") for f in floors) else ""}{" data-shell" if shell else ""} aria-label="{escape(world["title"], quote=True)}">')
     view = f'<div class="ui-world-view" tabindex="0"><div class="ui-world-cam" style="--fx:0;--fy:0;--z:1">{"".join(stage for stage, _ in built)}</div></div>'
-    tail = f'<aside class="ui-sheet" aria-live="polite">{"".join(a for _, articles in built for a in articles)}</aside>{_pick_html(wid, world.get("avatars", []), shell)}{rpg_json}</section>'
+    tail = f'<aside class="ui-sheet" aria-live="polite">{"".join(a for _, articles in built for a in articles)}</aside>{_pick_html(wid, world.get("avatars", []), shell)}{rpg_json}{rescue_json}</section>'
     if shell:
         return _shell_html(world, head=head, radios=radios, view=view, tail=tail, floor_labels=floor_labels, embedded=embedded)
     return _classic_html(world, head=head, radios=radios, labels=labels, view=view, tail=tail)
@@ -1946,6 +2319,31 @@ _WORLD_RPG_CSS = (
     "@media(prefers-reduced-motion:reduce){.ui-rpg-orb,.ui-rpg-meter>i{animation:none!important;transition:none!important}}"
 )
 
+_WORLD_RESCUE_CSS = (
+    ".ui-rescue-hud{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:4px 8px;border-bottom:1px solid var(--ui-border);background:var(--ui-panel);font-size:.78rem;line-height:1.2}"
+    ".ui-rescue-hud[hidden]{display:none}"
+    ".ui-rescue-node{position:absolute;transform:translate(-50%,-50%);z-index:3;display:inline-flex;align-items:center;justify-content:center;min-width:28px;min-height:28px;padding:1px 5px;border-radius:999px;border:1px solid var(--ui-border);background:var(--ui-bg);color:var(--ui-fg);font:inherit;font-size:.76rem;font-weight:600;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.22);transition:transform .12s ease,border-color .12s ease}"
+    ".ui-rescue-node:hover,.ui-rescue-node:focus-visible{border-color:var(--ui-accent);transform:translate(-50%,-50%) scale(1.12);outline:none}"
+    "[data-rescue-kind=\"npc\"]{border-color:color-mix(in srgb,var(--ui-accent) 45%,transparent)}"
+    "[data-rescue-kind=\"hydrant\"]{border-color:#3b82f6;box-shadow:0 0 0 2px color-mix(in srgb,#3b82f6 28%,transparent)}"
+    "[data-rescue-kind=\"chest\"]{border-color:#f59e0b;box-shadow:0 0 0 2px color-mix(in srgb,#f59e0b 28%,transparent)}"
+    "[data-rescue-kind=\"drop\"]{border-color:#10b981;box-shadow:0 0 0 2px color-mix(in srgb,#10b981 28%,transparent)}"
+    ".ui-rescue-node[data-rescue-collected=\"true\"],.ui-rescue-node[data-rescue-opened=\"true\"]{opacity:.52;box-shadow:none}"
+    ".ui-rescue-glyph{font-size:1.15rem;line-height:1}"
+    ".ui-rescue-label{display:none}"
+    ".ui-floor[data-floor=\"paris\"] .ui-prop[data-kind=\"fire\"]{cursor:pointer;pointer-events:auto;border-radius:4px;transition:box-shadow .15s ease}"
+    ".ui-floor[data-floor=\"paris\"] .ui-prop[data-kind=\"fire\"]:hover{outline:2px solid #ef4444;outline-offset:1px}"
+    ".ui-floor[data-floor=\"paris\"] .ui-prop[data-kind=\"fire\"][data-fire-tier=\"3\"]{outline:2px solid #d946ef;box-shadow:0 0 10px color-mix(in srgb,#d946ef 60%,transparent);animation:ui-fire-pulse 1.4s ease-in-out infinite}"
+    "@keyframes ui-fire-pulse{0%,100%{outline-color:#d946ef}50%{outline-color:#f43f5e}}"
+    ".ui-floor[data-floor=\"paris\"] .ui-prop[data-kind=\"fire\"][data-extinguished]{pointer-events:none;opacity:.88;outline:none!important;box-shadow:none!important;animation:none!important}"
+    ".ui-rescue-garden{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:3px;padding:8px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-panel);max-width:320px;margin:0 auto}"
+    ".ui-rescue-cell{display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;font-size:1.05rem;background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:4px;line-height:1}"
+    ".ui-rescue-rewards{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:6px 8px;border:1px solid var(--ui-border);border-radius:var(--ui-radius);background:var(--ui-panel);font-size:.82rem}"
+    "@media(max-height:450px){.ui-rescue-hud{padding:2px 6px;gap:2px 6px;font-size:.70rem}}"
+    "@media(max-width:420px){.ui-rescue-hud{padding:2px 4px;gap:2px 4px;font-size:.68rem}}"
+    "@media(prefers-reduced-motion:reduce){.ui-floor[data-floor=\"paris\"] .ui-prop[data-kind=\"fire\"][data-fire-tier=\"3\"]{animation:none!important}}"
+)
+
 _WALL_CSS = (
     ".ui-wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}"
     ".ui-wall-cell{border:1px solid var(--ui-border);padding:16px;border-radius:var(--ui-radius);background:var(--ui-bg);color:var(--ui-fg)}"
@@ -1965,8 +2363,14 @@ def world_css(spec: Any, *, base: bool = True) -> str:
     """
     world = world_validate(spec)
     wid, rules = world["id"], [world_base_css()] if base else []
-    if world.get("rpg"):
+    if world.get("rpg") or world.get("rescue"):
         rules.append(_WORLD_RPG_CSS)
+    if world.get("rescue"):
+        rules.append(_WORLD_RESCUE_CSS)
+        rfloor = world["rescue"]["floor"]
+        rules.append(f'#{wid}-map:not(:has(#{wid}-floor-{rfloor}:checked)) .ui-rescue-hud{{display:none!important}}')
+        rules.append(f'#{wid}-map[data-shell]:has(#{wid}-floor-{rfloor}:checked){{--ui-world-h:min(44vh,452px)}}')
+        rules.append(f'@media(max-height:450px){{#{wid}-map[data-shell]:has(#{wid}-floor-{rfloor}:checked){{--ui-world-h:min(36vh,160px)}}}}')
     for f in world["floors"]:
         radio = f"#{wid}-floor-{f['id']}"
         rules.append(f'.ui-world:has({radio}:checked) .ui-floor[data-floor="{f["id"]}"]{{display:block}}')
@@ -2200,7 +2604,7 @@ const spotRows=()=>[...el.querySelectorAll('.ui-world-spots a')],bagList=el.quer
   bagList.replaceChildren(...takeBtns().filter(b=>bag.has(b.dataset.itemId)).map(b=>{
    const id=b.dataset.itemId,src=spotRows().find(a=>a.getAttribute('href')==='#'+id),li=document.createElement('li');
    const a=src?src.cloneNode(true):document.createElement('a');
-   if(!src)a.href='#'+id;
+   if(!src){const sp=document.createElement('span');sp.className='ui-world-arrow';sp.setAttribute('aria-hidden','true');sp.textContent='📍';a.href='#'+id;a.append(sp,document.createTextNode(''))}
    a.lastChild.textContent=b.dataset.itemEmoji+' '+b.dataset.itemLabel;
    const rm=document.createElement('button');rm.type='button';rm.className='ui-world-bag-rm ui-world-take';rm.dataset.itemId=id;rm.setAttribute('aria-pressed','true');rm.dataset.t='take';rm.textContent='✕';
    li.append(a,rm);return li}));say(bagList)};
@@ -3182,12 +3586,736 @@ def rpg_module(records_url: str) -> str:
             + WORLD_RPG_JS)
 
 
+WORLD_RESCUE_JS = r"""
+export const RESCUE_RANK_THRESHOLDS=[0,35,90,170,280,420,600];
+export const RESCUE_RANK_TITLES=["見習い消防士","街角レスキュー","セーヌ機関士","パリ守護隊長","炎の制圧マイスター","伝説のグラン・エロー","フェイクパリ名誉英雄"];
+const RESCUE_COOL_ORBS=["💧","🌊","❄️","💚","✨"];
+const RESCUE_FLAME_ORBS=["🔥","💥","⚡"];
+const RESCUE_GARDEN_GLYPHS=["🌱","🌷","🌳","🍄","🌻","🪨"];
+export const RESCUE_GARDEN_REWARDS=["⭐","🎵","🎨","🏆","🌈","💎","🚀","👑"];
+
+export function rescueRandomWord(seed){
+ let x=(Number(seed)>>>0)||0x6D2B79F5;
+ x^=((x<<13)&0xFFFFFFFF);x>>>=0;
+ x^=(x>>>17);
+ x^=((x<<5)&0xFFFFFFFF);
+ return x>>>0;
+}
+
+export function rescueOrbEffect(amount,cool=true){
+ const amt=Math.max(0,Math.floor(Number(amount)||0));
+ if(amt===0)return{counter:0,amount:0,cool:false,idle:true,orbs:[],label:"Orbs ready…"};
+ const pal=cool?RESCUE_COOL_ORBS:RESCUE_FLAME_ORBS,n=Math.min(Math.max(amt,1),6);
+ return{counter:cool?-amt:amt,amount:amt,cool:Boolean(cool),idle:false,
+        orbs:Array.from({length:n},(_,i)=>pal[i%pal.length]),
+        label:cool?`💦 冷却 ${amt}`:`🔥 熱波 ${amt}`};
+}
+
+export function rescueRankForExp(exp){
+ const xp=Math.max(0,Math.floor(Number(exp)||0));let level=1;
+ for(let i=0;i<RESCUE_RANK_THRESHOLDS.length;i++)if(xp>=RESCUE_RANK_THRESHOLDS[i])level=i+1;
+ const next=level<RESCUE_RANK_THRESHOLDS.length?RESCUE_RANK_THRESHOLDS[level]:RESCUE_RANK_THRESHOLDS[RESCUE_RANK_THRESHOLDS.length-1];
+ return{level,title:RESCUE_RANK_TITLES[level-1],exp:xp,next_exp:next,
+        bonus_hp:(level-1)*6,bonus_water:(level-1)*8,bonus_power:(level-1)*2,bonus_shield:(level-1)*1};
+}
+
+export function rescueFireProfile(index,tx,ty,seed=20261127,{bossCell=[21,31],startCell=[24,4]}={}){
+ const idx=Math.max(0,Math.floor(Number(index)||0)),x=Math.max(0,Math.floor(Number(tx)||0)),y=Math.max(0,Math.floor(Number(ty)||0));
+ const s=(Number(seed)>>>0)||20261127;
+ const mx=(Math.imul(x,73856093)>>>0),my=(Math.imul(y,19349663)>>>0),mi=(Math.imul(idx+1,83492791)>>>0);
+ const mixed=(s^mx^my^mi)>>>0,word=rescueRandomWord(mixed),bloom=RESCUE_GARDEN_GLYPHS[word%RESCUE_GARDEN_GLYPHS.length];
+ let tier=1,name="小火スパーク",emoji="🔥",heat=10,flare=4,exp=16,medals=12,step=5;
+ if(x===bossCell[0]&&y===bossCell[1]){
+  tier=3;name="大火災インフェルノ";emoji="🌋";heat=42;flare=11;exp=65;medals=55;step=10;
+ }else if(Math.abs(x-startCell[0])+Math.abs(y-startCell[1])<=6||(word%3)!==0){
+  tier=1;name="小火スパーク";emoji="🔥";heat=10;flare=4;exp=16;medals=12;step=5;
+ }else{
+  tier=2;name="延焼ブレイズ";emoji="🔥";heat=22;flare=7;exp=28;medals=22;step=5;
+ }
+ return{id:`fire-${idx}`,index:idx,tx:x,ty:y,tier,boss:tier===3,name,emoji,heat,flare,exp,medals,garden_step:step,bloom};
+}
+
+export function rescueSplash(power,rollWord,{multPct=100}={}){
+ const p=Math.max(1,Math.floor(Number(power)||1)),w=Number(rollWord)>>>0,m=Math.max(10,Math.floor(Number(multPct)||100));
+ const crit=(w%100)<18,variance=((w>>>8)%3)-1;
+ let cooling=Math.max(2,Math.floor((p*m)/100)+variance);
+ if(crit)cooling=Math.max(4,Math.floor((cooling*3)/2));
+ return{cooling,crit,effect:rescueOrbEffect(cooling,true)};
+}
+
+export function rescueFlareHit(flare,shield,rollWord,{guarding=false}={}){
+ const f=Math.max(1,Math.floor(Number(flare)||1)),s=Math.max(0,Math.floor(Number(shield)||0)),w=Number(rollWord)>>>0;
+ const variance=(w%3)-1;
+ let dmg=Math.max(1,f-Math.floor(s/2)+variance);
+ if(guarding)dmg=Math.max(1,Math.floor(dmg/2));
+ return{damage:dmg,effect:rescueOrbEffect(dmg,false)};
+}
+
+export function rescueGardenStep(currentValue,magnitude=5){
+ const v=Math.max(-100,Math.min(100,Math.floor(Number(currentValue)||0))),mag=[1,5,10].includes(magnitude)?magnitude:5;
+ return v+mag<=100?mag:-mag;
+}
+
+export function rescueGarden(seed,actions){
+ const s=(Number(seed)>>>0)||0;
+ let state=s,value=0,history=[0];
+ const cells=new Map();
+ for(const d of actions||[]){
+  if(![-10,-5,-1,1,5,10].includes(d))continue;
+  const nextVal=Math.max(-100,Math.min(100,value+d));
+  if(nextVal===value)continue;
+  value=nextVal;history=[value,...history].slice(0,8);
+  state=rescueRandomWord(state);const cell=state%64;
+  state=rescueRandomWord(state);cells.set(cell,RESCUE_GARDEN_GLYPHS[state%RESCUE_GARDEN_GLYPHS.length]);
+ }
+ let mask=0n;
+ for(const c of cells.keys())mask|=1n<<BigInt(c);
+ return{schema:"web-ui-play/1",seed:s,value,history,cells:[...cells.entries()].sort((a,b)=>a[0]-b[0]),
+        mask:mask.toString(16).padStart(16,"0"),rewards:RESCUE_GARDEN_REWARDS.slice(0,Math.floor(cells.size/8)),
+        actions:[...(actions||[])]};
+}
+
+export function rescueNearestFire(px,py,fires,tile=32){
+ if(!fires||!fires.length)return null;
+ let best=null,bestSq=Infinity;
+ for(const f of fires){
+  const sq=(f.x-px)**2+(f.y-py)**2;
+  if(sq<bestSq||(sq===bestSq&&(f.y<best.y||(f.y===best.y&&f.x<best.x)))){best=f;bestSq=sq}
+ }
+ if(!best)return null;
+ const dist=Math.hypot(best.x-px,best.y-py);
+ const dx=best.x-px,dy=best.y-py,adx=Math.abs(dx),ady=Math.abs(dy);
+ let arrow="📍";
+ if(adx>tile*0.5||ady>tile*0.5){
+  const sx=adx>tile*0.5?(dx>0?1:-1):0,sy=ady>tile*0.5?(dy>0?1:-1):0;
+  const arrows={"1,0":"➡️","1,1":"↘️","0,1":"⬇️","-1,1":"↙️","-1,0":"⬅️","-1,-1":"↖️","0,-1":"⬆️","1,-1":"↗️"};
+  arrow=arrows[`${sx},${sy}`]||"📍";
+ }
+ return{id:best.id,x:best.x,y:best.y,arrow,tiles:Math.round(dist/Math.max(1,tile))};
+}
+
+function rescueEl(tag,props={},...kids){
+ const node=document.createElement(tag);
+ for(const[k,v]of Object.entries(props)){
+  if(v===undefined||v===null)continue;
+  if(k==="className")node.className=v;
+  else if(k==="hidden")node.hidden=Boolean(v);
+  else if(k==="disabled")node.disabled=Boolean(v);
+  else if(k.startsWith("data-")||k.startsWith("aria-"))node.setAttribute(k,String(v));
+  else node[k]=v;
+ }
+ node.append(...kids.filter(c=>c!==undefined&&c!==null));
+ return node;
+}
+
+export function bindWorldRescue(el){
+ if(el.hasAttribute("data-rescue-bound"))return el;
+ const dataEl=el.querySelector(".ui-rescue-data");if(!dataEl)return el;
+ let rescue=null;try{rescue=JSON.parse(dataEl.textContent)}catch{return el}
+ el.setAttribute("data-rescue-bound","");
+ const wid=el.id.replace(/-map$/,""),hud=el.querySelector(".ui-rescue-hud");
+ if(hud)hud.hidden=false;
+ const overlay=el.querySelector(".ui-rpg-overlay")||rescueEl("div",{className:"ui-rpg-overlay",hidden:true});
+ if(!overlay.isConnected)el.append(overlay);
+ const toast=el.querySelector(".ui-rpg-toast")||rescueEl("div",{className:"ui-rpg-toast",hidden:true,"aria-live":"polite"});
+ if(!toast.isConnected)el.append(toast);
+ let toastTimer=0;
+ const showToast=msg=>{toast.textContent=msg;toast.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{toast.hidden=true},3200)};
+
+ const hero=rescue.hero;
+ const state={
+  exp:0,hp:hero.hp,water:hero.water,medals:hero.medals,seed:rescue.seed>>>0||20261127,
+  talked:new Set(),looted:new Set(),openedChests:new Set(),extinguished:new Set(),
+  hydrantUses:0,quizzesSolved:new Set(),quizIdx:0,
+  consumables:new Map(),equipment:new Set(),completedQuests:new Set(),badges:new Set(),
+  boughtCount:0,gardenActions:[]
+ };
+
+ const equipBonus=()=>[...state.equipment].reduce((acc,nid)=>{
+  const n=rescue.nodes.find(nd=>nd.id===nid);if(!n)return acc;
+  acc.hp+=n.hp||0;acc.water+=n.water||0;acc.power+=n.power||0;acc.shield+=n.shield||0;return acc;
+ },{hp:0,water:0,power:0,shield:0});
+
+ const stats=()=>{
+  const r=rescueRankForExp(state.exp),eq=equipBonus();
+  return{rank:r,maxHp:hero.hp+r.bonus_hp+eq.hp,maxWater:hero.water+r.bonus_water+eq.water,
+         power:hero.power+r.bonus_power+eq.power,shield:hero.shield+r.bonus_shield+eq.shield};
+ };
+
+ const clampVitals=()=>{
+  const st=stats();state.hp=Math.max(0,Math.min(st.maxHp,state.hp));state.water=Math.max(0,Math.min(st.maxWater,state.water));
+ };
+ const nextRoll=()=>{state.seed=rescueRandomWord(state.seed);return state.seed};
+
+ const curFloorEl=()=>el.querySelector(`.ui-floor[data-floor="${CSS.escape(rescue.floor)}"]`);
+ const tile=Number(curFloorEl()?.dataset.tile)||32;
+
+ const fireMap=new Map();
+ const refreshFireProps=()=>{
+  const f=curFloorEl();if(!f)return;
+  const props=[...f.querySelectorAll('.ui-prop[data-kind="fire"]')];
+  props.forEach((prop,idx)=>{
+   const tx=Math.floor(parseFloat(prop.style.left)/tile),ty=Math.floor(parseFloat(prop.style.top)/tile);
+   const prof=rescueFireProfile(idx,tx,ty,rescue.seed,{bossCell:rescue.boss_cell,startCell:rescue.start_cell});
+   prop.setAttribute("data-fire-id",prof.id);prop.setAttribute("data-fire-tier",String(prof.tier));
+   if(prof.boss)prop.setAttribute("data-fire-boss","true");
+   fireMap.set(prof.id,{prop,prof,tx,ty,x:tx*tile+tile/2,y:ty*tile+tile/2});
+  });
+ };
+ refreshFireProps();
+
+ const updateRadar=()=>{
+  const checkedFloor=el.querySelector("input[name$='-floor']:checked")?.value||"";
+  if(checkedFloor!==rescue.floor)return;
+  const pl=curFloorEl()?.querySelector(".ui-player");if(!pl)return;
+  const px=parseFloat(pl.style.getPropertyValue("--px"))||Number(pl.dataset.x)||0;
+  const py=parseFloat(pl.style.getPropertyValue("--py"))||Number(pl.dataset.y)||0;
+  const activeFires=[...fireMap.values()].filter(f=>!state.extinguished.has(f.prof.id));
+  const radarSpan=hud?.querySelector("[data-rescue-radar]");
+  if(!radarSpan)return;
+  if(!activeFires.length){radarSpan.textContent="✅ 全鎮火達成！";return}
+  const nr=rescueNearestFire(px,py,activeFires.map(f=>({id:f.prof.id,x:f.x,y:f.y})),tile);
+  if(nr)radarSpan.textContent=`${nr.arrow} ${nr.tiles}m`;
+ };
+
+ const renderHud=()=>{
+  clampVitals();if(!hud)return;
+  const st=stats(),playerGlyph=el.querySelector(".ui-player span")?.textContent||"🦸";
+  const totalFires=fireMap.size||25,extCount=state.extinguished.size;
+  const pct=totalFires?Math.round(100*extCount/totalFires):0;
+  const qDone=state.completedQuests.size,qTotal=rescue.quests.length;
+  hud.querySelector("[data-rescue-hero]").textContent=`${playerGlyph} Lv.${st.rank.level} ${st.rank.title}`;
+  hud.querySelector("[data-rescue-hp]").textContent=`❤️ ${state.hp}/${st.maxHp}`;
+  hud.querySelector("[data-rescue-hp-bar]").style.width=`${Math.round(100*state.hp/Math.max(1,st.maxHp))}%`;
+  hud.querySelector("[data-rescue-water]").textContent=`💧 ${state.water}/${st.maxWater}`;
+  hud.querySelector("[data-rescue-water-bar]").style.width=`${Math.round(100*state.water/Math.max(1,st.maxWater))}%`;
+  hud.querySelector("[data-rescue-fires]").textContent=`🔥 鎮火 ${extCount}/${totalFires} (${pct}%)`;
+  hud.querySelector("[data-rescue-medals]").textContent=`🪙 ${state.medals}`;
+  hud.querySelector("[data-rescue-gear]").textContent=`🚿 ${st.power} 🛡️ ${st.shield}`;
+  hud.querySelector("[data-rescue-qcount]").textContent=`${qDone}/${qTotal}`;
+  updateRadar();
+ };
+
+ const gainExp=amount=>{
+  if(!amount)return false;
+  const before=rescueRankForExp(state.exp).level;state.exp+=amount;
+  const after=rescueRankForExp(state.exp);
+  if(after.level>before){
+   const st=stats();state.hp=st.maxHp;state.water=st.maxWater;
+   showToast(`🎉 ランクアップ！ Lv.${after.level}「${after.title}」！`);return after.level;
+  }
+  return false;
+ };
+
+ const questProgress=q=>{
+  if(q.kind==="talk")return state.talked.size;
+  if(q.kind==="drop")return state.looted.size;
+  if(q.kind==="chest")return state.openedChests.size;
+  if(q.kind==="fire")return state.extinguished.size;
+  if(q.kind==="boss_fire")return [...state.extinguished].some(id=>fireMap.get(id)?.prof.boss)?1:0;
+  if(q.kind==="refill")return state.hydrantUses;
+  if(q.kind==="quiz")return state.quizzesSolved.size;
+  return 0;
+ };
+
+ const evalBadges=()=>{
+  const checks={
+   "b-first-fire":state.extinguished.size>=1,
+   "b-fire-five":state.extinguished.size>=5,
+   "b-boss-down":[...state.extinguished].some(id=>fireMap.get(id)?.prof.boss),
+   "b-geared-up":["chest-nozzle","chest-suit","chest-tank","chest-helm"].every(id=>state.equipment.has(id)),
+   "b-hydrant-master":state.hydrantUses>=3,
+   "b-quiz-scholar":state.quizzesSolved.size>=3,
+   "b-green-paris":rescueGarden(rescue.seed,state.gardenActions).cells.length>=8
+  };
+  for(const b of rescue.badges){
+   if(!state.badges.has(b.id)&&checks[b.id]){
+    state.badges.add(b.id);showToast(`🏅 勲章獲得: ${b.emoji} ${b.label}`);
+   }
+  }
+ };
+
+ const checkQuests=()=>{
+  for(const q of rescue.quests){
+   if(state.completedQuests.has(q.id))continue;
+   if(questProgress(q)>=q.count){
+    state.completedQuests.add(q.id);
+    gainExp(q.reward_exp);state.medals+=q.reward_medals;
+    showToast(`📜 任務達成「${q.title}」 +${q.reward_exp}EXP +${q.reward_medals}🪙`);
+   }
+  }
+  evalBadges();renderHud();
+ };
+
+ const closeModal=()=>{overlay.hidden=true;overlay.replaceChildren();el.querySelector(".ui-world-view")?.focus({preventScroll:true})};
+ const showCard=card=>{overlay.replaceChildren(card);overlay.hidden=false;const f=card.querySelector("[data-primary],button");f?.focus({preventScroll:true})};
+
+ const renderOrbs=effect=>{
+  const wrap=rescueEl("div",{className:"ui-rpg-orbs"});
+  if(!effect||effect.idle){wrap.append(rescueEl("span",{textContent:"💦 放水準備完了…"}));return wrap}
+  for(const orb of effect.orbs)wrap.append(rescueEl("span",{className:"ui-rpg-orb",textContent:orb}));
+  wrap.append(rescueEl("span",{textContent:` ${effect.label}`}));
+  return wrap;
+ };
+
+ const syncBagTake=itemId=>{
+  const take=el.querySelector(`.ui-world-take[data-item-id="${CSS.escape(itemId)}"]`);
+  if(take&&take.getAttribute("aria-pressed")!=="true")take.click();
+ };
+
+ const extinguishFire=(prof,waterUsed=0)=>{
+  if(state.extinguished.has(prof.id))return;
+  state.extinguished.add(prof.id);state.water=Math.max(0,state.water-waterUsed);
+  state.medals+=prof.medals;gainExp(prof.exp);
+  const curG=rescueGarden(rescue.seed,state.gardenActions);
+  const step=rescueGardenStep(curG.value,prof.garden_step);
+  state.gardenActions.push(step);
+  const item=fireMap.get(prof.id);
+  if(item&&item.prop){
+   item.prop.setAttribute("data-extinguished","true");
+   const bloomSvg=`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text x='16' y='25' font-size='26' text-anchor='middle'>${prof.bloom}</text></svg>`;
+   item.prop.style.backgroundImage=`url("data:image/svg+xml,${encodeURIComponent(bloomSvg)}")`;
+  }
+  checkQuests();renderHud();
+ };
+
+ const useConsumable=key=>{
+  const item=state.consumables.get(key);if(!item||item.count<=0)return null;
+  item.count-=1;
+  if(item.count===0){
+   state.consumables.delete(key);
+   const take=el.querySelector(`.ui-world-take[data-item-id="${CSS.escape(item.itemId)}"]`);
+   if(take&&take.getAttribute("aria-pressed")==="true")take.click();
+  }
+  const st=stats();
+  if(item.hp)state.hp=Math.min(st.maxHp,state.hp+item.hp);
+  if(item.water)state.water=Math.min(st.maxWater,state.water+item.water);
+  renderHud();
+  return item;
+ };
+
+ const openFireModal=fireId=>{
+  const item=fireMap.get(fireId);if(!item||state.extinguished.has(fireId))return;
+  const prof=item.prof;
+  let foeHeat=prof.heat;
+  const heatMeter=rescueEl("i",{style:`width:100%`});
+  const heatText=rescueEl("b",{textContent:`🔥 熱量 ${foeHeat}/${prof.heat}`});
+  const orbsWrap=rescueEl("div");
+  const logEl=rescueEl("p",{className:"ui-rpg-log",textContent:`🚨 ${prof.name}が発生中！放水モードを選択して消火活動を開始してください。`});
+  const actionBtnsWrap=rescueEl("div",{className:"ui-rpg-cmd-grid"});
+
+  const updateHeatUI=()=>{
+   const pct=Math.max(0,Math.round(100*foeHeat/prof.heat));
+   heatMeter.style.width=`${pct}%`;heatText.textContent=`🔥 熱量 ${foeHeat}/${prof.heat}`;
+  };
+
+  const executeRound=jet=>{
+   if(state.water<jet.water){
+    logEl.textContent=`💧 水タンクの水が足りない！（必要: ${jet.water} 💧） 給水栓🚰で補給するか、アイテムを使ってください。`;
+    return;
+   }
+   state.water-=jet.water;
+   const splash=rescueSplash(stats().power,nextRoll(),{multPct:jet.mult_pct});
+   foeHeat=Math.max(0,foeHeat-splash.cooling);
+   if(jet.heal_hp){state.hp=Math.min(stats().maxHp,state.hp+jet.heal_hp)}
+   orbsWrap.replaceChildren(renderOrbs(splash.effect));
+   updateHeatUI();renderHud();
+
+   if(foeHeat<=0){
+    extinguishFire(prof,0);
+    logEl.textContent=`🎉 完全鎮火！ ${prof.name}を制圧した！ 街に${prof.bloom}が咲き誇った！ (+${prof.exp}EXP / +${prof.medals}🪙)`;
+    actionBtnsWrap.replaceChildren(rescueEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"消火完了！街へもどる",onclick:closeModal}));
+    return;
+   }
+
+   const flare=rescueFlareHit(prof.flare,stats().shield,nextRoll(),{guarding:jet.kind==="guard"});
+   state.hp-=flare.damage;
+   logEl.textContent=`${jet.emoji} ${jet.label}！ 冷却力 ${splash.cooling}${splash.crit?" (会心の一撃！)":""}！\n🔥 炎の熱波反撃！ ${flare.damage} の熱波ダメージを受けた！`;
+   renderHud();
+
+   if(state.hp<=0){
+    state.hp=10;state.water=0;renderHud();
+    logEl.textContent="⚠️ 高熱に耐えきれず緊急退避！水路技師や給水栓で急速補給してください！";
+    actionBtnsWrap.replaceChildren(rescueEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"退避する",onclick:closeModal}));
+   }
+  };
+
+  const rebuildCmds=()=>{
+   actionBtnsWrap.replaceChildren(...rescue.jets.map(jt=>rescueEl("button",{
+    type:"button",className:"ui-rpg-btn",
+    textContent:`${jt.emoji} ${jt.label} (${jt.water}💧)`,
+    onclick:()=>executeRound(jt)
+   })));
+   if(state.consumables.size){
+    actionBtnsWrap.append(rescueEl("button",{
+     type:"button",className:"ui-rpg-btn",textContent:"🎒 どうぐを使う",
+     onclick:()=>{
+      actionBtnsWrap.replaceChildren(
+       ...[...state.consumables.values()].map(c=>rescueEl("button",{
+        type:"button",className:"ui-rpg-btn",textContent:`${c.emoji} ${c.label} (${c.count})`,
+        onclick:()=>{
+         const used=useConsumable(c.key);
+         if(used){
+          if(used.item_type==="bomb"){
+           foeHeat=Math.max(0,foeHeat-used.power);
+           orbsWrap.replaceChildren(renderOrbs(rescueOrbEffect(used.power,true)));
+           logEl.textContent=`🧊 ${used.label}を投下！ 瞬時に ${used.power} の超冷却ダメージ！`;
+           updateHeatUI();
+           if(foeHeat<=0){
+            extinguishFire(prof,0);
+            actionBtnsWrap.replaceChildren(rescueEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"消火完了！街へもどる",onclick:closeModal}));
+            return;
+           }
+          }else{
+           logEl.textContent=`✨ ${used.label}を使用！ HP+${used.hp||0} 水+${used.water||0}`;
+          }
+         }
+         rebuildCmds();
+        }
+       })),
+       rescueEl("button",{type:"button",className:"ui-rpg-btn",textContent:"◀ もどる",onclick:rebuildCmds})
+      );
+     }
+    }));
+   }
+   actionBtnsWrap.append(rescueEl("button",{type:"button",className:"ui-rpg-btn",textContent:"💨 退避",onclick:closeModal}));
+  };
+  rebuildCmds();
+
+  const card=rescueEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":"消火ミッション"},
+   rescueEl("div",{className:"ui-rpg-card-head"},
+    rescueEl("h3",{className:"ui-rpg-card-title",textContent:`${prof.emoji} ${prof.name} 消火ミッション`}),
+    rescueEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   rescueEl("div",{className:"ui-rpg-foe-box"},
+    rescueEl("span",{className:"ui-rpg-foe-sprite",textContent:prof.emoji}),
+    rescueEl("div",{className:"ui-rpg-foe-info"},
+     rescueEl("div",{className:"ui-rpg-foe-meta"},
+      rescueEl("span",{className:"ui-rpg-intent",textContent:`Lv.${prof.tier}`}),
+      rescueEl("span",{textContent:prof.name})),
+     rescueEl("span",{className:"ui-rpg-meter ui-rpg-meter-foe",style:"width:100%"},heatMeter),
+     heatText)),
+   orbsWrap,logEl,actionBtnsWrap);
+  showCard(card);
+ };
+
+ const openNpcDialog=(nodeId,pageIdx=0)=>{
+  const node=rescue.nodes.find(nd=>nd.id===nodeId);if(!node)return;
+  state.talked.add(nodeId);checkQuests();
+  const pages=[node.greeting,...(node.lines||[])];
+  let idx=Math.min(pageIdx,pages.length-1);
+  const textEl=rescueEl("p",{className:"ui-rpg-text"}),orbsWrap=rescueEl("div"),actionsEl=rescueEl("div",{className:"ui-rpg-actions"});
+  const renderPage=()=>{
+   textEl.textContent=`[${idx+1}/${pages.length}] ${pages[idx]}`;
+   actionsEl.replaceChildren();
+   if(idx>0)actionsEl.append(rescueEl("button",{type:"button",className:"ui-rpg-btn",textContent:"◀ もどる",onclick:()=>{idx-=1;renderPage()}}));
+   if(idx<pages.length-1)actionsEl.append(rescueEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"つぎへ ▶",onclick:()=>{idx+=1;renderPage()}}));
+   if(node.refill)actionsEl.append(rescueEl("button",{type:"button",className:"ui-rpg-btn",textContent:"💧 給水＆点検（全快）",onclick:()=>{
+    const st=stats();state.hp=st.maxHp;state.water=st.maxWater;state.hydrantUses+=1;
+    orbsWrap.replaceChildren(renderOrbs(rescueOrbEffect(st.maxWater,true)));
+    textEl.textContent="✨ セーヌ水路の清流により、水タンクと体力が満タンまで急速補給された！";checkQuests();
+   }}));
+   if(node.shop)actionsEl.append(rescueEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🛒 補給ショップ",onclick:()=>openShopDialog(nodeId)}));
+   if(node.quiz)actionsEl.append(rescueEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🎓 クイズに挑戦",onclick:()=>openQuizDialog(nodeId)}));
+   actionsEl.append(rescueEl("button",{type:"button",className:"ui-rpg-btn",...(idx===pages.length-1?{"data-primary":""}:{}),textContent:"とじる",onclick:closeModal}));
+  };
+  renderPage();
+  const card=rescueEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":`${node.label}との対話`},
+   rescueEl("div",{className:"ui-rpg-card-head"},
+    rescueEl("h3",{className:"ui-rpg-card-title",textContent:`${node.emoji} ${node.speaker}`}),
+    rescueEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   textEl,orbsWrap,actionsEl);
+  showCard(card);
+ };
+
+ const openShopDialog=nodeId=>{
+  const node=rescue.nodes.find(nd=>nd.id===nodeId);
+  const list=rescueEl("div",{className:"ui-rpg-list"});
+  const medalTag=rescueEl("p",{className:"ui-rpg-subnote",textContent:`所持メダル: 🪙 ${state.medals}`});
+  const rebuild=()=>{
+   medalTag.textContent=`所持メダル: 🪙 ${state.medals}`;
+   list.replaceChildren(...rescue.shop.map(sh=>rescueEl("div",{className:"ui-rpg-row"},
+    rescueEl("div",{className:"ui-rpg-row-top"},rescueEl("span",{textContent:`${sh.emoji} ${sh.label}`}),rescueEl("span",{textContent:`🪙 ${sh.cost}`})),
+    rescueEl("p",{className:"ui-rpg-subnote",textContent:sh.desc}),
+    rescueEl("div",{className:"ui-rpg-actions"},rescueEl("button",{
+     type:"button",className:"ui-rpg-btn",disabled:state.medals<sh.cost,
+     textContent:state.medals<sh.cost?"メダル不足":"補給する",
+     onclick:()=>{
+      if(state.medals<sh.cost)return;
+      state.medals-=sh.cost;state.boughtCount+=1;
+      const itemId=`${wid}-rescue-shop-${sh.id}`;syncBagTake(itemId);
+      const key="shop:"+sh.id,cur=state.consumables.get(key)||{key,itemId,emoji:sh.emoji,label:sh.label,item_type:sh.item_type,hp:sh.hp,water:sh.water,power:sh.power,count:0};
+      cur.count+=1;state.consumables.set(key,cur);
+      showToast(`${sh.emoji} ${sh.label} を補給した！`);
+      checkQuests();rebuild();
+     }
+    })))));
+  };
+  rebuild();
+  const card=rescueEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":"補給ショップ"},
+   rescueEl("div",{className:"ui-rpg-card-head"},
+    rescueEl("h3",{className:"ui-rpg-card-title",textContent:`🛒 ${node.speaker}の補給ショップ`}),
+    rescueEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   medalTag,list,
+   rescueEl("div",{className:"ui-rpg-actions"},rescueEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"会話にもどる",onclick:()=>openNpcDialog(nodeId)})));
+  showCard(card);
+ };
+
+ const openQuizDialog=nodeId=>{
+  const node=rescue.nodes.find(nd=>nd.id===nodeId);
+  const qz=rescue.quizzes[state.quizIdx%rescue.quizzes.length];
+  state.quizIdx=(state.quizIdx+1)%rescue.quizzes.length;
+  const resultBox=rescueEl("div",{className:"ui-rpg-subpanel",hidden:true});
+  const choiceBtns=[];
+  const card=rescueEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":"技術ポートフォリオクイズ"},
+   rescueEl("div",{className:"ui-rpg-card-head"},
+    rescueEl("h3",{className:"ui-rpg-card-title",textContent:`📚 ${node.speaker}の技術クイズ`}),
+    rescueEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   qz.repo?rescueEl("p",{className:"ui-rpg-subnote",textContent:`📦 関連リポジトリ: ${qz.repo}`}):null,
+   rescueEl("p",{className:"ui-rpg-text",textContent:qz.prompt}),
+   rescueEl("div",{className:"ui-rpg-actions"},...qz.choices.map((c,idx)=>{
+    const btn=rescueEl("button",{type:"button",className:"ui-rpg-btn",textContent:`${idx+1}. ${c}`,onclick:()=>{
+     for(const b of choiceBtns)b.disabled=true;
+     const ok=idx===qz.correct;resultBox.hidden=false;
+     let rewardNote="";
+     if(ok&&!state.quizzesSolved.has(qz.prompt)){
+      state.quizzesSolved.add(qz.prompt);gainExp(20);state.medals+=20;rewardNote=" (+20 EXP / +20🪙)";checkQuests();
+     }
+     resultBox.replaceChildren(
+      rescueEl("p",{className:"ui-rpg-text",textContent:(ok?"⭕ 正解！":"❌ 残念！")+rewardNote}),
+      rescueEl("p",{className:"ui-rpg-subnote",textContent:qz.explanation}),
+      rescueEl("div",{className:"ui-rpg-actions"},
+       rescueEl("button",{type:"button",className:"ui-rpg-btn",textContent:"つぎの問題 ▶",onclick:()=>openQuizDialog(nodeId)}),
+       rescueEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"会話にもどる",onclick:()=>openNpcDialog(nodeId)})));
+    }});
+    choiceBtns.push(btn);return btn;
+   })),
+   resultBox);
+  showCard(card);
+ };
+
+ const interactNode=nodeId=>{
+  const node=rescue.nodes.find(nd=>nd.id===nodeId);if(!node)return;
+  if(node.kind==="npc")return openNpcDialog(nodeId);
+  if(node.kind==="hydrant"){
+   const st=stats();state.hp=st.maxHp;state.water=st.maxWater;state.hydrantUses+=1;
+   showToast(`🚰 ${node.label}で満タン急速給水！ (水・体力全快)`);checkQuests();return;
+  }
+  if(node.kind==="drop"){
+   if(state.looted.has(nodeId))return;
+   state.looted.add(nodeId);
+   const nodeEl=curFloorEl()?.querySelector(`.ui-rescue-node[data-rescue-id="${CSS.escape(nodeId)}"]`);
+   if(nodeEl)nodeEl.setAttribute("data-rescue-collected","true");
+   const itemId=`${wid}-rescue-${nodeId}`;syncBagTake(itemId);
+   const key="drop:"+nodeId,cur=state.consumables.get(key)||{key,itemId,emoji:node.item_emoji,label:node.item_label,item_type:node.item_type,hp:node.hp,water:node.water,power:node.power,count:0};
+   cur.count+=1;state.consumables.set(key,cur);
+   gainExp(node.exp);state.medals+=node.medals;
+   showToast(`✨ ${node.item_emoji} ${node.item_label}を拾った！ (+${node.exp}EXP / +${node.medals}🪙)`);
+   checkQuests();return;
+  }
+  if(node.kind==="chest"){
+   if(state.openedChests.has(nodeId))return;
+   if(node.requires_fires&&state.extinguished.size<node.requires_fires){
+    const left=node.requires_fires-state.extinguished.size;
+    showToast(`🔒 炎が燃え盛っていて開かない！（あと ${left} 箇所の鎮火が必要）`);return;
+   }
+   state.openedChests.add(nodeId);state.equipment.add(nodeId);
+   const nodeEl=curFloorEl()?.querySelector(`.ui-rescue-node[data-rescue-id="${CSS.escape(nodeId)}"]`);
+   if(nodeEl){
+    nodeEl.setAttribute("data-rescue-opened","true");
+    const glyph=nodeEl.querySelector(".ui-rescue-glyph");if(glyph&&node.opened_emoji)glyph.textContent=node.opened_emoji;
+   }
+   const itemId=`${wid}-rescue-${nodeId}`;syncBagTake(itemId);
+   gainExp(node.exp);state.medals+=node.medals;
+   showToast(`🎁 宝箱を開けた！ ${node.item_emoji} ${node.item_label} を装備！ (+${node.exp}EXP / +${node.medals}🪙)`);
+   checkQuests();return;
+  }
+ };
+
+ const openJournal=(defaultTab="quests")=>{
+  let activeTab=defaultTab;
+  const tabs=[["quests","📋 ミッション"],["badges","🏅 勲章バッジ"],["gear","🦸 装備・どうぐ"],["garden","🌱 パリ緑化"]];
+  const tabBtns=[];
+  const body=rescueEl("div",{className:"ui-rpg-journal-body"});
+
+  const drawBody=()=>{
+   body.replaceChildren();
+   if(activeTab==="quests"){
+    body.append(rescueEl("div",{className:"ui-rpg-list"},...rescue.quests.map(q=>{
+     const cur=questProgress(q),done=cur>=q.count;
+     return rescueEl("div",{className:"ui-rpg-row"},
+      rescueEl("div",{className:"ui-rpg-row-top"},
+       rescueEl("span",{textContent:(done?"✅ ":"⏳ ")+q.title}),
+       rescueEl("span",{textContent:`${Math.min(cur,q.count)}/${q.count}`})),
+      rescueEl("p",{className:"ui-rpg-subnote",textContent:q.desc}),
+      rescueEl("p",{className:"ui-rpg-subnote",textContent:`報酬: +${q.reward_exp}EXP / +${q.reward_medals}🪙`}));
+    })));
+   }else if(activeTab==="badges"){
+    body.append(rescueEl("div",{className:"ui-rpg-badges"},...rescue.badges.map(b=>{
+     const unl=state.badges.has(b.id);
+     return rescueEl("div",{className:"ui-rpg-badge","data-unlocked":String(unl)},
+      rescueEl("span",{style:"font-size:1.6rem;line-height:1",textContent:unl?b.emoji:"🔒"}),
+      rescueEl("strong",{textContent:b.label}),
+      rescueEl("span",{textContent:b.desc}));
+    })));
+   }else if(activeTab==="gear"){
+    const st=stats();
+    body.append(
+     rescueEl("div",{className:"ui-rpg-subpanel"},
+      rescueEl("p",{className:"ui-rpg-text",textContent:`🦸 階級: Lv.${st.rank.level} ${st.rank.title}\n❤️ 最大HP: ${st.maxHp} | 💧 最大水容量: ${st.maxWater}\n🚿 放水威力: ${st.power} | 🛡️ 耐熱シールド: ${st.shield}\n🪙 レスキューメダル: ${state.medals}`})),
+     rescueEl("h4",{textContent:"🎒 所持アイテム"}),
+     state.consumables.size?rescueEl("div",{className:"ui-rpg-list"},...[...state.consumables.values()].map(c=>rescueEl("div",{className:"ui-rpg-row"},
+      rescueEl("div",{className:"ui-rpg-row-top"},rescueEl("span",{textContent:`${c.emoji} ${c.label} ×${c.count}`})),
+      rescueEl("div",{className:"ui-rpg-actions"},rescueEl("button",{
+       type:"button",className:"ui-rpg-btn",textContent:"つかう",onclick:()=>{useConsumable(c.key);drawBody()}
+      }))
+     ))):rescueEl("p",{className:"ui-rpg-subnote",textContent:"使えるアイテムはありません。街のドロップやパン屋で補給しましょう。"})
+    );
+   }else if(activeTab==="garden"){
+    const g=rescueGarden(rescue.seed,state.gardenActions);
+    const cellMap=new Map(g.cells);
+    const gridEl=rescueEl("div",{className:"ui-rescue-garden"},...Array.from({length:64},(_,idx)=>{
+     const glyph=cellMap.get(idx)||"·";
+     return rescueEl("span",{className:"ui-rescue-cell",textContent:glyph,"aria-label":`セル ${idx}: ${glyph}`});
+    }));
+    body.append(
+     rescueEl("p",{className:"ui-rpg-text",textContent:`消火活動により ${g.cells.length}/64 セルが緑化されました！（進捗値: ${g.value}）`}),
+     gridEl,
+     rescueEl("div",{className:"ui-rescue-rewards"},
+      rescueEl("strong",{textContent:"解放スタンプ: "}),
+      rescueEl("span",{textContent:g.rewards.length?g.rewards.join(" "):"8セル緑化ごとにスタンプが解放されます"})));
+   }
+  };
+
+  const card=rescueEl("div",{className:"ui-rpg-card ui-rpg-journal-card",role:"dialog","aria-modal":"true","aria-label":"ヒーロー手帳"},
+   rescueEl("div",{className:"ui-rpg-card-head"},
+    rescueEl("h3",{className:"ui-rpg-card-title",textContent:"📋 消防ヒーロー手帳"}),
+    rescueEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   rescueEl("div",{className:"ui-rpg-tabs"},...tabs.map(([k,lbl])=>{
+    const b=rescueEl("button",{type:"button",className:"ui-rpg-btn","aria-selected":String(k===activeTab),textContent:lbl,onclick:()=>{
+     activeTab=k;for(const[tk,tb]of tabBtns)tb.setAttribute("aria-selected",String(tk===k));drawBody();
+    }});
+    tabBtns.push([k,b]);return b;
+   })),
+   body);
+  drawBody();showCard(card);
+ };
+
+ hud?.querySelector("[data-rescue-journal-btn]")?.addEventListener("click",()=>openJournal("quests"));
+ hud?.querySelector("[data-rescue-radar-btn]")?.addEventListener("click",()=>{
+  const pl=curFloorEl()?.querySelector(".ui-player");if(!pl)return;
+  const px=parseFloat(pl.style.getPropertyValue("--px"))||Number(pl.dataset.x)||0;
+  const py=parseFloat(pl.style.getPropertyValue("--py"))||Number(pl.dataset.y)||0;
+  const active=[...fireMap.values()].filter(f=>!state.extinguished.has(f.prof.id));
+  if(!active.length){showToast("🕊️ 全ての火災は鎮火しています！");return}
+  const nr=rescueNearestFire(px,py,active.map(f=>({id:f.prof.id,x:f.x,y:f.y})),tile);
+  if(nr){
+   if(Math.hypot(nr.x-px,nr.y-py)<=tile*1.5){openFireModal(nr.id)}
+   else{
+    const target=fireMap.get(nr.id);
+    if(target)openFireModal(nr.id);
+   }
+  }
+ });
+
+ el.addEventListener("click",e=>{
+  const nodeBtn=e.target.closest(".ui-rescue-node");
+  if(nodeBtn){
+   e.preventDefault();const nid=nodeBtn.dataset.rescueId;interactNode(nid);return;
+  }
+  const fireProp=e.target.closest('.ui-floor[data-floor="paris"] .ui-prop[data-kind="fire"]');
+  if(fireProp){
+   const fid=fireProp.getAttribute("data-fire-id");
+   if(fid&&!state.extinguished.has(fid)){
+    e.preventDefault();openFireModal(fid);
+   }
+  }
+ });
+
+ let lastContact="",prevPx=null,prevPy=null,spotWalk=false;
+ el.addEventListener("click",e=>{
+  if(e.target.closest(".ui-spot,.ui-world-spots a"))spotWalk=true;
+  if(e.target.closest(".ui-world-go,[data-step]"))spotWalk=false;
+ },true);
+ el.addEventListener("keydown",e=>{
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","w","a","s","d"].includes(e.key.length>1?e.key:e.key.toLowerCase()))spotWalk=false;
+ },true);
+
+ const watch=()=>{
+  if(!el.isConnected)return;
+  const curFloor=el.querySelector("input[name$='-floor']:checked")?.value||"";
+  if(curFloor===rescue.floor){
+   const f=curFloorEl(),pl=f?.querySelector(".ui-player");
+   if(pl){
+    const px=parseFloat(pl.style.getPropertyValue("--px"))||Number(pl.dataset.x)||0;
+    const py=parseFloat(pl.style.getPropertyValue("--py"))||Number(pl.dataset.y)||0;
+    const stepDist=prevPx===null?0:Math.hypot(px-prevPx,py-prevPy);
+    prevPx=px;prevPy=py;
+    const contactRange=tile*0.85;
+
+    let hitNode=null;
+    for(const nd of rescue.nodes){
+     if(Math.hypot(nd.x-px,nd.y-py)<=contactRange){hitNode=nd;break}
+    }
+    let hitFire=null;
+    for(const fItem of fireMap.values()){
+     if(!state.extinguished.has(fItem.prof.id)&&Math.hypot(fItem.x-px,fItem.y-py)<=contactRange){
+      hitFire=fItem.prof;break;
+     }
+    }
+
+    const blocked=spotWalk||!overlay.hidden||el.hasAttribute("data-pick")||el.hasAttribute("data-ask")||el.querySelector(".ui-sheet-item[data-open]");
+    if(!blocked){
+     if(hitFire){
+      if(lastContact!==hitFire.id){
+       lastContact=hitFire.id;
+       if(hitFire.tier===1&&state.water>=6){
+        extinguishFire(hitFire,6);
+        showToast(`💦 ${hitFire.name}を消火！${hitFire.bloom}が咲いた！ +${hitFire.exp}EXP +${hitFire.medals}🪙`);
+       }else{
+        openFireModal(hitFire.id);
+       }
+      }
+     }else if(hitNode){
+      if(lastContact!==hitNode.id){
+       lastContact=hitNode.id;
+       if(hitNode.on_contact)interactNode(hitNode.id);
+      }
+     }else if(lastContact){
+      lastContact="";
+     }
+    }
+    updateRadar();
+   }
+  }
+  setTimeout(()=>requestAnimationFrame(watch),110);
+ };
+
+ checkQuests();renderHud();requestAnimationFrame(watch);
+ return el;
+}
+
+export function bindRescueWorlds(root=document){
+ return[...root.querySelectorAll("[data-ui-world][data-rescue]")].map(el=>bindWorldRescue(el));
+}
+
+globalThis.webUiWorld={
+ ...globalThis.webUiWorld,
+ rescueRandomWord,rescueOrbEffect,rescueRankForExp,rescueFireProfile,
+ rescueSplash,rescueFlareHit,rescueGardenStep,rescueGarden,rescueNearestFire,
+ bindWorldRescue,bindRescueWorlds
+};
+bindRescueWorlds();
+"""
+
+
 def world_document(spec: Any, *, theme: str = "modern") -> str:
     """A single-file page: bundled CSS, the world's CSS, the world's HTML and one inline module."""
     world = world_validate(spec)
     js = WORLD_JS
     if world.get("rpg"):
         js += "\n" + rpg_module("data:text/javascript," + quote(js_source("records.js"), safe=""))
+    if world.get("rescue"):
+        js += "\n" + WORLD_RESCUE_JS
     # 🌍 world.js lives here now (WORLD_JS), not in PySaiyanWeBoo: the same inline module, after the body.
     return render_document(trusted_html=world_html(world) + module_script(js), title=world["title"], theme=theme,
                            css=bundled_css() + world_css(world))
@@ -3768,6 +4896,151 @@ def _overworld_spec() -> dict[str, Any]:
     }
 
 
+def _paris_rescue_spec() -> dict[str, Any]:
+    """Hero firefighting & gamification spec for Fake Paris."""
+    return {
+        "floor": "paris",
+        "seed": 20261127,
+        "boss_cell": [21, 31],
+        "hero": {"hp": 40, "water": 48, "power": 8, "shield": 2, "medals": 20},
+        "nodes": [
+            {"id": "npc-captain", "kind": "npc", "tx": 24, "ty": 5, "emoji": "👩‍🚒", "label": "マルゴ隊長", "speaker": "マルゴ隊長",
+             "greeting": "よくぞ来てくれた新人レスキュー！フェイクパリの街で火災が発生している。街角の小火からセーヌ川の向こうまで、消火活動をお願いするよ！",
+             "lines": ["消防活動では水タンクの水💧を消費して放水する。水が切れたら街の給水栓🚰やセーヌ水路で補給しよう。",
+                       "街角には消火カプセル🧯や美味しいパン🥐、そして消防装備の宝箱🎁が眠っている。見つけたら回収して装備を整えよう！",
+                       "火を消すと街に緑🌱が戻り、手帳📋に記録される。全25箇所の火災を鎮圧し、フェイクパリの英雄を目指すのだ！"]},
+            {"id": "npc-dispatcher", "kind": "npc", "tx": 28, "ty": 7, "emoji": "📡", "label": "通信士エミール", "speaker": "通信士エミール",
+             "greeting": "司令室からの情報電波をキャッチしています！右上のコンパス🧭を見れば、最も近い火災への方向と距離が一目で分かりますよ。",
+             "lines": ["この情報通信ネットワークは TalkCompress や cli_args の高速通信プロトコル設計を応用しているんです。",
+                       "火災現場へ急行するときは、コンパスボタンを直接クリック・タップするだけでも自動誘導してくれます！"]},
+            {"id": "npc-baker", "kind": "npc", "tx": 12, "ty": 7, "emoji": "🥐", "label": "パン職人コレット", "speaker": "パン職人コレット", "shop": True,
+             "greeting": "いらっしゃい！消防活動ご苦労さま！消火活動で手に入れたレスキューメダル🪙で、焼きたてパンや冷却アイテムを補給していってね！",
+             "lines": ["うちのクロワッサン🥐はバターたっぷりで、スタミナと水路圧力が一気に回復するのよ！",
+                       "奥の実験室で分けてもらった瞬間冷却弾🧊も置いてあるわ。手強い炎に使ってみて！"]},
+            {"id": "npc-engineer", "kind": "npc", "tx": 27, "ty": 24, "emoji": "🧑‍🔧", "label": "水路技師クロード", "speaker": "水路技師クロード", "refill": True,
+             "greeting": "セーヌ川の水路管理はお任せあれ！装備の点検と高圧水タンクの満タン給水💧を今すぐ行おう！",
+             "lines": ["セーヌ川の流体シミュレーションには FluidFullSpeedSimulation や DRAgoWing の計算アルゴリズムを取り入れているんだ。",
+                       "水力圧力を最大まで上げれば、大火災の激しい炎も一気に冷却できるはずだ！"]},
+            {"id": "npc-archivist", "kind": "npc", "tx": 21, "ty": 29, "emoji": "📚", "label": "記録官ルネ", "speaker": "記録官ルネ", "quiz": True,
+             "greeting": "私はポートフォリオの記録官ルネ。街の消火活動と技術リポジトリの歴史を記録している。君の知識を試すクイズに挑戦してみないかい？",
+             "lines": ["クイズに正解すると、レスキュー経験値とメダルを進呈しよう。街のあちこちの技術と深く結びついているのだ。"]},
+            {"id": "npc-conductor", "kind": "npc", "tx": 5, "ty": 33, "emoji": "🧑‍✈️", "label": "駅長ベルナール", "speaker": "駅長ベルナール",
+             "greeting": "モンパルナス方面の警備を担当しているベルナールだ。左岸の奥地に最大級の大火災インフェルノ🌋が発生しているとの報告がある！",
+             "lines": ["大火災に挑む前に、街角の宝箱から耐熱スーツ🦺やセーヌ大容量タンク𛠢を手に入れておくと安全だ。",
+                       "さらに東の区画には3箇所以上の消火で封印が解ける黄金の消防ヘルメット⛑️の宝箱があるらしい！"]},
+            {"id": "hydrant-nord", "kind": "hydrant", "tx": 22, "ty": 5, "emoji": "🚰", "label": "北駅給水栓",
+             "greeting": "北駅前の高圧消火栓だ。タンクの水路弁を開いて満タンまで急速補給した！"},
+            {"id": "hydrant-ouest", "kind": "hydrant", "tx": 12, "ty": 9, "emoji": "🚰", "label": "西区給水栓",
+             "greeting": "サン・ラザール西区の消火栓だ。清涼な水でタンクを満タンまで補給した！"},
+            {"id": "hydrant-seine", "kind": "hydrant", "tx": 28, "ty": 30, "emoji": "🚰", "label": "セーヌ給水ポンプ",
+             "greeting": "セーヌ川の直接吸水ポンプだ。豊かな水流でタンクと活力を満タンまで補給した！"},
+            {"id": "hydrant-sud", "kind": "hydrant", "tx": 15, "ty": 33, "emoji": "🚰", "label": "左岸給水栓",
+             "greeting": "左岸南部の消火栓だ。長距離遠征に備えて水タンクを満タンまで補給した！"},
+            {"id": "drop-capsule", "kind": "drop", "tx": 24, "ty": 6, "emoji": "🧯", "label": "消火カプセル",
+             "item_emoji": "🧯", "item_label": "消火カプセル", "desc": "携帯用の高圧水カプセル。水タンクを28回復する。",
+             "item_type": "water", "water": 28, "exp": 8, "medals": 5},
+            {"id": "drop-croissant", "kind": "drop", "tx": 16, "ty": 6, "emoji": "🥐", "label": "焼きたてクロワッサン",
+             "item_emoji": "🥐", "item_label": "焼きたてクロワッサン", "desc": "香ばしいクロワッサン。HPを20、水タンクを12回復する。",
+             "item_type": "heal", "hp": 20, "water": 12, "exp": 8, "medals": 5},
+            {"id": "drop-cryo", "kind": "drop", "tx": 30, "ty": 9, "emoji": "🧊", "label": "瞬間冷却ジェル弾",
+             "item_emoji": "🧊", "item_label": "瞬間冷却ジェル弾", "desc": "急速冷凍ジェル。消火活動で炎に大ダメージを与える。",
+             "item_type": "bomb", "power": 28, "exp": 12, "medals": 8},
+            {"id": "drop-baguette", "kind": "drop", "tx": 25, "ty": 29, "emoji": "🥖", "label": "パリジャン・バゲット",
+             "item_emoji": "🥖", "item_label": "パリジャン・バゲット", "desc": "パリ伝統の堅焼きバゲット。HPを24、水タンクを16回復する。",
+             "item_type": "heal", "hp": 24, "water": 16, "exp": 10, "medals": 6},
+            {"id": "drop-thermal", "kind": "drop", "tx": 13, "ty": 31, "emoji": "🌡️", "label": "サーマル冷却アンプル",
+             "item_emoji": "🌡️", "item_label": "サーマル冷却アンプル", "desc": "医療用サーマルアンプル。HPを10、水タンクを36回復する。",
+             "item_type": "water", "hp": 10, "water": 36, "exp": 10, "medals": 8},
+            {"id": "chest-nozzle", "kind": "chest", "tx": 23, "ty": 2, "emoji": "🎁", "label": "流体ターボノズル",
+             "opened_emoji": "📭", "item_emoji": "🚿", "item_label": "流体ターボノズル",
+             "desc": "放水水流を加速する特製ノズル。放水威力+5。",
+             "item_type": "nozzle", "power": 5, "exp": 18, "medals": 15},
+            {"id": "chest-suit", "kind": "chest", "tx": 6, "ty": 8, "emoji": "🎁", "label": "耐熱ヒーロースーツ",
+             "opened_emoji": "📭", "item_emoji": "🦺", "item_label": "耐熱ヒーロースーツ",
+             "desc": "高熱を反射するアラミド繊維スーツ。耐熱シールド+4、最大HP+14。",
+             "item_type": "suit", "shield": 4, "hp": 14, "exp": 20, "medals": 18},
+            {"id": "chest-tank", "kind": "chest", "tx": 32, "ty": 24, "emoji": "🎁", "label": "セーヌ大容量タンク",
+             "opened_emoji": "📭", "item_emoji": "🛢️", "item_label": "セーヌ大容量タンク",
+             "desc": "大容量の加圧水タンク。最大水容量+32。",
+             "item_type": "tank", "water": 32, "exp": 22, "medals": 20},
+            {"id": "chest-helm", "kind": "chest", "tx": 25, "ty": 33, "emoji": "🎁", "label": "黄金の消防ヘルメット",
+             "opened_emoji": "📭", "item_emoji": "⛑️", "item_label": "黄金の消防ヘルメット",
+             "desc": "名誉消防士の黄金ヘルメット。威力+6、シールド+4、HP+12、水+20。",
+             "item_type": "helm", "power": 6, "shield": 4, "hp": 12, "water": 20, "exp": 45, "medals": 50,
+             "requires_fires": 3},
+        ],
+        "jets": [
+            {"id": "jet-standard", "emoji": "🚿", "label": "放水ジェット", "water": 4, "kind": "splash", "mult_pct": 100,
+             "desc": "標準的な集中放水。確実に炎を冷却する。"},
+            {"id": "jet-burst", "emoji": "🌊", "label": "高圧スプラッシュ", "water": 8, "kind": "splash", "mult_pct": 180,
+             "desc": "セーヌ水流を高圧噴射。大威力の水流で急冷却する。"},
+            {"id": "jet-mist", "emoji": "❄️", "label": "冷却ミストバリア", "water": 3, "kind": "guard", "mult_pct": 60, "heal_hp": 6,
+             "desc": "微細ミストを周囲に展開。炎の熱波を半減しつつ自己冷却する。"},
+        ],
+        "shop": [
+            {"id": "shop-croissant", "emoji": "🥐", "label": "焼きたてクロワッサン", "cost": 10, "item_type": "heal",
+             "hp": 22, "water": 14, "power": 0, "desc": "香ばしいクロワッサン。HP+22, 水+14。"},
+            {"id": "shop-water", "emoji": "🧯", "label": "高圧消火ボンベ", "cost": 12, "item_type": "water",
+             "hp": 0, "water": 32, "power": 0, "desc": "加圧消火ボンベ。水タンク+32。"},
+            {"id": "shop-cryo", "emoji": "🧊", "label": "液体窒素クール弾", "cost": 18, "item_type": "bomb",
+             "hp": 0, "water": 0, "power": 30, "desc": "瞬時に大熱を奪う冷却弾。炎に30ダメージ。"},
+        ],
+        "quests": [
+            {"id": "q-talk-captain", "title": "マルゴ隊長へ着任報告", "desc": "マルゴ隊長(24, 5)に話しかけて消火任務の説明を受ける。",
+             "kind": "talk", "count": 1, "reward_exp": 15, "reward_medals": 10},
+            {"id": "q-first-fire", "title": "初めての消火活動", "desc": "フェイクパリの火災を1箇所消火して街に緑を咲かせる。",
+             "kind": "fire", "count": 1, "reward_exp": 25, "reward_medals": 15},
+            {"id": "q-three-fires", "title": "街角の火災鎮圧", "desc": "火災を3箇所以上消火してヘルメット宝箱の封印を解く。",
+             "kind": "fire", "count": 3, "reward_exp": 40, "reward_medals": 25},
+            {"id": "q-find-drop", "title": "消火道具の拾得", "desc": "路上に落ちている消火カプセルやパンを拾って道具箱に入れる。",
+             "kind": "drop", "count": 1, "reward_exp": 15, "reward_medals": 10},
+            {"id": "q-open-chest", "title": "消防装備の獲得", "desc": "街の宝箱を開けて放水ノズルや耐熱スーツを装備する。",
+             "kind": "chest", "count": 1, "reward_exp": 25, "reward_medals": 20},
+            {"id": "q-hydrant-refill", "title": "消火栓で急速補給", "desc": "街の給水栓やセーヌ水路で水タンクを満タンにする。",
+             "kind": "refill", "count": 1, "reward_exp": 15, "reward_medals": 10},
+            {"id": "q-solve-quiz", "title": "技術記録官の試練", "desc": "記録官ルネの技術ポートフォリオクイズに正解する。",
+             "kind": "quiz", "count": 1, "reward_exp": 20, "reward_medals": 15},
+            {"id": "q-boss-inferno", "title": "大火災インフェルノ鎮火", "desc": "左岸奥地の大火災インフェルノ(21, 31)を完全鎮圧する！",
+             "kind": "boss_fire", "count": 1, "reward_exp": 80, "reward_medals": 60},
+        ],
+        "badges": [
+            {"id": "b-first-fire", "emoji": "🌱", "label": "初動消火", "desc": "最初の火災を消火し街に花を咲かせた"},
+            {"id": "b-fire-five", "emoji": "🌷", "label": "消火エキスパート", "desc": "5箇所以上の火災を消火した"},
+            {"id": "b-boss-down", "emoji": "🌋", "label": "インフェルノ制覇", "desc": "最大規模の大火災インフェルノを鎮圧した"},
+            {"id": "b-geared-up", "emoji": "⛑️", "label": "フル装備ヒーロー", "desc": "宝箱からノズル・スーツ・タンク・ヘルメットを揃えた"},
+            {"id": "b-hydrant-master", "emoji": "🚰", "label": "水脈マイスター", "desc": "消火栓やセーヌ川で3回以上給水した"},
+            {"id": "b-quiz-scholar", "emoji": "📚", "label": "パリ知識人", "desc": "技術リポジトリクイズに3問以上正解した"},
+            {"id": "b-green-paris", "emoji": "🌳", "label": "緑化のグラン・エロー", "desc": "ガーデン緑化セルが8マス以上に達した"},
+        ],
+        "quizzes": [
+            {"repo": "PySaiyanWeBoo",
+             "prompt": "PySaiyanWeBooの counter_garden で、火災鎮火ごとに街に花を咲かせる緑化グリッドは何マスで構成されている？",
+             "choices": ["64マス (8×8)", "16マス (4×4)", "100マス (10×10)"], "correct": 0,
+             "explanation": "counter_garden は xorshift32 乱数で 64マス (8×8) のグリッドに花や樹木を咲かせ、8セルごとに記念スタンプ報酬を解放します。"},
+            {"repo": "FluidFullSpeedSimulation",
+             "prompt": "FluidFullSpeedSimulation で追求されているセーヌ川の水流・消火ノズル計算の中核方針はどれ？",
+             "choices": ["格子ボルツマン法による高速並列シミュレーション", "手動でのセル単位ペイント", "外部GPUクラウドへの全フレーム依存"], "correct": 0,
+             "explanation": "FluidFullSpeedSimulation は格子ボルツマン法 (LBM) 等の流体物理計算を極限まで軽量・高速化し、リアルタイムでの水流再現を可能にしています。"},
+            {"repo": "TalkCompress",
+             "prompt": "司令室との高速通信で活躍する TalkCompress の主な目的はどれ？",
+             "choices": ["テキスト文脈の意味を保ちつつトークン数を大幅に圧縮する", "音声を録音してMP3に変換する", "画像をドット絵にモザイク処理する"], "correct": 0,
+             "explanation": "TalkCompress は大規模言語モデルのコンテキストウィンドウを効率活用するため、意味を損なわずにトークン表現を凝縮します。"},
+            {"repo": "OnTautoLogy",
+             "prompt": "OnTautoLogy のツール群が検証する命題論理の性質はどれ？",
+             "choices": ["常に真となる恒真式（トートロジー）の自動判定と簡約", "画像のアスペクト比の自動補正", "CSSグリッドの折り返し計算"], "correct": 0,
+             "explanation": "OnTautoLogy は論理式の真理値表生成や構文解析を通じて、恒真式（トートロジー）の厳密な判定と教育的可視化を行います。"},
+            {"repo": "BrowserTestKit",
+             "prompt": "本ポートフォリオのブラウザテスト自動化を支える BrowserTestKit の役割はどれ？",
+             "choices": ["実ブラウザ環境での操作再現と画面乱れ・回帰テストの堅牢化", "動画のストリーミング配信サーバー", "3Dポリゴンモデルのテクスチャベイク"], "correct": 0,
+             "explanation": "BrowserTestKit は Headless Chrome / Playwright 等を統合し、実画面でのレイアウト・キー操作・回帰テストを決定論的に検証します。"},
+            {"repo": "CaChereCyCle",
+             "prompt": "消火リソースや街の状態を無駄なく循環利用する発想に通じる CaChereCyCle の特徴は？",
+             "choices": ["計算結果やメモリキャッシュの効率的なライフサイクル管理", "自転車の走行ルート記録", "ゴミ分別のスケジュール通知"], "correct": 0,
+             "explanation": "CaChereCyCle はキャッシュの生存期間と再利用サイクルを最適化し、低オーバーヘッドで高スループットを実現します。"},
+        ],
+    }
+
+
 EXAMPLES.update({
     "school": {
         "schema": WORLD_SCHEMA, "id": "school", "title": "School (prototype)", "zoom_max": 4,
@@ -3803,6 +5076,7 @@ EXAMPLES.update({
                    {"id": "paris", "label": "Fake Paris",
                     "place": {"points": _PARIS_POINTS, "meters": 150, "links": _PARIS_LINKS, "rivers": [_SEINE],
                               "scatter": {"kind": "fire", "every": 8, "seed": 5}, "marks": _CITY_MARKS}}],
+        "rescue": _paris_rescue_spec(),
     },
 })
 

@@ -253,6 +253,25 @@ Worlds that set optional `"rpg"` (`EXAMPLES["overworld"]`, starting in `meadow` 
 * **Ground drops & chests (`loot`)**: Collecting ground drops (`🌿`, `💧`, `📜`) or chests (`🎁` → `📭`, optionally gated by `requires_enemy`) syncs `.ui-world-take` into `🎒` and applies gear (`ATK`/`DEF`/`MaxHP`/`MaxMP`) or consumables.
 * **Turn-based battle (`enemies`, `skills`, `orbs`)**: Five commands (`⚔️`, `✨`, `🎒`, `🛡️`, `💨`), telegraphed 3-turn heavy enemy strikes, PSWB attribute/heal orb animations, EXP/Lv/Gold, and an Adventure Journal modal (`📜`) tracking quests, badges, equipment, and the bestiary.
 
+## Fake Paris Firefighting Hero & Gamification (`rescue`)
+
+Worlds that set optional `"rescue"` (`EXAMPLES["cities"]`, active on the Fake Paris floor `#paris`) provide a dedicated Firefighting Hero × Gamification experience scoped to Paris's 36×38 tile grid and 25 scattered fire props:
+
+* **Contact canned dialogue (`nodes` / `npc`)**: Walking within tile contact range of Paris NPCs (or clicking them) opens multi-page lore and assistance without interrupting navigation:
+  - **👩‍🚒 マルゴ隊長** (`(24, 5)`): Hero briefing on firefighting, water tank management, and city greening.
+  - **📡 通信士エミール** (`(28, 7)`): Lore on `TalkCompress` & `cli_args` protocol design and the `🧭` fire radar.
+  - **🥐 パン職人コレット** (`(12, 7)`): Medal shop exchanging firefighting medals `🪙` for fresh croissants `🥐`, high-pressure water cylinders `🧯`, and cryo gel bombs `🧊`.
+  - **🧑‍🔧 水路技師クロード** (`(27, 24)`): Lore on `FluidFullSpeedSimulation` & `DRAgoWing` hydrodynamics; instant full HP and water tank refill.
+  - **📚 記録官ルネ** (`(21, 29)`): 3-choice quizzes covering `PySaiyanWeBoo`, `FluidFullSpeedSimulation`, `TalkCompress`, `OnTautoLogy`, `BrowserTestKit`, and `CaChereCyCle` with medal/EXP rewards.
+  - **🧑‍✈️ 駅長ベルナール** (`(5, 33)`): Guidance on Left Bank boss fire `(21, 31)` and sealed equipment.
+* **Ground drops & treasure chests (`drops`, `chests`)**: Walkable ground items (`🧯`, `🥐`, `🧊`, `🥖`, `🌡️`) and treasure chests (`🎁` → `📭`, including a 3-fire sealed golden helmet chest) that grant permanent gear bonuses (`🚿 Power`, `🛡️ Shield`, `❤️ MaxHP`, `💧 MaxWater`) and sync into the world `🎒` Bag.
+* **Firefighting Hero × Gamification (blazes, orbs & greening)**:
+  - **Blaze tiers**: 25 scattered blazes range from Lv.1 小火スパーク to Lv.2 延焼ブレイズ and the Lv.3 大火災インフェルノ boss.
+  - **Smooth auto-splash on the move**: Walking onto or adjacent to a Tier 1 fire with `water >= 6` automatically extinguishes it with a non-blocking toast and plants a `GARDEN_GLYPHS` bloom on the tile without modal interruption.
+  - **Tactical firefighting modal**: Tapping a blaze or engaging higher-tier fires opens the interactive firefighting view (`🚿 放水ジェット`, `🌊 高圧スプラッシュ`, `❄️ 冷却ミストバリア`, `🎒 どうぐ`, `💨 退避`) with cooling/heat orb bursts (`rescueOrbEffect`), heat flare retaliation, and water pressure management.
+  - **Greening blooms & Hero Journal (`counter_garden`)**: Each extinguished fire plants a bloom (`🌱`, `🌷`, `🌳`, `🍄`, `🌻`, `🪨`) via PySaiyanWeBoo's deterministic `counter_garden`, viewable on an 8×8 (64 cells) greening grid inside the Hero Journal (`📋`), unlocking souvenir stamp badges.
+  - **Nearest-fire compass radar (`world_direction`)**: The HUD compass (`🧭`) continuously computes distance and direction to the nearest unextinguished fire; clicking it dispatches the hero toward that fire.
+
 ## Not included
 
 ## Demos

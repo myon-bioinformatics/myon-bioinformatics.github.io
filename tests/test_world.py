@@ -9,6 +9,7 @@ import random
 import re
 import subprocess
 import sys
+import shutil
 import unittest
 from pathlib import Path
 
@@ -1960,3 +1961,104 @@ class OverworldRpgTests(unittest.TestCase):
         self.assertIn("ui-rpg-hud", overworld_doc)
         self.assertIn("bindWorldRpg", overworld_doc)
 
+class FakeParisRescueTests(unittest.TestCase):
+    """Fake Paris Firefighting Hero & Gamification: pure Python oracles, Node parity, and data invariants."""
+
+    def test_cities_spec_has_rescue_and_validation_is_idempotent(self):
+        cities = W.example_data("cities")
+        world = W.world_validate(cities)
+        self.assertEqual(W.world_validate(world), world)
+        rescue = world["rescue"]
+        self.assertEqual(rescue["floor"], "paris")
+        self.assertEqual(rescue["boss_cell"], [21, 31])
+        self.assertEqual(len(rescue["nodes"]), 19)
+        self.assertEqual(len(rescue["jets"]), 3)
+        self.assertEqual(len(rescue["shop"]), 3)
+        self.assertEqual(len(rescue["quests"]), 8)
+        self.assertEqual(len(rescue["badges"]), 7)
+        self.assertEqual(len(rescue["quizzes"]), 6)
+
+    def test_rescue_nodes_and_fires_are_walkable_and_reachable_from_start(self):
+        world = W.world_validate(W.example_data("cities"))
+        floor = next(f for f in world["floors"] if f["id"] == "paris")
+        tile = floor["tile"]
+        blocked = W.world_blocked(floor["width"], floor["height"], tile, floor["props"])
+        start = (floor["player"]["x"] // tile, floor["player"]["y"] // tile)
+        reach = W.world_reach(blocked, start)
+        self.assertEqual(start, (24, 4))
+        for nd in world["rescue"]["nodes"]:
+            with self.subTest(node=nd["id"]):
+                self.assertEqual(blocked[nd["ty"]][nd["tx"]], "0")
+                self.assertIn((nd["tx"], nd["ty"]), reach)
+        # Verify 25 scattered fires exist and boss cell sits on a fire
+        fires = [(p["x"] // tile, p["y"] // tile) for p in floor["props"] if p["kind"] == "fire"]
+        self.assertEqual(len(fires), 25)
+        self.assertIn(tuple(world["rescue"]["boss_cell"]), fires)
+
+    def test_rescue_texts_contain_no_religious_or_forbidden_words(self):
+        forbidden = ("大聖堂", "寺院", "教会", "聖堂", "神社", "寺", "モスク", "霊廟", "エッフェル塔", "タワー・ブリッジ")
+        rescue_str = json.dumps(W.example_data("cities")["rescue"], ensure_ascii=False)
+        for word in forbidden:
+            self.assertNotIn(word, rescue_str)
+
+    def test_node_rescue_parity_matches_python_and_pysaiyanweboo_oracles(self):
+        for seed in (0, 1, 20261127, 0xFFFFFFFF):
+            self.assertEqual(W.rescue_next_seed(seed), W.play_random(seed))
+        self.assertTrue(W.rescue_orb_effect(0)["idle"])
+        self.assertEqual(W.rescue_orb_effect(8, cool=True)["label"], "💦 冷却 8")
+        self.assertEqual(W.rescue_rank_for_exp(0)["level"], 1)
+        self.assertEqual(W.rescue_rank_for_exp(35)["level"], 2)
+        self.assertEqual(W.rescue_rank_for_exp(600)["level"], 7)
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node binary unavailable")
+        pure_js = W.WORLD_RESCUE_JS.replace("bindRescueWorlds();\n", "")
+        probe = (
+            pure_js
+            + '\nconst seeds = [0, 1, 20261127, 4294967295].map(s => rescueRandomWord(s));\n'
+            + 'const orbs = [rescueOrbEffect(0), rescueOrbEffect(8, true), rescueOrbEffect(6, false)];\n'
+            + 'const ranks = [0, 34, 35, 90, 600, 9999].map(e => rescueRankForExp(e));\n'
+            + 'const fires = [rescueFireProfile(0, 20, 4), rescueFireProfile(24, 21, 31)];\n'
+            + 'const splash = [rescueSplash(8, 123456), rescueSplash(14, 654321, {multPct: 180})];\n'
+            + 'const flare = [rescueFlareHit(7, 2, 112233), rescueFlareHit(11, 4, 334455, {guarding: true})];\n'
+            + 'const garden = rescueGarden(20261127, [5, 5, 5, 5, 5]);\n'
+            + 'console.log(JSON.stringify({seeds, orbs, ranks, fires, splash, flare, garden}));\n'
+        )
+        res = subprocess.run([node, "--input-type=module", "-e", probe], capture_output=True, text=True, check=True)
+        data = json.loads(res.stdout)
+        self.assertEqual(data["seeds"], [W.rescue_next_seed(s) for s in (0, 1, 20261127, 0xFFFFFFFF)])
+        self.assertEqual(data["orbs"], [W.rescue_orb_effect(0), W.rescue_orb_effect(8, cool=True), W.rescue_orb_effect(6, cool=False)])
+        self.assertEqual(data["ranks"], [W.rescue_rank_for_exp(e) for e in (0, 34, 35, 90, 600, 9999)])
+        self.assertEqual(data["fires"], [W.rescue_fire_profile(0, 20, 4), W.rescue_fire_profile(24, 21, 31)])
+        self.assertEqual(data["splash"], [W.rescue_splash(8, 123456), W.rescue_splash(14, 654321, mult_pct=180)])
+        self.assertEqual(data["flare"], [W.rescue_flare_hit(7, 2, 112233), W.rescue_flare_hit(11, 4, 334455, guarding=True)])
+        self.assertEqual(data["garden"], W.rescue_garden(20261127, [5, 5, 5, 5, 5]))
+
+    def test_world_rescue_script_has_no_forbidden_tokens_and_school_is_untouched(self):
+        for forbidden in ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "fetch(",
+                          "XMLHttpRequest", "WebSocket", "sendBeacon", "localStorage", "sessionStorage", "indexedDB", "document.cookie", "<canvas"):
+            self.assertNotIn(forbidden, W.WORLD_RESCUE_JS)
+        cities_doc = W.world_document(W.example_data("cities"))
+        self.assertIn("ui-rescue-hud", cities_doc)
+        self.assertIn("bindWorldRescue", cities_doc)
+        school_doc = W.world_document(W.example_data("school"))
+        self.assertNotIn("ui-rescue-hud", school_doc)
+        self.assertNotIn("bindWorldRescue", school_doc)
+
+    def test_rescue_validation_rejects_malformed_specs(self):
+        floors = W.world_validate(W.example_data("cities"))["floors"]
+        valid = W.example_data("cities")["rescue"]
+        bad_specs = [
+            "not-a-dict",
+            {**valid, "floor": "nonexistent"},
+            {**valid, "boss_cell": [99, 99]},
+            {**valid, "hero": {"hp": -1}},
+            {**valid, "nodes": []},
+            {**valid, "nodes": [{**valid["nodes"][0], "tx": 0, "ty": 0}]},  # out-of-bounds or blocked
+            {**valid, "quizzes": [{**valid["quizzes"][0], "choices": ["only two"]}]},
+            {**valid, "unknown_key": True},
+        ]
+        for bad in bad_specs:
+            with self.subTest(bad=bad if isinstance(bad, str) else list(bad)):
+                with self.assertRaises(ValueError):
+                    W.rescue_validate(bad, floors=floors)

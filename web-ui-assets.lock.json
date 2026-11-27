@@ -13,7 +13,7 @@
     "tools/vendor/web-ui/js/controls.js": "e545885ed2f0e43937d2eb3a44bdb874e8c4f42e895a36a51498a0db20956e9d",
     "tools/vendor/web-ui/js/coordinates.js": "b97576f0f7ccdb3a8c94b390c9a53f87acc3ddc837a5a4221cc5fef1a067b9bc",
     "tools/world-assets/world.css": "9d21c26e50611033568788e10c1dec68af201faacaf3d6637420d83ba98f97ed",
-    "tools/world-assets/world.js": "94b12f29463da0f4eccb385ce6942ebfe03959511ef6ea8d3bb78a1c7966654e",
+    "tools/world-assets/world.js": "501ad7ad075a46209f54d693cf90d32fd39389b0f36ce415bab42478ab0fdbd4",
     "tools/world-assets/london-dragon.json": "96f1b4efbd5a900459688403900cd385bf600987e8f76023f2a7d538f9ed133b",
     "tools/world-assets/london-dragon.png": "2478a91c5d1c6cb04255b8247ca879f08f6a9ba30051bdb743f14a8a4a6429a9",
     "tools/html-import/extract.mjs": "22453239323b35f46e4ece66fea443ed6475f0e26324926ba8dbb1fade203fec",
@@ -21,7 +21,7 @@
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/world.html": "10a8c1a801c14c221b02ae8118dfdef6819d4afd487ea94f8e0b2943e973500c",
+    "tools/demos/world.html": "f408d10385b141e5d5ca8adbf02097f637830b94135dd0b0978120678b74d320",
     "tools/test-report/index.html": "67368e97f1a442db506a211f422811be7a80dced0b2f145f097af7f8499b6463",
     "tools/mcp-protocol/index.html": "dca50571acb4331ee7b5c1a164d46a2756c11e664e3cc632a676391c1a0e384c",
     "tools/html-import/index.html": "3f4e09e9ef2b4e6d8c099adaca5a6a57f2f6921456dcec84779c87d697f37d6c",
