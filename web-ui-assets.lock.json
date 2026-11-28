@@ -1,7 +1,7 @@
 {
   "schema": "web-ui-generated/2",
   "generator": "pysaiyanweboo (pyproject.toml pages group)",
-  "commit": "72122a42734f9e84c7b6bb71573a5686d358b482",
+  "commit": "d5466dfd03bad9b557af6ee5a9e7ab28e04141bb",
   "outputs": {
     "tools/vendor/web-ui/css/base.css": "89bf5a2371b7be9057540501bba09f399d60f9207971c47fd9dac7f473ea928d",
     "tools/vendor/web-ui/css/components.css": "fbf50a97238b2f1df40d32cda93e1321b43b35dae5bc7c0eab586b5d8bc7c7ae",
@@ -12,7 +12,7 @@
     "tools/vendor/web-ui/js/records.js": "0161c3c5a4920cffb4d3d4a558aa560aa6bf5a495f44fac4512efcb739323658",
     "tools/vendor/web-ui/js/controls.js": "e545885ed2f0e43937d2eb3a44bdb874e8c4f42e895a36a51498a0db20956e9d",
     "tools/vendor/web-ui/js/coordinates.js": "bccdb17d745eabe3d843f646078f63a342b26e20c016377a7d6bf2466085c900",
-    "tools/vendor/web-ui/css/bundle.css": "9b935312956d56546784a80d0e16e04660c57758de853f9e62b1e78f0c049dce",
+    "tools/vendor/web-ui/css/bundle.css": "5515680be6f202039ffd06f1f8d85d56315ede91a7a58323c70128fd82de3600",
     "tools/vendor/web-ui/css/core.css": "6161b50462c2cfc8b40547e988636525989a1d29585eb98d5042646ffbb5cabd",
     "tools/html-import/extract.mjs": "09602fc4b02d21ed9a5981569069e92ecfd160adca421f1363aa4120dee4c072",
     "tools/worlds/world.css": "9d21c26e50611033568788e10c1dec68af201faacaf3d6637420d83ba98f97ed",
@@ -22,11 +22,11 @@
     "tools/chat/sources.json": "fa53579b5992f8d73136e6798f54adfecc12e483f98d51b03a4e184d79fbac50"
   },
   "pages": {
-    "tools/html-import/#html-import": "740b340e55c2d494f8aa2ec53fe0d949946294b977fd0671c48b8cbd279345db",
-    "tools/#maps": "db90c52423c97f37f73d9dc28835d6f5fd43f2ffcad52015fc9e37b873e5cbe4",
-    "tools/#worlds": "2fdef4af27a811b9bbd31254132f0ba8979dc94bfc4b2ba7aa4a9113fcf697ac",
-    "tools/#test-report": "d88f7d928f7a2f18308ed68b318d1d7b2d591eaf013acd507f2b2a7781072417",
-    "tools/#chat": "0b5e888d99a462aba7ed2bfe442b1420d866f89595e67dc38641cb7344cdaa59",
-    "tools/#gif": "4b9731fc9a4d2d7cd3f78f8abc0fdd1ffbbab5ce33197436e9908bfd8f15f226"
+    "tools/html-import/#html-import": "04b3ca7a0b16af924711a1806c6aba0d1bbb9110e06cf42a70a4466a6e8b50f7",
+    "tools/#maps": "b50607d31706f9bd4d6cd9ceea6256500e256480e91faaf8f8782655c9f4622a",
+    "tools/#worlds": "657f196c12fe77b47627133518786f3047e3317c086b79a94b825fff0acc8272",
+    "tools/#test-report": "7a74f07a2b4e7ce295d307791f0fb11136ff05ac25ebdcef1c08986a0ac6f873",
+    "tools/#chat": "2f27537e53303b86244ec90d0f5d15fa86c90c9a61b4d5a62f5395231abd37e3",
+    "tools/#gif": "6fac15ffefbacb386e8242f037b685755cc12d4c101d7944ee86dac6d82650fb"
   }
 }

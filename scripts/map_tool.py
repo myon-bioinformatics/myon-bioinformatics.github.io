@@ -5,7 +5,7 @@ import re
 from urllib.parse import urlencode
 
 
-BODY = '''<main class="ui-page">
+BODY = '''<main class="ui-page map-page">
 <h1>📍 地図URL・座標ピン留め</h1>
 <p>緯度・経度からApple MapsとGoogle MapsのURLを作成。ピンはこのブラウザに保存できます。</p>
 <section class="ui-panel" aria-labelledby="point-title"><h2 id="point-title">地点</h2>
@@ -45,13 +45,14 @@ __STATUS__</section>
 <noscript><p>座標の入力・ピン留めにはJavaScriptが必要です。<a href="./#tokyo">パラレル東京を開く</a></p></noscript>
 </main>'''
 
-CSS = '''label{display:block;margin:1rem 0 .35rem}.ui-input{width:100%;box-sizing:border-box}
+# 🧰 Nested under its own main: on the one screen it joins, so its rules stay off the header, the foot and the other views.
+CSS = '''.map-page{label{display:block;margin:1rem 0 .35rem}.ui-input{width:100%;box-sizing:border-box}
 .map-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:1rem}
 .map-actions{display:flex;flex-wrap:wrap;gap:.5rem}button,a.ui-button{min-height:44px;margin:.3rem 0}
 a.ui-button{display:inline-flex;align-items:center;max-width:100%;box-sizing:border-box}
 textarea{overflow-wrap:anywhere}#pins{padding:0;list-style:none}#pins li{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem;margin:.5rem 0}
 #point-error,#range-error{color:var(--ui-danger,#c33)}pre{white-space:pre-wrap;overflow-wrap:anywhere}
-[hidden]{display:none!important}h1{font-size:1.8rem}'''
+[hidden]{display:none!important}h1{font-size:1.8rem}}'''
 
 # One radius contract for pins, query strings and the Tokyo handoff.
 RANGE_HELPERS = r'''
