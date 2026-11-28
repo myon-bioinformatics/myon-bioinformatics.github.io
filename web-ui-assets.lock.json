@@ -1,7 +1,7 @@
 {
   "schema": "web-ui-generated/2",
   "generator": "pysaiyanweboo (pyproject.toml pages group)",
-  "commit": "5a66b204ba0f774176202e74966cf14d609f0441",
+  "commit": "f800d6a9dcaf6f2e344b62d8a85be9aa49b1a768",
   "outputs": {
     "tools/vendor/web-ui/css/base.css": "89bf5a2371b7be9057540501bba09f399d60f9207971c47fd9dac7f473ea928d",
     "tools/vendor/web-ui/css/components.css": "fbf50a97238b2f1df40d32cda93e1321b43b35dae5bc7c0eab586b5d8bc7c7ae",
@@ -22,11 +22,11 @@
     "tools/vendor/web-ui/css/core.css": "6161b50462c2cfc8b40547e988636525989a1d29585eb98d5042646ffbb5cabd"
   },
   "pages": {
-    "tools/#worlds": "6376118bda1dcf2fe68458a0937cb37199efb9c3ecf5ee09bf5b4ad669ae4428",
-    "tools/html-import/#html-import": "5d7711e78735cc79d5811daa325beb12088aed5bf822105576109d4c44a0e6b8",
-    "tools/#test-report": "b762963c3a05fc0c8bdfe5aae1690769b70a74ad27c0c0d685dbddc03f798bf6",
-    "tools/#maps": "148ab2c19ac92098a0b03e03c5b260c7c11769da4c87127707897519f4a24fe7",
-    "tools/#gif": "46dfe4dd781652800f403544009fee32ff44fd018850127c01373fda88d3c58f",
-    "tools/#chat": "faa1856cf2c3ff1271525d093bf8e3042c486de93e640e7eb3f3b89c000bb191"
+    "tools/#worlds": "f98c990f2de7f78d8c22804e3d2e62b90d2347cee2f74cb4ea38506d8cc1932d",
+    "tools/html-import/#html-import": "73c3525b2520b99a478e328ba5cade8eb6ccfedb42ec89738f3b362fe39dc0b6",
+    "tools/#test-report": "e3a8df3d21d3acdcbab59209d8f7cf1d5a237bbc7348f70a70f85ac62d405978",
+    "tools/#maps": "a17c9d9303e0d9277318d6c5777fcea4c6b94ed0097530ba570f69a06f8a7fd7",
+    "tools/#gif": "4a086475a4af5f6dc6ed4259faf8e32ce458188e7202f522746d32504d36353e",
+    "tools/#chat": "d2721108ef272cf5b609df632554b2b1bbefe1d31bfd9e999ef590128240ee5c"
   }
 }
