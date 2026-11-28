@@ -9,6 +9,7 @@ highlight slots with what the public GitHub API returns in the browser.
 import html
 import json
 import re
+import runpy
 from pathlib import Path
 from urllib.parse import quote
 
@@ -21,6 +22,9 @@ def _service_url(project: str, endpoint: str, *, relative: bool = False) -> str:
     url = _services['projects'][project][endpoint]['url']
     return './' + url.removeprefix(_site_url) if relative and url.startswith(_site_url) else url
 
+
+# 🪐 Every space of the one world, as world_shell.py names them (``SPACES``): a space added there is a link of the 🪐 card, a 🚪 row and a 🎥 frame.
+_spaces = runpy.run_path(str(Path(__file__).with_name('world_shell.py')))['SPACES']
 
 # 🧰 Tools: one card each, named for what it does — practical tools only. ``from`` names the repositories a card is built from (🧩, plain
 # text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. Everything is escaped.
@@ -36,10 +40,9 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'id': 'maps', 'words': {'地図URL・座標ピン留め': ['Map URLs & coordinate pins', 'URL de carte et épingles de coordonnées', 'URL de mapa y chinchetas de coordenadas', 'URL de mapa e alfinetes de coordenadas', 'روابط الخرائط ودبابيس الإحداثيات', '地图 URL 与坐标图钉', 'URL карт и метки координат', 'URL peta dan penanda koordinat', 'Karten-URLs und Koordinaten-Pins', 'URL za ramani na pini za kuratibu'], '地図URLを作成': ['Make a map URL', 'Créer une URL de carte', 'Crear una URL de mapa', 'Criar uma URL de mapa', 'أنشئ رابط خريطة', '生成地图 URL', 'Создать URL карты', 'Buat URL peta', 'Karten-URL erstellen', 'Tengeneza URL ya ramani']},
   'links': [('地図URLを作成 →', './tools/#maps')]},
  {'title': '🪐 仮想・拡張エリア',      # 🌍 not the map: places that are walked, not real coordinates (the screen's #worlds panel)
-  'text': '緯度・経度ではなく、歩いて回る空間。村と学校、東京駅まわりを写したパラレル東京、Reverse London、Fake Paris。',
-  'id': 'worlds', 'tap': '.ui-world-pick [data-emoji]', 'words': {'仮想・拡張エリア': ['Virtual & extended areas', 'Espaces virtuels et étendus', 'Áreas virtuales y extendidas', 'Áreas virtuais e estendidas', 'مناطق افتراضية وموسّعة', '虚拟与扩展区域', 'Виртуальные и расширенные области', 'Area virtual dan perluasan', 'Virtuelle und erweiterte Bereiche', 'Maeneo pepe na yaliyopanuliwa'], '村': ['Village', 'Village', 'Aldea', 'Aldeia', 'القرية', '村庄', 'Деревня', 'Desa', 'Dorf', 'Kijiji'], '学校': ['School', 'École', 'Escuela', 'Escola', 'المدرسة', '学校', 'Школа', 'Sekolah', 'Schule', 'Shule'], 'パラレル東京': ['Parallel Tokyo', 'Tokyo parallèle', 'Tokio paralelo', 'Tóquio paralela', 'طوكيو الموازية', '平行东京', 'Параллельный Токио', 'Tokyo Paralel', 'Paralleles Tokio', 'Tokyo sambamba']},
-  'links': [('村 →', './tools/#world'), ('学校 →', './tools/#school'), ('パラレル東京 →', './tools/#tokyo'), ('Reverse London →', './tools/#london'),
-            ('Fake Paris →', './tools/#paris')]},
+  'text': '緯度・経度ではなく、歩いて回る空間。村（カメラの映像を背景にする「実空間×仮想」の階も）・学校・パラレル都市・🎬 カメラ。',
+  'id': 'worlds', 'tap': '.ui-world-pick [data-emoji]', 'words': {'仮想・拡張エリア': ['Virtual & extended areas', 'Espaces virtuels et étendus', 'Áreas virtuales y extendidas', 'Áreas virtuais e estendidas', 'مناطق افتراضية وموسّعة', '虚拟与扩展区域', 'Виртуальные и расширенные области', 'Area virtual dan perluasan', 'Virtuelle und erweiterte Bereiche', 'Maeneo pepe na yaliyopanuliwa'], '村': ['Village', 'Village', 'Aldea', 'Aldeia', 'القرية', '村庄', 'Деревня', 'Desa', 'Dorf', 'Kijiji'], '学校': ['School', 'École', 'Escuela', 'Escola', 'المدرسة', '学校', 'Школа', 'Sekolah', 'Schule', 'Shule'], 'パラレル東京': ['Parallel Tokyo', 'Tokyo parallèle', 'Tokio paralelo', 'Tóquio paralela', 'طوكيو الموازية', '平行东京', 'Параллельный Токио', 'Tokyo Paralel', 'Paralleles Tokio', 'Tokyo sambamba'], 'カメラ': ['Camera', 'Caméra', 'Cámara', 'Câmera', 'الكاميرا', '相机', 'Камера', 'Kamera', 'Kamera', 'Kamera']},
+  'links': [(f'{label} →', f'./tools/#{name}') for name, (_, label) in _spaces.items()]},
  {'title': '🖼️ スライド・画像工房',
   'text': 'ブラウザでスライドを作成し、文字・図形・矢印を編集可能なPPTXへ出力。Image Studio はレイヤー、数値行列のヒートマップ、作業履歴、クリップボード棚、PNG Base64 の受け渡しに対応し、Browser Tools '
           'ではドット絵・比較用の一枚・容量確認ができます。Markdown→PPTX変換と既存PPTXの属性編集はローカルCLIの試作実装です。',

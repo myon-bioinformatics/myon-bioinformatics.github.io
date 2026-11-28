@@ -186,11 +186,11 @@ def tools_places(prefix: str = '../') -> list[dict]:
     """🧰 Every link of the 🧰 Tools cards (front_page.py ``PORTAL``, so a new card is a new row) as ``{'id', 'label', 'href'}``, for
     a page ``prefix`` below the site root (``../``: the screen's): the doors of 🚪 Door-to-Door. ``text`` is the card's own description (the board shows it).
 
-    Every label is ``emoji words``, one emoji per page (the door knows a page by its emoji): the card's own, or the one named here
-    for a link that has none or shares its card's. 🌐 Its words in the other languages are the card's (``tools_words``): the chrome and
+    Every label is ``emoji words``, one emoji per page (the door knows a page by its emoji): the link's own, the card's, or the one
+    named here for a link that has none or shares its card's. 🌐 Its words in the other languages are the card's (``tools_words``): the chrome and
     a world carry them (``data-words``), so 🌐 finds them wherever the label is shown."""
     site, places = 'https://myon-bioinformatics.github.io/tools/', {}
-    marks = {'html-import': '📄', 'maps': '🗺️', 'world': '🌍', 'school': '🏫', 'tokyo': '🗼', 'london': '🎡', 'paris': '🥖', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'protocol': '🤝'}
+    marks = {'html-import': '📄', 'maps': '🗺️', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'protocol': '🤝'}
     for card in _front_module().PORTAL:
         mark, _, title = card['title'].partition(' ')
         if not title or any(c.isalnum() for c in mark):                  # a title without an emoji: all of it is words
@@ -199,7 +199,9 @@ def tools_places(prefix: str = '../') -> list[dict]:
             href = prefix + href[2:] if href.startswith('./') else prefix + 'tools/' + href[len(site):] if href.startswith(site) else href
             name = re.sub(r'[^a-z0-9]+', '-', href.partition('tools/')[2].removesuffix('.html').lower()).strip('-') or card['id']
             words = title if len(card['links']) == 1 else label.removesuffix(' →').removeprefix('Open ')   # several links: each link's own words
-            places.setdefault(href, {'id': name, 'href': href, 'label': f'{marks.get(name, mark)} {words}', 'text': card['text']})
+            own = words.partition(' ')                                   # a link that carries its own emoji ("🌍 村 →") is known by it
+            door = words if own[2] and not any(c.isalnum() for c in own[0]) else f'{marks.get(name, mark)} {words}'
+            places.setdefault(href, {'id': name, 'href': href, 'label': door, 'text': card['text']})
     return list(places.values())
 
 

@@ -86,6 +86,7 @@ def test_tool_cards_and_door_follow_the_service_catalog(tmp_path, monkeypatch):
     scripts = tmp_path / 'scripts'
     scripts.mkdir()
     copyfile(ROOT / 'scripts/front_page.py', scripts / 'front_page.py')
+    copyfile(ROOT / 'scripts/world_shell.py', scripts / 'world_shell.py')   # 🪐 the card's links are the world's spaces
     path = tmp_path / 'services.json'
     catalog = json.loads((ROOT / 'services.json').read_text(encoding='utf-8'))
     projects = catalog['services']['projects']
@@ -156,9 +157,12 @@ def test_a_tools_card_shows_its_moving_sample_and_the_picture_opens_the_tool(tmp
     assert "GIF をつくる →" not in cards and "Open Dashboard →" not in cards and ">実験室へ →</a>" in cards        # one page: the picture; no picture: the words
     assert '<a class="project-sample" href="./tools/#maps">' in cards and "地図URLを作成 →" not in cards       # 📍 real coordinates: one page
     worlds = front.portal_cards(frozenset({"tools/worlds"}))                                               # 🪐 walked places: relatives stay side by side
-    assert ('<a class="project-sample" href="./tools/#world"><img src="./media/pages/tools/worlds.gif"' in worlds and '<a href="./tools/#world">村 →</a>'
-            '<a href="./tools/#school">学校 →</a><a href="./tools/#tokyo">パラレル東京 →</a><a href="./tools/#london">Reverse London →</a>'
-            '<a href="./tools/#paris">Fake Paris →</a>' in worlds)
+    spaces = PAGES.load_module('world_shell', 'scripts/world_shell.py').SPACES                             # every space of the world, as it names them
+    assert ('<a class="project-sample" href="./tools/#world"><img src="./media/pages/tools/worlds.gif"' in worlds
+            and ''.join(f'<a href="./tools/#{name}">{label} →</a>' for name, (_, label) in spaces.items()) in worlds)
+    assert {'world', 'school', 'tokyo', 'london', 'paris', 'camera'} <= set(spaces)                         # 🎬 the camera too
+    doors = {place['id']: place['label'] for place in PAGES.tools_places()}                                # 🚪 a row each, under the space's own emoji
+    assert all(doors[name] == label for name, (_, label) in spaces.items())
     everything = front.portal_cards(frozenset(f"tools/{key}" for key in ids))
     several = [card for card in front.PORTAL if len(card["links"]) > 1]
     assert everything.count('class="project-sample"') == len(ids) and several
@@ -169,7 +173,7 @@ def test_a_tools_card_shows_its_moving_sample_and_the_picture_opens_the_tool(tmp
     samples = PAGES.tools_samples()                                              # what --record-samples opens: every page of the card, on the site
     assert list(samples) == [f"tools/{key}" for key in ids] and samples["tools/gif"] == (["https://myon-bioinformatics.github.io/tools/#gif"], "🎞 GIF工房")
     assert all(url.startswith("https://myon-bioinformatics.github.io/") for urls, _ in samples.values() for url in urls)
-    assert [url.rpartition("#")[2] for url in samples["tools/worlds"][0]] == ["world", "school", "tokyo", "london", "paris"]   # 🪐 a frame per place
+    assert [url.rpartition("#")[2] for url in samples["tools/worlds"][0]] == list(spaces)                 # 🪐 a frame per space
     assert [len(urls) for urls, _ in samples.values()] == [len(card["links"]) for card in front.PORTAL]
     (tmp_path / "media/pages/tools").mkdir(parents=True)
     (tmp_path / "media/pages/tools/gif.gif").write_bytes(b"GIF89a")
