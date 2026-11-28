@@ -3,12 +3,14 @@
 
 The same file runs in CPython (tests, ``python scripts/chat.py "/flow 入力 > 圧縮 > 出力"``) and in the chat page
 (tools/chat/), where Pyodide loads it next to markdown.py (md-market), ascii_artist.py, cli_args.py,
-ontautology.py (🧬 /onto, 🎯 /guess) and olnm.py (🧷 /olnm) — the commits pinned in pyproject.toml's pages group. What it knows about the other repositories is ``media/chat/index.json``,
+ontautology.py (🧬 /onto, 🎯 /guess), olnm.py (🧷 /olnm) and Err-o-RoadRunner's triage.py + errlib (🧯 /triage) — the commits
+pinned in pyproject.toml's pages group. What it knows about the other repositories is ``media/chat/index.json``,
 written at deploy time by ``project_pages.py --record-chat``: every JSON / JSONL file of every active repository at its
 commit, and the tools mcp-toolcall-lab advertises. TalkCompress's shorthand compressor is fetched on first use.
 
 ``respond(text)`` → Markdown, ``reply_html(text)`` → HTML (markdown.py escapes raw HTML), ``configure(index, base)``
-for the page. Every command is a cli_args subparser, so a typo gets "maybe you meant".
+for the page. 🤖 /ask: ``ask_messages`` (the context), ``ask_tools`` (what the model may call: 🔎 find, 👀 show, 🧬 onto)
+and ``ask_call`` (runs a call only when it names one of them and its arguments pass the schema — mcp-toolcall-lab's rule). Every command is a cli_args subparser, so a typo gets "maybe you meant".
 """
 from __future__ import annotations
 
@@ -19,6 +21,7 @@ import io
 import json
 import re
 import sys
+import tempfile
 import unicodedata
 from pathlib import Path
 from urllib.parse import quote
@@ -29,7 +32,7 @@ import markdown as md
 import ontautology as otl
 
 OWNER = 'myon-bioinformatics'
-MODULES = ('markdown', 'ascii_artist', 'cli_args', 'ontautology', 'olnm')   # 📦 the page writes these next to this file in Pyodide
+MODULES = ('markdown', 'ascii_artist', 'cli_args', 'ontautology', 'olnm', 'triage', 'errlib')   # 📦 the page writes these next to this file in Pyodide
 # 🐍 the page's Python (Pyodide, CPython 3.14, stdlib only), 🤖 llama.cpp in WebAssembly (wllama; WebGPU when the browser has it)
 # and the GGUF /ask loads once (then the browser keeps it): GitHub Pages sends no COOP/COEP, so the CPU runs one thread
 RUNTIME = {'pyodide': 'https://cdn.jsdelivr.net/npm/pyodide@314.0.8/',
@@ -68,10 +71,25 @@ COMMANDS = {
               ('/guess',)),
     'olnm': ('🧷', '[ls | grep | like | show | calc | sections] …', '端末のワンライナー集 OLNM を動かす（探す・読む・もしかして・電卓）',
              ('/olnm like uvtets', '/olnm show gp', '/olnm calc 6 mul 7', '/olnm grep json')),
-    'ask': ('🤖', 'TEXT', '小さな LLM に聞く（llama.cpp をページの中で。初回だけモデルを読む）。質問が名指すリポジトリの要約・台帳の概念を添える', ('/ask オントロジーの台帳はどのリポジトリにある？',)),
+    'triage': ('🧯', 'LOG', '失敗のログを Err-o-RoadRunner の triage で調べる（✅ FOUND・❔ NOT FOUND・💡 HINT。ページの中で）。JUnit は 🧾 テスト結果で前回と比べられる',
+               ('/triage Traceback (most recent call last):\n  File "app.py", line 3, in <module>\n    import numpy\n'
+                "ModuleNotFoundError: No module named 'numpy'",)),
+    'ask': ('🤖', 'TEXT', '小さな LLM に聞く（llama.cpp をページの中で。初回だけモデルを読む）。質問が名指すリポジトリの要約・台帳の概念と直前の 🧯 を添え、'
+                          'モデルは 🔎 /find・👀 /show・🧬 /onto を道具として呼べる（広告した道具と型の合う引数だけ）', ('/ask オントロジーの台帳はどのリポジトリにある？',)),
 }
+# 🔧 What /ask advertises to the model as tools (wllama hands them to llama.cpp's chat template): read-only commands of this bot,
+# each with the JSON Schema of its arguments. ``ask_call`` runs a call only when both hold — the rule /mcp checks for the lab.
+ASK_TOOLS = {
+    'find': ('リポジトリ横断で JSON / JSONL のファイルを探す（パスの語・リポジトリ・種類）',
+             {'words': {'type': 'array', 'items': {'type': 'string'}, 'description': 'パスに含まれる語'},
+              'repo': {'type': 'string', 'description': 'リポジトリ名'},
+              'kind': {'type': 'string', 'enum': list(KINDS), 'description': '種類（onto はオントロジーの台帳）'}}, []),
+    'show': ('記録にあるファイル（リポジトリ/パス）の中身を表にまとめる', {'target': {'type': 'string', 'description': 'REPO/PATH'}}, ['target']),
+    'onto': ('オントロジーの台帳で概念を定義する（属と種差、似たもの）', {'word': {'type': 'string', 'description': '概念の名前'}}, ['word']),
+}
+ASK_CALLS, ASK_RESULT = 2, 600   # 🔧 calls per question, characters of a result the model reads (the context is 2048 tokens)
 TYPOS = ('/flwo a > b', '/find --kidn onto', '/find --kind ont')    # ⌨️ what cli_args answers with "maybe you meant"
-_STATE = {'index': None, 'base': '', 'fetch': None, 'talkcompress': None, 'concepts': None, 'guess': None}
+_STATE = {'index': None, 'base': '', 'fetch': None, 'talkcompress': None, 'concepts': None, 'guess': None, 'triage': None, 'calls': []}
 
 
 def configure(index=None, base: str = '', fetch=None) -> None:
@@ -702,6 +720,36 @@ def olnm_reply(text: str, index: dict | None = None) -> str:
     return '\n\n'.join(part for part in [f'🧷 `olnm {" ".join([sub, *rest])}`', _code(shown, 'sh' if sub == 'show' else 'text'), tail] if part)
 
 
+def triage_reply(text: str) -> str:
+    """🧯 Err-o-RoadRunner's triage on a pasted log: JUnit XML, a GitHub Actions log or stderr (a traceback, a Node stack, …).
+
+    Its facts about the machine that runs it (Python, environment, node / gh, lock files) would describe this page, not the
+    failure, so they are left out. The lines are kept for /ask, which may explain them — as a guess, beside the facts. A JUnit
+    report also points to 🧾 テスト結果 (#test-report), which compares it with the previous run."""
+    import triage
+    text = text.strip('\n')
+    if not text.strip():
+        return '🧯 `/triage` の後に失敗のログ（traceback・Node のスタック・JUnit XML・Actions のログ）を貼る'
+    junit, path = [], Path(tempfile.gettempdir()) / 'junit.xml'
+    if text.lstrip().startswith(('<?xml', '<testsuite')):
+        path.write_text(text.strip(), encoding='utf-8')
+        junit = [str(path)]
+    actions = text if re.search(r'^(\S+Z )?##\[(error|group)\]', text, re.M) else None
+    runtime, triage.collect_runtime_facts = triage.collect_runtime_facts, lambda report, root: None
+    try:
+        report = triage.triage(exit_code=None, stderr_text=None if junit or actions else text, log_text=None,
+                               actions_log_text=actions, junit_paths=junit, project_root=None)
+    finally:
+        triage.collect_runtime_facts = runtime
+    tidy = lambda lines: [line.replace(f' ({path})', '') for line in lines if line.rpartition(': ')[2] != 'exit code']   # 📋 no exit code, no file
+    _STATE['triage'] = [line for line in tidy(report.lines()) if not line.startswith('NOT FOUND')]   # 🤖 for /ask: facts and hints
+    groups = [('✅ FOUND', tidy(report.found)), ('❔ NOT FOUND', tidy(report.not_found)), ('💡 HINT', tidy(report.hints))]
+    out = ['### 🧯 Err-o-RoadRunner triage'] + [f'**{label}**\n\n' + md.bullet_list(lines).strip() for label, lines in groups if lines]
+    if junit:
+        out.append('🧾 前回の実行と比べる（新規・継続・解消）→ [🧾 テスト結果](#test-report)')
+    return '\n\n'.join(out + ['🤖 `/ask この失敗は？` で 💡 を説明（推測）'])
+
+
 def abbr(name: str) -> str:
     """The capitals of a CamelCase name, as the fleet shortens them (OnTautoLogy → OTL, PySaiyanWeBoo → PSWB); '' below two."""
     caps = re.sub(r'[^A-Z]', '', name)
@@ -748,9 +796,11 @@ def grounding(question: str, index: dict | None = None, fetch=None, *, repos: in
 
 
 def ask_messages(text: str, index: dict | None = None, fetch=None) -> str:
-    """🤖 The chat messages /ask sends to the model (JSON): who it is, the commands, and what ``grounding`` finds for the question."""
+    """🤖 The chat messages /ask sends to the model (JSON): who it is, the commands, what ``grounding`` finds for the question and
+    the last 🧯 triage. A new question starts a new 🔧 trail (``ask_call``)."""
     question = re.sub(r'^/ask\s*', '', text.strip(), flags=re.I) or 'こんにちは'
     found = grounding(question, index, fetch)
+    _STATE['calls'] = []
     lines = lambda title, rows: f'\n{title}:\n' + '\n'.join(f'- {row}' for row in rows) if rows else ''
     system = ('あなたは myon-bioinformatics のポートフォリオにある横断チャットの案内役。日本語で、短く、Markdown で答える。'
               '下の資料にあることを根拠にし、分からないことは分からないと言う。索引にない情報の有無は断定しない。道具はコマンドで: '
@@ -758,15 +808,62 @@ def ask_messages(text: str, index: dict | None = None, fetch=None) -> str:
               + ('\nリポジトリ: ' + ', '.join(found['names']) if found['names'] else '')
               + lines('関係しそうなリポジトリ（README の要約）', found['repos'])
               + lines('台帳の概念（OnTautoLogy）', found['concepts'])
-              + ('\n記録にあるファイル: ' + ', '.join(found['files']) if found['files'] else ''))
+              + ('\n記録にあるファイル: ' + ', '.join(found['files']) if found['files'] else '')
+              + ('\n資料が足りなければ道具（' + '・'.join(ASK_TOOLS) + '）を呼んでよい。道具の結果は事実として使う。')
+              + ('\n直前の 🧯 triage（FOUND は事実、HINT は推測。説明は推測として書く）:\n' + '\n'.join(_STATE['triage'][:16])
+                 if _STATE['triage'] else ''))
     return json.dumps([{'role': 'system', 'content': system}, {'role': 'user', 'content': question}], ensure_ascii=False)
 
 
+def ask_tools() -> str:
+    """🔧 ``ASK_TOOLS`` as the OpenAI-style ``tools`` (JSON) the page passes to wllama: no argument beyond the advertised ones."""
+    return json.dumps([{'type': 'function', 'function': {'name': name, 'description': what, 'parameters': {
+        'type': 'object', 'properties': props, 'required': required, 'additionalProperties': False}}}
+        for name, (what, props, required) in ASK_TOOLS.items()], ensure_ascii=False)
+
+
+def ask_call(name: str, arguments, index: dict | None = None, fetch=None) -> str:
+    """🔧 One tool call of the model (``arguments``: the JSON text it wrote, or a dict), as JSON ``{ok, call, result}``: run only when
+    ``name`` is advertised (``ASK_TOOLS``) and the arguments pass its schema (``_check``); otherwise ``result`` says why not (the
+    model reads it either way). At most ``ASK_CALLS`` run per question; each joins the 🔧 trail ``ask_html`` shows."""
+    index = _STATE['index'] if index is None else index
+    problems, args = [], arguments
+    if name not in ASK_TOOLS:
+        near = difflib.get_close_matches(str(name), ASK_TOOLS, n=1)
+        problems.append('広告されていない道具' + (f'（もしかして {near[0]}）' if near else ''))
+    elif len(_STATE['calls']) >= ASK_CALLS:
+        problems.append(f'道具は 1 つの質問につき {ASK_CALLS} 回まで')
+    else:
+        try:
+            args = json.loads(arguments or '{}') if isinstance(arguments, str) else arguments
+        except json.JSONDecodeError as exc:
+            problems.append(f'引数が JSON ではない（{exc.msg}）')
+        else:
+            what, props, required = ASK_TOOLS[name]
+            problems += _check({'type': 'object', 'properties': props, 'required': required, 'additionalProperties': False}, args)
+    if problems:
+        call, result = f'/{name}', '❌ ' + ' · '.join(problems)
+    elif name == 'find':
+        words = args.get('words', [])
+        call = ' '.join(['/find', *words, *(f'--{key} {args[key]}' for key in ('repo', 'kind') if args.get(key))])
+        result = find_reply(index, words, args.get('repo'), args.get('kind'))
+    elif name == 'show':
+        call, result = f'/show {args["target"]}', show_reply(index, args['target'], fetch)
+    else:
+        call, result = f'/onto {args["word"]}', onto_reply(args['word'], index, fetch)
+    ok = not problems
+    _STATE['calls'].append({'call': call, 'ok': ok})
+    return json.dumps({'ok': ok, 'call': call, 'result': result if len(result) <= ASK_RESULT else result[:ASK_RESULT - 1] + '…'},
+                      ensure_ascii=False)
+
+
 def ask_html(output: str, tokens: int, seconds: float, *, threads: int = 1, webgpu: bool = False) -> str:
-    """🤖 The model's answer as HTML, with its reasoning (if it wrote any) quoted as 💭 above it, what produced it and how fast."""
+    """🤖 The model's answer as HTML: the 🔧 calls it made (✅ ran, ❌ refused), its reasoning (if it wrote any) quoted as 💭, the
+    answer, what produced it and how fast."""
     parts = md.split_reasoning(output)
     thought = '\n'.join(parts['reasoning']).strip()
-    answer = ('> 💭 ' + thought.replace('\n', '\n> ') + '\n\n' if thought else '') + (parts['answer'].strip() or '…')
+    trail = ''.join(f'🔧 {"✅" if c["ok"] else "❌"} `{c["call"]}`  \n' for c in _STATE['calls'])
+    answer = (trail + '\n' if trail else '') + ('> 💭 ' + thought.replace('\n', '\n> ') + '\n\n' if thought else '') + (parts['answer'].strip() or '…')
     speed = f'{tokens / seconds:.1f} tok/s' if seconds > 0 else ''
     where = '⚡ WebGPU' if webgpu else f'🧮 CPU 🧵{threads}'
     model = RUNTIME['model'].rsplit('/', 1)[-1]
@@ -802,6 +899,8 @@ def respond(text: str, *, index: dict | None = None, fetch=None) -> str:
         return olnm_reply(rest, index)
     if name == 'compress':
         return compress_reply(rest, fetch, commit=(index or {}).get('commits', {}).get('TalkCompress'))
+    if name == 'triage':
+        return triage_reply(text.strip()[len('/triage'):])
     if name == 'ask':                                   # the page answers it with wllama; here there is no model
         return '🤖 `/ask` はチャットのページで、ブラウザの中の llama.cpp（wllama）が答える'
     return {'md': md_reply, 'table': table_reply, 'ascii': ascii_reply, 'box': box_reply, 'flow': flow_reply}[name](rest)

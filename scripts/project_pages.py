@@ -9,7 +9,8 @@ and ``--refresh-lock`` rewrites the lock after the pin moves.
 
 The 🧰 Tools cards (scripts/front_page.py ``PORTAL``) list the practical pages, each one working on what the visitor brings:
 the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in the page; ``--record-chat`` indexes the other repositories at deploy
-time) and PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``: 🧾 the JUnit reader; 🤝 its MCP connection test is the lab's #protocol panel), published with
+time) and PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``: 🧾 the JUnit reader, whose 🧯 hands a run to the chat's /triage;
+🤝 its MCP connection test is the lab's #protocol panel), published with
 the portfolio's way back, shortcut label and icons. The 🌍 world pages (scripts/world.py: the travel world, 🏫 the school,
 🗼 the parallel cities, 🎬 the camera: the screen's #worlds panel) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and
 are not among the cards. Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
@@ -86,8 +87,21 @@ PUBLIC_SOURCE_FILES = (
 # 🧰 PySaiyanWeBoo's documents that work on what the visitor brings, each a 🧰 Tools link (front_page.py PORTAL):
 # published path -> (how it is built from pysaiyanweboo, the home-screen name)
 PSWB_TOOLS = {
-    'tools/test-report/index.html': (lambda ui: ui.report_document(), '🧾 テスト結果'),
+    'tools/test-report/index.html': (lambda ui: report_page(ui), '🧾 テスト結果'),
 }
+# 🧯 the report's current run to the 💬 chat's /triage (Err-o-RoadRunner), on the same screen: the chat takes it from its inbox
+REPORT_TRIAGE_JS = ("document.querySelector('[data-report-triage]')?.addEventListener('click',()=>{"
+                    "const text=document.querySelector('[data-report-input]')?.value.trim();if(!text)return;"
+                    "(globalThis.chatInbox??=[]).push('/triage '+text);dispatchEvent(new Event('chat-inbox'));location.hash='chat'})")
+
+
+def report_page(ui) -> str:
+    """🧾 PySaiyanWeBoo's test report with a 🧯 button beside "Copy summary": the pasted run goes to the chat's /triage."""
+    page, copy = ui.report_document(), '<button class="ui-button" type="button" data-report-copy>Copy summary</button>'
+    if page.count(copy) != 1 or page.count('</main>') != 1:
+        raise ValueError('the test report has no single Copy summary button')
+    page = page.replace(copy, copy + ' <button class="ui-button" type="button" data-report-triage>🧯 /triage</button>', 1)
+    return page.replace('</main>', '</main>' + ui.module_script(REPORT_TRIAGE_JS), 1)
 @functools.lru_cache(maxsize=None)
 def _world() -> ModuleType:
     """🌍 scripts/world.py (the world engine and its specs), loaded once."""
@@ -803,7 +817,8 @@ CHAT_CSS = '.ui-step [data-chat-say]{margin-top:8px}'    # 📇 the index's "�
 WLLAMA_JS = r"""
 function localModel(runtime){
  let llm=null,busy=false;
- return async(messages,show,limit=256)=>{
+ // 🔧 tools {list, call}: first the model may call the advertised tools (call(name, arguments) → {result}); their results join the talk
+ return async(messages,show,limit=256,tools=null)=>{
   if(busy)throw new Error("生成中です");
   busy=true;
   try{
@@ -818,9 +833,19 @@ function localModel(runtime){
     llm=engine;
    }
    let output="",tokens=0;
-   const start=performance.now();
-   await llm.createChatCompletion({messages,max_tokens:limit,temperature:0.3,stream:true,
-    chat_template_kwargs:{enable_thinking:false},onData:chunk=>{
+   const start=performance.now(),quiet={temperature:0.3,chat_template_kwargs:{enable_thinking:false}};
+   const info=llm.getLoadedContextInfo?.()??{};
+   if(tools&&Math.min(info.n_ctx??0,info.n_ctx_train||info.n_ctx||0)>=2048){   // 🔧 tools need the room; a small model answers as before
+    let message={};
+    try{const first=await llm.createChatCompletion({messages,tools:tools.list,tool_choice:"auto",max_tokens:limit,...quiet});
+     message=first.choices?.[0]?.message??{};tokens+=first.usage?.completion_tokens??0}catch{}   // ⏸ no tool pass: answer as before
+    const calls=message.tool_calls??[];
+    if(!calls.length&&message.content){output=message.content;show(output);return {output,tokens,seconds:(performance.now()-start)/1000,llm}}
+    if(calls.length){messages=[...messages,{role:"assistant",content:message.content??"",tool_calls:calls}];
+     for(const call of calls)messages.push({role:"tool",tool_call_id:call.id,content:tools.call(call.function.name,call.function.arguments).result});
+     Object.assign(quiet,{tools:tools.list,tool_choice:"none"})}
+   }
+   await llm.createChatCompletion({messages,max_tokens:limit,...quiet,stream:true,onData:chunk=>{
      output+=chunk.choices?.[0]?.delta?.content??"";tokens++;show(output);
     }});
    return {output,tokens,seconds:(performance.now()-start)/1000,llm};
@@ -835,11 +860,18 @@ const [chat] = webUiChat.bindChat(document);
 let bot = null;
 const generateAnswer=localModel(cfg.runtime);
 async function ask(text,reply){
- const {output,tokens,seconds,llm}=await generateAnswer(JSON.parse(bot.ask_messages(text)),s=>reply.text(s));
+ const messages=JSON.parse(bot.ask_messages(text));                // 🔧 then the model may call 🔎 find · 👀 show · 🧬 onto
+ const tools={list:JSON.parse(bot.ask_tools()),call:(name,args)=>{reply.text(`🔧 /${name} …`);return JSON.parse(bot.ask_call(name,args))}};
+ const {output,tokens,seconds,llm}=await generateAnswer(messages,s=>reply.text(s),256,tools);
  return bot.ask_html.callKwargs(output,tokens,seconds,
      {threads:llm.isMultithread()?navigator.hardwareConcurrency:1,webgpu:llm.isSupportWebGPU()});
 }
 chat.respond = (text, reply) => /^\/ask(\s|$)/i.test(text.trim()) ? ask(text, reply) : bot.reply_html(text);
+const inbox = () => { if (bot) for (const text of (globalThis.chatInbox ??= []).splice(0)) chat.say(text); };   // 🧾 → 🧯: what another panel hands over
+addEventListener("chat-inbox", inbox);
+if (/[?&]triage\b/.test(location.hash + location.search)) {                       // 🧯 #chat?triage: ready for a paste
+  const input = $("[data-chat-input]"); input.value = "/triage "; input.focus();
+}
 document.addEventListener("click", (event) => {         // 📇 a step of the index (beside the chat) sends its command there
   const chip = event.target.closest(".ui-step [data-chat-say]");
   if (!chip) return;
@@ -858,7 +890,10 @@ async function boot() {
   const py = await loadPyodide({indexURL: cfg.runtime.pyodide});
   py.FS.mkdirTree("/chat");
   const sources = await (await fetch(cfg.sources)).json();                       // 🐍 the Python, fetched when the chat opens
-  for (const [name, text] of Object.entries(sources)) py.FS.writeFile("/chat/" + name, text);
+  for (const [name, text] of Object.entries(sources)) {                          // 📦 a package's modules under its folder (errlib/)
+    if (name.includes("/")) py.FS.mkdirTree("/chat/" + name.split("/").slice(0, -1).join("/"));
+    py.FS.writeFile("/chat/" + name, text);
+  }
   let index = null;
   try { const response = await fetch(cfg.index); if (response.ok) index = await response.text(); } catch {}
   py.runPython("import sys; sys.path.insert(0, '/chat')");
@@ -868,6 +903,7 @@ async function boot() {
   chat.status(`✅ 🐍 ${py.runPython("import sys; sys.version.split()[0]")} · ` + (files === undefined ? "⏸ 索引なし" : `🔎 ${files} files`));
   chat.ready();
   document.documentElement.dataset.chatReady = "true";
+  inbox();
 }
 boot().catch((error) => { chat.status("⚠️ Python を読み込めない: " + (error?.message ?? error)); });
 """
@@ -880,11 +916,16 @@ def _chat() -> ModuleType:
 
 
 def chat_sources() -> dict[str, str]:
-    """The Python the page writes into Pyodide: chat.py and the pinned modules it imports, by file name."""
+    """The Python the page writes into Pyodide: chat.py and the pinned modules it imports, by file name (a package's as folder/file)."""
     chat = _chat()
     sources = {'chat.py': (ROOT / 'scripts/chat.py').read_text(encoding='utf-8')}
     for name in chat.MODULES:
-        sources[f'{name}.py'] = Path(importlib.util.find_spec(name).origin).read_text(encoding='utf-8')
+        spec = importlib.util.find_spec(name)
+        if spec.submodule_search_locations:              # 📦 a package (errlib): every module of it, under its folder
+            for path in sorted(Path(spec.origin).parent.glob('*.py')):
+                sources[f'{name}/{path.name}'] = path.read_text(encoding='utf-8')
+        else:
+            sources[f'{name}.py'] = Path(spec.origin).read_text(encoding='utf-8')
     return sources
 
 
@@ -894,7 +935,7 @@ def chat_books() -> list[dict]:
     chat = _chat()
     groups = [('📝 Markdown', ('md', 'table', 'help')), ('🎨 ASCII art', ('ascii', 'box', 'flow')), ('🗂 圧縮 · 🔌 MCP', ('compress', 'mcp')),
               ('🔎 JSON / JSONL', ('find', 'show')), ('🧬 オントロジー', ('onto', 'guess')), ('🧷 OLNM', ('olnm',)),
-              ('🤖 LLM', ('ask',)), ('⌨️ もしかして', ())]           # (a runbook holds 1..8 books)
+              ('🧯 失敗 · 🤖 LLM', ('triage', 'ask')), ('⌨️ もしかして', ())]           # (a runbook holds 1..8 books)
     recorded = {'compress': '🗂 TalkCompress の短い文と 📏 文字数（TalkCompress は公開時に記録）',
                 'mcp': '🔌 mcp-toolcall-lab が広告する道具で判定（✅ 送ってよい／❌ 断る。道具は公開時に記録）',
                 'find': '🔎 公開時に取得できた JSON / JSONL の索引から検索', 'show': '👀 そのコミットの raw を読んで表に',
@@ -902,7 +943,8 @@ def chat_books() -> list[dict]:
                 'guess': '🎯 台帳の概念を 1 つ思い浮かべて y / n / ? で回答。最後に候補名を確認する',
                 # argparse's error text varies by Python release; the live chat still shows its suggestions.
                 'typo': '⌨️ もしかして: 入力ミスに近いコマンドや引数を提案する',
-                'ask': '🤖 初回だけ約 560 MB のモデルを読み、端末の中で答える（⚡ WebGPU があれば GPU、なければ 🧮 CPU 1 スレッド）'}
+                'ask': '🤖 初回だけ約 560 MB のモデルを読み、端末の中で答える（⚡ WebGPU があれば GPU、なければ 🧮 CPU 1 スレッド）。'
+                       '🔧 モデルが呼んだ道具（✅ 実行・❌ 広告にない／型が合わない）を答えの上に並べる'}
     books = []
     for label, names in groups:
         examples = [(name, example) for name in names for example in chat.COMMANDS[name][3]] or [('typo', t) for t in chat.TYPOS]
@@ -919,8 +961,8 @@ def chat_document(ui) -> str:
     """💬 The chat page: 💬 the conversation (Pyodide runs chat.py in the page) and 📇 the index of what it answers."""
     chat = _chat()
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '💬 横断チャット', 'description':
-                             'markdown.py・ascii_artist・cli_args・TalkCompress・mcp-toolcall-lab・OnTautoLogy・OLNM をページの中の Python で。'
-                             '公開リポジトリの JSON / JSONL を索引から検索できる。🤖 /ask は llama.cpp が端末の中で答える。'
+                             'markdown.py・ascii_artist・cli_args・TalkCompress・mcp-toolcall-lab・OnTautoLogy・OLNM・Err-o-RoadRunner をページの中の Python で。'
+                             '公開リポジトリの JSON / JSONL を索引から検索できる。🤖 /ask は llama.cpp が端末の中で答え、🔎 /find・👀 /show・🧬 /onto を道具として呼ぶ。'
                              '送った文はどこにも送らない（/show は GitHub の raw を、/ask はモデルを読むだけ）。',
                              'blocks': [{'type': 'tabs', 'id': 'chat', 'tabs': [
                                  {'label': '💬 チャット', 'blocks': [{'type': 'text', 'text': _CHAT_SLOT}]},

@@ -1578,6 +1578,65 @@ def test_chat_checks_mcp_tool_calls_against_what_the_lab_advertises():
     assert 'JSON ではない' in say('/mcp find_municipalities {query}')
 
 
+def test_chat_triages_a_pasted_failure_and_hands_it_to_ask(monkeypatch):
+    """🧯 /triage runs Err-o-RoadRunner's triage on a traceback, a JUnit XML or an Actions log, without the facts of the machine
+    it runs on (they would describe the page); a JUnit report points to 🧾 テスト結果, and /ask gets the facts and hints."""
+    monkeypatch.setitem(CHAT._STATE, 'triage', None)
+    reply = CHAT.respond("/triage Traceback (most recent call last):\n  File \"app.py\", line 3, in <module>\n"
+                         "ModuleNotFoundError: No module named 'numpy'", index={})
+    assert '- python exception type: ModuleNotFoundError' in reply and "web search keywords: ModuleNotFoundError No module named 'numpy'" in reply
+    assert 'environment variable' not in reply and 'python version' not in reply and 'exit code' not in reply
+    assert '#test-report' not in reply                                               # 🧾 only for a JUnit report
+    junit = CHAT.respond('/triage <?xml version="1.0"?><testsuite tests="1" failures="1"><testcase classname="tests.test_a" name="t">'
+                         '<failure message="assert 1 == 2">E   assert 1 == 2</failure></testcase></testsuite>', index={})
+    assert '- junit failures: 1' in junit and 'junit.xml' not in junit and '[🧾 テスト結果](#test-report)' in junit
+    system = json.loads(CHAT.ask_messages('/ask この失敗は？', {}))[0]['content']
+    assert 'FOUND: junit failures: 1' in system and 'HINT: junit framework guess: pytest/python' in system and 'NOT FOUND' not in system
+    assert '❓' in CHAT.respond('/triaeg x', index={}) and '`/triage`' in CHAT.respond('/triaeg x', index={})
+    assert '🧯' in CHAT.respond('/triage', index={})
+    monkeypatch.setitem(CHAT._STATE, 'triage', None)
+    assert '直前の 🧯 triage' not in json.loads(CHAT.ask_messages('/ask この失敗は？', {}))[0]['content']
+
+
+def test_chat_ask_calls_only_advertised_tools_with_arguments_that_fit():
+    """🔧 /ask advertises 🔎 find · 👀 show · 🧬 onto as tools (the JSON Schema of their arguments, nothing more); a call runs only
+    when the tool is advertised and its arguments fit (mcp-toolcall-lab's rule), at most ASK_CALLS per question, and the 🔧 trail
+    (✅ ran, ❌ refused) stands above the answer."""
+    tools = json.loads(CHAT.ask_tools())
+    assert [t['function']['name'] for t in tools] == list(CHAT.ASK_TOOLS) == ['find', 'show', 'onto']
+    assert all(t['type'] == 'function' and t['function']['parameters']['additionalProperties'] is False for t in tools)
+    call = lambda name, args: json.loads(CHAT.ask_call(name, args, CHAT_INDEX, _chat_fetch))
+    CHAT.ask_messages('/ask onto の台帳は？', CHAT_INDEX, _chat_fetch)                 # 🤖 a new question: a new trail
+    found = call('find', '{"kind": "onto"}')
+    assert found['ok'] and found['call'] == '/find --kind onto' and 'docs/graph.json' in found['result']
+    defined = call('onto', {'word': 'ギター'})
+    assert defined['ok'] and defined['call'] == '/onto ギター' and '6弦標準' in defined['result']
+    assert '1 つの質問につき 2 回まで' in call('show', '{"target": "onto/docs/graph.json"}')['result']   # 🔧 ASK_CALLS
+    CHAT.ask_messages('/ask もう一度', CHAT_INDEX, _chat_fetch)
+    refused = [call('fnd', '{}'), call('find', '{"words": "onto"}')]
+    assert [r['ok'] for r in refused] == [False, False]
+    assert 'もしかして find' in refused[0]['result'] and 'arguments.words: array ではない' in refused[1]['result']
+    CHAT.ask_messages('/ask もう一度', CHAT_INDEX, _chat_fetch)
+    assert 'arguments.x: 広告にない引数' in call('show', '{"target": "a/b.json", "x": 1}')['result']
+    assert 'JSON ではない' in call('onto', '{word}')['result']
+    CHAT.ask_messages('/ask もう一度', CHAT_INDEX, _chat_fetch)
+    shown = call('show', '{"target": "onto/docs/graph.json"}')
+    assert shown['ok'] and len(shown['result']) <= CHAT.ASK_RESULT
+    page = CHAT.ask_html('答え', 3, 1.0)
+    assert page.index('🔧 ✅ <code>/show onto/docs/graph.json</code>') < page.index('答え')
+    CHAT.ask_messages('/ask 道具なし', CHAT_INDEX, _chat_fetch)
+    assert '🔧' not in CHAT.ask_html('答え', 3, 1.0)
+    assert '道具（find・show・onto）を呼んでよい' in json.loads(CHAT.ask_messages('/ask x', {}))[0]['content']
+
+
+def test_the_test_report_hands_its_run_to_the_chats_triage():
+    """🧾 → 🧯: the report panel's 🧯 button puts the pasted run in the chat's inbox and opens #chat; the chat takes it when ready."""
+    report = shell_panel('test-report')
+    assert report.count('data-report-triage') == 2 and PAGES.REPORT_TRIAGE_JS in report        # the button and its script
+    assert "'/triage '+text" in PAGES.REPORT_TRIAGE_JS and "location.hash='chat'" in PAGES.REPORT_TRIAGE_JS
+    assert 'addEventListener("chat-inbox", inbox)' in PAGES.CHAT_JS and 'inbox();' in PAGES.CHAT_JS
+
+
 def test_chat_compresses_with_talkcompress_and_markdown(monkeypatch):
     """🗂 TalkCompress's compressor (fetched once, here a stand-in) and markdown.py's compact_llm_output."""
     import types
@@ -1648,8 +1707,11 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     page = shell_panel('chat')                                                       # 💬 a #panel of the one screen
     sources = json.loads((SITE / PAGES.CHAT_SOURCES).read_text(encoding='utf-8'))       # 🐍 fetched when the chat opens
     import importlib.util as util
+    files = lambda n: ({f'{n}/{f.name}': f for f in Path(util.find_spec(n).origin).parent.glob('*.py')}     # 📦 errlib/: a package
+                       if util.find_spec(n).submodule_search_locations else {f'{n}.py': Path(util.find_spec(n).origin)})
     assert sources == {'chat.py': (ROOT / 'scripts/chat.py').read_text(encoding='utf-8'),
-                       **{f'{n}.py': Path(util.find_spec(n).origin).read_text(encoding='utf-8') for n in CHAT.MODULES}}
+                       **{name: f.read_text(encoding='utf-8') for n in CHAT.MODULES for name, f in files(n).items()}}
+    assert {'triage.py', 'errlib/__init__.py', 'errlib/junit_redact.py'} <= set(sources)
     config = json.loads(re.search(r'id="chat-config">(.*?)</script>', page).group(1))
     assert config == {'runtime': CHAT.RUNTIME, 'index': '../media/chat/index.json', 'base': '../media/chat/', 'sources': 'chat/sources.json'}
     assert 'id="chat-sources"' not in page
@@ -1667,11 +1729,28 @@ def html_escape(text):
 
 
 STORIES = 'https://huggingface.co/ggml-org/models/resolve/main/tinyllamas/stories260K.gguf'   # 🤖 1.2 MB, for /ask in tests
+# 🔧 wllama's place in a test of the tool pass: the first completion calls an advertised tool and one that is not, the second answers
+TOOL_ENGINE = """export class Wllama {
+  async loadModelFromUrl() {}
+  getLoadedContextInfo() { return {n_ctx: 2048, n_ctx_train: 32768}; }
+  isMultithread() { return false; }
+  isSupportWebGPU() { return false; }
+  async createChatCompletion(o) {
+    (globalThis.engineCalls ??= []).push(JSON.parse(JSON.stringify({messages: o.messages, tools: (o.tools ?? []).map((t) => t.function.name),
+                                                                     choice: o.tool_choice ?? null, stream: !!o.stream})));
+    if (!o.stream) return {choices: [{message: {role: 'assistant', content: '', tool_calls: [
+      {id: 'c1', type: 'function', function: {name: 'find', arguments: '{"kind": "onto"}'}},
+      {id: 'c2', type: 'function', function: {name: 'delete_repo', arguments: '{}'}}]}}], usage: {completion_tokens: 12}};
+    o.onData({choices: [{delta: {content: '台帳は onto の docs/graph.json'}}]});
+  }
+}"""
 
 
 def test_chat_in_chromium_with_pyodide_and_a_gif():
-    """💬 In Chromium, Pyodide runs chat.py: typed and tapped commands, a typo, MCP, the cross-repo index, /show, the 📇 index's
-    💬 button, raw HTML stays text, and 🤖 /ask runs llama.cpp (wllama) in the page — on a 1.2 MB model in place of the real one.
+    """💬 In Chromium, Pyodide runs chat.py: typed and tapped commands, a typo, MCP, the cross-repo index, /show, 🧯 /triage
+    (Err-o-RoadRunner), 🧾 → 🧯 (the test report hands its run to the chat), the 📇 index's 💬 button, raw HTML stays text, and
+    🤖 /ask runs llama.cpp (wllama) in the page — on a 1.2 MB model in place of the real one; 🔧 the calls a model makes run
+    when advertised (an engine that answers with tool calls stands in for the model there).
     Pyodide and wllama come from jsDelivr; CHAT_MIRROR=DIR serves them from DIR/pyodide/ and DIR/wllama/ (the esm folder), the model
     from DIR/model.gguf and TalkCompress's files from DIR/talkcompress/ (then /compress runs it). Frames go to
     test-results/chat/chat-conversation-<UTC>.gif."""
@@ -1774,17 +1853,48 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
                 say(final_answer, expected)
             say('/olnm calc 6 mul 7', '42')                                  # 🧷 OLNM (olnm.py) in Pyodide
             say('/olnm show gp', 'git push')
+            say("/triage Traceback (most recent call last):\n  File \"app.py\", line 3, in <module>\nKeyError: 'x'",
+                'python exception type: KeyError')                                    # 🧯 Err-o-RoadRunner's triage in the page
             compress = mirror and (mirror / 'talkcompress').is_dir()
             say('/compress As soon as possible, please send me the report.', 'ASAP' if compress else '⏸ TalkCompress')
             say('/md <img src=x onerror="window.pwned=1"> **ok**', '<img src=x')
             assert page.evaluate('() => window.pwned') is None and bot.last.locator('img').count() == 0
             asked = say('/ask TaxOntOy って何？', 'tok/s', done='tok/s')                 # 🤖 llama.cpp answered in the page
             assert '🤖 ' + CHAT.RUNTIME['model'].rsplit('/', 1)[-1] in asked and ' tokens · ' in asked, asked
+            count = bot.count()                                                  # 🧾 → 🧯: the report's run to /triage
+            page.goto(base + 'tools/#test-report')
+            page.fill('[data-report-input]', '<?xml version="1.0"?><testsuite tests="1" failures="1"><testcase classname="tests.test_a"'
+                      ' name="t"><failure message="assert 1 == 2">E   assert 1 == 2</failure></testcase></testsuite>')
+            frames.append((page.screenshot(), '🧾 テスト結果 → 🧯 /triage'))
+            page.click('[data-report-triage]')
+            page.wait_for_function('n => document.querySelectorAll("[data-chat-who=bot]").length > n'
+                                   ' && !document.querySelector("[data-chat-send]").disabled', arg=count, timeout=300_000)
+            handed = bot.last.inner_text()
+            assert page.evaluate('location.hash') == '#chat' and 'junit failures: 1' in handed and '🧾 テスト結果' in handed, handed
+            frames.append((page.screenshot(), '🧯 /triage ← 🧾'))
             page.click('label[for="ui-tabs-chat-1"]')                      # 📇 index: a step's 💬 button sends it
             page.select_option('select[data-ui-choice]', '1')               # 🎨 ASCII art
             frames.append((page.screenshot(), '📇 索引 · 🎨 ASCII art'))
             say('', '╭', tap='.ui-step [data-chat-say^="/box"]')
             assert page.locator('#ui-tabs-chat-0').is_checked() and errors == [], errors
+            tooled = context.new_page()                                            # 🔧 an engine that answers with tool calls
+            tooled.route(lambda url: url.startswith(CHAT.RUNTIME['wllama'] + 'index.js'), lambda r: r.fulfill(
+                content_type='text/javascript', headers=cors, body=TOOL_ENGINE))
+            tooled.on('pageerror', lambda error: errors.append(str(error)))
+            tooled.goto(base + 'tools/#chat')
+            tooled.wait_for_function('() => document.documentElement.dataset.chatReady === "true"', timeout=180_000)
+            tooled.fill('[data-chat-input]', '/ask onto の台帳は？')
+            tooled.press('[data-chat-input]', 'Enter')
+            tooled.wait_for_function('() => document.querySelector("[data-chat-who=bot]:last-child")?.textContent.includes("tok/s")',
+                                     timeout=300_000)
+            answer = tooled.locator('[data-chat-who="bot"]').last.inner_text()
+            assert '🔧 ✅ /find --kind onto' in answer and '🔧 ❌ /delete_repo' in answer and '台帳は onto' in answer, answer
+            first, final = tooled.evaluate('globalThis.engineCalls')
+            assert first['tools'] == ['find', 'show', 'onto'] and first['choice'] == 'auto' and not first['stream']
+            results = [m['content'] for m in final['messages'] if m['role'] == 'tool']
+            assert 'docs/graph.json' in results[0] and '広告されていない道具' in results[1] and final['choice'] == 'none', final
+            frames.append((tooled.screenshot(), '🔧 /ask → /find --kind onto'))
+            assert errors == [], errors
             recorder = browser.new_page()
             recorder.set_content(ui.gif_recorder_document())
             recorder.evaluate('o => { window.rec = new UiGif.Recorder(o); }', {'width': 640, 'height': 800, 'caption': 32})
