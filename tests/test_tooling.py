@@ -207,7 +207,11 @@ def test_generated_files_match_the_lock_and_are_not_committed(tmp_path):
         assert hashlib.sha256(data).hexdigest() == {**lock['outputs'], **lock['pages']}[name]   # assets and the demo pages
     assets.build(tmp_path)
     for name, data in payload.items():
-        assert (tmp_path / name).read_bytes() == data
+        if '#' in name:                                                  # 🧰 a #panel of the one screen, not a page of its own
+            assert not (tmp_path / name).exists()
+        else:
+            assert (tmp_path / name).read_bytes() == data
+    assert (tmp_path / assets.SHELL_PAGE).is_file()
     assert json.loads((tmp_path / assets.ASSET_BASE / 'generated.lock.json').read_text())['commit'] == lock['commit']
 
 
@@ -287,6 +291,7 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     shutil.copyfile(ROOT / 'scripts/front_page.py', root / 'scripts/front_page.py')         # the front page is generated too
     shutil.copyfile(ROOT / 'scripts/map_tool.py', root / 'scripts/map_tool.py')
     shutil.copyfile(ROOT / 'scripts/world.py', root / 'scripts/world.py')                 # 🌍 the world pages and Parallel Tokyo
+    shutil.copyfile(ROOT / 'scripts/london-dragon.json', root / 'scripts/london-dragon.json')
     shutil.copyfile(ROOT / 'scripts/world_shell.py', root / 'scripts/world_shell.py')
     shutil.copyfile(ROOT / 'scripts/chat.py', root / 'scripts/chat.py')                   # 💬 the chat page runs it in Pyodide
     (root / 'docs').mkdir()
@@ -303,8 +308,11 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     assets.build(tmp_path / 'function-output', root)
     for name, data in assets.generate(root).items():
         assert not (root / name).exists()                         # refresh rewrites the lock only
+        if '#' in name:                                           # 🧰 published inside tools/index.html
+            continue
         assert (output / name).read_bytes() == data
         assert (tmp_path / 'function-output' / name).read_bytes() == data
+    assert (output / assets.SHELL_PAGE).read_bytes() == (tmp_path / 'function-output' / assets.SHELL_PAGE).read_bytes()
     # The old CLI without refresh uses the same validated generation path.
     result = subprocess.run([sys.executable, str(root / 'scripts/project_pages.py'),
                              '--output', str(output)], capture_output=True, text=True)
@@ -485,3 +493,21 @@ def test_copy_source_rejects_a_symlink_in_the_public_list(tmp_path):
         assets.copy_source(output, root)
 
     assert not output.exists()
+
+
+def test_composition_audio_waits_for_ironmates_editor_instead_of_failing_the_deploy(tmp_path):
+    spec = importlib.util.spec_from_file_location('publish_composition', ROOT / 'scripts/publish_composition.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    publish = module.publish
+    from html import escape, unescape
+    tools, shell = tmp_path / 'tools/browser-tools', tmp_path / 'tools/index.html'
+    tools.mkdir(parents=True)
+    screen = lambda page: f'<section id="browser-tools" data-tools-panel hidden><template><iframe srcdoc="{escape(page)}"></iframe></template></section>'
+    shell.write_text(screen('<body>no editor yet</body>'), encoding='utf-8')
+    assert publish(tmp_path) is False and shell.read_text(encoding='utf-8') == screen('<body>no editor yet</body>')   # ⏸
+    shell.write_text(screen('<body><div id="song-audio"></div></body>'), encoding='utf-8')
+    (tools / 'async-task.js').write_text('', encoding='utf-8')
+    assert publish(tmp_path) is True                                       # 🖼️ into the framed #browser-tools of the one screen
+    assert '<script type="module" src="/tools/browser-tools/audition.mjs"></script></body>' in unescape(shell.read_text(encoding='utf-8'))
+    assert (tools / 'audition.mjs').is_file()

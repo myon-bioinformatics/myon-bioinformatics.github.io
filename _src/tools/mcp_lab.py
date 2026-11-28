@@ -7,7 +7,6 @@ No Docker runs here, so the page records no run: its test results are the lab's 
 """
 from __future__ import annotations
 import hashlib, re
-from collections.abc import Callable
 from pathlib import Path
 
 import pysaiyanweboo as ui
@@ -172,11 +171,10 @@ def apply_actions_report(page: str) -> str:
 
 
 # ── the stage ──
-FILES = ('index.html', 'pages-hash.js', 'pages-wiki.js', 'pages-pixiv.js', 'source.js', 'build_meta.json')
-OPTIONAL = ('repository-diagnostics.html', 'repository-diagnostics.json', 'repository-diagnostics.jsonl')
+FILES = ('index.html', 'pages-hash.js', 'pages-wiki.js', 'pages-pixiv.js', 'source.js', 'mcp.js', 'build_meta.json')   # mcp.js: 🤝 the #protocol panel
+OPTIONAL = ('repository-diagnostics.json', 'repository-diagnostics.jsonl')   # 🩺 what the page's #diagnostics panel reads
 WRAPPER = Path(__file__).with_name('mcp')     # the portfolio's Pixiv wrapper (pixiv-markup.js, pixiv-panel.js)
-EXECUTION_URL = "https://myon-bioinformatics.github.io/tools/mcp/execution/"
-LABELS = {'index.html': '🧪 MCP Lab', 'repository-diagnostics.html': '🩺 Lab診断'}   # home-screen shortcut names
+EXECUTION_URL = "https://myon-bioinformatics.github.io/tools/#mcp-execution"   # 🖼️ a framed #panel of the one screen
 
 
 def apply_public_examples(payload: dict) -> None:
@@ -200,12 +198,11 @@ def apply_public_examples(payload: dict) -> None:
     )
 
 
-def stage_lab_tools(built: Path, source_sha: str, checkout: Path, add_navigation: Callable[[str, str], str],
-                    add_label: Callable[[str, str], str], folder: str = 'tools/mcp') -> None:
+def stage_lab_tools(built: Path, source_sha: str, checkout: Path) -> None:
     """Turn the lab's built pages in ``built`` (``stub_front pages`` and its repository diagnostics, at ``source_sha``)
-    into the 🔌 MCP 実験室 in place: only the allowlisted files stay (no raw logs, no empty summary), each page gets the
-    shared UI, the portfolio's additions, the artwork, the way back (``add_navigation(page, path)``) and its home-screen
-    name (``add_label``). Everything is read and checked before anything is written."""
+    into the 🔌 MCP 実験室 in place: only the allowlisted files stay (no raw logs, no empty summary), the page gets the
+    shared UI, the portfolio's additions and the artwork (the screen frames it as it is). Everything is read and checked
+    before anything is written."""
     if not re.fullmatch(r'[0-9a-f]{40}', source_sha or ''):
         raise ValueError('the lab tools need the full source commit SHA')
     payload = {name: (built / name).read_bytes() for name in FILES}
@@ -221,10 +218,7 @@ def stage_lab_tools(built: Path, source_sha: str, checkout: Path, add_navigation
     payload['index.html'] = apply_actions_report(page.replace('</header>', '</header>' + banner, 1)).encode('utf-8')
     apply_public_examples(payload)
     apply_shared_navigation(payload)
-    for name, label in LABELS.items():
-        if name in payload:
-            page = apply_lab_branding(add_navigation(payload[name].decode('utf-8'), f'{folder}/{name}'))
-            payload[name] = add_label(page, label).encode('utf-8')
+    payload['index.html'] = apply_lab_branding(payload['index.html'].decode('utf-8')).encode('utf-8')
     payload['LICENSE'] = (checkout / 'LICENSE').read_bytes()
     for leftover in built.iterdir():                # e.g. summary.json, terminal.css: not published
         if leftover.is_file() and leftover.name not in payload:

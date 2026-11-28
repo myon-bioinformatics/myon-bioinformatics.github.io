@@ -15,15 +15,17 @@ A mismatch fails the build before upload; there is no fallback to stale assets.
 `tools/vendor/web-ui/generated.lock.json` publishes this provenance beside the assets.
 The lab's `publication.json` separately identifies the imported report source.
 
-🧰 The same generator also builds PySaiyanWeBoo's own tool documents (`PSWB_TOOLS` in `scripts/project_pages.py`): 🧾 its JUnit reader
-(`tools/test-report/`) and 🤝 its in-page MCP connection test (`tools/mcp-protocol/`). Each gets the portfolio back link and the parts every page of
-the site shares (`add_site_chrome()`): the header (the board with the clock and the page's description, 🏠 ⭐ ⚙️: PySaiyanWeBoo's chrome from the spec `tools_chrome()` makes), the side (☰ ⋯)
-and the foot (🚪 PySaiyanWeBoo's Door-to-Door, every tool as a pull-down, then 🐦 X and 📦 the page's own size: `tools_door()`, PySaiyanWeBoo's `door_html(foot=True)` and `stamp_page_size()`). The front page carries the same parts,
-shortcut label and icons (`add_back_nav()` / `add_home_label()` in `scripts/project_pages.py`). Their SHA-256 values are under `pages` in the same lock, so
-`presentation_identity()` (the shared assets, `outputs`) is unchanged. `--refresh-lock` rewrites their hashes with the assets'.
+🧰 The same generator also builds this site's own panels of the one screen (`render_pages()` in `scripts/project_pages.py`): 🌍 the world,
+📄 the HTML import, 🧾 PySaiyanWeBoo's JUnit reader, 📍 the map, 🎞 the GIF workshop and 💬 the chat (🤝 PySaiyanWeBoo's in-page MCP
+connection test is the 🔌 lab's `#protocol` view). Each is keyed `folder/#name`: the folder its document is built for (the screen's,
+`tools/`; the HTML import's own, `tools/html-import/`, beside its module) and its `#name` on `tools/index.html`. None is published as a
+page of its own. Their SHA-256 values are under `pages` in the same lock, so `presentation_identity()` (the shared assets, `outputs`)
+is unchanged. `--refresh-lock` rewrites their hashes with the assets'.
 
-📄 `tools/html-import/index.html` (the HTML import tool page) is built by `render_html_import()` in the same file and locked
-under `pages` as well; it is no longer kept in git.
+The two published pages share one chrome (`add_site_chrome()`): the header (the board with the clock and the page's description,
+🏠 ⭐ ⚙️: PySaiyanWeBoo's chrome from the spec `tools_chrome()` makes), the side (☰ ⋯) and the foot (🚪 PySaiyanWeBoo's Door-to-Door,
+every tool as a pull-down, then 🐦 X and 📦 the page's own size: `tools_door()`, PySaiyanWeBoo's `door_html(foot=True)` and
+`stamp_page_size()`).
 
 ## Reproduce
 

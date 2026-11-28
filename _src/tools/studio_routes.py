@@ -2,7 +2,6 @@
 
 This is a build-time adapter, not a browser dependency or a copy of the editor.
 """
-from collections.abc import Callable
 import json
 from pathlib import Path
 import posixpath
@@ -10,8 +9,12 @@ import re
 import shutil
 from urllib.parse import urlsplit, urlunsplit
 
-PUBLIC_STUDIO_ENTRIES = ('image-studio/', 'browser-tools/', 'slide-studio/', 'slide-studio/phone/')
-_IRONMATE_ENTRY_PAGES = ('index.html', 'tools/index.html', 'slides/index.html', 'slides/phone/index.html')
+# 📽️ slide-studio/ is Ironmate's one slide editor (phone-first, the same page on a PC).
+PUBLIC_STUDIO_ENTRIES = ('image-studio/', 'browser-tools/', 'slide-studio/')
+_IRONMATE_ENTRY_PAGES = ('index.html', 'tools/index.html', 'slides/index.html')
+# 🗑 Ironmate's forward-only pages (its old slides/phone/ and slides/pc/, brand/ → its tools/#brand) are not published here:
+# one tool, one address; old links need not keep working.
+_FORWARD_ONLY = re.compile(r'<meta\s+http-equiv=["\']?refresh', re.IGNORECASE)
 
 _IRONMATE_ROUTES = {'tools/': 'browser-tools/', 'slides/': 'slide-studio/'}
 
@@ -43,7 +46,7 @@ def _studio_href(source: str, url: str) -> str:
     return urlunsplit(('', '', new_path, parts.query, parts.fragment))
 
 
-def stage_ironmate_studios(built: Path, mapped: Path, add_navigation: Callable[[str, str], str]) -> None:
+def stage_ironmate_studios(built: Path, mapped: Path) -> None:
     """Relocate Ironmate's generated pages and keep their shared assets and cross-links working."""
     for page in _IRONMATE_ENTRY_PAGES:
         if not (built / page).is_file():
@@ -52,13 +55,13 @@ def stage_ironmate_studios(built: Path, mapped: Path, add_navigation: Callable[[
         if not path.is_file() or path.name == '.nojekyll':
             continue
         source = path.relative_to(built).as_posix()
+        page = path.read_text(encoding='utf-8') if path.suffix == '.html' else ''
+        if _FORWARD_ONLY.search(page):
+            continue
         target = mapped / _studio_path(source)
         target.parent.mkdir(parents=True, exist_ok=True)
         if path.suffix == '.html':
-            page = _STUDIO_LINK.sub(lambda m: m['attr'] + m['quote'] + _studio_href(source, m['url']) + m['quote'],
-                                    path.read_text(encoding='utf-8'))
-            if source != 'brand/index.html':
-                page = add_navigation(page, 'tools/' + _studio_path(source))
+            page = _STUDIO_LINK.sub(lambda m: m['attr'] + m['quote'] + _studio_href(source, m['url']) + m['quote'], page)
             target.write_text(page, encoding='utf-8')
         elif source == 'brand/manifest.webmanifest':
             manifest = json.loads(path.read_text(encoding='utf-8'))

@@ -77,23 +77,32 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 
 トップの **🧰 Tools** は、実用の道具だけを置く棚です（リポジトリカードとは別に手で管理）。各リポジトリの使い方・検証・GIF は、そのリポジトリの Pages（🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ）にあり、ここでは写しません。組み立ての要るもの（ビルド）だけをここで作ります。カード名は用途、🧩 出どころはその部品のリポジトリです。公開時に他リポジトリの default branch から組むもの（Ironmate のスタジオ、mcp-toolcall-lab、DRAgoWing のヒートマップなど）は、組み立てに失敗すると ⏸ ページになります。コード本体は各リポジトリに残します。
 
+🧰 道具は全部 **1 つの画面** `tools/` のパネルです（公開する HTML はトップの `index.html` と `tools/index.html` の 2 枚だけ。`scripts/project_pages.py` の `render_shell`）。ヘッダー・フッター・⚙️ 設定は画面に 1 つで、道具はリロードなしで切り替わり、開いたときに初めて読み込まれます（それまでは `<template>` の中で眠っている。スクリプトは元のページと同じ順に 1 つずつ動く）。
+
+| パネルの種類 | 道具 | しくみ |
+|---|---|---|
+| 🧩 画面に入る | `#gif` `#maps` `#test-report` `#flow` `#repo-map` `#chat` `#worlds`（`#world` `#school` `#tokyo` `#camera`）`#heatmap` `#format-lab` | 道具の `<head>` 固有部分と `<body>` を取り込む。🆔 id がぶつかると、このサイトの道具ならビルドが止まり、ほかのリポジトリの道具なら ⏸ |
+| 🖼️ 枠で動く | `#html-import` `#image-studio` `#browser-tools` `#slide-studio` `#mcp`（`#wiki` `#protocol` …）`#mcp-execution` | 文書を丸ごと持つアプリ（自分の CSP・id・スクリプト）は `<iframe srcdoc>` で。ファイルはサイトの根から（`/tools/…`）、自分で解決する相対 URL は `<base>` で、`#` リンクは枠の中に留まる。外へ出るリンクは画面で開く（`target="_top"`、道具なら `/tools/#名前`） |
+
+`#records` や `#protocol` のような道具の中の見出しへのリンクは、その道具を開いてそこへ移ります。Pyodide に渡すチャットの Python は開いたときに `tools/chat/sources.json` から読みます。
+
 | 案内 | リンク |
 | --- | --- |
-| HTML文書取込 | [tools/html-import/](https://myon-bioinformatics.github.io/tools/html-import/) |
-| 地図URL・ピン留め | [tools/maps/](https://myon-bioinformatics.github.io/tools/maps/) · [パラレル東京](https://myon-bioinformatics.github.io/tools/demos/world.html#tokyo) |
-| 🖼️ スライド・画像工房（Ironmate） | [Image Studio](https://myon-bioinformatics.github.io/tools/image-studio/) · [Browser Tools](https://myon-bioinformatics.github.io/tools/browser-tools/) · [Slide Studio](https://myon-bioinformatics.github.io/tools/slide-studio/) |
-| 🌡️ ヒートマップ（DRAgoWing · Ironmate） | [tools/heatmap/](https://myon-bioinformatics.github.io/tools/heatmap/) |
-| 🔌 MCP 実験室（mcp-toolcall-lab） | [Tool Lab](https://myon-bioinformatics.github.io/tools/mcp/) · [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) · [MCP 接続試験](https://myon-bioinformatics.github.io/tools/mcp-protocol/) |
-| 🧾 テスト結果（PySaiyanWeBoo） | [tools/test-report/](https://myon-bioinformatics.github.io/tools/test-report/) |
-| 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab） | [tools/chat/](https://myon-bioinformatics.github.io/tools/chat/) |
+| HTML文書取込 | [tools/#html-import](https://myon-bioinformatics.github.io/tools/#html-import) |
+| 📍地図URL・座標ピン留め | [tools/#maps](https://myon-bioinformatics.github.io/tools/#maps) · [パラレル東京](https://myon-bioinformatics.github.io/tools/#tokyo) |
+| 🖼️ スライド・画像工房（Ironmate） | [Image Studio](https://myon-bioinformatics.github.io/tools/#image-studio) · [Browser Tools](https://myon-bioinformatics.github.io/tools/#browser-tools) · [Slide Studio](https://myon-bioinformatics.github.io/tools/#slide-studio) |
+| 🌡️ ヒートマップ（DRAgoWing · Ironmate） | [tools/#heatmap](https://myon-bioinformatics.github.io/tools/#heatmap) |
+| 🔌 MCP 実験室（mcp-toolcall-lab） | [Tool Lab](https://myon-bioinformatics.github.io/tools/#mcp) · [Execution Lab](https://myon-bioinformatics.github.io/tools/#mcp-execution) · [MCP 接続試験](https://myon-bioinformatics.github.io/tools/#protocol) |
+| 🧾 テスト結果（PySaiyanWeBoo） | [tools/#test-report](https://myon-bioinformatics.github.io/tools/#test-report) |
+| 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab） | [tools/#chat](https://myon-bioinformatics.github.io/tools/#chat) |
 | 🧭 統合運用 | [Dashboard](https://myon-bioinformatics.github.io/myon-bioinformatics/) |
-| 🎞 GIF工房（PySaiyanWeBoo） | [tools/gif/](https://myon-bioinformatics.github.io/tools/gif/) |
-| 🌊 流れの実験室（FluidFullSpeedSimulation · DRAgoWing） | [tools/flow/](https://myon-bioinformatics.github.io/tools/flow/) |
-| 🧠 リポジトリ地図 | [tools/repo-map/](https://myon-bioinformatics.github.io/tools/repo-map/) |
+| 🎞 GIF工房（PySaiyanWeBoo） | [tools/#gif](https://myon-bioinformatics.github.io/tools/#gif) |
+| 🌊 流れの実験室（FluidFullSpeedSimulation · DRAgoWing） | [tools/#flow](https://myon-bioinformatics.github.io/tools/#flow) |
+| 🧠 リポジトリ地図 | [tools/#repo-map](https://myon-bioinformatics.github.io/tools/#repo-map) |
 
 新しい道具を足すときは、生成元の `scripts/front_page.py`（`PORTAL`）と `tests/test_site.py` をいっしょに直し、行き先と HTTPS の Pages 契約を同じ変更で確認します。
 
-🧰 Ironmate's Image Studio, Browser Tools and Slide Studio (`tools/image-studio/`, `tools/browser-tools/`, `tools/slide-studio/`), mcp-toolcall-lab's tools and execution lab (`tools/mcp/`, `tools/mcp/execution/`) and DRAgoWing's 🌡️ heatmap (`tools/heatmap/`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ page in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Studio route mapping is build source in `_src/tools/studio_routes.py`; the rendered pages live only in the Pages output tree. Ironmate still owns the generated editor and data formats, and the shared back navigation comes from PySaiyanWeBoo.
+🧰 Ironmate's Image Studio, Browser Tools and Slide Studio (`tools/#image-studio`, `#browser-tools`, `#slide-studio`), mcp-toolcall-lab's tools and execution lab (`tools/#mcp`, `#mcp-execution`; each 🖼️ framed: an app that owns its document) and DRAgoWing's 🌡️ heatmap and the parent's 🗃️ format lab (the one screen's `tools/#heatmap`, `tools/#format-lab`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ panel in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Studio route mapping is build source in `_src/tools/studio_routes.py`; the rendered pages live only in the Pages output tree. Ironmate still owns the generated editor and data formats, and the shared back navigation comes from PySaiyanWeBoo.
 
 ## 🚀 公開リポジトリ
 
@@ -271,10 +280,10 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 | 🚪 | ドア to ドア：フッターのプルダウンで道具から道具へ（🏠 でカードへ）。行は `scripts/front_page.py` の `PORTAL` から作るので、カードを足せば増える。ヘッダーとは別の部品で、PySaiyanWeBoo の共通機能 Door-to-Door のプルダウンだけの形（`door_html(compact=True)` / door.css / door.js）をそのまま使っている（「戻る」で戻っても今のページの表示に戻る）。何も保存しない |
 
 絵文字は用途に応じて key-value で足せます（`href`＝リンク、`links`＝リンクの一覧、`body`＝ひとこと。`slot` は `head` か `side`）。
-地図URL・ピン留めのページは 🗼（パラレル都市）を足しています。
+🧰 1 つの画面（`tools/`）は、地図のために 🗼（パラレル都市）を足しています。
 
 ```python
-add_back_nav(page, 'tools/maps/index.html', {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': '../demos/cities.html'}})
+add_site_chrome(page, 'tools/index.html', {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './demos/world.html#tokyo'}})
 ```
 
 ![Tools の共通ヘッダー：☰（このページと見出し）で ☆ を付け、⭐ に並び、🌐 を English にして次の道具へ移っても両方が引き継がれ、⭐ から見出しへ戻る（Chromium 560×480）](docs/evidence/tools-chrome.gif)
@@ -283,7 +292,7 @@ add_back_nav(page, 'tools/maps/index.html', {'🗼': {'label': 'パラレル都�
 ![ドア to ドア：フッターの 🚪 プルダウンで GIF工房 → 流れの実験室、ブラウザの「戻る」でも表示が付いてきて、同じドアをもう一度開け、🏠 でカードへ（Chromium 560×480）](docs/evidence/door-to-door.gif)
 
 🗓️ 2026-11-27 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k door_to_door` writes `test-results/door-to-door/door-to-door-pulldown-<UTC>.gif`（`docs/evidence/door-to-door.gif` へコピー）。
-部品は PySaiyanWeBoo（`component_parts('chrome' | 'door' | 'gaze-avatar')`・`door_html(foot=True)`・`add_part`・`stamp_page_size`）、ポートフォリオ側は指定だけ：`scripts/project_pages.py`（`tools_chrome` / `tools_places` / `tools_door` / `add_back_nav`）。
+部品は PySaiyanWeBoo（`component_parts('chrome' | 'door' | 'gaze-avatar')`・`door_html(foot=True)`・`add_part`・`stamp_page_size`）、ポートフォリオ側は指定だけ：`scripts/project_pages.py`（`tools_chrome` / `tools_places` / `tools_door` / `add_site_chrome`）。
 
 ### 🎥 Tools カードの動く見本と 🗓️ 週次ノート
 
@@ -297,7 +306,7 @@ add_back_nav(page, 'tools/maps/index.html', {'🗼': {'label': 'パラレル都�
 
 ### 💬 横断チャット
 
-🧰 Tools → **💬 横断チャット**（`tools/chat/`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args・ontautology.py（OnTautoLogy）・olnm.py（OLNM）は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。
+🧰 Tools → **💬 横断チャット**（`tools/#chat`）は、リポジトリ横断の道具に話しかけるページです。ページの中の Python（Pyodide）が `scripts/chat.py` を動かし、markdown.py・ascii_artist・cli_args・ontautology.py（OnTautoLogy）・olnm.py（OLNM）は `pyproject.toml` の pages グループで固定したコミットのものがそのまま動きます。
 
 | | コマンド | 出どころ |
 | --- | --- | --- |
@@ -325,7 +334,27 @@ uv run --locked --only-group browser python -m pytest tests/test_site.py -k chat
 
 ### 🌍 ワールド
 
-**🌍 ワールド**は [ひとつのページ](https://myon-bioinformatics.github.io/tools/demos/world.html) です。☰ で村（`#world`）、学校（`#school`）、パラレル東京（`#tokyo`）、Reverse London（`#london`）、Fake Paris（`#paris`）、カメラ（`#camera`）へ移動します。ページを読み直さず、直リンクやブラウザの「戻る」でも空間を切り替えられます。⭐ お気に入りと 🧰 道具は共通で、村のRPGや街の範囲指定など、その場の操作は各空間に残しています。
+**🌍 ワールド**は [1 つの画面のパネル](https://myon-bioinformatics.github.io/tools/#worlds) です。☰ で村（`#world`）、学校（`#school`）、パラレル東京（`#tokyo`）、Reverse London（`#london`）、Fake Paris（`#paris`）、せやかて大阪（`#osaka`）、聖地ナゴヤ（`#nagoya`）、カメラ（`#camera`）へ移動します。ページを読み直さず、直リンクやブラウザの「戻る」でも空間を切り替えられます。⭐ お気に入りと 🧰 道具は共通で、村のRPGや街の範囲指定、フェイクパリの消防ヒーロー活動（定型会話・ドロップ/宝箱・消火ミッション・緑化）、せやかて大阪の西の名探偵調査（定型会話・ドロップ/宝箱・シャドウ現場検証・ロジックバースト・緑化）など、その場の操作は各空間に残しています。
+
+**🐉 竜と秘宝**で、竜のいるフロアの宝箱と竜からもらえる秘宝の場所、取得条件、収集状況を確認できます。宝箱を開けたり竜との絆を最大まで深めたりすると、取得済みになります。聖地ナゴヤでは 🛗 から名古屋の街歩きへ移動できます。[ワールド探索ガイド](docs/world-guide.md)
+
+村・リバースロンドン・聖地ナゴヤでは、それぞれの **冒険手帳 → 💾 セーブ** で文字列を作り、移行先の同じ画面に貼り付けて「読み込む」を選びます。経験値、装備、バッグ、討伐やクエストなどの進捗を引き継ぎます。リバースロンドンと聖地ナゴヤでは、宝箱の開封と竜の発見・絆も保存します。現在位置と戦闘途中の状態は保存対象外です。
+
+| 形式 | 用途と互換性 |
+|---|---|
+| セーブ文字列 | コピー・保管用。ワールドIDと項目名を含むPSWBのBase64url JSON。未対応の版や未知の項目は読み込み時に拒否します。 |
+| 復活の呪文 | 書き写し用。同じ進捗をPSWBのビット列に詰め、かなで表示します。ワールドとビット割り当ての識別値が一致する場合に復元できます。数値が割り当て幅を超えるときは通常のセーブ文字列を使います。 |
+
+村で拾った癒しの水は、人に使うとMPが10回復します。パリでは火に向き合って「💧 目の前の火を消す」を押すと、正面1マスの火が一つ消えます。大阪では不審な痕跡（シャドウ）に向き合って現場検証やロジックバーストで解明を進められます。昼ヶ丘のサツマイモは、人が食べると経験値が20増えます。ロンドンでは、nogardの木の看板を2回めくって「🍠 ドラゴンにあげる」を押すと、ドラゴン経験値が20増えます。いずれも同じ村のバッグから1個を使います。
+
+探索の巻物は何度でも使えます。移動中は近くの未取得のどうぐを光らせ、戦闘中はやくそうを探します。範囲・成功率・消費ターンは、ゲーム内の説明と会話が共通の道具定義を参照します。拾ったやくそうの個数はセーブv5で引き継ぎます。「💡 ヒント」はターンを使わず、残りHP・MP、手持ちの回復薬、敵の予告や弱点に応じて次の一手を示します。竜の巻物はリバースロンドンで初めてドラゴンをなでると受け取り、共通メニューから何度でも同じドラゴンを呼べます。戦闘中に使うとドラゴンが敵1体を攻撃し、1ターン進みます。
+
+話題を尋ねた定型会話と「もっと話す」の応答は、冒険全体で直近3回の話題を順番に保持します。「さっきの話」「2回前の話」「3回前の話」で同じ概念の根拠を引き直せます。セーブv4には竜の巻物の入手状態と話題IDが入り、質問や返答の全文は保存しません。
+
+村人に接触するとその場で定型台詞が出ます。道具屋ではサツマイモの贈り先を尋ねられます。村人やドラゴンの「もっと話す」から自由文を送るときだけ、横断チャットと共通のwllamaで端末内生成を使います。質問に含まれる名前・別名から、ワールドの知識グラフを最大2段、5関係までたどり、会話欄の「GitHubの根拠」に該当する実装を表示します。公開時に固定済みのONTO語彙検査とOnTautoLogyの探索を使うため、質問ごとのGitHub API呼び出しはありません。
+
+ドラゴンの原画は画像編集のドット絵で作成した20×15の `ironmate-pixel-grid/1` JSONです。「原画JSONを保存」から編集ツールに読み込めます。地図と詳細欄の画像はビルド時に同じ原画から生成されます。看板に現れたドラゴンを詳細欄でタップするとなでられます。体色と背景の塗りつぶしは同じ欄で変更・リセットできます。色を変えた状態は両形式ともv3で保存します。元の色では、消火位置またはドラゴン経験値があると両形式ともv2で保存し、そのほかは従来のv1で保存します。v1を読み込むと火とドラゴン経験値は初期状態に戻ります。どちらも手動保存です。読み込みに成功すると現在の冒険と村のバッグを置き換えます。お気に入りや表示設定は端末ごとに保持します。
+
 
 ```sh
 uv run --locked --only-group pages python scripts/world.py example school | uv run --locked --only-group pages python scripts/world.py page - > school.html
@@ -335,11 +364,11 @@ uv run --locked --only-group browser python tests/world_browser.py -v           
 
 📖 [教室・土地・実在の場所](docs/world-classroom.md) · [動き](docs/world-motion.md) · [共有掲示板](docs/world-shared-board.md)。PySaiyanWeBoo から移しました（同じページを描きます）。
 
-### 地図URL・ピン留め
+### 📍地図URL・座標ピン留め
 
-🧰 Tools → **地図URL・ピン留め** (`tools/maps/`) で、緯度・経度からApple MapsとGoogle MapsのURLを生成できます。地図URLからの座標入力、端末内のピン保存・解除、地点リンクのコピー、端末の共有メニューに対応します。共有先は保存操作なしで同じ座標を開けます。ピンはブラウザごとの保存で、端末間では同期しません。保存やコピーが許可されていない場合は画面に表示します。
+🧰 Tools → **📍地図URL・座標ピン留め** (`tools/#maps`) で、緯度・経度からApple MapsとGoogle MapsのURLを生成できます。地図URLからの座標入力、端末内のピン保存・解除、地点リンクのコピー、端末の共有メニューに対応します。共有先は保存操作なしで同じ座標を開けます。ピンはブラウザごとの保存で、端末間では同期しません。保存やコピーが許可されていない場合は画面に表示します。
 
-パラレル都市 (`tools/demos/world.html#tokyo`) 内の東京21地点と相互に移動できます。座標・地図URL生成は固定済みPSWB、ミニチュアは `scripts/world.py` から再利用します。東京の座標はミニチュア用の概略値で、施設の正確な入口を保証するものではありません。URLだけを作るため地図APIキーは不要です。
+パラレル都市 (`tools/#tokyo`) 内の東京21地点と相互に移動できます。座標・地図URL生成は固定済みPSWB、ミニチュアは `scripts/world.py` から再利用します。東京の座標はミニチュア用の概略値で、施設の正確な入口を保証するものではありません。URLだけを作るため地図APIキーは不要です。
 
 Flutterの範囲指定も引き継いでいます。中心＋半径（25 / 100 / 350 / 1,000 / 3,000 m・自由指定）から南北東西の境界と範囲URLを生成し、半径をピン・共有リンクに保存します。初期値は100 m、0は地点のみです。範囲内の東京の地点は中心からの直線距離で絞り込み、移動先から戻っても半径を保持します。「元の指定範囲へ戻る」は元の中心も復元します。範囲URLは表示範囲の指定で、円や矩形を地図上に描画するものではありません。日付変更線・極付近では表現できないApple Mapsの`spn`を省略します。
 
@@ -391,9 +420,9 @@ default branch (`scripts/project_pages.py --record-tools`), and nothing of the l
 
 | 🔗 Page | 🧰 Built from the lab with | 🔀 Path |
 | --- | --- | --- |
-| 🔎 Tool Lab: `#wiki` · `#pixiv` · `#pokemon` (+ the portfolio's `#niconico`) | `python -m mcp_toolcall_lab.stub_front pages` | `tools/mcp/` |
-| 🩺 Repository diagnostics | `python -m mcp_toolcall_lab.mcp_toolcall_lab_repository_diagnostics` | `tools/mcp/repository-diagnostics.html` |
-| 🧮 [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) | `scripts/build_portable_pages.py` (Node 26) | `tools/mcp/execution/` |
+| 🔎 Tool Lab: `#wiki` · `#pixiv` · `#pokemon` (+ the portfolio's `#niconico`) | `python -m mcp_toolcall_lab.stub_front pages` | `tools/#mcp` |
+| 🩺 Repository diagnostics (a panel of the Tool Lab) | `python -m mcp_toolcall_lab.mcp_toolcall_lab_repository_diagnostics` (its JSON / JSONL) | `tools/#diagnostics` |
+| 🧮 [Execution Lab](https://myon-bioinformatics.github.io/tools/#mcp-execution) | `scripts/build_portable_pages.py` (Node 26) | `tools/#mcp-execution` |
 
 The portfolio's side is one build-time adapter, `_src/tools/mcp_lab.py` (beside Ironmate's `_src/tools/studio_routes.py`):
 the shared UI, the Niconico tab, the Pixiv wrapper (`_src/tools/mcp/`), the lab artwork, the way back and the

@@ -1,4 +1,5 @@
 """The Portfolio's one published world. Individual specs and standalone exports stay in world.py."""
+import json
 from html import escape
 
 # Public fragments are stable and independent of the map engine's internal IDs.
@@ -8,11 +9,15 @@ SPACES = {
     'tokyo': ('cities', '🗼 パラレル東京'),
     'london': ('cities', '🎡 Reverse London'),
     'paris': ('cities', '🥖 Fake Paris'),
+    'osaka': ('cities', '🐙 せやかて大阪'),
     'nagoya': ('nagoya', '🏯 聖地ナゴヤ'),
     'camera': ('world', '🎬 カメラ'),
 }
 
 CSS = """
+[data-world-shell]:not([data-world-route="osaka"]) [data-city-item="osaka"],
+[data-world-shell]:not([data-world-route="paris"]) [data-city-item="paris"],
+[data-world-shell]:not([data-world-route="london"]) [data-city-item="london"],
 [data-world-space][hidden],[data-world-shell] [data-menu="favorites"],
 [data-world-route]:not([data-world-route="tokyo"]) :is(#tokyo-range,#area-return){display:none!important}
 [data-world-shell]>header{position:sticky;top:0;z-index:10;background:var(--ui-bg)}
@@ -21,10 +26,25 @@ CSS = """
 .world-switcher details{position:relative}
 .world-switcher summary{cursor:pointer;padding:.45rem;min-height:44px;display:grid;align-items:center}
 .world-switcher details[open]>div{position:absolute;top:100%;left:0;z-index:30;min-width:min(10rem, 76vw);max-height:65vh;max-width:min(85vw,22rem);width:max-content;overflow:auto;background:var(--ui-bg);color:var(--ui-fg);border:1px solid var(--ui-border);border-radius:var(--ui-radius);padding:.35rem;box-shadow:0 6px 20px #0005}
+.world-switcher details[data-world-guide]{position:static}
+.world-switcher details[data-world-guide][open]>div{left:0;right:0;width:auto;max-width:34rem;padding:1rem}
 .world-switcher{position:relative;z-index:5}
+.dragon-care{display:none}
+.dragon-scroll-dialog .dragon-care,#cities-map:has(.ui-spot[data-flip="🐉"][data-show="flip"]) .dragon-care{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.dragon-care button,.dragon-care input,.dragon-care select{min-height:44px}
+.dragon-portrait{display:block;width:80px;image-rendering:pixelated}
+#cities-map .ui-spot[data-flip="🐉"][data-show="flip"]{font-size:0;background-color:var(--dragon-fill,var(--ui-panel))}
+#cities-map .ui-spot[data-flip="🐉"][data-show="flip"]::before{content:"";display:inline-block;width:32px;height:24px;background:var(--dragon-sprite) center/contain no-repeat;image-rendering:pixelated;filter:var(--dragon-hue)}
+#cities-map .ui-spot[data-reaction]::after{font-size:1rem}
+.ui-spot[data-show="flip"][data-reaction]::after{content:attr(data-reaction)}
 .world-switcher a{display:block;padding:.5rem;color:var(--ui-fg)}
 .world-switcher [aria-current="location"]{font-weight:bold;text-decoration:underline}
 .world-switcher .ui-world-tools>*{flex-shrink:0}
+#world-relics-menu ol{list-style:none;padding:0;margin:0}
+#world-relics-menu li{padding:.3rem .5rem}
+#world-relics-menu li a{padding:0}
+#world-relics-menu small{display:block}
+[data-world-shell]:not([data-world-route="london"]) #cities-map .ui-rpg-hud{display:none}
 """
 
 JS = r"""
@@ -72,34 +92,133 @@ for(const panel of menu.querySelectorAll('details')){
 }
 cities.addEventListener('change',e=>{
  const control=e.target;
- if(!e.isTrusted||!(control.matches('.ui-world-goto')||control.name==='cities-floor')||!cityFloors.includes(control.value))return;
+ if(!cityFloors.includes(shell.dataset.worldRoute)||!(control.matches('.ui-world-goto')||control.name==='cities-floor')||!cityFloors.includes(control.value))return;
  if(shell.dataset.worldRoute!==control.value){history.pushState(null,'','#'+control.value);route();}
 });
-function updateRelicsPill(){
- const pill=shell.querySelector('#world-relics-count'),list=shell.querySelector('#world-relics-list');
- if(!pill||!list)return;
- const pressed=[...shell.querySelectorAll('.ui-world-take[aria-pressed="true"]')];
- const relics=pressed.filter(b=>b.dataset.itemId?.includes('-dragon-')||b.dataset.itemId?.includes('-chest-'));
- pill.textContent=`${relics.length}/14`;
- if(!relics.length){
-  list.innerHTML='<p class="ui-world-note" style="padding:.5rem;margin:0">リバースロンドンや聖地ナゴヤで龍をお世話して、伝説の秘宝を手に入れよう！</p>';
-  return;
+const pill=shell.querySelector('#world-relics-count');
+const relics=[...shell.querySelectorAll('#world-relics-list li')].map(row=>{
+ const link=row.querySelector('a');
+ const spot=shell.querySelector(`.ui-floor a[href="${CSS.escape(link.hash)}"]`);
+ return {status:row.querySelector('[data-relic-status]'),spot,flag:row.dataset.relicState};
+});
+function syncRelics(){
+ let collected=0;
+ for(const {status,spot,flag} of relics){
+  const earned=spot?.hasAttribute(flag);
+  status.textContent=earned?'✅ 取得済み':'未取得';
+  if(earned)collected++;
  }
- const items=relics.map(b=>{
-  const id=b.dataset.itemId,label=b.dataset.itemLabel||id,emoji=b.dataset.itemEmoji||'🏆';
-  const targetId=id.replace(/^[a-z0-9-]+-spot-/,'');
-  return `<a href="#${CSS.escape(targetId)}">${emoji} ${label}</a>`;
- });
- list.innerHTML=items.join('');
+ const count=`${collected}/${relics.length}`;
+ if(pill.textContent!==count)pill.textContent=count;
 }
-window.addEventListener('world-bag-change',updateRelicsPill);
+const relicObserver=new MutationObserver(syncRelics);
+for(const {spot,flag} of relics)if(spot)relicObserver.observe(spot,{attributeFilter:[flag]});
 addEventListener('hashchange',route);
 shell.addEventListener('world-location',route);
-route();listFavorites();updateRelicsPill();
+route();listFavorites();syncRelics();
 """
 
 
-def document(ui, world, maps, places, css_href, js_href):
+EXPLORATION_SCROLL_SOURCE = "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/904cff96506cb6b8d8e2afeaeb171d0da63f41eb/scripts/world.py#L2280-L2287"
+
+
+def exploration_scroll_guide(world):
+    effects = world.exploration_scroll_text()
+    label = escape(world.EXPLORATION_SCROLL["label"])
+    return (
+        '<article aria-labelledby="exploration-guide-title">'
+        f'<h2 id="exploration-guide-title">{label}をいつ使う？</h2>'
+        '<h3>効果</h3>'
+        f'<p>{escape(effects["reuse"])}</p>'
+        f'<ul><li>{escape(effects["field"])}</li><li>{escape(effects["battle"])}</li></ul>'
+        '<h3>戦闘での使いどころ</h3>'
+        '<ul><li>巻物を持っていて薬草を補充したいとき、次が通常攻撃でHPに余裕があれば、薬草を探す手があります。</li>'
+        '<li>次が強攻撃なら、まずぼうぎょを優先します。</li>'
+        '<li>次の攻撃が分からなければ、敵の予告や「💡 ヒント」を確認します。</li></ul>'
+        f'<p><a href="{EXPLORATION_SCROLL_SOURCE}">道具の定義（GitHub）</a>'
+        '<a href="https://github.com/myon-bioinformatics/OnTautoLogy/pull/72">攻略判断の検証例（GitHub）</a></p></article>'
+    )
+
+
+def dialogue_graph(world):
+    """Compile the GitHub-backed world facts into bounded paths using the pinned ONTO / OTL APIs."""
+    from ontautology import reach
+    from ontautology_shared.ontology import violations
+
+    source = "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py"
+    scrolls = "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/831cf43785329c799966775153147b82ddc28638/scripts/world.py"
+    reusable = "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/2f27ccdf682ad02d717b894889f1dc225d894925/scripts/world.py"
+    pswb = "https://github.com/myon-bioinformatics/PySaiyanWeBoo/blob/e249a7c33071a5e70ff4866492506ebfd7719875/pysaiyanweboo.py"
+    scroll = world.EXPLORATION_SCROLL
+    scroll_text = world.exploration_scroll_text()
+    field_target, battle_target = (scroll[mode]["target"] for mode in ("field", "battle"))
+    nodes = {
+        "昼ヶ丘": ("場所", ["ヒルガオカ"]), "サツマイモ": ("道具", ["さつまいも", "おいも", "いも", "🍠"]),
+        "ドラゴン": ("住人", ["竜", "りゅう", "🐉"]), "木の看板": ("目印", ["看板", "nogard"]),
+        "リバースロンドン": ("場所", ["ロンドン", "London"]), "癒しの水": ("道具", ["いやしの水", "マナのしずく"]),
+        "火": ("地形", ["炎", "🔥"]), "パリ": ("場所", ["Paris"]), "MP": ("能力", ["魔力"]),
+        "竜の巻物": ("道具", ["竜のまきもの"]), scroll["label"]: ("道具", ["探索のまきもの"]), "敵": ("相手", ["魔物"]),
+        field_target: ("道具", ["未取得のアイテム"]), battle_target: ("道具", ["薬草"]),
+        "冒険手帳": ("道具", ["手帳"]), "復活の呪文": ("形式", ["呪文", "じゅもん"]),
+    }
+    vocabulary = {"産物": (["場所"], "道具"), "好物": (["住人"], "道具"), "現れる": (["住人"], "目印"),
+                  "所在地": (["目印", "地形"], "場所"), "消す": (["道具"], "地形"), "回復": (["道具"], "能力"),
+                  "保存形式": (["道具"], "形式")}
+    vocabulary.update({"発見対象": (["道具"], "道具"), "呼べる": (["道具"], "住人"), "攻撃対象": (["道具"], "相手")})
+    facts = [
+        ("竜の巻物", "呼べる", "ドラゴン", "ロンドンで初めてドラゴンをなでると竜の巻物を受け取る。旅先でも同じドラゴンを呼べる。", scrolls + "#L2571", scrolls + "#L2604"),
+        (scroll["label"], "発見対象", field_target, scroll_text["field"] + scroll_text["reuse"], EXPLORATION_SCROLL_SOURCE),
+        (scroll["label"], "発見対象", battle_target, scroll_text["battle"] + scroll_text["reuse"], EXPLORATION_SCROLL_SOURCE),
+        ("竜の巻物", "攻撃対象", "敵", "戦闘中はドラゴンが敵1体を攻撃する。巻物は何度でも使える。", reusable + "#L2925"),
+        ("昼ヶ丘", "産物", "サツマイモ", "昼ヶ丘でサツマイモが育つ。", source + "#L3322"),
+        ("ドラゴン", "好物", "サツマイモ", world.POTATO_RUMOR, source + "#L3302"),
+        ("ドラゴン", "現れる", "木の看板", "木の看板の陰にドラゴンがいるらしい。", source + "#L2580"),
+        ("木の看板", "所在地", "リバースロンドン", "ロンドンには nogard と書かれた木の看板がある。", source + "#L3259"),
+        ("癒しの水", "消す", "火", "癒しの水は正面の火を一つ消す。", source + "#L2540"),
+        ("火", "所在地", "パリ", "パリでは村で拾った水を火に使える。", source + "#L2540"),
+        ("癒しの水", "回復", "MP", "人に使うとMPを10回復する。", source + "#L3482"),
+        ("冒険手帳", "保存形式", "復活の呪文", "冒険手帳はPSWBのかなの呪文で進捗を保存できる。", source + "#L2838", pswb + "#L86"),
+    ]
+    edges = [{"source": a, "relation": r, "target": b} for a, r, b, *_ in facts]
+    findings = violations({"nodes": [{"id": n, "type": t} for n, (t, _) in nodes.items()], "edges": edges}, vocabulary)
+    if findings:
+        raise ValueError(f"invalid world dialogue graph: {findings}")
+    walks = [dict(source=start, kind=r, target=end, fact=i) for i, (a, r, b, *_) in enumerate(facts)
+             for start, end in ((a, b), (b, a))]
+    paths = {}
+    for start in nodes:
+        steps = {}
+        for row in reach(walks, [start])["rows"]:
+            if row["depth"] <= 2:
+                chain = row["via"]
+                steps[row["node"]] = [*steps.get(chain[-2], []), row["edge"]["fact"]]
+        paths[start] = list(steps.values())
+    records = [{"edge": f"{a} → {r} → {b}", "text": msg, "urls": urls} for a, r, b, msg, *urls in facts]
+    contexts = {
+        field_target: ("field", "移動", "探索中", "非戦闘"),
+        battle_target: ("battle", "戦闘", "バトル"),
+    }
+    for index, (subject, _, target, *_) in enumerate(facts):
+        if subject == scroll["label"]:
+            mode, *aliases = contexts[target]
+            records[index].update(mode=mode, context=[scroll[mode]["context"], *aliases])
+    return {"terms": {name: [name, *aliases] for name, (_, aliases) in nodes.items()}, "facts": records, "paths": paths}
+
+
+def relic_menu(world, specs):
+    relics = [relic for spec in specs for relic in world.relic_catalogue(world.world_validate(spec))]
+    rows = []
+    for relic in relics:
+        flag = "data-rpg-bonded" if relic["kind"] == "dragon" else "data-rpg-opened"
+        rows.append(f'<li data-relic-state="{flag}"><a href="#{relic["fragment"]}">'
+                    f'{escape(relic["emoji"])} {escape(relic["label"])}</a>'
+                    f'<small><span data-relic-status>未取得</span> · {escape(relic["condition"])}</small></li>')
+    return ('<details id="world-relics-menu"><summary id="world-relics-btn">🐉 竜と秘宝 '
+            f'<span id="world-relics-count" aria-live="polite">0/{len(relics)}</span></summary>'
+            f'<div id="world-relics-list"><ol>{"".join(rows)}</ol></div></details>')
+
+
+def document(ui, world, maps, places, css_href, js_href, dialogue="", *, dragon_png, dragon_grid):
     specs = {name: world.example_data(name) for name in dict.fromkeys(spec for spec, _ in SPACES.values())}
     sections = []
     for spec, data in specs.items():
@@ -110,18 +229,24 @@ def document(ui, world, maps, places, css_href, js_href):
         body = ''.join(f'<span id="{alias}"></span>' for alias in aliases) + body
         sections.append(f'<section id="{route}" data-world-space="{spec}" aria-label="{escape(SPACES[route][1])}">{body}</section>')
     nav = ''.join(f'<a href="#{route}" data-scene="{scene}">{escape(label)}</a>' for route, (scene, label) in SPACES.items())
-    tools = ''.join(f'<a href="{escape(p["href"], quote=True)}">{escape(p["label"])}</a>' for p in places)
-    relics_details = ('<details id="world-relics-menu"><summary id="world-relics-btn">🐉 竜と秘宝 <span id="world-relics-count">0/14</span></summary>'
-                      '<div id="world-relics-list"><p class="ui-world-note" style="padding:.5rem;margin:0">リバースロンドンや聖地ナゴヤで龍をお世話して、伝説の秘宝を手に入れよう！</p></div></details>')
+    tools = ''.join(f'<a href="{escape(p["href"], quote=True)}"'                       # 🌐 a tool's label in the other languages (its card's words)
+                    + (f' data-texts="{escape(json.dumps({"ja": p["label"], **p["labels"]}, ensure_ascii=False, separators=(",", ":")), quote=True)}"' if p.get("labels") else "")
+                    + f'>{escape(p["label"])}</a>' for p in places)
     header = ('<header class="ui-world-head"><div id="world-switcher" class="world-switcher"><nav class="ui-world-tools" aria-label="ワールド">'
               f'<details data-world-nav><summary aria-label="空間一覧">☰</summary><div>{nav}</div></details>'
               '<strong id="world-space-name">🌍 ワールド</strong>'
-              + relics_details +
+              + relic_menu(world, specs.values()) +
               '<details><summary>⭐ お気に入り</summary><div id="world-favorites">まだありません</div></details>'
-              f'<details><summary>🧰 道具</summary><div>{tools}</div></details></nav></div></header>')
-    body = ('<main><div data-world-shell>' + header + ''.join(sections) + '</div></main>'
+              f'<details><summary>🧰 道具</summary><div>{tools}</div></details>'
+              f'<details data-world-guide><summary>📖 攻略ガイド</summary><div>{exploration_scroll_guide(world)}</div></details>'
+              '</nav></div></header>')
+    knowledge = json.dumps(dialogue_graph(world), ensure_ascii=False, separators=(",", ":")).replace("<", r"\u003c")
+    dialogue += f"\nconst worldKnowledge={knowledge};\n"
+    sprite = (f'<template id="dragon-art"><img class="dragon-portrait" alt="" src="{escape(dragon_png, quote=True)}">'
+              f'<a download="london-dragon.json" href="{escape(dragon_grid, quote=True)}">原画JSONを保存</a></template>')
+    body = ('<main><div data-world-shell>' + sprite + header + ''.join(sections) + '</div></main>'
             + ui.module_script(JS) + f'<script type="module" src="{js_href}"></script>'
-            + ui.module_script(f'import "{js_href}";\n' + world.WORLD_RPG_JS) + maps.tokyo_modules(ui))
+            + ui.module_script(f'import "{js_href}";\n' + dialogue + world.world_game_modules(specs.values(), "./vendor/web-ui/js/records.js")) + maps.tokyo_modules(ui))
     css = ''.join(world.world_css(data, base=False) for data in specs.values()) + f'@layer components{{{CSS}}}'
     page = ui.render_document(title='🌍 ワールド', theme='modern', trusted_html=body, css=ui.bundled_css())
     return page.replace('</head>', f'<link rel="stylesheet" href="{css_href}"><style>{css}</style></head>', 1)

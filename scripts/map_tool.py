@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 
 
 BODY = '''<main class="ui-page">
-<h1>地図URL・ピン留め</h1>
+<h1>📍地図URL・座標ピン留め</h1>
 <p>緯度・経度からApple MapsとGoogle MapsのURLを作成。ピンはこのブラウザに保存できます。</p>
 <section class="ui-panel" aria-labelledby="point-title"><h2 id="point-title">地点</h2>
 <label for="tokyo-point">パラレル東京の地点</label><select class="ui-input" id="tokyo-point"><option value="">自由入力</option>__OPTIONS__</select>
@@ -42,7 +42,7 @@ __STATUS__</section>
 <section class="ui-panel" id="nearby" hidden><h2>範囲内の東京の地点</h2><p id="nearby-status"></p><ul id="nearby-list"></ul></section>
 <section class="ui-panel"><h2>ピン留めした地点</h2><p id="pin-storage">このブラウザに保存。地点リンクを渡せば、相手も同じ座標を開けます。</p>
 <ul id="pins"></ul></section>
-<noscript><p>座標の入力・ピン留めにはJavaScriptが必要です。<a href="../demos/world.html#tokyo">パラレル東京を開く</a></p></noscript>
+<noscript><p>座標の入力・ピン留めにはJavaScriptが必要です。<a href="./#tokyo">パラレル東京を開く</a></p></noscript>
 </main>'''
 
 CSS = '''label{display:block;margin:1rem 0 .35rem}.ui-input{width:100%;box-sizing:border-box}
@@ -63,6 +63,8 @@ function readRadius(raw){
 '''
 
 SCRIPT = r'''
+import { copyText } from './vendor/web-ui/js/ui.js';   // 🧰 from the screen, tools/
+
 const {parseCoordinate,tryParseMapsUrl,mapsUrls,coordinateText,toleranceArea,areaTexts}=globalThis.webUiCoordinates;
 const points=__POINTS__, $=id=>document.getElementById(id), key='portfolio-map-pins/1';
 const lat=$('latitude'),lon=$('longitude'),name=$('point-name'),picker=$('tokyo-point'),status=$('map-status'),radius=$('radius'),preset=$('radius-preset');
@@ -81,8 +83,8 @@ try{const saved=JSON.parse(localStorage.getItem(key)||'[]');if(!Array.isArray(sa
 }catch{$('pin-storage').textContent='保存済みピンを読めませんでした。この画面ではピン留めできます。'}
 function save(){try{localStorage.setItem(key,JSON.stringify(pins));$('pin-storage').textContent='このブラウザに保存しました。'}
  catch{$('pin-storage').textContent='ブラウザに保存できません。この画面を閉じるまでのピン留めです。'}}
-function shareURL(p){const url=new URL('./',location.href);url.search=new URLSearchParams({lat:round(p.lat),lon:round(p.lon),name:p.label,radius_m:String(p.radius_m)});return url.href}
-function tokyoURL(p,spot){const url=new URL('../demos/world.html',location.href);url.search=new URL(shareURL(p)).search;url.hash='cities-spot-'+spot.id;return url.href}
+function shareURL(p){const url=new URL(location.href);url.search=new URLSearchParams({lat:round(p.lat),lon:round(p.lon),name:p.label,radius_m:String(p.radius_m)});return url.href}
+function tokyoURL(p,spot){const url=new URL(shareURL(p));url.hash='cities-spot-'+spot.id;return url.href}   // 🌍 the world is a panel of this screen
 function shareText(p){const links=mapsUrls(p.lat,p.lon),text=[p.label||coordinateText(p.lat,p.lon),'Google Maps: '+links.google,'Apple Maps: '+links.apple];
  if(p.radius_m>0){const area=areaTexts(toleranceArea(p.lat,p.lon,p.radius_m));text.push('半径: '+p.radius_m+' m','Google Maps（範囲）: '+area.google_area_url,'Apple Maps（範囲）: '+area.apple_area_url)}
  text.push('地点リンク: '+shareURL(p));return text.join('\n')}
@@ -129,7 +131,7 @@ $('read-url').addEventListener('click',()=>{const p=tryParseMapsUrl($('maps-inpu
 $('pin').addEventListener('click',()=>{if(!current)return;const index=pins.findIndex(p=>same(p,current));
  if(index<0){if(pins.length>=100){status.textContent='ピンは100件までです。不要なピンを解除してください。';return}pins.push({...current})}
  else pins[index]={...current};save();renderPins();show();status.textContent='ピン留めしました。'});
-async function copy(text){try{await navigator.clipboard.writeText(text);status.textContent='コピーしました。'}
+async function copy(text){try{await copyText(text);status.textContent='コピーしました。'}
  catch{$('share-text').value=text;$('share-text').focus();$('share-text').select();status.textContent='コピーできませんでした。選択したテキストをコピーしてください。'}}
 $('copy-google').addEventListener('click',()=>copy($('google-link').href));
 $('copy-apple').addEventListener('click',()=>copy($('apple-link').href));
@@ -153,7 +155,7 @@ try{const radius=readRadius(query.get('radius_m')??'100');
  for(const link of document.querySelectorAll('.map-point-link')){const url=new URL(link.href);url.searchParams.set('radius_m',String(radius));link.href=url.href}
  if(query.has('lat')||query.has('lon')){
   const [lat,lon]=globalThis.webUiCoordinates.parseCoordinate(query.get('lat')||'',query.get('lon')||'');
-  const back=new URL('../maps/',location.href);back.search=new URLSearchParams({lat:lat.toFixed(6),lon:lon.toFixed(6),name:(query.get('name')||'').slice(0,80),radius_m:String(radius)});
+  const back=new URL('./',location.href);back.search=new URLSearchParams({lat:lat.toFixed(6),lon:lon.toFixed(6),name:(query.get('name')||'').slice(0,80),radius_m:String(radius)});back.hash='maps';
   document.getElementById('area-return').href=back.href;document.getElementById('area-return').hidden=false;
  }
  if(radius>0&&query.has('radius_m')){banner.hidden=false;document.getElementById('tokyo-range-label').textContent='指定範囲：半径 '+radius+' m。地点を選んだ後も半径を引き継ぎます。'}
@@ -161,7 +163,7 @@ try{const radius=readRadius(query.get('radius_m')??'100');
 '''
 
 
-COORDINATES_MODULE = '<script type="module" src="../vendor/web-ui/js/coordinates.js"></script>'
+COORDINATES_MODULE = '<script type="module" src="./vendor/web-ui/js/coordinates.js"></script>'   # 🧰 from tools/ (the screen)
 
 
 def tokyo_points(cities):
@@ -177,14 +179,14 @@ def map_document(ui, points):
     # The two inline modules execute in order; the shared module owns validation and URL encoding.
     script = SCRIPT.replace('__POINTS__', data).replace('__RANGE_HELPERS__', RANGE_HELPERS).replace('__EARTH_RADIUS__', str(ui.EARTH_RADIUS_M))
     body += COORDINATES_MODULE + ui.module_script(script)
-    return ui.render_document(title='地図URL・ピン留め', trusted_html=body, css=ui.bundled_css() + CSS)
+    return ui.render_document(title='📍地図URL・座標ピン留め', trusted_html=body, css=ui.bundled_css() + CSS)
 
 
 def tokyo_links(ui, world, points):
     # Keep PSWB's world behaviour and favorites; add a real-coordinate link to each existing sheet.
     for p in points:
-        href = '../maps/?' + urlencode({'lat': ui.fixed(p['lat'], 6), 'lon': ui.fixed(p['lon'], 6), 'name': p['label']})
-        link = f'<p><a class="ui-button map-point-link" href="{html.escape(href, quote=True)}">この地点の地図URL・ピン留め</a></p>'
+        href = './?' + urlencode({'lat': ui.fixed(p['lat'], 6), 'lon': ui.fixed(p['lon'], 6), 'name': p['label']}) + '#maps'   # 🧰 the screen's map panel
+        link = f'<p><a class="ui-button map-point-link" href="{html.escape(href, quote=True)}">この地点の地図URL・座標ピン留め</a></p>'
         pattern = r'(<article\b[^>]*\bid="cities-spot-' + re.escape(p['id']) + r'"[^>]*>.*?)(</article>)'
         world, count = re.subn(pattern, lambda m: m[1] + link + m[2], world, count=1, flags=re.S)
         if count != 1:

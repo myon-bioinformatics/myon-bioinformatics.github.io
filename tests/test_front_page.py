@@ -83,7 +83,7 @@ def test_gif_workshop_turns_picked_images_into_one_gif(page, tmp_path):
     (tmp_path / "blue.png").write_bytes(_png(48, 64, (30, 136, 229)))
     requests = []
     page.on("request", lambda request: requests.append(request.url))
-    page.goto("/tools/gif/")
+    page.goto("/tools/#gif")
     page.set_input_files("#gif-files", [str(tmp_path / "red.png"), str(tmp_path / "blue.png")])
     page.check("#gif-names")
     page.click("#gif-make")
@@ -99,16 +99,20 @@ def test_moving_sample_is_recorded_for_a_pages_url(site, browser, tmp_path):
     pages = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(pages)
     lines = pages.record_samples(tmp_path, {"Portfolio": site[1] + "/index.html", "Gone": site[1] + "/no-such-page/",
-                                            "tools/gif": site[1] + "/tools/gif/", "tools/new": site[1] + "/tools/not-published-yet/"},
+                                            "tools/gif": site[1] + "/tools/#gif", "tools/maps": site[1] + "/tools/#maps",
+                                            "tools/new": site[1] + "/tools/not-published-yet/"},
                                  browser=browser, captions={"tools/gif": "🎞 GIF工房", "tools/new": "🆕 新しい道具"},
                                  stand_ins={"tools/new": pages.sample_stand_in("🆕 新しい道具")})
     gif = (tmp_path / "media/pages/portfolio.gif").read_bytes()
     assert gif[:6] == b"GIF89a" and lines[0].startswith("🎥 Portfolio: 2 frames")
     assert lines[1] == "⏸ Gone: RuntimeError: HTTP 404"                                   # an error page is not a sample
     assert (tmp_path / "media/pages/tools/gif.gif").read_bytes()[:6] == b"GIF89a" and lines[2].startswith("🎥 tools/gif: ")   # 🧰 a Tools card's page
-    assert re.fullmatch(r"⏸ tools/new: RuntimeError: HTTP 404 · 🖼 \d+ KiB", lines[3])     # 🖼 a Tools card is never left without a picture
+    # 🧰 the next card lives on the same page under another #: it is opened afresh, not taken for a page that did not answer
+    assert lines[3].startswith("🎥 tools/maps: "), lines[3]
+    assert (tmp_path / "media/pages/tools/maps.gif").read_bytes() != (tmp_path / "media/pages/tools/gif.gif").read_bytes()
+    assert re.fullmatch(r"⏸ tools/new: RuntimeError: HTTP 404 · 🖼 \d+ KiB", lines[4])     # 🖼 a Tools card is never left without a picture
     assert (tmp_path / "media/pages/tools/new.gif").read_bytes()[:6] == b"GIF89a" and not (tmp_path / "media/pages/gone.gif").exists()
-    assert pages.recorded_samples(tmp_path) == {"portfolio", "tools/gif", "tools/new"}
+    assert pages.recorded_samples(tmp_path) == {"portfolio", "tools/gif", "tools/maps", "tools/new"}
 
 
 def test_a_tools_card_picture_opens_the_tool_and_the_weekly_note_draws_its_bars_with_a_gif(site, browser, page):
@@ -120,20 +124,20 @@ def test_a_tools_card_picture_opens_the_tool_and_the_weekly_note_draws_its_bars_
     import pysaiyanweboo as ui
     world, copy = pages._world(), site[0] / "with-samples.html"
     try:
-        lines = pages.record_samples(site[0], {"tools/gif": site[1] + "/tools/gif/"}, browser=browser, captions={"tools/gif": "🎞 GIF工房"})
+        lines = pages.record_samples(site[0], {"tools/gif": site[1] + "/tools/#gif"}, browser=browser, captions={"tools/gif": "🎞 GIF工房"})
         assert lines[0].startswith("🎥 tools/gif: ")
         copy.write_bytes(pages.render_front(ROOT, pages.recorded_samples(site[0]))["index.html"])   # the front page as the deploy builds it
         page.set_viewport_size({"width": 560, "height": 480})
         page.goto("/with-samples.html")
-        picture = page.locator('.portal-card a.project-sample[href="./tools/gif/"] img')
+        picture = page.locator('.portal-card a.project-sample[href="./tools/#gif"] img')
         expect(page.locator(".portal-card a.project-sample")).to_have_count(1)                  # only what was recorded
-        expect(page.locator(".portal-card", has=page.locator('a.project-sample[href="./tools/gif/"]')).locator("a")).to_have_count(1)   # one page: the picture, no words
+        expect(page.locator(".portal-card", has=page.locator('a.project-sample[href="./tools/#gif"]')).locator("a")).to_have_count(1)   # one page: the picture, no words
         picture.scroll_into_view_if_needed()
         page.wait_for_function("img => img.complete && img.naturalWidth === 240 && img.naturalHeight === 456", arg=picture.element_handle())
         cam = world.Camera(page)
         cam.hold(1200)
         picture.click()                                                                         # 🎥 the picture is the way in
-        page.wait_for_url(site[1] + "/tools/gif/")
+        page.wait_for_url(site[1] + "/tools/#gif")
         expect(page.locator("#gif-files")).to_be_visible()
         cam.hold(900)
         page.go_back()
@@ -570,7 +574,7 @@ def test_brand_icon_and_favicons_stay_intact_across_modes(page, width):
     page.goto("/")
     for mode in MODES:
         select_mode(page, mode)
-        avatar = page.get_by_role("button", name="Blink", exact=True)
+        avatar = page.get_by_role("button", name=re.compile(r"^(まばたき|Blink)$"))                    # 🌐 the face's word follows the language
         expect(avatar).to_be_visible()
         expect(avatar).to_have_attribute("data-gaze-bound", "")
         expect(page.locator(".ui-chrome .ui-gaze")).to_have_count(1)                     # 🫧 the shared header's, not the page's own
@@ -603,9 +607,9 @@ def test_brand_assets_resolve_when_the_page_is_served_below_a_subpath(page, site
         assert href.startswith(site[1] + "/preview/"), href
 
 
-@pytest.mark.parametrize("path", ["/", "/tools/html-import/", "/tools/mcp/#home", "/tools/mcp/#wiki",
-                                  "/tools/mcp/#pixiv", "/tools/mcp/#niconico", "/tools/mcp/#pokemon",
-                                  "/tools/mcp/repository-diagnostics.html"])
+@pytest.mark.parametrize("path", ["/", "/tools/#html-import", "/tools/#mcp", "/tools/#wiki",     # 🧰 the screen's panels; a lab view
+                                  "/tools/#pixiv", "/tools/#niconico", "/tools/#pokemon",      # opens its 🖼️ frame (data-routes)
+                                  "/tools/#diagnostics"])
 def test_each_hosted_page_loads_and_draws(page, path):
     response = page.goto(path)
     assert response.status == 200
