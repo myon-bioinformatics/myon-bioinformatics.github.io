@@ -64,7 +64,7 @@ test('size, UTF-8, URL and depth failures clear stale downloads',async({page})=>
  await f.locator('#source-url').fill(source);await f.locator('#html-input').fill('<div>'.repeat(129)+'text'+'</div>'.repeat(129));await f.locator('#paste-load').click();await expect(f.locator('#status')).toContainText('128');
 });
 test('portfolio still exposes old tools and the new independent tool',async({page})=>{
- await page.goto('/');const imp=page.locator(IMPORT_LINK).first();await expect(imp).toBeVisible();if(!process.env.HTML_TOOL_BASE_URL)await expect(imp).toHaveAttribute('href','./tools/#html-import');await expect(page.locator('a[href$="#mcp"]').first()).toBeVisible();await expect(page.locator('a[href$="#slide-studio"]').first()).toBeVisible();
+ await page.goto('/');const imp=page.locator(IMPORT_LINK).first();await expect(imp).toBeVisible();if(!process.env.HTML_TOOL_BASE_URL)await expect(imp).toHaveAttribute('href','./tools/#html-import');await expect(page.locator('a[href$="#chat"]').first()).toBeVisible();await expect(page.locator('a[href$="#slide-studio"]').first()).toBeVisible();
 });
 for(const mobile of [false,true]){
  test.describe(mobile?'mobile source navigation':'desktop source navigation',()=>{
