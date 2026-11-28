@@ -1828,7 +1828,7 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         page.wait_for_selector(".ui-detective-hud", state="visible")
         self.assertIn("見習い浪速調査員", page.text_content("[data-detective-hero]"))
         self.assertIn("48/48", page.text_content("[data-detective-stamina]"))
-        # Walk 1 step down from (15, 2) to (15, 3) to contact 熱血探偵ヘイタ
+        # Walk one tile south from Osaka Station to contact 熱血探偵ヘイタ
         page.keyboard.press("ArrowDown")
         page.wait_for_selector(".ui-rpg-card", state="visible", timeout=6000)
         dialog = page.locator(".ui-rpg-card")
@@ -1840,7 +1840,7 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         page.wait_for_selector(".ui-rpg-card", state="hidden")
         self.assertEqual(self.errors, [])
 
-    def test_osaka_chief_briefs_the_player_at_shin_osaka(self):
+    def test_osaka_chief_briefs_the_player_at_osaka_station(self):
         page = self.open()
         page.get_by_role("button", name="👮 浪速署長", exact=True).click()
         dialog = page.get_by_role("dialog", name="浪速署長との対話")

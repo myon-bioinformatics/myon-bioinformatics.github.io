@@ -5779,7 +5779,7 @@ _SEINE = {"line": [[48.833, 2.38], [48.8372, 2.3737], [48.845, 2.3668], [48.8506
 
 _OSAKA_POINTS = [
     _pt("shin-osaka", "新大阪駅", 34.7335, 135.5003, "terminus", "新幹線が発着する大阪の北の玄関口です。"),
-    _pt("osaka-umeda", "大阪・梅田", 34.7025, 135.4959, "terminus", "巨大な地下街と百貨店が広がるキタの中心駅です。"),
+    _pt("osaka-umeda", "大阪駅・梅田", 34.7025, 135.4959, "terminus", "巨大な地下街と百貨店が広がるキタの中心駅です。"),
     _pt("namba", "なんば", 34.6629, 135.5022, "terminus", "道頓堀や千日前が広がるミナミの中心駅です。"),
     _pt("abeno", "あべの橋", 34.6458, 135.5142, "terminus", "南大阪へ向かう列車が発着する南のターミナルです。"),
     _pt("kyobashi", "京橋", 34.6969, 135.5342, "terminus", "下町の活気があふれる東の交通結節点です。"),
@@ -6291,7 +6291,7 @@ def _osaka_detective_spec() -> dict[str, Any]:
         "boss_cell": [32, 33],
         "hero": {"hp": 40, "stamina": 48, "logic": 8, "pokerface": 2, "medals": 20},
         "nodes": [
-            {"id": "npc-heita", "kind": "npc", "tx": 15, "ty": 3, "emoji": "🕵️‍♂️", "label": "熱血探偵ヘイタ", "speaker": "熱血探偵ヘイタ",
+            {"id": "npc-heita", "kind": "npc", "tx": 14, "ty": 18, "emoji": "🕵️‍♂️", "label": "熱血探偵ヘイタ", "speaker": "熱血探偵ヘイタ",
              "greeting": "新人探偵はん、よう来たな！オオサカの街に怪しい影や暗号トリックがうごめいとるんや！",
              "lines": ["現場検証では体力⚡を消費して閃きロジックをぶつけるんや。息切れしたら街の茶房や給水処🍵でひと息入れや！",
                        "街角にはたこ焼き🐙やルーペ🔍、それに名探偵装備の宝箱🎁が落ちとる。見つけたら手帳に収めて身なりを固めるんや！",
@@ -6311,7 +6311,7 @@ def _osaka_detective_spec() -> dict[str, Any]:
             {"id": "npc-archivist", "kind": "npc", "tx": 29, "ty": 27, "emoji": "🧩", "label": "暗号解読士", "speaker": "暗号解読士", "quiz": True,
              "greeting": "暗号解読を担当してるんや。事件簿に出てくる技術用語、いくつ読み解けるか試してみるか？",
              "lines": ["クイズに正解すれば、探偵経験値と調査メダルを進呈しよう。技術の真理を解き明かすことこそ、名探偵への最短経路なのだ。"]},
-            {"id": "npc-chief", "kind": "npc", "tx": 14, "ty": 2, "emoji": "👮", "label": "浪速署長", "speaker": "浪速署長",
+            {"id": "npc-chief", "kind": "npc", "tx": 15, "ty": 17, "emoji": "👮", "label": "浪速署長", "speaker": "浪速署長",
              "greeting": "浪速署の署長や。城東から怪盗黒幕シャドウの目撃情報が入った。駅前の聞き込みはヘイタに任せてある。あんたは現場の痕跡と照らし合わせてくれるか。",
              "lines": ["黒幕シャドウに挑む前に、街角の宝箱から浪速の調査靴⚡や撥水トレンチコート🧥を揃えておくことをお勧めします。",
                        "さらに東の区画には3箇所以上の謎解きで封印が解ける黄金の名探偵ハット⛑️の宝箱が眠っているそうです！"]},
@@ -6373,7 +6373,7 @@ def _osaka_detective_spec() -> dict[str, Any]:
              "hp": 0, "stamina": 0, "logic": 14, "pokerface": 0, "desc": "微量の痕跡を検出する使い切りの試験紙。"},
         ],
         "quests": [
-            {"id": "q-talk-heita", "title": "熱血探偵ヘイタへ着任挨拶", "desc": "熱血探偵ヘイタ(15, 3)に話しかけてオオサカ調査の基本を教わる。",
+            {"id": "q-talk-heita", "title": "熱血探偵ヘイタへ着任挨拶", "desc": "大阪駅前で熱血探偵ヘイタに話しかけてオオサカ調査の基本を教わる。",
              "kind": "talk", "target": "npc-heita", "count": 1, "reward_exp": 15, "reward_medals": 10},
             {"id": "q-first-clue", "title": "初めての現場解決", "desc": "オオサカの不審な影を1箇所解明して街に緑を咲かせる。",
              "kind": "clue", "count": 1, "reward_exp": 25, "reward_medals": 15},
@@ -6465,7 +6465,7 @@ EXAMPLES.update({
                     "place": {"points": _PARIS_POINTS, "meters": 150, "links": _PARIS_LINKS, "rivers": [_SEINE],
                               "scatter": {"kind": "fire", "every": 8, "seed": 5}, "marks": _CITY_MARKS}},
                    {"id": "osaka", "label": "Seyakate Osaka",
-                    "place": {"points": _OSAKA_POINTS, "meters": 220, "links": _OSAKA_LINKS, "rivers": [_YODO],
+                    "place": {"points": _OSAKA_POINTS, "start": "osaka-umeda", "meters": 220, "links": _OSAKA_LINKS, "rivers": [_YODO],
                               "scatter": {"kind": "shadow", "every": 8, "seed": 7}, "marks": _CITY_MARKS}}],
         "rescue": _paris_rescue_spec(),
         "detective": _osaka_detective_spec(),

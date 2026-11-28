@@ -2102,7 +2102,8 @@ class OsakaDetectiveTests(unittest.TestCase):
         blocked = W.world_blocked(floor["width"], floor["height"], tile, floor["props"])
         start = (floor["player"]["x"] // tile, floor["player"]["y"] // tile)
         reach = W.world_reach(blocked, start)
-        self.assertEqual(start, (15, 2))
+        station = next(s for s in floor["spots"] if s["id"] == "osaka-osaka-umeda")
+        self.assertEqual(start, (station["x"] // tile, station["y"] // tile))
         for nd in world["detective"]["nodes"]:
             with self.subTest(node=nd["id"]):
                 self.assertEqual(blocked[nd["ty"]][nd["tx"]], "0")
