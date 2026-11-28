@@ -9,6 +9,7 @@ highlight slots with what the public GitHub API returns in the browser.
 import html
 import json
 import re
+import runpy
 from pathlib import Path
 from urllib.parse import quote
 
@@ -27,6 +28,16 @@ _IRONMATE = {'repository': 'myon-bioinformatics/Ironmate', 'run': ('image_studio
 # ``page``, the folder of that site the tool is); it is placed at tools/<id>/ and framed on the screen when it has its own CSP.
 # One card is one tool: its folder, its #panel, 🚪, 🏠 and README's table follow from it. ``words`` are the names in 🌐's other languages. ``from`` names the repositories a card is built from (🧩, plain
 # text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. Everything is escaped.
+# ``tap``: what the card's 🎥 sample taps first on its pages (project_pages.py ``record_samples(taps=…)``).
+# 🪐 The places of the one world, name → ``emoji words``, nothing written here: its spaces as world_shell.py names them (``SPACES``;
+# the first is where its panel opens), then 📷 each floor that shows the camera behind it (world.py, ``real``: no # of its own, so its
+# first spot's). A space or such a floor added there is a link of the 🪐 card, a 🚪 row and a 🎥 frame; 🌐 their names are world.py's too.
+_shell, _world = (runpy.run_path(str(Path(__file__).with_name(name))) for name in ('world_shell.py', 'world.py'))
+_places = {name: label for name, (_, label) in _shell['SPACES'].items()} | {
+    f'{world["id"]}-spot-{floor["spots"][0]["id"]}': f'📷 {floor["label"]}'
+    for scene in dict.fromkeys(scene for scene, _ in _shell['SPACES'].values())
+    for world in [_world['EXAMPLES'][scene]] for floor in world['floors'] if floor.get('real') and floor.get('spots')}
+_named = {label.partition(' ')[2] for label in _places.values()}
 PORTAL = [
  {'title': '📄 HTML文書取込', 'id': 'html-import',
   'text': 'HTML を貼るかファイルを選び、本文・見出し・リンクを端末の中で抽出。',
@@ -37,9 +48,13 @@ PORTAL = [
   'from': ('myon-bioinformatics', 'PySaiyanWeBoo'),
   'build': {'repository': 'myon-bioinformatics/myon-bioinformatics', 'run': ('tools/format-lab/build.py', '{out}')}},
  {'title': '📍 地図URL・座標ピン留め', 'id': 'maps',
-  'text': '緯度・経度から Apple Maps と Google Maps の URL を作り、地点をピン留め・共有。',
-  'words': {'地図URL・座標ピン留め': ['Map URLs & coordinate pins', 'URL de carte et épingles de coordonnées', 'URL de mapa y chinchetas de coordenadas', 'URL de mapa e alfinetes de coordenadas', 'روابط الخرائط ودبابيس الإحداثيات', '地图 URL 与坐标图钉', 'URL карт и метки координат', 'URL peta dan penanda koordinat', 'Karten-URLs und Koordinaten-Pins', 'URL za ramani na pini za kuratibu'], 'パラレル東京': ['Parallel Tokyo', 'Tokyo parallèle', 'Tokio paralelo', 'Tóquio paralela', 'طوكيو الموازية', '平行东京', 'Параллельный Токио', 'Tokyo Paralel', 'Paralleles Tokio', 'Tokyo sambamba']},
-  'links': [('開く →', './tools/#maps'), ('🗼 パラレル東京 →', './tools/#tokyo')]},
+  'text': '実在の緯度・経度から Apple Maps と Google Maps の URL を作り、地点をピン留め・共有。',
+  'words': {'地図URL・座標ピン留め': ['Map URLs & coordinate pins', 'URL de carte et épingles de coordonnées', 'URL de mapa y chinchetas de coordenadas', 'URL de mapa e alfinetes de coordenadas', 'روابط الخرائط ودبابيس الإحداثيات', '地图 URL 与坐标图钉', 'URL карт и метки координат', 'URL peta dan penanda koordinat', 'Karten-URLs und Koordinaten-Pins', 'URL za ramani na pini za kuratibu']},
+  'links': [('開く →', './tools/#maps')]},
+ {'title': '🪐 仮想・拡張エリア', 'id': 'worlds', 'tap': '.ui-world-pick [data-emoji]',      # 🌍 not the map: places that are walked
+  'text': '緯度・経度ではなく、歩いて回る空間。' + ' '.join(label.partition(' ')[0] for label in _places.values()),
+  'words': {'仮想・拡張エリア': ['Virtual & extended areas', 'Espaces virtuels et étendus', 'Áreas virtuales y extendidas', 'Áreas virtuais e estendidas', 'مناطق افتراضية وموسّعة', '虚拟与扩展区域', 'Виртуальные и расширенные области', 'Area virtual dan perluasan', 'Virtuelle und erweiterte Bereiche', 'Maeneo pepe na yaliyopanuliwa'], **{ja: list(row) for ja, *row in _world['WORLD_TEXT'].values() if ja in _named}},
+  'links': [('開く →', './tools/#worlds')] + [(f'{label} →', f'./tools/#{name}') for name, label in list(_places.items())[1:]]},
  {'title': '🖼️ 画像工房', 'id': 'image-studio',
   'text': 'レイヤー・作業履歴・クリップボード棚で画像を編集。数値行列のヒートマップと PNG Base64 の受け渡しも。',
   'words': {'画像工房': ['Image studio', 'Atelier d’images', 'Taller de imágenes', 'Estúdio de imagens', 'استوديو الصور', '图像工坊', 'Студия изображений', 'Studio gambar', 'Bildwerkstatt', 'Studio ya picha']},
