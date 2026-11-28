@@ -2042,7 +2042,7 @@ class NagoyaRpgTests(unittest.TestCase):
         self.assertIn("rpg", nagoya)
         rpg = nagoya["rpg"]
         self.assertEqual([f["id"] for f in nagoya["floors"]], ["nagoya-map", "nagoya-city"])
-        self.assertEqual(len(nagoya["floors"][0]["spots"]), 32)
+        self.assertEqual(len(nagoya["floors"][0]["spots"]), 33)
         self.assertEqual(len(nagoya["floors"][0]["actors"]), 0)
 
         # Fame and Deeds
@@ -2066,9 +2066,10 @@ class NagoyaRpgTests(unittest.TestCase):
         craftsman = rpg["npcs"]["nagoya-npc-craftsman"]
         self.assertEqual(craftsman["help"]["req_item"], "nagoya-drop-trash")
 
-        dome = rpg["npcs"]["nagoya-dome"]
-        self.assertEqual(dome["speaker"], "バンテリンドーム ナゴヤ")
-        self.assertEqual(dome["emoji"], "🏟️")
+        self.assertNotIn("nagoya-dome", rpg["npcs"])
+        dome = rpg["npcs"]["nagoya-farm-ballpark"]
+        self.assertEqual(dome["speaker"], "ナゴヤ球場")
+        self.assertEqual(dome["emoji"], "⚾")
         self.assertTrue(dome["on_contact"])
         self.assertEqual(dome["help"]["deed_id"], "dome-sponsor")
         self.assertEqual(dome["help"]["cost"], 30)

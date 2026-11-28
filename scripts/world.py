@@ -6583,7 +6583,7 @@ SCHOOL_LESSONS = {
     "名古屋の文化": [
         {"prompt": "中日ドラゴンズの本拠地スタジアムは？",
          "choices": ["バンテリンドーム ナゴヤ", "東京ドーム", "甲子園球場"], "correct": 0,
-         "explanation": "正解！バンテリンドーム ナゴヤがドラゴンズの本拠地球場です。"},
+         "explanation": "正解！バンテリンドーム ナゴヤがドラゴンズの一軍の本拠地球場です。"},
         {"prompt": "名古屋城の天守閣の頂で燦然と輝く、街の象徴的な装飾は？",
          "choices": ["銀の鯱", "黄金の金シャチ", "青銅の鯱"], "correct": 1,
          "explanation": "正解！天守閣の金シャチは城の守り神にして名古屋のシンボルです。"},
@@ -7101,7 +7101,9 @@ _NAGOYA_SPOTS = [
     {"id": "nagoya-meieki-sky", "x": 192, "y": 320, "label": "名駅スカイプロムナード", "category": "view",
      "body": "名駅の高層ビル群から聖地ナゴヤの街並みとドーム方面を一望できる展望デッキ。"},
     {"id": "nagoya-dome", "x": 864, "y": 256, "label": "バンテリンドーム ナゴヤ", "category": "stadium", "mark": "🏟️",
-     "body": "ドラゴンズの本拠地にして熱き応援が渦巻く聖地スタジアム！観戦チケットを購入してスタンドから熱戦を応援できる。"},
+     "body": "ドラゴンズの一軍の本拠地。二軍の観戦イベントはナゴヤ球場へ。"},
+    {"id": "nagoya-farm-ballpark", "x": 160, "y": 576, "label": "ナゴヤ球場", "category": "stadium", "mark": "⚾",
+     "body": "ドラゴンズのファームの本拠地。スタンドで二軍の試合を観て、若手に声援を送ろう。"},
     {"id": "nagoya-aeon-mall", "x": 928, "y": 256, "label": "イオンモール ナゴヤドーム前", "category": "gourmet", "mark": "🏬",
      "body": "ドーム直結の大型商業施設！メガホンやお弁当、応援グッズが勢ぞろいするファンの補給基地。"},
     {"id": "nagoya-castle", "x": 512, "y": 192, "label": "名古屋城・本丸御殿", "category": "landmark",
@@ -7185,7 +7187,7 @@ def _nagoya_rpg() -> dict[str, Any]:
             {"id": "give-ball", "title": "少年へのサインボール譲渡", "desc": "ドーム周辺で見つけた練習用サインボールを熱烈野球少年コータに譲る", "fame": 20, "npc_id": "nagoya-npc-boy", "reward_label": "知名度+20pt / コータの宝物手袋"},
             {"id": "morning-prep", "title": "喫茶モーニング仕込み手伝い", "desc": "名物小倉トーストと美味しい珈琲の仕込みをママと一緒に行う", "fame": 15, "npc_id": "nagoya-npc-cafe", "reward_label": "知名度+15pt / 特製ブレンド珈琲"},
             {"id": "history-quiz", "title": "聖地の語り部", "desc": "生き字引の爺さんからドラゴンズとナゴヤの栄光の歴史を学び継承する", "fame": 20, "npc_id": "nagoya-npc-grandpa", "reward_label": "知名度+20pt / 栄光の記録簿"},
-            {"id": "dome-sponsor", "title": "ドーム公式戦の現地観戦応援", "desc": "バンテリンドームで観戦チケット（30G）を購入し熱気渦巻くスタンドから熱狂応援する", "fame": 25, "cost": 30, "npc_id": "nagoya-dome", "reward_label": "知名度+25pt / 観戦チケット半券"},
+            {"id": "dome-sponsor", "title": "ナゴヤ球場で二軍を応援", "desc": "ナゴヤ球場で観戦チケット（30G）を購入し、二軍の試合を応援する", "fame": 25, "cost": 30, "npc_id": "nagoya-farm-ballpark", "reward_label": "知名度+25pt / 観戦チケット半券"},
             {"id": "mall-shopping", "title": "ドーム前商業施設で応援準備", "desc": "イオンモール ナゴヤドーム前でお買い物をして応援グッズを揃える", "fame": 15, "npc_id": "nagoya-aeon-mall", "on_purchase": True, "reward_label": "知名度+15pt / お買い物レシート"},
         ],
         "npcs": {
@@ -7251,7 +7253,7 @@ def _nagoya_rpg() -> dict[str, Any]:
                 "lines": [
                     "ナゴヤ球場時代の猛打爆発からドームの堅守まで、数々の名勝負が胸に刻まれとる。",
                     "歴史を知れば、今の一球一打が何倍も熱く、深く味わえるようになるぞ。",
-                    "話の続きはドームのスタンドで、君の目で見届けておくれ。"
+                    "話の続きはナゴヤ球場のスタンドで、君の目で見届けておくれ。"
                 ],
                 "help": {
                     "deed_id": "history-quiz", "title": "聖地の語り部", "fame": 20,
@@ -7259,19 +7261,19 @@ def _nagoya_rpg() -> dict[str, Any]:
                     "done_text": "「熱心に聞いてくれて嬉しいのう。青き伝統はこうして次の世代へ受け継がれるのじゃ。」知名度が 20pt 上昇した！",
                 },
             },
-            "nagoya-dome": {
-                "speaker": "バンテリンドーム ナゴヤ", "emoji": "🏟️", "on_contact": True,
-                "greeting": "ドラゴンズの本拠地、バンテリンドーム ナゴヤだ！球場内から地鳴りのような大歓声が轟いている！",
+            "nagoya-farm-ballpark": {
+                "speaker": "ナゴヤ球場", "emoji": "⚾", "on_contact": True,
+                "greeting": "ナゴヤ球場ではまもなく二軍の試合が始まる。グラウンドから選手たちの声が聞こえる。",
                 "lines": [
-                    "満員のスタンドを埋め尽くす青き大観衆と、グラウンドで躍動する選手たちの熱気が渦巻いている！",
+                    "守備練習が終わり、今日の先発選手の名前が読み上げられた。",
                     "観戦チケット（30G）を購入して入場すれば、スタンドから熱い現地応援に参加できるぞ。",
                     "青き魂をひとつにして、スタンドから勝利の歓喜を分かち合おう！"
                 ],
                 "help": {
-                    "deed_id": "dome-sponsor", "stamina_cost": 3, "heal_hp": 16, "title": "ドーム公式戦の現地観戦応援", "fame": 25, "cost": 30,
+                    "deed_id": "dome-sponsor", "stamina_cost": 3, "heal_hp": 16, "title": "ナゴヤ球場で二軍を応援", "fame": 25, "cost": 30,
                     "repeatable": True,
-                    "action_label": "観戦チケットを購入して入場する",
-                    "done_text": "「観戦チケットを購入してスタンドへ入場した！大歓声の中で熱狂応援し、知名度が 25pt 上昇した！」",
+                    "action_label": "ナゴヤ球場で二軍の試合を観る",
+                    "done_text": "「スタンドで二軍の試合を観戦した！若手選手に声援を送り、知名度が 25pt 上昇した！」",
                 },
             },
             "nagoya-aeon-mall": {
@@ -7312,7 +7314,7 @@ def _nagoya_rpg() -> dict[str, Any]:
             {"id": "q-talk-ryuji", "title": "熱血団長への挨拶", "desc": "応援団長リュウジと話してドラ魂の極意を教わろう", "kind": "talk", "target": "nagoya-npc-ouendan", "reward_exp": 25, "reward_gold": 30},
             {"id": "q-get-uniform", "title": "青き誇りを身に纏え", "desc": "聖地に眠る「青き魂の応援ユニフォーム」を見つけ出す", "kind": "chest", "target": "nagoya-chest-uniform", "reward_exp": 40, "reward_gold": 50},
             {"id": "q-fame-starter", "title": "名物ファンへの第一歩", "desc": "街のお手伝いを重ねて知名度を20pt以上に高める", "kind": "fame", "count": 20, "reward_exp": 50, "reward_gold": 60},
-            {"id": "q-dome-sponsor", "title": "ドーム現地観戦へ行こう", "desc": "バンテリンドームで観戦チケットを購入してスタンドで試合を観戦しよう", "kind": "deed", "target": "dome-sponsor", "reward_exp": 35, "reward_gold": 40},
+            {"id": "q-dome-sponsor", "title": "二軍の試合を観に行こう", "desc": "ナゴヤ球場でチケットを購入し、二軍の試合を観戦しよう", "kind": "deed", "target": "dome-sponsor", "reward_exp": 35, "reward_gold": 40},
             {"id": "q-mall-shopping", "title": "ドーム前で応援準備", "desc": "イオンモール ナゴヤドーム前でお買い物をして応援気分を高める", "kind": "deed", "target": "mall-shopping", "reward_exp": 30, "reward_gold": 30},
             {"id": "q-deed-helper", "title": "街の頼れるサポーター", "desc": "ゴミ拾いやサインボール返却など3つ以上のお手伝いを完了する", "kind": "deed", "count": 3, "reward_exp": 60, "reward_gold": 80},
             {"id": "q-fame-master", "title": "世界一のファンの鑑へ", "desc": "あらゆるお手伝いを極め、知名度95pt（世界一のファンの鑑）に到達する！", "kind": "fame", "count": 95, "reward_exp": 150, "reward_gold": 300},
@@ -7323,7 +7325,7 @@ def _nagoya_rpg() -> dict[str, Any]:
             {"id": "blue-pride", "emoji": "💙", "label": "青き誇り", "desc": "ユニフォームとメガホンを両方手に入れた"},
             {"id": "model-fan", "emoji": "🥇", "label": "ファンの鑑", "desc": "知名度45ptを達成し名物ファンとして認知された"},
             {"id": "world-greatest-fan", "emoji": "👑", "label": "世界一のファンの鑑", "desc": "知名度95ptに達し、世界一のサポーターの称号を得た！"},
-            {"id": "dome-patron", "emoji": "🏟️", "label": "熱血現地サポーター", "desc": "バンテリンドームで観戦チケットを購入して現地で試合を観戦した"},
+            {"id": "dome-patron", "emoji": "🏟️", "label": "熱血現地サポーター", "desc": "ナゴヤ球場で二軍の試合を観戦した"},
             {"id": "aeon-shopper", "emoji": "🛍️", "label": "応援準備マスター", "desc": "イオンモールでお買い物をして応援体制を整えた"},
         ],
         "quizzes": SCHOOL_LESSONS['名古屋の文化'],
@@ -7363,7 +7365,7 @@ def _nagoya_spec() -> dict[str, Any]:
         "avatars": ["🧢", "🙂", "🧳", "🚶", "🎒", "🐱", "🐶", "🦊", "🐼", "🐲", "⚾", "📣"],
         "tools": {
             "🏯": {"label": "聖地ナゴヤ", "label_en": "Holy Nagoya", "spots": ["nagoya-dome", "nagoya-castle", "nagoya-station"]},
-            "⚾": {"label": "応援スポット", "label_en": "Cheer Spots", "spots": ["nagoya-dome", "nagoya-aeon-mall", "nagoya-npc-ouendan", "nagoya-npc-boy"]},
+            "⚾": {"label": "応援スポット", "label_en": "Cheer Spots", "spots": ["nagoya-farm-ballpark", "nagoya-aeon-mall", "nagoya-npc-ouendan", "nagoya-npc-boy"]},
         },
         "board": {
             "title": "NAGOYA",

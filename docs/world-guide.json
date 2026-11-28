@@ -2685,9 +2685,17 @@
    "id": "nagoya/nagoya-map/nagoya-dome",
    "type": "Task",
    "name": "バンテリンドーム ナゴヤ",
-   "detail": "ドラゴンズの本拠地にして熱き応援が渦巻く聖地スタジアム！観戦チケットを購入してスタンドから熱戦を応援できる。",
+   "detail": "ドラゴンズの一軍の本拠地。二軍の観戦イベントはナゴヤ球場へ。",
    "x": 864,
    "y": 256
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-farm-ballpark",
+   "type": "Task",
+   "name": "ナゴヤ球場",
+   "detail": "ドラゴンズのファームの本拠地。スタンドで二軍の試合を観て、若手に声援を送ろう。",
+   "x": 160,
+   "y": 576
   },
   {
    "id": "nagoya/nagoya-map/nagoya-aeon-mall",
@@ -3096,7 +3104,7 @@
   {
    "id": "event/dome-sponsor",
    "type": "Task",
-   "name": "観戦チケットを購入して入場する",
+   "name": "ナゴヤ球場で二軍の試合を観る",
    "detail": "知名度+25pt。希望時はスタミナ3でHPを最大16回復。"
   },
   {
@@ -3166,8 +3174,8 @@
   {
    "id": "quest/q-dome-sponsor",
    "type": "Goal",
-   "name": "ドーム現地観戦へ行こう",
-   "detail": "バンテリンドームで観戦チケットを購入してスタンドで試合を観戦しよう"
+   "name": "二軍の試合を観に行こう",
+   "detail": "ナゴヤ球場でチケットを購入し、二軍の試合を観戦しよう"
   },
   {
    "id": "condition/q-dome-sponsor",
@@ -5408,6 +5416,11 @@
    "source": "nagoya/nagoya-map",
    "kind": "offers",
    "target": "nagoya/nagoya-map/nagoya-dome"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-farm-ballpark"
   },
   {
    "source": "nagoya/nagoya-map",
