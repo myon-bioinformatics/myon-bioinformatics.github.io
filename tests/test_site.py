@@ -32,7 +32,7 @@ def _staged_site() -> tuple:
 
 
 SITE, PAGES = _staged_site()
-# 🧰 the tools stage() built from checkouts of TOOL_SOURCES' repositories under .test-deps/ (if any)
+# 🧰 the tools stage() built from checkouts (.test-deps/) of the repositories the cards build from (each card's build), if any
 _RECEIPT = SITE / PAGES.TOOLS
 MADE = json.loads(_RECEIPT.read_text(encoding='utf-8'))['made'] if _RECEIPT.is_file() else []
 
@@ -76,26 +76,24 @@ def test_portal_exposes_expected_pages():
     assert {"./tools/#image-studio", "./tools/#browser-tools", "./tools/#slide-studio"} <= set(parser.links)   # 🧰 framed #panels, from the site
 
 
-def test_tool_cards_and_door_follow_the_service_catalog(tmp_path, monkeypatch):
-    from shutil import copyfile
+def test_readme_lists_every_card_as_the_cards_say():
+    """🧰 README's table of the tools is the cards' (``tools_readme``, written by --refresh-lock between its marks): a new card is a new
+    row, with what it does, who makes it and its links."""
+    readme = (ROOT / 'README.md').read_text(encoding='utf-8')
+    start, end = (readme.index(mark) for mark in PAGES.README_TOOLS)
+    assert readme[start + len(PAGES.README_TOOLS[0]):end].strip() == PAGES.tools_readme(), 'run: python scripts/project_pages.py --refresh-lock'
+    assert PAGES.tools_readme().count('\n| ') == len(PAGES._front_module().PORTAL) + 1
 
-    scripts = tmp_path / 'scripts'
-    scripts.mkdir()
-    copyfile(ROOT / 'scripts/front_page.py', scripts / 'front_page.py')
-    path = tmp_path / 'services.json'
-    catalog = json.loads((ROOT / 'services.json').read_text(encoding='utf-8'))
-    projects = catalog['services']['projects']
-    projects['Ironmate']['pages']['url'] = 'https://myon-bioinformatics.github.io/tools/example-image/'
-    path.write_text(json.dumps(catalog), encoding='utf-8')
-    front = PAGES.load_module('test_front_catalog', scripts / 'front_page.py')
-    monkeypatch.setattr(PAGES, '_front_module', lambda: front)
 
-    parser = LinkParser()
-    parser.feed(front.portal_cards())
-    assert parser.links.count('./tools/example-image/') == 2     # 🖼️ its own card and the heatmap's shortcut to it, from the site
-    assert not any('/image-studio/' in href for href in parser.links)
+def test_the_service_catalog_names_where_the_cards_place_their_tools():
+    """🧰 A card is where its tool is (tools/#<id>, a #panel of the screen); services.json, which other repositories read, names the
+    same places, and a relative's shortcut (the heatmap's to 🖼️) is no second door."""
+    services = json.loads((ROOT / 'services.json').read_text(encoding='utf-8'))['services']['projects']
+    for project, endpoint, card in (('Ironmate', 'pages', 'image-studio'), ('Ironmate', 'browserTools', 'browser-tools'), ('Ironmate', 'slides', 'slide-studio')):
+        assert services[project][endpoint]['url'] == f'https://myon-bioinformatics.github.io/tools/#{card}', (project, endpoint)
+        assert any(c['id'] == card and c['links'][0][1] == f'./tools/#{card}' for c in PAGES._front_module().PORTAL), card
     doors = [place['href'] for place in PAGES.tools_places('../../')]
-    assert doors.count('../../tools/example-image/') == 1
+    assert doors.count('../../tools/#image-studio') == 1
 
 
 def test_every_active_repository_with_pages_is_one_tap_away():
@@ -363,10 +361,11 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
 
 # 🧰 This site's own panels (render_pages: PySaiyanWeBoo's tool documents, 🌍 the world, …) and the other repositories' tools are panels of the screen.
 def shell_frame(name: str) -> str:
-    """🖼️ The document the one screen's framed ``#name`` panel runs (its ``<iframe srcdoc>``)."""
+    """🖼️ The document the one screen's framed ``#name`` panel runs (its ``<iframe srcdoc>``), None for a joined one."""
     from html import unescape
     page = (SITE / PAGES.SHELL_PAGE).read_text(encoding="utf-8")
-    return unescape(re.search(rf'<section id="{name}"[^>]*\bdata-tools-panel[^>]*><template><iframe[^>]*\bsrcdoc="([^"]*)"', page, re.S)[1])
+    found = re.search(rf'<section id="{name}"[^>]*\bdata-tools-panel[^>]*><template><iframe[^>]*\bsrcdoc="([^"]*)"', page, re.S)
+    return unescape(found[1]) if found else None                         # None: a joined panel
 
 
 def shell_panel(name: str) -> str:
@@ -376,20 +375,19 @@ def shell_panel(name: str) -> str:
 
 
 def test_tools_built_from_other_repositories_never_404():
-    """🧰 Every entry of a tool built from another repository is a #panel of the one screen, never a page of its own: framed when
-    the tool lists its entries (an app that owns its document), joined when it has one page; without a recording (tests, a failed
-    clone) a ⏸ joined panel. A failed rebuild keeps what was there."""
-    for key, (repository, folder, entries) in PAGES.TOOL_SOURCES.items():
-        for entry in entries or ('',):
-            source = f'{folder}/{entry}index.html'
-            name = PAGES.panel_name(source)
-            assert not (SITE / source).exists(), source
-            if key in MADE:                                   # built from a pinned checkout: no ⏸
-                html = shell_frame(name) if entries else shell_panel(name)
-                assert '⏸' not in html and 'data-testid="portfolio-back"' not in html and 'class="ui-door-foot"' not in html, name   # the screen's chrome only
-                continue
-            html = shell_panel(name)
-            assert '⏸' in html and f'https://github.com/{repository}' in html, name
+    """🧰 Every tool a card builds from another repository is a #panel of the one screen, never a page of its own: framed when it
+    carries its own CSP (an app that owns its document), else joined; without a recording (tests, a failed clone) a ⏸ joined panel.
+    A failed rebuild keeps what was there."""
+    for card in (card for card in PAGES._front_module().PORTAL if 'build' in card):   # 🧰 a card that says how another repository builds it
+        name, repository = card['id'], card['build']['repository']
+        assert not (SITE / f'tools/{name}/index.html').exists(), name
+        if name in MADE:                                      # built from a pinned checkout: no ⏸
+            html = shell_frame(name) or shell_panel(name)     # 🖼️ framed when it carries its own CSP
+            assert '⏸' not in html and 'data-testid="portfolio-back"' not in html and 'class="ui-door-foot"' not in html, name   # the screen's chrome only
+            assert (shell_frame(name) is not None) == ('Content-Security-Policy' in html), name
+            continue
+        html = shell_panel(name)
+        assert '⏸' in html and f'https://github.com/{repository}' in html, name
     front = LinkParser()
     front.feed((SITE / "index.html").read_text(encoding="utf-8"))
     assert "./tools/#heatmap" in front.links                                         # 🌡️ the 🧰 Tools card opens it (a #panel)
@@ -397,8 +395,8 @@ def test_tools_built_from_other_repositories_never_404():
         kept = Path(tmp) / 'tools/image-studio/index.html'
         kept.parent.mkdir(parents=True)
         kept.write_text('kept', encoding='utf-8')
-        receipt = PAGES.collect_tools(Path(tmp), {'ironmate': Path(tmp) / 'no-checkout'}, {'ironmate': '0' * 40})
-        assert receipt['made'] == [] and 'ironmate' in receipt['failed'] and kept.read_text(encoding='utf-8') == 'kept'
+        receipt = PAGES.collect_tools(Path(tmp), {'myon-bioinformatics/Ironmate': Path(tmp) / 'no-checkout'}, {'myon-bioinformatics/Ironmate': '0' * 40})
+        assert receipt['made'] == [] and 'image-studio' in receipt['failed'] and kept.read_text(encoding='utf-8') == 'kept'
 
 
 def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path):
@@ -421,10 +419,9 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
         encoding='utf-8',
     )
     out = tmp_path / 'site'
-    receipt = PAGES.collect_tools(out, {'ironmate': checkout}, {'ironmate': '0' * 40})
-    assert receipt['made'] == ['ironmate']
-    assert not (out / 'tools/ironmate').exists()
-    assert not (SITE / '_src/tools/studio_routes.py').exists()  # source is not a public artifact
+    receipt = PAGES.collect_tools(out, {'myon-bioinformatics/Ironmate': checkout}, {'myon-bioinformatics/Ironmate': '0' * 40})
+    assert receipt['made'] == ['image-studio', 'browser-tools', 'slide-studio']           # 🧰 one build, three cards, each at tools/<id>/
+    assert not (out / 'tools/ironmate').exists() and not (out / 'tools/tools').exists() and not (out / 'tools/slides').exists()
     tools = out / 'tools'
     assert 'href="../slide-studio/"' in (tools / 'image-studio/index.html').read_text()
     assert 'href="../slide-studio/#target"' in (tools / 'browser-tools/index.html').read_text()
@@ -750,8 +747,8 @@ def canonical_data_errors(profile: dict, projects: list, catalog: dict, registry
             errors.append(f"repository service URL drift for {name}: {repository_url} != {repo['url']}")
         prefix = f'https://myon-bioinformatics.github.io/{name}/'
         # 🧰 a tool built here from this repository lives at its feature route (TOOL_SOURCES), not at the repository's name
-        built_here = tuple(f'https://myon-bioinformatics.github.io/tools/#{PAGES.panel_name(f"{folder}/{entry}index.html")}' for repository, folder, entries
-                           in PAGES.TOOL_SOURCES.values() if repository == f'myon-bioinformatics/{name}' for entry in entries or ('',))
+        built_here = tuple(f'https://myon-bioinformatics.github.io/tools/#{card["id"]}' for card in PAGES._front_module().PORTAL
+                           if card.get('build', {}).get('repository') == f'myon-bioinformatics/{name}')
         for service_name, service in group.items():
             if not isinstance(service, dict):
                 errors.append(f'invalid service entry at services.projects.{name}.{service_name}')

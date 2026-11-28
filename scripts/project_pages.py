@@ -936,56 +936,97 @@ def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, t
     return [f'💬 {len(commits)} repositories · {len(files)} JSON/JSONL · 🔌 mcp-toolcall-lab {lab} · 🗂 TalkCompress {compressor}', *missed]
 
 
-# ── 🧰 道具: Ironmate's studios, the format lab and DRAgoWing's heatmap, built from their default branches at deploy time;
-# each lives at its feature route, not at the repository's name ──
+# ── 🧰 道具 from other repositories (each card's ``build``: Ironmate's studios, the format lab, DRAgoWing's heatmap), built
+# from their default branches at deploy time; each lives at tools/<card id>/, not at the repository's name ──
 TOOLS = 'media/tools/receipt.json'       # what this build recorded; the pages live under their folders (not kept in git)
-# key: (repository, folder under the site, entry pages inside it); a tool replaces its whole folder.
-_STUDIO_ROUTES = load_module('studio_routes', '_src/tools/studio_routes.py')
-TOOL_SOURCES = {'ironmate': ('myon-bioinformatics/Ironmate', 'tools', _STUDIO_ROUTES.PUBLIC_STUDIO_ENTRIES),   # entries: each a framed #panel
-                'format-lab': ('myon-bioinformatics/myon-bioinformatics', 'tools/format-lab', ()),   # () : its page joins the 🧰 screen
-                'dragowing': ('myon-bioinformatics/DRAgoWing', 'tools/heatmap', ())}
 CHECKOUTS = '.test-deps'   # 🧪 local checkouts (CI pins them) that --stage builds the tools from, one folder per repository
+_LINK_ATTR = re.compile(r'(?P<attr>\b(?:href|src)=)(?P<quote>["\'])(?P<url>[^"\']+)(?P=quote)')
+_FORWARD_ONLY = re.compile(r'<meta\s+http-equiv=["\']?refresh', re.IGNORECASE)   # 🗑 a page that only forwards is not published
+
+
+def tool_builds() -> dict[tuple[str, tuple[str, ...]], dict[str, str]]:
+    """🧰 What the 🧰 Tools cards build from other repositories (each card's ``build``): (repository, run) → {page: card id}, one
+    build for the cards that share one (Ironmate's three studios), each placed at tools/<id>/."""
+    builds = {}
+    for card in _front_module().PORTAL:
+        if 'build' in card:
+            build = card['build']
+            builds.setdefault((build['repository'], tuple(build['run'])), {})[build.get('page', '')] = card['id']
+    return builds
+
+
+def place_built(built: Path, routes: dict[str, str], mapped: Path) -> None:
+    """🧰 Place a repository's built site under ``mapped``: each file goes to the folder of the longest ``routes`` prefix it is under
+    (``{'': 'tools/image-studio/', 'slides/': 'tools/slide-studio/'}``), and the links between them, a web manifest's shortcuts and
+    scope follow the move. Every route has its page (index.html); a page that only forwards (meta refresh) is left out."""
+    order = sorted(routes, key=len, reverse=True)
+    def moved(path: str) -> str:
+        prefix = next(prefix for prefix in order if path.startswith(prefix))
+        return routes[prefix] + path[len(prefix):]
+    def link(source: str, url: str) -> str:
+        parts = urlsplit(url)
+        if not parts.path or parts.scheme or parts.netloc or parts.path.startswith('/'):
+            return url
+        target = posixpath.normpath(posixpath.join(posixpath.dirname(source), parts.path))
+        if parts.path.endswith('/'):
+            target = '' if target == '.' else target + '/'
+        if target == '..' or target.startswith('../'):
+            return url
+        path = posixpath.relpath(moved(target), posixpath.dirname(moved(source))) + ('/' if parts.path.endswith('/') else '')
+        return urlunsplit(('', '', path, parts.query, parts.fragment))
+    if '' not in routes:
+        raise ValueError('a build places its root somewhere (routes has "")')
+    for page in routes:
+        if not (built / page / 'index.html').is_file():
+            raise FileNotFoundError(page + 'index.html')
+    for path in built.rglob('*'):
+        if not path.is_file() or path.name == '.nojekyll':
+            continue
+        source = path.relative_to(built).as_posix()
+        page = path.read_text(encoding='utf-8') if path.suffix == '.html' else ''
+        if _FORWARD_ONLY.search(page):
+            continue
+        target = mapped / moved(source)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if path.suffix == '.html':
+            target.write_text(_LINK_ATTR.sub(lambda m: m['attr'] + m['quote'] + link(source, m['url']) + m['quote'], page), encoding='utf-8')
+        elif path.suffix == '.webmanifest':                    # 📱 one shared app opens its sibling tools under tools/
+            manifest = json.loads(path.read_text(encoding='utf-8'))
+            manifest['scope'] = posixpath.relpath('tools', posixpath.dirname(moved(source))) + '/'
+            for shortcut in manifest.get('shortcuts', []):
+                shortcut['url'] = link(source, shortcut['url'])
+            target.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+        else:
+            shutil.copyfile(path, target)
 
 
 def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, str]) -> dict:
-    """Build each tool from its checkout with this ``python`` (📦 its pages group carries the pinned PySaiyanWeBoo the tools
-    render through) into ``output/<folder>/`` (the 🧰 screen takes its pages in: ``tool_panels``)
-    and write the receipt; a tool that fails is left out. Returns the receipt."""
+    """Build each repository's tools (``tool_builds``) from its checkout (``checkouts``: repository → path) with this ``python``
+    (📦 its pages group carries the pinned PySaiyanWeBoo the tools render through) and place each at ``output/tools/<id>/`` (the 🧰
+    screen takes its page in: ``tool_panels``), then write the receipt; a build that fails is left out, what was there stays."""
     made, failed = [], {}
-    for key, (repository, folder, entries) in TOOL_SOURCES.items():
-        if key not in checkouts:
+    for (repository, run), pages in tool_builds().items():
+        if repository not in checkouts:
             continue
-        dest = Path(output) / folder
         try:
-            with tempfile.TemporaryDirectory() as tmp:       # build aside; the ⏸ page stays unless the whole tool built
-                built = Path(tmp) / 'site'
-                run = lambda *args: subprocess.run([sys.executable, *args], cwd=checkouts[key], check=True, capture_output=True, timeout=900)
-                if key == 'ironmate':
-                    run('image_studio.py', '--build-site', str(built))
-                elif key == 'format-lab':
-                    run('tools/format-lab/build.py', str(built))
-                elif key == 'dragowing':                          # 🌡️ one page on stdout; its scenes open in Image Studio
+            with tempfile.TemporaryDirectory() as tmp:       # build aside; the ⏸ page stays unless the whole build made it
+                built, mapped = Path(tmp) / 'site', Path(tmp) / 'mapped'
+                done = subprocess.run([sys.executable, *(str(built) if arg == '{out}' else arg for arg in run)], cwd=checkouts[repository],
+                                      check=True, capture_output=True, timeout=900)
+                if '{out}' not in run:                       # 🌡️ one page on stdout
                     built.mkdir()
-                    (built / 'index.html').write_bytes(run('scripts/build_heatmap_page.py').stdout)
-                if key == 'ironmate':
-                    mapped = Path(tmp) / 'mapped'
-                    _STUDIO_ROUTES.stage_ironmate_studios(built, mapped)   # 🖼️ framed in the screen
-                    for entry in sorted(child.name for child in mapped.iterdir()):
-                        target = dest / entry
-                        if target.exists():
-                            shutil.rmtree(target)
-                        target.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.move(str(mapped / entry), str(target))
-                    made.append(key)
-                    continue
-                if dest.exists():
-                    shutil.rmtree(dest)
-                dest.parent.mkdir(parents=True, exist_ok=True)
-                shutil.move(str(built), str(dest))
-            made.append(key)
+                    (built / 'index.html').write_bytes(done.stdout)
+                place_built(built, {page: f'tools/{card}/' for page, card in pages.items()}, mapped)
+                for card in pages.values():
+                    dest = Path(output) / 'tools' / card
+                    if dest.exists():
+                        shutil.rmtree(dest)
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(mapped / 'tools' / card), str(dest))
+            made += pages.values()
         except (OSError, subprocess.SubprocessError, ValueError, ImportError) as exc:
-            failed[key] = type(exc).__name__
-    receipt = {'schema': 'portfolio-tools/1', 'commits': commits, 'made': made, 'failed': failed}
+            failed.update(dict.fromkeys(pages.values(), type(exc).__name__))
+    receipt = {'schema': 'portfolio-tools/2', 'commits': commits, 'made': made, 'failed': failed}
     path = Path(output) / TOOLS
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
@@ -993,22 +1034,23 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
 
 
 def record_tools(output: Path, remote: str = 'https://github.com/') -> list[str]:
-    """🧰 Clone each TOOL_SOURCES repository at its default branch and ``collect_tools``; one log line each (best effort)."""
-    checkouts, commits, lines, cloned = {}, {}, [], {}
+    """🧰 Clone each repository the cards build from (``tool_builds``) at its default branch and ``collect_tools``; one log line
+    each (best effort)."""
+    checkouts, commits, lines = {}, {}, []
     with tempfile.TemporaryDirectory() as tmp:
-        for key, (repository, _, _) in TOOL_SOURCES.items():
+        for repository in dict.fromkeys(repository for repository, _ in tool_builds()):
+            checkout = Path(tmp) / repository.split('/')[1]
             try:
-                if repository not in cloned:                      # one clone per repository
-                    checkout = Path(tmp) / repository.split('/')[1]
-                    subprocess.run(['git', 'clone', '--quiet', '--depth', '1', remote + repository, str(checkout)], check=True,
-                                   timeout=300)
-                    cloned[repository] = checkout, _checkout_commit(checkout)
-                checkouts[key], commits[key] = cloned[repository]
+                subprocess.run(['git', 'clone', '--quiet', '--depth', '1', remote + repository, str(checkout)], check=True, timeout=300)
+                checkouts[repository], commits[repository] = checkout, _checkout_commit(checkout)
             except (OSError, subprocess.SubprocessError) as exc:
-                lines.append(f'⏸ {key}: clone failed ({type(exc).__name__})')
+                lines.append(f'⏸ {repository}: clone failed ({type(exc).__name__})')
         receipt = collect_tools(output, checkouts, commits)
-    return lines + [f"✅ {key} @ {commits[key][:7]} → {TOOL_SOURCES[key][1]}/" if key in receipt['made'] else
-                    f"⏸ {key}: {receipt['failed'][key]}" for key in checkouts]
+    for (repository, _), pages in tool_builds().items():
+        if repository in checkouts:
+            lines += [f"✅ {card} @ {commits[repository][:7]} → tools/{card}/" if card in receipt['made'] else
+                      f"⏸ {card}: {receipt['failed'].get(card, 'not built')}" for card in pages.values()]
+    return lines
 
 
 def _checkout_commit(checkout: Path) -> str:
@@ -1018,11 +1060,11 @@ def _checkout_commit(checkout: Path) -> str:
 def stage_tools(output: Path, root: Path = ROOT) -> dict | None:
     """🧪 Build the tools whose repository is checked out under ``root/.test-deps/<name>`` (CI pins the commit) into the
     staged ``output``, so tests and previews see them as Pages does; None when there is none."""
-    found = {key: root / CHECKOUTS / repository.split('/')[1] for key, (repository, _, _) in TOOL_SOURCES.items()}
-    checkouts = {key: path for key, path in found.items() if (path / '.git').exists()}
+    found = {repository: root / CHECKOUTS / repository.split('/')[1] for repository, _ in tool_builds()}
+    checkouts = {repository: path for repository, path in found.items() if (path / '.git').exists()}
     if not checkouts:
         return None
-    return collect_tools(output, checkouts, {key: _checkout_commit(path) for key, path in checkouts.items()})
+    return collect_tools(output, checkouts, {repository: _checkout_commit(path) for repository, path in checkouts.items()})
 
 
 def _paused(ui, repository: str, why: str = 'このビルドでは作っていない。') -> str:
@@ -1033,23 +1075,25 @@ def _paused(ui, repository: str, why: str = 'このビルドでは作ってい�
 
 
 def tool_panels(ui, output: Path | None = None) -> dict[str, tuple[bytes, str, bool]]:
-    """🧰 The TOOL_SOURCES tools as #panels of the screen (none has a page of its own): each page ``--record-tools`` built, taken
-    out of the tree (its files stay), else ⏸; ``{source: (document, repository, framed)}`` for ``render_shell``. A tool whose
-    ``entries`` are listed runs each in a frame (an app that owns its document); ``()`` joins its one page to the screen."""
+    """🧰 The tools the cards build from other repositories as #panels of the screen (none has a page of its own): each page
+    ``--record-tools`` placed at tools/<id>/, taken out of the tree (its files stay), else ⏸; ``{source: (document, repository,
+    framed)}`` for ``render_shell``. A page with its own Content-Security-Policy (an app that owns its document) runs framed."""
     path = Path(output) / TOOLS if output else None
     made = json.loads(path.read_text(encoding='utf-8'))['made'] if path and path.is_file() else []
     panels = {}
-    for key, (repository, folder, entries) in TOOL_SOURCES.items():
-        for entry in entries or ('',):
-            source = f'{folder}/{entry}index.html'
-            built = Path(output) / source if output else None
-            if key in made and built.is_file():
-                panels[source] = built.read_bytes(), repository, bool(entries)
-                built.unlink()
-                if not any(built.parent.iterdir()):    # 🌡️ a one-page tool leaves no folder behind
-                    built.parent.rmdir()
-            else:
-                panels[source] = _paused(ui, repository).encode('utf-8'), repository, False
+    for card in _front_module().PORTAL:
+        if 'build' not in card:
+            continue
+        source, repository = f'tools/{card["id"]}/index.html', card['build']['repository']
+        built = Path(output) / source if output else None
+        if card['id'] in made and built.is_file():
+            data = built.read_bytes()
+            panels[source] = data, repository, b'Content-Security-Policy' in data
+            built.unlink()
+            if not any(built.parent.iterdir()):        # 🌡️ a one-page tool leaves no folder behind
+                built.parent.rmdir()
+        else:
+            panels[source] = _paused(ui, repository).encode('utf-8'), repository, False
     return panels
 
 
@@ -1372,8 +1416,25 @@ def stage(output: Path, root: Path = ROOT) -> None:
     build(output, root)
 
 
+README_TOOLS = ('<!-- 🧰 tools: --refresh-lock writes this table from the cards (front_page.py PORTAL) -->', '<!-- /🧰 tools -->')
+
+
+def tools_readme() -> str:
+    """🧰 README's table of the 🧰 Tools cards, one row each: the name, what it does, who makes it (this site, or the repository a
+    card's ``build`` names) and its links on the site. ``refresh_lock`` writes it between README_TOOLS."""
+    front = _front_module()
+    rows = ['| 🏷️ 道具 | 📝 説明 | 🛠️ 作るところ | 🔗 開く |', '| --- | --- | --- | --- |']
+    for card in front.PORTAL:
+        maker = (card['build']['repository'].split('/')[1] if 'build' in card else 'このサイト' if card['links'][0][1].startswith('./')
+                 else ' · '.join(card.get('from', ())) or '—')                 # 🧭 a page elsewhere: its own repository
+        links = ' · '.join(f'[{label.removesuffix(" →")}]({urljoin(front._site_url, href)})' for label, href in card['links'])
+        rows.append(f"| {card['title']} | {card['text']} | {maker} | {links} |")
+    return '\n'.join(rows)
+
+
 def refresh_lock(root: Path = ROOT) -> dict:
-    """After moving the pin: rewrite the lock from the installed generator (the generated files are not kept in git)."""
+    """After moving the pin, or a card: rewrite the lock from the installed generator (the generated files are not kept in git) and
+    README's table of the cards (``tools_readme``)."""
     import pysaiyanweboo as ui
     commit = installed_commit()
     verify_pin(commit, root)
@@ -1386,6 +1447,11 @@ def refresh_lock(root: Path = ROOT) -> dict:
         'pages': {target: hashlib.sha256(data).hexdigest() for target, data in pages.items()},
     }
     (root / 'web-ui-assets.lock.json').write_text(json.dumps(lock, indent=2) + '\n', encoding='utf-8')
+    readme = root / 'README.md'
+    if readme.is_file():                                                  # 🧰 the table between its marks, nothing else
+        text = readme.read_text(encoding='utf-8')
+        start, end = (text.index(mark) for mark in README_TOOLS)
+        readme.write_text(text[:start + len(README_TOOLS[0])] + '\n' + tools_readme() + '\n' + text[end:], encoding='utf-8')
     return lock
 
 
@@ -1401,7 +1467,7 @@ def main(argv=None):
     parser.add_argument('--record-flow', type=Path, metavar='DIR',
                         help='🌊 run FFSS and DRAgoWing (their default branches) and put the flow lab media under DIR/media/flow/')
     parser.add_argument('--record-tools', type=Path, metavar='DIR',
-                        help='🧰 build the tools of TOOL_SOURCES (Ironmate, the format lab, DRAgoWing; their default branches) under DIR/tools/')
+                        help='🧰 build the tools the cards build from other repositories (their default branches) under DIR/tools/<id>/')
     parser.add_argument('--record-map', type=Path, metavar='DIR',
                         help="🧠 read every repository's vendor.lock.json (and Aoi's subtrees) and draw the map under DIR/media/map/")
     parser.add_argument('--record-chat', type=Path, metavar='DIR',

@@ -12,31 +12,30 @@ import re
 from pathlib import Path
 from urllib.parse import quote
 
-# Service endpoints come from the same catalog for both tool cards and the footer.
+# 🌐 The site's address (services.json): a card's sample opens its tool there.
 _services = json.loads((Path(__file__).resolve().parents[1] / 'services.json').read_text(encoding='utf-8'))['services']
 _site_url = _services['portfolio']['pages']['url']
 
 
-def _service_url(project: str, endpoint: str, *, relative: bool = False) -> str:
-    url = _services['projects'][project][endpoint]['url']
-    return './' + url.removeprefix(_site_url) if relative and url.startswith(_site_url) else url
-
-
+# 🧰 Ironmate builds its three studios at once (``image_studio.py --build-site``): each card is the page under its own folder.
+_IRONMATE = {'repository': 'myon-bioinformatics/Ironmate', 'run': ('image_studio.py', '--build-site', '{out}')}
 # 🧰 Tools: one card per tool (a #panel of tools/index.html, or a page elsewhere), practical tools only. Its ``title`` (emoji, then
 # Japanese) is the tool's one name: the card, 🚪, the screen's 🏠 list and its tab. ``text`` (70 characters at most) says what it does,
-# on the card and on the screen's board while it is open. The first link opens it (開く →); any other leads to a relative, named by its
-# own emoji and words. ``words`` are the names in 🌐's other languages. ``from`` names the repositories a card is built from (🧩, plain
+# on the card and on the screen's board while it is open. ``links``: the first opens it (without ``links``, 開く → its #panel,
+# ./tools/#id); any other leads to a relative, named by its own emoji and words. ``build``: a tool another repository makes, as
+# ``{'repository', 'run', 'page'}`` (run with python in its checkout; ``{out}`` is where it writes its site, else its page is stdout;
+# ``page``, the folder of that site the tool is); it is placed at tools/<id>/ and framed on the screen when it has its own CSP.
+# One card is one tool: its folder, its #panel, 🚪, 🏠 and README's table follow from it. ``words`` are the names in 🌐's other languages. ``from`` names the repositories a card is built from (🧩, plain
 # text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. Everything is escaped.
 PORTAL = [
  {'title': '📄 HTML文書取込', 'id': 'html-import',
   'text': 'HTML を貼るかファイルを選び、本文・見出し・リンクを端末の中で抽出。',
-  'words': {'HTML文書取込': ['HTML import', 'Import HTML', 'Importar HTML', 'Importar HTML', 'استيراد HTML', 'HTML 导入', 'Импорт HTML', 'Impor HTML', 'HTML-Import', 'Kuingiza HTML']},
-  'links': [('開く →', './tools/#html-import')]},
+  'words': {'HTML文書取込': ['HTML import', 'Import HTML', 'Importar HTML', 'Importar HTML', 'استيراد HTML', 'HTML 导入', 'Импорт HTML', 'Impor HTML', 'HTML-Import', 'Kuingiza HTML']}},
  {'title': '🗃️ 形式変換・検証', 'id': 'format-lab',
   'text': 'ファイルや貼った原文を静的検査し、Base64 の復元差分と検証記録を確認。CaChereCyCle の資産は SHA-256 も照合。',
   'words': {'形式変換・検証': ['Format conversion & checks', 'Conversion et vérification de formats', 'Conversión y verificación de formatos', 'Conversão e verificação de formatos', 'تحويل الصيغ والتحقق منها', '格式转换与校验', 'Преобразование и проверка форматов', 'Konversi dan pemeriksaan format', 'Formatumwandlung und Prüfung', 'Ubadilishaji na ukaguzi wa miundo']},
   'from': ('myon-bioinformatics', 'PySaiyanWeBoo'),
-  'links': [('開く →', './tools/#format-lab')]},
+  'build': {'repository': 'myon-bioinformatics/myon-bioinformatics', 'run': ('tools/format-lab/build.py', '{out}')}},
  {'title': '📍 地図URL・座標ピン留め', 'id': 'maps',
   'text': '緯度・経度から Apple Maps と Google Maps の URL を作り、地点をピン留め・共有。',
   'words': {'地図URL・座標ピン留め': ['Map URLs & coordinate pins', 'URL de carte et épingles de coordonnées', 'URL de mapa y chinchetas de coordenadas', 'URL de mapa e alfinetes de coordenadas', 'روابط الخرائط ودبابيس الإحداثيات', '地图 URL 与坐标图钉', 'URL карт и метки координат', 'URL peta dan penanda koordinat', 'Karten-URLs und Koordinaten-Pins', 'URL za ramani na pini za kuratibu'], 'パラレル東京': ['Parallel Tokyo', 'Tokyo parallèle', 'Tokio paralelo', 'Tóquio paralela', 'طوكيو الموازية', '平行东京', 'Параллельный Токио', 'Tokyo Paralel', 'Paralleles Tokio', 'Tokyo sambamba']},
@@ -45,32 +44,31 @@ PORTAL = [
   'text': 'レイヤー・作業履歴・クリップボード棚で画像を編集。数値行列のヒートマップと PNG Base64 の受け渡しも。',
   'words': {'画像工房': ['Image studio', 'Atelier d’images', 'Taller de imágenes', 'Estúdio de imagens', 'استوديو الصور', '图像工坊', 'Студия изображений', 'Studio gambar', 'Bildwerkstatt', 'Studio ya picha']},
   'from': ('Ironmate',),
-  'links': [('開く →', _service_url('Ironmate', 'pages', relative=True))]},
+  'build': {**_IRONMATE, 'page': ''}},
  {'title': '🎨 ブラウザ道具', 'id': 'browser-tools',
   'text': 'ドット絵・比較用の一枚・容量確認を、ブラウザだけで。',
   'words': {'ブラウザ道具': ['Browser tools', 'Outils du navigateur', 'Herramientas del navegador', 'Ferramentas do navegador', 'أدوات المتصفح', '浏览器工具', 'Инструменты браузера', 'Alat peramban', 'Browser-Werkzeuge', 'Zana za kivinjari']},
   'from': ('Ironmate',),
-  'links': [('開く →', _service_url('Ironmate', 'browserTools', relative=True))]},
+  'build': {**_IRONMATE, 'page': 'tools/'}},
  {'title': '📽️ スライド工房', 'id': 'slide-studio',
   'text': 'ブラウザでスライドを作り、文字・図形・矢印を編集できる PPTX に出力。Markdown→PPTX は CLI の試作実装。',
   'words': {'スライド工房': ['Slide studio', 'Atelier de diapositives', 'Taller de diapositivas', 'Estúdio de slides', 'استوديو الشرائح', '幻灯片工坊', 'Студия слайдов', 'Studio slide', 'Folienwerkstatt', 'Studio ya slaidi']},
   'from': ('Ironmate',),
-  'links': [('開く →', _service_url('Ironmate', 'slides', relative=True))]},
+  'build': {**_IRONMATE, 'page': 'slides/'}},
  {'title': '🌡️ ヒートマップ', 'id': 'heatmap',
   'text': '数値行列か Plotly の heatmap を貼って描き、SVG・PNG・シーン JSON に。シーンは画像工房で編集できる。',
   'words': {'ヒートマップ': ['Heatmap', 'Carte de chaleur', 'Mapa de calor', 'Mapa de calor', 'خريطة حرارية', '热图', 'Тепловая карта', 'Peta panas', 'Heatmap', 'Ramani ya joto'], '画像工房で編集': ['Edit in the image studio', 'Modifier dans l’atelier d’images', 'Editar en el taller de imágenes', 'Editar no estúdio de imagens', 'حرّر في استوديو الصور', '在图像工坊中编辑', 'Редактировать в студии изображений', 'Edit di studio gambar', 'In der Bildwerkstatt bearbeiten', 'Hariri katika studio ya picha']},
   'from': ('DRAgoWing', 'Ironmate'),
-  'links': [('開く →', './tools/#heatmap'), ('🖼️ 画像工房で編集 →', _service_url('Ironmate', 'pages', relative=True))]},
+  'build': {'repository': 'myon-bioinformatics/DRAgoWing', 'run': ('scripts/build_heatmap_page.py',)},   # 🌡️ its page on stdout
+  'links': [('開く →', './tools/#heatmap'), ('🖼️ 画像工房で編集 →', './tools/#image-studio')]},
  {'title': '🧾 テスト結果', 'id': 'test-report',
   'text': 'JUnit の結果を読み、前回と比べて新規・再発・解消を分ける。🧯 で失敗をチャットの /triage へ。結果は送らない。',
   'words': {'テスト結果': ['Test results', 'Résultats de tests', 'Resultados de pruebas', 'Resultados de testes', 'نتائج الاختبار', '测试结果', 'Результаты тестов', 'Hasil pengujian', 'Testergebnisse', 'Matokeo ya majaribio']},
-  'from': ('PySaiyanWeBoo',),
-  'links': [('開く →', './tools/#test-report')]},
+  'from': ('PySaiyanWeBoo',)},
  {'title': '💬 横断チャット', 'id': 'chat',
   'text': 'Markdown・ASCII アート・圧縮・JSON 索引・🧯 triage・🔌 MCP を Python で。🤖 LLM も呼ぶ。',
   'words': {'横断チャット': ['Cross-repo chat', 'Chat inter-dépôts', 'Chat entre repositorios', 'Chat entre repositórios', 'دردشة عبر المستودعات', '跨仓库聊天', 'Чат по всем репозиториям', 'Obrolan lintas repo', 'Repo-übergreifender Chat', 'Gumzo la hazina zote']},
-  'from': ('markdown', 'ascii_artist', 'cli_args', 'TalkCompress', 'mcp-toolcall-lab', 'Err-o-RoadRunner'),
-  'links': [('開く →', './tools/#chat')]},
+  'from': ('markdown', 'ascii_artist', 'cli_args', 'TalkCompress', 'mcp-toolcall-lab', 'Err-o-RoadRunner')},
  {'title': '🧭 統合運用', 'id': 'operations',
   'text': 'リポジトリ横断の運用ダッシュボード：CI の失敗・競合・未解決レビュー、監査と依存、実行手順、記録と差分。',
   'words': {'統合運用': ['Operations', 'Opérations', 'Operaciones', 'Operações', 'العمليات', '综合运维', 'Эксплуатация', 'Operasi', 'Betrieb', 'Uendeshaji']},
@@ -79,17 +77,15 @@ PORTAL = [
  {'title': '🎞 GIF工房', 'id': 'gif',
   'text': '手持ちの画像を並べて GIF に。端末の中で完結し、画像はどこにも送らず保存もしない。',
   'words': {'GIF工房': ['GIF studio', 'Atelier GIF', 'Taller GIF', 'Oficina GIF', 'استوديو GIF', 'GIF 工坊', 'Студия GIF', 'Studio GIF', 'GIF-Werkstatt', 'Studio ya GIF']},
-  'from': ('PySaiyanWeBoo',),
-  'links': [('開く →', './tools/#gif')]},
+  'from': ('PySaiyanWeBoo',)},
  {'title': '🌊 流れの実験室', 'id': 'flow',
   'text': 'FFSS の全場面を 🌊 動く像で、DRAgoWing の全図を 📊 静止図で。水回り・そうめん・お金・からだ・火力まで。',
   'words': {'流れの実験室': ['Flow lab', 'Labo des flux', 'Laboratorio de flujos', 'Laboratório de fluxos', 'مختبر التدفق', '流动实验室', 'Лаборатория потоков', 'Lab aliran', 'Strömungslabor', 'Maabara ya mtiririko']},
-  'from': ('FluidFullSpeedSimulation', 'DRAgoWing'),
-  'links': [('開く →', './tools/#flow')]},
+  'from': ('FluidFullSpeedSimulation', 'DRAgoWing')},
  {'title': '🧠 リポジトリ地図', 'id': 'repo-map',
   'text': 'どのリポジトリがどのファイルを写して使うか。vendor.lock.json と Aoi の subtree から公開ごとに描き直す。',
-  'words': {'リポジトリ地図': ['Repository map', 'Carte des dépôts', 'Mapa de repositorios', 'Mapa de repositórios', 'خريطة المستودعات', '仓库地图', 'Карта репозиториев', 'Peta repositori', 'Repository-Karte', 'Ramani ya hazina']},
-  'links': [('開く →', './tools/#repo-map')]}]
+  'words': {'リポジトリ地図': ['Repository map', 'Carte des dépôts', 'Mapa de repositorios', 'Mapa de repositórios', 'خريطة المستودعات', '仓库地图', 'Карта репозиториев', 'Peta repositori', 'Repository-Karte', 'Ramani ya hazina']}}]
+PORTAL = [{'links': [('開く →', f"./tools/#{card['id']}")], **card} for card in PORTAL]   # 🔗 開く → its #panel, unless it says
 
 
 # 🔗 The front page's own emoji in the shared header (scripts/project_pages.py ``add_site_chrome``): where else to find the author.
