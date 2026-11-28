@@ -93,13 +93,17 @@ def build():
             if not event.get("stamina_cost"):
                 continue
             task = add("event/"+event["deed_id"], "Task", event["action_label"],
-                       detail=f'スタミナを{event["stamina_cost"]}消費し、HPを最大{event["heal_hp"]}回復。知名度+{event["fame"]}pt。')
+                       detail=f'知名度+{event["fame"]}pt。希望時はスタミナ{event["stamina_cost"]}でHPを最大{event["heal_hp"]}回復。')
             link("#"+spot_routes[sid], "offers", task)
-            for key, label in (("stamina_cost", "スタミナ"), ("cost", "所持金（G）")):
-                if key in event:
-                    minimum = event[key]
-                    link(task, "guarded_by", add(key+"/"+task, "Condition", f"{label}{minimum}以上",
-                                                 minimum=minimum, attribute="gold" if key=="cost" else "stamina"))
+            if event.get("cost"):
+                minimum = event["cost"]
+                link(task, "guarded_by", add("cost/"+task, "Condition", f"所持金（G）{minimum}以上",
+                                             minimum=minimum, attribute="gold"))
+            extra = add("heal/"+task, "Task", "参加時にHP回復を選ぶ", healing=event["heal_hp"])
+            link(task, "offers", extra)
+            link(extra, "guarded_by", add("stamina/"+extra, "Condition", f'スタミナ{event["stamina_cost"]}以上',
+                                          minimum=event["stamina_cost"], attribute="stamina"))
+            link(extra, "guarded_by", add("hp/"+extra, "Condition", "HPが最大値未満"))
         for skill in rpg.get("skills", []):
             if skill["min_wisdom"]:
                 task = add("learn/"+skill["id"], "Task", skill["label"]+"を習得", detail=skill["desc"])

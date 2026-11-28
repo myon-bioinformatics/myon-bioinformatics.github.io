@@ -3755,11 +3755,11 @@ export function bindWorldRpg(el){
    if(after.level>before){const st=stats();state.hp=st.maxHp;state.mp=st.maxMp;return after.level}
    return false;
   };
-  const addFanFame=(amount,deedTitle)=>{
+  const addFanFame=(amount,deedTitle,firstTime=true)=>{
    const prevRank=rpgFanFameRank(state.fanFame);
    state.fanFame+=amount;
    const nextRank=rpgFanFameRank(state.fanFame);
-   gainExp(amount*2);state.gold+=amount*3;
+   gainExp(amount*2);if(firstTime)state.gold+=amount*3;
    if(nextRank.threshold>prevRank.threshold){
     showToast(`🎉【知名度ランクUP】${nextRank.emoji}「${nextRank.rank}」に昇格した！ (知名度 ${state.fanFame}pt)`);
     if(nextRank.threshold>=95){
@@ -4089,26 +4089,30 @@ export function bindWorldRpg(el){
     const cost=Number(d.cost)||0;
     const lack=()=>{
      if(state.gold<cost)return "ゴールド不足";
-     if(state.stamina<d.stamina_cost)return "スタミナ不足";
      if(d.req_item&&!state.looted.has(d.req_item)&&!state.consumables.has(d.req_item)&&!state.consumables.has("spot:"+d.req_item))return "必要アイテム不足";
      return "";
     };
     if(!isDone||d.repeatable){
      const costNote=cost?` (🪙 ${cost}G)`:"";
-     const eventNote=d.stamina_cost?`（スタミナ−${d.stamina_cost}・HP+${d.heal_hp}まで）`:"";
+     const recovery=()=>Math.min(d.heal_hp,Math.max(0,stats().maxHp-state.hp));
      const reason=lack();
-     actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn","data-rpg-deed-btn":"",disabled:Boolean(reason),textContent:`🤝 ${d.action_label}${costNote}${eventNote} (+${d.fame}知名度)${reason?" ("+reason+")":""}`,onclick:()=>{
-      if(lack()||(!d.repeatable&&state.helpedDeeds.has(d.deed_id)))return;
+     const option=rpgEl("input",{type:"checkbox",disabled:Boolean(reason)||state.stamina<d.stamina_cost||!recovery()});
+     if(d.stamina_cost){
+      const why=state.hp>=stats().maxHp?"・HP満タン":state.stamina<d.stamina_cost?"・スタミナ不足":"";
+      actionsEl.append(rpgEl("label",{},option,` 回復もする（スタミナ−${d.stamina_cost}・HP+${recovery()}${why}）`));
+     }
+     actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn","data-rpg-deed-btn":"",disabled:Boolean(reason),textContent:`🤝 ${d.action_label}${costNote} (+${d.fame}知名度)${reason?" ("+reason+")":""}`,onclick:()=>{
+      const firstTime=!state.helpedDeeds.has(d.deed_id);
+      if(lack()||(!d.repeatable&&!firstTime))return;
+      const healed=option.checked&&state.stamina>=d.stamina_cost?recovery():0;
       state.gold-=cost;
-      state.stamina-=d.stamina_cost;
-      const recovery=Math.min(d.heal_hp,Math.max(0,stats().maxHp-state.hp));
-      state.hp+=recovery;
+      if(healed){state.stamina-=d.stamina_cost;state.hp+=healed}
       if(d.req_item&&state.consumables.has("spot:"+d.req_item)){
        useConsumable("spot:"+d.req_item);
       }
       state.helpedDeeds.add(d.deed_id);
-      addFanFame(d.fame,d.title);
-      renderPage(d.done_text+(d.stamina_cost?` スタミナ−${d.stamina_cost}、HP回復 ${recovery}。`:""));
+      addFanFame(d.fame,d.title,firstTime);
+      renderPage(d.done_text+(healed?` スタミナ−${d.stamina_cost}、HP回復 ${healed}。`:""));
      }}));
     }
    }

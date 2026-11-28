@@ -1028,8 +1028,11 @@ def test_tokyo_field_reports_unlock_village_magic_and_a_second_squad(site, brows
         page.close()
 
 
-@pytest.mark.parametrize('stamina,gold,reason', [(2, 30, 'スタミナ不足'), (3, 29, 'ゴールド不足'), (3, 30, '')])
-def test_nagoya_ticket_spends_shared_stamina_and_heals_only_on_admission(site, browser, stamina, gold, reason):
+@pytest.mark.parametrize('hp,stamina,gold,opt_in', [
+    (20, 0, 30, False), (94, 3, 30, False), (20, 3, 30, False),
+    (20, 3, 30, True), (92, 3, 30, True), (20, 3, 29, False),
+])
+def test_nagoya_ticket_with_optional_recovery(site, browser, hp, stamina, gold, opt_in):
     import pysaiyanweboo as ui
 
     page = browser.new_page()
@@ -1044,7 +1047,7 @@ def test_nagoya_ticket_spends_shared_stamina_and_heals_only_on_admission(site, b
         scene.get_by_text('セーブ文字列を作る', exact=True).click()
         saved = ui.save_state(box.input_value())
         # A veteran avoids the separate full heal from leveling up.
-        saved['data'].update(exp=1250, hp=20, stamina=stamina, gold=gold)
+        saved['data'].update(exp=1250, hp=hp, stamina=stamina, gold=gold)
         box.fill(ui.save_text(saved))
         scene.get_by_role('button', name='読み込む').click()
         expect(scene.get_by_role('status').filter(has_text='冒険データを復元しました')).to_be_visible()
@@ -1053,24 +1056,26 @@ def test_nagoya_ticket_spends_shared_stamina_and_heals_only_on_admission(site, b
         scene.locator('#nagoya-spot-nagoya-dome .ui-rpg-sheet-btn').click()
         action = scene.locator('[data-rpg-deed-btn]')
         stats = page.locator('[data-player-stats]')
-        if reason:
+        option = scene.get_by_role('checkbox', name='回復もする', exact=False)
+        expect(option).not_to_be_checked()
+        if hp == 94 or stamina < 3 or gold < 30:
+            expect(option).to_be_disabled()
+        if opt_in:
+            option.check()
+        if gold < 30:
             expect(action).to_be_disabled()
-            expect(action).to_contain_text(reason)
-            expect(scene.locator('[data-rpg-gold]')).to_contain_text(f'{gold}G')
+            expect(scene.locator('[data-rpg-gold]')).to_contain_text('29G')
             expect(scene.locator('[data-rpg-fame-text]')).to_contain_text('知名度 0pt')
         else:
             action.click()
             expect(scene.locator('[data-rpg-fame-text]')).to_contain_text('知名度 25pt')
-            expect(action).to_be_disabled()
+            expect(option).not_to_be_checked()
+            before = int(scene.locator('[data-rpg-gold]').inner_text().split()[1][:-1])
+            action.click()
+            expect(scene.locator('[data-rpg-gold]')).to_contain_text(f'{before - 30}G')
+            expect(scene.locator('[data-rpg-fame-text]')).to_contain_text('知名度 50pt')
         page.goto(url + 'camera')
-        expect(stats).to_contain_text(f'スタミナ {stamina if reason else 0}')
-        expect(stats).to_contain_text(f'HP {20 if reason else 36}')
-        if reason == 'スタミナ不足':
-            page.goto(url + 'nagoya-spot-nagoya-npc-ouendan')
-            scene.locator('#nagoya-spot-nagoya-npc-ouendan .ui-rpg-sheet-btn').dispatch_event('click')
-            scene.locator('[data-rpg-deed-btn]').click()
-            expect(stats).to_contain_text('スタミナ 1')
-            expect(stats).to_contain_text('HP 26')
-            expect(scene.locator('[data-rpg-fame-text]')).to_contain_text('知名度 15pt')
+        expect(stats).to_contain_text(f'スタミナ {stamina - (3 if opt_in else 0)}')
+        expect(stats).to_contain_text(f'HP {min(94, hp + (16 if opt_in else 0))}')
     finally:
         page.close()

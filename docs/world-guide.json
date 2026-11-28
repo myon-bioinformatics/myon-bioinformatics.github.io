@@ -3073,27 +3073,31 @@
    "id": "event/cheer-call",
    "type": "Task",
    "name": "熱血コールを練習する",
-   "detail": "スタミナを1消費し、HPを最大6回復。知名度+15pt。"
+   "detail": "知名度+15pt。希望時はスタミナ1でHPを最大6回復。"
   },
   {
-   "id": "stamina_cost/event/cheer-call",
+   "id": "heal/event/cheer-call",
+   "type": "Task",
+   "name": "参加時にHP回復を選ぶ",
+   "healing": 6
+  },
+  {
+   "id": "stamina/heal/event/cheer-call",
    "type": "Condition",
    "name": "スタミナ1以上",
    "minimum": 1,
    "attribute": "stamina"
   },
   {
+   "id": "hp/heal/event/cheer-call",
+   "type": "Condition",
+   "name": "HPが最大値未満"
+  },
+  {
    "id": "event/dome-sponsor",
    "type": "Task",
    "name": "観戦チケットを購入して入場する",
-   "detail": "スタミナを3消費し、HPを最大16回復。知名度+25pt。"
-  },
-  {
-   "id": "stamina_cost/event/dome-sponsor",
-   "type": "Condition",
-   "name": "スタミナ3以上",
-   "minimum": 3,
-   "attribute": "stamina"
+   "detail": "知名度+25pt。希望時はスタミナ3でHPを最大16回復。"
   },
   {
    "id": "cost/event/dome-sponsor",
@@ -3101,6 +3105,24 @@
    "name": "所持金（G）30以上",
    "minimum": 30,
    "attribute": "gold"
+  },
+  {
+   "id": "heal/event/dome-sponsor",
+   "type": "Task",
+   "name": "参加時にHP回復を選ぶ",
+   "healing": 16
+  },
+  {
+   "id": "stamina/heal/event/dome-sponsor",
+   "type": "Condition",
+   "name": "スタミナ3以上",
+   "minimum": 3,
+   "attribute": "stamina"
+  },
+  {
+   "id": "hp/heal/event/dome-sponsor",
+   "type": "Condition",
+   "name": "HPが最大値未満"
   },
   {
    "id": "quest/q-talk-ryuji",
@@ -5644,8 +5666,18 @@
   },
   {
    "source": "event/cheer-call",
+   "kind": "offers",
+   "target": "heal/event/cheer-call"
+  },
+  {
+   "source": "heal/event/cheer-call",
    "kind": "guarded_by",
-   "target": "stamina_cost/event/cheer-call"
+   "target": "stamina/heal/event/cheer-call"
+  },
+  {
+   "source": "heal/event/cheer-call",
+   "kind": "guarded_by",
+   "target": "hp/heal/event/cheer-call"
   },
   {
    "source": "#nagoya",
@@ -5655,12 +5687,22 @@
   {
    "source": "event/dome-sponsor",
    "kind": "guarded_by",
-   "target": "stamina_cost/event/dome-sponsor"
+   "target": "cost/event/dome-sponsor"
   },
   {
    "source": "event/dome-sponsor",
+   "kind": "offers",
+   "target": "heal/event/dome-sponsor"
+  },
+  {
+   "source": "heal/event/dome-sponsor",
    "kind": "guarded_by",
-   "target": "cost/event/dome-sponsor"
+   "target": "stamina/heal/event/dome-sponsor"
+  },
+  {
+   "source": "heal/event/dome-sponsor",
+   "kind": "guarded_by",
+   "target": "hp/heal/event/dome-sponsor"
   },
   {
    "source": "#nagoya",
