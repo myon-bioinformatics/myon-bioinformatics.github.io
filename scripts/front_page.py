@@ -25,7 +25,7 @@ def _service_url(project: str, endpoint: str, *, relative: bool = False) -> str:
 # 🧰 Tools: one card each, named for what it does — practical tools only. ``from`` names the repositories a card is built from (🧩, plain
 # text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. ``points`` are trusted HTML (they carry <code>);
 # everything else is escaped.
-PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル選択から、端末内で本文・見出し・リンクを抽出。', 'id': 'html-import', 'links': [('Open HTML Import →', './tools/html-import/')]},
+PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル選択から、端末内で本文・見出し・リンクを抽出。', 'id': 'html-import', 'links': [('Open HTML Import →', './tools/#html-import')]},
  {'title': '🗃️ 形式変換・検証',
   'id': 'format-lab',
   'text': 'ファイルや貼り付けた原文を静的検査し、Base64の復元差分と検証記録を確認。CaChereCyCleのJSONLは資産のSHA-256も照合。',
@@ -34,7 +34,7 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
  {'title': '📍地図URL・座標ピン留め',
   'text': '緯度・経度からApple MapsとGoogle MapsのURLを作成。地点のピン留め・共有と、パラレル東京の対応地点へ。',
   'id': 'maps',
-  'links': [('地図URLを作成 →', './tools/#maps'), ('パラレル東京 →', './tools/demos/world.html#tokyo')]},
+  'links': [('地図URLを作成 →', './tools/#maps'), ('パラレル東京 →', './tools/#tokyo')]},
  {'title': '🖼️ スライド・画像工房',
   'text': 'ブラウザでスライドを作成し、文字・図形・矢印を編集可能なPPTXへ出力。Image Studio はレイヤー、数値行列のヒートマップ、作業履歴、クリップボード棚、PNG Base64 の受け渡しに対応し、Browser Tools '
           'ではドット絵・比較用の一枚・容量確認ができます。Markdown→PPTX変換と既存PPTXの属性編集はローカルCLIの試作実装です。',
@@ -54,9 +54,9 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
           '検証の結果は、ラボの Actions の写し。接続試験は、新旧の protocol・PKCE・Bearer・OAuth メタデータを端末の中で確かめる。',
   'id': 'mcp',
   'from': ('mcp-toolcall-lab',),
-  'links': [('Open Tool Lab →', './tools/mcp/'),
+  'links': [('Open Tool Lab →', './tools/#mcp'),
             ('Open Execution Lab →', _service_url('mcp-toolcall-lab', 'execution')),
-            ('MCP 接続試験 →', './tools/mcp/#protocol')]},
+            ('MCP 接続試験 →', './tools/#protocol')]},
  {'title': '🧾 テスト結果',
   'text': 'JUnit の結果を貼るか開いて読み、前回と比べて新規・再発・解消を分ける。端末の中で完結し、結果はどこにも送らない。',
   'id': 'test-report',

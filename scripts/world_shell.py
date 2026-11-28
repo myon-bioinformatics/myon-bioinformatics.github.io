@@ -204,7 +204,7 @@ def document(ui, world, maps, places, css_href, js_href, dialogue="", *, dragon_
               f'<a download="london-dragon.json" href="{escape(dragon_grid, quote=True)}">原画JSONを保存</a></template>')
     body = ('<main><div data-world-shell>' + sprite + header + ''.join(sections) + '</div></main>'
             + ui.module_script(JS) + f'<script type="module" src="{js_href}"></script>'
-            + ui.module_script(f'import "{js_href}";\n' + dialogue + world.rpg_module("../vendor/web-ui/js/records.js")) + maps.tokyo_modules(ui))
+            + ui.module_script(f'import "{js_href}";\n' + dialogue + world.rpg_module("./vendor/web-ui/js/records.js")) + maps.tokyo_modules(ui))
     css = ''.join(world.world_css(data, base=False) for data in specs.values()) + f'@layer components{{{CSS}}}'
     page = ui.render_document(title='🌍 ワールド', theme='modern', trusted_html=body, css=ui.bundled_css())
     return page.replace('</head>', f'<link rel="stylesheet" href="{css_href}"><style>{css}</style></head>', 1)
