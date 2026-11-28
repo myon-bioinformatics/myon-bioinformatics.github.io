@@ -445,16 +445,16 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
 
 
 def test_the_screen_carries_the_site_chrome_once_and_every_door_is_a_panel():
-    """🧰 tools_chrome + PySaiyanWeBoo's chrome on the screen: the board with the clock, 🏠, ⭐ ⚙️ and ☰ ⋯ for its own (☰ lists
-    nothing of other pages); and 🚪 tools_door: PySaiyanWeBoo's Door-to-Door with 🏠 and every 🧰 Tools link, each a #panel of it.
+    """🧰 PySaiyanWeBoo's add_site_chrome told what the site is (tools_site) on the screen: the board with the clock, 🏠, ⭐ ⚙️ and ☰ ⋯
+    for its own (☰ lists nothing of other pages); and 🚪 PySaiyanWeBoo's Door-to-Door with 🏠 and every 🧰 Tools link, each a #panel of it.
     Its panels' own headers (🌍) are theirs: the site's parts come once."""
     import html
     import re
     import pysaiyanweboo as ui
     chrome = ui.component_parts('chrome')['js']                    # 🌐 a page keeps, of the body's words, only those it holds
     module = (re.compile(re.escape('<script type="module">' + chrome[:chrome.index('CHROME_TEXT=')]) + '.*?' + re.escape(chrome[-64:] + '</script><div class="ui-door-foot"><div class="ui-door ui-door-compact" id="door" data-ui-door '), re.S),
-              '</span></p></div><script type="module">' + PAGES.tools_door(ui)['js'] + '</script></body>')
-    assert PAGES.tools_door(ui)['js'] == ui.js_source('door.js') and 'addEventListener("pageshow",fill)' in module[1]   # PySaiyanWeBoo's door.js alone
+              '</span></p></div><script type="module">' + ui.js_source('door.js') + '</script></body>')
+    assert 'addEventListener("pageshow",fill)' in module[1]                                   # PySaiyanWeBoo's door.js alone
     cards = [html.escape(card['title']) for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL]
     assert sorted(p.relative_to(SITE).as_posix() for p in SITE.rglob('*.html') if 'media' not in p.parts) == ['index.html', PAGES.SHELL_PAGE]   # 🧰 two pages
     for name in (PAGES.SHELL_PAGE,):
@@ -1703,12 +1703,14 @@ def test_the_front_page_carries_the_shared_header_side_and_foot():
 
 
 def test_a_tool_page_board_reads_its_card():
-    """🧰 The board of a tool page starts with what its 🧰 Tools card says (a sentence per item, up to three, 120 characters each)."""
-    chrome = PAGES.tools_chrome('../../', description='一つ目。二つ目！ Third one. markdown.py は切らない。五つ目。')
-    assert [item['text'] for item in chrome['board']['items'][:4]] == ['一つ目。', '二つ目！', 'Third one.', PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL[0]['title']]
-    assert len(chrome['board']['items']) <= 12 and chrome['home'] == '../../index.html#tools'
-    assert 'home' not in PAGES.tools_chrome('./', home=False) and PAGES.tools_chrome('./', title='MYON')['board']['title'] == 'MYON'
-    assert PAGES.tools_chrome(description='x' * 200)['board']['items'][0]['text'] == 'x' * 119 + '…'
+    """🧰 The board of a page starts with what the page says of itself (PySaiyanWeBoo board_sentences: a sentence per item, up to three,
+    120 characters each), then the cards (tools_site); 🏠 leads to them, except on the front page itself."""
+    site = PAGES.tools_site('../../')
+    assert site['items'][0]['text'] == PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL[0]['title'] and site['home'] == '../../index.html#tools'
+    assert PAGES.tools_site('./', home=False)['home'] is False and site['door'][0]['href'] == '../../index.html#tools'
+    page = '<!doctype html><html lang="en"><head><meta name="description" content="一つ目。二つ目！ Third one. markdown.py は切らない。五つ目。"><title>T</title></head><body><main></main></body></html>'
+    items = re.findall(r'<span class="ui-board-item">([^<]*)</span>', PAGES.add_site_chrome(page, 'tools/index.html', title='MYON'))
+    assert items[:3] == ['一つ目。', '二つ目！', 'Third one.'] and items[3].endswith(site['items'][0]['text'].partition(' ')[2]) and len(items) <= 12
     page = (SITE / PAGES.SHELL_PAGE).read_text(encoding='utf-8')                     # 🧰 the one screen says what it is
     assert 'myon-bioinformatics の道具を 1 つの画面で。' in page[:page.index('<nav class="ui-world-tools">')]
 
