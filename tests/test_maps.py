@@ -38,8 +38,8 @@ def test_map_links_pins_share_and_tokyo_with_gif(site, browser):
 
     try:
         page.goto(site[1] + '/tools/#maps')
-        expect(page).to_have_title('📍地図URL・座標ピン留め')
-        expect(page.get_by_role('heading', level=1)).to_have_text('📍地図URL・座標ピン留め')
+        expect(page).to_have_title('📍 地図URL・座標ピン留め')
+        expect(page.get_by_role('heading', level=1)).to_have_text('📍 地図URL・座標ピン留め')
         radio(page, 350).check()
         page.locator(MAP + '[data-place]').select_option('tokyo-kanda')
         expect(page.locator(MAP + '[data-name]')).to_have_value('神田')

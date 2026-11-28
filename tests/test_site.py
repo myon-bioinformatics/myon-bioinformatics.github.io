@@ -154,8 +154,11 @@ def test_a_tools_card_shows_its_moving_sample_and_the_picture_opens_the_tool(tmp
     cards = front.portal_cards(frozenset({"tools/gif", "tools/operations", "tools/maps", "gif", "tools/no-such-tool"}))
     assert cards.count('class="project-sample"') == 3
     assert "GIF をつくる →" not in cards and "Open Dashboard →" not in cards and ">実験室へ →</a>" in cards        # one page: the picture; no picture: the words
-    assert ('<a href="./tools/#maps">地図URLを作成 →</a><a href="./tools/#tokyo">パラレル東京 →</a>' in cards
-            and '<a class="project-sample" href="./tools/#maps">' in cards)                                    # relatives stay side by side
+    assert '<a class="project-sample" href="./tools/#maps">' in cards and "地図URLを作成 →" not in cards       # 📍 real coordinates: one page
+    worlds = front.portal_cards(frozenset({"tools/worlds"}))                                               # 🪐 walked places: relatives stay side by side
+    assert ('<a class="project-sample" href="./tools/#world"><img src="./media/pages/tools/worlds.gif"' in worlds and '<a href="./tools/#world">村 →</a>'
+            '<a href="./tools/#school">学校 →</a><a href="./tools/#tokyo">パラレル東京 →</a><a href="./tools/#london">Reverse London →</a>'
+            '<a href="./tools/#paris">Fake Paris →</a>' in worlds)
     everything = front.portal_cards(frozenset(f"tools/{key}" for key in ids))
     several = [card for card in front.PORTAL if len(card["links"]) > 1]
     assert everything.count('class="project-sample"') == len(ids) and several
@@ -163,9 +166,11 @@ def test_a_tools_card_shows_its_moving_sample_and_the_picture_opens_the_tool(tmp
     assert ('<h3 id="gif">🎞 GIF工房</h3><a class="project-sample" href="./tools/#gif"><img src="./media/pages/tools/gif.gif" '
             'alt="🎥 🎞 GIF工房" loading="lazy" width="240" height="456"></a><p>') in cards
     assert '<a class="project-sample" href="https://myon-bioinformatics.github.io/myon-bioinformatics/"><img src="./media/pages/tools/operations.gif"' in cards
-    samples = PAGES.tools_samples()                                              # what --record-samples opens: the card's first link, on the site
-    assert list(samples) == [f"tools/{key}" for key in ids] and samples["tools/gif"] == ("https://myon-bioinformatics.github.io/tools/#gif", "🎞 GIF工房")
-    assert all(url.startswith("https://myon-bioinformatics.github.io/") for url, _ in samples.values())
+    samples = PAGES.tools_samples()                                              # what --record-samples opens: every page of the card, on the site
+    assert list(samples) == [f"tools/{key}" for key in ids] and samples["tools/gif"] == (["https://myon-bioinformatics.github.io/tools/#gif"], "🎞 GIF工房")
+    assert all(url.startswith("https://myon-bioinformatics.github.io/") for urls, _ in samples.values() for url in urls)
+    assert [url.rpartition("#")[2] for url in samples["tools/worlds"][0]] == ["world", "school", "tokyo", "london", "paris"]   # 🪐 a frame per place
+    assert [len(urls) for urls, _ in samples.values()] == [len(card["links"]) for card in front.PORTAL]
     (tmp_path / "media/pages/tools").mkdir(parents=True)
     (tmp_path / "media/pages/tools/gif.gif").write_bytes(b"GIF89a")
     (tmp_path / "media/pages/aoi.gif").write_bytes(b"GIF89a")
@@ -557,7 +562,7 @@ def test_door_to_door_in_chromium_with_a_gif():
                     page.wait_for_selector('#door[data-door_ready]')
                     foot, select = page.locator('.ui-door-foot').bounding_box(), page.locator('.ui-door-foot [data-door-select]')
                     assert (foot['x'], foot['width'], round(foot['y'] + foot['height'])) == (0, width, height) and foot['height'] <= 64, foot
-                    assert select.bounding_box()['height'] == 40 and page.evaluate(shown) == '🗺️ 地図URLを作成'
+                    assert select.bounding_box()['height'] == 40 and page.evaluate(shown) == '🗺️ 地図URL・座標ピン留め'
                     visible = page.evaluate("[...document.querySelectorAll('.ui-door-foot .ui-door *')].filter(e => e.offsetParent && e.tagName !== 'OPTION' && e.getBoundingClientRect().width > 1).map(e => e.tagName)")
                     assert visible == ['LABEL', 'SPAN', 'SELECT'], visible                 # 🚪 and the pull-down (compact): no panel
                     assert page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth') == 0

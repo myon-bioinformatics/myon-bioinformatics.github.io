@@ -65,13 +65,13 @@ def map_spec(points):
 
 
 def map_document(ui, points):
-    body = ('<main class="ui-page"><h1>📍地図URL・座標ピン留め</h1>' + ui.coordinates_html(map_spec(points))
+    body = ('<main class="ui-page"><h1>📍 地図URL・座標ピン留め</h1>' + ui.coordinates_html(map_spec(points))
             + '<p class="ui-muted">東京の地点はPSWBのミニチュア用の概略座標です。施設の正確な入口位置を示すものではありません。'
               '範囲URLは表示範囲の指定で、地図上に円・矩形を描くものではありません。</p>'
               '<noscript><p>座標の入力・ピン留めにはJavaScriptが必要です。<a href="./#tokyo">パラレル東京を開く</a></p></noscript></main>')
     # 🧰 The screen shows this panel when asked for: the world may have loaded the module first, so the part is bound here (once).
     bind = ui.module_script('globalThis.webUiCoordinates.bindCoordinates();')
-    return ui.render_document(title='📍地図URL・座標ピン留め', trusted_html=body + COORDINATES_MODULE + bind, css=ui.bundled_css())
+    return ui.render_document(title='📍 地図URL・座標ピン留め', trusted_html=body + COORDINATES_MODULE + bind, css=ui.bundled_css())
 
 
 def tokyo_links(ui, world, points):

@@ -23,18 +23,23 @@ def _service_url(project: str, endpoint: str, *, relative: bool = False) -> str:
 
 
 # 🧰 Tools: one card each, named for what it does — practical tools only. ``from`` names the repositories a card is built from (🧩, plain
-# text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. ``points`` are trusted HTML (they carry <code>);
-# everything else is escaped.
+# text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. Everything is escaped.
+# ``tap``: what the card's 🎥 sample taps first on its pages (project_pages.py ``record_samples(taps=…)``).
 PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル選択から、端末内で本文・見出し・リンクを抽出。', 'id': 'html-import', 'words': {'HTML文書取込': ['HTML import', 'Import HTML', 'Importar HTML', 'Importar HTML', 'استيراد HTML', 'HTML 导入', 'Импорт HTML', 'Impor HTML', 'HTML-Import', 'Kuingiza HTML']}, 'links': [('Open HTML Import →', './tools/#html-import')]},
  {'title': '🗃️ 形式変換・検証',
   'id': 'format-lab', 'words': {'形式変換・検証': ['Format conversion & checks', 'Conversion et vérification de formats', 'Conversión y verificación de formatos', 'Conversão e verificação de formatos', 'تحويل الصيغ والتحقق منها', '格式转换与校验', 'Преобразование и проверка форматов', 'Konversi dan pemeriksaan format', 'Formatumwandlung und Prüfung', 'Ubadilishaji na ukaguzi wa miundo'], 'Format Lab を開く': ['Open Format Lab', 'Ouvrir Format Lab', 'Abrir Format Lab', 'Abrir o Format Lab', 'افتح Format Lab', '打开 Format Lab', 'Открыть Format Lab', 'Buka Format Lab', 'Format Lab öffnen', 'Fungua Format Lab']},
   'text': 'ファイルや貼り付けた原文を静的検査し、Base64の復元差分と検証記録を確認。CaChereCyCleのJSONLは資産のSHA-256も照合。',
   'from': ('myon-bioinformatics', 'PySaiyanWeBoo'),
   'links': [('Format Lab を開く →', './tools/#format-lab')]},
- {'title': '📍地図URL・座標ピン留め',
-  'text': '緯度・経度からApple MapsとGoogle MapsのURLを作成。地点のピン留め・共有と、パラレル東京の対応地点へ。',
-  'id': 'maps', 'words': {'地図URL・座標ピン留め': ['Map URLs & coordinate pins', 'URL de carte et épingles de coordonnées', 'URL de mapa y chinchetas de coordenadas', 'URL de mapa e alfinetes de coordenadas', 'روابط الخرائط ودبابيس الإحداثيات', '地图 URL 与坐标图钉', 'URL карт и метки координат', 'URL peta dan penanda koordinat', 'Karten-URLs und Koordinaten-Pins', 'URL za ramani na pini za kuratibu'], '地図URLを作成': ['Make a map URL', 'Créer une URL de carte', 'Crear una URL de mapa', 'Criar uma URL de mapa', 'أنشئ رابط خريطة', '生成地图 URL', 'Создать URL карты', 'Buat URL peta', 'Karten-URL erstellen', 'Tengeneza URL ya ramani'], 'パラレル東京': ['Parallel Tokyo', 'Tokyo parallèle', 'Tokio paralelo', 'Tóquio paralela', 'طوكيو الموازية', '平行东京', 'Параллельный Токио', 'Tokyo Paralel', 'Paralleles Tokio', 'Tokyo sambamba']},
-  'links': [('地図URLを作成 →', './tools/#maps'), ('パラレル東京 →', './tools/#tokyo')]},
+ {'title': '📍 地図URL・座標ピン留め',
+  'text': '実在の緯度・経度だけを扱う。Apple MapsとGoogle MapsのURL・範囲データを作り、地点をピン留め・共有。',
+  'id': 'maps', 'words': {'地図URL・座標ピン留め': ['Map URLs & coordinate pins', 'URL de carte et épingles de coordonnées', 'URL de mapa y chinchetas de coordenadas', 'URL de mapa e alfinetes de coordenadas', 'روابط الخرائط ودبابيس الإحداثيات', '地图 URL 与坐标图钉', 'URL карт и метки координат', 'URL peta dan penanda koordinat', 'Karten-URLs und Koordinaten-Pins', 'URL za ramani na pini za kuratibu'], '地図URLを作成': ['Make a map URL', 'Créer une URL de carte', 'Crear una URL de mapa', 'Criar uma URL de mapa', 'أنشئ رابط خريطة', '生成地图 URL', 'Создать URL карты', 'Buat URL peta', 'Karten-URL erstellen', 'Tengeneza URL ya ramani']},
+  'links': [('地図URLを作成 →', './tools/#maps')]},
+ {'title': '🪐 仮想・拡張エリア',      # 🌍 not the map: places that are walked, not real coordinates (the screen's #worlds panel)
+  'text': '緯度・経度ではなく、歩いて回る空間。村と学校、東京駅まわりを写したパラレル東京、Reverse London、Fake Paris。',
+  'id': 'worlds', 'tap': '.ui-world-pick [data-emoji]', 'words': {'仮想・拡張エリア': ['Virtual & extended areas', 'Espaces virtuels et étendus', 'Áreas virtuales y extendidas', 'Áreas virtuais e estendidas', 'مناطق افتراضية وموسّعة', '虚拟与扩展区域', 'Виртуальные и расширенные области', 'Area virtual dan perluasan', 'Virtuelle und erweiterte Bereiche', 'Maeneo pepe na yaliyopanuliwa'], '村': ['Village', 'Village', 'Aldea', 'Aldeia', 'القرية', '村庄', 'Деревня', 'Desa', 'Dorf', 'Kijiji'], '学校': ['School', 'École', 'Escuela', 'Escola', 'المدرسة', '学校', 'Школа', 'Sekolah', 'Schule', 'Shule'], 'パラレル東京': ['Parallel Tokyo', 'Tokyo parallèle', 'Tokio paralelo', 'Tóquio paralela', 'طوكيو الموازية', '平行东京', 'Параллельный Токио', 'Tokyo Paralel', 'Paralleles Tokio', 'Tokyo sambamba']},
+  'links': [('村 →', './tools/#world'), ('学校 →', './tools/#school'), ('パラレル東京 →', './tools/#tokyo'), ('Reverse London →', './tools/#london'),
+            ('Fake Paris →', './tools/#paris')]},
  {'title': '🖼️ スライド・画像工房',
   'text': 'ブラウザでスライドを作成し、文字・図形・矢印を編集可能なPPTXへ出力。Image Studio はレイヤー、数値行列のヒートマップ、作業履歴、クリップボード棚、PNG Base64 の受け渡しに対応し、Browser Tools '
           'ではドット絵・比較用の一枚・容量確認ができます。Markdown→PPTX変換と既存PPTXの属性編集はローカルCLIの試作実装です。',
