@@ -1047,7 +1047,8 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                     env = {**os.environ, 'PYTHONPATH': os.pathsep.join(('src', 'vendor'))}
                     run('-m', 'mcp_toolcall_lab.stub_front', 'pages', '--out', str(built), env=env)
                     run('-m', 'mcp_toolcall_lab.mcp_toolcall_lab_repository_diagnostics', str(built), env=env)
-                    load_module('mcp_lab', '_src/tools/mcp_lab.py').stage_lab_tools(   # 🖼️ framed in the screen: no chrome of its own
+                    lab = load_module('mcp_lab', '_src/tools/mcp_lab.py')
+                    lab.stage_lab_tools(   # 🖼️ framed in the screen: no chrome of its own
                         built, commits[key], checkouts[key], lambda page, _: page, lambda page, _: page, folder)
                 else:
                     run('scripts/build_portable_pages.py', '--source-sha', commits[key], '--out', str(Path(tmp) / 'lab'),
@@ -1071,6 +1072,8 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                     if nested and (dest / nested).exists() and not (built / nested).exists():
                         (built / nested).parent.mkdir(parents=True, exist_ok=True)
                         shutil.move(str(dest / nested), str(built / nested))
+                if key == 'mcp-toolcall-lab':
+                    lab.stage_lab_branding(built, checkouts[key])
                 if dest.exists():
                     shutil.rmtree(dest)
                 dest.parent.mkdir(parents=True, exist_ok=True)
@@ -1174,8 +1177,9 @@ _LINK = re.compile(r'(?P<attr>\b(?:href|src)=)(?P<quote>["\'])(?P<url>[^"\']*)(?
 _SCRIPT = re.compile(r'<script\b[^>]*>.*?</script>', re.S)
 _SHELL_JS = """(()=>{const panels=[...document.querySelectorAll('[data-tools-panel]')],names=panels.map(p=>p.id);let current='';
 const mark=()=>{const door=document.querySelector('[data-door-select]'),mine=door&&[...door.options].find(o=>o.value.endsWith('#'+current));if(mine)door.value=mine.value};   // 🚪 shows where you are
-const inside=(panel,target)=>{const frame=panel.querySelector('iframe');if(!frame)return(document.getElementById(target)||panel).scrollIntoView();
- const go=()=>{frame.contentWindow.location.hash=target};if(frame.dataset.ready)go();else frame.addEventListener('load',go,{once:true})};   // 🖼️ a framed app's own #section
+const inside=(panel,target,fragment)=>{const frame=panel.querySelector('iframe');if(!frame)return(document.getElementById(target)||panel).scrollIntoView();
+ const go=()=>{if(location.hash===fragment)frame.contentWindow.location.replace('about:srcdoc'+fragment)};
+ if(frame.dataset.ready)go();else frame.addEventListener('load',go,{once:true})};
 const runs={test:type=>['','text/javascript','module'].includes(type)};
 const play=async marks=>{for(const[mark,old]of marks){const s=document.createElement('script');for(const a of old.attributes)s.setAttribute(a.name,a.value);   // ▶️ in the page's order, one after another
   if(old.src){s.async=false;const done=new Promise(r=>{s.onload=s.onerror=r});mark.replaceWith(s);await done}
@@ -1210,13 +1214,14 @@ const mount=panel=>{const inert=panel.querySelector(':scope>template');if(inert)
   for(const frame of panel.querySelectorAll('iframe'))frame.addEventListener('load',()=>{
    if(panel.id==='image-studio')connectHandoff(frame);frame.dataset.ready='1'
   },{once:true})}};
-const show=(panel,target)=>{mount(panel);
+const show=(panel,target,fragment)=>{mount(panel);
  for(const p of panels)p.hidden=p!==panel;document.title=panel.dataset.title;
- if(target)inside(panel,target);else if(current&&current!==panel.id)scrollTo(0,0);current=panel.id;mark()};
-const route=()=>{const name=decodeURIComponent(location.hash.slice(1)).split('?')[0];
+ if(target)inside(panel,target,fragment);else if(current&&current!==panel.id)scrollTo(0,0);current=panel.id;mark()};
+const route=()=>{const fragment=location.hash;let name='';
+ try{name=decodeURIComponent(fragment.slice(1).split('?',1)[0])}catch{}
  if(names.includes(name))return show(document.getElementById(name));
  const owner=name&&panels.find(p=>(p.dataset.routes||'').split(' ').includes(name)||p.querySelector(':scope>template')?.content.getElementById(name)||p.contains(document.getElementById(name)));   // #records: a section of a panel
- if(owner)return show(owner,name);if(!current)show(document.getElementById('home'))};
+ if(owner)return show(owner,name,fragment);if(!name||!current)show(document.getElementById('home'))};
 addEventListener('hashchange',route);addEventListener('pageshow',()=>setTimeout(mark));
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',route);else route()})();"""
 # 🖼️ Inside a framed app, a #link stays in its document (a srcdoc page would resolve it against the screen's address).

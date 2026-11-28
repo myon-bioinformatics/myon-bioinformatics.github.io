@@ -133,6 +133,46 @@ test.describe('MCP Tool Call Lab - Publication, navigation, and extraction', () 
     await expect(f.getByTestId('pages-wiki-error')).toContainText('Enter a Wikipedia title.');
   });
 
+  test('Execution Lab branding and runtime load from the framed panel', async ({ page }) => {
+    await page.goto('/');
+    const href = await page.getByRole('link', { name: 'Open Execution Lab →' }).getAttribute('href');
+    const url = new URL(href, page.url());
+    const failures = [];
+    page.on('response', response => {
+      if (new URL(response.url()).origin === url.origin && response.status() >= 400) failures.push(response.url());
+    });
+    const execution = await open(page, url.pathname + url.hash);
+    const logo = execution.locator('img[src$="mcp-toolcall-lab-logo.png"]');
+    await expect(logo).toBeVisible();
+    await expect.poll(() => logo.evaluate(img => img.naturalWidth)).toBeGreaterThan(0);
+    const module = await execution.locator('script[src$="portable_page.mjs"]').getAttribute('src');
+    const entry = await execution.evaluate(src => new URL(src, document.baseURI).href, module);
+    expect((await page.request.get(entry)).ok()).toBe(true);
+    expect(failures).toEqual([]);
+  });
+
+  test('outer hash navigation keeps parameters and one header without reloading the tools screen', async ({ page }) => {
+    test.skip(Boolean(process.env.HTML_TOOL_BASE_URL), 'The deployed router is updated after merge.');
+    await page.route('https://en.wikipedia.org/w/api.php?*', route => route.fulfill({
+      json: { query: { pages: { 1: { title: 'A&B', extract: 'Example extract' } } } },
+      headers: { 'access-control-allow-origin': '*' },
+    }));
+    await page.goto('/tools/');
+    await expect(page.locator('#home[data-tools-panel]')).toBeVisible();
+    await page.evaluate(() => { document.documentElement.dataset.viewInstance = 'same'; });
+    const route = '#wiki?title=A%26B&lang=en';
+    await page.evaluate(hash => { location.hash = hash; }, route);
+    const wiki = page.frameLocator('#mcp iframe');
+    await expect(wiki.getByTestId('pages-wiki-form')).toBeVisible();
+    await expect.poll(() => wiki.locator('body').evaluate(() => location.hash)).toBe(route);
+    await expect(page.locator('.ui-chrome a.ui-world-home')).toHaveCount(1);
+    await page.goBack();
+    await expect(page.locator('#home[data-tools-panel]')).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('data-view-instance', 'same');
+    await page.goForward();
+    await expect(wiki.getByTestId('pages-wiki-form')).toBeVisible();
+  });
+
   test('lab Pokémon tab fetches PokéAPI and accepts pasted JSON', async ({ page }) => {
     const ditto = {
       id: 132,

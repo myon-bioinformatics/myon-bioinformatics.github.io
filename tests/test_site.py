@@ -357,6 +357,8 @@ def test_lab_pages_are_hosted_by_portfolio():
     assert "./tools/#mcp" in parser.links
     assert not (SITE / "tools/mcp/index.html").exists() and not (SITE / "tools/mcp/execution/index.html").exists()   # 🖼️ framed #panels
     assert "<title>" in shell_frame("mcp")
+    for public_url in (module.LOGO, module.FAVICON):
+        assert (SITE / public_url.lstrip('/')).is_file()
     execution = shell_panel("mcp-execution")
     if execution.startswith("<iframe"):
         assert "<title>" in shell_frame("mcp-execution")
@@ -1184,13 +1186,22 @@ def test_lab_rebuild_keeps_the_execution_lab_inside_it(tmp_path):
         "(out / 'index.html').write_text('<html><head></head><body><header>Lab</header><main></main></body></html>')\n")
     (package / 'mcp_toolcall_lab_repository_diagnostics.py').write_text('')
     (tmp_path / 'lab/LICENSE').write_text('MIT')
+    artwork = tmp_path / 'lab/docs/assets'
+    artwork.mkdir(parents=True)
+    (artwork / Path(module.LOGO).name).write_bytes(b'source logo')
+    (artwork / Path(module.FAVICON).name).write_bytes(b'source favicon')
     site = tmp_path / 'site'
     kept = site / 'tools/mcp/execution/index.html'
     kept.parent.mkdir(parents=True)
     kept.write_text('execution')
+    logo = site / module.LOGO.lstrip('/')
+    logo.parent.mkdir()
+    logo.write_bytes(b'existing execution logo')
     receipt = PAGES.collect_tools(site, {'mcp-toolcall-lab': tmp_path / 'lab'}, {'mcp-toolcall-lab': '0' * 40})
     assert receipt['made'] == ['mcp-toolcall-lab'], receipt
     assert kept.read_text() == 'execution' and not (site / 'tools/mcp/summary.json').exists()
+    assert logo.read_bytes() == b'existing execution logo'
+    assert (site / module.FAVICON.lstrip('/')).read_bytes() == b'source favicon'
     page = (site / 'tools/mcp/index.html').read_text()                  # 🖼️ for the screen to frame (tool_panels): no chrome of its own
     assert 'data-testid="portfolio-back"' not in page and 'mcp-toolcall-lab@0000000' in page
 
