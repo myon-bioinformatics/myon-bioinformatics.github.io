@@ -6,7 +6,7 @@ lab), the portfolio's own additions (the Niconico tab, the Pixiv wrapper in ``mc
 No Docker runs here, so the page records no run: its test results are the lab's Actions.
 """
 from __future__ import annotations
-import hashlib, re
+import hashlib, re, shutil
 from pathlib import Path
 
 import pysaiyanweboo as ui
@@ -126,6 +126,16 @@ def apply_pixiv_controls(page: str) -> str:
 ASSET_BASE = '/tools/mcp/execution/assets/'
 FAVICON = ASSET_BASE + 'mcp-toolcall-lab-favicon-artwork.png'
 LOGO = ASSET_BASE + 'mcp-toolcall-lab-logo.png'
+
+
+def stage_lab_branding(built: Path, checkout: Path) -> None:
+    """Keep the Tool Lab's artwork available when the separate execution build is paused."""
+    assets = built / 'execution' / 'assets'
+    assets.mkdir(parents=True, exist_ok=True)
+    for name in (Path(LOGO).name, Path(FAVICON).name):
+        target = assets / name
+        if not target.exists():
+            shutil.copyfile(checkout / 'docs' / 'assets' / name, target)
 
 
 def apply_lab_branding(page: str) -> str:
