@@ -439,6 +439,31 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
     assert manifest['shortcuts'] == [{'url': '../../slide-studio/'}]
 
 
+def test_only_the_embedded_browser_tools_wordmark_is_removed(tmp_path):
+    built, mapped = tmp_path / 'provider', tmp_path / 'portfolio'
+    mark = '<a class="brand" href="../"><img src="../brand/heatmap.svg" alt="Ironmate logo" /> IRONMATE</a>'
+    navigation = '<nav><a href="#brand">ロゴ素材</a><a href="../">Image Studio ↗</a\n        ></nav>'
+    logo_download = '<section id="brand"><a href="../brand/heatmap.svg" download>Download logo</a></section>'
+    for name in ('index.html', 'tools/index.html', 'slides/index.html'):
+        path = built / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(f'<header>{mark}{navigation}</header>{logo_download}', encoding='utf-8')
+    svg = built / 'brand/heatmap.svg'
+    svg.parent.mkdir()
+    svg.write_text('<svg/>', encoding='utf-8')
+
+    PAGES._STUDIO_ROUTES.stage_ironmate_studios(built, mapped)
+
+    tools = (mapped / 'browser-tools/index.html').read_text(encoding='utf-8')
+    assert 'class="brand"' not in tools and 'IRONMATE' not in tools
+    assert '<a href="../image-studio/">🖼️ 画像工房 ↗</a\n        >' in tools
+    assert 'href="#brand"' in tools and 'id="brand"' in tools and 'Download logo' in tools
+    assert (mapped / 'image-studio/brand/heatmap.svg').read_text(encoding='utf-8') == '<svg/>'
+    assert mark in (built / 'tools/index.html').read_text(encoding='utf-8')
+    for name in ('image-studio/index.html', 'slide-studio/index.html'):
+        assert 'class="brand"' in (mapped / name).read_text(encoding='utf-8')
+
+
 def test_the_screen_carries_the_site_chrome_once_and_every_door_is_a_panel():
     """🧰 tools_chrome + PySaiyanWeBoo's chrome on the screen: the board with the clock, 🏠, ⭐ ⚙️ and ☰ ⋯ for its own (☰ lists
     nothing of other pages); and 🚪 tools_door: PySaiyanWeBoo's Door-to-Door with 🏠 and every 🧰 Tools link, each a #panel of it.

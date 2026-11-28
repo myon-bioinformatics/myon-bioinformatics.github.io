@@ -18,6 +18,13 @@ _FORWARD_ONLY = re.compile(r'<meta\s+http-equiv=["\']?refresh', re.IGNORECASE)
 
 _IRONMATE_ROUTES = {'tools/': 'browser-tools/', 'slides/': 'slide-studio/'}
 
+# The Portfolio already identifies this panel as Browser Tools. Ironmate's
+# standalone wordmark links to the same editor as the adjacent functional link.
+_TOOLS_WORDMARK = re.compile(
+    r'(<header>\s*)<a class="brand" href="\.\./"><img src="\.\./brand/heatmap\.svg"[^>]*>'
+    r'\s*IRONMATE\s*</a>\s*'
+)
+
 
 def _studio_path(path: str) -> str:
     for source, target in _IRONMATE_ROUTES.items():
@@ -61,6 +68,13 @@ def stage_ironmate_studios(built: Path, mapped: Path) -> None:
         target = mapped / _studio_path(source)
         target.parent.mkdir(parents=True, exist_ok=True)
         if path.suffix == '.html':
+            if source == 'tools/index.html':
+                page, removed = _TOOLS_WORDMARK.subn(r'\g<1>', page, count=1)
+                if removed:
+                    page = re.sub(
+                        r'(<a href="\.\./">)Image Studio ↗(?=</a\s*>)',
+                        r'\g<1>🖼️ 画像工房 ↗', page, count=1,
+                    )
             page = _STUDIO_LINK.sub(lambda m: m['attr'] + m['quote'] + _studio_href(source, m['url']) + m['quote'], page)
             target.write_text(page, encoding='utf-8')
         elif source == 'brand/manifest.webmanifest':
