@@ -9,8 +9,7 @@ and ``--refresh-lock`` rewrites the lock after the pin moves.
 
 The 🧰 Tools cards (scripts/front_page.py ``PORTAL``) list the practical pages, each one working on what the visitor brings:
 the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in the page; ``--record-chat`` indexes the other repositories at deploy
-time) and PySaiyanWeBoo's own tool documents (🧾 the JUnit reader, whose 🧯 hands a run to the chat's /triage;
-🤝 its MCP connection test is the lab's #protocol panel), published with
+time) and PySaiyanWeBoo's own tool documents (🧾 the JUnit reader, whose 🧯 hands a run to the chat's /triage), published with
 the portfolio's way back, shortcut label and icons. The 🌍 world pages (scripts/world.py: the travel world, 🏫 the school,
 🗼 the parallel cities, 🎬 the camera: the screen's #worlds panel) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and
 are not among the cards. Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
@@ -30,7 +29,6 @@ import hashlib
 import html
 import importlib.util
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -50,11 +48,11 @@ STYLESHEET_BUNDLES = {'css/bundle.css': 'bundled_css', 'css/core.css': 'core_css
 DISTRIBUTION = 'pysaiyanweboo'
 # 🌍 One document: the school, the cities and the camera are its #school, #tokyo and #camera (no forwarding pages).
 HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
-WORLD_CSS_ASSET = 'tools/world-assets/world.css'
-WORLD_JS_ASSET = 'tools/world-assets/world.js'
+WORLD_CSS_ASSET = 'tools/worlds/world.css'
+WORLD_JS_ASSET = 'tools/worlds/world.js'
 WORLD_ASSETS = (WORLD_CSS_ASSET, WORLD_JS_ASSET)
-DRAGON_PNG_ASSET = 'tools/world-assets/london-dragon.png'
-DRAGON_GRID_ASSET = 'tools/world-assets/london-dragon.json'
+DRAGON_PNG_ASSET = 'tools/worlds/london-dragon.png'
+DRAGON_GRID_ASSET = 'tools/worlds/london-dragon.json'
 DRAGON_ASSETS = (DRAGON_PNG_ASSET, DRAGON_GRID_ASSET)
 
 # Files served verbatim. The generators write every other public file to the output tree.
@@ -76,7 +74,6 @@ PUBLIC_SOURCE_FILES = (
     'profile.json',
     'projects.json',
     'site.config.json',
-    'tools/niconico/search.js',
     'tools/vendor/web-ui/LICENSE',
 )
 
@@ -193,33 +190,36 @@ def _front_module():
 
 
 def tools_places(prefix: str = '../') -> list[dict]:
-    """🧰 Every link of the 🧰 Tools cards (front_page.py ``PORTAL``, so a new card is a new row) as ``{'id', 'label', 'href'}``, for
-    a page ``prefix`` below the site root (``../``: the screen's): the doors of 🚪 Door-to-Door. ``text`` is the card's own description (the board shows it).
-
-    Every label is ``emoji words``, one emoji per page (the door knows a page by its emoji): the link's own, the card's, or the one
-    named here for a link that has none or shares its card's. 🌐 Its words in the other languages are the card's (``tools_words``): the chrome and
-    a world carry them (``data-words``), so 🌐 finds them wherever the label is shown."""
-    site, places = 'https://myon-bioinformatics.github.io/tools/', {}
-    marks = {'html-import': '📄', 'maps': '🗺️', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'protocol': '🤝'}
-    for card in _front_module().PORTAL:
-        mark, _, title = card['title'].partition(' ')
-        if not title or any(c.isalnum() for c in mark):                  # a title without an emoji: all of it is words
-            mark, title = '🚪', card['title']
-        for label, href in card['links']:
-            href = prefix + href[2:] if href.startswith('./') else prefix + 'tools/' + href[len(site):] if href.startswith(site) else href
-            name = re.sub(r'[^a-z0-9]+', '-', href.partition('tools/')[2].removesuffix('.html').lower()).strip('-') or card['id']
-            words = title if len(card['links']) == 1 else label.removesuffix(' →').removeprefix('Open ')   # several links: each link's own words
-            own = words.partition(' ')                                   # a link that carries its own emoji ("🌍 村 →") is known by it
-            door = words if own[2] and not any(c.isalnum() for c in own[0]) else f'{marks.get(name, mark)} {words}'
-            places.setdefault(href, {'id': name, 'href': href, 'label': door, 'text': card['text']})
+    """🧰 Every link of the 🧰 Tools cards (front_page.py ``PORTAL``, so a new card is a new row) as ``{'id', 'label', 'href', 'text'}``,
+    for a page ``prefix`` below the site root (``../``: the screen's): the doors of 🚪 Door-to-Door. A card's first link is the tool
+    itself and takes the card's title (its one name, ``emoji words``) and ``text`` (what it does: the board shows it); another link
+    leads to a relative, named by its own ``emoji words``, unless a card already names that place. 🌐 Its words in the other
+    languages are the card's (``tools_words``): the chrome and a world carry them (``data-words``), so 🌐 finds them wherever the
+    label is shown."""
+    site, places, cards = 'https://myon-bioinformatics.github.io/tools/', {}, _front_module().PORTAL
+    for first in (True, False):                                           # the tools first: a relative's link never names a tool
+        for card in cards:
+            for label, href in card['links'][:1] if first else card['links'][1:]:
+                href = prefix + href[2:] if href.startswith('./') else prefix + 'tools/' + href[len(site):] if href.startswith(site) else href
+                name = re.sub(r'[^a-z0-9]+', '-', href.partition('tools/')[2].removesuffix('.html').lower()).strip('-') or card['id']
+                mark, _, words = (card['title'] if first else label.removesuffix(' →')).partition(' ')
+                places.setdefault(href, {'id': name, 'href': href, 'label': f'{mark} {words}', **({'text': card['text']} if first else {})})
     return list(places.values())
 
 
 def tools_words() -> dict[str, list[str]]:
-    """🌐 The 🧰 Tools cards' names in the ten other languages of 🌐 (each card's ``words``: its title and its links' words), as
-    PySaiyanWeBoo's chrome takes them: wherever a page shows one (the board, ☰, 🚪, a card), it reads in the visitor's language."""
+    """🌐 The 🧰 Tools cards' names in the ten other languages of 🌐 (each card's ``words``: its title and its links' words; 開く, the
+    word every card's first link says; ⚙️'s own rows, ``WORDS``), as PySaiyanWeBoo's chrome takes them: wherever a page shows one
+    (the board, ☰, 🚪, a card), it reads in the visitor's language."""
     front = _front_module()
-    return {**{ja: row for card in front.PORTAL for ja, row in card.get('words', {}).items()}, **front.WORDS}   # and ⚙️'s own rows (WORDS)
+    opens = {'開く': ['Open', 'Ouvrir', 'Abrir', 'Abrir', 'افتح', '打开', 'Открыть', 'Buka', 'Öffnen', 'Fungua']}
+    return {**opens, **{ja: row for card in front.PORTAL for ja, row in card.get('words', {}).items()}, **front.WORDS}
+
+
+def _sentences(text: str) -> list[dict]:
+    """📟 A description as the board's items: a sentence each, three at most, 120 characters each."""
+    return [{'text': part if len(part) <= 120 else part[:119] + '…'}
+            for part in (p.strip() for p in re.split(r'(?<=[。！？])|(?<=[.!?])\s+', html.unescape(text))) if part][:3]
 
 
 def tools_chrome(prefix: str = '../', tools: dict | None = None, description: str = '', *, title: str = 'TOOLS', home: bool = True,
@@ -230,8 +230,7 @@ def tools_chrome(prefix: str = '../', tools: dict | None = None, description: st
     ``settings``, the page's own rows of ⚙️ (the front page's 🧾 display mode, beside 🌐 and 🎨, which every page shares).
     ☰ is each page's own (itself and its sections, listed in the page); the tools themselves are 🚪 Door-to-Door's rows (``tools_places``)."""
     cards = _front_module().PORTAL
-    about = [{'text': part if len(part) <= 120 else part[:119] + '…'}
-             for part in (p.strip() for p in re.split(r'(?<=[。！？])|(?<=[.!?])\s+', html.unescape(description))) if part][:3]
+    about = _sentences(description)
     return {'id': 'tools', 'lang': lang, 'words': tools_words(), **({'home': prefix + 'index.html#tools'} if home else {}), 'tools': tools or {},
             'settings': settings or [],
             'board': {'title': title, 'items': (about + [{'text': card['title']} for card in cards])[:12]}}
@@ -957,15 +956,12 @@ def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, t
     return [f'💬 {len(commits)} repositories · {len(files)} JSON/JSONL · 🔌 mcp-toolcall-lab {lab} · 🗂 TalkCompress {compressor}', *missed]
 
 
-# ── 🧰 道具: Ironmate's studios, mcp-toolcall-lab's tools and execution lab (🔌 MCP 実験室) and DRAgoWing's heatmap, built
-# from their default branches at deploy time; each lives at its feature route, not at the repository's name ──
+# ── 🧰 道具: Ironmate's studios, the format lab and DRAgoWing's heatmap, built from their default branches at deploy time;
+# each lives at its feature route, not at the repository's name ──
 TOOLS = 'media/tools/receipt.json'       # what this build recorded; the pages live under their folders (not kept in git)
-# key: (repository, folder under the site, entry pages inside it). The lab's tools come before its execution lab, which
-# lives inside them (a tool replaces its whole folder).
+# key: (repository, folder under the site, entry pages inside it); a tool replaces its whole folder.
 _STUDIO_ROUTES = load_module('studio_routes', '_src/tools/studio_routes.py')
 TOOL_SOURCES = {'ironmate': ('myon-bioinformatics/Ironmate', 'tools', _STUDIO_ROUTES.PUBLIC_STUDIO_ENTRIES),   # entries: each a framed #panel
-                'mcp-toolcall-lab': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp', ('',)),
-                'mcp-toolcall-lab-execution': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp/execution', ('',)),
                 'format-lab': ('myon-bioinformatics/myon-bioinformatics', 'tools/format-lab', ()),   # () : its page joins the 🧰 screen
                 'dragowing': ('myon-bioinformatics/DRAgoWing', 'tools/heatmap', ())}
 CHECKOUTS = '.test-deps'   # 🧪 local checkouts (CI pins them) that --stage builds the tools from, one folder per repository
@@ -973,7 +969,7 @@ CHECKOUTS = '.test-deps'   # 🧪 local checkouts (CI pins them) that --stage bu
 
 def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, str]) -> dict:
     """Build each tool from its checkout with this ``python`` (📦 its pages group carries the pinned PySaiyanWeBoo the tools
-    render through; the lab's build also runs Node) into ``output/<folder>/`` (the 🧰 screen takes its pages in: ``tool_panels``)
+    render through) into ``output/<folder>/`` (the 🧰 screen takes its pages in: ``tool_panels``)
     and write the receipt; a tool that fails is left out. Returns the receipt."""
     made, failed = [], {}
     for key, (repository, folder, entries) in TOOL_SOURCES.items():
@@ -983,8 +979,7 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
         try:
             with tempfile.TemporaryDirectory() as tmp:       # build aside; the ⏸ page stays unless the whole tool built
                 built = Path(tmp) / 'site'
-                run = lambda *args, env=None: subprocess.run([sys.executable, *args], cwd=checkouts[key], check=True,
-                                                             capture_output=True, timeout=900, env=env)
+                run = lambda *args: subprocess.run([sys.executable, *args], cwd=checkouts[key], check=True, capture_output=True, timeout=900)
                 if key == 'ironmate':
                     run('image_studio.py', '--build-site', str(built))
                 elif key == 'format-lab':
@@ -992,18 +987,6 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                 elif key == 'dragowing':                          # 🌡️ one page on stdout; its scenes open in Image Studio
                     built.mkdir()
                     (built / 'index.html').write_bytes(run('scripts/build_heatmap_page.py').stdout)
-                elif key == 'mcp-toolcall-lab':                   # 🔌 Wiki · Pixiv · Pokémon and the diagnostics (Python only)
-                    env = {**os.environ, 'PYTHONPATH': os.pathsep.join(('src', 'vendor'))}
-                    run('-m', 'mcp_toolcall_lab.stub_front', 'pages', '--out', str(built), env=env)
-                    run('-m', 'mcp_toolcall_lab.mcp_toolcall_lab_repository_diagnostics', str(built), env=env)
-                    lab = load_module('mcp_lab', '_src/tools/mcp_lab.py')
-                    lab.stage_lab_tools(built, commits[key], checkouts[key])   # 🖼️ framed
-                else:
-                    run('scripts/build_portable_pages.py', '--source-sha', commits[key], '--out', str(Path(tmp) / 'lab'),
-                        env={**os.environ, 'PYTHONPATH': 'src'})
-                    shutil.move(str(Path(tmp) / 'lab' / 'execution'), str(built))
-                    for copy in built.glob('runtime/**/*.html'):   # 🚫 a source copy of the page (it is index.html); runtime.zip keeps it
-                        copy.unlink()
                 if key == 'ironmate':
                     mapped = Path(tmp) / 'mapped'
                     _STUDIO_ROUTES.stage_ironmate_studios(built, mapped)   # 🖼️ framed in the screen
@@ -1015,13 +998,6 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                         shutil.move(str(mapped / entry), str(target))
                     made.append(key)
                     continue
-                for _, inner, _ in TOOL_SOURCES.values():      # a tool inside this one (the execution lab) stays as it was
-                    nested = inner[len(folder) + 1:] if inner.startswith(folder + '/') else ''
-                    if nested and (dest / nested).exists() and not (built / nested).exists():
-                        (built / nested).parent.mkdir(parents=True, exist_ok=True)
-                        shutil.move(str(dest / nested), str(built / nested))
-                if key == 'mcp-toolcall-lab':
-                    lab.stage_lab_branding(built, checkouts[key])
                 if dest.exists():
                     shutil.rmtree(dest)
                 dest.parent.mkdir(parents=True, exist_ok=True)
@@ -1042,7 +1018,7 @@ def record_tools(output: Path, remote: str = 'https://github.com/') -> list[str]
     with tempfile.TemporaryDirectory() as tmp:
         for key, (repository, _, _) in TOOL_SOURCES.items():
             try:
-                if repository not in cloned:                      # one clone per repository (the lab has two tools)
+                if repository not in cloned:                      # one clone per repository
                     checkout = Path(tmp) / repository.split('/')[1]
                     subprocess.run(['git', 'clone', '--quiet', '--depth', '1', remote + repository, str(checkout)], check=True,
                                    timeout=300)
@@ -1115,7 +1091,8 @@ SHELL_PAGE = 'tools/index.html'
 _LINK = re.compile(r'(?P<attr>\b(?:href|src)=)(?P<quote>["\'])(?P<url>[^"\']*)(?P=quote)')
 _SCRIPT = re.compile(r'<script\b[^>]*>.*?</script>', re.S)
 _SHELL_JS = """(()=>{const panels=[...document.querySelectorAll('[data-tools-panel]')],names=panels.map(p=>p.id);let current='';
-const mark=()=>{const door=document.querySelector('[data-door-select]'),mine=door&&[...door.options].find(o=>o.value.endsWith('#'+current));if(mine)door.value=mine.value};   // 🚪 shows where you are
+const mark=()=>{const door=document.querySelector('[data-door-select]');if(!door?.options.length)return;   // 🚪 shows where you are (🏠: no row of its own)
+ door.value=([...door.options].find(o=>o.value.endsWith('#'+current))||door.options[0]).value};
 const inside=(panel,target,fragment)=>{const frame=panel.querySelector('iframe');if(!frame)return(document.getElementById(target)||panel).scrollIntoView();
  const go=()=>{if(location.hash===fragment)frame.contentWindow.location.replace('about:srcdoc'+fragment)};
  if(frame.dataset.ready)go();else frame.addEventListener('load',go,{once:true})};
@@ -1125,7 +1102,7 @@ const play=async marks=>{for(const[mark,old]of marks){const s=document.createEle
   else if(s.type==='module'){const id='tools-ran-'+Math.random().toString(36).slice(2),done=new Promise(r=>{addEventListener(id,r,{once:true});addEventListener('error',r,{once:true});setTimeout(r,10000)});
    s.textContent=old.textContent+'\\n;dispatchEvent(new Event('+JSON.stringify(id)+'))';mark.replaceWith(s);await done}
   else{s.textContent=old.textContent;mark.replaceWith(s)}}};
-// 📽️ The old popup handoff stays on this screen. Reuse the slide editor's normal image import (including undo).
+// 📽️ The old popup handoff stays on this screen. IronmatePhone.act("image", file) is the slide editor's own 📥 画像 (undoable).
 let sending=false;
 const connectHandoff=frame=>frame.contentDocument.querySelector('[data-slide-handoff]')?.addEventListener('click',async e=>{
  e.preventDefault();if(sending)return;sending=true;
@@ -1140,11 +1117,17 @@ const connectHandoff=frame=>frame.contentDocument.querySelector('[data-slide-han
   if(!slide)throw Error('Slide Studio is unavailable');
   if(!slide.dataset.ready)await new Promise(resolve=>slide.addEventListener('load',resolve,{once:true}));
   if(current!=='image-studio'||location.hash!==from)return;
-  const app=slide.contentWindow,input=slide.contentDocument.querySelector('input[data-file="image"]');
-  if(!input||!app.IronmatePhone)throw Error('Slide Studio did not load');
-  const transfer=new app.DataTransfer();transfer.items.add(new app.File([blob],'ironmate-image.png',{type:'image/png'}));
-  link.closest('dialog')?.close();location.hash='slide-studio';show(panel);input.files=transfer.files;input.dispatchEvent(new app.Event('change',{bubbles:true}));
- }catch{status.textContent='画像を渡せませんでした。PNGを書き出し、スライド工房で読み込んでください。'}
+  const app=slide.contentWindow,phone=app.IronmatePhone;
+  if(typeof phone?.act!=='function')throw Error('Slide Studio did not load');
+  // The pinned editor checks Blob against its own iframe's constructor.
+  const image=new app.Blob([blob],{type:blob.type});
+  const previousSelection=phone.selected;
+  const imported=await phone.act('image',image);
+  // Older Ironmate revisions select the new layer but return no result.
+  if(!(imported??(phone.selected&&phone.selected!==previousSelection)))throw Error('Slide Studio could not add the image');
+  if(current!=='image-studio'||location.hash!==from)return;
+  link.closest('dialog')?.close();location.hash='slide-studio';show(panel);
+ }catch{status.textContent='画像を渡せませんでした。スライド工房の状態を確認し、もう一度お試しください。'}
  finally{if(!status.textContent)status.remove();sending=false}
 });
 const mount=panel=>{const inert=panel.querySelector(':scope>template');if(inert){const part=document.importNode(inert.content,true);  // 💤 a panel loads when first opened
@@ -1153,8 +1136,13 @@ const mount=panel=>{const inert=panel.querySelector(':scope>template');if(inert)
   for(const frame of panel.querySelectorAll('iframe'))frame.addEventListener('load',()=>{
    if(panel.id==='image-studio')connectHandoff(frame);frame.dataset.ready='1'
   },{once:true})}};
+const home=document.getElementById('home');let lead=JSON.parse(home.dataset.about||'[]').length;   // 📟 the board: what the open panel is, then the cards
+const tell=panel=>{const run=document.querySelector('.ui-chrome .ui-board-run');if(!run)return;
+ const about=JSON.parse((panel.dataset.about?panel:home).dataset.about||'[]'),cards=[...run.children].slice(lead,run.children.length/2);
+ const first=[...about.map(text=>Object.assign(document.createElement('span'),{className:'ui-board-item',textContent:text})),...cards];
+ run.replaceChildren(...first,...first.map(n=>{const c=n.cloneNode(true);c.setAttribute('aria-hidden','true');return c}));lead=about.length};
 const show=(panel,target,fragment)=>{mount(panel);
- for(const p of panels)p.hidden=p!==panel;document.title=panel.dataset.title;
+ for(const p of panels)p.hidden=p!==panel;document.title=panel.dataset.title;tell(panel);
  if(target)inside(panel,target,fragment);else if(current&&current!==panel.id)scrollTo(0,0);current=panel.id;mark()};
 const route=()=>{const fragment=location.hash;let name='';
  try{name=decodeURIComponent(fragment.slice(1).split('?',1)[0])}catch{}
@@ -1170,7 +1158,7 @@ _FRAME_CSS = '.ui-tools-frame{display:block;width:100%;height:calc(100dvh - 72px
 
 def panel_name(source: str) -> str:
     """🧰 The #name a tool has on the screen: this site's own name it (``tools/#gif``), another's is its path under tools/
-    (``tools/mcp/execution/index.html`` → ``mcp-execution``)."""
+    (``tools/heatmap/index.html`` → ``heatmap``)."""
     return source.partition('#')[2] or re.sub(r'(?:/index)?\.html$', '', source.removeprefix('tools/')).replace('/', '-')
 
 
@@ -1279,7 +1267,7 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
     The header, the side and the foot are the site's (``add_site_chrome``) once; a panel stays an inert ``<template>`` until it is
     first opened (its styles and scripts load then), and ``#section`` opens the panel that holds it.
     🆔 One owner per id: two of this site's panels that share one stop the build; another repository's gets ⏸ in its place."""
-    places = {place['href']: place['label'] for place in tools_places()}
+    places = {place['href']: place for place in tools_places()}
     names = [panel_name(source) for source in panels]
     owners = {name: name for name in ('home', *names, 'door', 'door-select', 'tools-chrome')}
     routes = {source: _routes(data.decode('utf-8')) - set(owners) for source, (data, _, framed) in panels.items() if framed}
@@ -1306,18 +1294,21 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
     rank = {href.partition('#')[2]: i for i, href in enumerate(places)}    # 🚪 the home list reads like the door: the cards' order
     for source in sorted(panels, key=lambda source: rank.get(panel_name(source), len(rank))):
         name, (title, markup, classes, own) = panel_name(source), markup_of[source]
-        index.append(f'<li><a href="#{name}">{html.escape(places.get(f"../tools/#{name}", title), quote=False)}</a></li>')
+        place = places.get(f'../tools/#{name}', {})                     # 🏷️ its card: the one name (🚪, 🏠, the tab) and what it does
+        title, about = place.get('label', title), place.get('text')
+        index.append(f'<li><a href="#{name}">{html.escape(title, quote=False)}</a></li>')
         css = f' class="{html.escape(classes)}"' if classes else ''      # the page's <body> class (ui-elements) holds for its panel
         sections.append(f'<section id="{name}"{css} data-tools-panel data-title="{html.escape(title)}"'
+                        + (f' data-about="{html.escape(json.dumps([i["text"] for i in _sentences(about)], ensure_ascii=False))}"' if about else '')
                         + (f' data-routes="{" ".join(sorted(own))}"' if own else '') + f' hidden><template>{markup}</template></section>')
-    home = (f'<section id="home" data-tools-panel data-title="🧰 Tools"><main class="ui-page"><h1>🧰 Tools</h1>'
-            f'<ul class="ui-tools-index">{"".join(index)}</ul></main></section>')
+    description = 'myon-bioinformatics の道具を 1 つの画面で。🚪 で道具を選び、🏠 で一覧へ。'   # 📟 the board's first items while 🏠 is open
+    home = (f'<section id="home" data-tools-panel data-title="🧰 Tools" data-about="{html.escape(json.dumps([i["text"] for i in _sentences(description)], ensure_ascii=False))}">'
+            f'<main class="ui-page"><h1>🧰 Tools</h1><ul class="ui-tools-index">{"".join(index)}</ul></main></section>')
     mark = '<!-- 🧰 panels -->'                                            # the chrome first: a panel's own header (🌍) is not the screen's
     sheet = posixpath.relpath(ASSET_BASE + 'css/bundle.css', posixpath.dirname(SHELL_PAGE))          # 🎨 the shared sheet, one file for both
     page = ui.render_document(title='🧰 Tools', theme='modern', trusted_html=home + mark + f'<script>{_SHELL_JS}</script>',
                               css='.ui-tools-index{display:grid;gap:8px;padding:0;list-style:none}' + _FRAME_CSS)
-    page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace('<head>', '<head><meta name="description" content="'
-        'myon-bioinformatics の道具を 1 つの画面で。🚪 で道具を選び、🏠 で一覧へ。">', 1).replace('<style>', f'<link rel="stylesheet" href="{sheet}"><style>', 1)
+    page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace('<head>', f'<head><meta name="description" content="{description}">', 1).replace('<style>', f'<link rel="stylesheet" href="{sheet}"><style>', 1)
     page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': '../index.html#tools'}], test_id='portfolio-back')   # 🏠 the home panel's first line
     cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './#tokyo'}}   # 🗺️ the map's neighbour
     page = add_site_chrome(page, SHELL_PAGE, cities).replace(mark, ''.join(sections), 1)
@@ -1430,7 +1421,7 @@ def main(argv=None):
     parser.add_argument('--record-flow', type=Path, metavar='DIR',
                         help='🌊 run FFSS and DRAgoWing (their default branches) and put the flow lab media under DIR/media/flow/')
     parser.add_argument('--record-tools', type=Path, metavar='DIR',
-                        help='🧰 build the tools of TOOL_SOURCES (Ironmate, mcp-toolcall-lab, DRAgoWing; their default branches) under DIR/tools/')
+                        help='🧰 build the tools of TOOL_SOURCES (Ironmate, the format lab, DRAgoWing; their default branches) under DIR/tools/')
     parser.add_argument('--record-map', type=Path, metavar='DIR',
                         help="🧠 read every repository's vendor.lock.json (and Aoi's subtrees) and draw the map under DIR/media/map/")
     parser.add_argument('--record-chat', type=Path, metavar='DIR',

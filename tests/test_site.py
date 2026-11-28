@@ -32,18 +32,16 @@ def _staged_site() -> tuple:
 
 
 SITE, PAGES = _staged_site()
-# 🧰 the tools stage() built from the pinned checkouts under .test-deps/ (CI checks out mcp-toolcall-lab there)
+# 🧰 the tools stage() built from checkouts of TOOL_SOURCES' repositories under .test-deps/ (if any)
 _RECEIPT = SITE / PAGES.TOOLS
 MADE = json.loads(_RECEIPT.read_text(encoding='utf-8'))['made'] if _RECEIPT.is_file() else []
-LAB_BUILT = 'mcp-toolcall-lab' in MADE
-needs_lab = pytest.mark.skipif(not LAB_BUILT, reason='🔌 clone mcp-toolcall-lab (the CI pin) into .test-deps/mcp-toolcall-lab')
 
 
 def test_stage_serves_published_static_files_verbatim():
     for name in ('api/repos.json', 'profile.json', 'projects.json', 'site.config.json',
                  'docs/html-import.md', 'docs/evidence/browser.gif', 'docs/evidence/browser.json',
                  'docs/evidence/chat.gif', 'docs/evidence/home-screen.gif',
-                 'tools/niconico/search.js', 'tools/vendor/web-ui/LICENSE'):
+                 'tools/vendor/web-ui/LICENSE'):
         assert (SITE / name).read_bytes() == (ROOT / name).read_bytes(), name
 
 
@@ -51,9 +49,6 @@ def test_stage_serves_published_static_files_verbatim():
 
 EXPECTED_PAGES = {
     "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
-    "https://myon-bioinformatics.github.io/tools/#image-studio",   # 🧰 framed #panels of the one screen
-    "https://myon-bioinformatics.github.io/tools/#browser-tools",
-    "https://myon-bioinformatics.github.io/tools/#slide-studio",
     # Other repositories' Pages (each checked to load on 2026-11-13): the operations dashboard, usage guides.
     "https://myon-bioinformatics.github.io/markdown/",
     "https://myon-bioinformatics.github.io/myon-bioinformatics/",
@@ -78,6 +73,7 @@ def test_portal_exposes_expected_pages():
     parser.feed((SITE / "index.html").read_text(encoding="utf-8"))
     assert "tools" in parser.ids
     assert EXPECTED_PAGES <= set(parser.links)
+    assert {"./tools/#image-studio", "./tools/#browser-tools", "./tools/#slide-studio"} <= set(parser.links)   # 🧰 framed #panels, from the site
 
 
 def test_tool_cards_and_door_follow_the_service_catalog(tmp_path, monkeypatch):
@@ -91,20 +87,16 @@ def test_tool_cards_and_door_follow_the_service_catalog(tmp_path, monkeypatch):
     catalog = json.loads((ROOT / 'services.json').read_text(encoding='utf-8'))
     projects = catalog['services']['projects']
     projects['Ironmate']['pages']['url'] = 'https://myon-bioinformatics.github.io/tools/example-image/'
-    projects['mcp-toolcall-lab']['execution']['url'] = 'https://myon-bioinformatics.github.io/tools/example-execution/'
     path.write_text(json.dumps(catalog), encoding='utf-8')
     front = PAGES.load_module('test_front_catalog', scripts / 'front_page.py')
     monkeypatch.setattr(PAGES, '_front_module', lambda: front)
 
     parser = LinkParser()
     parser.feed(front.portal_cards())
-    assert 'https://myon-bioinformatics.github.io/tools/example-image/' in parser.links
-    assert './tools/example-image/' in parser.links  # keep the heatmap-to-editor shortcut
-    assert 'https://myon-bioinformatics.github.io/tools/example-execution/' in parser.links
-    assert not any('/image-studio/' in href or '/mcp/execution/' in href for href in parser.links)
+    assert parser.links.count('./tools/example-image/') == 2     # 🖼️ its own card and the heatmap's shortcut to it, from the site
+    assert not any('/image-studio/' in href for href in parser.links)
     doors = [place['href'] for place in PAGES.tools_places('../../')]
     assert doors.count('../../tools/example-image/') == 1
-    assert '../../tools/example-execution/' in doors
 
 
 def test_every_active_repository_with_pages_is_one_tap_away():
@@ -154,15 +146,18 @@ def test_a_tools_card_shows_its_moving_sample_and_the_picture_opens_the_tool(tmp
     assert all(f'<a href="{html_escape(href)}">{html_escape(label, quote=False)}</a>' in plain for card in front.PORTAL for label, href in card["links"])
     cards = front.portal_cards(frozenset({"tools/gif", "tools/operations", "tools/maps", "gif", "tools/no-such-tool"}))
     assert cards.count('class="project-sample"') == 3
-    assert "GIF をつくる →" not in cards and "Open Dashboard →" not in cards and ">実験室へ →</a>" in cards        # one page: the picture; no picture: the words
-    assert '<a class="project-sample" href="./tools/#maps">' in cards and "地図URLを作成 →" not in cards       # 📍 real coordinates: one page
+    assert '<a href="./tools/#gif">' not in cards and '<a href="./tools/#flow">開く →</a>' in cards        # one page: the picture; no picture: the words
+    assert '<a class="project-sample" href="./tools/#maps">' in cards and '<a href="./tools/#maps">' not in cards   # 📍 real coordinates: one page
     worlds = front.portal_cards(frozenset({"tools/worlds"}))                                               # 🪐 walked places: relatives stay side by side
     spaces = PAGES.load_module('world_shell', 'scripts/world_shell.py').SPACES                             # every space of the world, as it names them
-    assert ('<a class="project-sample" href="./tools/#world"><img src="./media/pages/tools/worlds.gif"' in worlds
-            and ''.join(f'<a href="./tools/#{name}">{label} →</a>' for name, (_, label) in spaces.items()) in worlds)
-    assert {'world', 'school', 'tokyo', 'london', 'paris', 'camera'} <= set(spaces)                         # 🎬 the camera too
+    assert {'world', 'school', 'tokyo', 'london', 'paris', 'camera'} <= set(spaces) and next(iter(spaces)) == 'world'   # 🌍 where its panel opens
+    assert ('<a class="project-sample" href="./tools/#worlds"><img src="./media/pages/tools/worlds.gif"' in worlds and '<a href="./tools/#worlds">開く →</a>'
+            + ''.join(f'<a href="./tools/#{name}">{label} →</a>' for name, (_, label) in list(spaces.items())[1:]) in worlds)
     doors = {place['id']: place['label'] for place in PAGES.tools_places()}                                # 🚪 a row each, under the space's own emoji
-    assert all(doors[name] == label for name, (_, label) in spaces.items())
+    assert doors['worlds'] == '🪐 仮想・拡張エリア' and all(doors[name] == label for name, (_, label) in list(spaces.items())[1:])
+    assert all(len(card["text"]) <= 70 and card["links"][0][0] == "開く →" for card in front.PORTAL)   # 📝 short; the first link opens it
+    titles = [card["title"] for card in front.PORTAL]                          # 🏷️ one name each: an emoji, then its words
+    assert len(set(titles)) == len(titles) and all(re.fullmatch(r"\S+ \S.*", title) and not title[0].isalnum() for title in titles)
     everything = front.portal_cards(frozenset(f"tools/{key}" for key in ids))
     several = [card for card in front.PORTAL if len(card["links"]) > 1]
     assert everything.count('class="project-sample"') == len(ids) and several
@@ -173,7 +168,7 @@ def test_a_tools_card_shows_its_moving_sample_and_the_picture_opens_the_tool(tmp
     samples = PAGES.tools_samples()                                              # what --record-samples opens: every page of the card, on the site
     assert list(samples) == [f"tools/{key}" for key in ids] and samples["tools/gif"] == (["https://myon-bioinformatics.github.io/tools/#gif"], "🎞 GIF工房")
     assert all(url.startswith("https://myon-bioinformatics.github.io/") for urls, _ in samples.values() for url in urls)
-    assert [url.rpartition("#")[2] for url in samples["tools/worlds"][0]] == list(spaces)                 # 🪐 a frame per space
+    assert [url.rpartition("#")[2] for url in samples["tools/worlds"][0]] == ["worlds", *list(spaces)[1:]]   # 🪐 a frame per space
     assert [len(urls) for urls, _ in samples.values()] == [len(card["links"]) for card in front.PORTAL]
     (tmp_path / "media/pages/tools").mkdir(parents=True)
     (tmp_path / "media/pages/tools/gif.gif").write_bytes(b"GIF89a")
@@ -349,31 +344,14 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
     assert "arrow attributes and advanced formatting" in editing["unsupported"]
 
     html = (SITE / "index.html").read_text(encoding="utf-8")
-    card_start = html.index('<h3 id="studios">🖼️ スライド・画像工房</h3>')
+    card_start = html.index('<h3 id="slide-studio">📽️ スライド工房</h3>')
     card = html[card_start:html.index("</article>", card_start)]
     assert "PPTX対応は計画段階" not in card
     assert "Markdown→PPTX" in card
     assert "試作実装" in card
-    assert "ブラウザでスライドを作成" in card
+    assert "ブラウザでスライドを作り" in card
     assert "Open Repository" not in card
     assert "tools/#slide-studio" in card
-
-
-def test_lab_pages_are_hosted_by_portfolio():
-    parser = LinkParser()
-    parser.feed((SITE / "index.html").read_text())
-    assert "mcp" in parser.ids
-    assert "./tools/#mcp" in parser.links
-    assert not (SITE / "tools/mcp/index.html").exists() and not (SITE / "tools/mcp/execution/index.html").exists()   # 🖼️ framed #panels
-    assert "<title>" in shell_frame("mcp")
-    for public_url in (module.LOGO, module.FAVICON):
-        assert (SITE / public_url.lstrip('/')).is_file()
-    execution = shell_panel("mcp-execution")
-    if execution.startswith("<iframe"):
-        assert "<title>" in shell_frame("mcp-execution")
-    else:                                                       # 🧪 its build runs Node: a job without it gets the ⏸
-        assert "⏸" in execution
-    assert not list((SITE / "tools/mcp").glob("**/*.html"))   # 🚫 neither a page nor the runtime's copy of it
 
 
 def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
@@ -404,8 +382,6 @@ def shell_panel(name: str) -> str:
     """🧰 The markup of the one screen's ``#name`` panel (inert in its <template> until it is opened)."""
     page = (SITE / PAGES.SHELL_PAGE).read_text(encoding="utf-8")
     return re.search(rf'<section id="{name}"[^>]*\bdata-tools-panel[^>]*><template>(.*?)</template></section>', page, re.S)[1]
-
-
 
 
 def test_tools_built_from_other_repositories_never_404():
@@ -568,7 +544,7 @@ def test_door_to_door_in_chromium_with_a_gif():
                     page.wait_for_selector('#door[data-door_ready]')
                     foot, select = page.locator('.ui-door-foot').bounding_box(), page.locator('.ui-door-foot [data-door-select]')
                     assert (foot['x'], foot['width'], round(foot['y'] + foot['height'])) == (0, width, height) and foot['height'] <= 64, foot
-                    assert select.bounding_box()['height'] == 40 and page.evaluate(shown) == '🗺️ 地図URL・座標ピン留め'
+                    assert select.bounding_box()['height'] == 40 and page.evaluate(shown) == '📍 地図URL・座標ピン留め'
                     visible = page.evaluate("[...document.querySelectorAll('.ui-door-foot .ui-door *')].filter(e => e.offsetParent && e.tagName !== 'OPTION' && e.getBoundingClientRect().width > 1).map(e => e.tagName)")
                     assert visible == ['LABEL', 'SPAN', 'SELECT'], visible                 # 🚪 and the pull-down (compact): no panel
                     assert page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth') == 0
@@ -901,8 +877,6 @@ def test_home_screen_tool_page_shortcuts_open_that_page_and_show_an_icon():
         assert label == page.metas["application-name"] and len(label) <= 12, (name, label)
         for rel in ("icon", "apple-touch-icon"):
             [icon] = rel_links(page, rel)
-            if icon["href"].startswith("/tools/mcp/execution/"):   # the lab artwork, built here at deploy time (--record-tools)
-                continue
             png_size((SITE / name).parent / icon["href"])
     assert "img-src 'self'" in shell_frame('html-import')   # 🖼️ the framed HTML import's CSP lets images load
 
@@ -912,8 +886,8 @@ def test_home_screen_every_local_link_and_asset_resolves():
         page = parse_page(SITE / name)
         for ref in page.refs:
             url = urlparse(ref)
-            if url.scheme or ref.startswith("/"):                   # 🌐 other sites, or the lab's Pages on this host
-                assert url.scheme == "https" or ref.startswith("/tools/mcp/execution/"), (name, ref)
+            if url.scheme:                                            # 🌐 other sites
+                assert url.scheme == "https", (name, ref)
                 continue
             target = ((SITE / name).parent / url.path).resolve() if url.path else SITE / name
             target = target / "index.html" if target.is_dir() else target
@@ -1072,247 +1046,14 @@ def test_fixture_oracles_are_explicit():
     assert by_name['whitespace']['expected']['text'] == 'A B C'
 
 
-# ═══ 🧪 lab publication ═══════════════════════════════════════════════════════════════════════════════════
+# ═══ 💬 chat ═══════════════════════════════════════════════════════════════════════════════════════════
 
-spec = importlib.util.spec_from_file_location('mcp_lab', ROOT / '_src/tools/mcp_lab.py')
-module = importlib.util.module_from_spec(spec)
-sys.modules['mcp_lab'] = module  # the tests below import names from it
-spec.loader.exec_module(module)
-PUBLIC = SITE / 'tools/mcp'      # 🔌 built from the pinned lab checkout (.test-deps/mcp-toolcall-lab) when it is there: its files
-lab_page = lambda: shell_frame('mcp')   # 🖼️ and its page, framed in the one screen
+def test_lab_pin_is_one_commit_for_both_ci_jobs():
+    """🔌 ci.yml's static and browser jobs check out the same lab commit: the code the chat's MCP server runs in the tests."""
+    refs = re.findall(r'repository: myon-bioinformatics/mcp-toolcall-lab\n\s+ref: ([0-9a-f]{40})', (ROOT / '.github/workflows/ci.yml').read_text())
+    assert len(refs) == 2 and len(set(refs)) == 1, refs
+    assert 'mcp-toolcall-lab' not in (ROOT / '.github/workflows/html-import.yml').read_text()     # 🐳 the Docker contract builds no lab
 
-
-@needs_lab
-def test_lab_tools_are_built_from_the_lab_commit_with_actions_as_the_report():
-    commit = json.loads(_RECEIPT.read_text(encoding='utf-8'))['commits']['mcp-toolcall-lab']
-    page = lab_page()
-    for control in ('pages-wiki-form', 'pages-pixiv-source-form', 'pages-pixiv-extract-submit'):
-        assert control in page
-    assert f'mcp-toolcall-lab/commit/{commit}' in page and f'mcp-toolcall-lab@{commit[:7]}' in page
-    assert page.count(module.ACTIONS) >= 2 and 'data-testid="lab-actions-report"' in page   # 🧪 the banner and the report
-    assert 'Last Actions summary' not in page and '"verdict"' not in page
-    assert (PUBLIC / 'LICENSE').is_file()
-    published = {path.name for path in PUBLIC.iterdir() if path.is_file()}
-    assert published == {*module.FILES, *module.OPTIONAL, 'LICENSE', 'pixiv-markup.js', 'pixiv-panel.js', 'shared-navigation.mjs'} - {'index.html'}
-    assert not (ROOT / 'tools/mcp').exists()          # nothing of the lab is kept in git; the wrapper is _src/tools/mcp/
-
-
-def test_lab_pin_is_one_commit_across_workflows():
-    """🔌 ci.yml (static, browser) and html-import.yml (Docker) check out the same lab commit for --stage."""
-    refs = [ref for name in ('ci.yml', 'html-import.yml') for ref in re.findall(
-        r'repository: myon-bioinformatics/mcp-toolcall-lab\n\s+ref: ([0-9a-f]{40}|main)', (ROOT / '.github/workflows' / name).read_text())]
-    assert len(refs) == 3 and len(set(refs)) == 1, refs
-
-
-def test_lab_rebuild_keeps_the_execution_lab_inside_it(tmp_path):
-    """🧮 The Tool Lab replaces tools/mcp/ but keeps tools/mcp/execution/ (its own tool, built or ⏸) as it was."""
-    package = tmp_path / 'lab/src/mcp_toolcall_lab'
-    package.mkdir(parents=True)
-    (package / '__init__.py').write_text('')
-    (package / 'stub_front.py').write_text(
-        "import pathlib, sys\nout = pathlib.Path(sys.argv[3]); out.mkdir(parents=True, exist_ok=True)\n"
-        "for name in ('pages-hash.js', 'pages-pixiv.js', 'source.js', 'mcp.js', 'build_meta.json', 'summary.json'): (out / name).write_text('{}')\n"
-        "(out / 'pages-wiki.js').write_text('var DEFAULT_TITLE = \"\";')\n"
-        "(out / 'index.html').write_text('<html><head></head><body><header>Lab</header><main></main></body></html>')\n")
-    (package / 'mcp_toolcall_lab_repository_diagnostics.py').write_text('')
-    (tmp_path / 'lab/LICENSE').write_text('MIT')
-    artwork = tmp_path / 'lab/docs/assets'
-    artwork.mkdir(parents=True)
-    (artwork / Path(module.LOGO).name).write_bytes(b'source logo')
-    (artwork / Path(module.FAVICON).name).write_bytes(b'source favicon')
-    site = tmp_path / 'site'
-    kept = site / 'tools/mcp/execution/index.html'
-    kept.parent.mkdir(parents=True)
-    kept.write_text('execution')
-    logo = site / module.LOGO.lstrip('/')
-    logo.parent.mkdir()
-    logo.write_bytes(b'existing execution logo')
-    receipt = PAGES.collect_tools(site, {'mcp-toolcall-lab': tmp_path / 'lab'}, {'mcp-toolcall-lab': '0' * 40})
-    assert receipt['made'] == ['mcp-toolcall-lab'], receipt
-    assert kept.read_text() == 'execution' and not (site / 'tools/mcp/summary.json').exists()
-    assert logo.read_bytes() == b'existing execution logo'
-    assert (site / module.FAVICON.lstrip('/')).read_bytes() == b'source favicon'
-    page = (site / 'tools/mcp/index.html').read_text()                  # 🖼️ for the screen to frame (tool_panels): no chrome of its own
-    assert 'data-testid="portfolio-back"' not in page and 'mcp-toolcall-lab@0000000' in page
-
-
-def test_lab_stage_checks_everything_before_writing(tmp_path):
-    built = tmp_path / 'built'; built.mkdir()
-    (built / 'index.html').write_text('<html><head></head><body><header>Lab</header></body></html>')
-    for name in module.FILES[1:]:
-        (built / name).write_text('var DEFAULT_TITLE = "x";' if name == 'pages-wiki.js' else '{}')
-    (built / 'mcp-toolcalls.jsonl').write_text('private log')
-    (tmp_path / 'LICENSE').write_text('MIT')
-    before = {path.name: path.read_bytes() for path in built.iterdir()}
-    with pytest.raises(ValueError):
-        module.stage_lab_tools(built, 'main', tmp_path)
-    assert {path.name: path.read_bytes() for path in built.iterdir()} == before
-    module.stage_lab_tools(built, '0' * 40, tmp_path)
-    assert not (built / 'mcp-toolcalls.jsonl').exists() and (built / 'LICENSE').read_text() == 'MIT'
-
-
-@needs_lab
-def test_transferred_javascript_extracts_source_and_preserves_view_routes():
-    import subprocess
-    js = r'''
-const assert = require('node:assert/strict');
-const pixiv = require(process.argv[1] + '/pages-pixiv.js');
-const route = require(process.argv[1] + '/pages-hash.js');
-const result = pixiv.extractSource({title:'Demo',sourceText:'Example original source text'});
-assert.equal(result.ok,true);
-assert.equal(result.title,'Demo');
-assert.ok(result.body.includes('Example original source text'));
-assert.equal(pixiv.extractSource({title:'Demo',sourceText:''}).ok,false);
-assert.equal(pixiv.parseSourceUrl('https://evil.example/history/Demo/1/source').ok,false);
-assert.equal(route.viewFromLocation('#wiki',''),'wiki');
-assert.equal(route.viewFromLocation('#pixiv',''),'pixiv');
-assert.equal(route.viewFromLocation('#pokemon',''),'pokemon');
-assert.equal(route.viewFromLocation('',''),'home');
-'''
-    subprocess.run(['node', '-e', js, str(PUBLIC)], cwd=ROOT, check=True)
-
-
-@needs_lab
-def test_shared_presentation_replaces_the_lab_styling():
-    page = lab_page()
-    assert 'data-ui-theme="modern"' in page
-    assert 'href="terminal.css' not in page and not (PUBLIC / 'terminal.css').exists()
-    assert 'src="pages-hash.js' not in page
-    assert 'data-shared-ui="web-ui"' in page
-    assert 'font-family: inherit;' in page
-    assert 'generated into the local <code>terminal.css</code>' not in page and 'modern theme' in page
-
-
-def test_stage_reapplies_shared_runtime(tmp_path):
-    built = tmp_path / 'built'; built.mkdir()
-    (built / 'index.html').write_text('<html><head><link rel="stylesheet" href="terminal.css?v=1"></head><body><header>Demo</header>'
-                                      '<main class="term-page"><pre>Original report</pre></main><script src="pages-hash.js"></script></body></html>')
-    for name in module.FILES[1:]:
-        (built / name).write_text('var DEFAULT_TITLE = "";' if name == 'pages-wiki.js' else '{}')
-    (tmp_path / 'LICENSE').write_text('MIT')
-    module.stage_lab_tools(built, '0' * 40, tmp_path)
-    page = (built / 'index.html').read_text()
-    assert 'data-ui-theme="modern"' in page
-    assert '<pre class="ui-output">Original report</pre>' in page
-    assert (built / 'shared-navigation.mjs').is_file()
-
-
-def test_stage_preserves_consumer_niconico_panel_and_routes():
-    from mcp_lab import apply_shared_ui, NAVIGATION_BINDING
-    source = '''<html><head></head><body><header>Lab</header>
-    <a href="#pixiv" data-pages-nav="pixiv">Pixiv</a>
-    <section data-pages-view="pixiv"></section></body></html>'''
-    page = apply_shared_ui(source)
-    assert 'data-pages-nav="niconico"' in page
-    assert 'id="pages-niconico-results"' in page
-    assert '../niconico/search.js' in page
-    assert apply_shared_ui(page).count('data-pages-view="niconico"') == 1
-    assert b"niconico:'niconico'" in NAVIGATION_BINDING
-
-
-@needs_lab
-def test_built_lab_keeps_pokemon_panel_and_routes():
-    from mcp_lab import NAVIGATION_BINDING
-    page = lab_page()
-    assert 'data-pages-nav="pokemon"' in page
-    assert 'data-pages-view="pokemon"' in page
-    assert 'data-source-fetch' in page
-    assert 'data-source-extract' in page
-    assert 'source.js' in page
-    assert (PUBLIC / 'source.js').is_file()
-    assert b"pokemon:'pokemon'" in NAVIGATION_BINDING
-
-
-def test_execution_is_linked_from_the_card_readme_and_services():
-    for path in (SITE / 'index.html', ROOT / 'README.md'):
-        assert module.EXECUTION_URL in path.read_text()
-    services = json.loads((ROOT / 'services.json').read_text())
-    assert services['services']['projects']['mcp-toolcall-lab']['execution']['url'] == module.EXECUTION_URL
-
-
-@needs_lab
-def test_built_lab_example_defaults_are_blank_and_execution_is_linked():
-    import subprocess
-
-    class Inputs(HTMLParser):
-        def handle_starttag(self, tag, attrs):
-            attrs = dict(attrs)
-            if tag == 'input' and attrs.get('id') == 'pages-wiki-title':
-                assert attrs.get('value') == ''
-
-    Inputs().feed(lab_page())
-    assert 'href="/tools/#mcp-execution"' in lab_page() and module.EXECUTION_URL.endswith('/tools/#mcp-execution')   # 🖼️ framed: it opens in the screen
-    subprocess.run(['node', '-e', "require('node:assert/strict').equal(require(process.argv[1]).DEFAULT_TITLE, '')",
-                    str(PUBLIC / 'pages-wiki.js')], cwd=ROOT, check=True)
-
-
-def test_stage_clears_only_example_controls_and_preserves_original_evidence():
-    original = b'<header>Demo</header><input id="pages-wiki-title" value="Example City"><p>Article about Example City</p>'
-    payload = {'index.html': original, 'pages-wiki.js': b'var DEFAULT_TITLE = "Example City";\nvar content = "Example City";'}
-    module.apply_public_examples(payload)
-    assert b'value=""' in payload['index.html']
-    assert b'Article about Example City' in payload['index.html']
-    assert b'var DEFAULT_TITLE = "";' in payload['pages-wiki.js']
-    assert b'var content = "Example City";' in payload['pages-wiki.js']
-    before = dict(payload)
-    module.apply_public_examples(payload)
-    assert payload == before
-
-
-def test_actions_report_replaces_only_the_empty_summary():
-    page = ('<p>the actual round-trip is the "Last Actions summary" below.</p><h2>Last Actions summary</h2><p>Allowlisted.</p>'
-            '<pre><code class="language-json">{"verdict": null}</code></pre><ul><li>Local: docker</li></ul>')
-    report = module.apply_actions_report(page)
-    assert 'Last Actions summary' not in report and 'verdict' not in report
-    assert module.ACTIONS in report and '<li>Local: docker</li>' in report and 'Test results below' in report
-    assert module.apply_actions_report(report) == report
-    with pytest.raises(ValueError):
-        module.apply_actions_report('<h2>Last Actions summary</h2><table></table>')
-
-
-@needs_lab
-def test_lab_branding_is_idempotent_and_uses_published_absolute_paths():
-    from mcp_lab import apply_lab_branding, FAVICON, LOGO
-    from urllib.parse import urljoin
-    assert not (PUBLIC / 'repository-diagnostics.html').exists()   # 🩺 a panel of the page (#diagnostics), not a page
-    assert 'data-pages-view="protocol"' in lab_page() and (PUBLIC / 'mcp.js').is_file()   # 🤝 so is #protocol
-    assert not (SITE / 'tools/mcp-protocol').exists()
-    for name in ('index.html',):
-        page = lab_page()                                                  # 🖼️ the framed #mcp panel's document
-        assert apply_lab_branding(page) == page
-        assert page.count('data-lab-brand="favicon"') == 1
-        assert page.count('rel="apple-touch-icon"') == 1
-        assert page.count('mcp-toolcall-lab-logo.png') == 1
-        for asset in (FAVICON, LOGO):
-            assert asset in page
-            assert urljoin('https://myon-bioinformatics.github.io/tools/mcp/' + name, asset) == 'https://myon-bioinformatics.github.io' + asset
-    upstream = '<html><head><link rel="icon" href="assets/old.png"></head><body><header><img src="assets/mcp-toolcall-lab-logo.png"></header></body></html>'
-    branded = apply_lab_branding(upstream)
-    assert apply_lab_branding(branded) == branded
-    assert branded.count('rel="icon"') == 1
-    assert 'assets/old.png' not in branded
-    assert LOGO in branded
-
-
-def test_prose_extract_adapter_preserves_whitespace_hooks_and_code_blocks():
-    from mcp_lab import apply_prose_extracts, apply_shared_ui
-    source = ('<html><head></head><body>'
-              '<pre data-testid="pages-pixiv-extract" hidden class="ui-output">A\nB &lt;C&gt;</pre>'
-              '<pre class="ui-output" data-testid="pages-wiki-extract">Wiki\ntext</pre>'
-              '<pre class="ui-output"><code>print(1)</code></pre></body></html>')
-    converted = apply_prose_extracts(source)
-    assert '<div data-testid="pages-pixiv-extract" hidden class="ui-output">A\nB &lt;C&gt;</div>' in converted
-    assert '<div class="ui-output" data-testid="pages-wiki-extract">Wiki\ntext</div>' in converted
-    assert '<pre class="ui-output"><code>print(1)</code></pre>' in converted
-    assert apply_prose_extracts(converted) == converted
-    assert apply_shared_ui(source) == apply_shared_ui(converted)
-    if LAB_BUILT:
-        published = lab_page()
-        assert '<div data-testid="pages-pixiv-extract" hidden class="ui-output"></div>' in published
-        assert '<div data-testid="pages-wiki-extract" hidden class="ui-output"></div>' in published
-
-
-# ═══ 💬 cross-repo chat (scripts/chat.py; the page runs it in Pyodide) ═══════════════════════════════════════
 
 CHAT = PAGES._chat()
 CHAT_INDEX = {'schema': 'chat-index/1', 'owner': 'myon-bioinformatics',
@@ -2020,8 +1761,8 @@ def test_portfolio_worlds_share_one_engine_and_standalone_stays_self_contained()
         assert hashlib.sha256((SITE / asset).read_bytes()).hexdigest() == lock['outputs'][asset]
     assert (SITE / js).read_text(encoding='utf-8') == world.WORLD_JS
     assert (SITE / css).read_text(encoding='utf-8') == '@layer components{' + world.world_base_css() + '}'
-    css_link = '<link rel="stylesheet" href="./world-assets/world.css">'
-    js_link = '<script type="module" src="./world-assets/world.js"></script>'
+    css_link = '<link rel="stylesheet" href="./worlds/world.css">'                # 📁 under the panel's own name
+    js_link = '<script type="module" src="./worlds/world.js"></script>'
     page = shell_panel('worlds')                                     # 🌍 a #panel of the one screen; the scenes are its #school, #tokyo, #camera
     assert not (SITE / 'tools/demos').exists() and not (SITE / 'tools/worlds.html').exists()
     assert page.count(css_link) == page.count(js_link) == 1
@@ -2036,7 +1777,7 @@ def test_portfolio_worlds_share_one_engine_and_standalone_stays_self_contained()
         assert f'href="#{route}"' in page and f'id="{route}"' in page
     standalone = world.world_document(world.example_data('school'))
     assert world.world_base_css() in standalone and ui.module_script(world.WORLD_JS) in standalone
-    assert 'world-assets/' not in standalone
+    assert 'worlds/' not in standalone
 
 
 def test_the_one_screen_keeps_one_owner_per_id():

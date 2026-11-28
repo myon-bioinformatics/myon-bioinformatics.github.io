@@ -33,7 +33,7 @@ jobs:
           # Pull requests restore the cache and never write it; only main saves it.
           save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           prune-cache: true
-      # 🔌 The lab whose tools --stage builds (files in tools/mcp/, pages as the screen's #mcp panels; same pin in ci.yml and html-import.yml).
+      # 🔌 The lab whose code the chat's MCP server runs (tests read it here as the page reads media/chat/lab/; one pin for both jobs).
       - name: Checkout the verified mcp-toolcall-lab source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -69,8 +69,8 @@ jobs:
           save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           prune-cache: true
       # Browser tests are Python Playwright in this active venv; each stages the site (source tree + generated files) itself.
-      # The HTML import and MCP lab specs run in the Docker contract (html-import.yml), on Chromium and WebKit.
-      # 🔌 The lab whose tools --stage builds (files in tools/mcp/, pages as the screen's #mcp panels; same pin in ci.yml and html-import.yml).
+      # The HTML import spec runs in the Docker contract (html-import.yml), on Chromium and WebKit.
+      # 🔌 The lab whose code the chat's MCP server runs (tests read it here as the page reads media/chat/lab/; one pin for both jobs).
       - name: Checkout the verified mcp-toolcall-lab source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
