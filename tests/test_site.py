@@ -1311,13 +1311,17 @@ OPEN_API_ANSWERS = {    # 🌐 what each keyless API answers (its documented sha
         'license': {'spdx_id': 'MIT'}, 'pushed_at': '2026-11-28T00:00:00Z'}}
 
 
+@needs_lab
 def test_chat_mcp_wraps_keyless_apis_into_markdown_and_records(mcp_session):
-    """🌐 A keyless API the page fetches itself becomes an MCP tool that shapes what it reads: 🎬 YouTube oEmbed, 🕸️ Wikidata
-    (search, and an item with what it is an instance and a subclass of, labelled by a second request), 🧬 UniProt, 🐙 GitHub — each
-    a Markdown table to read and its record as structuredContent; a bad argument stops before any request."""
+    """🌐 The lab's keyless readers (adapters/keyless.py) are tools of the page's MCP server; the page fetches what they ask for:
+    🎬 YouTube oEmbed, 🕸️ Wikidata (search, and an item with what it is an instance and a subclass of, labelled by a second
+    request), 🧬 UniProt, 🐙 GitHub — each a Markdown table to read and its record as structuredContent; a bad argument stops
+    before any request, and the lab's BROWSER_BLOCKED providers are not listed."""
     asked = []
 
     def fetch(url):
+        if url.startswith('lab/'):
+            return _lab_fetch(url)
         asked.append(url)
         return json.dumps(next(answer for piece, answer in OPEN_API_ANSWERS.items() if piece in url))
     call = lambda name, args: CHAT.mcp_rpc({'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call', 'params': {'name': name, 'arguments': args}},
@@ -1345,6 +1349,8 @@ def test_chat_mcp_wraps_keyless_apis_into_markdown_and_records(mcp_session):
     bad = [call('fetch_youtube_oembed', {'url': 'https://evil.test/watch?v=x'}), call('fetch_wikidata_entity', {'id': 'Q0; drop'}),
            call('fetch_github_repo', {'repo': '../../users/x'})]
     assert all(r['isError'] and 'ValueError' in r['content'][0]['text'] for r in bad) and len(asked) == before   # 🚫 no request made
+    listed = {t['name'] for t in CHAT.server_tools(fetch).values()}
+    assert set(CHAT._STATE['lab']['keyless'].TOOLS) <= listed and not any('niconico' in t or 'pixiv' in t for t in listed)
 
 
 @needs_lab
@@ -1422,8 +1428,8 @@ def test_chat_ask_offers_what_jev_picks_and_calls_through_mcp(mcp_session, monke
     assert {row['prob_source'] for row in routes} == {'keyword'} and routes[0]['tool_family'] == 'pokeapi'
     assert [row['question'] for row in routes if row['fallback_reason'] == 'low_confidence'] == ['調べて']
     assert '⚖️ **pokeapi 3 · wikipedia 1 · none 4 · ⏸ low_confidence 1 · ironmate 2**' in CHAT.respond('/mcp log', index=CHAT_INDEX)
-    monkeypatch.setitem(CHAT._STATE, 'lab', False)                        # ⏸ no lab: the keyless APIs and this chat's own tools
-    assert offered('/ask ditto の種族値は？') == [*['fetch_youtube_oembed', 'search_wikidata', 'fetch_wikidata_entity', 'search_uniprot', 'fetch_github_repo'], 'find', 'show', 'onto'] and CHAT._STATE['route']['fallback_reason'] == 'no_lab'
+    monkeypatch.setitem(CHAT._STATE, 'lab', False)                        # ⏸ no lab: this chat's own tools, Jev not asked
+    assert offered('/ask ditto の種族値は？') == ['find', 'show', 'onto'] and CHAT._STATE['route']['fallback_reason'] == 'no_lab'
     assert '⚖️ Jev ⏸ no_lab' in CHAT.ask_html('答え', 3, 1.0)
 
 

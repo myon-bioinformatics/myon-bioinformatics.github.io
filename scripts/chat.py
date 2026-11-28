@@ -11,7 +11,7 @@ commit, and the mcp-toolcall-lab code the MCP server runs. TalkCompress's shorth
 
 ``respond(text)`` → Markdown, ``reply_html(text)`` → HTML (markdown.py escapes raw HTML), ``configure(index, base)``
 for the page. 🔌 ``mcp_rpc`` is an MCP server in the page (JSON-RPC 2.0: initialize, ping, tools/list, tools/call); /mcp and 🤖 /ask
-are its clients. A tool wraps an API (the lab's, or a keyless one the page fetches: ``OPEN_APIS``) and shapes what it reads: Markdown
+are its clients. A tool wraps an API (the lab's readers; the page fetches the keyless ones itself) and shapes what it reads: Markdown
 for people and the model, and the record itself as ``structuredContent``, whether a model reads it or not. /ask: ``ask_messages`` (the context, and ⚖️ Jev's choice of the tools to offer), ``ask_tools`` (those tools, from
 tools/list) and ``ask_call`` (one call: offered, then the server's check of its arguments — mcp-toolcall-lab's rule). Every
 message and decision joins the 🧾 trace (``/mcp log``, JSONL). Every command is a cli_args subparser, so a typo gets "maybe you meant".
@@ -96,11 +96,12 @@ CHAT_TOOLS = {
 }
 ASK_CALLS, ASK_RESULT = 2, 600   # 🔧 calls per question, characters of a result the model reads (the context is 2048 tokens)
 # 🔌 mcp-toolcall-lab's code the page's MCP server runs, in the repository's layout (record_chat copies it at the lab's commit into
-# media/chat/lab/): its Wikipedia tools with their FastMCP catalog, its PokéAPI reader and Jev's keyword router.
+# media/chat/lab/): its Wikipedia tools with their FastMCP catalog, its PokéAPI reader, its keyless API readers and Jev's router.
 LAB = tuple(f'src/mcp_toolcall_lab/{name}' for name in (
     '__init__.py', 'catalog.py', 'wikipedia_tool.py', 'pixiv_dictionary_tool.py', 'pixiv_markup_normalize.py', 'markdown_lib.py',
     'jev_router.py', 'jev_backend.py', 'jev_shim.py', 'jev_typesafe.py', 'fixture_selection.py', 'mock/__init__.py', 'mock/common.py',
-    'adapters/__init__.py', 'adapters/pokeapi.py')) + ('fixtures/jev_router/keywords.json', 'deploy/wikipedia-mcp/catalog.generated.json')
+    'adapters/__init__.py', 'adapters/pokeapi.py', 'adapters/keyless.py')) + ('fixtures/jev_router/keywords.json',
+                                                                      'deploy/wikipedia-mcp/catalog.generated.json')
 MCP_PROTOCOL = '2025-06-18'
 POKEAPI = 'https://pokeapi.co/api/v2/pokemon/{name}'
 # ⚖️ Jev's tool families → the server's tools /ask offers ('none': no tool; another family or a low confidence: every tool)
@@ -292,7 +293,7 @@ def _lab(fetch=None, base: str | None = None):
                 sys.path.insert(0, str(root / 'src'))
             os.environ.setdefault('MARKDOWN_PY', md.__file__)       # 📝 its vendored markdown.py: the one this chat runs
             from mcp_toolcall_lab import catalog, wikipedia_tool
-            from mcp_toolcall_lab.adapters import pokeapi
+            from mcp_toolcall_lab.adapters import keyless, pokeapi
             from mcp_toolcall_lab.jev_backend import KeywordBackend
             from mcp_toolcall_lab.jev_router import decide_route
         except Exception:
@@ -308,123 +309,16 @@ def _lab(fetch=None, base: str | None = None):
                 raise wikipedia_tool.WikipediaFetchError(f'could not fetch {title!r} from {lang}.wikipedia.org: {exc}') from exc
         wikipedia_tool._fetch_extract_payload = mediawiki
         tree = Path(wikipedia_tool.__file__).resolve().parents[2]
-        _STATE['lab'] = {'catalog': catalog, 'pokeapi': pokeapi, 'router': KeywordBackend.from_path(), 'decide': decide_route,
+        _STATE['lab'] = {'catalog': catalog, 'pokeapi': pokeapi, 'keyless': keyless, 'router': KeywordBackend.from_path(), 'decide': decide_route,
                          'tools': json.loads((tree / 'deploy/wikipedia-mcp/catalog.generated.json').read_text(encoding='utf-8'))['tools']}
     return _STATE['lab']
 
 
-def _q(**params) -> str:
-    return urlencode({key: value for key, value in params.items() if value is not None})
-
-
-def _youtube(args: dict, get) -> dict:
-    """🎬 YouTube's oEmbed for one video URL: title, channel and thumbnail (no key; the embed HTML is left out)."""
-    url = args['url'].strip()
-    host = re.match(r'https://(?:www\.|m\.|music\.)?(youtube\.com|youtu\.be)/', url)
-    if not host:
-        raise ValueError('a https://www.youtube.com/… or https://youtu.be/… URL')
-    data = json.loads(get('https://www.youtube.com/oembed?' + _q(url=url, format='json')))
-    return {'schema': 'youtube-oembed/1', 'url': url, **{key: data.get(key) for key in (
-        'title', 'author_name', 'author_url', 'thumbnail_url', 'thumbnail_width', 'thumbnail_height', 'provider_name')}}
-
-
-WIKIDATA = 'https://www.wikidata.org/w/api.php?'
-
-
-def _wikidata_search(args: dict, get) -> dict:
-    """🕸️ Wikidata items whose label matches (wbsearchentities): id, label, description."""
-    lang = args.get('lang', 'ja')
-    data = json.loads(get(WIKIDATA + _q(action='wbsearchentities', search=args['query'], language=lang, uselang=lang,
-                                        type='item', limit=5, format='json', origin='*')))
-    return {'schema': 'wikidata-search/1', 'query': args['query'], 'lang': lang, 'items': [
-        {'id': hit['id'], 'label': hit.get('label', ''), 'description': hit.get('description', ''),
-         'url': f'https://www.wikidata.org/wiki/{hit["id"]}'} for hit in data.get('search', [])]}
-
-
-def _wikidata_entity(args: dict, get) -> dict:
-    """🕸️ One Wikidata item as a node of a knowledge graph: its label, description and aliases, and what it is an instance of
-    (P31) and a subclass of (P279) — the genus of /onto — with their labels (a second request)."""
-    qid, lang = args['id'].strip().upper(), args.get('lang', 'ja')
-    if not re.fullmatch(r'Q[1-9][0-9]{0,11}', qid):
-        raise ValueError('an item id such as Q42')
-    langs = '|'.join(dict.fromkeys((lang, 'en')))
-    entity = json.loads(get(WIKIDATA + _q(action='wbgetentities', ids=qid, props='labels|descriptions|aliases|claims',
-                                          languages=langs, format='json', origin='*')))['entities'][qid]
-    if 'missing' in entity:
-        raise LookupError(f'no Wikidata item {qid}')
-    pick = lambda field: next((entity.get(field, {})[code]['value'] for code in (lang, 'en') if code in entity.get(field, {})), '')
-    links = {prop: [c['mainsnak']['datavalue']['value']['id'] for c in entity.get('claims', {}).get(prop, [])
-                    if c.get('mainsnak', {}).get('snaktype') == 'value'][:8] for prop in ('P31', 'P279')}
-    ids = sorted({q for qs in links.values() for q in qs})
-    names = {}
-    if ids:
-        found = json.loads(get(WIKIDATA + _q(action='wbgetentities', ids='|'.join(ids), props='labels', languages=langs,
-                                             format='json', origin='*')))['entities']
-        names = {q: next((v['labels'][c]['value'] for c in (lang, 'en') if c in v.get('labels', {})), q) for q, v in found.items()}
-    return {'schema': 'wikidata-entity/1', 'id': qid, 'url': f'https://www.wikidata.org/wiki/{qid}', 'label': pick('labels'),
-            'description': pick('descriptions'), 'aliases': [a['value'] for a in entity.get('aliases', {}).get(lang, [])][:8],
-            **{key: [{'id': q, 'label': names.get(q, q)} for q in links[prop]] for key, prop in (('instance_of', 'P31'), ('subclass_of', 'P279'))}}
-
-
-def _uniprot(args: dict, get) -> dict:
-    """🧬 UniProtKB entries for a query (accession, protein, organism, genes, length)."""
-    data = json.loads(get('https://rest.uniprot.org/uniprotkb/search?' + _q(
-        query=args['query'], format='json', size=args.get('size', 5), fields='accession,protein_name,organism_name,gene_names,length')))
-    rows = []
-    for hit in data.get('results', []):
-        protein = hit.get('proteinDescription', {})
-        name = (protein.get('recommendedName') or next(iter(protein.get('submissionNames', [])), {})).get('fullName', {}).get('value', '')
-        rows.append({'accession': hit['primaryAccession'], 'protein': name, 'organism': hit.get('organism', {}).get('scientificName', ''),
-                     'genes': [g['geneName']['value'] for g in hit.get('genes', []) if 'geneName' in g],
-                     'length': hit.get('sequence', {}).get('length'), 'url': f'https://www.uniprot.org/uniprotkb/{hit["primaryAccession"]}'})
-    return {'schema': 'uniprot-search/1', 'query': args['query'], 'entries': rows}
-
-
-def _github(args: dict, get) -> dict:
-    """🐙 One public GitHub repository (no token: 60 requests an hour from one address)."""
-    repo = args['repo'].strip().removeprefix('https://github.com/').strip('/')
-    if not re.fullmatch(r'[A-Za-z0-9-]{1,39}/[A-Za-z0-9._-]{1,100}', repo):
-        raise ValueError('OWNER/NAME')
-    data = json.loads(get(f'https://api.github.com/repos/{repo}'))
-    return {'schema': 'github-repo/1', 'repo': data['full_name'], 'url': data['html_url'], 'description': data.get('description') or '',
-            'language': data.get('language'), 'topics': data.get('topics', []), 'stars': data.get('stargazers_count'),
-            'forks': data.get('forks_count'), 'open_issues': data.get('open_issues_count'), 'archived': data.get('archived'),
-            'license': (data.get('license') or {}).get('spdx_id'), 'pushed_at': data.get('pushed_at')}
-
-
-def _rows_md(head: list[str], rows: list[list]) -> str:
-    return md.table(head, [[_cell(str(v if v is not None else '—')) for v in row] for row in rows]).strip() if rows else '0 件'
-
-
-# 🌐 Keyless APIs the page fetches itself (they answer with CORS): name → (description, properties, required, read, Markdown of
-# the record). ``cues`` offer a tool to /ask when ⚖️ Jev knows no family for it. An API a browser cannot read (Niconico's
-# Snapshot Search sends no Access-Control-Allow-Origin, pixiv) is not listed: the lab's adapters keep those for a server.
-OPEN_APIS = {
-    'fetch_youtube_oembed': ('YouTube の動画 URL から題名・チャンネル・サムネ（oEmbed、キー不要）', {'url': {'type': 'string'}}, ['url'], _youtube,
-                             lambda r: f'### 🎬 [{r["title"]}]({r["url"]})\n\n' + _rows_md(['チャンネル', 'サムネ'], [[f'[{r["author_name"]}]({r["author_url"]})', r['thumbnail_url']]]),
-                             ('youtube', 'youtu.be', 'ユーチューブ')),
-    'search_wikidata': ('Wikidata の項目を名前で探す（ID・ラベル・説明）', {'query': {'type': 'string'}, 'lang': {'type': 'string'}}, ['query'],
-                        _wikidata_search, lambda r: _rows_md(['ID', 'ラベル', '説明'], [[f'[{i["id"]}]({i["url"]})', i['label'], i['description']] for i in r['items']]),
-                        ('wikidata', 'ウィキデータ')),
-    'fetch_wikidata_entity': ('Wikidata の項目 1 つ: ラベル・説明・別名と、何の一種か（P31 instance of / P279 subclass of）', {'id': {'type': 'string'}, 'lang': {'type': 'string'}},
-                              ['id'], _wikidata_entity,
-                              lambda r: f'### 🕸️ [{r["label"] or r["id"]}]({r["url"]}) {r["description"]}\n\n' + _rows_md(['関係', '相手'], [
-                                  [rel, ' · '.join(f'{x["label"]} ({x["id"]})' for x in r[key]) or '—'] for rel, key in (('P31 instance of', 'instance_of'), ('P279 subclass of', 'subclass_of'))]),
-                              ('wikidata', 'ウィキデータ')),
-    'search_uniprot': ('UniProtKB でタンパク質を探す（アクセッション・名前・生物種・遺伝子・長さ）', {'query': {'type': 'string'}, 'size': {'type': 'integer'}}, ['query'], _uniprot,
-                       lambda r: _rows_md(['アクセッション', 'タンパク質', '生物種', '遺伝子', '長さ'], [
-                           [f'[{e["accession"]}]({e["url"]})', e['protein'], e['organism'], ', '.join(e['genes']), e['length']] for e in r['entries']]),
-                       ('uniprot', 'タンパク質', 'protein', 'アミノ酸')),
-    'fetch_github_repo': ('公開 GitHub リポジトリの概要（説明・言語・スター・更新）', {'repo': {'type': 'string', 'description': 'OWNER/NAME'}}, ['repo'], _github,
-                          lambda r: f'### 🐙 [{r["repo"]}]({r["url"]}) {r["description"]}\n\n' + _rows_md(['言語', '⭐', '🍴', 'issue', 'license', 'push'], [
-                              [r['language'], r['stars'], r['forks'], r['open_issues'], r['license'], (r['pushed_at'] or '')[:10]]]),
-                          ('github', 'ギットハブ')),
-}
-
-
 def server_tools(fetch=None) -> dict:
     """🔌 What the page's MCP server lists (name → MCP tool: name, description, inputSchema): the lab's Wikipedia tools (its FastMCP
-    catalog) and PokéAPI reader, the keyless APIs (``OPEN_APIS``) and this bot's find · show · onto (without the lab, the last two)."""
+    catalog), its PokéAPI reader and keyless API readers (``adapters/keyless.py``: YouTube oEmbed, Wikidata, UniProt, GitHub; the
+    page fetches them itself, they answer with CORS) and this bot's find · show · onto (without the lab, only these). The lab's
+    ``BROWSER_BLOCKED`` providers (Niconico, pixiv) are not listed: a browser cannot read them."""
     tools = {}
     lab = _lab(fetch)
     if lab:
@@ -432,9 +326,9 @@ def server_tools(fetch=None) -> dict:
         tools['fetch_pokemon'] = {'name': 'fetch_pokemon', 'description': 'PokéAPI の pokemon（タイプ・種族値・特性）。名前は英語の小文字（pikachu）か図鑑番号（25）',
                                   'inputSchema': {'type': 'object', 'properties': {'name': {'type': 'string'}}, 'required': ['name'],
                                                   'additionalProperties': False}}
-    own = {name: (what, props, required) for name, (what, props, required, *_) in (*OPEN_APIS.items(), *CHAT_TOOLS.items())}
+        tools |= {name: {'name': name, 'description': what, 'inputSchema': schema} for name, (_, what, schema, _) in lab['keyless'].TOOLS.items()}
     return {**tools, **{name: {'name': name, 'description': what, 'inputSchema': {
-        'type': 'object', 'properties': props, 'required': required, 'additionalProperties': False}} for name, (what, props, required) in own.items()}}
+        'type': 'object', 'properties': props, 'required': required, 'additionalProperties': False}} for name, (what, props, required) in CHAT_TOOLS.items()}}
 
 
 def _run_tool(name: str, args: dict, index: dict | None, fetch) -> tuple[str, dict | None]:
@@ -446,12 +340,10 @@ def _run_tool(name: str, args: dict, index: dict | None, fetch) -> tuple[str, di
         return show_reply(index, args['target'], fetch), None
     if name == 'onto':
         return onto_reply(args['word'], index, fetch), None
-    _STATE['get'] = fetch or _STATE['fetch'] or _fetch
-    if name in OPEN_APIS:
-        _, _, _, read, markdown, _ = OPEN_APIS[name]
-        record = read(args, _STATE['get'])
-        return markdown(record), record
-    lab = _lab(fetch)
+    lab, _STATE['get'] = _lab(fetch), fetch or _STATE['fetch'] or _fetch
+    if name in lab['keyless'].TOOLS:                      # 🌐 the lab's reader of what this page fetched
+        record = lab['keyless'].read(name, args, _STATE['get'])
+        return lab['keyless'].markdown(name, record), record
     if name == 'fetch_pokemon':                           # 🐾 the lab's reader of the JSON this page fetched
         url = POKEAPI.format(name=quote(args['name'].strip().lower(), safe=''))
         record = lab['pokeapi'].pokemon_source(_STATE['get'](url), url)
@@ -1133,12 +1025,12 @@ def ask_messages(text: str, index: dict | None = None, fetch=None) -> str:
 
 def ask_route(question: str, fetch=None) -> dict:
     """⚖️ Jev (the lab's keyword router, ``decide_route``) on the question: which of the server's tools /ask offers — one family's
-    when it is confident, none when it is confident no tool is needed, else every tool. A keyless API whose ``cues`` the question
-    names joins them, and alone stands in for none or every tool (until the lab's router knows its family). The decision joins
-    the 🧾 trace."""
+    when it is confident, none when it is confident no tool is needed, else every tool. A keyless API whose ``cues`` (the lab's
+    ``keyless.TOOLS``) the question names joins them, and alone stands in for none or every tool (Jev has no family for it). The
+    decision joins the 🧾 trace."""
     tools, lab = list(server_tools(fetch)), _lab(fetch)
     text = question.casefold()
-    cued = [name for name, (*_, cues) in OPEN_APIS.items() if any(cue in text for cue in cues)]
+    cued = [name for name, (*_, cues) in (lab['keyless'].TOOLS.items() if lab else ()) if any(cue in text for cue in cues)]
     if not lab:
         row = {'needs_tool': None, 'tool_family': None, 'fallback_reason': 'no_lab', 'offered': cued or tools}
     else:
