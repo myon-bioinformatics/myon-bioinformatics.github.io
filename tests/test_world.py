@@ -2028,7 +2028,7 @@ class FakeParisRescueTests(unittest.TestCase):
         node = shutil.which("node")
         if not node:
             self.skipTest("node binary unavailable")
-        pure_js = W.WORLD_RESCUE_JS.replace("bindRescueWorlds();\n", "")
+        pure_js = W.WORLD_RADAR_JS + W.WORLD_RESCUE_JS.replace("bindRescueWorlds();\n", "")
         probe = (
             pure_js
             + '\nconst seeds = [0, 1, 20261127, 4294967295].map(s => rescueRandomWord(s));\n'
@@ -2095,6 +2095,15 @@ class OsakaDetectiveTests(unittest.TestCase):
         self.assertEqual(len(detective["badges"]), 7)
         self.assertEqual(len(detective["quizzes"]), 6)
 
+    def test_shared_radar_module_and_half_tile_rounding(self):
+        specs = [W.example_data("cities")] * 2
+        modules = W.world_game_modules(specs, "")
+        self.assertEqual(modules.count("function nearestWorldTarget("), 1)
+        self.assertEqual(W.world_game_modules([W.example_data("school")], ""), "")
+        target = {"id": "target", "x": 80, "y": 0}
+        for radar in (W.detective_nearest_clue, W.rescue_nearest_fire):
+            self.assertEqual(radar(0, 0, [target], 32)["tiles"], 3)
+
     def test_local_dogs_have_distinct_icons_and_areas(self):
         dogs = {}
         for scene in ("school", "overworld", "cities"):
@@ -2149,7 +2158,7 @@ class OsakaDetectiveTests(unittest.TestCase):
         node = shutil.which("node")
         if not node:
             self.skipTest("node binary unavailable")
-        pure_js = W.WORLD_DETECTIVE_JS.replace("bindDetectiveWorlds();\n", "")
+        pure_js = W.WORLD_RADAR_JS + W.WORLD_DETECTIVE_JS.replace("bindDetectiveWorlds();\n", "")
         probe = (
             pure_js
             + '\nconst seeds = [0, 1, 20261127, 4294967295].map(s => detectiveRandomWord(s));\n'

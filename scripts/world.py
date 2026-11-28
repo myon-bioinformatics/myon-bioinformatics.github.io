@@ -942,15 +942,20 @@ def rescue_garden(seed: int, actions: list[int]) -> dict[str, Any]:
     return counter_garden(seed, actions)
 
 
-def rescue_nearest_fire(px: float, py: float, fires: list[dict[str, Any]], tile: int = 32) -> dict[str, Any] | None:
-    """Nearest active fire and its ``world_direction`` compass arrow from ``(px, py)``."""
-    if not fires:
+def _nearest_target(px: float, py: float, targets: list[dict[str, Any]], tile: int = 32) -> dict[str, Any] | None:
+    """Nearest target and its ``world_direction`` compass arrow from ``(px, py)``."""
+    if not targets:
         return None
-    best = min(fires, key=lambda f: ((f["x"] - px) ** 2 + (f["y"] - py) ** 2, f["y"], f["x"]))
+    best = min(targets, key=lambda f: ((f["x"] - px) ** 2 + (f["y"] - py) ** 2, f["y"], f["x"]))
     dist = math.hypot(best["x"] - px, best["y"] - py)
     return {"id": best["id"], "x": best["x"], "y": best["y"],
             "arrow": world_direction([px, py], [best["x"], best["y"]], tile),
-            "tiles": round(dist / max(1, tile))}
+            "tiles": math.floor(dist / max(1, tile) + 0.5)}
+
+
+def rescue_nearest_fire(px: float, py: float, fires: list[dict[str, Any]], tile: int = 32) -> dict[str, Any] | None:
+    """Nearest active fire and its ``world_direction`` compass arrow from ``(px, py)``."""
+    return _nearest_target(px, py, fires, tile)
 
 
 def rescue_validate(rescue_in: Any, *, floors: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1270,13 +1275,7 @@ def detective_garden(seed: int, actions: list[int]) -> dict[str, Any]:
 
 def detective_nearest_clue(px: float, py: float, shadows: list[dict[str, Any]], tile: int = 32) -> dict[str, Any] | None:
     """Nearest active mystery shadow and its ``world_direction`` compass arrow from ``(px, py)``."""
-    if not shadows:
-        return None
-    best = min(shadows, key=lambda f: ((f["x"] - px) ** 2 + (f["y"] - py) ** 2, f["y"], f["x"]))
-    dist = math.hypot(best["x"] - px, best["y"] - py)
-    return {"id": best["id"], "x": best["x"], "y": best["y"],
-            "arrow": world_direction([px, py], [best["x"], best["y"]], tile),
-            "tiles": round(dist / max(1, tile))}
+    return _nearest_target(px, py, shadows, tile)
 
 
 def detective_item_effect(item):
@@ -2338,6 +2337,12 @@ def _tool_html(emoji: str, tool: dict[str, Any], *, wid: str = "", spot_rows: Ca
     return _menu_html("tool", escape(emoji), attrs, panel)
 
 
+def _hud_meter(key: str, glyph: str, maximum: int, *, secondary: bool = False, stat_class: str = "") -> str:
+    meter_class = "ui-rpg-meter ui-rpg-meter-mp" if secondary else "ui-rpg-meter"
+    return (f'<span class="ui-rpg-stat{stat_class}" data-{key}-wrap><span class="{meter_class}">'
+            f'<i data-{key}-bar style="width:100%"></i></span><b data-{key}>{glyph} {maximum}/{maximum}</b></span>')
+
+
 def _rpg_hud_html(rpg: dict[str, Any] | None) -> str:
     """Compact RPG status bar for worlds with ``rpg`` (hidden until script binds)."""
     if not rpg:
@@ -2347,9 +2352,9 @@ def _rpg_hud_html(rpg: dict[str, Any] | None) -> str:
     return (
         '<div class="ui-rpg-hud" hidden aria-label="冒険ステータス">'
         '<span class="ui-rpg-stat ui-rpg-hero" data-rpg-hero>🧙 Lv.1</span>'
-        f'<span class="ui-rpg-stat ui-rpg-hp" data-rpg-hp-wrap><span class="ui-rpg-meter"><i data-rpg-hp-bar style="width:100%"></i></span><b data-rpg-hp>❤️ {hero["hp"]}/{hero["hp"]}</b></span>'
-        f'<span class="ui-rpg-stat ui-rpg-mp" data-rpg-mp-wrap><span class="ui-rpg-meter ui-rpg-meter-mp"><i data-rpg-mp-bar style="width:100%"></i></span><b data-rpg-mp>💧 {hero["mp"]}/{hero["mp"]}</b></span>'
-        f'<span class="ui-rpg-stat" data-rpg-exp>✨ 0/30</span>'
+        + _hud_meter("rpg-hp", "❤️", hero["hp"], stat_class=" ui-rpg-hp")
+        + _hud_meter("rpg-mp", "💧", hero["mp"], secondary=True, stat_class=" ui-rpg-mp")
+        + f'<span class="ui-rpg-stat" data-rpg-exp>✨ 0/30</span>'
         f'<span class="ui-rpg-stat" data-rpg-gold>🪙 {hero["gold"]}G</span>'
         f'<span class="ui-rpg-stat" data-rpg-gear>⚔️ {hero["atk"]} 🛡️ {hero["def"]}</span>'
         f'<button type="button" class="ui-rpg-pill" data-rpg-journal-btn aria-label="冒険手帳（クエスト・実績・図鑑）">📜 <span data-rpg-qcount>0/{total_q}</span></button>'
@@ -2368,9 +2373,9 @@ def _rescue_hud_html(rescue: dict[str, Any] | None, floors: list[dict[str, Any]]
     return (
         '<div class="ui-rescue-hud" hidden aria-label="パリ消防ヒーローステータス">'
         '<span class="ui-rpg-stat ui-rpg-hero" data-rescue-hero>🦸 Lv.1 見習い消防士</span>'
-        f'<span class="ui-rpg-stat" data-rescue-hp-wrap><span class="ui-rpg-meter"><i data-rescue-hp-bar style="width:100%"></i></span><b data-rescue-hp>❤️ {hero["hp"]}/{hero["hp"]}</b></span>'
-        f'<span class="ui-rpg-stat" data-rescue-water-wrap><span class="ui-rpg-meter ui-rpg-meter-mp"><i data-rescue-water-bar style="width:100%"></i></span><b data-rescue-water>💧 {hero["water"]}/{hero["water"]}</b></span>'
-        f'<span class="ui-rpg-stat" data-rescue-fires>🔥 鎮火 0/{total_fires} (0%)</span>'
+        + _hud_meter("rescue-hp", "❤️", hero["hp"])
+        + _hud_meter("rescue-water", "💧", hero["water"], secondary=True)
+        + f'<span class="ui-rpg-stat" data-rescue-fires>🔥 鎮火 0/{total_fires} (0%)</span>'
         f'<span class="ui-rpg-stat" data-rescue-medals>🪙 {hero["medals"]}</span>'
         f'<span class="ui-rpg-stat" data-rescue-gear>🚿 {hero["power"]} 🛡️ {hero["shield"]}</span>'
         f'<button type="button" class="ui-rpg-pill" data-rescue-journal-btn aria-label="ヒーロー手帳（ミッション・勲章・装備・緑化）">📋 <span data-rescue-qcount>0/{total_q}</span></button>'
@@ -2389,9 +2394,9 @@ def _detective_hud_html(detective: dict[str, Any] | None, floors: list[dict[str,
     return (
         '<div class="ui-detective-hud" hidden aria-label="浪速探偵ステータス">'
         '<span class="ui-rpg-stat ui-rpg-hero" data-detective-hero>🕵️‍♂️ Lv.1 見習い浪速調査員</span>'
-        f'<span class="ui-rpg-stat" data-detective-hp-wrap><span class="ui-rpg-meter"><i data-detective-hp-bar style="width:100%"></i></span><b data-detective-hp>❤️ {hero["hp"]}/{hero["hp"]}</b></span>'
-        f'<span class="ui-rpg-stat" data-detective-stamina-wrap><span class="ui-rpg-meter ui-rpg-meter-mp"><i data-detective-stamina-bar style="width:100%"></i></span><b data-detective-stamina>⚡ {hero["stamina"]}/{hero["stamina"]}</b></span>'
-        f'<span class="ui-rpg-stat" data-detective-clues>🔍 解決 0/{total_shadows} (0%)</span>'
+        + _hud_meter("detective-hp", "❤️", hero["hp"])
+        + _hud_meter("detective-stamina", "⚡", hero["stamina"], secondary=True)
+        + f'<span class="ui-rpg-stat" data-detective-clues>🔍 解決 0/{total_shadows} (0%)</span>'
         f'<span class="ui-rpg-stat" data-detective-medals>🪙 {hero["medals"]}</span>'
         f'<span class="ui-rpg-stat" data-detective-gear>💡 {hero["logic"]} 🛡️ {hero["pokerface"]}</span>'
         f'<button type="button" class="ui-rpg-pill" data-detective-journal-btn aria-label="浪速探偵手帳（事件ファイル・バッジ・どうぐ・緑化）">📋 <span data-detective-qcount>0/{total_q}</span></button>'
@@ -4017,6 +4022,27 @@ def rpg_module(records_url: str) -> str:
             + WORLD_RPG_JS)
 
 
+WORLD_RADAR_JS = r"""
+function nearestWorldTarget(px,py,targets,tile=32){
+ if(!targets||!targets.length)return null;
+ let best=null,bestSq=Infinity;
+ for(const f of targets){
+  const sq=(f.x-px)**2+(f.y-py)**2;
+  if(sq<bestSq||(sq===bestSq&&(f.y<best.y||(f.y===best.y&&f.x<best.x)))){best=f;bestSq=sq}
+ }
+ if(!best)return null;
+ const dist=Math.hypot(best.x-px,best.y-py);
+ const dx=best.x-px,dy=best.y-py,adx=Math.abs(dx),ady=Math.abs(dy);
+ let arrow="📍";
+ if(adx>tile*0.5||ady>tile*0.5){
+  const sx=adx>tile*0.5?(dx>0?1:-1):0,sy=ady>tile*0.5?(dy>0?1:-1):0;
+  const arrows={"1,0":"➡️","1,1":"↘️","0,1":"⬇️","-1,1":"↙️","-1,0":"⬅️","-1,-1":"↖️","0,-1":"⬆️","1,-1":"↗️"};
+  arrow=arrows[`${sx},${sy}`]||"📍";
+ }
+ return{id:best.id,x:best.x,y:best.y,arrow,tiles:Math.round(dist/Math.max(1,tile))};
+}
+"""
+
 WORLD_RESCUE_JS = r"""
 export const RESCUE_RANK_THRESHOLDS=[0,35,90,170,280,420,600];
 export const RESCUE_RANK_TITLES=["見習い消防士","街角レスキュー","セーヌ機関士","パリ守護隊長","炎の制圧マイスター","伝説のグラン・エロー","フェイクパリ名誉英雄"];
@@ -4106,24 +4132,7 @@ export function rescueGarden(seed,actions){
         actions:[...(actions||[])]};
 }
 
-export function rescueNearestFire(px,py,fires,tile=32){
- if(!fires||!fires.length)return null;
- let best=null,bestSq=Infinity;
- for(const f of fires){
-  const sq=(f.x-px)**2+(f.y-py)**2;
-  if(sq<bestSq||(sq===bestSq&&(f.y<best.y||(f.y===best.y&&f.x<best.x)))){best=f;bestSq=sq}
- }
- if(!best)return null;
- const dist=Math.hypot(best.x-px,best.y-py);
- const dx=best.x-px,dy=best.y-py,adx=Math.abs(dx),ady=Math.abs(dy);
- let arrow="📍";
- if(adx>tile*0.5||ady>tile*0.5){
-  const sx=adx>tile*0.5?(dx>0?1:-1):0,sy=ady>tile*0.5?(dy>0?1:-1):0;
-  const arrows={"1,0":"➡️","1,1":"↘️","0,1":"⬇️","-1,1":"↙️","-1,0":"⬅️","-1,-1":"↖️","0,-1":"⬆️","1,-1":"↗️"};
-  arrow=arrows[`${sx},${sy}`]||"📍";
- }
- return{id:best.id,x:best.x,y:best.y,arrow,tiles:Math.round(dist/Math.max(1,tile))};
-}
+export const rescueNearestFire=nearestWorldTarget;
 
 function rescueEl(tag,props={},...kids){
  const node=document.createElement(tag);
@@ -4834,24 +4843,7 @@ export function detectiveGarden(seed,actions){
         actions:[...(actions||[])]};
 }
 
-export function detectiveNearestClue(px,py,shadows,tile=32){
- if(!shadows||!shadows.length)return null;
- let best=null,bestSq=Infinity;
- for(const f of shadows){
-  const sq=(f.x-px)**2+(f.y-py)**2;
-  if(sq<bestSq||(sq===bestSq&&(f.y<best.y||(f.y===best.y&&f.x<best.x)))){best=f;bestSq=sq}
- }
- if(!best)return null;
- const dist=Math.hypot(best.x-px,best.y-py);
- const dx=best.x-px,dy=best.y-py,adx=Math.abs(dx),ady=Math.abs(dy);
- let arrow="📍";
- if(adx>tile*0.5||ady>tile*0.5){
-  const sx=adx>tile*0.5?(dx>0?1:-1):0,sy=ady>tile*0.5?(dy>0?1:-1):0;
-  const arrows={"1,0":"➡️","1,1":"↘️","0,1":"⬇️","-1,1":"↙️","-1,0":"⬅️","-1,-1":"↖️","0,-1":"⬆️","1,-1":"↗️"};
-  arrow=arrows[`${sx},${sy}`]||"📍";
- }
- return{id:best.id,x:best.x,y:best.y,arrow,tiles:Math.round(dist/Math.max(1,tile))};
-}
+export const detectiveNearestClue=nearestWorldTarget;
 
 function detectiveEl(tag,props={},...kids){
  const node=document.createElement(tag);
@@ -5493,16 +5485,26 @@ bindDetectiveWorlds();
 """
 
 
+def world_game_modules(specs, records_url: str) -> str:
+    """Include each game module once across the worlds sharing a document."""
+    enabled = {key for spec in specs for key in ("rpg", "rescue", "detective") if spec.get(key)}
+    modules = []
+    if "rpg" in enabled:
+        modules.append(rpg_module(records_url))
+    if enabled & {"rescue", "detective"}:
+        modules.append(WORLD_RADAR_JS)
+    if "rescue" in enabled:
+        modules.append(WORLD_RESCUE_JS)
+    if "detective" in enabled:
+        modules.append(WORLD_DETECTIVE_JS)
+    return "\n".join(modules)
+
+
 def world_document(spec: Any, *, theme: str = "modern") -> str:
     """A single-file page: bundled CSS, the world's CSS, the world's HTML and one inline module."""
     world = world_validate(spec)
-    js = WORLD_JS
-    if world.get("rpg"):
-        js += "\n" + rpg_module("data:text/javascript," + quote(js_source("records.js"), safe=""))
-    if world.get("rescue"):
-        js += "\n" + WORLD_RESCUE_JS
-    if world.get("detective"):
-        js += "\n" + WORLD_DETECTIVE_JS
+    records_url = "data:text/javascript," + quote(js_source("records.js"), safe="") if world.get("rpg") else ""
+    js = WORLD_JS + "\n" + world_game_modules([world], records_url)
     # 🌍 world.js lives here now (WORLD_JS), not in PySaiyanWeBoo: the same inline module, after the body.
     return render_document(trusted_html=world_html(world) + module_script(js), title=world["title"], theme=theme,
                            css=bundled_css() + world_css(world))
