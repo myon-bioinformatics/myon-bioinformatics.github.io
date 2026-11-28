@@ -4917,7 +4917,7 @@ export function bindWorldDetective(el){
   if(!radarSpan)return;
   if(!activeShadows.length){radarSpan.textContent="✅ 全事件解明達成！";return}
   const nr=detectiveNearestClue(px,py,activeShadows.map(f=>({id:f.prof.id,x:f.x,y:f.y})),tile);
-  if(nr)radarSpan.textContent=`${nr.arrow} ${nr.tiles}m`;
+  if(nr)radarSpan.textContent=`${nr.arrow} ${nr.tiles}マス`;
  };
 
  const renderHud=()=>{
@@ -5377,6 +5377,7 @@ export function bindWorldDetective(el){
  };
 
  hud?.querySelector("[data-detective-journal-btn]")?.addEventListener("click",()=>openJournal("quests"));
+ let radarTarget=null;
  hud?.querySelector("[data-detective-radar-btn]")?.addEventListener("click",()=>{
   const checkedFloor=el.querySelector("input[name$='-floor']:checked")?.value||"";
   if(checkedFloor!==detective.floor)return;
@@ -5389,6 +5390,7 @@ export function bindWorldDetective(el){
   if(nr){
    const walkForm=el.querySelector(".ui-world-walk");
    if(walkForm){
+    radarTarget=nr;
     walkForm.elements.x.value=nr.x;walkForm.elements.y.value=nr.y;
     walkForm.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));
     showToast(`🧭 一番近い事件現場 (${nr.x}, ${nr.y}) へ急行中！`);
@@ -5425,7 +5427,12 @@ export function bindWorldDetective(el){
     const hitNode=detective.nodes.find(nd=>nd.tx===ptx&&nd.ty===pty);
     const spotWalk=Boolean(el.querySelector(".ui-sheet-item:target"));
     const blocked=spotWalk||!overlay.hidden||el.hasAttribute("data-pick")||el.hasAttribute("data-ask")||el.querySelector(".ui-sheet-item[data-open]");
-    if(!blocked){
+    // A new walking destination cancels compass guidance. Ordinary walking keeps contact encounters.
+    if(radarTarget&&(Number(pl.dataset.targetX)!==radarTarget.x||Number(pl.dataset.targetY)!==radarTarget.y)){
+     radarTarget=null;
+    }
+    if(radarTarget&&(hitShadow?.prof.id===radarTarget.id||state.solvedShadows.has(radarTarget.id)))radarTarget=null;
+    if(!blocked&&!radarTarget){
      if(hitShadow){
       if(lastContact!==hitShadow.prof.id){
        lastContact=hitShadow.prof.id;
@@ -5447,7 +5454,7 @@ export function bindWorldDetective(el){
     }
     updateRadar();
    }
-  }
+  }else{radarTarget=null}
   setTimeout(()=>requestAnimationFrame(watch),110);
  };
 

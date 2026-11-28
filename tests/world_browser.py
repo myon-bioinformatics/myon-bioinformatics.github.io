@@ -1748,14 +1748,14 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         cls.pw.stop()
         cls.tmp.cleanup()
 
-    def open(self, floor="osaka", width=1280, height=800, touch=False):
+    def open(self, floor="osaka", width=1280, height=800, touch=False, path=None):
         context = self.browser.new_context(viewport={"width": width, "height": height}, has_touch=touch, is_mobile=touch)
         self.addCleanup(context.close)
         page = context.new_page()
         self.errors = []
         page.on("pageerror", lambda e: self.errors.append(str(e)))
         page.on("console", lambda m: m.type == "error" and self.errors.append(m.text))
-        page.goto(self.cities_path.as_uri())
+        page.goto((path or self.cities_path).as_uri())
         page.click('[data-emoji="🗼"]')
         page.wait_for_function(W.PICKED)
         if floor:
@@ -1782,6 +1782,62 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         self.assertIn("[2/4]", dialog.inner_text())
         dialog.locator(".ui-rpg-close").click()
         page.wait_for_selector(".ui-rpg-card", state="hidden")
+        self.assertEqual(self.errors, [])
+
+    def test_compass_walks_past_contacts_and_checks_stamina_at_arrival(self):
+        data = CITIES["detective"]
+        cost = data["walk_cost"]
+        tactic = next(t for t in data["tactics"] if t["kind"] == "logic_burst")
+        for available in (cost, cost - 1):
+            with self.subTest(available=available):
+                spec = copy.deepcopy(CITIES)
+                maximum = available + tactic["stamina"]
+                spec["detective"]["hero"]["stamina"] = maximum
+                # Keep first-clue rewards from refilling stamina via a rank-up.
+                spec["detective"]["quests"] = []
+                path = Path(self.tmp.name) / f"walk-{available}.html"
+                path.write_text(W.world_document(spec), encoding="utf-8")
+                page = self.open(path=path)
+                page.locator('[data-shadow-boss="true"]').dispatch_event("click")
+                page.locator(".ui-rpg-card").get_by_role("button", name=tactic["label"], exact=False).click()
+                page.get_by_role("button", name="💨 一旦退避").click()
+                self.assertEqual(page.text_content("[data-detective-stamina]"), f"⚡ {available}/{maximum}")
+                self.assertIn("マス", page.text_content("[data-detective-radar]"))
+                page.click("[data-detective-radar-btn]")
+                if available == cost:
+                    page.wait_for_selector('[data-shadow-tier="1"][data-cleared="true"]', timeout=5000)
+                    self.assertIn("解決 1/", page.text_content("[data-detective-clues]"))
+                    self.assertEqual(page.text_content("[data-detective-stamina]"), f"⚡ 0/{maximum}")
+                    self.assertFalse(page.locator(".ui-rpg-card").is_visible())
+                else:
+                    page.get_by_role("dialog", name="街角の不審な痕跡現場検証").wait_for(timeout=5000)
+                    self.assertIn("解決 0/", page.text_content("[data-detective-clues]"))
+                    self.assertEqual(page.text_content("[data-detective-stamina]"), f"⚡ {available}/{maximum}")
+                self.assertEqual(self.errors, [])
+
+    def test_last_shop_portion_leaves_both_journal_and_bag(self):
+        page = self.open()
+        data = CITIES["detective"]
+        food = next(item for item in data["shop"] if item["item_type"] == "heal")
+        vendor = next(node for node in data["nodes"] if node.get("shop"))
+        page.locator(f'[data-detective-id="{vendor["id"]}"]').click()
+        page.get_by_role("button", name="🛒 船場どうぐ屋").click()
+        row = page.locator(".ui-rpg-card .ui-rpg-row").filter(has_text=food["label"])
+        buy = row.get_by_role("button")
+        buy.click()
+        buy.click()
+        self.assertTrue(buy.is_disabled())
+        page.locator(".ui-rpg-card .ui-rpg-close").click()
+        page.click("[data-detective-journal-btn]")
+        page.get_by_role("button", name="🕵️‍♂️ 装備・どうぐ").click()
+        portion = page.locator(".ui-rpg-card .ui-rpg-row").filter(has_text=food["label"])
+        bag = page.locator(".ui-world-bag li").filter(has_text=food["label"])
+        for remaining in (2, 1):
+            self.assertIn(f"×{remaining}", portion.inner_text())
+            self.assertEqual(bag.count(), 1)
+            portion.get_by_role("button", name="つかう").click()
+        self.assertEqual(portion.count(), 0)
+        self.assertEqual(bag.count(), 0)
         self.assertEqual(self.errors, [])
 
     def test_guide_conditions_in_a_complete_investigation(self):
