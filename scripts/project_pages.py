@@ -9,7 +9,8 @@ and ``--refresh-lock`` rewrites the lock after the pin moves.
 
 The 🧰 Tools cards (scripts/front_page.py ``PORTAL``) list the practical pages, each one working on what the visitor brings:
 the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in the page; ``--record-chat`` indexes the other repositories at deploy
-time) and PySaiyanWeBoo's own tool documents (🧾 the JUnit reader; 🤝 its MCP connection test is the lab's #protocol panel), published with
+time) and PySaiyanWeBoo's own tool documents (🧾 the JUnit reader, whose 🧯 hands a run to the chat's /triage;
+🤝 its MCP connection test is the lab's #protocol panel), published with
 the portfolio's way back, shortcut label and icons. The 🌍 world pages (scripts/world.py: the travel world, 🏫 the school,
 🗼 the parallel cities, 🎬 the camera: the screen's #worlds panel) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and
 are not among the cards. Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
@@ -79,6 +80,19 @@ PUBLIC_SOURCE_FILES = (
     'tools/vendor/web-ui/LICENSE',
 )
 
+# 🧯 the report's current run to the 💬 chat's /triage (Err-o-RoadRunner), on the same screen: the chat takes it from its inbox
+REPORT_TRIAGE_JS = ("document.querySelector('[data-report-triage]')?.addEventListener('click',()=>{"
+                    "const text=document.querySelector('[data-report-input]')?.value.trim();if(!text)return;"
+                    "(globalThis.chatInbox??=[]).push('/triage '+text);dispatchEvent(new Event('chat-inbox'));location.hash='chat'})")
+
+
+def report_page(ui) -> str:
+    """🧾 PySaiyanWeBoo's test report with a 🧯 button beside "Copy summary": the pasted run goes to the chat's /triage."""
+    page, copy = ui.report_document(), '<button class="ui-button" type="button" data-report-copy>Copy summary</button>'
+    if page.count(copy) != 1 or page.count('</main>') != 1:
+        raise ValueError('the test report has no single Copy summary button')
+    page = page.replace(copy, copy + ' <button class="ui-button" type="button" data-report-triage>🧯 /triage</button>', 1)
+    return page.replace('</main>', '</main>' + ui.module_script(REPORT_TRIAGE_JS), 1)
 @functools.lru_cache(maxsize=None)
 def _world() -> ModuleType:
     """🌍 scripts/world.py (the world engine and its specs), loaded once."""
@@ -699,7 +713,8 @@ CHAT_CSS = '.ui-step [data-chat-say]{margin-top:8px}'    # 📇 the index's "�
 WLLAMA_JS = r"""
 function localModel(runtime){
  let llm=null,busy=false;
- return async(messages,show,limit=256)=>{
+ // 🔧 tools {list, call}: first the model may call the advertised tools (call(name, arguments) → {result}); their results join the talk
+ return async(messages,show,limit=256,tools=null)=>{
   if(busy)throw new Error("生成中です");
   busy=true;
   try{
@@ -714,9 +729,19 @@ function localModel(runtime){
     llm=engine;
    }
    let output="",tokens=0;
-   const start=performance.now();
-   await llm.createChatCompletion({messages,max_tokens:limit,temperature:0.3,stream:true,
-    chat_template_kwargs:{enable_thinking:false},onData:chunk=>{
+   const start=performance.now(),quiet={temperature:0.3,chat_template_kwargs:{enable_thinking:false}};
+   const info=llm.getLoadedContextInfo?.()??{};
+   if(tools?.list.length&&Math.min(info.n_ctx??0,info.n_ctx_train||info.n_ctx||0)>=2048){   // 🔧 tools need the room; a small model answers as before
+    let message={};
+    try{const first=await llm.createChatCompletion({messages,tools:tools.list,tool_choice:"auto",max_tokens:limit,...quiet});
+     message=first.choices?.[0]?.message??{};tokens+=first.usage?.completion_tokens??0}catch{}   // ⏸ no tool pass: answer as before
+    const calls=message.tool_calls??[];
+    if(!calls.length&&message.content){output=message.content;show(output);return {output,tokens,seconds:(performance.now()-start)/1000,llm}}
+    if(calls.length){messages=[...messages,{role:"assistant",content:message.content??"",tool_calls:calls}];
+     for(const call of calls)messages.push({role:"tool",tool_call_id:call.id,content:tools.call(call.function.name,call.function.arguments).result});
+     Object.assign(quiet,{tools:tools.list,tool_choice:"none"})}
+   }
+   await llm.createChatCompletion({messages,max_tokens:limit,...quiet,stream:true,onData:chunk=>{
      output+=chunk.choices?.[0]?.delta?.content??"";tokens++;show(output);
     }});
    return {output,tokens,seconds:(performance.now()-start)/1000,llm};
@@ -731,11 +756,18 @@ const [chat] = webUiChat.bindChat(document);
 let bot = null;
 const generateAnswer=localModel(cfg.runtime);
 async function ask(text,reply){
- const {output,tokens,seconds,llm}=await generateAnswer(JSON.parse(bot.ask_messages(text)),s=>reply.text(s));
+ const messages=JSON.parse(bot.ask_messages(text));                // ⚖️ Jev picks the 🔌 MCP tools the model may call
+ const tools={list:JSON.parse(bot.ask_tools()),call:(name,args)=>{reply.text(`🔧 /${name} …`);return JSON.parse(bot.ask_call(name,args))}};
+ const {output,tokens,seconds,llm}=await generateAnswer(messages,s=>reply.text(s),256,tools);
  return bot.ask_html.callKwargs(output,tokens,seconds,
      {threads:llm.isMultithread()?navigator.hardwareConcurrency:1,webgpu:llm.isSupportWebGPU()});
 }
 chat.respond = (text, reply) => /^\/ask(\s|$)/i.test(text.trim()) ? ask(text, reply) : bot.reply_html(text);
+const inbox = () => { if (bot) for (const text of (globalThis.chatInbox ??= []).splice(0)) chat.say(text); };   // 🧾 → 🧯: what another panel hands over
+addEventListener("chat-inbox", inbox);
+if (/[?&]triage\b/.test(location.hash + location.search)) {                       // 🧯 #chat?triage: ready for a paste
+  const input = $("[data-chat-input]"); input.value = "/triage "; input.focus();
+}
 document.addEventListener("click", (event) => {         // 📇 a step of the index (beside the chat) sends its command there
   const chip = event.target.closest(".ui-step [data-chat-say]");
   if (!chip) return;
@@ -754,7 +786,10 @@ async function boot() {
   const py = await loadPyodide({indexURL: cfg.runtime.pyodide});
   py.FS.mkdirTree("/chat");
   const sources = await (await fetch(cfg.sources)).json();                       // 🐍 the Python, fetched when the chat opens
-  for (const [name, text] of Object.entries(sources)) py.FS.writeFile("/chat/" + name, text);
+  for (const [name, text] of Object.entries(sources)) {                          // 📦 a package's modules under its folder (errlib/)
+    if (name.includes("/")) py.FS.mkdirTree("/chat/" + name.split("/").slice(0, -1).join("/"));
+    py.FS.writeFile("/chat/" + name, text);
+  }
   let index = null;
   try { const response = await fetch(cfg.index); if (response.ok) index = await response.text(); } catch {}
   py.runPython("import sys; sys.path.insert(0, '/chat')");
@@ -764,6 +799,7 @@ async function boot() {
   chat.status(`✅ 🐍 ${py.runPython("import sys; sys.version.split()[0]")} · ` + (files === undefined ? "⏸ 索引なし" : `🔎 ${files} files`));
   chat.ready();
   document.documentElement.dataset.chatReady = "true";
+  inbox();
 }
 boot().catch((error) => { chat.status("⚠️ Python を読み込めない: " + (error?.message ?? error)); });
 """
@@ -776,11 +812,16 @@ def _chat() -> ModuleType:
 
 
 def chat_sources() -> dict[str, str]:
-    """The Python the page writes into Pyodide: chat.py and the pinned modules it imports, by file name."""
+    """The Python the page writes into Pyodide: chat.py and the pinned modules it imports, by file name (a package's as folder/file)."""
     chat = _chat()
     sources = {'chat.py': (ROOT / 'scripts/chat.py').read_text(encoding='utf-8')}
     for name in chat.MODULES:
-        sources[f'{name}.py'] = Path(importlib.util.find_spec(name).origin).read_text(encoding='utf-8')
+        spec = importlib.util.find_spec(name)
+        if spec.submodule_search_locations:              # 📦 a package (errlib): every module of it, under its folder
+            for path in sorted(Path(spec.origin).parent.glob('*.py')):
+                sources[f'{name}/{path.name}'] = path.read_text(encoding='utf-8')
+        else:
+            sources[f'{name}.py'] = Path(spec.origin).read_text(encoding='utf-8')
     return sources
 
 
@@ -790,15 +831,16 @@ def chat_books() -> list[dict]:
     chat = _chat()
     groups = [('📝 Markdown', ('md', 'table', 'help')), ('🎨 ASCII art', ('ascii', 'box', 'flow')), ('🗂 圧縮 · 🔌 MCP', ('compress', 'mcp')),
               ('🔎 JSON / JSONL', ('find', 'show')), ('🧬 オントロジー', ('onto', 'guess')), ('🧷 OLNM', ('olnm',)),
-              ('🤖 LLM', ('ask',)), ('⌨️ もしかして', ())]           # (a runbook holds 1..8 books)
+              ('🧯 失敗 · 🤖 LLM', ('triage', 'ask')), ('⌨️ もしかして', ())]           # (a runbook holds 1..8 books)
     recorded = {'compress': '🗂 TalkCompress の短い文と 📏 文字数（TalkCompress は公開時に記録）',
-                'mcp': '🔌 mcp-toolcall-lab が広告する道具で判定（✅ 送ってよい／❌ 断る。道具は公開時に記録）',
+                'mcp': '🔌 ページの中の MCP サーバーが答える（✅ tools/call・⚠️ isError・❌ JSON-RPC のエラー。mcp-toolcall-lab のコードは公開時に記録）',
                 'find': '🔎 公開時に取得できた JSON / JSONL の索引から検索', 'show': '👀 そのコミットの raw を読んで表に',
                 'onto': '🧬 OnTautoLogy の概念の台帳（concepts-*.json、索引のコミットの raw）から、属（似たものと共通）と種差（決め手）',
                 'guess': '🎯 台帳の概念を 1 つ思い浮かべて y / n / ? で回答。最後に候補名を確認する',
                 # argparse's error text varies by Python release; the live chat still shows its suggestions.
                 'typo': '⌨️ もしかして: 入力ミスに近いコマンドや引数を提案する',
-                'ask': '🤖 初回だけ約 560 MB のモデルを読み、端末の中で答える（⚡ WebGPU があれば GPU、なければ 🧮 CPU 1 スレッド）'}
+                'ask': '🤖 初回だけ約 560 MB のモデルを読み、端末の中で答える（⚡ WebGPU があれば GPU、なければ 🧮 CPU 1 スレッド）。'
+                       '⚖️ Jev が渡した道具と 🔧 モデルが呼んだ道具（✅ 実行・❌ 渡していない／型が合わない）を答えの上に並べる'}
     books = []
     for label, names in groups:
         examples = [(name, example) for name in names for example in chat.COMMANDS[name][3]] or [('typo', t) for t in chat.TYPOS]
@@ -815,9 +857,10 @@ def chat_document(ui) -> str:
     """💬 The chat page: 💬 the conversation (Pyodide runs chat.py in the page) and 📇 the index of what it answers."""
     chat = _chat()
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '💬 横断チャット', 'description':
-                             'markdown.py・ascii_artist・cli_args・TalkCompress・mcp-toolcall-lab・OnTautoLogy・OLNM をページの中の Python で。'
-                             '公開リポジトリの JSON / JSONL を索引から検索できる。🤖 /ask は llama.cpp が端末の中で答える。'
-                             '送った文はどこにも送らない（/show は GitHub の raw を、/ask はモデルを読むだけ）。',
+                             'markdown.py・ascii_artist・cli_args・TalkCompress・mcp-toolcall-lab・OnTautoLogy・OLNM・Err-o-RoadRunner をページの中の Python で。'
+                             '公開リポジトリの JSON / JSONL を索引から検索できる。🔌 /mcp はページの中の MCP サーバー（Wikipedia・PokéAPI・索引・台帳）、'
+                             '🤖 /ask は llama.cpp が端末の中で答え、⚖️ Jev が選んだその道具を呼ぶ。'
+                             '送った文はどこにも送らない（/show は GitHub の raw を、/ask はモデルを読むだけ。🔌 Wikipedia・PokéAPI の道具だけは、その引数をそのサイトへ）。',
                              'blocks': [{'type': 'tabs', 'id': 'chat', 'tabs': [
                                  {'label': '💬 チャット', 'blocks': [{'type': 'text', 'text': _CHAT_SLOT}]},
                                  {'label': '📇 索引', 'blocks': [{'type': 'runbook', 'id': 'chat-index', 'choice': '📇 道具',
@@ -849,12 +892,12 @@ def _tree(repository: str, commit: str) -> tuple[list[tuple[str, int]], bool]:
 
 def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, tree=_tree) -> list[str]:
     """💬 What the chat knows of the other repositories, at their current commits, under ``output/media/chat/``: index.json
-    (observed JSON / JSONL paths and sizes, repository scan errors, the tools advertised by mcp-toolcall-lab,
-    and README summaries from api/repos.json) and TalkCompress's shorthand compressor (talkcompress/).
+    (observed JSON / JSONL paths and sizes, repository scan errors and README summaries from api/repos.json), TalkCompress's
+    shorthand compressor (talkcompress/) and the mcp-toolcall-lab code the page's MCP server runs (lab/: ``chat.LAB``).
     Repositories in commits without a scan error were fully listed."""
     catalog = json.loads((root / 'api/repos.json').read_text(encoding='utf-8'))
     folder = Path(output) / CHAT
-    commits, files, tools, scan_errors, missed, compressor = {}, [], {}, {}, [], '⏸'
+    commits, files, scan_errors, missed, compressor, lab = {}, [], {}, [], '⏸', '⏸'
     for name in [repo['name'] for repo in catalog['repos'] if not repo.get('archived')]:
         try:
             commit = head(f'{OWNER}/{name}')
@@ -869,12 +912,14 @@ def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, t
         commits[name] = commit
         files += [[name, path, size] for path, size in blobs if path.lower().endswith(('.json', '.jsonl', '.ndjson'))]
         try:
-            if name == 'mcp-toolcall-lab':
-                for path, _ in blobs:
-                    if path.startswith('fixtures/prompt_experiments/') and path.endswith('.json'):
-                        fixture = json.loads(raw(f'{OWNER}/{name}', commit, path) or b'{}')
-                        for tool in fixture.get('openai', {}).get('request', {}).get('tools', []):
-                            tools.setdefault(tool['function']['name'], tool['function'])
+            if name == 'mcp-toolcall-lab':                 # 🔌 the code the page's MCP server runs (chat.LAB), all or nothing
+                texts = {path: raw(f'{OWNER}/{name}', commit, path) for path in _chat().LAB}
+                if None in texts.values():
+                    raise FileNotFoundError(next(path for path, data in texts.items() if data is None))
+                for path, data in texts.items():
+                    (folder / 'lab' / path).parent.mkdir(parents=True, exist_ok=True)
+                    (folder / 'lab' / path).write_bytes(data)
+                lab = f'✅ {commit[:7]}'
             if name == 'TalkCompress':
                 for path in _chat().TALKCOMPRESS:
                     data = raw(f'{OWNER}/{name}', commit, path)
@@ -892,10 +937,9 @@ def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, t
         text = ' '.join(text.split())
         if text and not repo.get('archived'):
             summaries[repo['name']] = text if len(text) <= 160 else text[:159] + '…'
-    index = {'schema': 'chat-index/1', 'owner': OWNER, 'commits': commits, 'files': files, 'tools': list(tools.values()),
-             'repos': summaries, 'scan_errors': scan_errors}
+    index = {'schema': 'chat-index/1', 'owner': OWNER, 'commits': commits, 'files': files, 'repos': summaries, 'scan_errors': scan_errors}
     (folder / 'index.json').write_text(json.dumps(index, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
-    return [f'💬 {len(commits)} repositories · {len(files)} JSON/JSONL · 🔌 {len(tools)} tools · 🗂 TalkCompress {compressor}', *missed]
+    return [f'💬 {len(commits)} repositories · {len(files)} JSON/JSONL · 🔌 mcp-toolcall-lab {lab} · 🗂 TalkCompress {compressor}', *missed]
 
 
 # ── 🧰 道具: Ironmate's studios, mcp-toolcall-lab's tools and execution lab (🔌 MCP 実験室) and DRAgoWing's heatmap, built
@@ -937,7 +981,8 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                     env = {**os.environ, 'PYTHONPATH': os.pathsep.join(('src', 'vendor'))}
                     run('-m', 'mcp_toolcall_lab.stub_front', 'pages', '--out', str(built), env=env)
                     run('-m', 'mcp_toolcall_lab.mcp_toolcall_lab_repository_diagnostics', str(built), env=env)
-                    load_module('mcp_lab', '_src/tools/mcp_lab.py').stage_lab_tools(built, commits[key], checkouts[key])   # 🖼️ framed
+                    lab = load_module('mcp_lab', '_src/tools/mcp_lab.py')
+                    lab.stage_lab_tools(built, commits[key], checkouts[key])   # 🖼️ framed
                 else:
                     run('scripts/build_portable_pages.py', '--source-sha', commits[key], '--out', str(Path(tmp) / 'lab'),
                         env={**os.environ, 'PYTHONPATH': 'src'})
@@ -960,6 +1005,8 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                     if nested and (dest / nested).exists() and not (built / nested).exists():
                         (built / nested).parent.mkdir(parents=True, exist_ok=True)
                         shutil.move(str(dest / nested), str(built / nested))
+                if key == 'mcp-toolcall-lab':
+                    lab.stage_lab_branding(built, checkouts[key])
                 if dest.exists():
                     shutil.rmtree(dest)
                 dest.parent.mkdir(parents=True, exist_ok=True)
@@ -1041,7 +1088,7 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     map_tool = load_module('map_tool', 'scripts/map_tool.py')
     pages = {'tools/#worlds': world_page(ui),                                                    # 🌍 the village, school, cities, camera
              HTML_IMPORT: html_import_files(ui)['index.html'].decode('utf-8'),                  # 📄 framed: its CSP stays its own
-             'tools/#test-report': ui.report_document(),                                         # 🧾 PySaiyanWeBoo's JUnit reader
+             'tools/#test-report': report_page(ui),                                         # 🧾 PySaiyanWeBoo's JUnit reader
              'tools/#maps': map_tool.map_document(ui, map_tool.tokyo_points(_world().example_data('cities'))),
              'tools/#gif': ui.gif_maker_document(filename='gif-kobo.gif', css=ui.bundled_css()),
              'tools/#chat': chat_document(ui)}
@@ -1054,8 +1101,9 @@ _LINK = re.compile(r'(?P<attr>\b(?:href|src)=)(?P<quote>["\'])(?P<url>[^"\']*)(?
 _SCRIPT = re.compile(r'<script\b[^>]*>.*?</script>', re.S)
 _SHELL_JS = """(()=>{const panels=[...document.querySelectorAll('[data-tools-panel]')],names=panels.map(p=>p.id);let current='';
 const mark=()=>{const door=document.querySelector('[data-door-select]'),mine=door&&[...door.options].find(o=>o.value.endsWith('#'+current));if(mine)door.value=mine.value};   // 🚪 shows where you are
-const inside=(panel,target)=>{const frame=panel.querySelector('iframe');if(!frame)return(document.getElementById(target)||panel).scrollIntoView();
- const go=()=>{frame.contentWindow.location.hash=target};if(frame.dataset.ready)go();else frame.addEventListener('load',go,{once:true})};   // 🖼️ a framed app's own #section
+const inside=(panel,target,fragment)=>{const frame=panel.querySelector('iframe');if(!frame)return(document.getElementById(target)||panel).scrollIntoView();
+ const go=()=>{if(location.hash===fragment)frame.contentWindow.location.replace('about:srcdoc'+fragment)};
+ if(frame.dataset.ready)go();else frame.addEventListener('load',go,{once:true})};
 const runs={test:type=>['','text/javascript','module'].includes(type)};
 const play=async marks=>{for(const[mark,old]of marks){const s=document.createElement('script');for(const a of old.attributes)s.setAttribute(a.name,a.value);   // ▶️ in the page's order, one after another
   if(old.src){s.async=false;const done=new Promise(r=>{s.onload=s.onerror=r});mark.replaceWith(s);await done}
@@ -1090,13 +1138,14 @@ const mount=panel=>{const inert=panel.querySelector(':scope>template');if(inert)
   for(const frame of panel.querySelectorAll('iframe'))frame.addEventListener('load',()=>{
    if(panel.id==='image-studio')connectHandoff(frame);frame.dataset.ready='1'
   },{once:true})}};
-const show=(panel,target)=>{mount(panel);
+const show=(panel,target,fragment)=>{mount(panel);
  for(const p of panels)p.hidden=p!==panel;document.title=panel.dataset.title;
- if(target)inside(panel,target);else if(current&&current!==panel.id)scrollTo(0,0);current=panel.id;mark()};
-const route=()=>{const name=decodeURIComponent(location.hash.slice(1)).split('?')[0];
+ if(target)inside(panel,target,fragment);else if(current&&current!==panel.id)scrollTo(0,0);current=panel.id;mark()};
+const route=()=>{const fragment=location.hash;let name='';
+ try{name=decodeURIComponent(fragment.slice(1).split('?',1)[0])}catch{}
  if(names.includes(name))return show(document.getElementById(name));
  const owner=name&&panels.find(p=>(p.dataset.routes||'').split(' ').includes(name)||p.querySelector(':scope>template')?.content.getElementById(name)||p.contains(document.getElementById(name)));   // #records: a section of a panel
- if(owner)return show(owner,name);if(!current)show(document.getElementById('home'))};
+ if(owner)return show(owner,name,fragment);if(!name||!current)show(document.getElementById('home'))};
 addEventListener('hashchange',route);addEventListener('pageshow',()=>setTimeout(mark));
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',route);else route()})();"""
 # 🖼️ Inside a framed app, a #link stays in its document (a srcdoc page would resolve it against the screen's address).
@@ -1370,7 +1419,7 @@ def main(argv=None):
     parser.add_argument('--record-map', type=Path, metavar='DIR',
                         help="🧠 read every repository's vendor.lock.json (and Aoi's subtrees) and draw the map under DIR/media/map/")
     parser.add_argument('--record-chat', type=Path, metavar='DIR',
-                        help="💬 index every repository's JSON / JSONL, mcp-toolcall-lab's tools and TalkCompress's compressor under DIR/media/chat/")
+                        help="💬 index every repository's JSON / JSONL, mcp-toolcall-lab's code (the page's MCP server) and TalkCompress's compressor under DIR/media/chat/")
     args = parser.parse_args(argv)
     for target in (args.output, args.stage, args.copy_source):
         if target:

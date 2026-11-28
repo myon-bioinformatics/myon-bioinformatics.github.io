@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /
 COPY --from=tests-venv /opt/python /opt/python
 COPY --from=tests-venv /opt/tests /opt/tests
 COPY . .
+ENV PATH="/opt/tests/bin:${PATH}"
 RUN /opt/tests/bin/python -c "import sys; assert sys.version_info[:3] == (3, 15, 2), sys.version"
 RUN /opt/tests/bin/python scripts/project_pages.py --stage .generated-site
-ENV PATH="/opt/tests/bin:${PATH}"
 CMD ["sh", "-c", "python -m pytest tests/test_site.py --junitxml=reports/html-import-python.xml && npx playwright test --config playwright/html-import.config.js"]
