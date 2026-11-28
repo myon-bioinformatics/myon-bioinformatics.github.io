@@ -101,3 +101,20 @@ def test_relic_conditions_and_destinations_are_generated_from_the_world():
     assert len(changed) == 8
     assert any(relic["condition"].endswith("37 以上") for relic in changed)
     assert not any(relic["spot"] == "london-rl-chest-potion" for relic in changed)
+
+
+def test_city_guide_includes_each_games_quests_and_shop_prices():
+    from world import world_validate
+    from world_guide import build as build_worlds
+
+    spec = world_validate(example_data("cities"))
+    graph = build_worlds()
+    offers = {(e["source"], e["target"]) for e in graph["edges"] if e["kind"] == "offers"}
+    nodes = {n["id"]: n for n in graph["nodes"]}
+    for system, route, currency in (("rpg", "#london", "G"), ("rescue", "#paris", "メダル")):
+        for quest in spec[system]["quests"]:
+            assert (route, "quest/" + quest["id"]) in offers
+        for item in spec[system]["shop"]:
+            uid = "buy/" + item["id"]
+            assert (route, uid) in offers
+            assert nodes["price/" + uid]["name"] == f'{item["cost"]}{currency}以上'

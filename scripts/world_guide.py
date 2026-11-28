@@ -32,9 +32,11 @@ def build():
             link("#"+primary, "offers", tid)
         rpg = spec.get("rpg", {})
         relics = {relic["spot"]: relic for relic in world.relic_catalogue(spec)}
+        spot_routes = {}
         for floor in spec["floors"]:
             fid = floor["id"]
             route = fid if SPACES.get(fid, (None,))[0] == scene else primary
+            spot_routes.update((p["id"], route) for p in floor["spots"] + floor["actors"])
             area = add(f"{scene}/{fid}", "State", floor["label"])
             link("#"+route, "contains", area)
             for actor in floor["actors"]:
@@ -84,18 +86,19 @@ def build():
                     link(area, "offers", add(f'rescue/{f["id"]}', "Task", f["name"], tx=f["tx"], ty=f["ty"], heat=f["heat"]))
             if fid == spec.get("detective", {}).get("floor"):
                 link(area, "see_also", add("osaka-guide.json", "Guide", "大阪の捜査手帳", markdown="osaka-guide.md"))
-        for q in spec.get("rescue", rpg).get("quests", []):
-            parent = spec.get("rescue", {}).get("floor", primary)
-            goal = add("quest/"+q["id"], "Goal", q["title"], detail=q["desc"])
-            link("#"+parent, "offers", goal)
-            link(goal, "completed_when", add("condition/"+q["id"], "Condition", q["kind"], minimum=q["count"],
-                                             target=q.get("target")))
-        for shop in spec.get("rescue", rpg).get("shop", []):
-            parent = spec.get("rescue", {}).get("floor", primary)
-            buy = add("buy/"+shop["id"], "Task", shop["label"]+"を購入", detail=shop["desc"])
-            link("#"+parent, "offers", buy)
-            currency = "メダル" if "rescue" in spec else "G"
-            link(buy, "guarded_by", add("price/"+buy, "Condition", f'{shop["cost"]}{currency}以上'))
+        npc_routes = {spot_routes[sid] for sid in rpg.get("npcs", {})}
+        rpg_route = next(iter(npc_routes)) if len(npc_routes) == 1 else primary
+        rescue = spec.get("rescue", {})
+        for rules, route, currency in ((rpg, rpg_route, "G"), (rescue, rescue.get("floor"), "メダル")):
+            for q in rules.get("quests", []):
+                goal = add("quest/"+q["id"], "Goal", q["title"], detail=q["desc"])
+                link("#"+spot_routes.get(q.get("target"), route), "offers", goal)
+                link(goal, "completed_when", add("condition/"+q["id"], "Condition", q["kind"],
+                                                 minimum=q["count"], target=q.get("target")))
+            for shop in rules.get("shop", []):
+                buy = add("buy/"+shop["id"], "Task", shop["label"]+"を購入", detail=shop["desc"])
+                link("#"+spot_routes.get(shop.get("spot_id"), route), "offers", buy)
+                link(buy, "guarded_by", add("price/"+buy, "Condition", f'{shop["cost"]}{currency}以上'))
     for i, fact in enumerate(dialogue_graph(world)["facts"]):
         claim = add(f"fact/{i}", "Claim", fact["edge"], detail=fact["text"])
         link(root, "explains", claim)

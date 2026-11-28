@@ -1083,7 +1083,7 @@ class CitiesTests(unittest.TestCase):
     def test_every_language_labels_the_city_tools(self):
         page = self.open("phone")
         self.start(page)
-        codes = [code for code, _ in W.WORLD_LANGS]
+        codes = [code for code, _ in W.CHROME_LANGS]
         for code in codes:
             with self.subTest(lang=code):
                 self.menu(page, "settings")
@@ -1115,7 +1115,7 @@ class CitiesTests(unittest.TestCase):
             page = self.open("desktop", path=path)
             if page.locator("[data-emoji]").count():
                 page.locator("[data-emoji]").first.click()
-            for code, _ in W.WORLD_LANGS[1:]:
+            for code, _ in W.CHROME_LANGS[1:]:
                 with self.subTest(world=name, lang=code):
                     page.evaluate("c => { for (const s of document.querySelectorAll('[data-lang]')) { s.value = c; s.dispatchEvent(new Event('change', {bubbles: true})) } }", code)
                     self.assertEqual(page.evaluate(leftover, kana), [])
@@ -1806,12 +1806,13 @@ class NagoyaRpgBrowserTests(unittest.TestCase):
         self.assertIn("30G", dome_deed_btn.inner_text())
         self.assertIn("+25知名度", dome_deed_btn.inner_text())
         self.assertIn("観戦チケットを購入して入場する", dome_deed_btn.inner_text())
+        self.assertIn("125G", gold_el.inner_text())
         dome_deed_btn.click()
         self.assertIn("観戦チケットを購入してスタンドへ入場した", dome_dialog.inner_text())
         page.click('#nagoya-map .ui-rpg-card button:has-text("とじる")')
         overlay.wait_for(state="hidden")
 
-        # Fame is now 15 + 25 = 40pt; Gold is 125 + 40 (talk quest) - 30 (cost) + 75 (fame*3) + 60 (fame starter quest) = 270G
+        # Fame is now 15 + 25 = 40pt; Gold is 125 + 40 (ticket quest) - 30 (cost) + 75 (fame*3) + 60 (fame starter quest) = 270G
         self.assertIn("40pt", fame_btn.inner_text())
         self.assertIn("270G", gold_el.inner_text())
 
@@ -1822,30 +1823,26 @@ class NagoyaRpgBrowserTests(unittest.TestCase):
         self.assertIn("モール店員ナミ", aeon_dialog.inner_text())
         self.assertIn("イオンモール ナゴヤドーム前へようこそ", aeon_dialog.inner_text())
 
-        # Open Aeon shop (talk quest awarded +30G -> 300G)
+        self.assertIn("270G", gold_el.inner_text())
+        self.assertEqual(aeon_dialog.locator("[data-rpg-deed-btn]").count(), 0)
         aeon_dialog.locator('button:has-text("🛒 おみせ")').click()
         shop_card = overlay.locator('.ui-rpg-card[aria-label="モール店員ナミのお店"]')
         shop_card.wait_for(state="visible")
         self.assertIn("ドーム観戦必勝弁当", shop_card.inner_text())
         self.assertIn("ナゴヤエナジースカッシュ", shop_card.inner_text())
-        # Buy drink (15G) -> 285G
+        # Buying the drink completes the mall deed and the third-deed quest.
         shop_card.locator('.ui-rpg-row:has-text("ナゴヤエナジースカッシュ") button:has-text("かう")').click()
         page.wait_for_timeout(200)
-        self.assertIn("285G", gold_el.inner_text())
+        self.assertIn("410G", gold_el.inner_text())
 
-        # Return to conversation and do mall-shopping deed (+15 fame)
-        shop_card.locator('button:has-text("会話にもどる")').click()
-        aeon_dialog.wait_for(state="visible")
-        mall_deed_btn = aeon_dialog.locator('[data-rpg-deed-btn]')
-        self.assertTrue(mall_deed_btn.is_visible())
-        mall_deed_btn.click()
-        self.assertIn("万全の装備でドーム応援を楽しんでください", aeon_dialog.inner_text())
-        page.click('#nagoya-map .ui-rpg-card button:has-text("とじる")')
+        shop_card.locator('.ui-rpg-row:has-text("ナゴヤエナジースカッシュ") button:has-text("かう")').click()
+        self.assertIn("395G", gold_el.inner_text())
+        shop_card.get_by_role("button", name="とじる", exact=True).click()
         overlay.wait_for(state="hidden")
 
         # Fame is now 40 + 15 = 55pt (rank: 聖地ナゴヤの名物ファン)
         self.assertIn("55pt", fame_btn.inner_text())
-        self.assertIn("410G", gold_el.inner_text())
+        self.assertIn("395G", gold_el.inner_text())
 
         # 5. Open Journal and inspect Fan Fame tab & badges
         fame_btn.click()

@@ -2295,6 +2295,130 @@
    "markdown": "osaka-guide.md"
   },
   {
+   "id": "quest/talk-arthur",
+   "type": "Goal",
+   "name": "名探偵のオリエンテーション",
+   "detail": "探偵アーサーに話を聞く"
+  },
+  {
+   "id": "condition/talk-arthur",
+   "type": "Condition",
+   "name": "talk",
+   "minimum": 1,
+   "target": "london-rl-npc-arthur"
+  },
+  {
+   "id": "quest/care-dragon",
+   "type": "Goal",
+   "name": "龍とのふれあい",
+   "detail": "龍を1頭見つけてお世話する"
+  },
+  {
+   "id": "condition/care-dragon",
+   "type": "Condition",
+   "name": "dragon",
+   "minimum": 1,
+   "target": null
+  },
+  {
+   "id": "quest/master-bond",
+   "type": "Goal",
+   "name": "心を通わせし者",
+   "detail": "いずれかの龍との絆を最大にする"
+  },
+  {
+   "id": "condition/master-bond",
+   "type": "Condition",
+   "name": "bond",
+   "minimum": 1,
+   "target": null
+  },
+  {
+   "id": "quest/all-dragons",
+   "type": "Goal",
+   "name": "五大守護龍の発見",
+   "detail": "5頭すべての龍を見つける"
+  },
+  {
+   "id": "condition/all-dragons",
+   "type": "Condition",
+   "name": "dragon",
+   "minimum": 5,
+   "target": null
+  },
+  {
+   "id": "quest/collect-drops",
+   "type": "Goal",
+   "name": "ロンドンの落とし物拾い",
+   "detail": "道具を3つ拾う"
+  },
+  {
+   "id": "condition/collect-drops",
+   "type": "Condition",
+   "name": "drop",
+   "minimum": 3,
+   "target": null
+  },
+  {
+   "id": "quest/defeat-clock",
+   "type": "Goal",
+   "name": "時計塔の番兵討伐",
+   "detail": "番兵を倒す"
+  },
+  {
+   "id": "condition/defeat-clock",
+   "type": "Condition",
+   "name": "boss",
+   "minimum": 1,
+   "target": "london-rl-enemy-clock-golem"
+  },
+  {
+   "id": "quest/cecil-quiz",
+   "type": "Goal",
+   "name": "ロンドン博学王",
+   "detail": "セシルのクイズに2問正解する"
+  },
+  {
+   "id": "condition/cecil-quiz",
+   "type": "Condition",
+   "name": "quiz",
+   "minimum": 2,
+   "target": null
+  },
+  {
+   "id": "buy/tea",
+   "type": "Task",
+   "name": "ベルモント・ロイヤルティーを購入",
+   "detail": "心安らぐ英国紅茶。龍のおやつにも最適"
+  },
+  {
+   "id": "price/buy/tea",
+   "type": "Condition",
+   "name": "18G以上"
+  },
+  {
+   "id": "buy/scone",
+   "type": "Task",
+   "name": "自家製焼きたてスコーンを購入",
+   "detail": "外サクサク中ふわふわ。龍の絆を深める"
+  },
+  {
+   "id": "price/buy/scone",
+   "type": "Condition",
+   "name": "22G以上"
+  },
+  {
+   "id": "buy/potion",
+   "type": "Task",
+   "name": "ロンドン薬草酒を購入",
+   "detail": "伝統的なハーブ酒。HPを35回復する"
+  },
+  {
+   "id": "price/buy/potion",
+   "type": "Condition",
+   "name": "25G以上"
+  },
+  {
    "id": "quest/q-talk-captain",
    "type": "Goal",
    "name": "マルゴ隊長へ着任報告",
@@ -2915,9 +3039,9 @@
   {
    "id": "condition/q-dome-sponsor",
    "type": "Condition",
-   "name": "talk",
+   "name": "deed",
    "minimum": 1,
-   "target": "nagoya-dome"
+   "target": "dome-sponsor"
   },
   {
    "id": "quest/q-mall-shopping",
@@ -2928,9 +3052,9 @@
   {
    "id": "condition/q-mall-shopping",
    "type": "Condition",
-   "name": "talk",
+   "name": "deed",
    "minimum": 1,
-   "target": "nagoya-aeon-mall"
+   "target": "mall-shopping"
   },
   {
    "id": "quest/q-dragon-dragoon",
@@ -4854,6 +4978,106 @@
    "source": "cities/osaka",
    "kind": "see_also",
    "target": "osaka-guide.json"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "quest/talk-arthur"
+  },
+  {
+   "source": "quest/talk-arthur",
+   "kind": "completed_when",
+   "target": "condition/talk-arthur"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "quest/care-dragon"
+  },
+  {
+   "source": "quest/care-dragon",
+   "kind": "completed_when",
+   "target": "condition/care-dragon"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "quest/master-bond"
+  },
+  {
+   "source": "quest/master-bond",
+   "kind": "completed_when",
+   "target": "condition/master-bond"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "quest/all-dragons"
+  },
+  {
+   "source": "quest/all-dragons",
+   "kind": "completed_when",
+   "target": "condition/all-dragons"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "quest/collect-drops"
+  },
+  {
+   "source": "quest/collect-drops",
+   "kind": "completed_when",
+   "target": "condition/collect-drops"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "quest/defeat-clock"
+  },
+  {
+   "source": "quest/defeat-clock",
+   "kind": "completed_when",
+   "target": "condition/defeat-clock"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "quest/cecil-quiz"
+  },
+  {
+   "source": "quest/cecil-quiz",
+   "kind": "completed_when",
+   "target": "condition/cecil-quiz"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "buy/tea"
+  },
+  {
+   "source": "buy/tea",
+   "kind": "guarded_by",
+   "target": "price/buy/tea"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "buy/scone"
+  },
+  {
+   "source": "buy/scone",
+   "kind": "guarded_by",
+   "target": "price/buy/scone"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "buy/potion"
+  },
+  {
+   "source": "buy/potion",
+   "kind": "guarded_by",
+   "target": "price/buy/potion"
   },
   {
    "source": "#paris",

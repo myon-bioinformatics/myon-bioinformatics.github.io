@@ -29,9 +29,9 @@ from pathlib import Path
 from typing import Any, Callable, NamedTuple
 from urllib.parse import quote, urlsplit
 
-from pysaiyanweboo import (COUNTER_ATTACK_ORBS, COUNTER_HEAL_ORBS, COUNTER_MAX_ORBS, DIAL_CSS, DIAL_JS, EARTH_RADIUS_M,
-                           GARDEN_GLYPHS, GARDEN_REWARDS, bundled_css, counter_effect, counter_garden, counter_label, dial_html,
-                           js_source, module_script, parse_coordinate, play_random, render_document, tolerance_area, try_parse_maps_url)
+from pysaiyanweboo import (CHROME_LANGS, COUNTER_ATTACK_ORBS, COUNTER_HEAL_ORBS, COUNTER_MAX_ORBS, DIAL_CSS, DIAL_JS, EARTH_RADIUS_M, GARDEN_GLYPHS, GARDEN_REWARDS, bundled_css,
+                           chrome_word, counter_effect, counter_garden, counter_label, dial_html, js_source, module_script, parse_coordinate, play_random,
+                           render_document, shell_js, tolerance_area, try_parse_maps_url)
 
 # --- World: one page, a camera, no page changes (scrolling "shots" and a pan/zoom map) -----------------
 # Everything is built here in memory: Python validates the data, does the arithmetic, and emits the HTML,
@@ -994,13 +994,16 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
         raise ValueError("rpg deeds lists up to 32 entries")
     deeds, seen_deed = [], set()
     for d in deeds_in:
-        if not isinstance(d, dict) or set(d) - {"id", "title", "desc", "fame", "npc_id", "reward_label", "cost"}:
+        if not isinstance(d, dict) or set(d) - {"id", "title", "desc", "fame", "npc_id", "reward_label", "cost", "on_purchase"}:
             raise ValueError("deed has id, title, desc, fame, npc_id, reward_label and optional cost")
         nid = d.get("npc_id")
         if nid is not None and nid not in spot_ids:
             raise ValueError(f"deed npc_id {nid!r} must reference an existing spot")
         cost = _bounded_int(d.get("cost", 0), "deed cost", 0, 99999) if "cost" in d else 0
+        if "on_purchase" in d and (d["on_purchase"] is not True or not npcs.get(nid, {}).get("shop")):
+            raise ValueError("purchase deed requires a shop NPC")
         deeds.append({
+            **({"on_purchase": True} if d.get("on_purchase") else {}),
             "id": _world_id(d.get("id"), "deed id", seen_deed),
             "title": _world_text(d.get("title"), "deed title", 48),
             "desc": _world_text(d.get("desc"), "deed desc", 160),
@@ -1009,6 +1012,9 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
             **({"reward_label": _world_text(d["reward_label"], "deed reward_label", 40)} if "reward_label" in d else {}),
             **({"cost": cost} if cost > 0 else {}),
         })
+    for q in quests:
+        if q["kind"] == "deed" and "target" in q and q["target"] not in seen_deed:
+            raise ValueError(f"unknown deed target {q['target']!r}")
     return {"seed": seed, "hero": hero, "npcs": npcs, "loot": loot, "enemies": enemies,
             "quests": quests, "badges": badges, "quizzes": quizzes, "shop": shop, "skills": skills, "orbs": orbs,
             **({"dragons": dragons} if dragons else {}), **({"synergy": synergy} if synergy else {}),
@@ -2287,21 +2293,13 @@ def _board_html(board: dict[str, Any] | None, *, timed: bool = True) -> str:
             f'<div class="ui-board-track"><div class="ui-board-run"{duration_style}>{run}</div></div>{form}{shared}</div>')
 
 
-# The words of a shell world's chrome. The page shows icons; these are the aria-label and tooltip. 🌐 picks the language, the same
-# eleven as flutter_navigation_basic (ja is the page's own, so it is what the markup carries until JS switches it).
+# The words of a shell world's chrome that are the world's own. The page shows icons; these are the aria-label and tooltip. 🌐 picks the
+# language, PySaiyanWeBoo's eleven (CHROME_LANGS; ja is the page's own, so it is what the markup carries until JS switches it), and the
+# words a tool page's chrome shares (🏠 ⭐ ⚙️ 🌐 ☰ ⋯, 🫧 🚪 📦, "in N min") are PySaiyanWeBoo's catalogue (chrome_word): written once.
 WORLD_NAMES = ("names", "dots", "off")   # the name layer of a map: see docs/world-classroom.md "Layers"
-WORLD_LANGS = (("ja", "日本語"), ("en", "English"), ("fr", "Français"), ("es", "Español"), ("pt", "Português"), ("ar", "العربية"),
-               ("zh", "中文"), ("ru", "Русский"), ("id", "Bahasa Indonesia"), ("de", "Deutsch"), ("sw", "Kiswahili"))
 WORLD_TEXT = {
     #            ja  en  fr  es  pt  ar  zh  ru  id  de  sw
-    "home": ("ホーム", "Home", "Accueil", "Inicio", "Início", "الرئيسية", "首页", "Главная", "Beranda", "Startseite", "Mwanzo"),
-    "favorites": ("お気に入り", "Favorites", "Favoris", "Favoritos", "Favoritos", "المفضلة", "收藏", "Избранное", "Favorit", "Favoriten", "Vipendwa"),
-    "settings": ("全体設定", "Settings", "Réglages", "Ajustes", "Configurações", "الإعدادات", "设置", "Настройки", "Pengaturan", "Einstellungen", "Mipangilio"),
-    "places": ("行き先の一覧", "Places", "Lieux", "Lugares", "Lugares", "الأماكن", "地点", "Места", "Tempat", "Orte", "Maeneo"),
-    "screen": ("この画面の操作", "This screen", "Cet écran", "Esta pantalla", "Esta tela", "هذه الشاشة", "本屏幕", "Этот экран", "Layar ini", "Dieser Bildschirm", "Skrini hii"),
-    "pause": ("動きを止める", "Pause motion", "Arrêter le mouvement", "Pausar el movimiento", "Pausar o movimento", "إيقاف الحركة", "暂停动态", "Остановить движение", "Jeda gerakan", "Bewegung anhalten", "Simamisha mwendo"),
     "avatar": ("絵文字を変える", "Change emoji", "Changer d'emoji", "Cambiar emoji", "Mudar emoji", "تغيير الرمز التعبيري", "更换表情", "Сменить эмодзи", "Ganti emoji", "Emoji ändern", "Badilisha emoji"),
-    "language": ("言語", "Language", "Langue", "Idioma", "Idioma", "اللغة", "语言", "Язык", "Bahasa", "Sprache", "Lugha"),
     "zoom": ("ズーム（回して拡大・縮小）", "Zoom (turn to zoom in or out)", "Zoom (tournez pour agrandir ou réduire)", "Zoom (gira para acercar o alejar)",
              "Zoom (gire para aproximar ou afastar)", "التكبير (أدر للتكبير أو التصغير)", "缩放（旋转以放大或缩小）", "Масштаб (поверните, чтобы приблизить или отдалить)",
              "Zum (putar untuk memperbesar atau memperkecil)", "Zoom (drehen zum Vergrößern oder Verkleinern)", "Kuza (zungusha kukuza au kupunguza)"),
@@ -2320,13 +2318,10 @@ WORLD_TEXT = {
     "me": ("自分の場所", "Find me", "Où suis-je", "Mi ubicación", "Minha posição", "موقعي", "我的位置", "Где я", "Posisi saya", "Mein Standort", "Nilipo"),
     "walk": ("ここへ歩く", "Walk here", "Aller ici", "Caminar aquí", "Caminhar até aqui", "امشِ إلى هنا", "走到这里", "Идти сюда", "Jalan ke sini", "Hierhin gehen", "Tembea hapa"),
     "close": ("閉じる", "Close", "Fermer", "Cerrar", "Fechar", "إغلاق", "关闭", "Закрыть", "Tutup", "Schließen", "Funga"),
-    "star": ("お気に入り", "Favorite", "Favori", "Favorito", "Favorito", "مفضلة", "收藏", "В избранное", "Favorit", "Favorit", "Pendwa"),
     "floor": ("フロアを移動", "Go to floor", "Aller à l'étage", "Ir a la planta", "Ir para o andar", "الانتقال إلى طابق", "前往楼层", "Перейти на этаж", "Pindah lantai", "Zur Etage", "Nenda ghorofa"),
     "move": ("移動", "Move", "Déplacer", "Mover", "Mover", "تحرك", "移动", "Движение", "Gerak", "Bewegen", "Sogea"),
-    "up": ("上へ", "Up", "Haut", "Arriba", "Cima", "أعلى", "上", "Вверх", "Atas", "Hoch", "Juu"),
     "left": ("左へ", "Left", "Gauche", "Izquierda", "Esquerda", "يسار", "左", "Влево", "Kiri", "Links", "Kushoto"),
     "right": ("右へ", "Right", "Droite", "Derecha", "Direita", "يمين", "右", "Вправо", "Kanan", "Rechts", "Kulia"),
-    "down": ("下へ", "Down", "Bas", "Abajo", "Baixo", "أسفل", "下", "Вниз", "Bawah", "Runter", "Chini"),
     "pick": ("あなたの絵文字をえらんでください", "Pick your emoji", "Choisissez votre emoji", "Elige tu emoji", "Escolha seu emoji", "اختر رمزك التعبيري", "选择你的表情", "Выберите свой эмодзи", "Pilih emojimu", "Wähle dein Emoji", "Chagua emoji yako"),
     "other": ("ほかの絵文字・文字（16文字まで）", "Another emoji or text (up to 16)", "Autre emoji ou texte (16 max)", "Otro emoji o texto (hasta 16)", "Outro emoji ou texto (até 16)", "رمز أو نص آخر (حتى 16)", "其他表情或文字（最多16个）", "Другой эмодзи или текст (до 16)", "Emoji atau teks lain (maks. 16)", "Anderes Emoji oder Text (bis 16)", "Emoji au maandishi mengine (hadi 16)"),
     "ok": ("これにする", "Use this", "Choisir", "Usar este", "Usar este", "استخدم هذا", "就用这个", "Выбрать", "Pakai ini", "Nehmen", "Tumia hii"),
@@ -2340,10 +2335,9 @@ WORLD_TEXT = {
     "take": ("どうぐに出し入れする", "Add or remove item", "Ajouter ou retirer l'objet", "Añadir o quitar objeto", "Adicionar ou remover item", "إضافة أو إزالة أداة", "放入或取出道具", "Добавить или убрать предмет", "Tambah atau hapus barang", "Gegenstand hinzufügen oder entfernen", "Ongeza au ondoa kifaa"),
     # 🌐 the words of the shell and the scenes' buttons that 🌐 finds by their words (sayIn), and those of the site's parts on a world page
     "self": ("自分", "Me", "Moi", "Yo", "Eu", "أنا", "我", "Я", "Saya", "Ich", "Mimi"),
-    "links": ("関連リンク", "Related links", "Liens associés", "Enlaces relacionados", "Links relacionados", "روابط ذات صلة", "相关链接", "Связанные ссылки", "Tautan terkait", "Verwandte Links", "Viungo vinavyohusiana"),
     "world": ("ワールド", "World", "Monde", "Mundo", "Mundo", "العالم", "世界", "Мир", "Dunia", "Welt", "Ulimwengu"),
     "spaces": ("空間一覧", "Spaces", "Espaces", "Espacios", "Espaços", "المساحات", "空间列表", "Пространства", "Ruang", "Räume", "Nafasi"),
-    "status": ("冒険ステータス", "Adventure status", "Statut d'aventure", "Estado de la aventura", "Status da aventura", "حالة المغامرة", "冒险状态", "Статус приключения", "Status petualangan", "Abenteuerstatus", "Hali ya safari"),
+    "adventure": ("冒険ステータス", "Adventure status", "Statut d'aventure", "Estado de la aventura", "Status da aventura", "حالة المغامرة", "冒险状态", "Статус приключения", "Status petualangan", "Abenteuerstatus", "Hali ya safari"),
     "notebook": ("冒険手帳（クエスト・実績・図鑑）", "Adventure notebook (quests, achievements, field guide)", "Carnet d'aventure (quêtes, succès, bestiaire)", "Cuaderno de aventura (misiones, logros, guía)", "Caderno de aventura (missões, conquistas, guia)", "دفتر المغامرة (المهام والإنجازات والدليل)", "冒险手册（任务、成就、图鉴）", "Дневник приключений (квесты, достижения, справочник)", "Buku petualangan (misi, pencapaian, ensiklopedia)", "Abenteuerbuch (Quests, Erfolge, Lexikon)", "Daftari la safari (kazi, mafanikio, viumbe)"),
     "hunt": ("この周辺で魔物をさがす", "Look for monsters nearby", "Chercher des monstres alentour", "Buscar monstruos cerca", "Procurar monstros por perto", "ابحث عن الوحوش القريبة", "在附近寻找怪物", "Искать монстров рядом", "Cari monster di sekitar", "Monster in der Nähe suchen", "Tafuta majini karibu"),
     "cat": ("散歩猫", "Strolling cat", "Chat en balade", "Gato paseando", "Gato passeando", "قطة تتنزه", "散步的猫", "Гуляющий кот", "Kucing jalan-jalan", "Spazierkatze", "Paka anayetembea"),
@@ -2360,24 +2354,15 @@ WORLD_TEXT = {
     "scroll": ("竜の巻物", "Dragon scroll", "Parchemin du dragon", "Pergamino del dragón", "Pergaminho do dragão", "لفيفة التنين", "龙之卷轴", "Свиток дракона", "Gulungan naga", "Drachenschriftrolle", "Hati-kunjo ya joka"),
     "tools": ("道具", "Tools", "Outils", "Herramientas", "Ferramentas", "أدوات", "工具", "Инструменты", "Alat", "Werkzeuge", "Zana"),
     "guide": ("攻略ガイド", "Strategy guide", "Guide stratégique", "Guía de estrategia", "Guia de estratégia", "دليل الاستراتيجية", "攻略指南", "Руководство", "Panduan strategi", "Lösungshilfe", "Mwongozo wa mbinu"),
-    "empty": ("まだありません", "Nothing yet", "Rien pour l'instant", "Nada todavía", "Nada ainda", "لا شيء بعد", "还没有", "Пока ничего", "Belum ada", "Noch nichts", "Bado hakuna"),
+    "nothing": ("まだありません", "Nothing yet", "Rien pour l'instant", "Nada todavía", "Nada ainda", "لا شيء بعد", "还没有", "Пока ничего", "Belum ada", "Noch nichts", "Bado hakuna"),
     "effect": ("効果", "Effect", "Effet", "Efecto", "Efeito", "التأثير", "效果", "Эффект", "Efek", "Wirkung", "Athari"),
     "village": ("村", "Village", "Village", "Pueblo", "Vila", "القرية", "村庄", "Деревня", "Desa", "Dorf", "Kijiji"),
     "school": ("学校", "School", "École", "Escuela", "Escola", "المدرسة", "学校", "Школа", "Sekolah", "Schule", "Shule"),
     "tokyo": ("パラレル東京", "Parallel Tokyo", "Tokyo parallèle", "Tokio paralelo", "Tóquio paralela", "طوكيو الموازية", "平行东京", "Параллельный Токио", "Tokyo Paralel", "Paralleles Tokio", "Tokyo sambamba"),
-    "now": ("いま", "now", "maintenant", "ahora", "agora", "الآن", "现在", "сейчас", "sekarang", "jetzt", "sasa"),
-    "in": ("あと{0}分", "in {0} min", "dans {0} min", "en {0} min", "em {0} min", "بعد {0} د", "{0} 分钟后", "через {0} мин", "{0} mnt lagi", "in {0} Min.", "baada ya dak. {0}"),
-    "blink": ("まばたき", "Blink", "Cligner des yeux", "Parpadear", "Piscar", "رمش", "眨眼", "Моргнуть", "Berkedip", "Blinzeln", "Pepesa"),
-    "door": ("ドア to ドア", "Door-to-Door", "De porte à porte", "De puerta en puerta", "De porta em porta", "من باب إلى باب", "门到门", "От двери к двери", "Dari pintu ke pintu", "Von Tür zu Tür", "Mlango kwa mlango"),
-    "size": ("このページの大きさ（HTML）", "Size of this page (HTML)", "Taille de cette page (HTML)", "Tamaño de esta página (HTML)", "Tamanho desta página (HTML)", "حجم هذه الصفحة (HTML)", "本页大小（HTML）", "Размер этой страницы (HTML)", "Ukuran halaman ini (HTML)", "Größe dieser Seite (HTML)", "Ukubwa wa ukurasa huu (HTML)"),
-    "current": ("（いまのページ）", " (current)", " (actuelle)", " (actual)", " (atual)", " (الحالية)", "（当前）", " (текущая)", " (saat ini)", " (aktuell)", " (ya sasa)"),
 }
 WORLD_BUILTIN_TOOLS = ("🏠", "⭐", "🎒", "⚙", "🌐", "☰", "⋯", "🛗", "🚪", "🖼", "📷", "🧹")   # emoji the page itself uses (🛗 its floors; 🚪 is the site foot's); a tool of your own takes another
 _WORLD_TOOL_KEYS = {"label", "label_en", "labels", "slot"}
-_WORLD_LANG_CODES = tuple(code for code, _ in WORLD_LANGS)
-# What the page's script needs: the language codes and the words by index (one list per key), written once ahead of the script.
-WORLD_TEXT_JS = ("const WORLD_LANGS=" + json.dumps(list(_WORLD_LANG_CODES)) + ",WORLD_TEXT=" +
-                 json.dumps({k: list(v) for k, v in WORLD_TEXT.items()}, ensure_ascii=False, separators=(",", ":")) + ";\n")
+_WORLD_LANG_CODES = tuple(code for code, _ in CHROME_LANGS)
 
 
 def _plain_emoji(value: str) -> str:
@@ -2387,7 +2372,7 @@ def _plain_emoji(value: str) -> str:
 def _wt(key: str, labels: dict[str, str] | None = None) -> str:
     """aria-label and title of one word of the chrome in the page's own language (ja); ``data-t`` names the catalogue entry that 🌐 swaps in,
     or ``labels`` (language code → words) carries the words of a tool of your own."""
-    ja = labels["ja"] if labels else WORLD_TEXT[key][0]
+    ja = labels["ja"] if labels else WORLD_TEXT[key][0] if key in WORLD_TEXT else chrome_word(key)
     swap = f'data-labels="{escape(json.dumps(labels, ensure_ascii=False, separators=(",", ":")), quote=True)}"' if labels else f'data-t="{key}"'
     return f'aria-label="{escape(ja, quote=True)}" title="{escape(ja, quote=True)}" {swap}'
 
@@ -2696,7 +2681,7 @@ def _shell_html(world: dict[str, Any], *, head: str, radios: str, view: str, tai
     settings = ((f'<button type="button" class="ui-world-pause" aria-pressed="false" data-pause="⏸️" data-resume="▶️" {_wt("pause")}>⏸️</button>' if playable else "") +
                 (f'<button type="button" data-pick-open {_wt("avatar")}>🙂✏️</button>' if avatars else "") +
                 f'<label class="ui-world-lang">🌐 <select data-lang {_wt("language")}>' +
-                "".join(f'<option value="{code}" lang="{code}"{" selected" if i == 0 else ""}>{name}</option>' for i, (code, name) in enumerate(WORLD_LANGS)) +
+                "".join(f'<option value="{code}" lang="{code}"{" selected" if i == 0 else ""}>{name}</option>' for i, (code, name) in enumerate(CHROME_LANGS)) +
                 '</select></label>' +
                 f'<label class="ui-world-zoom">🔍 {dial_html("zoom", minimum=0.1, maximum=world["zoom_max"], step=0.05, value=1, attrs=_wt("zoom"))}</label>' +
                 f'<label class="ui-world-alpha">🫥 <input type="range" data-alpha min="0.2" max="1" step="0.1" value="0.9" {_wt("overlay")}></label>' +
@@ -3209,34 +3194,10 @@ export function bindIssueBulletin(panel){
 WORLD_SHARED_JS = ISSUE_BULLETIN_JS + r"""
 export function bindSharedBoard(board){bindIssueBulletin(board.querySelector(".ui-board-shared"))}
 """
-SHELL_JS = WORLD_TEXT_JS + r"""
-// ── The shell: a world's header and side (a tool page's chrome is PySaiyanWeBoo's chrome_html, made from the same pieces) ──
-export function minutesUntil(now,at){return Math.ceil(((at-now)%1440+1440)%1440)}
-export function boardClock(now,offset){const seconds=((now+offset*60)%86400+86400)%86400,whole=Math.floor(seconds);return{clock:[Math.floor(whole/3600),Math.floor(whole/60)%60,whole%60].map(v=>String(v).padStart(2,"0")).join(":"),minutes:seconds/60}}
-export function boardSeconds(chars,cps=8){return Math.max(8,Math.round(chars/cps*10)/10)}
-export function gaugeState(now,start,end,cells){const m=n=>((n%1440)+1440)%1440,span=m(end-start)||1440,el=m(now-start);if(el<span)return[Math.floor(el*cells/span),Math.floor(el*100/span),"active"];return m(start-now)<=m(now-end)?[0,0,"before"]:[cells,100,"after"]}
-export function gaugeCells(filled,cells,done,todo){return done.repeat(filled)+todo.repeat(cells-filled)}
-export function clockLabel(minutes){const h=Math.floor(minutes/60)%24,m=minutes%60;return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0")}
-export function zoneOffset(rows,t){let lo=0,hi=rows.length/2-1;while(lo<hi){const mid=(lo+hi+1)>>1;if(rows[2*mid]<=t)lo=mid;else hi=mid-1}return rows[2*lo+1]}
-export function utcOffsetLabel(offset){if(offset===0)return"UTC";const a=Math.abs(offset),h=Math.floor(a/60),m=a%60;return"UTC"+(offset>0?"+":"-")+h+(m?":"+String(m).padStart(2,"0"):"")}
-// The info board: its clock (HH:MM:SS, once a second), "in N min", gauges and zone clocks (HH:MM). Returns {tick, clockNow}.
-export function bindBoard(board){const hm=t=>{const[h,m]=t.split(":").map(Number);return h*60+m},clockNow=()=>{const d=new Date(),off=board.dataset.offset===""?(-Math.round(d.getTimezoneOffset())||0):Number(board.dataset.offset);return{...boardClock(d.getTime()/1000,off),off}},chips=[...board.querySelectorAll("[data-zone-id]")].map(z=>({id:z.dataset.zoneId,rows:JSON.parse(z.dataset.rows),out:z.querySelector("[data-zone-clock]")})),tick=()=>{const clock=clockNow(),t=new Date().getTime()/1000,zones=new Map(chips.map(z=>{const c=boardClock(t,zoneOffset(z.rows,t));z.out.textContent=c.clock.slice(0,5);return[z.id,c]})),at=m=>(m.dataset.zone?zones.get(m.dataset.zone):clock).minutes,c=board.querySelector("[data-clock]");c.textContent=clock.clock+(board.dataset.offsetLabel!==undefined?" "+utcOffsetLabel(clock.off):"");for(const m of board.querySelectorAll("[data-at]")){const left=minutesUntil(at(m),hm(m.dataset.at));const i=Math.max(0,WORLD_LANGS.indexOf(board.closest?.('[lang]')?.lang));m.textContent=left===0?WORLD_TEXT.now[i]:WORLD_TEXT.in[i].replace("{0}",left)}for(const g of board.querySelectorAll(".ui-board-gauge")){const cells=Number(g.dataset.cells),[filled,pct]=gaugeState(Math.floor(at(g)),hm(g.dataset.from),hm(g.dataset.to),cells);g.querySelector(".ui-board-cells").textContent=gaugeCells(filled,cells,g.dataset.done,g.dataset.todo);g.querySelector(".ui-board-pct").textContent=pct+"%"}};
-const run=board.querySelector(".ui-board-run");if(run)run.style.animationDuration=boardSeconds(Number(board.dataset.chars))+"s";   // also where a strict CSP drops the style attribute
-tick();const timer=setInterval(()=>{if(board.isConnected)tick();else clearInterval(timer)},1000);return{tick,clockNow}}
-// ☰ ⋯ ⭐ ⚙️ and the emoji of your own: the menus show once the script runs, one open at a time; the returned shut() closes them all.
-function bindMenus(el){const menus=[...el.querySelectorAll('.ui-world-menu')];for(const m of menus){m.hidden=false;m.addEventListener('toggle',()=>{if(m.open)for(const o of menus)if(o!==m)o.open=false})}return()=>{for(const m of menus)m.open=false}}
-// A small cache in this browser, one key per world: [load, save(part)]. Nothing else is written.
-const stored=slot=>{const load=()=>{try{const v=JSON.parse(localStorage.getItem(slot));return v&&typeof v==='object'?v:{}}catch(e){return{}}};return[load,part=>{try{localStorage.setItem(slot,JSON.stringify({...load(),...part}))}catch(e){}}]};
-// 🌐: aria-labels and tooltips in one of eleven languages (data-t names a catalogue word, data-labels carries a tool's own words).
-const sayIn=(root,lang,mine=()=>true)=>{const i=WORLD_LANGS.indexOf(lang);for(const n of root.querySelectorAll('[data-texts]'))if(mine(n)){const m=JSON.parse(n.dataset.texts);n.textContent=m[lang]||m.en||m.ja}   // a text in its own languages
- for(const n of root.querySelectorAll('[data-t],[data-labels]')){if(!mine(n))continue;const m=n.dataset.labels&&JSON.parse(n.dataset.labels),w=m?m[lang]||m.en||m.ja:WORLD_TEXT[n.dataset.t]?.[i];if(w){n.setAttribute('aria-label',w);n.setAttribute('title',w)}}
- // then every text and label that is a catalogue word in any language, alone or with an emoji or an arrow around it ("⭐ お気に入り"),
- // turns into this one: the scenes' buttons and the site's parts; the scenes' names, people and things stay as they are written
- const said=t=>{const s=t.trim(),[,lead,core,trail]=s.match(/^([^\p{L}\p{N}]*)(.*?)([^\p{L}\p{N}]*)$/u),key=WORLD_WORD.get(s)??WORLD_WORD.get(core);if(!key)return null;
-  const w=WORLD_TEXT[key][i]??WORLD_TEXT[key][1];return t.replace(s,()=>WORLD_WORD.has(s)?w:lead+w+trail)},keep=n=>!mine(n)||n.closest('script,style,pre,code,textarea,[contenteditable],[translate=no]');
- const walk=document.createTreeWalker(root,4);for(let t;(t=walk.nextNode());){if(!t.parentElement||keep(t.parentElement))continue;const w=said(t.nodeValue);if(w!==null&&w!==t.nodeValue)t.nodeValue=w}
- for(const n of root.querySelectorAll('[aria-label],[title],[placeholder]')){if(n.dataset.t||n.dataset.labels||keep(n))continue;for(const a of['aria-label','title','placeholder']){const v=n.getAttribute(a);if(v===null)continue;const w=said(v);if(w!==null&&w!==v)n.setAttribute(a,w)}}};
-const WORLD_WORD=new Map();for(const[key,row]of Object.entries(WORLD_TEXT))if(!row[0].includes('{0}'))for(const w of row)if(!WORLD_WORD.has(w))WORLD_WORD.set(w,key);
+# ── The shell: a world's header and side, PySaiyanWeBoo's (shell_js: the catalogue with the world's own words, 🌐, the board, the
+# menus, the cache), the one a tool page's chrome is made of; then the site's names a world page carries (data-words) join the catalogue.
+SHELL_JS = shell_js(WORLD_TEXT, page="") + r"""
+if(typeof document!=="undefined")for(const n of document.querySelectorAll('.ui-world-head[data-words]'))addWords(JSON.parse(n.dataset.words),true);
 """
 WORLD_JS = WORLD_MOTION_JS + WORLD_SHARED_JS + SHELL_JS + DIAL_JS + r"""/* web-ui world: one page, a camera. Shots: scroll marks light up (data-lit). Map: drag, wheel and pinch move a camera; spots open a sheet. No page changes. */
 const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
@@ -3297,9 +3258,8 @@ const save=patch=>{if(unified&&Array.isArray(patch.fav)){
 // 🌐: aria-labels and tooltips in one of eleven languages (data-t names a catalogue word, data-labels carries a tool's own words).
 let lang='ja';const sel=el.querySelector('[data-lang]'),
  say=root=>sayIn(root,lang),
- setLang=to=>{if(!WORLD_LANGS.includes(to))return;lang=to;el.lang=to;if(sel)sel.value=to;say(el);
-  sayIn(document.body,to,n=>!n.closest('[data-ui-world]')?.querySelector('[data-lang]'));   // the page around the scenes (the switcher, the way back, the site's foot) and a scene without a 🌐 of its own
-  for(const f of document.querySelectorAll('.ui-door-foot')){f.lang=to;for(const d of f.querySelectorAll('[data-ui-door]')){d.dataset.lang=to;d.dataset.here=WORLD_TEXT.current[WORLD_LANGS.indexOf(to)];d.dispatchEvent(new CustomEvent('ui-lang'))}}};
+ around=n=>!n.closest('[data-ui-world]')?.querySelector('[data-lang]'),   // the page around the scenes (the switcher, the way back, the site's foot) and a scene without a 🌐 of its own
+ setLang=to=>{if(!CHROME_LANGS.includes(to))return;lang=to;el.lang=to;if(sel)sel.value=to;say(el);sayIn(document.body,to,around);sayAround(to,around)};
 sel?.addEventListener('change',()=>{setLang(sel.value);save({lang})});
 // 🎒 items collected from spots (kept in localStorage beside fav, lang, names, alpha).
 const spotRows=()=>[...el.querySelectorAll('.ui-world-spots a')],bagList=el.querySelector('.ui-world-bag'),bag=new Set(),takeBtns=()=>[...el.querySelectorAll('.ui-sheet-item .ui-world-take')],
@@ -3330,7 +3290,7 @@ namesPick?.addEventListener('change',()=>{setNames(namesPick.value);save({names:
 goto?.addEventListener('change',()=>setFloor(goto.value,true));
 // Emoji picker: shown first (JS only); the choice replaces every floor's player emoji. Dragging the map stops the camera following.
 const pick=el.querySelector('.ui-world-pick'),showPick=on=>{pick.hidden=!on;el.toggleAttribute('data-pick',on)},choose=g=>{for(const s of el.querySelectorAll('.ui-player span'))s.textContent=g;showPick(false);follow=true;view.focus({preventScroll:true})};
-if(pick){showPick(true);pick.addEventListener('click',e=>{const b=e.target.closest('[data-emoji]');if(b)choose(b.dataset.emoji)});pick.querySelector('form').addEventListener('submit',e=>{e.preventDefault();const box=e.target.elements.emoji,g=cleanAvatar(box.value);if(g)choose(g);else{box.setCustomValidity(WORLD_TEXT.invalid[WORLD_LANGS.indexOf(lang)]);box.reportValidity()}});pick.querySelector('input').addEventListener('input',e=>e.target.setCustomValidity(''));el.querySelector('[data-pick-open]')?.addEventListener('click',()=>showPick(true))}
+if(pick){showPick(true);pick.addEventListener('click',e=>{const b=e.target.closest('[data-emoji]');if(b)choose(b.dataset.emoji)});pick.querySelector('form').addEventListener('submit',e=>{e.preventDefault();const box=e.target.elements.emoji,g=cleanAvatar(box.value);if(g)choose(g);else{box.setCustomValidity(chromeWord(lang,'invalid'));box.reportValidity()}});pick.querySelector('input').addEventListener('input',e=>e.target.setCustomValidity(''));el.querySelector('[data-pick-open]')?.addEventListener('click',()=>showPick(true))}
 // ask(glyph,choices,t): the world's one dialog for choosing or confirming. Icons in, the picked value out (a promise; null = ✖️, Esc or a tap outside).
 // A choice is {glyph,t,value} with t naming a catalogue word; el.ask lets the page that embeds the world call it too.
 let asking=null;
@@ -3717,7 +3677,7 @@ export function bindWorldRpg(el){
    if(q.kind==="dragon")return q.target?(state.discoveredDragons.has(q.target)?1:0):state.discoveredDragons.size;
    if(q.kind==="bond")return q.target?Number(bonded(q.target)):dragonIds.filter(bonded).length;
    if(q.kind==="fame")return state.fanFame;
-   if(q.kind==="deed")return state.helpedDeeds.size;
+   if(q.kind==="deed")return q.target?Number(state.helpedDeeds.has(q.target)):state.helpedDeeds.size;
    return 0;
   };
   const evalBadges=()=>{
@@ -3739,7 +3699,7 @@ export function bindWorldRpg(el){
     "clean-supporter":state.helpedDeeds.has("clean-trash"),
     "blue-pride":state.looted.has("nagoya-chest-uniform")&&state.looted.has("nagoya-drop-megaphone"),
     "dome-patron":state.helpedDeeds.has("dome-sponsor"),
-    "aeon-shopper":state.helpedDeeds.has("mall-shopping")||state.boughtCount>=2
+    "aeon-shopper":state.helpedDeeds.has("mall-shopping")
    };
    for(const b of rpg.badges){
     if(!state.badges.has(b.id)&&checks[b.id]){state.badges.add(b.id);showToast(`🏅 実績解除: ${b.emoji} ${b.label}`)}
@@ -4046,6 +4006,11 @@ export function bindWorldRpg(el){
      const key="shop:"+sh.id,cur=state.consumables.get(key)||{key,emoji:sh.emoji,label:sh.label,item_type:sh.item_type,hp:sh.hp,mp:sh.mp,atk:0,count:0};
      cur.count+=1;state.consumables.set(key,cur);
      showToast(`${sh.emoji} ${sh.label} を購入した！`);
+     for(const deed of rpg.deeds||[]){
+      if(deed.on_purchase&&deed.npc_id===spotId&&!state.helpedDeeds.has(deed.id)){
+       state.helpedDeeds.add(deed.id);addFanFame(deed.fame,deed.title);
+      }
+     }
      checkQuests();rebuildShop();
     }})))));
   };
@@ -7076,7 +7041,7 @@ def _nagoya_rpg() -> dict[str, Any]:
             {"id": "morning-prep", "title": "喫茶モーニング仕込み手伝い", "desc": "名物小倉トーストと美味しい珈琲の仕込みをママと一緒に行う", "fame": 15, "npc_id": "nagoya-npc-cafe", "reward_label": "知名度+15pt / 特製ブレンド珈琲"},
             {"id": "history-quiz", "title": "聖地の歴史継承（クイズ講話）", "desc": "生き字引の爺さんからドラゴンズとナゴヤの栄光の歴史を学び継承する", "fame": 20, "npc_id": "nagoya-npc-grandpa", "reward_label": "知名度+20pt / 栄光の記録簿"},
             {"id": "dome-sponsor", "title": "ドーム公式戦の現地観戦応援", "desc": "バンテリンドームで観戦チケット（30G）を購入し熱気渦巻くスタンドから熱狂応援する", "fame": 25, "cost": 30, "npc_id": "nagoya-dome", "reward_label": "知名度+25pt / 観戦チケット半券"},
-            {"id": "mall-shopping", "title": "ドーム前商業施設で応援準備", "desc": "イオンモール ナゴヤドーム前でお買い物をして応援グッズを揃える", "fame": 15, "npc_id": "nagoya-aeon-mall", "reward_label": "知名度+15pt / お買い物レシート"},
+            {"id": "mall-shopping", "title": "ドーム前商業施設で応援準備", "desc": "イオンモール ナゴヤドーム前でお買い物をして応援グッズを揃える", "fame": 15, "npc_id": "nagoya-aeon-mall", "on_purchase": True, "reward_label": "知名度+15pt / お買い物レシート"},
         ],
         "npcs": {
             "nagoya-npc-ouendan": {
@@ -7172,11 +7137,6 @@ def _nagoya_rpg() -> dict[str, Any]:
                     "応援青メガホンや選手名タオル、観戦用のお弁当など、準備万端でドームへ向かいましょう！",
                     "当店でお買い物をして応援気分を高めていってくださいね。"
                 ],
-                "help": {
-                    "deed_id": "mall-shopping", "title": "ドーム前商業施設で応援準備", "fame": 15,
-                    "action_label": "応援グッズを揃えて準備万端にする",
-                    "done_text": "「お買い物ありがとうございます！万全の装備でドーム応援を楽しんでください！」知名度が 15pt 上昇した！",
-                },
             },
             "nagoya-oasis21": {
                 "speaker": "オアシス21・水の宇宙船", "emoji": "🛸", "heal": True,
@@ -7228,8 +7188,8 @@ def _nagoya_rpg() -> dict[str, Any]:
             {"id": "q-talk-ryuji", "title": "熱血団長への挨拶", "desc": "応援団長リュウジと話してドラ魂の極意を教わろう", "kind": "talk", "target": "nagoya-npc-ouendan", "reward_exp": 25, "reward_gold": 30},
             {"id": "q-get-uniform", "title": "青き誇りを身に纏え", "desc": "聖地に眠る「青き魂の応援ユニフォーム」を見つけ出す", "kind": "chest", "target": "nagoya-chest-uniform", "reward_exp": 40, "reward_gold": 50},
             {"id": "q-fame-starter", "title": "名物ファンへの第一歩", "desc": "街のお手伝いを重ねて知名度を20pt以上に高める", "kind": "fame", "count": 20, "reward_exp": 50, "reward_gold": 60},
-            {"id": "q-dome-sponsor", "title": "ドーム現地観戦へ行こう", "desc": "バンテリンドームで観戦チケットを購入してスタンドで試合を観戦しよう", "kind": "talk", "target": "nagoya-dome", "reward_exp": 35, "reward_gold": 40},
-            {"id": "q-mall-shopping", "title": "ドーム前で応援準備", "desc": "イオンモール ナゴヤドーム前でお買い物をして応援気分を高める", "kind": "talk", "target": "nagoya-aeon-mall", "reward_exp": 30, "reward_gold": 30},
+            {"id": "q-dome-sponsor", "title": "ドーム現地観戦へ行こう", "desc": "バンテリンドームで観戦チケットを購入してスタンドで試合を観戦しよう", "kind": "deed", "target": "dome-sponsor", "reward_exp": 35, "reward_gold": 40},
+            {"id": "q-mall-shopping", "title": "ドーム前で応援準備", "desc": "イオンモール ナゴヤドーム前でお買い物をして応援気分を高める", "kind": "deed", "target": "mall-shopping", "reward_exp": 30, "reward_gold": 30},
             {"id": "q-dragon-dragoon", "title": "蒼き守護竜との出会い", "desc": "ドームの空を舞うドラグーンと心を通わせる", "kind": "dragon", "target": "nagoya-dragon-dragoon", "reward_exp": 45, "reward_gold": 50},
             {"id": "q-deed-helper", "title": "街の頼れるサポーター", "desc": "ゴミ拾いやサインボール返却など3つ以上のお手伝いを完了する", "kind": "deed", "count": 3, "reward_exp": 60, "reward_gold": 80},
             {"id": "q-fame-master", "title": "世界一のファンの鑑へ", "desc": "あらゆるお手伝いを極め、知名度95pt（世界一のファンの鑑）に到達する！", "kind": "fame", "count": 95, "reward_exp": 150, "reward_gold": 300},

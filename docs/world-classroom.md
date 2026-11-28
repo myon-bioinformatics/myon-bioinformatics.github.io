@@ -120,8 +120,9 @@ pure maps between a value and an angle (`tests/test_pages.py` checks them in Nod
 
 ### Languages (🌐)
 
-The chrome speaks the 11 languages of flutter_navigation_basic: ja, en, fr, es, pt, ar, zh, ru, id, de, sw (`world.WORLD_LANGS`, words in `WORLD_TEXT`, one tuple
-per word in that order; a test checks every word in every language). Markup carries Japanese plus `data-t="<word>"`; 🌐 swaps `aria-label` and `title`, sets `lang`
+The chrome speaks the 11 languages of flutter_navigation_basic: ja, en, fr, es, pt, ar, zh, ru, id, de, sw (PySaiyanWeBoo's `CHROME_LANGS`). The words a
+tool page's chrome shares (🏠 ⭐ ⚙️ 🌐, 🫧 🚪 📦, "in N min") are PySaiyanWeBoo's catalogue; `WORLD_TEXT` holds only the world's own, one tuple per word in
+that order, and the script is PySaiyanWeBoo's `shell_js(WORLD_TEXT)` (a test checks every word in every language, and that none is written twice). Markup carries Japanese plus `data-t="<word>"`; 🌐 swaps `aria-label` and `title`, sets `lang`
 on the world and remembers the choice. A tool of your own names itself with `label`, `label_en` and `labels`; a missing language falls back to English, then Japanese.
 The content (spot labels, bodies, the board) is yours and is not translated. Arabic changes the words only: the map is not mirrored.
 
