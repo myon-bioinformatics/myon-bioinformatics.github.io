@@ -88,6 +88,18 @@ def build():
                 link(area, "see_also", add("osaka-guide.json", "Guide", "大阪の捜査手帳", markdown="osaka-guide.md"))
         npc_routes = {spot_routes[sid] for sid in rpg.get("npcs", {})}
         rpg_route = next(iter(npc_routes)) if len(npc_routes) == 1 else primary
+        for sid, npc in rpg.get("npcs", {}).items():
+            event = npc.get("help", {})
+            if not event.get("stamina_cost"):
+                continue
+            task = add("event/"+event["deed_id"], "Task", event["action_label"],
+                       detail=f'スタミナを{event["stamina_cost"]}消費し、HPを最大{event["heal_hp"]}回復。知名度+{event["fame"]}pt。')
+            link("#"+spot_routes[sid], "offers", task)
+            for key, label in (("stamina_cost", "スタミナ"), ("cost", "所持金（G）")):
+                if key in event:
+                    minimum = event[key]
+                    link(task, "guarded_by", add(key+"/"+task, "Condition", f"{label}{minimum}以上",
+                                                 minimum=minimum, attribute="gold" if key=="cost" else "stamina"))
         for skill in rpg.get("skills", []):
             if skill["min_wisdom"]:
                 task = add("learn/"+skill["id"], "Task", skill["label"]+"を習得", detail=skill["desc"])
@@ -163,7 +175,7 @@ def render(graph):
         for task in related(n, "offers"):
             guards = related(task, "guarded_by")
             condition = related(task, "completed_when")
-            note = "　必要 "+guards[0]["name"] if guards else ""
+            note = "　必要 "+"・".join(g["name"] for g in guards) if guards else ""
             if condition:
                 note += f'　達成数 {condition[0]["minimum"]}'
             lines.append(f'- **{task["name"]}**　{task["detail"]}'+note)

@@ -3070,6 +3070,39 @@
    "y": 336
   },
   {
+   "id": "event/cheer-call",
+   "type": "Task",
+   "name": "熱血コールを練習する",
+   "detail": "スタミナを1消費し、HPを最大6回復。知名度+15pt。"
+  },
+  {
+   "id": "stamina_cost/event/cheer-call",
+   "type": "Condition",
+   "name": "スタミナ1以上",
+   "minimum": 1,
+   "attribute": "stamina"
+  },
+  {
+   "id": "event/dome-sponsor",
+   "type": "Task",
+   "name": "観戦チケットを購入して入場する",
+   "detail": "スタミナを3消費し、HPを最大16回復。知名度+25pt。"
+  },
+  {
+   "id": "stamina_cost/event/dome-sponsor",
+   "type": "Condition",
+   "name": "スタミナ3以上",
+   "minimum": 3,
+   "attribute": "stamina"
+  },
+  {
+   "id": "cost/event/dome-sponsor",
+   "type": "Condition",
+   "name": "所持金（G）30以上",
+   "minimum": 30,
+   "attribute": "gold"
+  },
+  {
    "id": "quest/q-talk-ryuji",
    "type": "Goal",
    "name": "熱血団長への挨拶",
@@ -5603,6 +5636,31 @@
    "source": "nagoya/nagoya-city",
    "kind": "offers",
    "target": "nagoya/nagoya-city/nagoya-city-osu"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "event/cheer-call"
+  },
+  {
+   "source": "event/cheer-call",
+   "kind": "guarded_by",
+   "target": "stamina_cost/event/cheer-call"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "event/dome-sponsor"
+  },
+  {
+   "source": "event/dome-sponsor",
+   "kind": "guarded_by",
+   "target": "stamina_cost/event/dome-sponsor"
+  },
+  {
+   "source": "event/dome-sponsor",
+   "kind": "guarded_by",
+   "target": "cost/event/dome-sponsor"
   },
   {
    "source": "#nagoya",

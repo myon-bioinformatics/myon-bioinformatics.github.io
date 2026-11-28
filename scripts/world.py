@@ -725,13 +725,15 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
         help_in = entry.get("help")
         help_conf = None
         if help_in is not None:
-            if not isinstance(help_in, dict) or set(help_in) - {"deed_id", "title", "fame", "action_label", "done_text", "req_item", "repeatable", "cost"}:
+            if not isinstance(help_in, dict) or set(help_in) - {"deed_id", "title", "fame", "action_label", "done_text", "req_item", "repeatable", "cost", "stamina_cost", "heal_hp"}:
                 raise ValueError("npc help has deed_id, title, fame, action_label, done_text, optional req_item, repeatable and cost")
             req_item = help_in.get("req_item")
             if req_item is not None and req_item not in spot_ids:
                 raise ValueError(f"help req_item {req_item!r} must reference an existing spot")
             cost = _bounded_int(help_in.get("cost", 0), "help cost", 0, 99999) if "cost" in help_in else 0
             help_conf = {
+                "stamina_cost": _bounded_int(help_in.get("stamina_cost", 0), "event stamina cost", 0, PLAYER_BASE["stamina"]),
+                "heal_hp": _bounded_int(help_in.get("heal_hp", 0), "event healing", 0, 999),
                 "deed_id": _world_id(help_in["deed_id"], "help deed_id", set()),
                 "title": _world_text(help_in.get("title", ""), "help title", 48),
                 "fame": _bounded_int(help_in.get("fame", 10), "help fame", 1, 999),
@@ -4085,20 +4087,28 @@ export function bindWorldRpg(el){
     const d=npc.help;
     const isDone=state.helpedDeeds.has(d.deed_id);
     const cost=Number(d.cost)||0;
-    const hasGold=!cost||state.gold>=cost;
-    const hasReq=(!d.req_item||state.looted.has(d.req_item)||state.consumables.has(d.req_item)||state.consumables.has("spot:"+d.req_item))&&hasGold;
+    const lack=()=>{
+     if(state.gold<cost)return "ゴールド不足";
+     if(state.stamina<d.stamina_cost)return "スタミナ不足";
+     if(d.req_item&&!state.looted.has(d.req_item)&&!state.consumables.has(d.req_item)&&!state.consumables.has("spot:"+d.req_item))return "必要アイテム不足";
+     return "";
+    };
     if(!isDone||d.repeatable){
      const costNote=cost?` (🪙 ${cost}G)`:"";
-     const lackNote=!hasGold?" (ゴールド不足)":(!hasReq?" (必要アイテム不足)":"");
-     actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn","data-rpg-deed-btn":"",disabled:!hasReq,textContent:`🤝 ${d.action_label}${costNote} (+${d.fame}知名度)${lackNote}`,onclick:()=>{
-      if(!hasReq)return;
-      if(cost){state.gold-=cost;renderHud()}
+     const eventNote=d.stamina_cost?`（スタミナ−${d.stamina_cost}・HP+${d.heal_hp}まで）`:"";
+     const reason=lack();
+     actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn","data-rpg-deed-btn":"",disabled:Boolean(reason),textContent:`🤝 ${d.action_label}${costNote}${eventNote} (+${d.fame}知名度)${reason?" ("+reason+")":""}`,onclick:()=>{
+      if(lack()||(!d.repeatable&&state.helpedDeeds.has(d.deed_id)))return;
+      state.gold-=cost;
+      state.stamina-=d.stamina_cost;
+      const recovery=Math.min(d.heal_hp,Math.max(0,stats().maxHp-state.hp));
+      state.hp+=recovery;
       if(d.req_item&&state.consumables.has("spot:"+d.req_item)){
        useConsumable("spot:"+d.req_item);
       }
       state.helpedDeeds.add(d.deed_id);
       addFanFame(d.fame,d.title);
-      renderPage(d.done_text);
+      renderPage(d.done_text+(d.stamina_cost?` スタミナ−${d.stamina_cost}、HP回復 ${recovery}。`:""));
      }}));
     }
    }
@@ -7184,7 +7194,7 @@ def _nagoya_rpg() -> dict[str, Any]:
                     "コール＆レスポンスを合わせて、俺たちと一緒に声を出してみるか！？"
                 ],
                 "help": {
-                    "deed_id": "cheer-call", "title": "熱血コール＆レスポンス", "fame": 15,
+                    "deed_id": "cheer-call", "stamina_cost": 1, "heal_hp": 6, "title": "熱血コール＆レスポンス", "fame": 15,
                     "action_label": "熱血コールを練習する",
                     "done_text": "「いーい声出てるぞ！そのドラ魂があればどこに行っても立派なサポーターだ！」知名度が 15pt 上昇した！",
                 },
@@ -7254,7 +7264,7 @@ def _nagoya_rpg() -> dict[str, Any]:
                     "青き魂をひとつにして、スタンドから勝利の歓喜を分かち合おう！"
                 ],
                 "help": {
-                    "deed_id": "dome-sponsor", "title": "ドーム公式戦の現地観戦応援", "fame": 25, "cost": 30,
+                    "deed_id": "dome-sponsor", "stamina_cost": 3, "heal_hp": 16, "title": "ドーム公式戦の現地観戦応援", "fame": 25, "cost": 30,
                     "repeatable": True,
                     "action_label": "観戦チケットを購入して入場する",
                     "done_text": "「観戦チケットを購入してスタンドへ入場した！大歓声の中で熱狂応援し、知名度が 25pt 上昇した！」",
