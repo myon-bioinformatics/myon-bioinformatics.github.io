@@ -1083,7 +1083,7 @@ class CitiesTests(unittest.TestCase):
     def test_every_language_labels_the_city_tools(self):
         page = self.open("phone")
         self.start(page)
-        codes = [code for code, _ in W.WORLD_LANGS]
+        codes = [code for code, _ in W.CHROME_LANGS]
         for code in codes:
             with self.subTest(lang=code):
                 self.menu(page, "settings")
@@ -1115,7 +1115,7 @@ class CitiesTests(unittest.TestCase):
             page = self.open("desktop", path=path)
             if page.locator("[data-emoji]").count():
                 page.locator("[data-emoji]").first.click()
-            for code, _ in W.WORLD_LANGS[1:]:
+            for code, _ in W.CHROME_LANGS[1:]:
                 with self.subTest(world=name, lang=code):
                     page.evaluate("c => { for (const s of document.querySelectorAll('[data-lang]')) { s.value = c; s.dispatchEvent(new Event('change', {bubbles: true})) } }", code)
                     self.assertEqual(page.evaluate(leftover, kana), [])

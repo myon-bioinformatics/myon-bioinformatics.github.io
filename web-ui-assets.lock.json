@@ -1,32 +1,32 @@
 {
   "schema": "web-ui-generated/2",
   "generator": "pysaiyanweboo (pyproject.toml pages group)",
-  "commit": "e2d72f4f1f40e237390c9c3315697adce252a6b6",
+  "commit": "9b2427af0b600bccb80552c6bdec47be9ec0c261",
   "outputs": {
     "tools/vendor/web-ui/css/base.css": "89bf5a2371b7be9057540501bba09f399d60f9207971c47fd9dac7f473ea928d",
     "tools/vendor/web-ui/css/components.css": "fbf50a97238b2f1df40d32cda93e1321b43b35dae5bc7c0eab586b5d8bc7c7ae",
     "tools/vendor/web-ui/css/themes/modern.css": "6e937cad85ab0aaf85b7a7c6f6d28b0e205c49a82ac9767e9125a504583515ac",
     "tools/vendor/web-ui/css/tokens.css": "f86156c6d224780144bde28b330d9dd11a8d25ffc0881c2c4d9ec73df76e9eef",
     "tools/vendor/web-ui/js/navigation.js": "b748512a224685c732db837ebe0738c647c5a8c512f238d75fbc954c1c0a5f35",
-    "tools/vendor/web-ui/js/ui.js": "fe030e6dbacb5985cd57d6a7bdd245f26851fb9da2d7f4c360d5cd6721e0e1be",
+    "tools/vendor/web-ui/js/ui.js": "2d20ccafc0242ee66de9a21ef25dd11dff82aee01f2bcf4f1a23738ef29f54ee",
     "tools/vendor/web-ui/js/records.js": "0161c3c5a4920cffb4d3d4a558aa560aa6bf5a495f44fac4512efcb739323658",
     "tools/vendor/web-ui/js/controls.js": "e545885ed2f0e43937d2eb3a44bdb874e8c4f42e895a36a51498a0db20956e9d",
     "tools/vendor/web-ui/js/coordinates.js": "b97576f0f7ccdb3a8c94b390c9a53f87acc3ddc837a5a4221cc5fef1a067b9bc",
     "tools/world-assets/world.css": "9d21c26e50611033568788e10c1dec68af201faacaf3d6637420d83ba98f97ed",
-    "tools/world-assets/world.js": "ba01ca369a3b7f4a433f4cdf8cc80abb3dd521f0865d5ae89e9c44ea0d5e09dc",
+    "tools/world-assets/world.js": "78c6b716b80fae41b3d5db3cbd25b71973e0ad81ac9897ecf54dc3aabf91a070",
     "tools/world-assets/london-dragon.json": "96f1b4efbd5a900459688403900cd385bf600987e8f76023f2a7d538f9ed133b",
     "tools/world-assets/london-dragon.png": "2478a91c5d1c6cb04255b8247ca879f08f6a9ba30051bdb743f14a8a4a6429a9",
     "tools/html-import/extract.mjs": "09602fc4b02d21ed9a5981569069e92ecfd160adca421f1363aa4120dee4c072",
     "tools/chat/sources.json": "eb8696853fb288af9a936fcb3e8262fc5478511ecccd1f5d222f6841d3e46ed2",
-    "tools/vendor/web-ui/css/bundle.css": "5798a6005dd9f5bed6e04d4fd94ceef85325b30701db465e4f7a2444155888b4",
+    "tools/vendor/web-ui/css/bundle.css": "8715ed971441b363e6d671e9c4f78412a88b9fb72dc46b591ba58fe703abccd8",
     "tools/vendor/web-ui/css/core.css": "6161b50462c2cfc8b40547e988636525989a1d29585eb98d5042646ffbb5cabd"
   },
   "pages": {
-    "tools/worlds.html": "524fcf1fede68ee1e4571168dec22c401530290cb5076818355ce5ff1236815e",
-    "tools/html-import/index.html": "3cd48e3abf67f8c2c19a6b164711ce75fafe4ba6633d4ca58dc5d575ad7cf141",
-    "tools/test-report/index.html": "259658a6c4080f70aaf8c40fe5e8a532a4e6db36f7a59a650ce45f80f356e2f7",
-    "tools/maps.html": "01077f04e016ede10541e8ae676e14a78acd3ef688ce8d637c9860abc167afff",
-    "tools/gif/index.html": "82eeb1e28db79f0654342939db35d4114d8129d216f193c20c6eb80adef1d55a",
-    "tools/chat/index.html": "e7a3496743d91736a3d202c7e9332417fa3330713171866167c601bb7c3d1cd2"
+    "tools/worlds.html": "38922a92255dbd2e7d348b4e35321921be8a97c8f0f8ad02536220c64effb40b",
+    "tools/html-import/index.html": "740a45f36773f3990a610b2e07a1d29698d4ee19e9b90212f9f213be1b8c9bf5",
+    "tools/test-report/index.html": "984c0f382a638553fff5e3303cb3a85d55271e8715862180c95d3c176ea633e4",
+    "tools/maps.html": "4b4908a8fdc200c930f1406e91e654f2d5fff3a1275f98d20eedfa49201c41bd",
+    "tools/gif/index.html": "afa17b7c5a4449907698f7adaaf099570718f45d9e33c55cb03d9ed15bd24efe",
+    "tools/chat/index.html": "030a2b99307cb7f89d9cd12aeb0a238ef3ca03f3c212d035a133939ffcfcd226"
   }
 }
