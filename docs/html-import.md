@@ -84,6 +84,5 @@ JUnitとscreenshotsをartifactとして残す。合成ケースのみで実利�
 
 取得元URLの入力だけでは通信しない。有効なHTTP(S) URLのときだけ「取得元サイトを新しいタブで開く」リンクを表示し、クリックで通常のサイト表示へ移動する。新規タブはnoopener/noreferrer、元HTML・抽出結果は送らない。開いたサイトで保存したHTMLやコピーしたソースを利用者が取り込む。cross-origin fetchや運営proxyの機能ではない。
 
-ボタンのHTML生成はweb-ui `source_link("source-url")`、URL検証と更新は `navigation.js`。独自のURL導線処理をconsumerに複製しない。Wikipedia/Pixiv公開画面のテーマとフォントは同じweb-uiの `adopt_document`、切替は `bindViews`、Pixivの既存article/historyボタンは `openExternalURL` に接続する。記事URLの組立や原文抽出はlabに残す。
+ボタンのHTML生成はweb-ui `source_link("source-url")`、URL検証と更新は `navigation.js`。独自のURL導線処理をconsumerに複製しない。
 
-🔌 MCP 実験室は公開のたびにlabのmainから組み、`_src/tools/mcp_lab.py`が同じ変換を当てる（組んだcommitは`media/tools/receipt.json`）。Dockerを動かさないので実行結果は載せず、labのActionsへリンクする。公開後CIもlab-publication specを実行し、プロバイダーAPI応答は明示した合成fixtureをブラウザrouteで再生する。WikipediaのライブAPI成功とは数えない。

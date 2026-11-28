@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 
 
 BODY = '''<main class="ui-page">
-<h1>📍地図URL・座標ピン留め</h1>
+<h1>📍 地図URL・座標ピン留め</h1>
 <p>緯度・経度からApple MapsとGoogle MapsのURLを作成。ピンはこのブラウザに保存できます。</p>
 <section class="ui-panel" aria-labelledby="point-title"><h2 id="point-title">地点</h2>
 <label for="tokyo-point">パラレル東京の地点</label><select class="ui-input" id="tokyo-point"><option value="">自由入力</option>__OPTIONS__</select>
@@ -179,7 +179,7 @@ def map_document(ui, points):
     # The two inline modules execute in order; the shared module owns validation and URL encoding.
     script = SCRIPT.replace('__POINTS__', data).replace('__RANGE_HELPERS__', RANGE_HELPERS).replace('__EARTH_RADIUS__', str(ui.EARTH_RADIUS_M))
     body += COORDINATES_MODULE + ui.module_script(script)
-    return ui.render_document(title='📍地図URL・座標ピン留め', trusted_html=body, css=ui.bundled_css() + CSS)
+    return ui.render_document(title='📍 地図URL・座標ピン留め', trusted_html=body, css=ui.bundled_css() + CSS)
 
 
 def tokyo_links(ui, world, points):
