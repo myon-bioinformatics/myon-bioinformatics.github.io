@@ -640,9 +640,7 @@ def test_brand_assets_resolve_when_the_page_is_served_below_a_subpath(page, site
         assert href.startswith(site[1] + "/preview/"), href
 
 
-@pytest.mark.parametrize("path", ["/", "/tools/#html-import", "/tools/#mcp", "/tools/#wiki",     # 🧰 the screen's panels; a lab view
-                                  "/tools/#pixiv", "/tools/#niconico", "/tools/#pokemon",      # opens its 🖼️ frame (data-routes)
-                                  "/tools/#diagnostics"])
+@pytest.mark.parametrize("path", ["/", "/tools/#html-import", "/tools/#chat", "/tools/#test-report"])   # 🧰 the screen's panels
 def test_each_hosted_page_loads_and_draws(page, path):
     response = page.goto(path)
     assert response.status == 200
