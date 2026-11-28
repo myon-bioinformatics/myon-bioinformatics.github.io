@@ -1,0 +1,2843 @@
+{
+  "nodes": [
+    {
+      "id": "guide",
+      "type": "Guide",
+      "name": "せやかて大阪 捜査手帳"
+    },
+    {
+      "id": "actor",
+      "type": "Actor",
+      "name": "浪速の調査探偵",
+      "initial": {
+        "hp": 40,
+        "stamina": 48,
+        "logic": 8,
+        "pokerface": 2,
+        "medals": 20
+      }
+    },
+    {
+      "id": "all",
+      "type": "Goal",
+      "name": "大阪の全35現場を解明する"
+    },
+    {
+      "id": "condition/clue/35",
+      "type": "Condition",
+      "name": "解明した現場 ≥ 35",
+      "metric": "clue",
+      "minimum": 35
+    },
+    {
+      "id": "state/clue",
+      "type": "State",
+      "name": "解明した現場"
+    },
+    {
+      "id": "claim/condition/clue/35",
+      "type": "Claim",
+      "name": "解明した現場 ≥ 35",
+      "value": null
+    },
+    {
+      "id": "q-talk-heita",
+      "type": "Goal",
+      "name": "熱血探偵ヘイタへ着任挨拶"
+    },
+    {
+      "id": "spec/q-talk-heita",
+      "type": "Evidence",
+      "name": "detective.quests[id=q-talk-heita]"
+    },
+    {
+      "id": "task/q-talk-heita",
+      "type": "Task",
+      "name": "熱血探偵ヘイタへ着任挨拶",
+      "section": "事件・バッジ",
+      "detail": "大阪駅前で熱血探偵ヘイタに話しかけてオオサカ調査の基本を教わる。"
+    },
+    {
+      "id": "condition/talk:npc-heita/1",
+      "type": "Condition",
+      "name": "熱血探偵ヘイタとの会話 ≥ 1",
+      "metric": "talk:npc-heita",
+      "minimum": 1
+    },
+    {
+      "id": "state/talk:npc-heita",
+      "type": "State",
+      "name": "熱血探偵ヘイタとの会話"
+    },
+    {
+      "id": "claim/condition/talk:npc-heita/1",
+      "type": "Claim",
+      "name": "熱血探偵ヘイタとの会話 ≥ 1",
+      "value": null
+    },
+    {
+      "id": "q-first-clue",
+      "type": "Goal",
+      "name": "初めての現場解決"
+    },
+    {
+      "id": "spec/q-first-clue",
+      "type": "Evidence",
+      "name": "detective.quests[id=q-first-clue]"
+    },
+    {
+      "id": "task/q-first-clue",
+      "type": "Task",
+      "name": "初めての現場解決",
+      "section": "事件・バッジ",
+      "detail": "オオサカの不審な影を1箇所解明して街に緑を咲かせる。"
+    },
+    {
+      "id": "condition/clue/1",
+      "type": "Condition",
+      "name": "解明した現場 ≥ 1",
+      "metric": "clue",
+      "minimum": 1
+    },
+    {
+      "id": "claim/condition/clue/1",
+      "type": "Claim",
+      "name": "解明した現場 ≥ 1",
+      "value": null
+    },
+    {
+      "id": "q-three-clues",
+      "type": "Goal",
+      "name": "街角の謎解きラッシュ"
+    },
+    {
+      "id": "spec/q-three-clues",
+      "type": "Evidence",
+      "name": "detective.quests[id=q-three-clues]"
+    },
+    {
+      "id": "task/q-three-clues",
+      "type": "Task",
+      "name": "街角の謎解きラッシュ",
+      "section": "事件・バッジ",
+      "detail": "影を3箇所以上解明して黄金ハット宝箱の封印を解く。"
+    },
+    {
+      "id": "condition/clue/3",
+      "type": "Condition",
+      "name": "解明した現場 ≥ 3",
+      "metric": "clue",
+      "minimum": 3
+    },
+    {
+      "id": "claim/condition/clue/3",
+      "type": "Claim",
+      "name": "解明した現場 ≥ 3",
+      "value": null
+    },
+    {
+      "id": "q-find-drop",
+      "type": "Goal",
+      "name": "捜査どうぐの発見"
+    },
+    {
+      "id": "spec/q-find-drop",
+      "type": "Evidence",
+      "name": "detective.quests[id=q-find-drop]"
+    },
+    {
+      "id": "task/q-find-drop",
+      "type": "Task",
+      "name": "捜査どうぐの発見",
+      "section": "事件・バッジ",
+      "detail": "路上に落ちているたこ焼きやルーペを拾って道具箱に収める。"
+    },
+    {
+      "id": "condition/drop/1",
+      "type": "Condition",
+      "name": "拾った落とし物 ≥ 1",
+      "metric": "drop",
+      "minimum": 1
+    },
+    {
+      "id": "state/drop",
+      "type": "State",
+      "name": "拾った落とし物"
+    },
+    {
+      "id": "claim/condition/drop/1",
+      "type": "Claim",
+      "name": "拾った落とし物 ≥ 1",
+      "value": null
+    },
+    {
+      "id": "q-open-chest",
+      "type": "Goal",
+      "name": "名探偵装備の獲得"
+    },
+    {
+      "id": "spec/q-open-chest",
+      "type": "Evidence",
+      "name": "detective.quests[id=q-open-chest]"
+    },
+    {
+      "id": "task/q-open-chest",
+      "type": "Task",
+      "name": "名探偵装備の獲得",
+      "section": "事件・バッジ",
+      "detail": "街の宝箱を開けて調査靴やトレンチコートを装備する。"
+    },
+    {
+      "id": "condition/chest/1",
+      "type": "Condition",
+      "name": "開けた宝箱 ≥ 1",
+      "metric": "chest",
+      "minimum": 1
+    },
+    {
+      "id": "state/chest",
+      "type": "State",
+      "name": "開けた宝箱"
+    },
+    {
+      "id": "claim/condition/chest/1",
+      "type": "Claim",
+      "name": "開けた宝箱 ≥ 1",
+      "value": null
+    },
+    {
+      "id": "q-stand-refill",
+      "type": "Goal",
+      "name": "茶房・給水処で急速補給"
+    },
+    {
+      "id": "spec/q-stand-refill",
+      "type": "Evidence",
+      "name": "detective.quests[id=q-stand-refill]"
+    },
+    {
+      "id": "task/q-stand-refill",
+      "type": "Task",
+      "name": "茶房・給水処で急速補給",
+      "section": "事件・バッジ",
+      "detail": "街の給水処や茶房スタンドで調査体力を満タンにする。"
+    },
+    {
+      "id": "condition/refill/1",
+      "type": "Condition",
+      "name": "補給回数 ≥ 1",
+      "metric": "refill",
+      "minimum": 1
+    },
+    {
+      "id": "state/refill",
+      "type": "State",
+      "name": "補給回数"
+    },
+    {
+      "id": "claim/condition/refill/1",
+      "type": "Claim",
+      "name": "補給回数 ≥ 1",
+      "value": null
+    },
+    {
+      "id": "q-solve-quiz",
+      "type": "Goal",
+      "name": "暗号解読士の推理試練"
+    },
+    {
+      "id": "spec/q-solve-quiz",
+      "type": "Evidence",
+      "name": "detective.quests[id=q-solve-quiz]"
+    },
+    {
+      "id": "task/q-solve-quiz",
+      "type": "Task",
+      "name": "暗号解読士の推理試練",
+      "section": "事件・バッジ",
+      "detail": "暗号解読士の技術ポートフォリオクイズに正解する。"
+    },
+    {
+      "id": "condition/quiz/1",
+      "type": "Condition",
+      "name": "正解した異なる問題 ≥ 1",
+      "metric": "quiz",
+      "minimum": 1
+    },
+    {
+      "id": "state/quiz",
+      "type": "State",
+      "name": "正解した異なる問題"
+    },
+    {
+      "id": "claim/condition/quiz/1",
+      "type": "Claim",
+      "name": "正解した異なる問題 ≥ 1",
+      "value": null
+    },
+    {
+      "id": "q-boss-shadow",
+      "type": "Goal",
+      "name": "怪盗黒幕シャドウ完全解決"
+    },
+    {
+      "id": "spec/q-boss-shadow",
+      "type": "Evidence",
+      "name": "detective.quests[id=q-boss-shadow]"
+    },
+    {
+      "id": "task/q-boss-shadow",
+      "type": "Task",
+      "name": "怪盗黒幕シャドウ完全解決",
+      "section": "事件・バッジ",
+      "detail": "城東奥地の怪盗黒幕シャドウ(32, 33)のトリックを完全看破する！"
+    },
+    {
+      "id": "condition/boss_clue/1",
+      "type": "Condition",
+      "name": "解明した黒幕 ≥ 1",
+      "metric": "boss_clue",
+      "minimum": 1
+    },
+    {
+      "id": "state/boss_clue",
+      "type": "State",
+      "name": "解明した黒幕"
+    },
+    {
+      "id": "claim/condition/boss_clue/1",
+      "type": "Claim",
+      "name": "解明した黒幕 ≥ 1",
+      "value": null
+    },
+    {
+      "id": "b-first-clue",
+      "type": "Goal",
+      "name": "初動解決"
+    },
+    {
+      "id": "spec/b-first-clue",
+      "type": "Evidence",
+      "name": "detective.badges[id=b-first-clue]"
+    },
+    {
+      "id": "task/b-first-clue",
+      "type": "Task",
+      "name": "初動解決",
+      "section": "事件・バッジ",
+      "detail": "最初の影を解明し街に花を咲かせた"
+    },
+    {
+      "id": "b-clue-five",
+      "type": "Goal",
+      "name": "名推理エキスパート"
+    },
+    {
+      "id": "spec/b-clue-five",
+      "type": "Evidence",
+      "name": "detective.badges[id=b-clue-five]"
+    },
+    {
+      "id": "task/b-clue-five",
+      "type": "Task",
+      "name": "名推理エキスパート",
+      "section": "事件・バッジ",
+      "detail": "5箇所以上の影を解明した"
+    },
+    {
+      "id": "condition/clue/5",
+      "type": "Condition",
+      "name": "解明した現場 ≥ 5",
+      "metric": "clue",
+      "minimum": 5
+    },
+    {
+      "id": "claim/condition/clue/5",
+      "type": "Claim",
+      "name": "解明した現場 ≥ 5",
+      "value": null
+    },
+    {
+      "id": "b-boss-down",
+      "type": "Goal",
+      "name": "黒幕撃破"
+    },
+    {
+      "id": "spec/b-boss-down",
+      "type": "Evidence",
+      "name": "detective.badges[id=b-boss-down]"
+    },
+    {
+      "id": "task/b-boss-down",
+      "type": "Task",
+      "name": "黒幕撃破",
+      "section": "事件・バッジ",
+      "detail": "最大規模の怪盗黒幕シャドウを看破した"
+    },
+    {
+      "id": "b-geared-up",
+      "type": "Goal",
+      "name": "一級探偵フル装備"
+    },
+    {
+      "id": "spec/b-geared-up",
+      "type": "Evidence",
+      "name": "detective.badges[id=b-geared-up]"
+    },
+    {
+      "id": "task/b-geared-up",
+      "type": "Task",
+      "name": "一級探偵フル装備",
+      "section": "事件・バッジ",
+      "detail": "宝箱からシューズ・コート・水筒・ハットを揃えた"
+    },
+    {
+      "id": "condition/chest/4",
+      "type": "Condition",
+      "name": "開けた宝箱 ≥ 4",
+      "metric": "chest",
+      "minimum": 4
+    },
+    {
+      "id": "claim/condition/chest/4",
+      "type": "Claim",
+      "name": "開けた宝箱 ≥ 4",
+      "value": null
+    },
+    {
+      "id": "b-stand-master",
+      "type": "Goal",
+      "name": "茶房マイスター"
+    },
+    {
+      "id": "spec/b-stand-master",
+      "type": "Evidence",
+      "name": "detective.badges[id=b-stand-master]"
+    },
+    {
+      "id": "task/b-stand-master",
+      "type": "Task",
+      "name": "茶房マイスター",
+      "section": "事件・バッジ",
+      "detail": "茶房や給水処で3回以上補給した"
+    },
+    {
+      "id": "condition/refill/3",
+      "type": "Condition",
+      "name": "補給回数 ≥ 3",
+      "metric": "refill",
+      "minimum": 3
+    },
+    {
+      "id": "claim/condition/refill/3",
+      "type": "Claim",
+      "name": "補給回数 ≥ 3",
+      "value": null
+    },
+    {
+      "id": "b-quiz-scholar",
+      "type": "Goal",
+      "name": "浪速知識人"
+    },
+    {
+      "id": "spec/b-quiz-scholar",
+      "type": "Evidence",
+      "name": "detective.badges[id=b-quiz-scholar]"
+    },
+    {
+      "id": "task/b-quiz-scholar",
+      "type": "Task",
+      "name": "浪速知識人",
+      "section": "事件・バッジ",
+      "detail": "技術リポジトリクイズに3問以上正解した"
+    },
+    {
+      "id": "condition/quiz/3",
+      "type": "Condition",
+      "name": "正解した異なる問題 ≥ 3",
+      "metric": "quiz",
+      "minimum": 3
+    },
+    {
+      "id": "claim/condition/quiz/3",
+      "type": "Claim",
+      "name": "正解した異なる問題 ≥ 3",
+      "value": null
+    },
+    {
+      "id": "b-green-osaka",
+      "type": "Goal",
+      "name": "緑化の名探偵"
+    },
+    {
+      "id": "spec/b-green-osaka",
+      "type": "Evidence",
+      "name": "detective.badges[id=b-green-osaka]"
+    },
+    {
+      "id": "task/b-green-osaka",
+      "type": "Task",
+      "name": "緑化の名探偵",
+      "section": "事件・バッジ",
+      "detail": "ガーデン緑化セルが8マス以上に達した"
+    },
+    {
+      "id": "condition/garden/8",
+      "type": "Condition",
+      "name": "緑化マス ≥ 8",
+      "metric": "garden",
+      "minimum": 8
+    },
+    {
+      "id": "state/garden",
+      "type": "State",
+      "name": "緑化マス"
+    },
+    {
+      "id": "claim/condition/garden/8",
+      "type": "Claim",
+      "name": "緑化マス ≥ 8",
+      "value": null
+    },
+    {
+      "id": "task/walk",
+      "type": "Task",
+      "name": "足元の痕跡を調べる",
+      "section": "現場での手順",
+      "detail": "Lv.1の影のマスへ歩くと自動で解明する。"
+    },
+    {
+      "id": "condition/stamina/6",
+      "type": "Condition",
+      "name": "現在のスタミナ ≥ 6",
+      "metric": "stamina",
+      "minimum": 6
+    },
+    {
+      "id": "state/stamina",
+      "type": "State",
+      "name": "現在のスタミナ"
+    },
+    {
+      "id": "claim/condition/stamina/6",
+      "type": "Claim",
+      "name": "現在のスタミナ ≥ 6",
+      "value": null
+    },
+    {
+      "id": "task/shadow-0",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(0, 0) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-1",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(14, 3) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-2",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(19, 6) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-3",
+      "type": "Task",
+      "name": "難解な暗号トリック",
+      "section": "現場一覧",
+      "detail": "(24, 1) · Lv.2 · トリック 22"
+    },
+    {
+      "id": "task/shadow-4",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(32, 5) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-5",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(1, 12) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-6",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(10, 9) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-7",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(23, 9) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-8",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(28, 8) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-9",
+      "type": "Task",
+      "name": "難解な暗号トリック",
+      "section": "現場一覧",
+      "detail": "(32, 12) · Lv.2 · トリック 22"
+    },
+    {
+      "id": "task/shadow-10",
+      "type": "Task",
+      "name": "難解な暗号トリック",
+      "section": "現場一覧",
+      "detail": "(7, 21) · Lv.2 · トリック 22"
+    },
+    {
+      "id": "task/shadow-11",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(11, 20) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-12",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(17, 21) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-13",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(30, 18) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-14",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(32, 21) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-15",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(6, 24) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-16",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(8, 24) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-17",
+      "type": "Task",
+      "name": "難解な暗号トリック",
+      "section": "現場一覧",
+      "detail": "(22, 31) · Lv.2 · トリック 22"
+    },
+    {
+      "id": "task/shadow-18",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(28, 30) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-19",
+      "type": "Task",
+      "name": "難解な暗号トリック",
+      "section": "現場一覧",
+      "detail": "(32, 29) · Lv.2 · トリック 22"
+    },
+    {
+      "id": "task/shadow-20",
+      "type": "Task",
+      "name": "難解な暗号トリック",
+      "section": "現場一覧",
+      "detail": "(0, 35) · Lv.2 · トリック 22"
+    },
+    {
+      "id": "task/shadow-21",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(8, 35) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-22",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(23, 33) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-23",
+      "type": "Task",
+      "name": "難解な暗号トリック",
+      "section": "現場一覧",
+      "detail": "(26, 34) · Lv.2 · トリック 22"
+    },
+    {
+      "id": "task/shadow-24",
+      "type": "Task",
+      "name": "怪盗黒幕シャドウ",
+      "section": "現場一覧",
+      "detail": "(32, 33) · Lv.3 · トリック 42"
+    },
+    {
+      "id": "task/shadow-25",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(4, 45) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-26",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(13, 42) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-27",
+      "type": "Task",
+      "name": "難解な暗号トリック",
+      "section": "現場一覧",
+      "detail": "(16, 47) · Lv.2 · トリック 22"
+    },
+    {
+      "id": "task/shadow-28",
+      "type": "Task",
+      "name": "難解な暗号トリック",
+      "section": "現場一覧",
+      "detail": "(24, 42) · Lv.2 · トリック 22"
+    },
+    {
+      "id": "task/shadow-29",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(32, 42) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-30",
+      "type": "Task",
+      "name": "難解な暗号トリック",
+      "section": "現場一覧",
+      "detail": "(3, 48) · Lv.2 · トリック 22"
+    },
+    {
+      "id": "task/shadow-31",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(10, 48) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-32",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(19, 48) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/shadow-33",
+      "type": "Task",
+      "name": "難解な暗号トリック",
+      "section": "現場一覧",
+      "detail": "(24, 48) · Lv.2 · トリック 22"
+    },
+    {
+      "id": "task/shadow-34",
+      "type": "Task",
+      "name": "街角の不審な痕跡",
+      "section": "現場一覧",
+      "detail": "(32, 48) · Lv.1 · トリック 10"
+    },
+    {
+      "id": "task/tac-standard",
+      "type": "Task",
+      "name": "現場検証",
+      "section": "現場での手順",
+      "detail": "慎重な痕跡調査。確実に影の矛盾を解明する。"
+    },
+    {
+      "id": "condition/stamina/4",
+      "type": "Condition",
+      "name": "現在のスタミナ ≥ 4",
+      "metric": "stamina",
+      "minimum": 4
+    },
+    {
+      "id": "claim/condition/stamina/4",
+      "type": "Claim",
+      "name": "現在のスタミナ ≥ 4",
+      "value": null
+    },
+    {
+      "id": "task/tac-burst",
+      "type": "Task",
+      "name": "閃きロジックバースト",
+      "section": "現場での手順",
+      "detail": "直感と論理を一気に爆発。大威力の推理で急解明する。"
+    },
+    {
+      "id": "condition/stamina/8",
+      "type": "Condition",
+      "name": "現在のスタミナ ≥ 8",
+      "metric": "stamina",
+      "minimum": 8
+    },
+    {
+      "id": "claim/condition/stamina/8",
+      "type": "Claim",
+      "name": "現在のスタミナ ≥ 8",
+      "value": null
+    },
+    {
+      "id": "task/tac-poker",
+      "type": "Task",
+      "name": "ポーカーフェイス",
+      "section": "現場での手順",
+      "detail": "冷静沈着な探偵の構え。影の揺さぶりを半減しつつ精神集中する。"
+    },
+    {
+      "id": "condition/stamina/3",
+      "type": "Condition",
+      "name": "現在のスタミナ ≥ 3",
+      "metric": "stamina",
+      "minimum": 3
+    },
+    {
+      "id": "claim/condition/stamina/3",
+      "type": "Claim",
+      "name": "現在のスタミナ ≥ 3",
+      "value": null
+    },
+    {
+      "id": "task/npc-heita",
+      "type": "Task",
+      "name": "熱血探偵ヘイタ",
+      "section": "聞き込みと補給",
+      "detail": "(14, 18) 新人探偵はん、よう来たな！オオサカの街に怪しい影や暗号トリックがうごめいとるんや！"
+    },
+    {
+      "id": "task/npc-trail-dog",
+      "type": "Task",
+      "name": "浪速の捜索犬",
+      "section": "聞き込みと補給",
+      "detail": "(15, 18) 捜索犬が地面に鼻をつけ、西の給水処の方を向いた。"
+    },
+    {
+      "id": "task/npc-ayaka",
+      "type": "Task",
+      "name": "助手アヤカ",
+      "section": "聞き込みと補給",
+      "detail": "(15, 14) ヘイタ先輩の助手をやってますアヤカです！右上のコンパス🧭を見れば、一番近い未解明の影の方向と距離が一発で分かりますよ！"
+    },
+    {
+      "id": "task/npc-semba",
+      "type": "Task",
+      "name": "船場情報屋センバ",
+      "section": "聞き込みと補給",
+      "detail": "(17, 28) まいど！捜査ご苦労さんなこってす！現場解決で貯めた調査メダル🪙で、船場名物のおやつや捜査アイテム仕入れていきまへんか！"
+    },
+    {
+      "id": "task/npc-hakase",
+      "type": "Task",
+      "name": "科学捜査官ハカセ",
+      "section": "聞き込みと補給",
+      "detail": "(23, 22) 科学捜査研究所へようこそ！水都大阪の分析技術と鑑識データで、君の体力⚡と推理コンディションを満タンまで即時回復しよう！"
+    },
+    {
+      "id": "task/npc-archivist",
+      "type": "Task",
+      "name": "暗号解読士",
+      "section": "聞き込みと補給",
+      "detail": "(29, 27) 暗号解読を担当してるんや。事件簿に出てくる技術用語、いくつ読み解けるか試してみるか？"
+    },
+    {
+      "id": "task/npc-chief",
+      "type": "Task",
+      "name": "浪速署長",
+      "section": "聞き込みと補給",
+      "detail": "(15, 17) 浪速署の署長や。城東から怪盗黒幕シャドウの目撃情報が入った。駅前の聞き込みはヘイタに任せてある。あんたは現場の痕跡と照らし合わせてくれるか。"
+    },
+    {
+      "id": "task/stand-shin-osaka",
+      "type": "Task",
+      "name": "新大阪茶房",
+      "section": "聞き込みと補給",
+      "detail": "(16, 2) 新大阪駅前の茶房スタンドや。淹れたての宇治茶を一杯飲んで、調査体力⚡を満タンまで急速補給したで！"
+    },
+    {
+      "id": "task/stand-umeda",
+      "type": "Task",
+      "name": "梅田給水処",
+      "section": "聞き込みと補給",
+      "detail": "(13, 17) 梅田地下街前の給水処や。清涼な冷水で喉を潤して、調査体力⚡を満タンまで補給したで！"
+    },
+    {
+      "id": "task/stand-semba",
+      "type": "Task",
+      "name": "船場茶房",
+      "section": "聞き込みと補給",
+      "detail": "(16, 27) 船場商人の路地裏茶房や。香ばしいほうじ茶をいただいて、調査体力⚡と気力を満タンまで補給したで！"
+    },
+    {
+      "id": "task/stand-namba",
+      "type": "Task",
+      "name": "難波茶房処",
+      "section": "聞き込みと補給",
+      "detail": "(17, 37) 道頓堀近くの茶房処や。名物のお茶で一服して、長距離捜査の疲れと体力⚡を満タンまで急速補給したで！"
+    },
+    {
+      "id": "resource/drop-takoyaki",
+      "type": "Resource",
+      "name": "アツアツたこ焼き",
+      "usage": "consumable"
+    },
+    {
+      "id": "task/drop-takoyaki",
+      "type": "Task",
+      "name": "アツアツたこ焼き",
+      "section": "持ち物と入手場所",
+      "detail": "(15, 4) · 消費・移動中／現場 · 出汁の効いた浪速名物たこ焼き。 HP回復+20、スタミナ回復+14"
+    },
+    {
+      "id": "use/drop-takoyaki",
+      "type": "Task",
+      "name": "アツアツたこ焼きを使う"
+    },
+    {
+      "id": "resource/drop-loupe",
+      "type": "Resource",
+      "name": "探偵ルーペ",
+      "usage": "equipment"
+    },
+    {
+      "id": "task/drop-loupe",
+      "type": "Task",
+      "name": "探偵ルーペ",
+      "section": "持ち物と入手場所",
+      "detail": "(14, 16) · 常備・取得時から有効 · 微細な痕跡も見逃さない精密ルーペ。 論理力+5"
+    },
+    {
+      "id": "use/drop-loupe",
+      "type": "Task",
+      "name": "探偵ルーペを使う"
+    },
+    {
+      "id": "resource/drop-notebook",
+      "type": "Resource",
+      "name": "捜査手帳",
+      "usage": "equipment"
+    },
+    {
+      "id": "task/drop-notebook",
+      "type": "Task",
+      "name": "捜査手帳",
+      "section": "持ち物と入手場所",
+      "detail": "(17, 29) · 常備・取得時から有効 · 証言と矛盾を整理する黒革手帳。 最大HP+14、ポーカーフェイス+4"
+    },
+    {
+      "id": "use/drop-notebook",
+      "type": "Task",
+      "name": "捜査手帳を使う"
+    },
+    {
+      "id": "resource/drop-senbei",
+      "type": "Resource",
+      "name": "船場せんべい",
+      "usage": "consumable"
+    },
+    {
+      "id": "task/drop-senbei",
+      "type": "Task",
+      "name": "船場せんべい",
+      "section": "持ち物と入手場所",
+      "detail": "(22, 24) · 消費・移動中／現場 · パリッと香ばしい伝統の醤油せんべい。 HP回復+24、スタミナ回復+16"
+    },
+    {
+      "id": "use/drop-senbei",
+      "type": "Task",
+      "name": "船場せんべいを使う"
+    },
+    {
+      "id": "resource/drop-blacklight",
+      "type": "Resource",
+      "name": "鑑識試験紙",
+      "usage": "consumable"
+    },
+    {
+      "id": "task/drop-blacklight",
+      "type": "Task",
+      "name": "鑑識試験紙",
+      "section": "持ち物と入手場所",
+      "detail": "(28, 28) · 消費・現場専用 · 使い切りの試験紙。 トリック解明+10"
+    },
+    {
+      "id": "use/drop-blacklight",
+      "type": "Task",
+      "name": "鑑識試験紙を使う"
+    },
+    {
+      "id": "resource/chest-shoes",
+      "type": "Resource",
+      "name": "浪速の調査靴",
+      "usage": "equipment"
+    },
+    {
+      "id": "task/chest-shoes",
+      "type": "Task",
+      "name": "浪速の調査靴",
+      "section": "持ち物と入手場所",
+      "detail": "(15, 1) · 常備・取得時から有効 · 水辺の石畳でも足元がぶれず、痕跡を追いやすい調査靴。 最大スタミナ+20、論理力+6"
+    },
+    {
+      "id": "use/chest-shoes",
+      "type": "Task",
+      "name": "浪速の調査靴を使う"
+    },
+    {
+      "id": "resource/chest-coat",
+      "type": "Resource",
+      "name": "撥水トレンチコート",
+      "usage": "equipment"
+    },
+    {
+      "id": "task/chest-coat",
+      "type": "Task",
+      "name": "撥水トレンチコート",
+      "section": "持ち物と入手場所",
+      "detail": "(13, 18) · 常備・取得時から有効 · 水都の小雨を弾く仕立てのトレンチコート。 最大HP+16、ポーカーフェイス+5"
+    },
+    {
+      "id": "use/chest-coat",
+      "type": "Task",
+      "name": "撥水トレンチコートを使う"
+    },
+    {
+      "id": "resource/chest-canteen",
+      "type": "Resource",
+      "name": "船場大容量水筒",
+      "usage": "equipment"
+    },
+    {
+      "id": "task/chest-canteen",
+      "type": "Task",
+      "name": "船場大容量水筒",
+      "section": "持ち物と入手場所",
+      "detail": "(24, 23) · 常備・取得時から有効 · 保温性に優れた船場特製の大容量水筒。 最大スタミナ+36"
+    },
+    {
+      "id": "use/chest-canteen",
+      "type": "Task",
+      "name": "船場大容量水筒を使う"
+    },
+    {
+      "id": "resource/chest-hat",
+      "type": "Resource",
+      "name": "黄金の名探偵ハット",
+      "usage": "equipment"
+    },
+    {
+      "id": "task/chest-hat",
+      "type": "Task",
+      "name": "黄金の名探偵ハット",
+      "section": "持ち物と入手場所",
+      "detail": "(29, 31) · 常備・取得時から有効 · 東西の名探偵に受け継がれる栄誉のハット。 最大HP+15、最大スタミナ+25、論理力+8、ポーカーフェイス+6"
+    },
+    {
+      "id": "use/chest-hat",
+      "type": "Task",
+      "name": "黄金の名探偵ハットを使う"
+    },
+    {
+      "id": "resource/shop-takoyaki",
+      "type": "Resource",
+      "name": "アツアツたこ焼き",
+      "usage": "consumable"
+    },
+    {
+      "id": "task/shop-takoyaki",
+      "type": "Task",
+      "name": "アツアツたこ焼き",
+      "section": "持ち物と入手場所",
+      "detail": "船場情報屋センバ · 消費・移動中／現場 · 出汁の効いたたこ焼き。 HP回復+20、スタミナ回復+14"
+    },
+    {
+      "id": "condition/medals/10",
+      "type": "Condition",
+      "name": "所持メダル ≥ 10",
+      "metric": "medals",
+      "minimum": 10
+    },
+    {
+      "id": "state/medals",
+      "type": "State",
+      "name": "所持メダル"
+    },
+    {
+      "id": "claim/condition/medals/10",
+      "type": "Claim",
+      "name": "所持メダル ≥ 10",
+      "value": null
+    },
+    {
+      "id": "use/shop-takoyaki",
+      "type": "Task",
+      "name": "アツアツたこ焼きを使う"
+    },
+    {
+      "id": "resource/shop-stamina",
+      "type": "Resource",
+      "name": "船場の補給茶",
+      "usage": "consumable"
+    },
+    {
+      "id": "task/shop-stamina",
+      "type": "Task",
+      "name": "船場の補給茶",
+      "section": "持ち物と入手場所",
+      "detail": "船場情報屋センバ · 消費・移動中／現場 · 急速回復ドリンク。 スタミナ回復+32"
+    },
+    {
+      "id": "condition/medals/12",
+      "type": "Condition",
+      "name": "所持メダル ≥ 12",
+      "metric": "medals",
+      "minimum": 12
+    },
+    {
+      "id": "claim/condition/medals/12",
+      "type": "Claim",
+      "name": "所持メダル ≥ 12",
+      "value": null
+    },
+    {
+      "id": "use/shop-stamina",
+      "type": "Task",
+      "name": "船場の補給茶を使う"
+    },
+    {
+      "id": "resource/shop-light",
+      "type": "Resource",
+      "name": "高感度鑑識試験紙",
+      "usage": "consumable"
+    },
+    {
+      "id": "task/shop-light",
+      "type": "Task",
+      "name": "高感度鑑識試験紙",
+      "section": "持ち物と入手場所",
+      "detail": "船場情報屋センバ · 消費・現場専用 · 微量の痕跡を検出する使い切りの試験紙。 トリック解明+14"
+    },
+    {
+      "id": "condition/medals/18",
+      "type": "Condition",
+      "name": "所持メダル ≥ 18",
+      "metric": "medals",
+      "minimum": 18
+    },
+    {
+      "id": "claim/condition/medals/18",
+      "type": "Claim",
+      "name": "所持メダル ≥ 18",
+      "value": null
+    },
+    {
+      "id": "use/shop-light",
+      "type": "Task",
+      "name": "高感度鑑識試験紙を使う"
+    }
+  ],
+  "edges": [
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "all"
+    },
+    {
+      "source": "claim/condition/clue/35",
+      "kind": "about",
+      "target": "state/clue"
+    },
+    {
+      "source": "condition/clue/35",
+      "kind": "evaluated_by",
+      "target": "claim/condition/clue/35"
+    },
+    {
+      "source": "all",
+      "kind": "completed_when",
+      "target": "condition/clue/35"
+    },
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "q-talk-heita"
+    },
+    {
+      "source": "q-talk-heita",
+      "kind": "defined_by",
+      "target": "spec/q-talk-heita"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/q-talk-heita"
+    },
+    {
+      "source": "q-talk-heita",
+      "kind": "achieved_by",
+      "target": "task/q-talk-heita"
+    },
+    {
+      "source": "claim/condition/talk:npc-heita/1",
+      "kind": "about",
+      "target": "state/talk:npc-heita"
+    },
+    {
+      "source": "condition/talk:npc-heita/1",
+      "kind": "evaluated_by",
+      "target": "claim/condition/talk:npc-heita/1"
+    },
+    {
+      "source": "q-talk-heita",
+      "kind": "completed_when",
+      "target": "condition/talk:npc-heita/1"
+    },
+    {
+      "source": "task/q-talk-heita",
+      "kind": "produces",
+      "target": "state/talk:npc-heita"
+    },
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "q-first-clue"
+    },
+    {
+      "source": "q-first-clue",
+      "kind": "defined_by",
+      "target": "spec/q-first-clue"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/q-first-clue"
+    },
+    {
+      "source": "q-first-clue",
+      "kind": "achieved_by",
+      "target": "task/q-first-clue"
+    },
+    {
+      "source": "claim/condition/clue/1",
+      "kind": "about",
+      "target": "state/clue"
+    },
+    {
+      "source": "condition/clue/1",
+      "kind": "evaluated_by",
+      "target": "claim/condition/clue/1"
+    },
+    {
+      "source": "q-first-clue",
+      "kind": "completed_when",
+      "target": "condition/clue/1"
+    },
+    {
+      "source": "task/q-first-clue",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "q-three-clues"
+    },
+    {
+      "source": "q-three-clues",
+      "kind": "defined_by",
+      "target": "spec/q-three-clues"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/q-three-clues"
+    },
+    {
+      "source": "q-three-clues",
+      "kind": "achieved_by",
+      "target": "task/q-three-clues"
+    },
+    {
+      "source": "claim/condition/clue/3",
+      "kind": "about",
+      "target": "state/clue"
+    },
+    {
+      "source": "condition/clue/3",
+      "kind": "evaluated_by",
+      "target": "claim/condition/clue/3"
+    },
+    {
+      "source": "q-three-clues",
+      "kind": "completed_when",
+      "target": "condition/clue/3"
+    },
+    {
+      "source": "task/q-three-clues",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "q-find-drop"
+    },
+    {
+      "source": "q-find-drop",
+      "kind": "defined_by",
+      "target": "spec/q-find-drop"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/q-find-drop"
+    },
+    {
+      "source": "q-find-drop",
+      "kind": "achieved_by",
+      "target": "task/q-find-drop"
+    },
+    {
+      "source": "claim/condition/drop/1",
+      "kind": "about",
+      "target": "state/drop"
+    },
+    {
+      "source": "condition/drop/1",
+      "kind": "evaluated_by",
+      "target": "claim/condition/drop/1"
+    },
+    {
+      "source": "q-find-drop",
+      "kind": "completed_when",
+      "target": "condition/drop/1"
+    },
+    {
+      "source": "task/q-find-drop",
+      "kind": "produces",
+      "target": "state/drop"
+    },
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "q-open-chest"
+    },
+    {
+      "source": "q-open-chest",
+      "kind": "defined_by",
+      "target": "spec/q-open-chest"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/q-open-chest"
+    },
+    {
+      "source": "q-open-chest",
+      "kind": "achieved_by",
+      "target": "task/q-open-chest"
+    },
+    {
+      "source": "claim/condition/chest/1",
+      "kind": "about",
+      "target": "state/chest"
+    },
+    {
+      "source": "condition/chest/1",
+      "kind": "evaluated_by",
+      "target": "claim/condition/chest/1"
+    },
+    {
+      "source": "q-open-chest",
+      "kind": "completed_when",
+      "target": "condition/chest/1"
+    },
+    {
+      "source": "task/q-open-chest",
+      "kind": "produces",
+      "target": "state/chest"
+    },
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "q-stand-refill"
+    },
+    {
+      "source": "q-stand-refill",
+      "kind": "defined_by",
+      "target": "spec/q-stand-refill"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/q-stand-refill"
+    },
+    {
+      "source": "q-stand-refill",
+      "kind": "achieved_by",
+      "target": "task/q-stand-refill"
+    },
+    {
+      "source": "claim/condition/refill/1",
+      "kind": "about",
+      "target": "state/refill"
+    },
+    {
+      "source": "condition/refill/1",
+      "kind": "evaluated_by",
+      "target": "claim/condition/refill/1"
+    },
+    {
+      "source": "q-stand-refill",
+      "kind": "completed_when",
+      "target": "condition/refill/1"
+    },
+    {
+      "source": "task/q-stand-refill",
+      "kind": "produces",
+      "target": "state/refill"
+    },
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "q-solve-quiz"
+    },
+    {
+      "source": "q-solve-quiz",
+      "kind": "defined_by",
+      "target": "spec/q-solve-quiz"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/q-solve-quiz"
+    },
+    {
+      "source": "q-solve-quiz",
+      "kind": "achieved_by",
+      "target": "task/q-solve-quiz"
+    },
+    {
+      "source": "claim/condition/quiz/1",
+      "kind": "about",
+      "target": "state/quiz"
+    },
+    {
+      "source": "condition/quiz/1",
+      "kind": "evaluated_by",
+      "target": "claim/condition/quiz/1"
+    },
+    {
+      "source": "q-solve-quiz",
+      "kind": "completed_when",
+      "target": "condition/quiz/1"
+    },
+    {
+      "source": "task/q-solve-quiz",
+      "kind": "produces",
+      "target": "state/quiz"
+    },
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "q-boss-shadow"
+    },
+    {
+      "source": "q-boss-shadow",
+      "kind": "defined_by",
+      "target": "spec/q-boss-shadow"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/q-boss-shadow"
+    },
+    {
+      "source": "q-boss-shadow",
+      "kind": "achieved_by",
+      "target": "task/q-boss-shadow"
+    },
+    {
+      "source": "claim/condition/boss_clue/1",
+      "kind": "about",
+      "target": "state/boss_clue"
+    },
+    {
+      "source": "condition/boss_clue/1",
+      "kind": "evaluated_by",
+      "target": "claim/condition/boss_clue/1"
+    },
+    {
+      "source": "q-boss-shadow",
+      "kind": "completed_when",
+      "target": "condition/boss_clue/1"
+    },
+    {
+      "source": "task/q-boss-shadow",
+      "kind": "produces",
+      "target": "state/boss_clue"
+    },
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "b-first-clue"
+    },
+    {
+      "source": "b-first-clue",
+      "kind": "defined_by",
+      "target": "spec/b-first-clue"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/b-first-clue"
+    },
+    {
+      "source": "b-first-clue",
+      "kind": "achieved_by",
+      "target": "task/b-first-clue"
+    },
+    {
+      "source": "b-first-clue",
+      "kind": "completed_when",
+      "target": "condition/clue/1"
+    },
+    {
+      "source": "task/b-first-clue",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "b-clue-five"
+    },
+    {
+      "source": "b-clue-five",
+      "kind": "defined_by",
+      "target": "spec/b-clue-five"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/b-clue-five"
+    },
+    {
+      "source": "b-clue-five",
+      "kind": "achieved_by",
+      "target": "task/b-clue-five"
+    },
+    {
+      "source": "claim/condition/clue/5",
+      "kind": "about",
+      "target": "state/clue"
+    },
+    {
+      "source": "condition/clue/5",
+      "kind": "evaluated_by",
+      "target": "claim/condition/clue/5"
+    },
+    {
+      "source": "b-clue-five",
+      "kind": "completed_when",
+      "target": "condition/clue/5"
+    },
+    {
+      "source": "task/b-clue-five",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "b-boss-down"
+    },
+    {
+      "source": "b-boss-down",
+      "kind": "defined_by",
+      "target": "spec/b-boss-down"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/b-boss-down"
+    },
+    {
+      "source": "b-boss-down",
+      "kind": "achieved_by",
+      "target": "task/b-boss-down"
+    },
+    {
+      "source": "b-boss-down",
+      "kind": "completed_when",
+      "target": "condition/boss_clue/1"
+    },
+    {
+      "source": "task/b-boss-down",
+      "kind": "produces",
+      "target": "state/boss_clue"
+    },
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "b-geared-up"
+    },
+    {
+      "source": "b-geared-up",
+      "kind": "defined_by",
+      "target": "spec/b-geared-up"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/b-geared-up"
+    },
+    {
+      "source": "b-geared-up",
+      "kind": "achieved_by",
+      "target": "task/b-geared-up"
+    },
+    {
+      "source": "claim/condition/chest/4",
+      "kind": "about",
+      "target": "state/chest"
+    },
+    {
+      "source": "condition/chest/4",
+      "kind": "evaluated_by",
+      "target": "claim/condition/chest/4"
+    },
+    {
+      "source": "b-geared-up",
+      "kind": "completed_when",
+      "target": "condition/chest/4"
+    },
+    {
+      "source": "task/b-geared-up",
+      "kind": "produces",
+      "target": "state/chest"
+    },
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "b-stand-master"
+    },
+    {
+      "source": "b-stand-master",
+      "kind": "defined_by",
+      "target": "spec/b-stand-master"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/b-stand-master"
+    },
+    {
+      "source": "b-stand-master",
+      "kind": "achieved_by",
+      "target": "task/b-stand-master"
+    },
+    {
+      "source": "claim/condition/refill/3",
+      "kind": "about",
+      "target": "state/refill"
+    },
+    {
+      "source": "condition/refill/3",
+      "kind": "evaluated_by",
+      "target": "claim/condition/refill/3"
+    },
+    {
+      "source": "b-stand-master",
+      "kind": "completed_when",
+      "target": "condition/refill/3"
+    },
+    {
+      "source": "task/b-stand-master",
+      "kind": "produces",
+      "target": "state/refill"
+    },
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "b-quiz-scholar"
+    },
+    {
+      "source": "b-quiz-scholar",
+      "kind": "defined_by",
+      "target": "spec/b-quiz-scholar"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/b-quiz-scholar"
+    },
+    {
+      "source": "b-quiz-scholar",
+      "kind": "achieved_by",
+      "target": "task/b-quiz-scholar"
+    },
+    {
+      "source": "claim/condition/quiz/3",
+      "kind": "about",
+      "target": "state/quiz"
+    },
+    {
+      "source": "condition/quiz/3",
+      "kind": "evaluated_by",
+      "target": "claim/condition/quiz/3"
+    },
+    {
+      "source": "b-quiz-scholar",
+      "kind": "completed_when",
+      "target": "condition/quiz/3"
+    },
+    {
+      "source": "task/b-quiz-scholar",
+      "kind": "produces",
+      "target": "state/quiz"
+    },
+    {
+      "source": "guide",
+      "kind": "explains",
+      "target": "b-green-osaka"
+    },
+    {
+      "source": "b-green-osaka",
+      "kind": "defined_by",
+      "target": "spec/b-green-osaka"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/b-green-osaka"
+    },
+    {
+      "source": "b-green-osaka",
+      "kind": "achieved_by",
+      "target": "task/b-green-osaka"
+    },
+    {
+      "source": "claim/condition/garden/8",
+      "kind": "about",
+      "target": "state/garden"
+    },
+    {
+      "source": "condition/garden/8",
+      "kind": "evaluated_by",
+      "target": "claim/condition/garden/8"
+    },
+    {
+      "source": "b-green-osaka",
+      "kind": "completed_when",
+      "target": "condition/garden/8"
+    },
+    {
+      "source": "task/b-green-osaka",
+      "kind": "produces",
+      "target": "state/garden"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/walk"
+    },
+    {
+      "source": "claim/condition/stamina/6",
+      "kind": "about",
+      "target": "state/stamina"
+    },
+    {
+      "source": "condition/stamina/6",
+      "kind": "evaluated_by",
+      "target": "claim/condition/stamina/6"
+    },
+    {
+      "source": "task/walk",
+      "kind": "guarded_by",
+      "target": "condition/stamina/6"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-0"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-0"
+    },
+    {
+      "source": "task/shadow-0",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-0",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-1"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-1"
+    },
+    {
+      "source": "task/shadow-1",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-1",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-2"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-2"
+    },
+    {
+      "source": "task/shadow-2",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-2",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-3"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-3"
+    },
+    {
+      "source": "task/shadow-3",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-4"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-4"
+    },
+    {
+      "source": "task/shadow-4",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-4",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-5"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-5"
+    },
+    {
+      "source": "task/shadow-5",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-5",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-6"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-6"
+    },
+    {
+      "source": "task/shadow-6",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-6",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-7"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-7"
+    },
+    {
+      "source": "task/shadow-7",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-7",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-8"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-8"
+    },
+    {
+      "source": "task/shadow-8",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-8",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-9"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-9"
+    },
+    {
+      "source": "task/shadow-9",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-10"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-10"
+    },
+    {
+      "source": "task/shadow-10",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-11"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-11"
+    },
+    {
+      "source": "task/shadow-11",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-11",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-12"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-12"
+    },
+    {
+      "source": "task/shadow-12",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-12",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-13"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-13"
+    },
+    {
+      "source": "task/shadow-13",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-13",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-14"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-14"
+    },
+    {
+      "source": "task/shadow-14",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-14",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-15"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-15"
+    },
+    {
+      "source": "task/shadow-15",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-15",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-16"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-16"
+    },
+    {
+      "source": "task/shadow-16",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-16",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-17"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-17"
+    },
+    {
+      "source": "task/shadow-17",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-18"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-18"
+    },
+    {
+      "source": "task/shadow-18",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-18",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-19"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-19"
+    },
+    {
+      "source": "task/shadow-19",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-20"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-20"
+    },
+    {
+      "source": "task/shadow-20",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-21"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-21"
+    },
+    {
+      "source": "task/shadow-21",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-21",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-22"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-22"
+    },
+    {
+      "source": "task/shadow-22",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-22",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-23"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-23"
+    },
+    {
+      "source": "task/shadow-23",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-24"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-24"
+    },
+    {
+      "source": "task/shadow-24",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-24",
+      "kind": "produces",
+      "target": "state/boss_clue"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-25"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-25"
+    },
+    {
+      "source": "task/shadow-25",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-25",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-26"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-26"
+    },
+    {
+      "source": "task/shadow-26",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-26",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-27"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-27"
+    },
+    {
+      "source": "task/shadow-27",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-28"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-28"
+    },
+    {
+      "source": "task/shadow-28",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-29"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-29"
+    },
+    {
+      "source": "task/shadow-29",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-29",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-30"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-30"
+    },
+    {
+      "source": "task/shadow-30",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-31"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-31"
+    },
+    {
+      "source": "task/shadow-31",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-31",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-32"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-32"
+    },
+    {
+      "source": "task/shadow-32",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-32",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-33"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-33"
+    },
+    {
+      "source": "task/shadow-33",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shadow-34"
+    },
+    {
+      "source": "all",
+      "kind": "achieved_by",
+      "target": "task/shadow-34"
+    },
+    {
+      "source": "task/shadow-34",
+      "kind": "produces",
+      "target": "state/clue"
+    },
+    {
+      "source": "task/shadow-34",
+      "kind": "can_use",
+      "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/tac-standard"
+    },
+    {
+      "source": "claim/condition/stamina/4",
+      "kind": "about",
+      "target": "state/stamina"
+    },
+    {
+      "source": "condition/stamina/4",
+      "kind": "evaluated_by",
+      "target": "claim/condition/stamina/4"
+    },
+    {
+      "source": "task/tac-standard",
+      "kind": "guarded_by",
+      "target": "condition/stamina/4"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/tac-burst"
+    },
+    {
+      "source": "claim/condition/stamina/8",
+      "kind": "about",
+      "target": "state/stamina"
+    },
+    {
+      "source": "condition/stamina/8",
+      "kind": "evaluated_by",
+      "target": "claim/condition/stamina/8"
+    },
+    {
+      "source": "task/tac-burst",
+      "kind": "guarded_by",
+      "target": "condition/stamina/8"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/tac-poker"
+    },
+    {
+      "source": "claim/condition/stamina/3",
+      "kind": "about",
+      "target": "state/stamina"
+    },
+    {
+      "source": "condition/stamina/3",
+      "kind": "evaluated_by",
+      "target": "claim/condition/stamina/3"
+    },
+    {
+      "source": "task/tac-poker",
+      "kind": "guarded_by",
+      "target": "condition/stamina/3"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/npc-heita"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/npc-trail-dog"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/npc-ayaka"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/npc-semba"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/npc-hakase"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/npc-archivist"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/npc-chief"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/stand-shin-osaka"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/stand-umeda"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/stand-semba"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/stand-namba"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/drop-takoyaki"
+    },
+    {
+      "source": "task/drop-takoyaki",
+      "kind": "provides",
+      "target": "resource/drop-takoyaki"
+    },
+    {
+      "source": "use/drop-takoyaki",
+      "kind": "requires",
+      "target": "resource/drop-takoyaki"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "use/drop-takoyaki"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/drop-loupe"
+    },
+    {
+      "source": "task/drop-loupe",
+      "kind": "provides",
+      "target": "resource/drop-loupe"
+    },
+    {
+      "source": "use/drop-loupe",
+      "kind": "requires",
+      "target": "resource/drop-loupe"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "use/drop-loupe"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/drop-notebook"
+    },
+    {
+      "source": "task/drop-notebook",
+      "kind": "provides",
+      "target": "resource/drop-notebook"
+    },
+    {
+      "source": "use/drop-notebook",
+      "kind": "requires",
+      "target": "resource/drop-notebook"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "use/drop-notebook"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/drop-senbei"
+    },
+    {
+      "source": "task/drop-senbei",
+      "kind": "provides",
+      "target": "resource/drop-senbei"
+    },
+    {
+      "source": "use/drop-senbei",
+      "kind": "requires",
+      "target": "resource/drop-senbei"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "use/drop-senbei"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/drop-blacklight"
+    },
+    {
+      "source": "task/drop-blacklight",
+      "kind": "provides",
+      "target": "resource/drop-blacklight"
+    },
+    {
+      "source": "use/drop-blacklight",
+      "kind": "requires",
+      "target": "resource/drop-blacklight"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "use/drop-blacklight"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/chest-shoes"
+    },
+    {
+      "source": "task/chest-shoes",
+      "kind": "provides",
+      "target": "resource/chest-shoes"
+    },
+    {
+      "source": "use/chest-shoes",
+      "kind": "requires",
+      "target": "resource/chest-shoes"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "use/chest-shoes"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/chest-coat"
+    },
+    {
+      "source": "task/chest-coat",
+      "kind": "provides",
+      "target": "resource/chest-coat"
+    },
+    {
+      "source": "use/chest-coat",
+      "kind": "requires",
+      "target": "resource/chest-coat"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "use/chest-coat"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/chest-canteen"
+    },
+    {
+      "source": "task/chest-canteen",
+      "kind": "provides",
+      "target": "resource/chest-canteen"
+    },
+    {
+      "source": "use/chest-canteen",
+      "kind": "requires",
+      "target": "resource/chest-canteen"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "use/chest-canteen"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/chest-hat"
+    },
+    {
+      "source": "task/chest-hat",
+      "kind": "provides",
+      "target": "resource/chest-hat"
+    },
+    {
+      "source": "task/chest-hat",
+      "kind": "guarded_by",
+      "target": "condition/clue/3"
+    },
+    {
+      "source": "use/chest-hat",
+      "kind": "requires",
+      "target": "resource/chest-hat"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "use/chest-hat"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shop-takoyaki"
+    },
+    {
+      "source": "task/shop-takoyaki",
+      "kind": "provides",
+      "target": "resource/shop-takoyaki"
+    },
+    {
+      "source": "claim/condition/medals/10",
+      "kind": "about",
+      "target": "state/medals"
+    },
+    {
+      "source": "condition/medals/10",
+      "kind": "evaluated_by",
+      "target": "claim/condition/medals/10"
+    },
+    {
+      "source": "task/shop-takoyaki",
+      "kind": "guarded_by",
+      "target": "condition/medals/10"
+    },
+    {
+      "source": "use/shop-takoyaki",
+      "kind": "requires",
+      "target": "resource/shop-takoyaki"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "use/shop-takoyaki"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shop-stamina"
+    },
+    {
+      "source": "task/shop-stamina",
+      "kind": "provides",
+      "target": "resource/shop-stamina"
+    },
+    {
+      "source": "claim/condition/medals/12",
+      "kind": "about",
+      "target": "state/medals"
+    },
+    {
+      "source": "condition/medals/12",
+      "kind": "evaluated_by",
+      "target": "claim/condition/medals/12"
+    },
+    {
+      "source": "task/shop-stamina",
+      "kind": "guarded_by",
+      "target": "condition/medals/12"
+    },
+    {
+      "source": "use/shop-stamina",
+      "kind": "requires",
+      "target": "resource/shop-stamina"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "use/shop-stamina"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/shop-light"
+    },
+    {
+      "source": "task/shop-light",
+      "kind": "provides",
+      "target": "resource/shop-light"
+    },
+    {
+      "source": "claim/condition/medals/18",
+      "kind": "about",
+      "target": "state/medals"
+    },
+    {
+      "source": "condition/medals/18",
+      "kind": "evaluated_by",
+      "target": "claim/condition/medals/18"
+    },
+    {
+      "source": "task/shop-light",
+      "kind": "guarded_by",
+      "target": "condition/medals/18"
+    },
+    {
+      "source": "use/shop-light",
+      "kind": "requires",
+      "target": "resource/shop-light"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "use/shop-light"
+    }
+  ],
+  "diagnostics": []
+}

@@ -788,7 +788,7 @@ def test_a_mark_is_an_emoji_in_place_of_the_dot_scaled_by_the_world():
     """A spot's mark (or its category's, through place_floor marks=) replaces the dot and leads the name; mark_scale sets every mark's width and height."""
     cities = W.world_validate(W.example_data("cities"))
     assert cities["mark_scale"] == [1.5, 1.5]
-    assert {s["category"]: s.get("mark") for f in cities["floors"] for s in f["spots"]} == {"exit": "🎫", "station": "🚉", "terminus": "🚆", "sign": None}
+    assert {s["category"]: s.get("mark") for f in cities["floors"] for s in f["spots"]} == {"exit": "🎫", "station": "🚉", "terminus": "🚆", "sign": None, "landmark": None}
     html = W.world_html(W.example_data("cities"))
     assert 'style="--mark-x:1.5;--mark-y:1.5"' in html
     assert "top:1232px;--mark:'🎫'\"" in html and "--mark:'🛗'" not in html           # 🛗 is the footer's: an exit is a ticket gate
@@ -1198,8 +1198,8 @@ def by_id(floor):
     return {s["id"].split("-", 1)[1]: s for s in floor["spots"]}
 
 
-def test_the_cities_are_four_floors_with_every_spot_walkable(cities):
-    assert list(cities) == ["tokyo", "london", "paris", "osaka"]
+def test_the_city_floors_with_every_spot_walkable(cities):
+    assert list(cities) == ["tokyo", "london", "paris", "osaka", "nagoya"]
     for floor in cities.values():
         reach = walkable(floor)
         assert len(floor["props"]) <= 512 and len(floor["spots"]) <= 64
@@ -2028,7 +2028,7 @@ class FakeParisRescueTests(unittest.TestCase):
         node = shutil.which("node")
         if not node:
             self.skipTest("node binary unavailable")
-        pure_js = W.WORLD_RESCUE_JS.replace("bindRescueWorlds();\n", "")
+        pure_js = W.WORLD_RADAR_JS + W.WORLD_RESCUE_JS.replace("bindRescueWorlds();\n", "")
         probe = (
             pure_js
             + '\nconst seeds = [0, 1, 20261127, 4294967295].map(s => rescueRandomWord(s));\n'
@@ -2088,12 +2088,39 @@ class OsakaDetectiveTests(unittest.TestCase):
         detective = world["detective"]
         self.assertEqual(detective["floor"], "osaka")
         self.assertEqual(detective["boss_cell"], [32, 33])
-        self.assertEqual(len(detective["nodes"]), 19)
+        self.assertEqual(len(detective["nodes"]), 20)
         self.assertEqual(len(detective["tactics"]), 3)
         self.assertEqual(len(detective["shop"]), 3)
         self.assertEqual(len(detective["quests"]), 8)
         self.assertEqual(len(detective["badges"]), 7)
         self.assertEqual(len(detective["quizzes"]), 6)
+
+    def test_shared_radar_module_and_half_tile_rounding(self):
+        specs = [W.example_data("cities")] * 2
+        modules = W.world_game_modules(specs, "")
+        self.assertEqual(modules.count("function nearestWorldTarget("), 1)
+        self.assertEqual(W.world_game_modules([W.example_data("school")], ""), "")
+        target = {"id": "target", "x": 80, "y": 0}
+        for radar in (W.detective_nearest_clue, W.rescue_nearest_fire):
+            self.assertEqual(radar(0, 0, [target], 32)["tiles"], 3)
+
+    def test_local_dogs_have_distinct_icons_and_areas(self):
+        dogs = {}
+        for scene in ("school", "overworld", "cities"):
+            spec = W.world_validate(W.example_data(scene))
+            for floor in spec["floors"]:
+                actors = list(floor["actors"])
+                if floor["id"] == "osaka":
+                    actors.extend(spec["detective"]["nodes"])
+                for actor in actors:
+                    if actor["emoji"] in {"🐕", "🐕‍🦺", "🦮", "🐩"}:
+                        dogs[scene, floor["id"], actor["id"]] = actor["emoji"]
+                        if actor["id"] == "meadow-dog":
+                            npc = spec["rpg"]["npcs"][actor["id"]]
+                            self.assertEqual((npc["emoji"], npc["speaker"]), (actor["emoji"], actor["label"]))
+        self.assertEqual(dogs, {("school", "yard", "dog"): "🐩",
+                                ("overworld", "meadow", "meadow-dog"): "🦮",
+                                ("cities", "osaka", "npc-trail-dog"): "🐕‍🦺"})
 
     def test_detective_nodes_and_shadows_are_walkable_and_reachable_from_start(self):
         world = W.world_validate(W.example_data("cities"))
@@ -2102,7 +2129,8 @@ class OsakaDetectiveTests(unittest.TestCase):
         blocked = W.world_blocked(floor["width"], floor["height"], tile, floor["props"])
         start = (floor["player"]["x"] // tile, floor["player"]["y"] // tile)
         reach = W.world_reach(blocked, start)
-        self.assertEqual(start, (15, 2))
+        station = next(s for s in floor["spots"] if s["id"] == "osaka-osaka-umeda")
+        self.assertEqual(start, (station["x"] // tile, station["y"] // tile))
         for nd in world["detective"]["nodes"]:
             with self.subTest(node=nd["id"]):
                 self.assertEqual(blocked[nd["ty"]][nd["tx"]], "0")
@@ -2130,7 +2158,7 @@ class OsakaDetectiveTests(unittest.TestCase):
         node = shutil.which("node")
         if not node:
             self.skipTest("node binary unavailable")
-        pure_js = W.WORLD_DETECTIVE_JS.replace("bindDetectiveWorlds();\n", "")
+        pure_js = W.WORLD_RADAR_JS + W.WORLD_DETECTIVE_JS.replace("bindDetectiveWorlds();\n", "")
         probe = (
             pure_js
             + '\nconst seeds = [0, 1, 20261127, 4294967295].map(s => detectiveRandomWord(s));\n'

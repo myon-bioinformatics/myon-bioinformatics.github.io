@@ -10,6 +10,7 @@ SPACES = {
     'london': ('cities', '🎡 Reverse London'),
     'paris': ('cities', '🥖 Fake Paris'),
     'osaka': ('cities', '🐙 せやかて大阪'),
+    'nagoya': ('cities', '🏯 名古屋'),
     'camera': ('world', '🎬 カメラ'),
 }
 
@@ -86,7 +87,7 @@ for(const panel of menu.querySelectorAll('details')){
 }
 cities.addEventListener('change',e=>{
  const control=e.target;
- if(!e.isTrusted||!(control.matches('.ui-world-goto')||control.name==='cities-floor')||!cityFloors.includes(control.value))return;
+ if(!cityFloors.includes(shell.dataset.worldRoute)||!(control.matches('.ui-world-goto')||control.name==='cities-floor')||!cityFloors.includes(control.value))return;
  if(shell.dataset.worldRoute!==control.value){history.pushState(null,'','#'+control.value);route();}
 });
 addEventListener('hashchange',route);
@@ -206,7 +207,7 @@ def document(ui, world, maps, places, css_href, js_href, dialogue="", *, dragon_
               f'<a download="london-dragon.json" href="{escape(dragon_grid, quote=True)}">原画JSONを保存</a></template>')
     body = ('<main><div data-world-shell>' + sprite + header + ''.join(sections) + '</div></main>'
             + ui.module_script(JS) + f'<script type="module" src="{js_href}"></script>'
-            + ui.module_script(f'import "{js_href}";\n' + dialogue + world.rpg_module("../vendor/web-ui/js/records.js") + '\n' + world.WORLD_RESCUE_JS + '\n' + world.WORLD_DETECTIVE_JS) + maps.tokyo_modules(ui))
+            + ui.module_script(f'import "{js_href}";\n' + dialogue + world.world_game_modules(specs.values(), "../vendor/web-ui/js/records.js")) + maps.tokyo_modules(ui))
     css = ''.join(world.world_css(data, base=False) for data in specs.values()) + f'@layer components{{{CSS}}}'
     page = ui.render_document(title='🌍 ワールド', theme='modern', trusted_html=body, css=ui.bundled_css())
     return page.replace('</head>', f'<link rel="stylesheet" href="{css_href}"><style>{css}</style></head>', 1)

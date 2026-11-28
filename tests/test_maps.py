@@ -277,13 +277,20 @@ def test_world_shell_routes_and_shared_favorites(site, browser, width):
         expect(space).to_have_attribute('data-world-route', name)
 
     try:
-        for name, label in [('paris', 'Fake Paris'), ('london', 'Reverse London')]:
+        for name, label in [('paris', 'Fake Paris'), ('london', 'Reverse London'), ('nagoya', '名古屋'), ('osaka', '大阪')]:
             page.goto('about:blank')
             page.goto(path + '#' + name)
             expect(space).to_have_attribute('data-world-route', name)
             expect(page.locator('#world-space-name')).to_contain_text(label)
             expect(page.locator('#cities-map .ui-world-goto')).to_have_value(name)
             expect(page.locator(f'#cities-map [data-floor="{name}"].ui-floor')).to_be_visible()
+        page.locator('#cities-map .ui-world-pick-grid [data-emoji]').first.click()
+        page.locator('#cities-map .ui-world-home').click()
+        page.locator('#cities-map .ui-world-ask button[data-t="home"]').click()
+        expect(space).to_have_attribute('data-world-route', 'tokyo')
+        page.go_back()
+        expect(space).to_have_attribute('data-world-route', 'osaka')
+        page.goto('about:blank')
         page.goto(path + '#school')
         page.evaluate('window.sameWorldDocument = true')
         school = page.locator('#school-map')
@@ -323,6 +330,36 @@ def test_world_shell_routes_and_shared_favorites(site, browser, width):
     finally:
         context.close()
 
+
+
+def test_every_world_destination_is_reachable_from_every_other(site, browser):
+    page = browser.new_page()
+    base = site[1] + '/tools/demos/world.html'
+    try:
+        page.goto(base + '#camera')
+        page.evaluate('window.originalWorldDocument = document')
+        nav = page.locator('[data-world-nav]')
+        scenes = dict(nav.locator('a').evaluate_all('(links) => links.map(a => [a.hash.slice(1), a.dataset.scene])'))
+        assert set(scenes) >= {'camera', 'world', 'school', 'tokyo', 'nagoya', 'osaka', 'paris', 'london'}
+        for origin in scenes:
+            for destination, scene in scenes.items():
+                if destination == origin:
+                    continue
+                for route in (origin, destination):
+                    nav.locator('summary').click()
+                    nav.locator(f'a[href="#{route}"]').click()
+                    expect(page.locator('[data-world-shell]')).to_have_attribute('data-world-route', route)
+                expect(page.locator(f'[data-world-space="{scene}"]')).to_be_visible()
+                if scene == 'cities':
+                    expect(page.locator(f'#cities-map .ui-floor[data-floor="{destination}"]')).to_be_visible()
+        assert page.evaluate('window.originalWorldDocument === document')
+        last_destination = page.locator('[data-world-shell]').get_attribute('data-world-route')
+        page.go_back()
+        expect(page.locator('[data-world-shell]')).to_have_attribute('data-world-route', origin)
+        page.go_forward()
+        expect(page.locator('[data-world-shell]')).to_have_attribute('data-world-route', last_destination)
+    finally:
+        page.close()
 
 
 def test_the_world_is_one_document_entered_by_fragment_with_queries_and_spots(site, browser):
@@ -484,6 +521,8 @@ def test_village_items_work_in_cities_and_on_hero(site, browser):
         cities.locator('[data-step="1,0"]').evaluate('b=>b.click()')
         water.click()
         expect(fires).to_have_count(count - 1)
+        hud = cities.locator('[data-rescue-fires]')
+        expect(hud).to_contain_text(f'鎮火 1/{count}')
         travel('world')
         village.locator('[data-rpg-journal-btn]').click()
         tab.click()
@@ -496,8 +535,10 @@ def test_village_items_work_in_cities_and_on_hero(site, browser):
         spell = box.input_value()
         load(token)
         expect(fires).to_have_count(count)
+        expect(hud).to_contain_text(f'鎮火 0/{count}')
         load(spell)
         expect(fires).to_have_count(count - 1)
+        expect(hud).to_contain_text(f'鎮火 1/{count}')
         export.click()
         assert ui.save_state(box.input_value()) == progress
     finally:
@@ -726,5 +767,39 @@ def test_reusable_scrolls_in_field_and_battle(site, browser):
         expect(box).to_have_value(re.compile('[ぁ-ヶ]'))
         world.get_by_role('button', name='読み込む').click()
         expect(world.get_by_text('冒険データを復元しました')).to_be_visible()
+    finally:
+        page.close()
+
+
+def test_every_guide_floor_opens_from_its_world_route(site, browser):
+    graph = json.loads((ROOT / 'docs/world-guide.json').read_text(encoding='utf-8'))
+    nodes = {n['id']: n for n in graph['nodes']}
+    page = browser.new_page(reduced_motion='reduce')
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    url = site[1] + '/tools/demos/world.html'
+    try:
+        for edge in (e for e in graph['edges'] if e['kind'] == 'contains'):
+            route = edge['source']
+            _, floor = edge['target'].split('/')
+            scene = nodes[route]['scene']
+            page.goto(url + route)
+            panel = page.locator(f'[data-world-space="{scene}"]')
+            expect(panel).to_be_visible()
+            picker = panel.locator('.ui-world-pick-grid [data-emoji]').first
+            if picker.is_visible():
+                picker.click()
+            select = panel.locator('.ui-world-goto')
+            if select.count():
+                select.select_option(floor)
+            else:
+                radio = panel.locator(f'input[name$="-floor"][value="{floor}"]')
+                panel.locator(f'label[for="{radio.get_attribute("id")}"]').first.click()
+            active = panel.locator(f'.ui-floor[data-floor="{floor}"]')
+            expect(active).to_be_visible()
+            spot_count = sum(e['source'] == edge['target'] and 'x' in nodes[e['target']]
+                             for e in graph['edges'])
+            expect(active.locator('.ui-spot')).to_have_count(spot_count)
+        assert errors == []
     finally:
         page.close()
