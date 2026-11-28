@@ -224,6 +224,25 @@ def tools_door(ui, prefix: str = '../') -> dict[str, str]:
 X_URL = 'https://twitter.com/myonitbusiness'
 
 
+# Keyboard entry to the current document or tool, across both layouts of the shared chrome.
+_SKIP_CSS = """
+.ui-skip-content:not(:focus){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);padding:0;border:0}
+.ui-skip-content:focus{position:fixed;inset-block-start:.5rem;inset-inline-start:.5rem;z-index:1000;padding:.6rem 1rem}
+"""
+_SKIP_JS = """
+const skipContent=document.querySelector('[data-ui-chrome] .ui-skip-content');
+skipContent.hidden=false;
+skipContent.addEventListener('click',()=>{
+ const panel=document.querySelector('[data-tools-panel]:not([hidden])');
+ const target=panel?.querySelector(':scope > iframe')||panel||document.querySelector('main');
+ if(!target)return;
+ if(!target.matches('iframe,[tabindex]'))target.tabIndex=-1;
+ target.focus();
+ target.scrollIntoView({block:'start'});
+});
+"""
+
+
 def add_site_chrome(page: str, path: str, tools: dict | None = None, *, title: str = 'TOOLS', home: bool = True) -> str:
     """🧰 The parts both pages of the site share (``index.html``, ``tools/index.html``: ``path``): the header (``tools_chrome``: the
     board reads the page's ``<meta name="description">``, 🫧 the round face that follows the pointer, 🏠 ⭐ ⚙️), the side (☰ ⋯)
@@ -240,7 +259,14 @@ def add_site_chrome(page: str, path: str, tools: dict | None = None, *, title: s
     face['html'] = face['html'].replace(' aria-label="', ' data-t="blink" aria-label="', 1)   # 🫧 its name follows 🌐 too
     head = ui.component_parts('chrome', tools_chrome(prefix, tools, meta[1] if meta else '', title=title, home=home, lang=lang))
     tools_nav = '<nav class="ui-world-tools">'
-    head['html'] = head['html'].replace(tools_nav, face['html'] + tools_nav, 1)                  # 🫧 after the board
+    skip_text = {'ja': '本文へ移動', 'en': 'Skip to content', 'fr': 'Aller au contenu', 'es': 'Saltar al contenido',
+                 'pt': 'Ir para o conteúdo', 'ar': 'انتقل إلى المحتوى', 'zh': '跳到主要内容', 'ru': 'Перейти к содержимому',
+                 'id': 'Langsung ke konten', 'de': 'Zum Inhalt springen', 'sw': 'Nenda kwenye maudhui'}
+    skip = (f'<button type="button" hidden class="ui-skip-content" data-texts="{html.escape(json.dumps(skip_text, ensure_ascii=False))}">'
+            f'{skip_text.get(lang, skip_text["en"])}</button>')
+    head['html'] = head['html'].replace(tools_nav, skip + face['html'] + tools_nav, 1)                  # 🫧 after the board
+    head['css'] += _SKIP_CSS
+    head['js'] += _SKIP_JS
     page = ui.add_part(page, {'css': face['css'] + '.ui-world-head .ui-gaze{flex:none;margin:0 4px}', 'js': face['js']})
     page = ui.add_part(ui.add_part(page, head, at='top'), tools_door(ui, prefix))
     return ui.stamp_page_size(page)
