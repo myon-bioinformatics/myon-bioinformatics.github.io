@@ -9,19 +9,18 @@ and ``--refresh-lock`` rewrites the lock after the pin moves.
 
 The 🧰 Tools cards (scripts/front_page.py ``PORTAL``) list the practical pages, each one working on what the visitor brings:
 the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in the page; ``--record-chat`` indexes the other repositories at deploy
-time) and PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``: 🧾 the JUnit reader, whose 🧯 hands a run to the chat's /triage;
+time) and PySaiyanWeBoo's own tool documents (🧾 the JUnit reader, whose 🧯 hands a run to the chat's /triage;
 🤝 its MCP connection test is the lab's #protocol panel), published with
 the portfolio's way back, shortcut label and icons. The 🌍 world pages (scripts/world.py: the travel world, 🏫 the school,
 🗼 the parallel cities, 🎬 the camera: the screen's #worlds panel) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and
 are not among the cards. Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
 
-🧰 Every tool, built here or in another repository, is a #panel of one screen, ``tools/index.html`` (``render_shell``): the
-documents are built for where they once lived (hash-locked like before) and never published as pages of their own. The screen gets
-the way back, the chrome and the shortcut label once: ``add_back_nav()`` (the way back and
-🧰 PySaiyanWeBoo's chrome: the board with the clock, 🏠 ⭐ ⚙️ and each page's own ☰ ⋯, from the spec ``tools_chrome()`` makes, and
-🚪 PySaiyanWeBoo's Door-to-Door, every 🧰 Tools link as a footer pull-down: ``tools_door()``) and
-``add_home_label()`` (_src/tools/mcp_lab.py gets them for the lab pages). ``load_module()`` loads a file of this
-repository by path (a sibling script or a vendored module) without touching ``sys.path``.
+🧰 Every tool, built here or in another repository, is a #panel of one screen, ``tools/index.html`` (``render_shell``): this
+site's own are keyed ``folder/#name`` (``render_pages``, hash-locked), the others' are built in their folders (``--record-tools``),
+and none is published as a page of its own. The two
+pages (the site and the screen) share one chrome, ``add_site_chrome()``: 🧰 PySaiyanWeBoo's board with the clock, 🏠 ⭐ ⚙️ and
+each page's own ☰ ⋯ (``tools_chrome()``), and 🚪 its Door-to-Door, every 🧰 Tools link as a footer pull-down (``tools_door()``).
+``load_module()`` loads a file of this repository by path (a sibling script or a vendored module) without touching ``sys.path``.
 """
 from __future__ import annotations
 
@@ -49,9 +48,7 @@ ASSETS = ('css/base.css', 'css/components.css', 'css/themes/modern.css',
           'js/coordinates.js')
 STYLESHEET_BUNDLES = {'css/bundle.css': 'bundled_css', 'css/core.css': 'core_css'}
 DISTRIBUTION = 'pysaiyanweboo'
-WORLD_PAGE = 'tools/worlds.html'   # 🌍 a #panel of the 🧰 screen (render_shell), built for tools/; never published
 # 🌍 One document: the school, the cities and the camera are its #school, #tokyo and #camera (no forwarding pages).
-HTML_IMPORT_PAGE = 'tools/html-import/index.html'
 HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
 WORLD_CSS_ASSET = 'tools/world-assets/world.css'
 WORLD_JS_ASSET = 'tools/world-assets/world.js'
@@ -59,7 +56,6 @@ WORLD_ASSETS = (WORLD_CSS_ASSET, WORLD_JS_ASSET)
 DRAGON_PNG_ASSET = 'tools/world-assets/london-dragon.png'
 DRAGON_GRID_ASSET = 'tools/world-assets/london-dragon.json'
 DRAGON_ASSETS = (DRAGON_PNG_ASSET, DRAGON_GRID_ASSET)
-MAP_PINS_PAGE = 'tools/maps.html'   # 📍 a #panel of the 🧰 screen, built for tools/ (as the world is: they link each other)
 
 # Files served verbatim. The generators write every other public file to the output tree.
 PUBLIC_SOURCE_FILES = (
@@ -84,11 +80,6 @@ PUBLIC_SOURCE_FILES = (
     'tools/vendor/web-ui/LICENSE',
 )
 
-# 🧰 PySaiyanWeBoo's documents that work on what the visitor brings, each a 🧰 Tools link (front_page.py PORTAL):
-# published path -> (how it is built from pysaiyanweboo, the home-screen name)
-PSWB_TOOLS = {
-    'tools/test-report/index.html': (lambda ui: report_page(ui), '🧾 テスト結果'),
-}
 # 🧯 the report's current run to the 💬 chat's /triage (Err-o-RoadRunner), on the same screen: the chat takes it from its inbox
 REPORT_TRIAGE_JS = ("document.querySelector('[data-report-triage]')?.addEventListener('click',()=>{"
                     "const text=document.querySelector('[data-report-input]')?.value.trim();if(!text)return;"
@@ -111,11 +102,11 @@ def _world() -> ModuleType:
 def world_page(ui) -> str:
     shell = load_module('world_shell', 'scripts/world_shell.py')
     maps = load_module('map_tool', 'scripts/map_tool.py')
-    css, js = ('./' + posixpath.relpath(path, posixpath.dirname(WORLD_PAGE)) for path in WORLD_ASSETS)   # ./ : an import specifier needs it
-    places = tools_places('../')                                          # 🧰 from tools/ (the screen)
+    css, js = ('./' + path.removeprefix('tools/') for path in WORLD_ASSETS)       # from tools/ (the screen); ./ : an import specifier needs it
+    places = tools_places()                                               # 🧰 from tools/ (the screen)
     runtime = {key: _chat().RUNTIME[key] for key in ('wllama', 'model')}
     dialogue = WLLAMA_JS + f'\nconst worldAnswer = localModel({json.dumps(runtime)});\n'
-    dragon_png, dragon_grid = ('./' + posixpath.relpath(path, posixpath.dirname(WORLD_PAGE)) for path in DRAGON_ASSETS)
+    dragon_png, dragon_grid = ('./' + path.removeprefix('tools/') for path in DRAGON_ASSETS)
     return shell.document(ui, _world(), maps, places, css, js, dialogue,
                           dragon_png=dragon_png, dragon_grid=dragon_grid)
 
@@ -191,9 +182,9 @@ def _front_module():
     return load_module('front_page', 'scripts/front_page.py')
 
 
-def tools_places(prefix: str = '../../') -> list[dict]:
+def tools_places(prefix: str = '../') -> list[dict]:
     """🧰 Every link of the 🧰 Tools cards (front_page.py ``PORTAL``, so a new card is a new row) as ``{'id', 'label', 'href'}``, for
-    a page ``prefix`` below the site root: the doors of 🚪 Door-to-Door. ``text`` is the card's own description (the board shows it).
+    a page ``prefix`` below the site root (``../``: the screen's): the doors of 🚪 Door-to-Door. ``text`` is the card's own description (the board shows it).
 
     Every label is ``emoji words``, one emoji per page (the door knows a page by its emoji): the card's own, or the one named here
     for a link that has none or shares its card's. 🌐 ``labels`` is the label in the other languages, when the card names its words
@@ -214,140 +205,59 @@ def tools_places(prefix: str = '../../') -> list[dict]:
     return list(places.values())
 
 
-def host_rows(page: str) -> dict:
-    """🧰 The rows a page asks the site's header to show for it: ``<script type="application/json" id="ui-chrome-rows">`` in the page,
-    ``{"tools": {emoji: …}, "settings": rows, "screen": rows, "replaces": "#id,#id"}`` in PySaiyanWeBoo's chrome terms (Ironmate's
-    studios: one 💾 listing every format, one 📂, 📱 under ⚙️, the shelf under ⋯). Every row is an action (``{label, key}``): the page
-    answers ``ui-chrome-action`` itself, so the site routes nothing. ``replaces`` names the page's own menus the rows stand in for;
-    ``add_site_chrome`` hides them, so there is one way to save, in the one header. A page without the block asks for nothing."""
-    block = re.search(r'<script type="application/json" id="ui-chrome-rows">(.*?)</script>', page, re.S)
-    if not block:
-        return {}
-    rows = json.loads(block[1])
-    listed = [row for tool in rows.get('tools', {}).values() for row in tool.get('links', [])] + rows.get('settings', []) + rows.get('screen', [])
-    if set(rows) - {'tools', 'settings', 'screen', 'replaces'} or any(set(row) != {'label', 'key'} for row in listed):
-        raise ValueError('a page\'s header rows are tools, settings and screen of {label, key}, and replaces')
-    if not re.fullmatch(r'(#[a-z][a-z0-9-]*(,#[a-z][a-z0-9-]*)*)?', rows.get('replaces', '')):
-        raise ValueError('replaces lists ids: #a,#b')
-    return rows
-
-
 def tools_words() -> dict[str, list[str]]:
     """🌐 The 🧰 Tools cards' names in the ten other languages of 🌐 (each card's ``words``: its title and its links' words), as
     PySaiyanWeBoo's chrome takes them: wherever a page shows one (the board, ☰, 🚪, a card), it reads in the visitor's language."""
     return {ja: row for card in _front_module().PORTAL for ja, row in card.get('words', {}).items()}
 
 
-def tools_chrome(prefix: str = '../../', tools: dict | None = None, description: str = '', *, title: str = 'TOOLS', home: bool = True,
-                 rows: dict | None = None, lang: str = 'ja') -> dict:
-    """🧰 The chrome every page of the site carries (PySaiyanWeBoo's ``chrome_validate``), for a page ``prefix`` below the site root:
+def tools_chrome(prefix: str = '../', tools: dict | None = None, description: str = '', *, title: str = 'TOOLS', home: bool = True,
+                 lang: str = 'ja') -> dict:
+    """🧰 The chrome both pages of the site carry (PySaiyanWeBoo's ``chrome_validate``), for a page ``prefix`` below the site root:
     the board (``title``, the clock, then ``description`` — what this page is, a sentence per item — and the cards' titles), 🏠 back
     to the cards (``home=False``: the front page itself) and ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``).
     ☰ is each page's own (itself and its sections, listed in the page); the tools themselves are 🚪 Door-to-Door's rows (``tools_places``)."""
     cards = _front_module().PORTAL
     about = [{'text': part if len(part) <= 120 else part[:119] + '…'}
              for part in (p.strip() for p in re.split(r'(?<=[。！？])|(?<=[.!?])\s+', html.unescape(description))) if part][:3]
-    rows = rows or {}                       # 🧰 what the page itself asks the header to show (host_rows): its 💾 📂, its ⚙️ and ⋯ rows
-    return {'id': 'tools', 'lang': lang, 'words': tools_words(), **({'home': prefix + 'index.html#tools'} if home else {}), 'tools': {**(tools or {}), **rows.get('tools', {})},
-            'settings': rows.get('settings', []), 'screen': rows.get('screen', []),
+    return {'id': 'tools', 'lang': lang, 'words': tools_words(), **({'home': prefix + 'index.html#tools'} if home else {}), 'tools': tools or {},
             'board': {'title': title, 'items': (about + [{'text': card['title']} for card in cards])[:12]}}
 
 
-def tools_door(ui, prefix: str = '../../', here: str | None = None, title: str = '') -> dict[str, str]:
+def tools_door(ui, prefix: str = '../') -> dict[str, str]:
     """🚪 PySaiyanWeBoo's Door-to-Door as the page's foot (``door_html(foot=True)``), as component parts: 🏠 the cards, then every
-    tool (``tools_places``); ``here`` (this page's href) is the door you came in by, and a page that is no tool is added as 📌 ``title``.
-    After the pull-down: 🐦 the X account and 📦 this page's size (``pysaiyanweboo.stamp_page_size`` writes it once the page is whole)."""
+    tool (``tools_places``: the screen's #panels). After the pull-down: 🐦 the X account and 📦 this page's size
+    (``pysaiyanweboo.stamp_page_size`` writes it once the page is whole)."""
     pages = [{'emoji': '🏠', 'label': 'Tools', 'href': prefix + 'index.html#tools'},              # 🌐 labels: a world's 🌐 has no catalogue of them
              *({'emoji': mark, 'label': words, 'href': place['href'], **({'labels': {c: w.partition(' ')[2][:40] for c, w in place['labels'].items()}} if 'labels' in place else {})}
                for place in tools_places(prefix) for mark, _, words in [place['label'].partition(' ')])]
-    if here and not any(page['href'] in (here, here + '#' + page['href'].partition('#')[2]) for page in pages):   # 🧰 the screen's #panels are here
-        pages.append({'emoji': '📌', 'label': title[:40] or here, 'href': here})
-    door = {'schema': ui.DOOR_SCHEMA, 'k': 0, 'pages': pages, **({'current': here} if here in {page['href'] for page in pages} else {})}
     x = [{'emoji': '🐦', 'label': f'X (Twitter) @{X_URL.rpartition("/")[2]}', 'href': X_URL}]
-    return ui.component_parts('door', door, foot=True, links=x, size=True)
+    return ui.component_parts('door', {'schema': ui.DOOR_SCHEMA, 'k': 0, 'pages': pages}, foot=True, links=x, size=True)
 
 
 X_URL = 'https://twitter.com/myonitbusiness'
 
 
-def add_site_chrome(page: str, path: str | None = None, tools: dict | None = None, description: str | None = None, *,
-                    title: str = 'TOOLS', home: bool = True) -> str:
-    """🧰 The parts every page of the site shares, for the page published at ``path`` (``tools/gif/index.html``; left out: two folders
-    below the root, and no door marked as this page): the header (``tools_chrome``: the board with ``description``, 🫧 the round face
-    that follows the pointer, 🏠 ⭐ ⚙️), the side
-    (☰ ⋯) and the foot (``tools_door``: 🚪 every tool as a pull-down, 🐦 X, 📦 the page's size). ``description`` left out is the text
-    of the 🧰 Tools card that leads here, else the page's own ``<meta name="description">``, else a line any page can carry (its
-    title and where 🚪 🏠 lead; a placeholder until the page says what it is).
-
-    🌍 A world page already has the header and the side (``<header class="ui-world-head">``: its own board and menus, the same
-    parts), so it gets what it lacks: 🫧 in that header (in each scene's, when one page holds several: the school and the cities
-    have it like the village) and the foot.
-
-    🎨 Every page is published in one look: the shared sheet's ``modern`` theme, the front page's default. A page built with
-    another palette on its ``<body>`` (Ironmate's studios: green; the MCP lab: terminal or github-like) is switched to it, and the
-    chrome then takes the page's own colours; a page with no ``data-ui-theme`` keeps it and gets the chrome's colours with the chrome.
-    The way back spans a grid ``<main>``'s whole first row, so it never takes the place of a column (Ironmate's three-column studio).
-    🧰 A page may ask the header to show rows of its own (``host_rows``: Ironmate's studios, one 💾 with every format); the page's
-    own menus those rows replace are hidden, so the header is the one place.
-    The parts are PySaiyanWeBoo's (``component_parts("chrome" | "door" | "gaze-avatar")``, put on the page by ``add_part``): a page
-    whose CSP lists its scripts or styles without ``'unsafe-inline'`` (HTML import, Ironmate's studios) gets their hashes listed,
-    nothing wider."""
+def add_site_chrome(page: str, path: str, tools: dict | None = None, *, title: str = 'TOOLS', home: bool = True) -> str:
+    """🧰 The parts both pages of the site share (``index.html``, ``tools/index.html``: ``path``): the header (``tools_chrome``: the
+    board reads the page's ``<meta name="description">``, 🫧 the round face that follows the pointer, 🏠 ⭐ ⚙️), the side (☰ ⋯)
+    and the foot (``tools_door``: 🚪 every tool as a pull-down, 🐦 X, 📦 the page's size). The parts are PySaiyanWeBoo's
+    (``component_parts("chrome" | "door" | "gaze-avatar")``, put on the page by ``add_part``); the chrome starts in the page's
+    own language (🌐 ``page_language``)."""
     import pysaiyanweboo as ui
-    prefix = ('../' * path.count('/') or './') if path else '../../'
-    here = prefix + re.sub(r'index\.html$', '', path) if path else None
-    if description is None:
-        meta = re.search(r'<meta name="description" content="([^"]*)"', page)
-        description = next((place['text'] for place in tools_places(prefix) if place['href'] == here), meta[1] if meta else '')
-    heading = re.search(r'<title>(.*?)</title>', page, re.S)
-    name = html.unescape(heading[1]).strip() if heading else ''
-    description = description or f'{name or "myon-bioinformatics"}：myon-bioinformatics の道具のページ。🚪 でほかの道具へ、🏠 で一覧へ。'
-    body = re.search(r'<body\b[^>]*>', page)
-    if body and 'data-ui-theme="' in body[0]:
-        page = page[:body.start()] + re.sub(r'data-ui-theme="[^"]*"', 'data-ui-theme="modern"', body[0], count=1) + page[body.end():]
-    own = 'data-ui-theme="modern"' in page        # 🎨 modern: the parts take the page's colours; else they bring theirs (add_part's scope)
-    rows = host_rows(page)                   # 🧰 the page's own 💾 📂 ⚙️ ⋯ rows go into the one header; the menus they replace are hidden
-    lang = ui.page_language(page)            # 🌐 the language of the page's own words: its <html lang>, and the chrome's first
+    prefix = '../' * path.count('/') or './'
+    meta = re.search(r'<meta name="description" content="([^"]*)"', page)
+    lang = ui.page_language(page)
     if lang == 'ja':
         page = re.sub(r'<html lang="en"', '<html lang="ja"', page, count=1)
     face = ui.component_parts('gaze-avatar', label='まばたき')
     face['html'] = face['html'].replace(' aria-label="', ' data-t="blink" aria-label="', 1)   # 🫧 its name follows 🌐 too
-    head = ui.component_parts('chrome', tools_chrome(prefix, tools, description, title=title, home=home, rows=rows, lang=lang))
-    tools_nav, world = '<nav class="ui-world-tools">', '<header class="ui-world-head">' in page
-    hide = rows['replaces'] + '{display:none}' if rows.get('replaces') else ''
-    page = ui.add_part(page, {'css': face['css'] + '.ui-world-head .ui-gaze{flex:none;margin:0 4px}main>nav.ui-back{grid-column:1/-1}' + hide, 'js': face['js']})
-    if world:
-        page = page.replace(tools_nav, face['html'] + tools_nav)                                   # 🫧 after each scene's own board (one shows at a time)
-    else:
-        head['html'] = head['html'].replace(tools_nav, face['html'] + tools_nav, 1)               # 🫧 after the board
-        page = ui.add_part(page, head, at='top', scope=None if own else '.ui-chrome')
-    door = tools_door(ui, prefix, here if path and '/' in path else None, name)
-    return ui.stamp_page_size(ui.add_part(page, door, scope=None if own else '.ui-door-foot'))
-
-
-def add_back_nav(page: str, path: str | None = None, tools: dict | None = None) -> str:
-    """🏠 PySaiyanWeBoo's way back (``back_nav_html``) to the 🧰 Tools cards, right after <main> (else <body>), then the site's
-    shared header, side and foot (``add_site_chrome``; a 🌍 world page keeps its own header and side and gets 🫧 and the foot). A
-    page that already has them keeps them, and a fragment without <head> and <body> gets the way back only."""
-    import pysaiyanweboo as ui
-    prefix = '../' * path.count('/') if path else '../../'
-    # Studio pages already have the same destination in the site's header.
-    # Keep the standalone back link for fragments and other page contracts.
-    studio = path in {f'tools/{entry}index.html' for entry in _STUDIO_ROUTES.PUBLIC_STUDIO_ENTRIES}
-    full_page = '</head>' in page and '<body' in page
-    if not (studio and full_page):
-        page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': prefix + 'index.html#tools'}], test_id='portfolio-back')
-    if '<div class="ui-door-foot">' in page or not full_page:
-        return page                               # a page that has it, or a fragment with no <head> and <body> to carry it
-    return add_site_chrome(page, path, tools)
-
-
-def add_home_label(page: str, label: str, *, icons_from: str | None = None) -> str:
-    """📱 PySaiyanWeBoo's ``home_label``: the home-screen shortcut is named ``label``; ``icons_from`` (the way back to the site
-    root, ``'../../'``) also gives the page the portfolio's tab icon and home-screen icon. Idempotent; 📦 the foot's size follows."""
-    import pysaiyanweboo as ui
-    icons = {} if icons_from is None else {'icon': f'{icons_from}assets/brand/favicon-32x32.png',
-                                           'touch_icon': f'{icons_from}assets/brand/myon-profile-icon.png'}
-    return ui.stamp_page_size(ui.home_label(page, label, **icons))
+    head = ui.component_parts('chrome', tools_chrome(prefix, tools, meta[1] if meta else '', title=title, home=home, lang=lang))
+    tools_nav = '<nav class="ui-world-tools">'
+    head['html'] = head['html'].replace(tools_nav, face['html'] + tools_nav, 1)                  # 🫧 after the board
+    page = ui.add_part(page, {'css': face['css'] + '.ui-world-head .ui-gaze{flex:none;margin:0 4px}', 'js': face['js']})
+    page = ui.add_part(ui.add_part(page, head, at='top'), tools_door(ui, prefix))
+    return ui.stamp_page_size(page)
 
 
 def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
@@ -359,23 +269,11 @@ def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
     return {'index.html': add_site_chrome(front.document(root, samples=samples), 'index.html', front.LINKS, title='MYON', home=False).encode('utf-8')}
 
 
-def render_world(ui) -> dict[str, bytes]:
-    """🌍 The world (village, school, parallel cities, camera): a #panel of the 🧰 screen."""
-    return {WORLD_PAGE: world_page(ui).encode('utf-8')}
-
-
-def render_pswb_tools(ui) -> dict[str, bytes]:
-    """🧾 PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``), each a #panel of the one 🧰 screen (``render_shell``)."""
-    return {path: build(ui).encode('utf-8') for path, (build, _) in PSWB_TOOLS.items()}
+HTML_IMPORT = posixpath.dirname(HTML_IMPORT_MODULE) + '/#html-import'   # 📄 its document beside its module (it imports ../vendor/…)
 
 
 def html_import_files(ui):
     return ui.html_import_files(shared_base="../vendor/web-ui", docs_href="../../docs/html-import.md")
-
-
-def render_html_import(ui) -> dict[str, bytes]:
-    """📄 The HTML import: a framed #panel of the 🧰 screen (its CSP, nothing leaves the page, stays its own)."""
-    return {HTML_IMPORT_PAGE: html_import_files(ui)["index.html"]}
 
 
 def pages_urls(root: Path = ROOT) -> dict[str, str]:
@@ -386,14 +284,7 @@ def pages_urls(root: Path = ROOT) -> dict[str, str]:
 
 
 # ── 🎞 GIF工房 and 🎥 the moving samples: both draw with PySaiyanWeBoo's gif.js (window.UiGif) ──────────────────────────
-GIF_PAGE = 'tools/gif/index.html'
 SAMPLES = 'media/pages/'          # 🎥 one moving sample per repository's Pages, recorded at deploy time (not kept in git)
-def render_gif_tool(ui) -> dict[str, bytes]:
-    """🎞 GIF工房: PySaiyanWeBoo's ``gif_maker_document`` — images the visitor picks become one looping GIF in the page."""
-    page = ui.gif_maker_document(filename='gif-kobo.gif', css=ui.bundled_css())   # the shared sheet is the 🧰 screen's (render_shell)
-    return {GIF_PAGE: page.encode('utf-8')}
-
-
 def recorded_samples(output: Path) -> frozenset[str]:
     """The lower-case names whose 🎥 sample is under ``output`` (the front page shows only those): a repository's name, or
     ``tools/<id>`` for a 🧰 Tools card."""
@@ -478,7 +369,6 @@ def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), 
 
 
 # ── 🌊 流れの実験室: every FFSS scene as it moves (FFSS's demo GIFs) and every DRAgoWing figure from the same records ──
-FLOW_PAGE = 'tools/flow/index.html'
 FLOW = 'media/flow/'                     # recorded at deploy time (pages.yml), with receipt.json; not kept in git
 FLOW_REPOSITORIES = {'ffss': 'myon-bioinformatics/FluidFullSpeedSimulation', 'dragowing': 'myon-bioinformatics/DRAgoWing'}
 FLOW_EXPERIMENTS = ('E30', 'E31', 'E32')
@@ -669,7 +559,7 @@ def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
               {'type': 'kv', 'rows': [['🌊', f"FFSS {commits.get('ffss', '—')[:7]} · 🎞 {len(demos)} 場面"],
                                       ['📊', f"DRAgoWing {commits.get('dragowing', '—')[:7]} · {len(figures)} 図"]]},
               {'type': 'links', 'items': [{'label': '📜 実験記録を見る', 'href': '#records'},
-                                          {'label': 'Markdown原本', 'href': './records.md'},
+                                          {'label': 'Markdown原本', 'href': './' + FLOW_MARKDOWN.removeprefix('tools/')},
                                           {'label': '🌊 FFSS', 'href': link('ffss')},
                                           {'label': '📊 DRAgoWing', 'href': link('dragowing')}]}]
     if not demos and not figures:
@@ -680,21 +570,20 @@ def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
     if page.count(slot) != 1:
         raise ValueError('flow workbench placeholder missing')
     page = page.replace(slot, FLOW_RIG, 1).replace('</head>', FLOW_RIG_CSS + '</head>', 1)
-    page = page.replace('</body>', '<script type="module" src="./rig.mjs"></script></body>', 1)
+    page = page.replace('</body>', f'<script type="module" src="./{FLOW_RIG_JS.removeprefix("tools/")}"></script></body>', 1)
 
     records = flow_markdown(demos, figures)   # 📜 the same page, below the rig: its pictures load only when scrolled to
     slot = '<p>FLOW_RECORDS_SLOT</p>'
     if page.count(slot) != 1:
         raise ValueError('flow records placeholder missing')
-    archive = md_market.markdown_to_html(records).replace('<img src="../../media/flow/', '<img loading="lazy" src="../../media/flow/')
+    archive = md_market.markdown_to_html(records).replace('<img src="../../media/flow/', '<img loading="lazy" src="../media/flow/')   # 📜 from tools/
     page = page.replace(slot, f'<div id="records">{archive}</div>', 1)
     page = page.replace('</head>', '<style>#records img{max-width:100%;height:auto}</style></head>', 1)
-    return {FLOW_PAGE: page.encode('utf-8'),   # 🧰 a #panel of the one screen (render_shell)
+    return {'tools/#flow': page.encode('utf-8'),   # 🧰 a #panel of the one screen (render_shell), built for tools/
             FLOW_MARKDOWN: records.encode('utf-8'), FLOW_RIG_JS: FLOW_RIG_SOURCE.encode('utf-8')}
 
 
 # ── 🧠 リポジトリ地図: who copies what from whom, read from each repository's own vendor.lock.json (and Aoi's subtrees) ──
-MAP_PAGE = 'tools/repo-map/index.html'
 MAP = 'media/map/'                       # graph.json and map.svg, recorded at deploy time (pages.yml); not kept in git
 OWNER = 'myon-bioinformatics'
 
@@ -795,7 +684,7 @@ def render_map(ui, output: Path | None = None) -> dict[str, bytes]:
             uses.setdefault(e['to'], []).append(e['from'])
         blocks += [{'type': 'kv', 'rows': [['🔗', f"{len(graph['edges'])} 本"], ['📦', f"{len(graph['commits'])} リポジトリ"],
                                            ['🟦', 'vendor（ファイルを写す）'], ['🟩', 'subtree（Aoi の子）']]},
-                   {'type': 'image', 'src': f'../../{MAP}map.svg', 'alt': '🧠 写す元 → 写す先の地図'},
+                   {'type': 'image', 'src': f'../{MAP}map.svg', 'alt': '🧠 写す元 → 写す先の地図'},
                    {'type': 'section', 'title': '📋 リポジトリごと', 'blocks': [{'type': 'kv', 'rows': [
                        [name, ' · '.join(part for part in (('📥 ' + ', '.join(sorted(uses[name]))) if name in uses else '',
                                                           ('📤 ' + ', '.join(sorted(users[name]))) if name in users else '') if part)]
@@ -804,7 +693,7 @@ def render_map(ui, output: Path | None = None) -> dict[str, bytes]:
         blocks.append({'type': 'text', 'text': '⏸ このビルドでは記録していない'})
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '🧠 リポジトリ地図', 'blocks': blocks}).replace(
         '</head>', '<style>.ui-page img{max-width:100%;height:auto}.ui-kv dd{overflow-wrap:anywhere}</style></head>', 1)
-    return {MAP_PAGE: page.encode('utf-8')}   # 🧰 a #panel of the one screen (render_shell)
+    return {'tools/#repo-map': page.encode('utf-8')}   # 🧰 a #panel of the one screen (render_shell), built for tools/
 
 
 # ── 💬 横断チャット: scripts/chat.py in Pyodide with the pinned markdown.py · ascii_artist.py · cli_args.py (pages group);
@@ -982,13 +871,7 @@ def chat_document(ui) -> str:
     return page.replace(slot, body, 1).replace('</head>', f'<style>{parts["css"]}{CHAT_CSS}</style></head>', 1)
 
 
-CHAT_PAGE = 'tools/chat/index.html'   # 💬 a #panel of the 🧰 screen (render_shell), not one of the 🤖 stubs
 CHAT_SOURCES = 'tools/chat/sources.json'   # 🐍 chat_sources(), beside it: the page fetches them when the chat opens
-def render_chat_tool(ui) -> dict[str, bytes]:
-    """💬 横断チャット: ``chat_document``, a #panel of the 🧰 screen."""
-    return {CHAT_PAGE: chat_document(ui).encode('utf-8')}
-
-
 def _tree(repository: str, commit: str) -> tuple[list[tuple[str, int]], bool]:
     """Return the API's blob paths and sizes at ``commit``, plus its truncation flag."""
     github = load_module('repos_catalog', 'scripts/repos_catalog.py')
@@ -1090,8 +973,7 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                     run('-m', 'mcp_toolcall_lab.stub_front', 'pages', '--out', str(built), env=env)
                     run('-m', 'mcp_toolcall_lab.mcp_toolcall_lab_repository_diagnostics', str(built), env=env)
                     lab = load_module('mcp_lab', '_src/tools/mcp_lab.py')
-                    lab.stage_lab_tools(   # 🖼️ framed in the screen: no chrome of its own
-                        built, commits[key], checkouts[key], lambda page, _: page, lambda page, _: page, folder)
+                    lab.stage_lab_tools(built, commits[key], checkouts[key])   # 🖼️ framed
                 else:
                     run('scripts/build_portable_pages.py', '--source-sha', commits[key], '--out', str(Path(tmp) / 'lab'),
                         env={**os.environ, 'PYTHONPATH': 'src'})
@@ -1100,7 +982,7 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                         copy.unlink()
                 if key == 'ironmate':
                     mapped = Path(tmp) / 'mapped'
-                    _STUDIO_ROUTES.stage_ironmate_studios(built, mapped, lambda page, _: page)   # 🖼️ framed in the screen
+                    _STUDIO_ROUTES.stage_ironmate_studios(built, mapped)   # 🖼️ framed in the screen
                     for entry in sorted(child.name for child in mapped.iterdir()):
                         target = dest / entry
                         if target.exists():
@@ -1192,29 +1074,20 @@ def tool_panels(ui, output: Path | None = None) -> dict[str, tuple[bytes, str, b
 
 
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
-    """Every hash-locked page: the demos and world pages, HTML import, map tools and the GIF workshop, keyed by published path."""
+    """🧰 This site's own hash-locked panels of the one screen (``render_shell``), keyed ``folder/#name``: the folder a document
+    is built for (the screen's, ``tools/``; the HTML import's own, beside its module) and its #name on the screen."""
     map_tool = load_module('map_tool', 'scripts/map_tool.py')
-    maps = {MAP_PINS_PAGE: map_tool.map_document(ui, map_tool.tokyo_points(_world().example_data('cities'))).encode()}
-    return {**render_world(ui), **render_html_import(ui), **render_pswb_tools(ui), **maps, **render_gif_tool(ui),
-            **render_chat_tool(ui)}   # 🧰 every one a #panel of the screen (render_shell)
-
-
-def link_shared_sheets(ui, path: str, page: bytes) -> bytes:
-    """The shared sheet a page inlines (``STYLESHEET_BUNDLES``) as a link to its published copy, so every page reads one file."""
-    for sheet, builder in STYLESHEET_BUNDLES.items():
-        prefix = b'<style>' + getattr(ui, builder)().encode()
-        head, end, body = page.partition(b'</head>')
-        if prefix in head:
-            href = os.path.relpath(ASSET_BASE + sheet, os.path.dirname(path)).replace(os.sep, '/')
-            link = f'<link rel="stylesheet" href="{href}">'.encode()
-            head = head.replace(prefix, link + b'<style>', 1).replace(link + b'<style></style>', link, 1)
-            page = ui.stamp_page_size((head + end + body).decode('utf-8')).encode('utf-8')   # 📦 the page is smaller now
-    return page
+    pages = {'tools/#worlds': world_page(ui),                                                    # 🌍 the village, school, cities, camera
+             HTML_IMPORT: html_import_files(ui)['index.html'].decode('utf-8'),                  # 📄 framed: its CSP stays its own
+             'tools/#test-report': report_page(ui),                                         # 🧾 PySaiyanWeBoo's JUnit reader
+             'tools/#maps': map_tool.map_document(ui, map_tool.tokyo_points(_world().example_data('cities'))),
+             'tools/#gif': ui.gif_maker_document(filename='gif-kobo.gif', css=ui.bundled_css()),
+             'tools/#chat': chat_document(ui)}
+    return {key: page.encode('utf-8') for key, page in pages.items()}
 
 
 # ── 🧰 One screen: every tool is a #panel of tools/index.html, under one header, one foot and one ⚙️ ──
 SHELL_PAGE = 'tools/index.html'
-PANEL_PAGES = (GIF_PAGE, MAP_PINS_PAGE, *PSWB_TOOLS, FLOW_PAGE, MAP_PAGE, CHAT_PAGE, WORLD_PAGE, HTML_IMPORT_PAGE)   # this site's own panels; never published
 _LINK = re.compile(r'(?P<attr>\b(?:href|src)=)(?P<quote>["\'])(?P<url>[^"\']*)(?P=quote)')
 _SCRIPT = re.compile(r'<script\b[^>]*>.*?</script>', re.S)
 _SHELL_JS = """(()=>{const panels=[...document.querySelectorAll('[data-tools-panel]')],names=panels.map(p=>p.id);let current='';
@@ -1272,8 +1145,9 @@ _FRAME_CSS = '.ui-tools-frame{display:block;width:100%;height:calc(100dvh - 72px
 
 
 def panel_name(source: str) -> str:
-    """🧰 The #name a tool has on the screen: its path under tools/ (``tools/mcp/execution/index.html`` → ``mcp-execution``)."""
-    return re.sub(r'(?:/index)?\.html$', '', source.removeprefix('tools/')).replace('/', '-')
+    """🧰 The #name a tool has on the screen: this site's own name it (``tools/#gif``), another's is its path under tools/
+    (``tools/mcp/execution/index.html`` → ``mcp-execution``)."""
+    return source.partition('#')[2] or re.sub(r'(?:/index)?\.html$', '', source.removeprefix('tools/')).replace('/', '-')
 
 
 def _rebase_links(markup: str, source: str, name: str, root: bool = False) -> str:
@@ -1381,7 +1255,7 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
     The header, the side and the foot are the site's (``add_site_chrome``) once; a panel stays an inert ``<template>`` until it is
     first opened (its styles and scripts load then), and ``#section`` opens the panel that holds it.
     🆔 One owner per id: two of this site's panels that share one stop the build; another repository's gets ⏸ in its place."""
-    places = {place['href']: place['label'] for place in tools_places('../')}
+    places = {place['href']: place['label'] for place in tools_places()}
     names = [panel_name(source) for source in panels]
     owners = {name: name for name in ('home', *names, 'door', 'door-select', 'tools-chrome')}
     routes = {source: _routes(data.decode('utf-8')) - set(owners) for source, (data, _, framed) in panels.items() if framed}
@@ -1405,7 +1279,8 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
         owners.update(dict.fromkeys(ids, name))
         markup_of[source] = title, markup, classes, set()
     sections = []
-    for source in panels:                                                  # 🧰 in the order given
+    rank = {href.partition('#')[2]: i for i, href in enumerate(places)}    # 🚪 the home list reads like the door: the cards' order
+    for source in sorted(panels, key=lambda source: rank.get(panel_name(source), len(rank))):
         name, (title, markup, classes, own) = panel_name(source), markup_of[source]
         index.append(f'<li><a href="#{name}">{html.escape(places.get(f"../tools/#{name}", title), quote=False)}</a></li>')
         css = f' class="{html.escape(classes)}"' if classes else ''      # the page's <body> class (ui-elements) holds for its panel
@@ -1414,13 +1289,16 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
     home = (f'<section id="home" data-tools-panel data-title="🧰 Tools"><main class="ui-page"><h1>🧰 Tools</h1>'
             f'<ul class="ui-tools-index">{"".join(index)}</ul></main></section>')
     mark = '<!-- 🧰 panels -->'                                            # the chrome first: a panel's own header (🌍) is not the screen's
+    sheet = posixpath.relpath(ASSET_BASE + 'css/bundle.css', posixpath.dirname(SHELL_PAGE))          # 🎨 the shared sheet, one file for both
     page = ui.render_document(title='🧰 Tools', theme='modern', trusted_html=home + mark + f'<script>{_SHELL_JS}</script>',
-                              css=ui.bundled_css() + '.ui-tools-index{display:grid;gap:8px;padding:0;list-style:none}' + _FRAME_CSS)
-    page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace(
-        '<head>', '<head><meta name="description" content="myon-bioinformatics の道具を 1 つの画面で。🚪 で道具を選び、🏠 で一覧へ。">', 1)   # 📟 the board reads it
+                              css='.ui-tools-index{display:grid;gap:8px;padding:0;list-style:none}' + _FRAME_CSS)
+    page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace('<head>', '<head><meta name="description" content="'
+        'myon-bioinformatics の道具を 1 つの画面で。🚪 で道具を選び、🏠 で一覧へ。">', 1).replace('<style>', f'<link rel="stylesheet" href="{sheet}"><style>', 1)
+    page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': '../index.html#tools'}], test_id='portfolio-back')   # 🏠 the home panel's first line
     cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './#tokyo'}}   # 🗺️ the map's neighbour
-    page = add_back_nav(page, SHELL_PAGE, cities).replace(mark, ''.join(sections), 1)   # 🏠 the home panel's first line, the site's chrome
-    return link_shared_sheets(ui, SHELL_PAGE, ui.stamp_page_size(add_home_label(page, '🧰 道具', icons_from='../')).encode('utf-8'))
+    page = add_site_chrome(page, SHELL_PAGE, cities).replace(mark, ''.join(sections), 1)
+    icons = {'icon': '../assets/brand/favicon-32x32.png', 'touch_icon': '../assets/brand/myon-profile-icon.png'}   # 📱 the home-screen shortcut
+    return ui.stamp_page_size(ui.home_label(page, '🧰 道具', **icons)).encode('utf-8')
 
 
 @functools.lru_cache(maxsize=None)
@@ -1438,9 +1316,6 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
     if set(lock['outputs']) != {HTML_IMPORT_MODULE, CHAT_SOURCES, *WORLD_ASSETS, *DRAGON_ASSETS, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
-    expected = {HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, MAP_PINS_PAGE, WORLD_PAGE, *PSWB_TOOLS}
-    if set(lock.get('pages', {})) != expected:
-        raise ValueError('generated page paths differ from the tool and world lists')
     if ui is None:
         import pysaiyanweboo as ui
     result = render(ui)
@@ -1448,6 +1323,8 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         if hashlib.sha256(data).hexdigest() != lock['outputs'][target]:
             raise ValueError(f'generated asset hash mismatch: {target}')
     pages = render_pages(ui, root)
+    if set(lock.get('pages', {})) != set(pages):
+        raise ValueError('generated page paths differ from the tool and world lists')
     for target, data in pages.items():
         if hashlib.sha256(data).hexdigest() != lock['pages'][target]:
             raise ValueError(f'generated page hash mismatch: {target}')
@@ -1464,8 +1341,8 @@ def build(output: Path, root: Path = ROOT) -> None:
     validate_output(output, root)
     import pysaiyanweboo as ui
     payload = {**generate(root), **render_front(root, recorded_samples(output)), **render_flow(ui, output), **render_map(ui, output)}  # Fail closed first.
-    own = {path: (doc, None, b'Content-Security-Policy' in doc)           # 🔒 a page with its own CSP runs framed
-           for path, doc in ((path, payload.pop(path)) for path in PANEL_PAGES)}
+    own = {key: (doc, None, b'Content-Security-Policy' in doc)            # 🧰 every #name is a panel; 🔒 one with its own CSP runs framed
+           for key, doc in ((key, payload.pop(key)) for key in [key for key in payload if '#' in key])}
     payload[SHELL_PAGE] = render_shell(ui, {**own, **tool_panels(ui, output)})
     for name, data in payload.items():
         path = output / name

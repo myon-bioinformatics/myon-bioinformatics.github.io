@@ -207,7 +207,7 @@ def test_generated_files_match_the_lock_and_are_not_committed(tmp_path):
         assert hashlib.sha256(data).hexdigest() == {**lock['outputs'], **lock['pages']}[name]   # assets and the demo pages
     assets.build(tmp_path)
     for name, data in payload.items():
-        if name in assets.PANEL_PAGES:                                   # 🧰 a #panel of the one screen, not a page of its own
+        if '#' in name:                                                  # 🧰 a #panel of the one screen, not a page of its own
             assert not (tmp_path / name).exists()
         else:
             assert (tmp_path / name).read_bytes() == data
@@ -308,7 +308,7 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     assets.build(tmp_path / 'function-output', root)
     for name, data in assets.generate(root).items():
         assert not (root / name).exists()                         # refresh rewrites the lock only
-        if name in assets.PANEL_PAGES:                            # 🧰 published inside tools/index.html
+        if '#' in name:                                           # 🧰 published inside tools/index.html
             continue
         assert (output / name).read_bytes() == data
         assert (tmp_path / 'function-output' / name).read_bytes() == data
