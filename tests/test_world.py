@@ -17,6 +17,20 @@ import pytest
 import pysaiyanweboo as ui
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def load_vendored(name, relpath):
+    """Load a vendored file by path under a repo-unique name (cli_args README: Loading a vendored copy)."""
+    if name not in sys.modules:
+        spec = importlib.util.spec_from_file_location(name, ROOT / relpath)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module  # before exec: dataclasses and pickling look the module up here
+        spec.loader.exec_module(module)
+    return sys.modules[name]
+
+
+run_cli = load_vendored("portfolio_cli_args", "vendor/cli_args.py").run_cli
+
 sys.path.insert(0, str(ROOT / "scripts"))
 import world as W  # noqa: E402  (scripts/world.py: the engine, the specs and the demo recorder)
 
@@ -1315,9 +1329,13 @@ def test_the_demo_page_and_the_cli_carry_the_cities():
     for text in ("丸の内中央口", "リバースロンドン", "Fake Paris", "Parallel Tokyo", 'data-category="exit"', 'data-category="terminus"',
                  'data-flip="🐉"'):
         assert text in page
-    spec = subprocess.run([sys.executable, str(ROOT / "scripts/world.py"), "example", "cities"], capture_output=True, text=True, check=True, encoding="utf-8").stdout
+    spec_result = run_cli(ROOT / "scripts/world.py", "example", "cities")
+    assert spec_result.returncode == 0, spec_result.stderr
+    spec = spec_result.stdout
     assert json.loads(spec)["floors"][0]["place"]["points"][0]["id"] == "marunouchi-c"
-    html = subprocess.run([sys.executable, str(ROOT / "scripts/world.py"), "page", "-"], input=spec, capture_output=True, text=True, check=True, encoding="utf-8").stdout
+    html_result = run_cli(ROOT / "scripts/world.py", "page", "-", stdin=spec)
+    assert html_result.returncode == 0, html_result.stderr
+    html = html_result.stdout
     assert "八重洲北口" in html and "ウォータールー" in html and "サン・ラザール駅" in html          # a spot of each city from the CLI
     assert "タワー・ブリッジ" not in html and "エッフェル塔" not in html                               # transport only
 
