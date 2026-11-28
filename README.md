@@ -82,27 +82,31 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 | パネルの種類 | 道具 | しくみ |
 |---|---|---|
 | 🧩 画面に入る | `#gif` `#maps` `#test-report` `#flow` `#repo-map` `#chat` `#worlds`（`#world` `#school` `#tokyo` `#camera`）`#heatmap` `#format-lab` | 道具の `<head>` 固有部分と `<body>` を取り込む。🆔 id がぶつかると、このサイトの道具ならビルドが止まり、ほかのリポジトリの道具なら ⏸ |
-| 🖼️ 枠で動く | `#html-import` `#image-studio` `#browser-tools` `#slide-studio` `#mcp`（`#wiki` `#protocol` …）`#mcp-execution` | 文書を丸ごと持つアプリ（自分の CSP・id・スクリプト）は `<iframe srcdoc>` で。ファイルはサイトの根から（`/tools/…`）、自分で解決する相対 URL は `<base>` で、`#` リンクは枠の中に留まる。外へ出るリンクは画面で開く（`target="_top"`、道具なら `/tools/#名前`） |
+| 🖼️ 枠で動く | `#html-import` `#image-studio` `#browser-tools` `#slide-studio` | 文書を丸ごと持つアプリ（自分の CSP・id・スクリプト）は `<iframe srcdoc>` で。ファイルはサイトの根から（`/tools/…`）、自分で解決する相対 URL は `<base>` で、`#` リンクは枠の中に留まる。外へ出るリンクは画面で開く（`target="_top"`、道具なら `/tools/#名前`） |
 
-`#records` や `#protocol` のような道具の中の見出しへのリンクは、その道具を開いてそこへ移ります。Pyodide に渡すチャットの Python は開いたときに `tools/chat/sources.json` から読みます。
+`#records` のような道具の中の見出しへのリンクは、その道具を開いてそこへ移ります。Pyodide に渡すチャットの Python は開いたときに `tools/chat/sources.json` から読みます。
 
 | 案内 | リンク |
 | --- | --- |
-| HTML文書取込 | [tools/#html-import](https://myon-bioinformatics.github.io/tools/#html-import) |
-| 📍地図URL・座標ピン留め | [tools/#maps](https://myon-bioinformatics.github.io/tools/#maps) · [パラレル東京](https://myon-bioinformatics.github.io/tools/#tokyo) |
-| 🖼️ スライド・画像工房（Ironmate） | [Image Studio](https://myon-bioinformatics.github.io/tools/#image-studio) · [Browser Tools](https://myon-bioinformatics.github.io/tools/#browser-tools) · [Slide Studio](https://myon-bioinformatics.github.io/tools/#slide-studio) |
+| 📄 HTML文書取込 | [tools/#html-import](https://myon-bioinformatics.github.io/tools/#html-import) |
+| 🗃️ 形式変換・検証（myon-bioinformatics · PySaiyanWeBoo） | [tools/#format-lab](https://myon-bioinformatics.github.io/tools/#format-lab) |
+| 📍 地図URL・座標ピン留め | [tools/#maps](https://myon-bioinformatics.github.io/tools/#maps) · [🗼 パラレル東京](https://myon-bioinformatics.github.io/tools/#tokyo) |
+| 🖼️ 画像工房（Ironmate） | [tools/#image-studio](https://myon-bioinformatics.github.io/tools/#image-studio) |
+| 🎨 ブラウザ道具（Ironmate） | [tools/#browser-tools](https://myon-bioinformatics.github.io/tools/#browser-tools) |
+| 📽️ スライド工房（Ironmate） | [tools/#slide-studio](https://myon-bioinformatics.github.io/tools/#slide-studio) |
 | 🌡️ ヒートマップ（DRAgoWing · Ironmate） | [tools/#heatmap](https://myon-bioinformatics.github.io/tools/#heatmap) |
-| 🔌 MCP 実験室（mcp-toolcall-lab） | [Tool Lab](https://myon-bioinformatics.github.io/tools/#mcp) · [Execution Lab](https://myon-bioinformatics.github.io/tools/#mcp-execution) · [MCP 接続試験](https://myon-bioinformatics.github.io/tools/#protocol) |
 | 🧾 テスト結果（PySaiyanWeBoo） | [tools/#test-report](https://myon-bioinformatics.github.io/tools/#test-report) |
-| 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab） | [tools/#chat](https://myon-bioinformatics.github.io/tools/#chat) |
+| 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab · Err-o-RoadRunner） | [tools/#chat](https://myon-bioinformatics.github.io/tools/#chat) |
 | 🧭 統合運用 | [Dashboard](https://myon-bioinformatics.github.io/myon-bioinformatics/) |
 | 🎞 GIF工房（PySaiyanWeBoo） | [tools/#gif](https://myon-bioinformatics.github.io/tools/#gif) |
 | 🌊 流れの実験室（FluidFullSpeedSimulation · DRAgoWing） | [tools/#flow](https://myon-bioinformatics.github.io/tools/#flow) |
 | 🧠 リポジトリ地図 | [tools/#repo-map](https://myon-bioinformatics.github.io/tools/#repo-map) |
 
+1 つの道具に 1 枚のカードです。カードの題名（絵文字 ＋ 日本語）が、カード・🚪・道具の画面の 🏠 一覧・タブの名前です。説明は 70 字以内で、開いている間は画面の掲示板にも出ます。最初のリンクは「開く →」、ほかのリンクは関連する場所へ行き、自分の絵文字と名前を持ちます。🌐 のほかの言語の名前は `words` に書きます。
+
 新しい道具を足すときは、生成元の `scripts/front_page.py`（`PORTAL`）と `tests/test_site.py` をいっしょに直し、行き先と HTTPS の Pages 契約を同じ変更で確認します。
 
-🧰 Ironmate's Image Studio, Browser Tools and Slide Studio (`tools/#image-studio`, `#browser-tools`, `#slide-studio`), mcp-toolcall-lab's tools and execution lab (`tools/#mcp`, `#mcp-execution`; each 🖼️ framed: an app that owns its document) and DRAgoWing's 🌡️ heatmap and the parent's 🗃️ format lab (the one screen's `tools/#heatmap`, `tools/#format-lab`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ panel in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Studio route mapping is build source in `_src/tools/studio_routes.py`; the rendered pages live only in the Pages output tree. Ironmate still owns the generated editor and data formats, and the shared back navigation comes from PySaiyanWeBoo.
+🧰 Ironmate's 🖼️ 画像工房, 🎨 ブラウザ道具 and 📽️ スライド工房 (`tools/#image-studio`, `#browser-tools`, `#slide-studio`; each 🖼️ framed: an app that owns its document) and DRAgoWing's 🌡️ heatmap and the parent's 🗃️ format lab (the one screen's `tools/#heatmap`, `tools/#format-lab`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ panel in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Studio route mapping is build source in `_src/tools/studio_routes.py`; the rendered pages live only in the Pages output tree. Ironmate still owns the generated editor and data formats, and the shared back navigation comes from PySaiyanWeBoo.
 
 ## 🚀 公開リポジトリ
 
@@ -209,7 +213,7 @@ python -m http.server 8080 --directory .generated-site
 # → http://localhost:8080
 ```
 
-他リポジトリから組む道具（mcp-toolcall-lab など）を同じ形で見るには、そのリポジトリを `.test-deps/<name>` に置いてから `--stage` します。置けないときは ⏸ ページのままです。生成コマンドの詳細は下の Shared asset generator entry points を参照してください。
+他リポジトリから組む道具（DRAgoWing のヒートマップなど）を同じ形で見るには、そのリポジトリを `.test-deps/<name>` に置いてから `--stage` します。💬 チャットの 🔌 MCP サーバーのテストは、mcp-toolcall-lab を `.test-deps/mcp-toolcall-lab` に置くと走ります（CI はコミットを固定）。置けないときは ⏸ ページのままです。生成コマンドの詳細は下の Shared asset generator entry points を参照してください。
 
 ---
 
@@ -234,7 +238,7 @@ I like building **GUI/CLI tools** for security & backend.
 
 ## 🎞️ Browser evidence
 
-![Portfolio search, tag filter, four display modes, and the lab tools in Chromium](docs/evidence/browser.gif)
+![Portfolio search, tag filter, four display modes, and the tools in Chromium (recorded 2026-11-07)](docs/evidence/browser.gif)
 
 🗓️ 2026-11-07 · 🧭 Chromium 153 · 🐧 Linux · receipt [`docs/evidence/browser.json`](docs/evidence/browser.json)
 
@@ -246,8 +250,7 @@ I like building **GUI/CLI tools** for security & backend.
 | `tools/portable_playwright.py` / `.mjs` (project catalog) | 11 + 11 | | |
 | 🎞️ evidence GIF shots | 9 | | |
 
-🌐 Avatars and badges are external and were refused (listed per shot in the receipt). `/tools/mcp/execution/assets/…` comes from the execution lab this site builds at deploy time (`--record-tools`), so it is allowed rather than counted as a 404.
-🔄 `tools/mcp/` is built from the lab at deploy time (`--record-tools`); this receipt predates that move.
+🌐 Avatars and badges are external and were refused (listed per shot in the receipt). This receipt predates the removal of the 🔌 MCP 実験室 panels (2026-11-28).
 📦 The shared Web UI is one pinned git dependency (the `pages` group in `pyproject.toml` → PySaiyanWeBoo; `uv run --locked --only-group pages` installs it); `web-ui-assets.lock.json` records the commit and the SHA-256 of every generated file (`tools/vendor/web-ui/`, `tools/demos/`). The front page (`index.html`) is built by `scripts/front_page.py` from `profile.json`, `api/repos.json` and `projects.json`: the profile and projects in each display mode (cards, XML-like, JSON, Markdown) are rendered in Python, and the colour themes are PySaiyanWeBoo's palettes. It is not in the lock, because the repository catalog is refreshed by a workflow. None of these files are kept in git: the Pages build writes them, `uv run --locked python scripts/project_pages.py --stage .generated-site` writes the whole site for tests and local previews, and `--refresh-lock` rewrites the lock after the pin moves. To move the pin, change the full commit in `[tool.uv.sources]` in `pyproject.toml`, run `uv lock`, and refresh. The three vendored copies of `web_ui.py` (two generators and a 92 KB adapter) are gone.
 
 🔁 Re-record (after building `.generated-site` as in CI; `$WEBUI` is a PySaiyanWeBoo checkout at `adb23d7`):
@@ -362,9 +365,9 @@ uv run --locked --only-group browser python tests/world_browser.py -v           
 
 📖 [教室・土地・実在の場所](docs/world-classroom.md) · [動き](docs/world-motion.md) · [共有掲示板](docs/world-shared-board.md)。PySaiyanWeBoo から移しました（同じページを描きます）。
 
-### 📍地図URL・座標ピン留め
+### 📍 地図URL・座標ピン留め
 
-🧰 Tools → **📍地図URL・座標ピン留め** (`tools/#maps`) で、緯度・経度からApple MapsとGoogle MapsのURLを生成できます。地図URLからの座標入力、端末内のピン保存・解除、地点リンクのコピー、端末の共有メニューに対応します。共有先は保存操作なしで同じ座標を開けます。ピンはブラウザごとの保存で、端末間では同期しません。保存やコピーが許可されていない場合は画面に表示します。
+🧰 Tools → **📍 地図URL・座標ピン留め** (`tools/#maps`) で、緯度・経度からApple MapsとGoogle MapsのURLを生成できます。地図URLからの座標入力、端末内のピン保存・解除、地点リンクのコピー、端末の共有メニューに対応します。共有先は保存操作なしで同じ座標を開けます。ピンはブラウザごとの保存で、端末間では同期しません。保存やコピーが許可されていない場合は画面に表示します。
 
 パラレル都市 (`tools/#tokyo`) 内の東京21地点と相互に移動できます。座標・地図URL生成は固定済みPSWB、ミニチュアは `scripts/world.py` から再利用します。東京の座標はミニチュア用の概略値で、施設の正確な入口を保証するものではありません。URLだけを作るため地図APIキーは不要です。
 
@@ -411,48 +414,16 @@ Playwright Chromium; it does not demonstrate Stagehand agent execution. See
 [docs/stagehand-v4-reference.md](docs/stagehand-v4-reference.md) for the reference scope. Pages deployment owns the
 stable `evidence/latest/` screenshots described above.
 
-## 🔌 MCP 実験室: lab public tools and reports
-
-🔌 Like Ironmate's studios and DRAgoWing's heatmap, the lab's tools are built here at deploy time from mcp-toolcall-lab's
-default branch (`scripts/project_pages.py --record-tools`), and nothing of the lab is kept in git:
-
-| 🔗 Page | 🧰 Built from the lab with | 🔀 Path |
-| --- | --- | --- |
-| 🔎 Tool Lab: `#wiki` · `#pixiv` · `#pokemon` (+ the portfolio's `#niconico`) | `python -m mcp_toolcall_lab.stub_front pages` | `tools/#mcp` |
-| 🩺 Repository diagnostics (a panel of the Tool Lab) | `python -m mcp_toolcall_lab.mcp_toolcall_lab_repository_diagnostics` (its JSON / JSONL) | `tools/#diagnostics` |
-| 🧮 [Execution Lab](https://myon-bioinformatics.github.io/tools/#mcp-execution) | `scripts/build_portable_pages.py` (Node 26) | `tools/#mcp-execution` |
-
-The portfolio's side is one build-time adapter, `_src/tools/mcp_lab.py` (beside Ironmate's `_src/tools/studio_routes.py`):
-the shared UI, the Niconico tab, the Pixiv wrapper (`_src/tools/mcp/`), the lab artwork, the way back and the
-home-screen names. 🧪 This build runs no Docker, so the page records no run: its report links the lab's
-[stub-pages Actions](https://github.com/myon-bioinformatics/mcp-toolcall-lab/actions/workflows/stub-pages.yml) instead.
-Only the allowlisted files are published (no raw MCP / anti-pattern logs), with the lab's LICENSE.
-MCP servers, Docker execution, raw traces and test generation remain in mcp-toolcall-lab; its own Pages is its usage guide.
-The portfolio Wiki form starts empty: examples do not prefill a personal location.
-
-🧪 Tests and previews: `--stage` also builds the tools whose repository is checked out under `.test-deps/<name>`
-(CI checks out mcp-toolcall-lab there at a pinned commit; a tool that cannot build keeps its ⏸ page):
-
-```sh
-git clone https://github.com/myon-bioinformatics/mcp-toolcall-lab .test-deps/mcp-toolcall-lab
-uv run --locked python scripts/project_pages.py --stage .generated-site
-uv run --locked pytest tests/test_site.py
-```
-
 ### Shared browser controls
 
-HTML Import exposes an explicit HTTP(S) source link in a new tab; pasting or changing extraction options stays local. `web-ui` owns `source_link`, `view_tabs`, `adopt_document`, and `navigation.js`. The portfolio vendors the pinned implementation and keeps the lab report source identity separate from its shared presentation transform. Wikipedia/Pixiv typography and controls use that same modern theme. See [HTML Import contract](docs/html-import.md).
-
-Pixiv source now supports a local heading dropdown through a consumer adapter.
-See [source grammar, Python one-liners, and markdown.py integration](docs/pixiv-markup.md).
+HTML Import exposes an explicit HTTP(S) source link in a new tab; pasting or changing extraction options stays local. `web-ui` owns `source_link`, `view_tabs`, `adopt_document`, and `navigation.js`. The portfolio vendors the pinned implementation. See [HTML Import contract](docs/html-import.md).
 
 ### Portfolio search, highlights and image evidence
 
 - Project text search and topic filters work together in each view mode.
-- The lab's Niconico tab attempts Snapshot Search API v2 from the browser. Live verification on 2026-10-21 JST found HTTP 200 JSON responses without `Access-Control-Allow-Origin`; the published browser could not read results. The panel explains this limitation and offers official Niconico search with the selected keyword/sort. GitHub Pages cannot fix an upstream CORS header. The portfolio owns `tools/niconico/` and reapplies this panel when importing a lab report. See [live verification](docs/evidence/niconico-live-20261021/README.md).
 - AI & Tech Highlights displays public GitHub search results, or explicitly labelled curated examples when the API is unavailable. Curated examples do not claim current star counts.
 
-Verification: `uv run --locked pytest tests` (includes the canonical-data check of `docs/ssot.md`) and, in a browser, `uv run --locked --group browser python -m pytest tests/test_front_page.py` (the front page, Python Playwright) plus `npx playwright test --config playwright/html-import.config.js` (HTML import and MCP lab; the Docker contract runs it on Chromium and WebKit). Python test dependencies are the `test` and `browser` groups of `pyproject.toml`, pinned in `uv.lock`; the brand-asset tests read images with the vendored `pillow_min` module from the parent repository's `tools/stdlib_min/` (`vendor/pillow_min.py`, recorded in `vendor.lock.json`). Animated evidence is the GIF recorded with BrowserTestKit's `tools/evidence_gif.py` (see Re-record above). The portal workflow preserves browser evidence as an Actions artifact.
+Verification: `uv run --locked pytest tests` (includes the canonical-data check of `docs/ssot.md`) and, in a browser, `uv run --locked --group browser python -m pytest tests/test_front_page.py` (the front page, Python Playwright) plus `npx playwright test --config playwright/html-import.config.js` (HTML import; the Docker contract runs it on Chromium and WebKit). Python test dependencies are the `test` and `browser` groups of `pyproject.toml`, pinned in `uv.lock`; the brand-asset tests read images with the vendored `pillow_min` module from the parent repository's `tools/stdlib_min/` (`vendor/pillow_min.py`, recorded in `vendor.lock.json`). Animated evidence is the GIF recorded with BrowserTestKit's `tools/evidence_gif.py` (see Re-record above). The portal workflow preserves browser evidence as an Actions artifact.
 
 ## Browser suite without a Playwright install
 

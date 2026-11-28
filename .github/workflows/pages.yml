@@ -85,7 +85,7 @@ jobs:
         run: uv run --locked --only-group pages python scripts/project_pages.py --record-map _site | tee -a "$GITHUB_STEP_SUMMARY"
 
       # 💬 What the chat answers about the other repositories: every JSON / JSONL file at its current commit (GitHub's tree
-      # API, one call each), mcp-toolcall-lab's advertised tools and TalkCompress's compressor (media/chat/, not kept in git).
+      # API, one call each), the mcp-toolcall-lab code its MCP server runs and TalkCompress's compressor (media/chat/, not kept in git).
       - name: Record the chat's cross-repo index (best effort)
         if: github.event_name != 'pull_request'
         continue-on-error: true
@@ -98,8 +98,8 @@ jobs:
         with:
           node-version: "26"
 
-      # 🧰 Ironmate's studios, mcp-toolcall-lab's tools and execution lab (🔌 #mcp, #mcp-execution) and DRAgoWing's heatmap from their
-      # default branches (tools/…, not kept in git); the execution lab's build runs Node. A tool that fails gets the ⏸ the build below writes (the 🧰 screen takes the panels in).
+      # 🧰 Ironmate's studios, the format lab and DRAgoWing's heatmap from their default branches (tools/…, not kept in git).
+      # A tool that fails gets the ⏸ the build below writes (the 🧰 screen takes the panels in).
       - name: Record the tools built from other repositories (best effort)
         if: github.event_name != 'pull_request'
         continue-on-error: true
