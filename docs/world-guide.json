@@ -1483,6 +1483,27 @@
    "href": "#cities-spot-london-rl-dragon-cachere"
   },
   {
+   "id": "cities/london/london-rl-dragon-dragoon",
+   "type": "Task",
+   "name": "碧天守護竜ドラグーン",
+   "detail": "テムズにかかる橋の上を青い翼が旋回している。",
+   "x": 1200,
+   "y": 624
+  },
+  {
+   "id": "guard/cities/london/london-rl-dragon-dragoon",
+   "type": "Condition",
+   "name": "ドラグーンとの絆 30 以上"
+  },
+  {
+   "id": "item/cities/london/london-rl-dragon-dragoon",
+   "type": "Resource",
+   "name": "蒼天竜のメガストーン",
+   "usage": "竜の秘宝",
+   "collection": true,
+   "href": "#cities-spot-london-rl-dragon-dragoon"
+  },
+  {
    "id": "cities/london/london-rl-dragon-nogard",
    "type": "Task",
    "name": "古龍ノガード",
@@ -2308,6 +2329,19 @@
    "target": "london-rl-npc-arthur"
   },
   {
+   "id": "quest/q-dragon-dragoon",
+   "type": "Goal",
+   "name": "蒼き守護竜との出会い",
+   "detail": "テムズの橋にいるドラグーンと心を通わせる"
+  },
+  {
+   "id": "condition/q-dragon-dragoon",
+   "type": "Condition",
+   "name": "dragon",
+   "minimum": 1,
+   "target": "london-rl-dragon-dragoon"
+  },
+  {
    "id": "quest/care-dragon",
    "type": "Goal",
    "name": "龍とのふれあい",
@@ -2343,7 +2377,7 @@
    "id": "condition/all-dragons",
    "type": "Condition",
    "name": "dragon",
-   "minimum": 5,
+   "minimum": 6,
    "target": null
   },
   {
@@ -2755,27 +2789,6 @@
    "y": 320
   },
   {
-   "id": "nagoya/nagoya-map/nagoya-dragon-dragoon",
-   "type": "Task",
-   "name": "碧天守護竜ドラグーン",
-   "detail": "ドームの青空を舞う蒼き守護竜。スタジアムの歓声と共鳴して力を高める。",
-   "x": 704,
-   "y": 256
-  },
-  {
-   "id": "guard/nagoya/nagoya-map/nagoya-dragon-dragoon",
-   "type": "Condition",
-   "name": "ドラグーンとの絆 30 以上"
-  },
-  {
-   "id": "item/nagoya/nagoya-map/nagoya-dragon-dragoon",
-   "type": "Resource",
-   "name": "蒼天竜のメガストーン",
-   "usage": "竜の秘宝",
-   "collection": true,
-   "href": "#nagoya-spot-nagoya-dragon-dragoon"
-  },
-  {
    "id": "nagoya/nagoya-map/nagoya-drop-megaphone",
    "type": "Task",
    "name": "応援青メガホン",
@@ -3057,19 +3070,6 @@
    "target": "mall-shopping"
   },
   {
-   "id": "quest/q-dragon-dragoon",
-   "type": "Goal",
-   "name": "蒼き守護竜との出会い",
-   "detail": "ドームの空を舞うドラグーンと心を通わせる"
-  },
-  {
-   "id": "condition/q-dragon-dragoon",
-   "type": "Condition",
-   "name": "dragon",
-   "minimum": 1,
-   "target": "nagoya-dragon-dragoon"
-  },
-  {
    "id": "quest/q-deed-helper",
    "type": "Goal",
    "name": "街の頼れるサポーター",
@@ -3121,7 +3121,7 @@
    "id": "buy/wings",
    "type": "Task",
    "name": "特製手羽先パックを購入",
-   "detail": "香ばしい秘伝手羽先。ドラグーンの大好物"
+   "detail": "観戦のおともに。HPを30、MPを15回復する"
   },
   {
    "id": "price/buy/wings",
@@ -4452,6 +4452,21 @@
   {
    "source": "cities/london",
    "kind": "offers",
+   "target": "cities/london/london-rl-dragon-dragoon"
+  },
+  {
+   "source": "cities/london/london-rl-dragon-dragoon",
+   "kind": "guarded_by",
+   "target": "guard/cities/london/london-rl-dragon-dragoon"
+  },
+  {
+   "source": "cities/london/london-rl-dragon-dragoon",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-dragon-dragoon"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
    "target": "cities/london/london-rl-dragon-nogard"
   },
   {
@@ -4992,6 +5007,16 @@
   {
    "source": "#london",
    "kind": "offers",
+   "target": "quest/q-dragon-dragoon"
+  },
+  {
+   "source": "quest/q-dragon-dragoon",
+   "kind": "completed_when",
+   "target": "condition/q-dragon-dragoon"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
    "target": "quest/care-dragon"
   },
   {
@@ -5322,21 +5347,6 @@
   {
    "source": "nagoya/nagoya-map",
    "kind": "offers",
-   "target": "nagoya/nagoya-map/nagoya-dragon-dragoon"
-  },
-  {
-   "source": "nagoya/nagoya-map/nagoya-dragon-dragoon",
-   "kind": "guarded_by",
-   "target": "guard/nagoya/nagoya-map/nagoya-dragon-dragoon"
-  },
-  {
-   "source": "nagoya/nagoya-map/nagoya-dragon-dragoon",
-   "kind": "provides",
-   "target": "item/nagoya/nagoya-map/nagoya-dragon-dragoon"
-  },
-  {
-   "source": "nagoya/nagoya-map",
-   "kind": "offers",
    "target": "nagoya/nagoya-map/nagoya-drop-megaphone"
   },
   {
@@ -5528,16 +5538,6 @@
    "source": "quest/q-mall-shopping",
    "kind": "completed_when",
    "target": "condition/q-mall-shopping"
-  },
-  {
-   "source": "#nagoya",
-   "kind": "offers",
-   "target": "quest/q-dragon-dragoon"
-  },
-  {
-   "source": "quest/q-dragon-dragoon",
-   "kind": "completed_when",
-   "target": "condition/q-dragon-dragoon"
   },
   {
    "source": "#nagoya",

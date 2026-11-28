@@ -15,7 +15,7 @@ from world import detective_clue_profile, detective_garden, detective_garden_ste
 
 METRICS = {"clue": "解明した現場", "boss_clue": "解明した黒幕", "chest": "開けた宝箱",
            "drop": "拾った落とし物", "talk": "話した人数", "quiz": "矛盾を特定した証言",
-           "refill": "補給回数", "garden": "緑化マス", "medals": "所持メダル", "stamina": "現在のスタミナ"}
+           "refill": "休憩回数", "garden": "緑化マス", "medals": "所持メダル", "stamina": "現在のスタミナ"}
 
 
 def build(spec, observations=None):
@@ -131,7 +131,7 @@ def build(spec, observations=None):
         if kind == "shop" and not location:
             diagnostics.append(f'到達不能 {n["id"]}（販売員なし）')
         if "usage" not in n:
-            task(n["id"], n["label"], "聞き込みと補給", location + " " + n["greeting"])
+            task(n["id"], n["label"], "聞き込みと休憩", location + " " + n["greeting"])
             continue
         label = n.get("item_label", n["label"])
         mode = ("常備・取得時から有効" if n["usage"] == "equipment" else
@@ -162,10 +162,10 @@ def markdown(graph):
         return nodes[cid]["name"] + {None: "（未確認）", True: "（達成）", False: "（未達）"}[value]
 
     lines = [heading(nodes["guide"]["name"]).rstrip(), "", "目的は"+nodes["all"]["name"]+"こと。",
-             "コンパスで未解明の現場へ向かい、難しい影は現場検証で解明する。疲れたら茶房で補給できる。",
+             "コンパスで未解明の現場へ向かい、難しい影は現場検証で解明する。疲れたら茶房で休憩できる。",
              "装備と試験紙は任意。各現場の座標はマップのタイル単位。", "",
              "全件の完了条件　"+status(links["all", "completed_when"][0])]
-    for section in ("聞き込みと補給", "現場での手順", "持ち物と入手場所", "事件・バッジ", "現場一覧"):
+    for section in ("聞き込みと休憩", "現場での手順", "持ち物と入手場所", "事件・バッジ", "現場一覧"):
         lines.extend(["", heading(section, 2).rstrip(), ""])
         for uid, n in nodes.items():
             if n.get("section") != section:

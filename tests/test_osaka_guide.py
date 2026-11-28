@@ -98,7 +98,7 @@ def test_relic_conditions_and_destinations_are_generated_from_the_world():
     cities["rpg"]["dragons"]["london-rl-dragon-pyth"]["bond_max"] = 37
     cities["rpg"]["loot"]["london-rl-chest-potion"]["kind"] = "drop"
     changed = relic_catalogue(world_validate(cities))
-    assert len(changed) == 8
+    assert len(changed) == 9
     assert any(relic["condition"].endswith("37 以上") for relic in changed)
     assert not any(relic["spot"] == "london-rl-chest-potion" for relic in changed)
 

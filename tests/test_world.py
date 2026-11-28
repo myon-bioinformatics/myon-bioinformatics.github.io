@@ -1993,9 +1993,9 @@ class ReverseLondonRpgTests(unittest.TestCase):
         cities = W.world_validate(W.example_data("cities"))
         self.assertIn("rpg", cities)
         rpg = cities["rpg"]
-        self.assertEqual(len(rpg["dragons"]), 5)
+        self.assertEqual(len(rpg["dragons"]), 6)
         for sid in ("london-rl-dragon-pyth", "london-rl-dragon-wing", "london-rl-dragon-queryu",
-                    "london-rl-dragon-cachere", "london-rl-dragon-nogard"):
+                    "london-rl-dragon-cachere", "london-rl-dragon-nogard", "london-rl-dragon-dragoon"):
             self.assertIn(sid, rpg["dragons"])
             d = rpg["dragons"][sid]
             self.assertEqual(d["bond_max"], 30)
@@ -2006,14 +2006,14 @@ class ReverseLondonRpgTests(unittest.TestCase):
 
         # 5 NPCs, 5 drops, 4 chests, 2 enemies
         london = next(f for f in cities["floors"] if f["id"] == "london")
-        self.assertEqual(len(london["spots"]), 57)
+        self.assertEqual(len(london["spots"]), 58)
         self.assertEqual([a["id"] for a in london["actors"]], ["owl"])
         by_category = {}
         for s in london["spots"]:
             by_category.setdefault(s["category"], []).append(s["id"])
         self.assertEqual(len(by_category["npc"]), 5)
         self.assertEqual(len(by_category["item"]), 9)
-        self.assertEqual(len(by_category["dragon"]), 5)
+        self.assertEqual(set(by_category["dragon"]), set(rpg["dragons"]))
         self.assertEqual(len(by_category["battle"]), 2)
 
     def test_rpg_dragon_stage_thresholds(self):
@@ -2042,7 +2042,7 @@ class NagoyaRpgTests(unittest.TestCase):
         self.assertIn("rpg", nagoya)
         rpg = nagoya["rpg"]
         self.assertEqual([f["id"] for f in nagoya["floors"]], ["nagoya-map", "nagoya-city"])
-        self.assertEqual(len(nagoya["floors"][0]["spots"]), 33)
+        self.assertEqual(len(nagoya["floors"][0]["spots"]), 32)
         self.assertEqual(len(nagoya["floors"][0]["actors"]), 0)
 
         # Fame and Deeds
@@ -2103,15 +2103,10 @@ class NagoyaRpgTests(unittest.TestCase):
         self.assertEqual(len(drops), 5)
         self.assertEqual(len(chests), 4)
 
-        # Dragon
-        self.assertIn("nagoya-dragon-dragoon", rpg["dragons"])
-        dragoon = rpg["dragons"]["nagoya-dragon-dragoon"]
-        self.assertEqual(dragoon["bond_max"], 30)
-        self.assertEqual(dragoon["favorite_item"], "手羽先")
-        self.assertEqual(dragoon["cross_effect"]["skill_label"], "ドラグーンスカイバースト")
+        self.assertFalse(rpg.get("dragons"))
 
         # Quests and Badges
-        self.assertEqual(len(rpg["quests"]), 8)
+        self.assertEqual(len(rpg["quests"]), 7)
         self.assertEqual(len(rpg["badges"]), 7)
         badge_ids = {b["id"] for b in rpg["badges"]}
         self.assertIn("dome-patron", badge_ids)
@@ -2148,9 +2143,9 @@ class NagoyaRpgTests(unittest.TestCase):
         for world_data in (overworld, cities):
             synergy = world_data["rpg"]["synergy"]
             self.assertIn("nagoya-spot-nagoya-chest-bat", synergy)
-            self.assertIn("nagoya-spot-nagoya-dragon-dragoon", synergy)
-            dragoon_item = synergy["nagoya-spot-nagoya-dragon-dragoon"]
-            self.assertEqual(dragoon_item["skill"]["label"], "ドラグーンスカイバースト")
+        for world_data in (overworld, W.world_validate(W.example_data("nagoya"))):
+            relic = world_data["rpg"]["synergy"]["cities-spot-london-rl-dragon-dragoon"]
+            self.assertEqual(relic["skill"]["label"], "ドラグーンスカイバースト")
 
 
 class FakeParisRescueTests(unittest.TestCase):

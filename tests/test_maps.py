@@ -425,8 +425,8 @@ def test_relic_collection_survives_loading_into_a_fresh_browser(site, browser, e
 
         tokens = []
         for route, map_id, chest, dragon in (
-            ('london', '#cities-map', '#cities-spot-london-rl-chest-potion', '#cities-spot-london-rl-dragon-pyth'),
-            ('nagoya', '#nagoya-map', '#nagoya-spot-nagoya-chest-flag', '#nagoya-spot-nagoya-dragon-dragoon'),
+            ('london', '#cities-map', '#cities-spot-london-rl-chest-potion', '#cities-spot-london-rl-dragon-dragoon'),
+            ('nagoya', '#nagoya-map', '#nagoya-spot-nagoya-chest-flag', None),
         ):
             scene = enter(page, route, map_id)
             if route == 'london':
@@ -439,14 +439,15 @@ def test_relic_collection_survives_loading_into_a_fresh_browser(site, browser, e
             unlocked.append(chest)
             expect(count).to_have_text(f'{len(unlocked)}/{total}')
 
-            visit(page, dragon, '.ui-world-take')
-            for _ in range(4):
+            if dragon:
+                visit(page, dragon, '.ui-world-take')
+                for _ in range(4):
+                    scene.get_by_role('button', name='🪮 ブラッシング').click()
+                expect(count).to_have_text(f'{len(unlocked)}/{total}')
                 scene.get_by_role('button', name='🪮 ブラッシング').click()
-            expect(count).to_have_text(f'{len(unlocked)}/{total}')
-            scene.get_by_role('button', name='🪮 ブラッシング').click()
-            scene.get_by_role('button', name='またね！').click()
-            unlocked.append(dragon)
-            expect(count).to_have_text(f'{len(unlocked)}/{total}')
+                scene.get_by_role('button', name='またね！').click()
+                unlocked.append(dragon)
+                expect(count).to_have_text(f'{len(unlocked)}/{total}')
 
             journal, box = save_tab(scene)
             if route == 'london':
@@ -467,7 +468,7 @@ def test_relic_collection_survives_loading_into_a_fresh_browser(site, browser, e
             box.fill(token)
             journal.get_by_role('button', name='読み込む').click()
             expect(journal.get_by_role('status')).to_have_text('冒険データを復元しました')
-            expect(restored.locator('#world-relics-count')).to_have_text(f'{2 * i}/{total}')
+            expect(restored.locator('#world-relics-count')).to_have_text(f'{i + 1}/{total}')
             journal.locator('.ui-rpg-close').click()
         for href in unlocked:
             status = restored.locator('#world-relics-list li').filter(has=restored.locator(f'a[href="{href}"]'))

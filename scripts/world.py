@@ -1547,7 +1547,7 @@ def detective_validate(detective_in: Any, *, floors: list[dict[str, Any]]) -> di
             })
         elif nkind == "stand":
             base_node.update({
-                "greeting": _world_text(nd.get("greeting", "給水・茶房スタンドで水分と体力を補給した！"), "stand greeting", 240),
+                "greeting": _world_text(nd.get("greeting", "ここで腰を下ろして休憩できる。"), "stand greeting", 240),
             })
         elif nkind in ("drop", "chest"):
             itype = nd.get("item_type")
@@ -2403,13 +2403,13 @@ def spot_fragment(wid: str, sid: str) -> str:
 
 
 def relic_catalogue(world: dict[str, Any]) -> list[dict[str, Any]]:
-    """Collect named dragon rewards and RPG chests on the floors where those dragons live."""
+    """Collect London and Nagoya chest rewards and named dragon relics."""
     rpg = world.get("rpg", {})
     dragons = {sid: dragon for sid, dragon in rpg.get("dragons", {}).items() if dragon["relic_label"]}
     relics = []
     for floor in world["floors"]:
         places = floor["spots"] + floor["actors"]
-        if not any(spot["id"] in dragons for spot in places):
+        if floor["id"] != "nagoya-map" and not any(spot["id"] in dragons for spot in places):
             continue
         for spot in places:
             sid = spot["id"]
@@ -5659,7 +5659,7 @@ export function bindWorldDetective(el){
 
   const executeTactic=tactic=>{
    if(state.stamina<tactic.stamina){
-    logEl.textContent="スタミナ⚡が足りへん！給水・茶房スタンドかたこ焼きで回復するんや！";return;
+    logEl.textContent="スタミナ⚡が足りへん！近くの茶房で休むか、たこ焼きで回復するんや！";return;
    }
    state.stamina-=tactic.stamina;
    guarding=tactic.kind==="pokerface";
@@ -5757,10 +5757,10 @@ export function bindWorldDetective(el){
    actionsEl.replaceChildren();
    if(idx>0)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"◀ もどる",onclick:()=>{idx-=1;renderPage()}}));
    if(idx<pages.length-1)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"つぎへ ▶",onclick:()=>{idx+=1;renderPage()}}));
-   if(node.refill)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:node.emoji+" 科学捜査補給（全快）",onclick:()=>{
+   if(node.refill)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:node.emoji+" 休憩する（全快）",onclick:()=>{
     const st=stats();state.hp=st.maxHp;state.stamina=st.maxStamina;state.standUses+=1;
     orbsWrap.replaceChildren(renderOrbs(detectiveOrbEffect(st.maxStamina,true)));
-    textEl.textContent="✨ 科学捜査研究所のバイタルケアにより、スタミナと気力が満タンまで急速補給された！";checkQuests();
+    textEl.textContent="✨ ひと息ついて、HPとスタミナが全快した！";checkQuests();
    }}));
    if(node.shop)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🛒 船場どうぐ屋",onclick:()=>openShopDialog(nodeId)}));
    if(node.quiz&&detective.quizzes.length)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"📝 証言を照合する",onclick:()=>openQuizDialog(nodeId)}));
@@ -5853,7 +5853,7 @@ export function bindWorldDetective(el){
   if(node.kind==="npc")return openNpcDialog(nodeId);
   if(node.kind==="stand"){
    const st=stats();state.hp=st.maxHp;state.stamina=st.maxStamina;state.standUses+=1;
-   showToast(`🍵 ${node.label}で休憩！ (スタミナ・気力全快)`);checkQuests();return;
+   showToast(`${node.emoji} ${node.label}で休憩！ HPとスタミナが全快した。`);checkQuests();return;
   }
   if(node.kind==="drop"){
    if(state.looted.has(nodeId))return;
@@ -6373,6 +6373,7 @@ _LONDON_ADVENTURE_POINTS = [
     _pt("rl-dragon-wing", "ドラゴウィング", 51.52478, -0.15491, "dragon", "流体力学の揚力を翼に受けて舞う蒼穹の飛龍。"),
     _pt("rl-dragon-queryu", "クエリ龍", 51.52478, -0.08338, "dragon", "電脳潮流から生まれた知恵の水龍。検索と選別の知恵を司る。"),
     _pt("rl-dragon-cachere", "カシェール龍", 51.50994, -0.10506, "dragon", "循環再利用の円環を背負う緋色の輪龍。"),
+    _pt("rl-dragon-dragoon", "碧天守護竜ドラグーン", 51.5080, -0.0973, "dragon", "テムズにかかる橋の上を青い翼が旋回している。"),
     _pt("rl-dragon-nogard", "古龍ノガード", 51.5032, -0.12023, "dragon", "ロンドンの地下深くに眠る伝説の始祖巨龍。"),
     # 2 Enemies
     _pt("rl-enemy-fog-wolf", "夜霧の群れ狼", 51.52748, -0.13107, "battle", "夜霧に潜む凶暴な魔狼。幾何の光に弱い。"),
@@ -6859,7 +6860,7 @@ def _overworld_spec() -> dict[str, Any]:
                 "nagoya-spot-nagoya-chest-bat": {"emoji": "🏏", "label": "黄金の金シャチバット", "atk": 12, "skill": {"emoji": "⚡", "label": "金シャチフルスイング", "mp": 6, "mult_pct": 190, "desc": "黄金の鯱の如く唸る豪快な一振り(190%)"}},
                 "nagoya-spot-nagoya-chest-mitt": {"emoji": "🧤", "label": "守護のキャッチャーミット", "def": 8, "hp": 25},
                 "nagoya-spot-nagoya-chest-flag": {"emoji": "🚩", "label": "歓喜のビクトリーフラッグ", "atk": 6, "def": 6, "mp": 20, "skill": {"emoji": "🎺", "label": "勝利のファンファーレ", "mp": 8, "kind": "heal", "power": 30, "desc": "歓喜のファンファーレで味方を回復"}},
-                "nagoya-spot-nagoya-dragon-dragoon": {"emoji": "🐲", "label": "蒼天竜のメガストーン", "atk": 18, "def": 14, "hp": 40, "mp": 25, "skill": {"emoji": "🐲", "label": "ドラグーンスカイバースト", "mp": 8, "mult_pct": 220, "desc": "蒼き守護竜の咆哮が敵を一掃する！"}},
+                "cities-spot-london-rl-dragon-dragoon": {"emoji": "🐲", "label": "蒼天竜のメガストーン", "atk": 18, "def": 14, "hp": 40, "mp": 25, "skill": {"emoji": "🐲", "label": "ドラグーンスカイバースト", "mp": 8, "mult_pct": 220, "desc": "蒼き守護竜の咆哮が敵を一掃する！"}},
             },
         },
     }
@@ -6899,6 +6900,14 @@ def _cities_rpg() -> dict[str, Any]:
             "relic_emoji": "♾️", "relic_desc": "CaChereCyCleの循環再生を司る輪。異界で耐久力と再生能力を授ける。",
             "cross_effect": {"hp": 30, "def": 12, "skill_label": "♾️ キャッシュ再生", "skill_emoji": "♾️", "skill_mp": 5, "skill_mult_pct": 100, "skill_desc": "大回復とシールド展開"},
         },
+        "london-rl-dragon-dragoon": {
+            "name": "ドラグーン", "emoji": "🐉", "title": "碧天守護竜", "repo": "myon-bioinformatics",
+            "desc": "テムズの川霧が晴れると、青い翼を橋の上に広げる守護竜。",
+            "lore": "橋を渡る旅人の足音を聞き分け、顔なじみを見つけると翼を振る。",
+            "bond_max": 30, "favorite_item": "スコーン", "relic_label": "蒼天竜のメガストーン",
+            "relic_emoji": "💎", "relic_desc": "ドラグーンの魂が宿る蒼き宝珠。",
+            "cross_effect": {"atk": 18, "def": 14, "hp": 40, "mp": 25, "skill_label": "ドラグーンスカイバースト", "skill_emoji": "🐲", "skill_mp": 8, "skill_mult_pct": 220, "skill_desc": "蒼き守護竜の咆哮(220%)"},
+        },
         "london-rl-dragon-nogard": {
             "name": "古龍ノガード", "emoji": "🐉", "title": "ロンドンの始祖守護龍", "repo": "myon-bioinformatics",
             "desc": "逆さ文字『nogard』の看板に封印されていた最古の巨龍。悠久の時を超えてリバースロンドンを見守る。",
@@ -6913,7 +6922,7 @@ def _cities_rpg() -> dict[str, Any]:
         "npcs": {
             "london-rl-npc-arthur": {
                 "speaker": "探偵アーサー", "emoji": "🕵️",
-                "greeting": "ようこそ、リバースロンドンへ！霧深きこの街には、古代より5頭の守護龍が眠る伝承があるんだ。",
+                "greeting": "ようこそ、リバースロンドンへ！霧深きこの街には、古代より守護龍が眠る伝承があるんだ。",
                 "lines": [
                     "街の駅や路地をよく観察してみてほしい。落ちている素材やおやつを龍にあげると、絆を深めることができるよ。",
                     "絆が深まりパートナーになると、龍から伝説の秘宝を授かる。その秘宝は、他の世界（村や空間）へ行っても絶大な力を発揮するそうだ！",
@@ -6985,6 +6994,7 @@ def _cities_rpg() -> dict[str, Any]:
         "dragons": dragons,
         "quests": [
             {"id": "talk-arthur", "title": "名探偵のオリエンテーション", "desc": "探偵アーサーに話を聞く", "kind": "talk", "target": "london-rl-npc-arthur", "count": 1, "reward_exp": 20, "reward_gold": 30},
+            {"id": "q-dragon-dragoon", "title": "蒼き守護竜との出会い", "desc": "テムズの橋にいるドラグーンと心を通わせる", "kind": "dragon", "target": "london-rl-dragon-dragoon", "reward_exp": 45, "reward_gold": 50},
             {"id": "care-dragon", "title": "龍とのふれあい", "desc": "龍を1頭見つけてお世話する", "kind": "care", "count": 1, "reward_exp": 30, "reward_gold": 40},
             {"id": "master-bond", "title": "心を通わせし者", "desc": "いずれかの龍との絆を最大にする", "kind": "bond", "count": 1, "reward_exp": 60, "reward_gold": 80},
             {"id": "all-dragons", "title": "すべての守護龍の発見", "desc": "ロンドンの守護龍をすべて見つける", "kind": "dragon", "count": len(dragons), "reward_exp": 100, "reward_gold": 150},
@@ -7022,7 +7032,6 @@ def _cities_rpg() -> dict[str, Any]:
             "nagoya-spot-nagoya-chest-bat": {"emoji": "🏏", "label": "黄金の金シャチバット", "atk": 12, "skill": {"emoji": "⚡", "label": "金シャチフルスイング", "mp": 6, "mult_pct": 190, "desc": "黄金の鯱の如く唸る豪快な一振り(190%)"}},
             "nagoya-spot-nagoya-chest-mitt": {"emoji": "🧤", "label": "守護のキャッチャーミット", "def": 8, "hp": 25},
             "nagoya-spot-nagoya-chest-flag": {"emoji": "🚩", "label": "歓喜のビクトリーフラッグ", "atk": 6, "def": 6, "mp": 20, "skill": {"emoji": "🎺", "label": "勝利のファンファーレ", "mp": 8, "kind": "heal", "power": 30, "desc": "歓喜のファンファーレで味方を回復"}},
-            "nagoya-spot-nagoya-dragon-dragoon": {"emoji": "🐲", "label": "蒼天竜のメガストーン", "atk": 18, "def": 14, "hp": 40, "mp": 25, "skill": {"emoji": "🐲", "label": "ドラグーンスカイバースト", "mp": 8, "mult_pct": 220, "desc": "蒼き守護竜の咆哮が敵を一掃する！"}},
         },
     }
 
@@ -7086,9 +7095,6 @@ _NAGOYA_SPOTS = [
      "body": "「街が綺麗なら金シャチもより輝く。ポイ捨てゴミを拾ってきてくれたら礼をするぞ。」"},
     {"id": "nagoya-npc-grandpa", "x": 608, "y": 320, "label": "聖地の生き字引 爺さん", "category": "npc",
      "body": "「フォッフォッ、かつての優勝パレードやドームの熱戦なら何でも聞いておくれ。」"},
-    {"id": "nagoya-dragon-dragoon", "x": 704, "y": 256, "label": "碧天守護竜ドラグーン", "category": "dragon",
-     "body": "ドームの青空を舞う蒼き守護竜。スタジアムの歓声と共鳴して力を高める。"},
-
     {"id": "nagoya-drop-megaphone", "x": 768, "y": 352, "label": "応援青メガホン", "category": "drop",
      "item": {"emoji": "📣", "label": "応援青メガホン", "body": "熱烈なファンが大切にしている青きメガホン。声援を響かせよう。"},
      "body": "熱烈なファンが大切にしている青きメガホン。声援を響かせよう。"},
@@ -7256,34 +7262,12 @@ def _nagoya_rpg() -> dict[str, Any]:
             "nagoya-tv-tower": {"name": "スタジアムの魔球使い", "emoji": "⚾", "level": 4, "hp": 60, "atk": 14, "def": 6, "exp": 50, "gold": 60, "weakness": "金シャチフルスイング", "taunt": "この七色の変化球を打ち返せるかな！？"},
             "nagoya-hisaya": {"name": "覇王ドラゴントレーナー", "emoji": "👑", "level": 6, "hp": 110, "atk": 20, "def": 10, "exp": 120, "gold": 180, "boss": True, "weakness": "ドラ魂の加護", "taunt": "鍛え上げたファンの力…我が全力のノックで試させてもらおう！"},
         },
-        "dragons": {
-            "nagoya-dragon-dragoon": {
-                "name": "ドラグーン", "emoji": "🐉", "title": "碧天守護竜", "repo": "myon-bioinformatics",
-                "bond_max": 30, "favorite_item": "手羽先",
-                "greeting": "ドームの上空を旋回する蒼き守護竜。スタジアムの歓声に呼応して輝く。",
-                "desc": "青き翼を広げ、ナゴヤの空からドラゴンズファンと街を見守る伝説の蒼竜。",
-                "lore": "熱き応援とファンの団結がドラグーンに力を与え、街全体に必勝の加護をもたらす。",
-                "care_lines": [
-                    "翼を大きく広げて、青空高く舞い上がった！",
-                    "手羽先の香ばしい匂いに目を輝かせて喜んでいる！",
-                    "スタジアムのメガホンの音に合わせて心地よさそうに鳴いた。"
-                ],
-                "relic_label": "蒼天竜のメガストーン", "relic_emoji": "💎", "relic_desc": "ドラグーンの魂が宿る蒼き宝珠。あらゆる空間で守護の力を発揮する。",
-                "cross_effect": {
-                    "atk": 10, "def": 10, "hp": 40, "mp": 20,
-                    "skill_label": "ドラグーンスカイバースト", "skill_emoji": "🐲",
-                    "skill_mp": 8, "skill_mult_pct": 200,
-                    "skill_desc": "蒼き守護竜の咆哮が天より降り注ぎ敵を一掃する！"
-                }
-            }
-        },
         "quests": [
             {"id": "q-talk-ryuji", "title": "熱血団長への挨拶", "desc": "応援団長リュウジと話してドラ魂の極意を教わろう", "kind": "talk", "target": "nagoya-npc-ouendan", "reward_exp": 25, "reward_gold": 30},
             {"id": "q-get-uniform", "title": "青き誇りを身に纏え", "desc": "聖地に眠る「青き魂の応援ユニフォーム」を見つけ出す", "kind": "chest", "target": "nagoya-chest-uniform", "reward_exp": 40, "reward_gold": 50},
             {"id": "q-fame-starter", "title": "名物ファンへの第一歩", "desc": "街のお手伝いを重ねて知名度を20pt以上に高める", "kind": "fame", "count": 20, "reward_exp": 50, "reward_gold": 60},
             {"id": "q-dome-sponsor", "title": "ドーム現地観戦へ行こう", "desc": "バンテリンドームで観戦チケットを購入してスタンドで試合を観戦しよう", "kind": "deed", "target": "dome-sponsor", "reward_exp": 35, "reward_gold": 40},
             {"id": "q-mall-shopping", "title": "ドーム前で応援準備", "desc": "イオンモール ナゴヤドーム前でお買い物をして応援気分を高める", "kind": "deed", "target": "mall-shopping", "reward_exp": 30, "reward_gold": 30},
-            {"id": "q-dragon-dragoon", "title": "蒼き守護竜との出会い", "desc": "ドームの空を舞うドラグーンと心を通わせる", "kind": "dragon", "target": "nagoya-dragon-dragoon", "reward_exp": 45, "reward_gold": 50},
             {"id": "q-deed-helper", "title": "街の頼れるサポーター", "desc": "ゴミ拾いやサインボール返却など3つ以上のお手伝いを完了する", "kind": "deed", "count": 3, "reward_exp": 60, "reward_gold": 80},
             {"id": "q-fame-master", "title": "世界一のファンの鑑へ", "desc": "あらゆるお手伝いを極め、知名度95pt（世界一のファンの鑑）に到達する！", "kind": "fame", "count": 95, "reward_exp": 150, "reward_gold": 300},
         ],
@@ -7300,7 +7284,7 @@ def _nagoya_rpg() -> dict[str, Any]:
         "shop": [
             {"id": "toast", "spot_id": "nagoya-npc-cafe", "emoji": "🍞", "label": "名物小倉トースト", "cost": 20, "item_type": "heal", "hp": 40, "desc": "サクサクあんバター。HPを40回復する"},
             {"id": "coffee", "spot_id": "nagoya-npc-cafe", "emoji": "☕", "label": "深煎りブレンド珈琲", "cost": 18, "item_type": "mana", "mp": 20, "desc": "香り高いナゴヤの珈琲。MPを20回復する"},
-            {"id": "wings", "spot_id": "nagoya-npc-cafe", "emoji": "🍗", "label": "特製手羽先パック", "cost": 30, "item_type": "care", "hp": 30, "mp": 15, "desc": "香ばしい秘伝手羽先。ドラグーンの大好物"},
+            {"id": "wings", "spot_id": "nagoya-npc-cafe", "emoji": "🍗", "label": "特製手羽先パック", "cost": 30, "item_type": "care", "hp": 30, "mp": 15, "desc": "観戦のおともに。HPを30、MPを15回復する"},
             {"id": "aeon-bento", "spot_id": "nagoya-aeon-mall", "emoji": "🍱", "label": "ドーム観戦必勝弁当", "cost": 25, "item_type": "heal", "hp": 55, "desc": "みそかつやエビフライが入ったボリューム満点の応援弁当。HPを55回復する"},
             {"id": "aeon-towel", "spot_id": "nagoya-aeon-mall", "emoji": "🧣", "label": "応援マフラータオル", "cost": 20, "item_type": "care", "hp": 15, "mp": 15, "desc": "掲げて選手を鼓舞する青きタオル。心身を整えHPとMPを15回復する"},
             {"id": "aeon-drink", "spot_id": "nagoya-aeon-mall", "emoji": "🥤", "label": "ナゴヤエナジースカッシュ", "cost": 15, "item_type": "mana", "mp": 25, "desc": "爽快感あふれる炭酸エナジードリンク。MPを25回復する"},
@@ -7314,6 +7298,7 @@ def _nagoya_rpg() -> dict[str, Any]:
         ],
         "synergy": {
             "cities-spot-london-rl-chest-lance": {"emoji": "🔱", "label": "円卓の白銀聖槍", "atk": 25, "def": 10, "skill": {"emoji": "🔱", "label": "白銀聖槍連突", "mp": 6, "mult_pct": 260, "desc": "聖なる白銀の連撃(260%)"}},
+            "cities-spot-london-rl-dragon-dragoon": {"emoji": "🐲", "label": "蒼天竜のメガストーン", "atk": 18, "def": 14, "hp": 40, "mp": 25, "skill": {"emoji": "🐲", "label": "ドラグーンスカイバースト", "mp": 8, "mult_pct": 220, "desc": "蒼き守護竜の咆哮が敵を一掃する！"}},
             "cities-spot-london-rl-dragon-nogard": {"emoji": "👑", "label": "始祖龍ノガードの逆鱗", "atk": 22, "def": 16, "hp": 40, "mp": 30, "skill": {"emoji": "🐉", "label": "リバース・ドラグーン", "mp": 8, "mult_pct": 320, "desc": "始祖龍の神話的一撃(320%)"}},
             "overworld-spot-meadow-chest-sword": {"emoji": "🗡️", "label": "村の宝剣", "atk": 10, "def": 4},
             "overworld-spot-meadow-chest-shield": {"emoji": "🛡️", "label": "英雄の盾", "def": 10, "hp": 15},
@@ -7491,11 +7476,11 @@ def _osaka_detective_spec() -> dict[str, Any]:
         "nodes": [
             {"id": "npc-heita", "kind": "npc", "tx": 14, "ty": 18, "emoji": "🕵️‍♂️", "label": "熱血探偵ヘイタ", "speaker": "熱血探偵ヘイタ",
              "greeting": "新人探偵はん、よう来たな！オオサカの街に怪しい影や暗号トリックがうごめいとるんや！",
-             "lines": ["現場検証では体力⚡を消費して閃きロジックをぶつけるんや。息切れしたら街の茶房や給水処🍵でひと息入れや！",
+             "lines": ["現場検証では体力⚡を消費して閃きロジックをぶつけるんや。息切れしたら街の喫茶店🍵でひと息入れや！",
                        "街角にはたこ焼き🐙やルーペ🔍、それに名探偵装備の宝箱🎁が落ちとる。見つけたら手帳に収めて身なりを固めるんや！",
                        "影の謎を解くと街に緑🌱が咲いて浪速手帳📋に記録される。すべての影を解き明かして、西の名探偵の座を掴むんやで！"]},
             {"id": "npc-trail-dog", "kind": "npc", "tx": 15, "ty": 18, "emoji": "🐕‍🦺", "label": "浪速の捜索犬", "speaker": "浪速の捜索犬",
-             "greeting": "捜索犬が地面に鼻をつけ、西の給水処の方を向いた。",
+             "greeting": "捜索犬が地面に鼻をつけ、西の喫茶店の方を向いた。",
              "lines": ["ハーネスには浪速署の札。顔を上げ、すぐ北に立つ署長を振り返った。"]},
             {"id": "npc-ayaka", "kind": "npc", "tx": 15, "ty": 14, "emoji": "🧢", "label": "助手アヤカ", "speaker": "助手アヤカ",
              "greeting": "ヘイタ先輩の助手をやってますアヤカです！右上のコンパス🧭を見れば、一番近い未解明の影の方向と距離が一発で分かりますよ！",
@@ -7506,7 +7491,7 @@ def _osaka_detective_spec() -> dict[str, Any]:
              "lines": ["ウチのアツアツたこ焼き🐙は特製で、捜査体力⚡と精神力がいっぺんにみなぎりまっせ！",
                        "奥の鑑識班から融通してもらった鑑識試験紙🧪も置いてまっせ。手強い暗号にぶつけてみなはれ！"]},
             {"id": "npc-hakase", "kind": "npc", "tx": 23, "ty": 22, "emoji": "🧤", "label": "科学捜査官ハカセ", "speaker": "科学捜査官ハカセ", "refill": True,
-             "greeting": "科学捜査研究所へようこそ！水都大阪の分析技術と鑑識データで、君の体力⚡と推理コンディションを満タンまで即時回復しよう！",
+             "greeting": "科学捜査研究所へようこそ！鑑識結果を待つ間、ここの椅子で休んでいってくれ。",
              "lines": ["川沿いの足跡は雨で消えやすい。見つけたら手帳に場所と向きを控えておくんじゃ。",
                        "理路整然とした論理のメスを入れれば、どんな難解な暗号トリックも必ず綻びを見せるはずじゃよ！"]},
             {"id": "npc-archivist", "kind": "npc", "tx": 29, "ty": 27, "emoji": "🧩", "label": "暗号解読士", "speaker": "暗号解読士", "quiz": True,
@@ -7517,13 +7502,13 @@ def _osaka_detective_spec() -> dict[str, Any]:
              "lines": ["黒幕シャドウに挑む前に、街角の宝箱から浪速の調査靴⚡や撥水トレンチコート🧥を揃えておくことをお勧めします。",
                        "さらに東の区画には3箇所以上の謎解きで封印が解ける黄金の名探偵ハット⛑️の宝箱が眠っているそうです！"]},
             {"id": "stand-shin-osaka", "kind": "stand", "tx": 16, "ty": 2, "emoji": "🍵", "label": "新大阪茶房",
-             "greeting": "新大阪駅前の茶房スタンドや。淹れたての宇治茶を一杯飲んで、調査体力⚡を満タンまで急速補給したで！"},
-            {"id": "stand-umeda", "kind": "stand", "tx": 13, "ty": 17, "emoji": "🚰", "label": "梅田給水処",
-             "greeting": "梅田地下街前の給水処や。清涼な冷水で喉を潤して、調査体力⚡を満タンまで補給したで！"},
+             "greeting": "新大阪駅前の茶房スタンドや。淹れたての宇治茶でひと息ついていき。"},
+            {"id": "stand-umeda", "kind": "stand", "tx": 13, "ty": 17, "emoji": "☕", "label": "梅田の喫茶店",
+             "greeting": "地下街の喫茶店や。奥の席で手帳を広げて、ひと息ついていき。"},
             {"id": "stand-semba", "kind": "stand", "tx": 16, "ty": 27, "emoji": "🍵", "label": "船場茶房",
-             "greeting": "船場商人の路地裏茶房や。香ばしいほうじ茶をいただいて、調査体力⚡と気力を満タンまで補給したで！"},
+             "greeting": "船場商人の路地裏茶房や。捜査の合間に、ほうじ茶はいかが？"},
             {"id": "stand-namba", "kind": "stand", "tx": 17, "ty": 37, "emoji": "🐙", "label": "難波茶房処",
-             "greeting": "道頓堀近くの茶房処や。名物のお茶で一服して、長距離捜査の疲れと体力⚡を満タンまで急速補給したで！"},
+             "greeting": "道頓堀近くの茶房処や。歩き疲れたら、ここで一服していき。"},
             {"id": "drop-takoyaki", "kind": "drop", "tx": 15, "ty": 4, "emoji": "🐙", "label": "アツアツたこ焼き",
              "item_emoji": "🐙", "item_label": "アツアツたこ焼き", "desc": "出汁の効いた浪速名物たこ焼き。",
              "item_type": "heal", "hp": 20, "stamina": 14, "exp": 8, "medals": 5},
@@ -7584,7 +7569,7 @@ def _osaka_detective_spec() -> dict[str, Any]:
              "kind": "drop", "count": 1, "reward_exp": 15, "reward_medals": 10},
             {"id": "q-open-chest", "title": "名探偵装備の獲得", "desc": "街の宝箱を開けて調査靴やトレンチコートを装備する。",
              "kind": "chest", "count": 1, "reward_exp": 25, "reward_medals": 20},
-            {"id": "q-stand-refill", "title": "茶房・給水処で急速補給", "desc": "街の給水処や茶房スタンドで調査体力を満タンにする。",
+            {"id": "q-stand-refill", "title": "捜査の合間にひと休み", "desc": "捜査の合間に茶房や研究所で休憩する。",
              "kind": "refill", "count": 1, "reward_exp": 15, "reward_medals": 10},
             {"id": "q-solve-quiz", "title": "城東の目撃証言", "desc": "暗号解読士の紙片と目撃通報を照合し、矛盾する供述を特定する。",
              "kind": "quiz", "count": 1, "reward_exp": 20, "reward_medals": 15},
@@ -7596,7 +7581,7 @@ def _osaka_detective_spec() -> dict[str, Any]:
             {"id": "b-clue-five", "kind": "clue", "count": 5, "emoji": "🌷", "label": "名推理エキスパート", "desc": "5箇所以上の影を解明した"},
             {"id": "b-boss-down", "kind": "boss_clue", "count": 1, "emoji": "🎩", "label": "黒幕撃破", "desc": "最大規模の怪盗黒幕シャドウを看破した"},
             {"id": "b-geared-up", "kind": "chest", "count": 4, "emoji": "⛑️", "label": "一級探偵フル装備", "desc": "宝箱からシューズ・コート・水筒・ハットを揃えた"},
-            {"id": "b-stand-master", "kind": "refill", "count": 3, "emoji": "🍵", "label": "茶房マイスター", "desc": "茶房や給水処で3回以上補給した"},
+            {"id": "b-stand-master", "kind": "refill", "count": 3, "emoji": "🍵", "label": "茶房マイスター", "desc": "捜査の合間に3回以上休憩した"},
             {"id": "b-testimony", "kind": "quiz", "count": 1, "emoji": "📝", "label": "証言の裏取り", "desc": "通報と供述の矛盾を突き止めた"},
             {"id": "b-green-osaka", "kind": "garden", "count": 8, "emoji": "🌳", "label": "緑化の名探偵", "desc": "ガーデン緑化セルが8マス以上に達した"},
         ],

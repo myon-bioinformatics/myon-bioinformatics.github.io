@@ -2281,7 +2281,7 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
             page.locator(".ui-rpg-card .ui-rpg-close").click()
 
         visit("npc-trail-dog")
-        self.assertIn("西の給水処", page.text_content(".ui-rpg-card"))
+        self.assertIn("西の喫茶店", page.text_content(".ui-rpg-card"))
         close()
         visit("npc-ayaka")
         close()
