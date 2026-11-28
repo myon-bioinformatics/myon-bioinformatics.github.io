@@ -134,7 +134,7 @@ test.describe('MCP Tool Call Lab - Publication, navigation, and extraction', () 
 
   test('Execution Lab branding and runtime load from the framed panel', async ({ page }) => {
     await page.goto('/');
-    const href = await page.getByRole('link', { name: 'Open Execution Lab →' }).getAttribute('href');
+    const href = await page.locator('a[href$="#mcp-execution"]').first().getAttribute('href');   // 🔗 by place, whatever 🌐 the words say
     const url = new URL(href, page.url());
     const failures = [];
     page.on('response', response => {
