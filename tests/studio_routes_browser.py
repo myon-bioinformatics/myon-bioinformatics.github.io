@@ -185,14 +185,17 @@ def test_the_old_slide_addresses_are_gone(browser, studio_origin):
 
 
 @pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
-@pytest.mark.parametrize("route", ["image-studio/", "slide-studio/", "browser-tools/"])
+@pytest.mark.parametrize("route", ["home", "image-studio/", "slide-studio/", "browser-tools/"])
 def test_studio_has_one_tools_destination(browser, studio_origin, mobile, route):
     page = _page(browser, studio_origin, mobile=mobile)
     try:
-        _studio(page, studio_origin, route.removesuffix("/"))
+        if route == "home":
+            assert page.goto(studio_origin + "/tools/#home").ok
+        else:
+            _studio(page, studio_origin, route.removesuffix("/"))
         target = studio_origin + "/index.html#tools"
-        links = page.locator("a[href]").evaluate_all(                            # 🏠 the screen's, in sight (the home panel's is hidden)
-            "(anchors, target) => anchors.filter(a => a.href === target && a.offsetParent).length", target
+        links = page.locator("a[href]").evaluate_all(  # Include hidden anchors, not only visible ones.
+            "(anchors, target) => anchors.filter(a => a.href === target).length", target
         )
         assert links == 1
         home = page.locator(".ui-chrome a.ui-world-home")
