@@ -698,7 +698,7 @@ wheels = [
 [[package]]
 name = "pysaiyanweboo"
 version = "0.1.0"
-source = { git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?branch=main#e7d1509afe0f42e8ce76abc9c351e21df6ac17ce" }
+source = { git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo?branch=main#72122a42734f9e84c7b6bb71573a5686d358b482" }
 
 [[package]]
 name = "pytest"
