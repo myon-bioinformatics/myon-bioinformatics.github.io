@@ -108,7 +108,7 @@ def world_page(ui) -> str:
     dialogue = WLLAMA_JS + f'\nconst worldAnswer = localModel({json.dumps(runtime)});\n'
     dragon_png, dragon_grid = ('./' + path.removeprefix('tools/') for path in DRAGON_ASSETS)
     return shell.document(ui, _world(), maps, places, css, js, dialogue,
-                          dragon_png=dragon_png, dragon_grid=dragon_grid)
+                          dragon_png=dragon_png, dragon_grid=dragon_grid, site_words=tools_words())
 
 
 def installed_commit(distribution: str = DISTRIBUTION) -> str:
@@ -187,10 +187,9 @@ def tools_places(prefix: str = '../') -> list[dict]:
     a page ``prefix`` below the site root (``../``: the screen's): the doors of 🚪 Door-to-Door. ``text`` is the card's own description (the board shows it).
 
     Every label is ``emoji words``, one emoji per page (the door knows a page by its emoji): the card's own, or the one named here
-    for a link that has none or shares its card's. 🌐 ``labels`` is the label in the other languages, when the card names its words
-    (``tools_words``)."""
-    import pysaiyanweboo as ui
-    site, places, names, codes = 'https://myon-bioinformatics.github.io/tools/', {}, tools_words(), [code for code, _ in ui.CHROME_LANGS][1:]
+    for a link that has none or shares its card's. 🌐 Its words in the other languages are the card's (``tools_words``): the chrome and
+    a world carry them (``data-words``), so 🌐 finds them wherever the label is shown."""
+    site, places = 'https://myon-bioinformatics.github.io/tools/', {}
     marks = {'html-import': '📄', 'maps': '🗺️', 'tokyo': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'protocol': '🤝'}
     for card in _front_module().PORTAL:
         mark, _, title = card['title'].partition(' ')
@@ -200,8 +199,7 @@ def tools_places(prefix: str = '../') -> list[dict]:
             href = prefix + href[2:] if href.startswith('./') else prefix + 'tools/' + href[len(site):] if href.startswith(site) else href
             name = re.sub(r'[^a-z0-9]+', '-', href.partition('tools/')[2].removesuffix('.html').lower()).strip('-') or card['id']
             words = title if len(card['links']) == 1 else label.removesuffix(' →').removeprefix('Open ')   # several links: each link's own words
-            places.setdefault(href, {'id': name, 'href': href, 'label': f'{marks.get(name, mark)} {words}', 'text': card['text'],
-                                     **({'labels': {code: f'{marks.get(name, mark)} {w}' for code, w in zip(codes, names[words])}} if words in names else {})})
+            places.setdefault(href, {'id': name, 'href': href, 'label': f'{marks.get(name, mark)} {words}', 'text': card['text']})
     return list(places.values())
 
 
@@ -228,9 +226,8 @@ def tools_door(ui, prefix: str = '../') -> dict[str, str]:
     """🚪 PySaiyanWeBoo's Door-to-Door as the page's foot (``door_html(foot=True)``), as component parts: 🏠 the cards, then every
     tool (``tools_places``: the screen's #panels). After the pull-down: 🐦 the X account and 📦 this page's size
     (``pysaiyanweboo.stamp_page_size`` writes it once the page is whole)."""
-    pages = [{'emoji': '🏠', 'label': 'Tools', 'href': prefix + 'index.html#tools'},              # 🌐 labels: a world's 🌐 has no catalogue of them
-             *({'emoji': mark, 'label': words, 'href': place['href'], **({'labels': {c: w.partition(' ')[2][:40] for c, w in place['labels'].items()}} if 'labels' in place else {})}
-               for place in tools_places(prefix) for mark, _, words in [place['label'].partition(' ')])]
+    pages = [{'emoji': '🏠', 'label': 'Tools', 'href': prefix + 'index.html#tools'},              # 🌐 the names are the chrome's words (data-words)
+             *({'emoji': mark, 'label': words, 'href': place['href']} for place in tools_places(prefix) for mark, _, words in [place['label'].partition(' ')])]
     x = [{'emoji': '🐦', 'label': f'X (Twitter) @{X_URL.rpartition("/")[2]}', 'href': X_URL}]
     return ui.component_parts('door', {'schema': ui.DOOR_SCHEMA, 'k': 0, 'pages': pages}, foot=True, links=x, size=True)
 

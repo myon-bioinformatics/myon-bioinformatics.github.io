@@ -1975,6 +1975,20 @@ def test_a_document_table_draws_its_number_columns_as_bars():
         assert front.table_bars(kept) == kept
 
 
+def test_the_front_page_sheet_names_only_what_the_page_can_draw():
+    """🧹 Every class and id the front page's own sheet (STYLE) selects is one the page can hold: written by the generator or its
+    script, or present in the built page. A rule for something nobody draws any more is dead weight on every visit."""
+    front = _front()
+    source = (ROOT / 'scripts/front_page.py').read_text(encoding='utf-8')
+    assert source.count(front.STYLE) == 1
+    drawn = source.replace(front.STYLE, '') + (SITE / 'index.html').read_text(encoding='utf-8').replace(front.STYLE, '')
+    selectors = re.findall(r'(?:^|[{};])\s*([^{}@;]+?)\s*\{', re.sub(r'/\*.*?\*/', '', front.STYLE, flags=re.S))
+    names = sorted(set(re.findall(r'[.#]([A-Za-z_][\w-]*)', ' '.join(selectors))))
+    assert len(names) > 50 and 'portal-card' in names and 'skill-bar-fill' in names
+    unused = [name for name in names if not re.search(r'(?<![\w-])' + re.escape(name) + r'(?![\w-])', drawn)]
+    assert unused == [], unused
+
+
 def test_weekly_markdown_fragment_rejects_invalid_paths():
     front = _front()
     with pytest.raises(ValueError):
