@@ -578,26 +578,24 @@ console.log('ok');
 
 
 def test_the_chrome_speaks_the_eleven_languages_of_flutter_navigation_basic():
-    codes = [code for code, _ in W.WORLD_LANGS]
-    assert codes == ["ja", "en", "fr", "es", "pt", "ar", "zh", "ru", "id", "de", "sw"]
+    import pysaiyanweboo as ui                                                   # 🌐 PySaiyanWeBoo's languages and catalogue, the world's words on top
+    assert [code for code, _ in W.CHROME_LANGS] == ["ja", "en", "fr", "es", "pt", "ar", "zh", "ru", "id", "de", "sw"]
     for key, words in W.WORLD_TEXT.items():                                   # every word in every language, none left as a stand-in
         assert len(words) == 11 and all(w.strip() for w in words), key
         assert len(set(words)) >= 6, key                                       # a few are the same word in several languages (Hotel-like), not all
+    shared = json.loads(ui.shell_js(page="").split("CHROME_TEXT=")[1].split(";\n")[0])
+    assert not set(W.WORLD_TEXT) & set(shared)                                 # a word is written once: 🏠 ⭐ ⚙️ 🫧 🚪 📦 "in N min" are PySaiyanWeBoo's
+    assert not {w[0] for w in W.WORLD_TEXT.values()} & {w[0] for w in shared.values()}
     runtime = ("invalid", "camera", "photo", "clear", "unavailable")           # said by the script (a validity message, the ask() choices), not in the markup
     overworld = W.world_html(W.EXAMPLES["overworld"])
-    # 🌐 the rest sayIn finds by their words: the scenes' buttons and labels, the shell's (world_shell.py), the site's parts on a world
-    # page (🫧 🚪 📦: PySaiyanWeBoo's keys) and what the board writes (now, in N min); each is in one of them, in Japanese
+    # 🌐 the rest sayIn finds by their words: the scenes' buttons and labels, the shell's (world_shell.py); each is in one of them, in Japanese
     by_words = [k for k in W.WORLD_TEXT if f'data-t="{k}"' not in overworld and k not in runtime]
-    import pysaiyanweboo                                                          # the way back's 関連リンク is PySaiyanWeBoo's
     scenes = "".join(W.world_html(W.example_data(name)) for name in W.EXAMPLES) + "".join(
-        path.read_text(encoding="utf-8") for path in (ROOT / "scripts").glob("*.py")) + Path(pysaiyanweboo.__file__).read_text(encoding="utf-8")
-    assert all(W.WORLD_TEXT[k][0] in scenes or k in ("blink", "door", "size", "current", "now", "in") for k in by_words), \
-        [k for k in by_words if W.WORLD_TEXT[k][0] not in scenes]
-    assert {"now", "in", "current"} <= set(by_words) and "WORLD_TEXT.current[" in W.WORLD_JS and "WORLD_TEXT.in[i]" in W.WORLD_JS
-    assert all(f"'{k}'" in W.WORLD_JS for k in runtime[1:])
-    assert W.WORLD_JS.startswith(W.WORLD_MOTION_JS + W.WORLD_SHARED_JS + W.WORLD_TEXT_JS)
-    catalogue = json.loads(W.WORLD_TEXT_JS.split("WORLD_TEXT=")[1].rstrip(";\n"))
-    assert catalogue == {k: list(v) for k, v in W.WORLD_TEXT.items()}
+        path.read_text(encoding="utf-8") for path in (ROOT / "scripts").glob("*.py"))
+    assert all(W.WORLD_TEXT[k][0] in scenes for k in by_words), [k for k in by_words if W.WORLD_TEXT[k][0] not in scenes]
+    assert all(f"'{k}'" in W.WORLD_JS for k in runtime)
+    assert W.WORLD_JS.startswith(W.WORLD_MOTION_JS + W.WORLD_SHARED_JS + ui.shell_js(W.WORLD_TEXT, page=""))   # the shell a tool page's chrome is made of
+    assert "sayAround(to,around)" in W.WORLD_JS and "WORLD_TEXT" not in W.WORLD_JS                # the site's foot and 🚪 follow, the way a chrome does it
     assert 'lang="ar">العربية</option>' in W.world_html(_world())
 
 
@@ -939,7 +937,7 @@ const actor=node(), avatar=node(), button=node(), board=node(), form=node();
 form.elements={x:{value:'100'},y:{value:'32'}};form.reportValidity=()=>true;
 const controls=node();controls.querySelector=s=>s==='form'?form:s==='output'?board:button;
 avatar.dataset={x:'64',y:'32',speed:'10'};
-const clock=node(), countdown=node();countdown.dataset.at='10:30';board.dataset.offset='0';
+const clock=node(), countdown=node();countdown.dataset.at='10:30';board.dataset.offset='0';board.closest=()=>({lang:'ja'});
 board.querySelector=s=>s==='[data-clock]'?clock:null;board.querySelectorAll=s=>s==='[data-at]'?[countdown]:[];   // the board also has gauges now: answer by selector
 const f=node();f.dataset={w:'128',h:'64',floor:'one'};f.querySelector=()=>avatar;f.getBoundingClientRect=()=>({left:0,top:0,width:128,height:64});
 const other=node();other.dataset={w:'128',h:'64',floor:'two'};other.querySelector=()=>null;other.getBoundingClientRect=f.getBoundingClientRect;
