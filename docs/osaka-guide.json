@@ -837,6 +837,13 @@
       "detail": "(14, 18) 新人探偵はん、よう来たな！オオサカの街に怪しい影や暗号トリックがうごめいとるんや！"
     },
     {
+      "id": "task/npc-trail-dog",
+      "type": "Task",
+      "name": "浪速の捜索犬",
+      "section": "聞き込みと補給",
+      "detail": "(15, 18) 捜索犬が地面に鼻をつけ、西の給水処の方を向いた。"
+    },
+    {
       "id": "task/npc-ayaka",
       "type": "Task",
       "name": "助手アヤカ",
@@ -2490,6 +2497,11 @@
       "source": "actor",
       "kind": "performs",
       "target": "task/npc-heita"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/npc-trail-dog"
     },
     {
       "source": "actor",

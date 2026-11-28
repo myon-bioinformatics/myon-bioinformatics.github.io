@@ -2088,12 +2088,30 @@ class OsakaDetectiveTests(unittest.TestCase):
         detective = world["detective"]
         self.assertEqual(detective["floor"], "osaka")
         self.assertEqual(detective["boss_cell"], [32, 33])
-        self.assertEqual(len(detective["nodes"]), 19)
+        self.assertEqual(len(detective["nodes"]), 20)
         self.assertEqual(len(detective["tactics"]), 3)
         self.assertEqual(len(detective["shop"]), 3)
         self.assertEqual(len(detective["quests"]), 8)
         self.assertEqual(len(detective["badges"]), 7)
         self.assertEqual(len(detective["quizzes"]), 6)
+
+    def test_local_dogs_have_distinct_icons_and_areas(self):
+        dogs = {}
+        for scene in ("school", "overworld", "cities"):
+            spec = W.world_validate(W.example_data(scene))
+            for floor in spec["floors"]:
+                actors = list(floor["actors"])
+                if floor["id"] == "osaka":
+                    actors.extend(spec["detective"]["nodes"])
+                for actor in actors:
+                    if actor["emoji"] in {"🐕", "🐕‍🦺", "🦮", "🐩"}:
+                        dogs[scene, floor["id"], actor["id"]] = actor["emoji"]
+                        if actor["id"] == "meadow-dog":
+                            npc = spec["rpg"]["npcs"][actor["id"]]
+                            self.assertEqual((npc["emoji"], npc["speaker"]), (actor["emoji"], actor["label"]))
+        self.assertEqual(dogs, {("school", "yard", "dog"): "🐩",
+                                ("overworld", "meadow", "meadow-dog"): "🦮",
+                                ("cities", "osaka", "npc-trail-dog"): "🐕‍🦺"})
 
     def test_detective_nodes_and_shadows_are_walkable_and_reachable_from_start(self):
         world = W.world_validate(W.example_data("cities"))

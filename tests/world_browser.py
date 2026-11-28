@@ -1917,6 +1917,9 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         def close():
             page.locator(".ui-rpg-card .ui-rpg-close").click()
 
+        visit("npc-trail-dog")
+        self.assertIn("西の給水処", page.text_content(".ui-rpg-card"))
+        close()
         visit("npc-ayaka")
         close()
         self.assertIn("0/", page.text_content("[data-detective-qcount]"))

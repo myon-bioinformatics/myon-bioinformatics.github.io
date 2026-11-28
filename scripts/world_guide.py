@@ -36,6 +36,9 @@ def build():
             route = fid if SPACES.get(fid, (None,))[0] == scene else primary
             area = add(f"{scene}/{fid}", "State", floor["label"])
             link("#"+route, "contains", area)
+            for actor in floor["actors"]:
+                aid = add(f'actor/{area}/{actor["id"]}', "Actor", actor["emoji"]+" "+actor["label"], detail=actor["body"])
+                link(area, "offers", aid)
             for s in floor["spots"]:
                 sid = s["id"]
                 spot = add(f"{area}/{sid}", "Task", s["label"], detail=s["body"], x=s["x"], y=s["y"])

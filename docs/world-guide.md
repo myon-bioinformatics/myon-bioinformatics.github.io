@@ -6,6 +6,9 @@
 
 ### 🌱 草原
 
+- 🐱 散歩猫　気まぐれに村をパトロールしている黒ぶち猫。
+- 🦮 村の道案内犬　分かれ道で立ち止まり、魔物がいる方角を教えてくれる。
+- 🐦 伝令バト　各リポジトリの更新を運ぶ小さな鳥。
 - 🏘️ はじまりの村　家がならぶ、のどかな村です。
 - 🌼 ひろば　見晴らしのよい広場です。
 - 🍠 昼ヶ丘（ヒルガオカ）　ヒルガオ科のサツマイモを育てている、日当たりのよい丘です。　サツマイモ（消費）
@@ -85,6 +88,9 @@
 
 ### 校庭
 
+- 🧒 こども　走り回っています。
+- 🐩 校庭のプードル　鉄棒のそばで振り返る。鼻先が向いた右手の花だんには、季節の花が咲いている。
+- 🐦 とり　屋根にとまっています。
 - 鉄棒　ここで体を動かします。
 - 花だん　季節の花が咲いています。
 
@@ -269,6 +275,10 @@
 
 ### 1F
 
+- 🧑‍🌾 Farmer　Walks at a steady pace and stops to look around. Tap to ask.
+- 🐈 Cat　Wanders; no destination.
+- 🦆 Duck　Slow and sure.
+- 🤖 Robot　Moves in straight lines at constant speed.
 - Gate　Entrance and help desk.
 - Hall　The central hall connects every area.
 - Cafe　Drinks and light meals.
@@ -276,6 +286,7 @@
 
 ### 2F
 
+- 🦉 Owl　Keeps the deck company.
 - Deck　Open-air deck with a view of the hall.
 - Lab　Hands-on corner for the curious.
 

@@ -53,6 +53,24 @@
    "name": "🌱 草原"
   },
   {
+   "id": "actor/overworld/meadow/meadow-cat",
+   "type": "Actor",
+   "name": "🐱 散歩猫",
+   "detail": "気まぐれに村をパトロールしている黒ぶち猫。"
+  },
+  {
+   "id": "actor/overworld/meadow/meadow-dog",
+   "type": "Actor",
+   "name": "🦮 村の道案内犬",
+   "detail": "分かれ道で立ち止まり、魔物がいる方角を教えてくれる。"
+  },
+  {
+   "id": "actor/overworld/meadow/meadow-bird",
+   "type": "Actor",
+   "name": "🐦 伝令バト",
+   "detail": "各リポジトリの更新を運ぶ小さな鳥。"
+  },
+  {
    "id": "overworld/meadow/meadow-town",
    "type": "Task",
    "name": "🏘️ はじまりの村",
@@ -688,6 +706,24 @@
    "id": "school/yard",
    "type": "State",
    "name": "校庭"
+  },
+  {
+   "id": "actor/school/yard/kid",
+   "type": "Actor",
+   "name": "🧒 こども",
+   "detail": "走り回っています。"
+  },
+  {
+   "id": "actor/school/yard/dog",
+   "type": "Actor",
+   "name": "🐩 校庭のプードル",
+   "detail": "鉄棒のそばで振り返る。鼻先が向いた右手の花だんには、季節の花が咲いている。"
+  },
+  {
+   "id": "actor/school/yard/bird",
+   "type": "Actor",
+   "name": "🐦 とり",
+   "detail": "屋根にとまっています。"
   },
   {
    "id": "school/yard/bar",
@@ -2077,6 +2113,30 @@
    "name": "1F"
   },
   {
+   "id": "actor/world/1f/farmer",
+   "type": "Actor",
+   "name": "🧑‍🌾 Farmer",
+   "detail": "Walks at a steady pace and stops to look around. Tap to ask."
+  },
+  {
+   "id": "actor/world/1f/cat",
+   "type": "Actor",
+   "name": "🐈 Cat",
+   "detail": "Wanders; no destination."
+  },
+  {
+   "id": "actor/world/1f/duck",
+   "type": "Actor",
+   "name": "🦆 Duck",
+   "detail": "Slow and sure."
+  },
+  {
+   "id": "actor/world/1f/robot",
+   "type": "Actor",
+   "name": "🤖 Robot",
+   "detail": "Moves in straight lines at constant speed."
+  },
+  {
    "id": "world/1f/gate",
    "type": "Task",
    "name": "Gate",
@@ -2112,6 +2172,12 @@
    "id": "world/2f",
    "type": "State",
    "name": "2F"
+  },
+  {
+   "id": "actor/world/2f/owl",
+   "type": "Actor",
+   "name": "🦉 Owl",
+   "detail": "Keeps the deck company."
   },
   {
    "id": "world/2f/deck",
@@ -2302,6 +2368,21 @@
    "source": "#world",
    "kind": "contains",
    "target": "overworld/meadow"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "actor/overworld/meadow/meadow-cat"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "actor/overworld/meadow/meadow-dog"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "actor/overworld/meadow/meadow-bird"
   },
   {
    "source": "overworld/meadow",
@@ -2757,6 +2838,21 @@
    "source": "#school",
    "kind": "contains",
    "target": "school/yard"
+  },
+  {
+   "source": "school/yard",
+   "kind": "offers",
+   "target": "actor/school/yard/kid"
+  },
+  {
+   "source": "school/yard",
+   "kind": "offers",
+   "target": "actor/school/yard/dog"
+  },
+  {
+   "source": "school/yard",
+   "kind": "offers",
+   "target": "actor/school/yard/bird"
   },
   {
    "source": "school/yard",
@@ -3681,6 +3777,26 @@
   {
    "source": "world/1f",
    "kind": "offers",
+   "target": "actor/world/1f/farmer"
+  },
+  {
+   "source": "world/1f",
+   "kind": "offers",
+   "target": "actor/world/1f/cat"
+  },
+  {
+   "source": "world/1f",
+   "kind": "offers",
+   "target": "actor/world/1f/duck"
+  },
+  {
+   "source": "world/1f",
+   "kind": "offers",
+   "target": "actor/world/1f/robot"
+  },
+  {
+   "source": "world/1f",
+   "kind": "offers",
    "target": "world/1f/gate"
   },
   {
@@ -3702,6 +3818,11 @@
    "source": "#camera",
    "kind": "contains",
    "target": "world/2f"
+  },
+  {
+   "source": "world/2f",
+   "kind": "offers",
+   "target": "actor/world/2f/owl"
   },
   {
    "source": "world/2f",
