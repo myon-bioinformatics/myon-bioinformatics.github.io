@@ -2168,7 +2168,7 @@ class FakeParisRescueTests(unittest.TestCase):
         self.assertEqual(len(rescue["shop"]), 3)
         self.assertEqual(len(rescue["quests"]), 8)
         self.assertEqual(len(rescue["badges"]), 7)
-        self.assertEqual(len(rescue["quizzes"]), 6)
+        self.assertEqual(len(rescue["quizzes"]), 0)
 
     def test_rescue_nodes_and_fires_are_walkable_and_reachable_from_start(self):
         world = W.world_validate(W.example_data("cities"))
@@ -2247,7 +2247,7 @@ class FakeParisRescueTests(unittest.TestCase):
             {**valid, "hero": {"hp": -1}},
             {**valid, "nodes": []},
             {**valid, "nodes": [{**valid["nodes"][0], "tx": 0, "ty": 0}]},  # out-of-bounds or blocked
-            {**valid, "quizzes": [{**valid["quizzes"][0], "choices": ["only two"]}]},
+            {**valid, "quizzes": [{"prompt": "Q", "correct": 0, "explanation": "A", "choices": ["only two"]}]},
             {**valid, "unknown_key": True},
         ]
         for bad in bad_specs:
@@ -2269,7 +2269,7 @@ class OsakaDetectiveTests(unittest.TestCase):
         self.assertEqual(len(detective["shop"]), 3)
         self.assertEqual(len(detective["quests"]), 8)
         self.assertEqual(len(detective["badges"]), 7)
-        self.assertEqual(len(detective["quizzes"]), 6)
+        self.assertEqual(len(detective["quizzes"]), 1)
 
     def test_shared_radar_module_and_half_tile_rounding(self):
         specs = [W.example_data("cities")] * 2
@@ -2377,7 +2377,7 @@ class OsakaDetectiveTests(unittest.TestCase):
             {**valid, "hero": {"hp": -1}},
             {**valid, "nodes": []},
             {**valid, "nodes": [{**valid["nodes"][0], "tx": 0, "ty": 0}]},  # out-of-bounds or blocked
-            {**valid, "quizzes": [{**valid["quizzes"][0], "choices": ["only two"]}]},
+            {**valid, "quizzes": [{"prompt": "Q", "correct": 0, "explanation": "A", "choices": ["only two"]}]},
             {**valid, "unknown_key": True},
         ]
         for bad in bad_specs:

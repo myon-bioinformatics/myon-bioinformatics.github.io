@@ -243,7 +243,7 @@
     {
       "id": "q-solve-quiz",
       "type": "Goal",
-      "name": "暗号解読士の推理試練"
+      "name": "城東の目撃証言"
     },
     {
       "id": "spec/q-solve-quiz",
@@ -253,26 +253,26 @@
     {
       "id": "task/q-solve-quiz",
       "type": "Task",
-      "name": "暗号解読士の推理試練",
+      "name": "城東の目撃証言",
       "section": "事件・バッジ",
-      "detail": "暗号解読士の技術ポートフォリオクイズに正解する。"
+      "detail": "暗号解読士の紙片と目撃通報を照合し、矛盾する供述を特定する。"
     },
     {
       "id": "condition/quiz/1",
       "type": "Condition",
-      "name": "正解した異なる問題 ≥ 1",
+      "name": "矛盾を特定した証言 ≥ 1",
       "metric": "quiz",
       "minimum": 1
     },
     {
       "id": "state/quiz",
       "type": "State",
-      "name": "正解した異なる問題"
+      "name": "矛盾を特定した証言"
     },
     {
       "id": "claim/condition/quiz/1",
       "type": "Claim",
-      "name": "正解した異なる問題 ≥ 1",
+      "name": "矛盾を特定した証言 ≥ 1",
       "value": null
     },
     {
@@ -435,34 +435,21 @@
       "value": null
     },
     {
-      "id": "b-quiz-scholar",
+      "id": "b-testimony",
       "type": "Goal",
-      "name": "浪速知識人"
+      "name": "証言の裏取り"
     },
     {
-      "id": "spec/b-quiz-scholar",
+      "id": "spec/b-testimony",
       "type": "Evidence",
-      "name": "detective.badges[id=b-quiz-scholar]"
+      "name": "detective.badges[id=b-testimony]"
     },
     {
-      "id": "task/b-quiz-scholar",
+      "id": "task/b-testimony",
       "type": "Task",
-      "name": "浪速知識人",
+      "name": "証言の裏取り",
       "section": "事件・バッジ",
-      "detail": "技術リポジトリクイズに3問以上正解した"
-    },
-    {
-      "id": "condition/quiz/3",
-      "type": "Condition",
-      "name": "正解した異なる問題 ≥ 3",
-      "metric": "quiz",
-      "minimum": 3
-    },
-    {
-      "id": "claim/condition/quiz/3",
-      "type": "Claim",
-      "name": "正解した異なる問題 ≥ 3",
-      "value": null
+      "detail": "通報と供述の矛盾を突き止めた"
     },
     {
       "id": "b-green-osaka",
@@ -770,6 +757,31 @@
       "detail": "(32, 48) · Lv.1 · トリック 10"
     },
     {
+      "id": "task/testimony-0",
+      "type": "Task",
+      "name": "証言の照合",
+      "section": "現場での手順",
+      "detail": "現場の紙片には「城東」とある。署長の通報記録と食い違う供述は？"
+    },
+    {
+      "id": "condition/talk:npc-chief/1",
+      "type": "Condition",
+      "name": "浪速署長との会話 ≥ 1",
+      "metric": "talk:npc-chief",
+      "minimum": 1
+    },
+    {
+      "id": "state/talk:npc-chief",
+      "type": "State",
+      "name": "浪速署長との会話"
+    },
+    {
+      "id": "claim/condition/talk:npc-chief/1",
+      "type": "Claim",
+      "name": "浪速署長との会話 ≥ 1",
+      "value": null
+    },
+    {
       "id": "task/tac-standard",
       "type": "Task",
       "name": "現場検証",
@@ -869,7 +881,7 @@
       "type": "Task",
       "name": "暗号解読士",
       "section": "聞き込みと補給",
-      "detail": "(29, 27) 暗号解読を担当してるんや。事件簿に出てくる技術用語、いくつ読み解けるか試してみるか？"
+      "detail": "(29, 27) この紙片を見てくれ。「城東」と書いてある。署長が受けた目撃通報と突き合わせよう。"
     },
     {
       "id": "task/npc-chief",
@@ -1691,40 +1703,30 @@
     {
       "source": "guide",
       "kind": "explains",
-      "target": "b-quiz-scholar"
+      "target": "b-testimony"
     },
     {
-      "source": "b-quiz-scholar",
+      "source": "b-testimony",
       "kind": "defined_by",
-      "target": "spec/b-quiz-scholar"
+      "target": "spec/b-testimony"
     },
     {
       "source": "actor",
       "kind": "performs",
-      "target": "task/b-quiz-scholar"
+      "target": "task/b-testimony"
     },
     {
-      "source": "b-quiz-scholar",
+      "source": "b-testimony",
       "kind": "achieved_by",
-      "target": "task/b-quiz-scholar"
+      "target": "task/b-testimony"
     },
     {
-      "source": "claim/condition/quiz/3",
-      "kind": "about",
-      "target": "state/quiz"
-    },
-    {
-      "source": "condition/quiz/3",
-      "kind": "evaluated_by",
-      "target": "claim/condition/quiz/3"
-    },
-    {
-      "source": "b-quiz-scholar",
+      "source": "b-testimony",
       "kind": "completed_when",
-      "target": "condition/quiz/3"
+      "target": "condition/quiz/1"
     },
     {
-      "source": "task/b-quiz-scholar",
+      "source": "task/b-testimony",
       "kind": "produces",
       "target": "state/quiz"
     },
@@ -2432,6 +2434,31 @@
       "source": "task/shadow-34",
       "kind": "can_use",
       "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/testimony-0"
+    },
+    {
+      "source": "claim/condition/talk:npc-chief/1",
+      "kind": "about",
+      "target": "state/talk:npc-chief"
+    },
+    {
+      "source": "condition/talk:npc-chief/1",
+      "kind": "evaluated_by",
+      "target": "claim/condition/talk:npc-chief/1"
+    },
+    {
+      "source": "task/testimony-0",
+      "kind": "guarded_by",
+      "target": "condition/talk:npc-chief/1"
+    },
+    {
+      "source": "task/testimony-0",
+      "kind": "produces",
+      "target": "state/quiz"
     },
     {
       "source": "actor",

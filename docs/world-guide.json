@@ -135,7 +135,7 @@
    "id": "overworld/meadow/meadow-npc-researcher",
    "type": "Task",
    "name": "🔬 研究員",
-   "detail": "バイオインフォマティクスと個人開発リポジトリのクイズを出題します。",
+   "detail": "草原の落とし物を調べている研究員です。",
    "x": 496,
    "y": 272
   },
@@ -610,15 +610,15 @@
   {
    "id": "quest/pass-quizzes",
    "type": "Goal",
-   "name": "ポートフォリオ博士",
-   "detail": "研究員のクイズに2問正解する"
+   "name": "草原の調査報告",
+   "detail": "草原の研究員に話を聞く"
   },
   {
    "id": "condition/pass-quizzes",
    "type": "Condition",
-   "name": "quiz",
-   "minimum": 2,
-   "target": null
+   "name": "talk",
+   "minimum": 1,
+   "target": "meadow-npc-researcher"
   },
   {
    "id": "quest/defeat-golem",
@@ -688,7 +688,7 @@
    "id": "school/classroom/classroom-board",
    "type": "Task",
    "name": "黒板",
-   "detail": "今日の連絡や課題を書く場所です。",
+   "detail": "科目と問題を開き、選択肢を選ぶと解説が読めます。",
    "x": 192,
    "y": 16
   },
@@ -1207,7 +1207,7 @@
    "id": "cities/london/london-rl-npc-cecil",
    "type": "Task",
    "name": "学者セシル",
-   "detail": "ロンドンの古代伝承とクイズに詳しい若き研究者。",
+   "detail": "ロンドンの守護龍の伝承に詳しい若き研究者。",
    "x": 1392,
    "y": 208
   },
@@ -1764,7 +1764,7 @@
    "id": "rescue/npc-archivist",
    "type": "Task",
    "name": "記録官ルネ",
-   "detail": "私はポートフォリオの記録官ルネ。街の消火活動と技術リポジトリの歴史を記録している。君の知識を試すクイズに挑戦してみないかい？",
+   "detail": "私は記録官ルネ。消防隊の出動記録をつけている。タンクの残量は確かめた？",
    "tx": 21,
    "ty": 29
   },
@@ -2375,13 +2375,13 @@
   {
    "id": "quest/cecil-quiz",
    "type": "Goal",
-   "name": "ロンドン博学王",
-   "detail": "セシルのクイズに2問正解する"
+   "name": "守護龍の観察記録",
+   "detail": "異なる守護龍を2頭見つける"
   },
   {
    "id": "condition/cecil-quiz",
    "type": "Condition",
-   "name": "quiz",
+   "name": "dragon",
    "minimum": 2,
    "target": null
   },
@@ -2499,13 +2499,13 @@
   {
    "id": "quest/q-solve-quiz",
    "type": "Goal",
-   "name": "技術記録官の試練",
-   "detail": "記録官ルネの技術ポートフォリオクイズに正解する。"
+   "name": "巡回隊の補給",
+   "detail": "消火で水を使ったあと、消火栓か給水所でタンクを補充する。"
   },
   {
    "id": "condition/q-solve-quiz",
    "type": "Condition",
-   "name": "quiz",
+   "name": "replenish",
    "minimum": 1,
    "target": null
   },

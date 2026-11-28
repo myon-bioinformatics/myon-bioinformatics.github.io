@@ -59,6 +59,24 @@ class SchoolTests(unittest.TestCase):
         page.wait_for_function("() => !document.querySelector('.ui-world').hasAttribute('data-pick')")
         page.wait_for_timeout(400)                                          # the camera finishes its short glide
 
+    def test_blackboard_allows_retry_with_explanation(self):
+        page = self.open(width=390, height=844, touch=True)
+        self.start(page)
+        self.menu(page, "spots")
+        page.click('.ui-world-spots a[href="#school-spot-classroom-board"]')
+        board = page.get_by_role("region", name="黒板の練習問題")
+        self.assertEqual(board.locator(":scope > details").count(), len(W.SCHOOL_LESSONS))
+        topic = board.locator(":scope > details").first
+        topic.locator(":scope > summary").click()
+        question = topic.locator(":scope > details").first
+        question.locator(":scope > summary").click()
+        choices = question.locator(":scope > details")
+        choices.nth(1).locator("summary").click()
+        self.assertIn("もう一度", choices.nth(1).inner_text())
+        choices.first.locator("summary").click()
+        self.assertIn("正解。", choices.first.inner_text())
+        self.assertEqual(self.errors, [])
+
     def cell(self, page):
         x, y = page.evaluate(POS)
         tile = int(page.get_attribute(CLASSROOM, "data-tile"))
@@ -1582,22 +1600,20 @@ class OverworldRpgTests(unittest.TestCase):
         self.assertFalse(page.locator("[data-rpg-exp]").inner_text().startswith("✨ 0/"))
         self.assertEqual(self.errors, [])
 
-    def test_journal_quests_badges_quiz_and_responsive_layout(self):
+    def test_journal_quests_badges_and_responsive_layout(self):
         for width, height, touch in ((1280, 800, False), (390, 844, True)):
             with self.subTest(width=width):
                 page = self.open(width=width, height=height, touch=touch)
                 self.assertEqual(page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth"), 0)
                 if width == 1280:
-                    # Quiz with 🔬 研究員
+                    # Talk to the meadow researcher
                     page.click('.ui-world-menu[data-menu="spots"] > summary')
                     page.click('.ui-world-spots a[href="#overworld-spot-meadow-npc-researcher"]')
                     page.click('#overworld-spot-meadow-npc-researcher .ui-rpg-sheet-btn')
                     dialog = page.locator(".ui-rpg-card")
                     dialog.wait_for(state="visible")
-                    dialog.get_by_role("button", name="🎓 クイズに挑戦").click()
-                    dialog.locator(".ui-rpg-actions button").first.click()
-                    self.assertIn("せいかい", dialog.inner_text())
-                    dialog.get_by_role("button", name="とじる").click()
+                    self.assertEqual(dialog.get_by_role("button", name="🎓 クイズに挑戦").count(), 0)
+                    dialog.locator(".ui-rpg-close").click()
                     dialog.wait_for(state="hidden")
                     # Open 📜 Journal and inspect tabs
                     page.click("[data-rpg-journal-btn]")
@@ -2060,12 +2076,6 @@ class FakeParisHeroTests(unittest.TestCase):
                     break
             card.get_by_role("button", name="消火完了", exact=False).click()
         self.assertIn(f"{len(fires)}/{len(fires)}", page.text_content("[data-rescue-fires]"))
-        visit(next(n["id"] for n in data["nodes"] if n.get("quiz")))
-        page.locator(".ui-rpg-card").get_by_role("button", name="クイズに挑戦", exact=False).click()
-        for quiz in data["quizzes"]:
-            page.get_by_role("button", name=f'{quiz["correct"]+1}. {quiz["choices"][quiz["correct"]]}').click()
-            page.get_by_role("button", name="つぎの問題 ▶").click()
-        page.locator(".ui-rpg-card .ui-rpg-close").click()
         page.click("[data-rescue-journal-btn]")
         self.assertEqual(page.locator(".ui-rpg-card").inner_text().count("✅"), len(data["quests"]))
         page.get_by_role("button", name="🏅 勲章バッジ").click()
@@ -2104,11 +2114,7 @@ class FakeParisHeroTests(unittest.TestCase):
         # Open archivist NPC dialogue & quiz
         page.click('.ui-rescue-node[data-rescue-id="npc-archivist"]')
         page.wait_for_selector(".ui-rpg-card", state="visible")
-        page.locator('.ui-rpg-card button:has-text("クイズに挑戦")').click()
-        page.wait_for_selector(".ui-rpg-card:has-text('技術クイズ')", state="visible")
-        page.locator(".ui-rpg-card .ui-rpg-actions button").first.click()
-        page.wait_for_timeout(300)
-        self.assertIn("正解！", page.text_content(".ui-rpg-card"))
+        self.assertIn("記録官ルネ", page.locator(".ui-rpg-card").inner_text())
         page.locator(".ui-rpg-card .ui-rpg-close").click()
         page.wait_for_selector(".ui-rpg-card", state="hidden")
         # Open 📋 Hero Journal
@@ -2182,6 +2188,7 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         spec = W.example_data("cities")
         for game in ("rescue", "detective"):
             spec[game]["quizzes"] = []
+            next(n for n in spec[game]["nodes"] if n["id"] == "npc-archivist")["quiz"] = True
         path = Path(self.tmp.name) / "without-quizzes.html"
         path.write_text(W.world_document(spec), encoding="utf-8")
         page = self.open(path=path)
@@ -2319,11 +2326,13 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         for item in data["nodes"]:
             if item["kind"] == "chest":
                 visit(item["id"])
+        visit("npc-chief")
+        close()
         visit(next(n["id"] for n in data["nodes"] if n.get("quiz")))
-        page.get_by_role("button", name="🎓 推理クイズに挑戦").click()
+        page.get_by_role("button", name="📝 証言を照合する").click()
         for quiz in data["quizzes"]:
             page.get_by_role("button", name=f'{quiz["correct"]+1}. {quiz["choices"][quiz["correct"]]}').click()
-            page.get_by_role("button", name="つぎの問題 ▶").click()
+            page.get_by_role("button", name="もう一度照合").click()
         close()
         page.click("[data-detective-journal-btn]")
         self.assertEqual(page.locator(".ui-rpg-card").inner_text().count("✅"), len(data["quests"]))
@@ -2400,10 +2409,14 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         page.click('.ui-detective-node[data-detective-id="npc-archivist"]')
         page.wait_for_selector(".ui-rpg-card", state="visible")
         self.assertIn("暗号解読士", page.text_content(".ui-rpg-card"))
-        page.locator('.ui-rpg-card button:has-text("推理クイズに挑戦")').click()
-        page.wait_for_selector(".ui-rpg-card:has-text('技術推理クイズ')", state="visible")
-        page.locator(".ui-rpg-card .ui-rpg-actions button").first.click()
-        page.wait_for_timeout(300)
+        page.get_by_role("button", name="📝 証言を照合する").click()
+        self.assertEqual(page.get_by_role("dialog", name="証言照合").count(), 0)
+        page.locator(".ui-rpg-card .ui-rpg-close").click()
+        page.locator('[data-detective-id="npc-chief"]').dispatch_event("click")
+        page.locator(".ui-rpg-card .ui-rpg-close").click()
+        page.locator('[data-detective-id="npc-archivist"]').dispatch_event("click")
+        page.get_by_role("button", name="📝 証言を照合する").click()
+        page.get_by_role("button", name="2. 目撃通報は梅田だった").click()
         self.assertIn("正解！", page.text_content(".ui-rpg-card"))
         page.locator(".ui-rpg-card .ui-rpg-close").click()
         page.wait_for_selector(".ui-rpg-card", state="hidden")

@@ -14,7 +14,7 @@ from world import detective_clue_profile, detective_garden, detective_garden_ste
 
 
 METRICS = {"clue": "解明した現場", "boss_clue": "解明した黒幕", "chest": "開けた宝箱",
-           "drop": "拾った落とし物", "talk": "話した人数", "quiz": "正解した異なる問題",
+           "drop": "拾った落とし物", "talk": "話した人数", "quiz": "矛盾を特定した証言",
            "refill": "補給回数", "garden": "緑化マス", "medals": "所持メダル", "stamina": "現在のスタミナ"}
 
 
@@ -114,6 +114,12 @@ def build(spec, observations=None):
             edge(tid, "can_use", walk)
         if p["boss"]:
             edge(tid, "produces", "state/boss_clue")
+
+    for i, case in enumerate(d["quizzes"]):
+        tid = task(f"testimony-{i}", "証言の照合", "現場での手順", case["prompt"])
+        if "witness" in case:
+            edge(tid, "guarded_by", condition("talk:" + case["witness"], 1))
+        edge(tid, "produces", node("state/quiz", "State", names["quiz"]))
 
     for t in d["tactics"]:
         tid = task(t["id"], t["label"], "現場での手順", t["desc"])

@@ -1027,7 +1027,7 @@ RESCUE_RANK_THRESHOLDS = (0, 35, 90, 170, 280, 420, 600)
 RESCUE_RANK_TITLES = ("見習い消防士", "街角レスキュー", "セーヌ機関士", "パリ守護隊長", "炎の制圧マイスター", "伝説のグラン・エロー", "フェイクパリ名誉英雄")
 RESCUE_NODE_KINDS = ("npc", "drop", "chest", "hydrant")
 RESCUE_ITEM_TYPES = ("water", "heal", "bomb", "nozzle", "suit", "tank", "helm")
-RESCUE_QUEST_KINDS = ("talk", "drop", "chest", "fire", "boss_fire", "refill", "quiz")
+RESCUE_QUEST_KINDS = ("talk", "drop", "chest", "fire", "boss_fire", "refill", "replenish", "quiz")
 RESCUE_JET_KINDS = ("splash", "guard")
 RESCUE_COOL_ORBS = ("💧", "🌊", "❄️", "💚", "✨")
 RESCUE_FLAME_ORBS = ("🔥", "💥", "⚡")
@@ -1666,12 +1666,16 @@ def detective_validate(detective_in: Any, *, floors: list[dict[str, Any]]) -> di
         raise ValueError("detective quizzes lists up to 24 entries")
     quizzes = []
     for qz in quizzes_in:
-        if not isinstance(qz, dict) or set(qz) - {"prompt", "choices", "correct", "explanation", "repo"}:
+        if not isinstance(qz, dict) or set(qz) - {"prompt", "choices", "correct", "explanation", "repo", "witness"}:
             raise ValueError("quiz has prompt, choices (3), correct (0..2), explanation and optional repo")
         choices = qz.get("choices")
         if not isinstance(choices, list) or len(choices) != 3:
             raise ValueError("quiz choices must have 3 items")
+        witness = qz.get("witness")
+        if witness is not None and not any(n["kind"] == "npc" and n["id"] == witness for n in nodes):
+            raise ValueError("testimony witness must identify a detective NPC")
         quizzes.append({
+            **({"witness": witness} if witness is not None else {}),
             "prompt": _world_text(qz.get("prompt"), "quiz prompt", 200),
             "choices": [_world_text(c, "quiz choice", 80) for c in choices],
             "correct": _bounded_int(qz.get("correct"), "quiz correct", 0, 2),
@@ -1876,7 +1880,7 @@ def classroom_floor(rows: int = 4, groups: int = 3, *, per_group: int = 2, tile:
     door = cols // 2 - 1                                                  # a two-tile gap in the back shelves
     props += [prop("shelf", 0, depth - 1, door), prop("shelf", door + 2, depth - 1, cols - door - 2)]
     return {"id": id, "label": label, "width": cols * tile, "height": depth * tile, "tile": tile, "props": props, "actors": [],
-            "spots": [spot("board", "黒板", cols / 2, .5, "今日の連絡や課題を書く場所です。"),
+            "spots": [spot("board", "黒板", cols / 2, .5, "科目と問題を開き、選択肢を選ぶと解説が読めます。"),
                       spot("teacher", "先生の机", cols / 2, 3.5, "先生の席です。"),
                       spot("door", "出入口", cols / 2, depth - 1.5 - 1, "廊下や校庭へ出られます。")],
             "player": {"emoji": "🙂", "x": int((door + .5) * tile), "y": int((depth - .5) * tile), "speed": 96}}
@@ -2426,6 +2430,23 @@ def relic_catalogue(world: dict[str, Any]) -> list[dict[str, Any]]:
     return relics
 
 
+def _blackboard_lessons() -> str:
+    topics = []
+    for topic, lessons in SCHOOL_LESSONS.items():
+        questions = []
+        for number, lesson in enumerate(lessons):
+            choices = []
+            for offset in range(len(lesson["choices"])):
+                index = (offset + number) % len(lesson["choices"])
+                choice = lesson["choices"][index]
+                result = "正解。" if index == lesson["correct"] else "もう一度考えてみよう。"
+                choices.append(f'<details><summary>{escape(choice)}</summary>'
+                               f'<p>{result}{escape(lesson["explanation"].removeprefix("正解！"))}</p></details>')
+            questions.append(f'<details><summary>{escape(lesson["prompt"])}</summary>{"".join(choices)}</details>')
+        topics.append(f'<details><summary>{escape(topic)}（{len(lessons)}問）</summary>{"".join(questions)}</details>')
+    return '<section aria-label="黒板の練習問題"><h4>黒板の練習問題</h4>' + "".join(topics) + '</section>'
+
+
 def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = False,
                 rpg: dict[str, Any] | None = None, rescue: dict[str, Any] | None = None,
                 detective: dict[str, Any] | None = None) -> tuple[str, list[str]]:
@@ -2493,7 +2514,7 @@ def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = Fals
             return ""
         return (f'<button type="button" class="ui-world-go" data-go-floor="{f["id"]}" '
                 f'data-go-x="{s["x"]}" data-go-y="{s["y"]}" hidden {_wt("walk")}>🚶</button>')
-    sheet = [f'<article class="ui-sheet-item" id="{spot_fragment(wid, s["id"])}"><h3>{escape(s["label"])}</h3><p>{escape(s["body"])}</p>{take(s)}{go_btn(s)}{close}</article>'
+    sheet = [f'<article class="ui-sheet-item" id="{spot_fragment(wid, s["id"])}"><h3>{escape(s["label"])}</h3><p>{escape(s["body"])}</p>{_blackboard_lessons() if wid == "school" and s["id"] == "classroom-board" else ""}{take(s)}{go_btn(s)}{close}</article>'
              for s in [*f["spots"], *f["actors"]]]
     if on_rescue:
         rescue_takes = "".join(
@@ -2734,6 +2755,8 @@ def _map_html(world: dict[str, Any], *, embedded: bool = False) -> str:
     rpg_attr = ' data-rpg' if rpg else ""
     rescue_attr = f' data-rescue="{rescue["floor"]}"' if rescue else ""
     detective_attr = f' data-detective="{detective["floor"]}"' if detective else ""
+    if rpg and rpg["quizzes"] and not any(n.get("quiz") for n in rpg["npcs"].values()):
+        rpg = {**rpg, "legacyQuizPrompts": [q["prompt"] for q in rpg["quizzes"]], "quizzes": []}
     rpg_json = ('<script type="application/json" class="ui-rpg-data">' + json.dumps(rpg, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + '</script>') if rpg else ""
     rescue_json = ('<script type="application/json" class="ui-rescue-data">' + json.dumps(rescue, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + '</script>') if rescue else ""
     detective_json = ('<script type="application/json" class="ui-detective-data">' + json.dumps(detective, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c") + '</script>') if detective else ""
@@ -3517,7 +3540,7 @@ export function bindWorldRpg(el){
  const bagButtons=mapBagButtons.filter(b=>b.dataset.itemId.startsWith(wid+"-spot-"));
  const groups={
   talked:Object.keys(rpg.npcs),looted:Object.keys(rpg.loot),defeated:Object.keys(rpg.enemies),
-  quizSolved:rpg.quizzes.map(q=>q.prompt),visitedFloors:[...el.querySelectorAll("input[name$='-floor']")].map(b=>b.value),
+  quizSolved:rpg.legacyQuizPrompts||rpg.quizzes.map(q=>q.prompt),visitedFloors:[...el.querySelectorAll("input[name$='-floor']")].map(b=>b.value),
   completedQuests:rpg.quests.map(q=>q.id),badges:rpg.badges.map(b=>b.id),
   bag:bagButtons.map(b=>b.dataset.itemId)
  };
@@ -3584,7 +3607,7 @@ export function bindWorldRpg(el){
   if(next.dragonHue>3||next.dragonFill>0x1000000)invalid();
   if(Boolean(next.fireX)!==Boolean(next.fireY)||next.fireX>65535||next.fireY>65535)invalid();
   if(next.fireX&&fires.length&&!fires.some(f=>atSavedFire(f,next)))invalid();
-  if(next.seed>0xffffffff||next.quizIdx>=Math.max(1,rpg.quizzes.length))invalid();
+  if(next.seed>0xffffffff||next.quizIdx>=Math.max(1,groups.quizSolved.length))invalid();
   for(const group of Object.keys(groups))next[group]=new Set();
   for(const [group,id,key] of flags){
    if(data[key]>1)invalid();
@@ -3691,7 +3714,7 @@ export function bindWorldRpg(el){
     "treasure-hunter":Object.entries(rpg.loot).filter(([id,v])=>v.kind==="chest"&&state.looted.has(id)).length>=3,
     "first-win":state.defeated.size>=1,
     "boss-slayer":Object.entries(rpg.enemies).some(([id,e])=>e.boss&&state.defeated.has(id)),
-    "quiz-ace":state.quizSolved.size>=2,
+    "quiz-ace":state.completedQuests.has("pass-quizzes")||state.completedQuests.has("cecil-quiz")||state.quizSolved.size>=2,
     "world-walker":state.visitedFloors.size>=3,
     "level-up":rpgLevelForExp(state.exp).level>=2,
     shopper:state.boughtCount>=1,
@@ -4043,7 +4066,7 @@ export function bindWorldRpg(el){
     textEl.textContent="✨ やさしい光に包まれ、HPとMPが全回復した！";renderHud();
    }}));
    if(npc.shop)actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🛒 おみせ",onclick:()=>openShopView(npc,spotId)}));
-   if(npc.quiz)actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🎓 クイズに挑戦",onclick:()=>openQuizView(npc,spotId)}));
+   if(npc.quiz&&rpg.quizzes.length)actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🎓 クイズに挑戦",onclick:()=>openQuizView(npc,spotId)}));
    if(npc.help){
     const d=npc.help;
     const isDone=state.helpedDeeds.has(d.deed_id);
@@ -4728,7 +4751,7 @@ export function bindWorldRescue(el){
  const state={
   exp:0,hp:hero.hp,water:hero.water,medals:hero.medals,seed:rescue.seed>>>0||20261127,
   talked:new Set(),looted:new Set(),openedChests:new Set(),extinguished:new Set(),
-  hydrantUses:0,quizzesSolved:new Set(),quizIdx:0,
+  hydrantUses:0,waterRefills:0,quizzesSolved:new Set(),quizIdx:0,
   consumables:new Map(),equipment:new Set(),completedQuests:new Set(),badges:new Set(),
   boughtCount:0,gardenActions:[]
  };
@@ -4820,6 +4843,7 @@ export function bindWorldRescue(el){
   if(q.kind==="fire")return outCount();
   if(q.kind==="boss_fire")return bossIsOut()?1:0;
   if(q.kind==="refill")return state.hydrantUses;
+  if(q.kind==="replenish")return state.waterRefills;
   if(q.kind==="quiz")return state.quizzesSolved.size;
   return 0;
  };
@@ -4831,7 +4855,7 @@ export function bindWorldRescue(el){
    "b-boss-down":bossIsOut(),
    "b-geared-up":["chest-nozzle","chest-suit","chest-tank","chest-helm"].every(id=>state.equipment.has(id)),
    "b-hydrant-master":state.hydrantUses>=3,
-   "b-quiz-scholar":state.quizzesSolved.size>=3,
+   "b-long-watch":outCount()>=10,
    "b-green-paris":rescueGarden(rescue.seed,state.gardenActions).cells.length>=8
   };
   for(const b of rescue.badges){
@@ -5004,6 +5028,13 @@ export function bindWorldRescue(el){
   showCard(card);
  };
 
+ const refillTank=()=>{
+  const st=stats();
+  if(state.water<st.maxWater)state.waterRefills+=1;
+  state.hp=st.maxHp;state.water=st.maxWater;state.hydrantUses+=1;
+  return st;
+ };
+
  const openNpcDialog=(nodeId,pageIdx=0)=>{
   const node=rescue.nodes.find(nd=>nd.id===nodeId);if(!node)return;
   state.talked.add(nodeId);checkQuests();
@@ -5016,7 +5047,7 @@ export function bindWorldRescue(el){
    if(idx>0)actionsEl.append(rescueEl("button",{type:"button",className:"ui-rpg-btn",textContent:"◀ もどる",onclick:()=>{idx-=1;renderPage()}}));
    if(idx<pages.length-1)actionsEl.append(rescueEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"つぎへ ▶",onclick:()=>{idx+=1;renderPage()}}));
    if(node.refill)actionsEl.append(rescueEl("button",{type:"button",className:"ui-rpg-btn",textContent:"💧 給水＆点検（全快）",onclick:()=>{
-    const st=stats();state.hp=st.maxHp;state.water=st.maxWater;state.hydrantUses+=1;
+    const st=refillTank();
     orbsWrap.replaceChildren(renderOrbs(rescueOrbEffect(st.maxWater,true)));
     textEl.textContent="✨ セーヌ水路の清流により、水タンクと体力が満タンまで急速補給された！";checkQuests();
    }}));
@@ -5103,7 +5134,7 @@ export function bindWorldRescue(el){
   const node=rescue.nodes.find(nd=>nd.id===nodeId);if(!node)return;
   if(node.kind==="npc")return openNpcDialog(nodeId);
   if(node.kind==="hydrant"){
-   const st=stats();state.hp=st.maxHp;state.water=st.maxWater;state.hydrantUses+=1;
+   refillTank();
    showToast(`🚰 ${node.label}で満タン急速給水！ (水・体力全快)`);checkQuests();return;
   }
   if(node.kind==="drop"){
@@ -5732,7 +5763,7 @@ export function bindWorldDetective(el){
     textEl.textContent="✨ 科学捜査研究所のバイタルケアにより、スタミナと気力が満タンまで急速補給された！";checkQuests();
    }}));
    if(node.shop)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🛒 船場どうぐ屋",onclick:()=>openShopDialog(nodeId)}));
-   if(node.quiz&&detective.quizzes.length)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🎓 推理クイズに挑戦",onclick:()=>openQuizDialog(nodeId)}));
+   if(node.quiz&&detective.quizzes.length)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"📝 証言を照合する",onclick:()=>openQuizDialog(nodeId)}));
    actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",...(idx===pages.length-1?{"data-primary":""}:{}),textContent:"とじる",onclick:closeModal}));
   };
   renderPage();
@@ -5783,12 +5814,16 @@ export function bindWorldDetective(el){
  const openQuizDialog=nodeId=>{
   const node=detective.nodes.find(nd=>nd.id===nodeId);
   const qz=detective.quizzes[state.quizIdx%detective.quizzes.length];
+  if(qz.witness&&!state.talked.has(qz.witness)){
+   const witness=detective.nodes.find(n=>n.id===qz.witness);
+   showToast(witness.label+"に目撃通報を聞いてから戻ろう。");return;
+  }
   state.quizIdx=(state.quizIdx+1)%detective.quizzes.length;
   const resultBox=detectiveEl("div",{className:"ui-rpg-subpanel",hidden:true});
   const choiceBtns=[];
-  const card=detectiveEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":"技術推理クイズ"},
+  const card=detectiveEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":"証言照合"},
    detectiveEl("div",{className:"ui-rpg-card-head"},
-    detectiveEl("h3",{className:"ui-rpg-card-title",textContent:`📚 ${node.speaker}の技術推理クイズ`}),
+    detectiveEl("h3",{className:"ui-rpg-card-title",textContent:`📚 ${node.speaker}の証言照合`}),
     detectiveEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
    qz.repo?detectiveEl("p",{className:"ui-rpg-subnote",textContent:`📦 関連リポジトリ: ${qz.repo}`}):null,
    detectiveEl("p",{className:"ui-rpg-text",textContent:qz.prompt}),
@@ -5804,7 +5839,7 @@ export function bindWorldDetective(el){
       detectiveEl("p",{className:"ui-rpg-text",textContent:(ok?"⭕ 正解！":"❌ 残念！")+rewardNote}),
       detectiveEl("p",{className:"ui-rpg-subnote",textContent:qz.explanation}),
       detectiveEl("div",{className:"ui-rpg-actions"},
-       detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"つぎの問題 ▶",onclick:()=>openQuizDialog(nodeId)}),
+       detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:detective.quizzes.length===1?"もう一度照合":"次の証言 ▶",onclick:()=>openQuizDialog(nodeId)}),
        detectiveEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"会話にもどる",onclick:()=>openNpcDialog(nodeId)})));
     }});
     choiceBtns.push(btn);return btn;
@@ -6309,7 +6344,7 @@ _LONDON_POINTS = [
 _LONDON_ADVENTURE_POINTS = [
     # 5 NPCs
     _pt("rl-npc-arthur", "霧の探偵アーサー", 51.53153, -0.11806, "npc", "ロンドンの霧を調査している敏腕探偵。"),
-    _pt("rl-npc-cecil", "学者セシル", 51.52613, -0.08555, "npc", "ロンドンの古代伝承とクイズに詳しい若き研究者。"),
+    _pt("rl-npc-cecil", "学者セシル", 51.52613, -0.08555, "npc", "ロンドンの守護龍の伝承に詳しい若き研究者。"),
     _pt("rl-npc-belle", "給仕ベラ", 51.52343, -0.14841, "npc", "温かい紅茶とスコーンをふるまう喫茶の看板娘。"),
     _pt("rl-npc-fountain", "記憶の古泉", 51.51534, -0.12456, "npc", "清らかな水が湧き出る古泉。触れると癒される。"),
     _pt("rl-npc-merlin", "時計師マーリン", 51.50724, -0.10722, "npc", "リバースロンドンの時空歯車を管理する老人。"),
@@ -6449,6 +6484,109 @@ _YODO = {
 POTATO_RUMOR = "昼ヶ丘のいもを焼くと、リバースロンドンの木の看板の陰から鼻先がのぞくんだって。ドラゴンもあの甘い匂いが好きみたいだよ。"
 
 
+# The classroom owns these lessons. The first three banks retain their original
+# prompt order for the v1 RPG save layout (including previously solved questions).
+SCHOOL_LESSONS = {
+    "村の研究室": [
+        {"repo": "PySaiyanWeBoo", "prompt": "PySaiyanWeBoo（PSWB）が戦闘や回復ゲージ表現に採用している最大6個のモチーフは何？",
+         "choices": ["Puzzle & Dragons風の属性・回復オーブ", "サイコロ6面の数値表", "トランプのスート絵柄"], "correct": 0,
+         "explanation": "PySaiyanWeBooの counter_effect は 🔥💧🌳💡🔮 や ❤️💚✨ のオーブ最大6個でダメージと回復を可視化します。"},
+        {"repo": "Ironmate", "prompt": "Ironmate（テスト・検査系プロジェクト）が大切にする設計原則として正しいものは？",
+         "choices": ["表示用UIと計算結果が常に一致（見かけも中身も同じ）", "常にクラウドへ自動アップロード", "乱数で毎回UIレイアウトを変える"], "correct": 0,
+         "explanation": "画面に見えている数値・文字とバックエンドや検証オラクルの計算がズレない設計を重視しています。"},
+        {"repo": "search_seq_including_spaces", "prompt": "バイオインフォマティクスツール search_seq_including_spaces が解決する課題は？",
+         "choices": ["空白や改行を含む塩基配列テキストの検索", "PNG画像の圧縮率向上", "音声ファイルのノイズ除去"], "correct": 0,
+         "explanation": "論文やコピー＆ペースト由来の空白入り配列文字列から、柔軟に部分配列を検索できるよう設計されたツールです。"},
+        {"repo": "Aoi", "prompt": "ポートフォリオやツール群における Aoi / myon-bioinformatics の連携方針は？",
+         "choices": ["共通部品を明確にピン留めして各成果物を単体完結させる", "1つの巨大モノリスに全て混ぜる", "依存をバージョン未指定にする"], "correct": 0,
+         "explanation": "PySaiyanWeBoo などの共通基盤は commit SHA でピン留めし、ビルド後は自己完結した単一HTML/静的ページを生成します。"},
+        {"repo": "xprobe", "prompt": "xprobe が対象とする開発・解析ワークフローのテーマは？",
+         "choices": ["軽量な探索・診断プローブとデータ確認", "3Dゲームエンジンの物理演算", "決済ゲートウェイの暗号化"], "correct": 0,
+         "explanation": "xprobe は対象の状態や出力を素早く調べ・検証できるプローブ指向のツールとして作られています。"},
+        {"repo": "gh_identity / cli_args", "prompt": "gh_identity や cli_args が支えている開発基盤の特徴は？",
+         "choices": ["再利用可能な認証・CLI引数パーサの安全で明快な扱い", "ブラウザ拡張の広告ブロック", "OSカーネルのスケジューラ改造"], "correct": 0,
+         "explanation": "CLIツール間で共通する引数検証やGitHubアイデンティティ判定を小さな責務で安全に共有しています。"},
+        {"repo": "mcp-toolcall-lab", "prompt": "mcp-toolcall-lab で検証・実験されている技術領域はどれ？",
+         "choices": ["Model Context Protocol（MCP）のツール呼び出し設計と検証", "WebGLのシェーダー最適化", "ブロックチェーンのマイニング"], "correct": 0,
+         "explanation": "エージェントやLLMからのツール呼び出し契約・挙動を体系的に試すための実験ラボです。"},
+        {"repo": "FluidFullSpeedSimulation", "prompt": "ポートフォリオ内の『流れの実験室』（FluidFullSpeedSimulation / DRAgoWing）の可視化テーマは？",
+         "choices": ["連続的な流れ・遅延（🌊動く像）と内訳フロー図（📊静止図）", "株式チャートのローソク足", "星座の年周視差"], "correct": 0,
+         "explanation": "水回り・血流・エネルギーなどの『流れと遅れ』を動的シミュレーションとサンキー風静止図の両面で学べます。"},
+    ],
+    "ロンドンの研究室": [
+        {"repo": "PythDRagoras", "prompt": "PythDRagorasが幾何学計算とアルゴリズム設計で重視している基本原理は？",
+         "choices": ["直角三角形の斜辺と三平方の定理の美しい調和", "未定義動作の積極的活用", "乱数による近似のみに頼る計算"], "correct": 0,
+         "explanation": "PythDRagorasは直角三角形や幾何構造の厳密なアルゴリズムを美しく体系化したライブラリです。"},
+        {"repo": "DRAgoWing", "prompt": "DRAgoWingが扱うシミュレーション技術の主眼は何？",
+         "choices": ["翼周りの大気流動と揚力・抗力の流体シミュレーション", "株式市場のローソク足予測", "SNSのハッシュタグ拡散"], "correct": 0,
+         "explanation": "DRAgoWingは航空力学・流体力学に基づく翼形状や気流の挙動を高速に解析・可視化します。"},
+        {"repo": "QueRyu", "prompt": "QueRyu（クエリ龍）が提供するアーキテクチャの強みは？",
+         "choices": ["キュー構造とストリーム検索の高速・効率的なパイプライン処理", "手動での全件スキャン強制", "同期ブロッキングによる処理待ち"], "correct": 0,
+         "explanation": "QueRyuはキューイングとクエリ探索を巧みに組み合わせ、大量データの円滑なストリーム処理を実現します。"},
+        {"repo": "CaChereCyCle", "prompt": "CaChereCyCle（カシェールサイクル）の設計思想として正しいものは？",
+         "choices": ["計算結果の再利用とメモリサイクルの効率的循環・パージ", "一度計算したデータを即座に破棄", "メモリリークを許容する設計"], "correct": 0,
+         "explanation": "CaChereCyCleは再計算の無駄を省くスマートなキャッシュ管理とライフサイクル循環を提供します。"},
+        {"repo": "OnTautoLogy", "prompt": "OnTautoLogyが探求する数理・論理学的なテーマはどれ？",
+         "choices": ["トートロジー（恒真式）の形式的検証と論理整合性の探求", "絵画の色彩心理学", "料理のレシピ自動生成"], "correct": 0,
+         "explanation": "OnTautoLogyは論理学における恒真性や命題論理の構造をプログラミング的に探究するプロジェクトです。"},
+        {"repo": "FluidFullSpeedSimulation", "prompt": "FluidFullSpeedSimulationとポートフォリオの連携における見どころは？",
+         "choices": ["水流やエネルギーの動的な遅延・流れの可視化", "音声コーデックの変換", "ブロック崩しゲーム"], "correct": 0,
+         "explanation": "流体の動的な振る舞いやタイムラグを直感的なアニメーションとダイアグラムで直感体験できます。"},
+    ],
+    "名古屋の文化": [
+        {"prompt": "中日ドラゴンズの本拠地スタジアムは？",
+         "choices": ["バンテリンドーム ナゴヤ", "東京ドーム", "甲子園球場"], "correct": 0,
+         "explanation": "正解！バンテリンドーム ナゴヤがドラゴンズの本拠地球場です。"},
+        {"prompt": "名古屋城の天守閣の頂で燦然と輝く、街の象徴的な装飾は？",
+         "choices": ["銀の鯱", "黄金の金シャチ", "青銅の鯱"], "correct": 1,
+         "explanation": "正解！天守閣の金シャチは城の守り神にして名古屋のシンボルです。"},
+        {"prompt": "当ポートフォリオ『PySaiyanWeBoo』(PSWB)の共通モジュールが提供する代表的機能は？",
+         "choices": ["仮想世界の歩行経路・状態管理", "動画編集エフェクト", "機械学習モデル訓練"], "correct": 0,
+         "explanation": "正解！PSWBの共通ユーティリティやワールド連携機能により、豊かな仮想空間が実現しています。"},
+    ],
+    "パリの技術": [
+        {"repo": "PySaiyanWeBoo", "prompt": "PySaiyanWeBooの counter_garden で、火災鎮火ごとに街に花を咲かせる緑化グリッドは何マスで構成されている？",
+         "choices": ["64マス (8×8)", "16マス (4×4)", "100マス (10×10)"], "correct": 0,
+         "explanation": "counter_garden は xorshift32 乱数で 64マス (8×8) のグリッドに花や樹木を咲かせ、8セルごとに記念スタンプ報酬を解放します。"},
+        {"repo": "FluidFullSpeedSimulation", "prompt": "FluidFullSpeedSimulation で追求されているセーヌ川の水流・消火ノズル計算の中核方針はどれ？",
+         "choices": ["格子ボルツマン法による高速並列シミュレーション", "手動でのセル単位ペイント", "外部GPUクラウドへの全フレーム依存"], "correct": 0,
+         "explanation": "FluidFullSpeedSimulation は格子ボルツマン法 (LBM) 等の流体物理計算を極限まで軽量・高速化し、リアルタイムでの水流再現を可能にしています。"},
+        {"repo": "TalkCompress", "prompt": "司令室との高速通信で活躍する TalkCompress の主な目的はどれ？",
+         "choices": ["テキスト文脈の意味を保ちつつトークン数を大幅に圧縮する", "音声を録音してMP3に変換する", "画像をドット絵にモザイク処理する"], "correct": 0,
+         "explanation": "TalkCompress は大規模言語モデルのコンテキストウィンドウを効率活用するため、意味を損なわずにトークン表現を凝縮します。"},
+        {"repo": "OnTautoLogy", "prompt": "OnTautoLogy のツール群が検証する命題論理の性質はどれ？",
+         "choices": ["常に真となる恒真式（トートロジー）の自動判定と簡約", "画像のアスペクト比の自動補正", "CSSグリッドの折り返し計算"], "correct": 0,
+         "explanation": "OnTautoLogy は論理式の真理値表生成や構文解析を通じて、恒真式（トートロジー）の厳密な判定と教育的可視化を行います。"},
+        {"repo": "BrowserTestKit", "prompt": "本ポートフォリオのブラウザテスト自動化を支える BrowserTestKit の役割はどれ？",
+         "choices": ["実ブラウザ環境での操作再現と画面乱れ・回帰テストの堅牢化", "動画のストリーミング配信サーバー", "3Dポリゴンモデルのテクスチャベイク"], "correct": 0,
+         "explanation": "BrowserTestKit は Headless Chrome / Playwright 等を統合し、実画面でのレイアウト・キー操作・回帰テストを決定論的に検証します。"},
+        {"repo": "CaChereCyCle", "prompt": "消火リソースや街の状態を無駄なく循環利用する発想に通じる CaChereCyCle の特徴は？",
+         "choices": ["計算結果やメモリキャッシュの効率的なライフサイクル管理", "自転車の走行ルート記録", "ゴミ分別のスケジュール通知"], "correct": 0,
+         "explanation": "CaChereCyCle はキャッシュの生存期間と再利用サイクルを最適化し、低オーバーヘッドで高スループットを実現します。"},
+    ],
+    "大阪の技術": [
+        {"repo": "PySaiyanWeBoo", "prompt": "PySaiyanWeBooの counter_garden で、事件解決ごとに街に花を咲かせる緑化グリッドは何マスで構成されている？",
+         "choices": ["64マス (8×8)", "16マス (4×4)", "100マス (10×10)"], "correct": 0,
+         "explanation": "counter_garden は xorshift32 乱数で 64マス (8×8) のグリッドに花や樹木を咲かせ、8セルごとに記念スタンプ報酬を解放します。"},
+        {"repo": "FluidFullSpeedSimulation", "prompt": "FluidFullSpeedSimulation で追求されている大川・水都大阪の流体シミュレーションの中核方針はどれ？",
+         "choices": ["格子ボルツマン法による高速並列シミュレーション", "手動でのセル単位ペイント", "外部GPUクラウドへの全フレーム依存"], "correct": 0,
+         "explanation": "FluidFullSpeedSimulation は格子ボルツマン法 (LBM) 等の流体物理計算を極限まで軽量・高速化し、リアルタイムでの水流再現を可能にしています。"},
+        {"repo": "TalkCompress", "prompt": "探偵無線との超高速通信で活躍する TalkCompress の主な目的はどれ？",
+         "choices": ["テキスト文脈の意味を保ちつつトークン数を大幅に圧縮する", "音声を録音してMP3に変換する", "画像をドット絵にモザイク処理する"], "correct": 0,
+         "explanation": "TalkCompress は大規模言語モデルのコンテキストウィンドウを効率活用するため、意味を損なわずにトークン表現を凝縮します。"},
+        {"repo": "OnTautoLogy", "prompt": "OnTautoLogy のツール群が検証する命題論理の性質はどれ？",
+         "choices": ["常に真となる恒真式（トートロジー）の自動判定と簡約", "画像のアスペクト比の自動補正", "CSSグリッドの折り返し計算"], "correct": 0,
+         "explanation": "OnTautoLogy は論理式の真理値表生成や構文解析を通じて、恒真式（トートロジー）の厳密な判定と教育的可視化を行います。"},
+        {"repo": "BrowserTestKit", "prompt": "本ポートフォリオのブラウザテスト自動化を支える BrowserTestKit の役割はどれ？",
+         "choices": ["実ブラウザ環境での操作再現と画面乱れ・回帰テストの堅牢化", "動画のストリーミング配信サーバー", "3Dポリゴンモデルのテクスチャベイク"], "correct": 0,
+         "explanation": "BrowserTestKit は Headless Chrome / Playwright 等を統合し、実画面でのレイアウト・キー操作・回帰テストを決定論的に検証します。"},
+        {"repo": "CaChereCyCle", "prompt": "捜査リソースや街の状態を無駄なく循環利用する発想に通じる CaChereCyCle の特徴は？",
+         "choices": ["計算結果やメモリキャッシュの効率的なライフサイクル管理", "自転車の走行ルート記録", "ゴミ分別のスケジュール通知"], "correct": 0,
+         "explanation": "CaChereCyCle はキャッシュの生存期間と再利用サイクルを最適化し、低オーバーヘッドで高スループットを実現します。"},
+    ],
+}
+
+
 def _overworld_spec() -> dict[str, Any]:
     """Overworld prototype centered on はじまりの村 (``meadow``) with contact dialogue, drops/chests, turn-based RPG battle and gamification."""
     def spot(sid: str, tx: int, ty: int, label: str, category: str, body: str, *, item: dict[str, Any] | None = None,
@@ -6476,7 +6614,7 @@ def _overworld_spec() -> dict[str, Any]:
         spot("meadow-npc-smith", 9, 8, "⚒️ 道具屋の店主", "npc",
              "冒険に役立つ回復アイテムやだんごをゴールドで販売しています。", mark="⚒️"),
         spot("meadow-npc-researcher", 15, 8, "🔬 研究員", "npc",
-             "バイオインフォマティクスと個人開発リポジトリのクイズを出題します。", mark="🔬"),
+             "草原の落とし物を調べている研究員です。", mark="🔬"),
         spot("meadow-npc-fountain", 15, 9, "⛲ 回復の泉", "npc",
              "清らかな水が湧く泉。触れると傷ついた体と魔力をやさしく癒してくれます。", mark="⛲"),
         spot("meadow-npc-monument", 13, 7, "🗿 PSWB石碑", "npc",
@@ -6582,7 +6720,7 @@ def _overworld_spec() -> dict[str, Any]:
                     "greeting": "ほう、旅のエンジニアか！ この村は『myon-bioinformatics』の学びと実験が集うはじまりの場所じゃ。",
                     "lines": [
                         "PythonやFlutterの共通UI（PySaiyanWeBoo）から生まれ、バイオインフォマティクスやCLIツールへと枝分かれしていったのだ。",
-                        "まずは研究員(🔬)のクイズで知識を試し、北にいる『👾 スパゲッティゴーレム』を鎮めてくれぬか？",
+                        "まずは研究員(🔬)に草原の話を聞いて、北にいる『👾 スパゲッティゴーレム』を鎮めてくれぬか？",
                     ],
                 },
                 "meadow-npc-smith": {
@@ -6592,9 +6730,9 @@ def _overworld_spec() -> dict[str, Any]:
                     "topic": {"question": "サツマイモは誰にあげるといい？", "answer": POTATO_RUMOR},
                 },
                 "meadow-npc-researcher": {
-                    "speaker": "研究員", "emoji": "🔬", "on_contact": True, "quiz": True,
-                    "greeting": "こんにちは！ ここでは GitHub リポジトリとポートフォリオにまつわるミニクイズを出しています。",
-                    "lines": ["1問正解するごとに経験値(+20 EXP)と研究費(+25 G)を進呈！ 全8問、ぜひ挑戦してみてください。"],
+                    "speaker": "研究員", "emoji": "🔬", "on_contact": True,
+                    "greeting": "こんにちは！ 草原で見かけた薬草や水を記録しています。",
+                    "lines": ["拾った薬草は戦闘に持っていけますよ。技術の練習問題は学校の黒板にあります。"],
                 },
                 "meadow-npc-fountain": {
                     "speaker": "回復の泉", "emoji": "⛲", "on_contact": True, "heal": True,
@@ -6672,7 +6810,7 @@ def _overworld_spec() -> dict[str, Any]:
                 {"id": "find-drops", "title": "道ばたの落とし物", "desc": "村に落ちているどうぐを2つひろう", "kind": "drop", "count": 2, "reward_exp": 20, "reward_gold": 25},
                 {"id": "open-chests", "title": "宝箱トレジャー", "desc": "宝箱(🎁)を2つ見つけて開ける", "kind": "chest", "count": 2, "reward_exp": 30, "reward_gold": 40},
                 {"id": "first-battle", "title": "バグ退治の一歩", "desc": "バグスライムを1体たおす", "kind": "battle", "target": "meadow-enemy-slime", "count": 1, "reward_exp": 25, "reward_gold": 30},
-                {"id": "pass-quizzes", "title": "ポートフォリオ博士", "desc": "研究員のクイズに2問正解する", "kind": "quiz", "count": 2, "reward_exp": 30, "reward_gold": 50},
+                {"id": "pass-quizzes", "title": "草原の調査報告", "desc": "草原の研究員に話を聞く", "kind": "talk", "target": "meadow-npc-researcher", "count": 1, "reward_exp": 30, "reward_gold": 50},
                 {"id": "defeat-golem", "title": "村の守護者討伐", "desc": "ボス『スパゲッティゴーレム』をたおす", "kind": "boss", "target": "meadow-enemy-golem", "count": 1, "reward_exp": 80, "reward_gold": 100},
                 {"id": "visit-lands", "title": "扉をわたる旅人", "desc": "🛗から3つの土地をおとずれる", "kind": "floor", "count": 3, "reward_exp": 40, "reward_gold": 60},
             ],
@@ -6683,53 +6821,12 @@ def _overworld_spec() -> dict[str, Any]:
                 {"id": "treasure-hunter", "emoji": "💎", "label": "トレジャーハンター", "desc": "宝箱を3つ以上開けた"},
                 {"id": "first-win", "emoji": "⚔️", "label": "初勝利", "desc": "バトルで初めて勝利した"},
                 {"id": "boss-slayer", "emoji": "🏆", "label": "コード浄化者", "desc": "地域のボス魔物を撃破した"},
-                {"id": "quiz-ace", "emoji": "🎓", "label": "知識の探究者", "desc": "ポートフォリオクイズに2問以上正解"},
+                {"id": "quiz-ace", "emoji": "🎓", "label": "草原の調査員", "desc": "草原の研究員に調査の話を聞いた"},
                 {"id": "world-walker", "emoji": "🧭", "label": "世界を巡る旅人", "desc": "3つ以上の土地を訪れた"},
                 {"id": "level-up", "emoji": "🌟", "label": "成長のあかし", "desc": "レベル2以上に到達した"},
                 {"id": "shopper", "emoji": "🛒", "label": "賢い買い物客", "desc": "道具屋でアイテムを購入した"},
             ],
-            "quizzes": [
-                {"repo": "PySaiyanWeBoo",
-                 "prompt": "PySaiyanWeBoo（PSWB）が戦闘や回復ゲージ表現に採用している最大6個のモチーフは何？",
-                 "choices": ["Puzzle & Dragons風の属性・回復オーブ", "サイコロ6面の数値表", "トランプのスート絵柄"],
-                 "correct": 0,
-                 "explanation": "PySaiyanWeBooの counter_effect は 🔥💧🌳💡🔮 や ❤️💚✨ のオーブ最大6個でダメージと回復を可視化します。"},
-                {"repo": "Ironmate",
-                 "prompt": "Ironmate（テスト・検査系プロジェクト）が大切にする設計原則として正しいものは？",
-                 "choices": ["表示用UIと計算結果が常に一致（見かけも中身も同じ）", "常にクラウドへ自動アップロード", "乱数で毎回UIレイアウトを変える"],
-                 "correct": 0,
-                 "explanation": "画面に見えている数値・文字とバックエンドや検証オラクルの計算がズレない設計を重視しています。"},
-                {"repo": "search_seq_including_spaces",
-                 "prompt": "バイオインフォマティクスツール search_seq_including_spaces が解決する課題は？",
-                 "choices": ["空白や改行を含む塩基配列テキストの検索", "PNG画像の圧縮率向上", "音声ファイルのノイズ除去"],
-                 "correct": 0,
-                 "explanation": "論文やコピー＆ペースト由来の空白入り配列文字列から、柔軟に部分配列を検索できるよう設計されたツールです。"},
-                {"repo": "Aoi",
-                 "prompt": "ポートフォリオやツール群における Aoi / myon-bioinformatics の連携方針は？",
-                 "choices": ["共通部品を明確にピン留めして各成果物を単体完結させる", "1つの巨大モノリスに全て混ぜる", "依存をバージョン未指定にする"],
-                 "correct": 0,
-                 "explanation": "PySaiyanWeBoo などの共通基盤は commit SHA でピン留めし、ビルド後は自己完結した単一HTML/静的ページを生成します。"},
-                {"repo": "xprobe",
-                 "prompt": "xprobe が対象とする開発・解析ワークフローのテーマは？",
-                 "choices": ["軽量な探索・診断プローブとデータ確認", "3Dゲームエンジンの物理演算", "決済ゲートウェイの暗号化"],
-                 "correct": 0,
-                 "explanation": "xprobe は対象の状態や出力を素早く調べ・検証できるプローブ指向のツールとして作られています。"},
-                {"repo": "gh_identity / cli_args",
-                 "prompt": "gh_identity や cli_args が支えている開発基盤の特徴は？",
-                 "choices": ["再利用可能な認証・CLI引数パーサの安全で明快な扱い", "ブラウザ拡張の広告ブロック", "OSカーネルのスケジューラ改造"],
-                 "correct": 0,
-                 "explanation": "CLIツール間で共通する引数検証やGitHubアイデンティティ判定を小さな責務で安全に共有しています。"},
-                {"repo": "mcp-toolcall-lab",
-                 "prompt": "mcp-toolcall-lab で検証・実験されている技術領域はどれ？",
-                 "choices": ["Model Context Protocol（MCP）のツール呼び出し設計と検証", "WebGLのシェーダー最適化", "ブロックチェーンのマイニング"],
-                 "correct": 0,
-                 "explanation": "エージェントやLLMからのツール呼び出し契約・挙動を体系的に試すための実験ラボです。"},
-                {"repo": "FluidFullSpeedSimulation",
-                 "prompt": "ポートフォリオ内の『流れの実験室』（FluidFullSpeedSimulation / DRAgoWing）の可視化テーマは？",
-                 "choices": ["連続的な流れ・遅延（🌊動く像）と内訳フロー図（📊静止図）", "株式チャートのローソク足", "星座の年周視差"],
-                 "correct": 0,
-                 "explanation": "水回り・血流・エネルギーなどの『流れと遅れ』を動的シミュレーションとサンキー風静止図の両面で学べます。"},
-            ],
+            "quizzes": SCHOOL_LESSONS['村の研究室'],
             "shop": [
                 {"id": "pot", "spot_id": "meadow-npc-smith", "emoji": "🧪", "label": "村特製ポーション", "cost": 15, "item_type": "heal", "hp": 22, "mp": 0,
                  "desc": "HPを22回復する定番の薬"},
@@ -6826,13 +6923,12 @@ def _cities_rpg() -> dict[str, Any]:
             },
             "london-rl-npc-cecil": {
                 "speaker": "学者セシル", "emoji": "📜",
-                "greeting": "やあ！私はリバースロンドンの歴史と、ポートフォリオのリポジトリ群を研究しているセシルだ。",
+                "greeting": "やあ！私はリバースロンドンの歴史と、守護龍の伝承を研究しているセシルだ。",
                 "lines": [
-                    "私の研究成果から、リポジトリに関するクイズを出題しよう！",
-                    "正解すればゴールドと経験値が手に入るし、龍たちの好物や弱点に関する知見も深まるはずだよ。",
-                    "挑戦する準備はいつでも大歓迎さ！"
+                    "守護龍はそれぞれ違う場所に姿を見せる。",
+                    "最初の一頭を見つけたら、別の駅にも足を延ばしてごらん。",
+                    "二頭見つければ、君の観察記録もずいぶんにぎやかになるね。"
                 ],
-                "quiz": True,
             },
             "london-rl-npc-belle": {
                 "speaker": "給仕ベラ", "emoji": "☕",
@@ -6894,7 +6990,7 @@ def _cities_rpg() -> dict[str, Any]:
             {"id": "all-dragons", "title": "すべての守護龍の発見", "desc": "ロンドンの守護龍をすべて見つける", "kind": "dragon", "count": len(dragons), "reward_exp": 100, "reward_gold": 150},
             {"id": "collect-drops", "title": "ロンドンの落とし物拾い", "desc": "道具を3つ拾う", "kind": "drop", "count": 3, "reward_exp": 25, "reward_gold": 30},
             {"id": "defeat-clock", "title": "時計塔の番兵討伐", "desc": "番兵を倒す", "kind": "boss", "target": "london-rl-enemy-clock-golem", "count": 1, "reward_exp": 80, "reward_gold": 120},
-            {"id": "cecil-quiz", "title": "ロンドン博学王", "desc": "セシルのクイズに2問正解する", "kind": "quiz", "count": 2, "reward_exp": 40, "reward_gold": 50},
+            {"id": "cecil-quiz", "title": "守護龍の観察記録", "desc": "異なる守護龍を2頭見つける", "kind": "dragon", "count": 2, "reward_exp": 40, "reward_gold": 50},
         ],
         "badges": [
             {"id": "first-talk", "emoji": "💬", "label": "はじめの挨拶", "desc": "人に初めて話しかけた"},
@@ -6903,19 +6999,12 @@ def _cities_rpg() -> dict[str, Any]:
             {"id": "treasure-hunter", "emoji": "💎", "label": "トレジャーハンター", "desc": "宝箱を3つ以上開けた"},
             {"id": "first-win", "emoji": "⚔️", "label": "初勝利", "desc": "バトルで初めて勝利した"},
             {"id": "boss-slayer", "emoji": "🏆", "label": "番兵の突破者", "desc": "時計塔の番兵を撃破した"},
-            {"id": "quiz-ace", "emoji": "🎓", "label": "知識の探究者", "desc": "クイズに2問以上正解"},
+            {"id": "quiz-ace", "emoji": "🎓", "label": "守護龍の観察者", "desc": "守護龍を2頭見つけた"},
             {"id": "dragon-friend", "emoji": "🐣", "label": "龍の友愛", "desc": "守護龍を初めてお世話した"},
             {"id": "dragon-master", "emoji": "🐉", "label": "龍の盟友", "desc": "すべての守護龍と心を通わせた"},
             {"id": "shopper", "emoji": "🛒", "label": "賢い買い物客", "desc": "道具屋でアイテムを購入した"},
         ],
-        "quizzes": [
-            {"repo": "PythDRagoras", "prompt": "PythDRagorasが幾何学計算とアルゴリズム設計で重視している基本原理は？", "choices": ["直角三角形の斜辺と三平方の定理の美しい調和", "未定義動作の積極的活用", "乱数による近似のみに頼る計算"], "correct": 0, "explanation": "PythDRagorasは直角三角形や幾何構造の厳密なアルゴリズムを美しく体系化したライブラリです。"},
-            {"repo": "DRAgoWing", "prompt": "DRAgoWingが扱うシミュレーション技術の主眼は何？", "choices": ["翼周りの大気流動と揚力・抗力の流体シミュレーション", "株式市場のローソク足予測", "SNSのハッシュタグ拡散"], "correct": 0, "explanation": "DRAgoWingは航空力学・流体力学に基づく翼形状や気流の挙動を高速に解析・可視化します。"},
-            {"repo": "QueRyu", "prompt": "QueRyu（クエリ龍）が提供するアーキテクチャの強みは？", "choices": ["キュー構造とストリーム検索の高速・効率的なパイプライン処理", "手動での全件スキャン強制", "同期ブロッキングによる処理待ち"], "correct": 0, "explanation": "QueRyuはキューイングとクエリ探索を巧みに組み合わせ、大量データの円滑なストリーム処理を実現します。"},
-            {"repo": "CaChereCyCle", "prompt": "CaChereCyCle（カシェールサイクル）の設計思想として正しいものは？", "choices": ["計算結果の再利用とメモリサイクルの効率的循環・パージ", "一度計算したデータを即座に破棄", "メモリリークを許容する設計"], "correct": 0, "explanation": "CaChereCyCleは再計算の無駄を省くスマートなキャッシュ管理とライフサイクル循環を提供します。"},
-            {"repo": "OnTautoLogy", "prompt": "OnTautoLogyが探求する数理・論理学的なテーマはどれ？", "choices": ["トートロジー（恒真式）の形式的検証と論理整合性の探求", "絵画の色彩心理学", "料理のレシピ自動生成"], "correct": 0, "explanation": "OnTautoLogyは論理学における恒真性や命題論理の構造をプログラミング的に探究するプロジェクトです。"},
-            {"repo": "FluidFullSpeedSimulation", "prompt": "FluidFullSpeedSimulationとポートフォリオの連携における見どころは？", "choices": ["水流やエネルギーの動的な遅延・流れの可視化", "音声コーデックの変換", "ブロック崩しゲーム"], "correct": 0, "explanation": "流体の動的な振る舞いやタイムラグを直感的なアニメーションとダイアグラムで直感体験できます。"},
-        ],
+        "quizzes": SCHOOL_LESSONS['ロンドンの研究室'],
         "shop": [
             {"id": "tea", "spot_id": "london-rl-npc-belle", "emoji": "🫖", "label": "ベルモント・ロイヤルティー", "cost": 18, "item_type": "care", "hp": 24, "mp": 8, "desc": "心安らぐ英国紅茶。龍のおやつにも最適"},
             {"id": "scone", "spot_id": "london-rl-npc-belle", "emoji": "🥐", "label": "自家製焼きたてスコーン", "cost": 22, "item_type": "care", "hp": 28, "mp": 10, "desc": "外サクサク中ふわふわ。龍の絆を深める"},
@@ -7043,7 +7132,7 @@ def _nagoya_rpg() -> dict[str, Any]:
             {"id": "cheer-call", "title": "熱血コール＆レスポンス", "desc": "応援団長リュウジと熱きドラ魂コールを練習して気合を注入する", "fame": 15, "npc_id": "nagoya-npc-ouendan", "reward_label": "知名度+15pt / 団長推薦状"},
             {"id": "give-ball", "title": "少年へのサインボール譲渡", "desc": "ドーム周辺で見つけた練習用サインボールを熱烈野球少年コータに譲る", "fame": 20, "npc_id": "nagoya-npc-boy", "reward_label": "知名度+20pt / コータの宝物手袋"},
             {"id": "morning-prep", "title": "喫茶モーニング仕込み手伝い", "desc": "名物小倉トーストと美味しい珈琲の仕込みをママと一緒に行う", "fame": 15, "npc_id": "nagoya-npc-cafe", "reward_label": "知名度+15pt / 特製ブレンド珈琲"},
-            {"id": "history-quiz", "title": "聖地の歴史継承（クイズ講話）", "desc": "生き字引の爺さんからドラゴンズとナゴヤの栄光の歴史を学び継承する", "fame": 20, "npc_id": "nagoya-npc-grandpa", "reward_label": "知名度+20pt / 栄光の記録簿"},
+            {"id": "history-quiz", "title": "聖地の語り部", "desc": "生き字引の爺さんからドラゴンズとナゴヤの栄光の歴史を学び継承する", "fame": 20, "npc_id": "nagoya-npc-grandpa", "reward_label": "知名度+20pt / 栄光の記録簿"},
             {"id": "dome-sponsor", "title": "ドーム公式戦の現地観戦応援", "desc": "バンテリンドームで観戦チケット（30G）を購入し熱気渦巻くスタンドから熱狂応援する", "fame": 25, "cost": 30, "npc_id": "nagoya-dome", "reward_label": "知名度+25pt / 観戦チケット半券"},
             {"id": "mall-shopping", "title": "ドーム前商業施設で応援準備", "desc": "イオンモール ナゴヤドーム前でお買い物をして応援グッズを揃える", "fame": 15, "npc_id": "nagoya-aeon-mall", "on_purchase": True, "reward_label": "知名度+15pt / お買い物レシート"},
         ],
@@ -7105,15 +7194,15 @@ def _nagoya_rpg() -> dict[str, Any]:
                 },
             },
             "nagoya-npc-grandpa": {
-                "speaker": "生き字引 爺さん", "emoji": "👴", "quiz": True,
+                "speaker": "生き字引 爺さん", "emoji": "👴",
                 "greeting": "フォッフォッフォ…ようこそ。ワシはこの地で何十年もドラゴンズとナゴヤを見守ってきた老兵じゃ。",
                 "lines": [
                     "ナゴヤ球場時代の猛打爆発からドームの堅守まで、数々の名勝負が胸に刻まれとる。",
                     "歴史を知れば、今の一球一打が何倍も熱く、深く味わえるようになるぞ。",
-                    "ナゴヤと球団の歴史にまつわるクイズに挑戦してみるかの？"
+                    "話の続きはドームのスタンドで、君の目で見届けておくれ。"
                 ],
                 "help": {
-                    "deed_id": "history-quiz", "title": "聖地の歴史継承（クイズ講話）", "fame": 20,
+                    "deed_id": "history-quiz", "title": "聖地の語り部", "fame": 20,
                     "action_label": "歴史講話に深く聞き入る",
                     "done_text": "「熱心に聞いてくれて嬉しいのう。青き伝統はこうして次の世代へ受け継がれるのじゃ。」知名度が 20pt 上昇した！",
                 },
@@ -7207,11 +7296,7 @@ def _nagoya_rpg() -> dict[str, Any]:
             {"id": "dome-patron", "emoji": "🏟️", "label": "熱血現地サポーター", "desc": "バンテリンドームで観戦チケットを購入して現地で試合を観戦した"},
             {"id": "aeon-shopper", "emoji": "🛍️", "label": "応援準備マスター", "desc": "イオンモールでお買い物をして応援体制を整えた"},
         ],
-        "quizzes": [
-            {"prompt": "中日ドラゴンズの本拠地スタジアムは？", "choices": ["バンテリンドーム ナゴヤ", "東京ドーム", "甲子園球場"], "correct": 0, "explanation": "正解！バンテリンドーム ナゴヤがドラゴンズの本拠地球場です。"},
-            {"prompt": "名古屋城の天守閣の頂で燦然と輝く、街の象徴的な装飾は？", "choices": ["銀の鯱", "黄金の金シャチ", "青銅の鯱"], "correct": 1, "explanation": "正解！天守閣の金シャチは城の守り神にして名古屋のシンボルです。"},
-            {"prompt": "当ポートフォリオ『PySaiyanWeBoo』(PSWB)の共通モジュールが提供する代表的機能は？", "choices": ["仮想世界の歩行経路・状態管理", "動画編集エフェクト", "機械学習モデル訓練"], "correct": 0, "explanation": "正解！PSWBの共通ユーティリティやワールド連携機能により、豊かな仮想空間が実現しています。"},
-        ],
+        "quizzes": SCHOOL_LESSONS['名古屋の文化'],
         "shop": [
             {"id": "toast", "spot_id": "nagoya-npc-cafe", "emoji": "🍞", "label": "名物小倉トースト", "cost": 20, "item_type": "heal", "hp": 40, "desc": "サクサクあんバター。HPを40回復する"},
             {"id": "coffee", "spot_id": "nagoya-npc-cafe", "emoji": "☕", "label": "深煎りブレンド珈琲", "cost": 18, "item_type": "mana", "mp": 20, "desc": "香り高いナゴヤの珈琲。MPを20回復する"},
@@ -7301,9 +7386,9 @@ def _paris_rescue_spec() -> dict[str, Any]:
              "greeting": "セーヌ川の水路管理はお任せあれ！装備の点検と高圧水タンクの満タン給水💧を今すぐ行おう！",
              "lines": ["セーヌ川の流体シミュレーションには FluidFullSpeedSimulation や DRAgoWing の計算アルゴリズムを取り入れているんだ。",
                        "水力圧力を最大まで上げれば、大火災の激しい炎も一気に冷却できるはずだ！"]},
-            {"id": "npc-archivist", "kind": "npc", "tx": 21, "ty": 29, "emoji": "📚", "label": "記録官ルネ", "speaker": "記録官ルネ", "quiz": True,
-             "greeting": "私はポートフォリオの記録官ルネ。街の消火活動と技術リポジトリの歴史を記録している。君の知識を試すクイズに挑戦してみないかい？",
-             "lines": ["クイズに正解すると、レスキュー経験値とメダルを進呈しよう。街のあちこちの技術と深く結びついているのだ。"]},
+            {"id": "npc-archivist", "kind": "npc", "tx": 21, "ty": 29, "emoji": "📚", "label": "記録官ルネ", "speaker": "記録官ルネ",
+             "greeting": "私は記録官ルネ。消防隊の出動記録をつけている。タンクの残量は確かめた？",
+             "lines": ["火勢が強い現場に向かう前に、消火栓で水を補給しておくといいよ。"]},
             {"id": "npc-conductor", "kind": "npc", "tx": 5, "ty": 33, "emoji": "🧑‍✈️", "label": "駅長ベルナール", "speaker": "駅長ベルナール",
              "greeting": "モンパルナス方面の警備を担当しているベルナールだ。左岸の奥地に最大級の大火災インフェルノ🌋が発生しているとの報告がある！",
              "lines": ["大火災に挑む前に、街角の宝箱から耐熱スーツ🦺やセーヌ大容量タンク𛠢を手に入れておくと安全だ。",
@@ -7378,8 +7463,8 @@ def _paris_rescue_spec() -> dict[str, Any]:
              "kind": "chest", "count": 1, "reward_exp": 25, "reward_medals": 20},
             {"id": "q-hydrant-refill", "title": "消火栓で急速補給", "desc": "街の給水栓やセーヌ水路で水タンクを満タンにする。",
              "kind": "refill", "count": 1, "reward_exp": 15, "reward_medals": 10},
-            {"id": "q-solve-quiz", "title": "技術記録官の試練", "desc": "記録官ルネの技術ポートフォリオクイズに正解する。",
-             "kind": "quiz", "count": 1, "reward_exp": 20, "reward_medals": 15},
+            {"id": "q-solve-quiz", "title": "巡回隊の補給", "desc": "消火で水を使ったあと、消火栓か給水所でタンクを補充する。",
+             "kind": "replenish", "count": 1, "reward_exp": 20, "reward_medals": 15},
             {"id": "q-boss-inferno", "title": "大火災インフェルノ鎮火", "desc": "左岸奥地の大火災インフェルノ(21, 31)を完全鎮圧する！",
              "kind": "boss_fire", "count": 1, "reward_exp": 80, "reward_medals": 60},
         ],
@@ -7389,35 +7474,10 @@ def _paris_rescue_spec() -> dict[str, Any]:
             {"id": "b-boss-down", "emoji": "🌋", "label": "インフェルノ制覇", "desc": "最大規模の大火災インフェルノを鎮圧した"},
             {"id": "b-geared-up", "emoji": "⛑️", "label": "フル装備ヒーロー", "desc": "宝箱からノズル・スーツ・タンク・ヘルメットを揃えた"},
             {"id": "b-hydrant-master", "emoji": "🚰", "label": "水脈マイスター", "desc": "消火栓やセーヌ川で3回以上給水した"},
-            {"id": "b-quiz-scholar", "emoji": "📚", "label": "パリ知識人", "desc": "技術リポジトリクイズに3問以上正解した"},
+            {"id": "b-long-watch", "emoji": "🚒", "label": "街の消防隊", "desc": "10箇所の火災を鎮火した"},
             {"id": "b-green-paris", "emoji": "🌳", "label": "緑化のグラン・エロー", "desc": "ガーデン緑化セルが8マス以上に達した"},
         ],
-        "quizzes": [
-            {"repo": "PySaiyanWeBoo",
-             "prompt": "PySaiyanWeBooの counter_garden で、火災鎮火ごとに街に花を咲かせる緑化グリッドは何マスで構成されている？",
-             "choices": ["64マス (8×8)", "16マス (4×4)", "100マス (10×10)"], "correct": 0,
-             "explanation": "counter_garden は xorshift32 乱数で 64マス (8×8) のグリッドに花や樹木を咲かせ、8セルごとに記念スタンプ報酬を解放します。"},
-            {"repo": "FluidFullSpeedSimulation",
-             "prompt": "FluidFullSpeedSimulation で追求されているセーヌ川の水流・消火ノズル計算の中核方針はどれ？",
-             "choices": ["格子ボルツマン法による高速並列シミュレーション", "手動でのセル単位ペイント", "外部GPUクラウドへの全フレーム依存"], "correct": 0,
-             "explanation": "FluidFullSpeedSimulation は格子ボルツマン法 (LBM) 等の流体物理計算を極限まで軽量・高速化し、リアルタイムでの水流再現を可能にしています。"},
-            {"repo": "TalkCompress",
-             "prompt": "司令室との高速通信で活躍する TalkCompress の主な目的はどれ？",
-             "choices": ["テキスト文脈の意味を保ちつつトークン数を大幅に圧縮する", "音声を録音してMP3に変換する", "画像をドット絵にモザイク処理する"], "correct": 0,
-             "explanation": "TalkCompress は大規模言語モデルのコンテキストウィンドウを効率活用するため、意味を損なわずにトークン表現を凝縮します。"},
-            {"repo": "OnTautoLogy",
-             "prompt": "OnTautoLogy のツール群が検証する命題論理の性質はどれ？",
-             "choices": ["常に真となる恒真式（トートロジー）の自動判定と簡約", "画像のアスペクト比の自動補正", "CSSグリッドの折り返し計算"], "correct": 0,
-             "explanation": "OnTautoLogy は論理式の真理値表生成や構文解析を通じて、恒真式（トートロジー）の厳密な判定と教育的可視化を行います。"},
-            {"repo": "BrowserTestKit",
-             "prompt": "本ポートフォリオのブラウザテスト自動化を支える BrowserTestKit の役割はどれ？",
-             "choices": ["実ブラウザ環境での操作再現と画面乱れ・回帰テストの堅牢化", "動画のストリーミング配信サーバー", "3Dポリゴンモデルのテクスチャベイク"], "correct": 0,
-             "explanation": "BrowserTestKit は Headless Chrome / Playwright 等を統合し、実画面でのレイアウト・キー操作・回帰テストを決定論的に検証します。"},
-            {"repo": "CaChereCyCle",
-             "prompt": "消火リソースや街の状態を無駄なく循環利用する発想に通じる CaChereCyCle の特徴は？",
-             "choices": ["計算結果やメモリキャッシュの効率的なライフサイクル管理", "自転車の走行ルート記録", "ゴミ分別のスケジュール通知"], "correct": 0,
-             "explanation": "CaChereCyCle はキャッシュの生存期間と再利用サイクルを最適化し、低オーバーヘッドで高スループットを実現します。"},
-        ],
+        "quizzes": [],
     }
 
 
@@ -7450,8 +7510,8 @@ def _osaka_detective_spec() -> dict[str, Any]:
              "lines": ["川沿いの足跡は雨で消えやすい。見つけたら手帳に場所と向きを控えておくんじゃ。",
                        "理路整然とした論理のメスを入れれば、どんな難解な暗号トリックも必ず綻びを見せるはずじゃよ！"]},
             {"id": "npc-archivist", "kind": "npc", "tx": 29, "ty": 27, "emoji": "🧩", "label": "暗号解読士", "speaker": "暗号解読士", "quiz": True,
-             "greeting": "暗号解読を担当してるんや。事件簿に出てくる技術用語、いくつ読み解けるか試してみるか？",
-             "lines": ["クイズに正解すれば、探偵経験値と調査メダルを進呈しよう。技術の真理を解き明かすことこそ、名探偵への最短経路なのだ。"]},
+             "greeting": "この紙片を見てくれ。「城東」と書いてある。署長が受けた目撃通報と突き合わせよう。",
+             "lines": ["同じ場所の話なのに、違う地名が混じっている。どの供述か分かるか？"]},
             {"id": "npc-chief", "kind": "npc", "tx": 15, "ty": 17, "emoji": "👮", "label": "浪速署長", "speaker": "浪速署長",
              "greeting": "浪速署の署長や。城東から怪盗黒幕シャドウの目撃情報が入った。駅前の聞き込みはヘイタに任せてある。あんたは現場の痕跡と照らし合わせてくれるか。",
              "lines": ["黒幕シャドウに挑む前に、街角の宝箱から浪速の調査靴⚡や撥水トレンチコート🧥を揃えておくことをお勧めします。",
@@ -7526,7 +7586,7 @@ def _osaka_detective_spec() -> dict[str, Any]:
              "kind": "chest", "count": 1, "reward_exp": 25, "reward_medals": 20},
             {"id": "q-stand-refill", "title": "茶房・給水処で急速補給", "desc": "街の給水処や茶房スタンドで調査体力を満タンにする。",
              "kind": "refill", "count": 1, "reward_exp": 15, "reward_medals": 10},
-            {"id": "q-solve-quiz", "title": "暗号解読士の推理試練", "desc": "暗号解読士の技術ポートフォリオクイズに正解する。",
+            {"id": "q-solve-quiz", "title": "城東の目撃証言", "desc": "暗号解読士の紙片と目撃通報を照合し、矛盾する供述を特定する。",
              "kind": "quiz", "count": 1, "reward_exp": 20, "reward_medals": 15},
             {"id": "q-boss-shadow", "title": "怪盗黒幕シャドウ完全解決", "desc": "城東奥地の怪盗黒幕シャドウ(32, 33)のトリックを完全看破する！",
              "kind": "boss_clue", "count": 1, "reward_exp": 80, "reward_medals": 60},
@@ -7537,35 +7597,12 @@ def _osaka_detective_spec() -> dict[str, Any]:
             {"id": "b-boss-down", "kind": "boss_clue", "count": 1, "emoji": "🎩", "label": "黒幕撃破", "desc": "最大規模の怪盗黒幕シャドウを看破した"},
             {"id": "b-geared-up", "kind": "chest", "count": 4, "emoji": "⛑️", "label": "一級探偵フル装備", "desc": "宝箱からシューズ・コート・水筒・ハットを揃えた"},
             {"id": "b-stand-master", "kind": "refill", "count": 3, "emoji": "🍵", "label": "茶房マイスター", "desc": "茶房や給水処で3回以上補給した"},
-            {"id": "b-quiz-scholar", "kind": "quiz", "count": 3, "emoji": "📚", "label": "浪速知識人", "desc": "技術リポジトリクイズに3問以上正解した"},
+            {"id": "b-testimony", "kind": "quiz", "count": 1, "emoji": "📝", "label": "証言の裏取り", "desc": "通報と供述の矛盾を突き止めた"},
             {"id": "b-green-osaka", "kind": "garden", "count": 8, "emoji": "🌳", "label": "緑化の名探偵", "desc": "ガーデン緑化セルが8マス以上に達した"},
         ],
-        "quizzes": [
-            {"repo": "PySaiyanWeBoo",
-             "prompt": "PySaiyanWeBooの counter_garden で、事件解決ごとに街に花を咲かせる緑化グリッドは何マスで構成されている？",
-             "choices": ["64マス (8×8)", "16マス (4×4)", "100マス (10×10)"], "correct": 0,
-             "explanation": "counter_garden は xorshift32 乱数で 64マス (8×8) のグリッドに花や樹木を咲かせ、8セルごとに記念スタンプ報酬を解放します。"},
-            {"repo": "FluidFullSpeedSimulation",
-             "prompt": "FluidFullSpeedSimulation で追求されている大川・水都大阪の流体シミュレーションの中核方針はどれ？",
-             "choices": ["格子ボルツマン法による高速並列シミュレーション", "手動でのセル単位ペイント", "外部GPUクラウドへの全フレーム依存"], "correct": 0,
-             "explanation": "FluidFullSpeedSimulation は格子ボルツマン法 (LBM) 等の流体物理計算を極限まで軽量・高速化し、リアルタイムでの水流再現を可能にしています。"},
-            {"repo": "TalkCompress",
-             "prompt": "探偵無線との超高速通信で活躍する TalkCompress の主な目的はどれ？",
-             "choices": ["テキスト文脈の意味を保ちつつトークン数を大幅に圧縮する", "音声を録音してMP3に変換する", "画像をドット絵にモザイク処理する"], "correct": 0,
-             "explanation": "TalkCompress は大規模言語モデルのコンテキストウィンドウを効率活用するため、意味を損なわずにトークン表現を凝縮します。"},
-            {"repo": "OnTautoLogy",
-             "prompt": "OnTautoLogy のツール群が検証する命題論理の性質はどれ？",
-             "choices": ["常に真となる恒真式（トートロジー）の自動判定と簡約", "画像のアスペクト比の自動補正", "CSSグリッドの折り返し計算"], "correct": 0,
-             "explanation": "OnTautoLogy は論理式の真理値表生成や構文解析を通じて、恒真式（トートロジー）の厳密な判定と教育的可視化を行います。"},
-            {"repo": "BrowserTestKit",
-             "prompt": "本ポートフォリオのブラウザテスト自動化を支える BrowserTestKit の役割はどれ？",
-             "choices": ["実ブラウザ環境での操作再現と画面乱れ・回帰テストの堅牢化", "動画のストリーミング配信サーバー", "3Dポリゴンモデルのテクスチャベイク"], "correct": 0,
-             "explanation": "BrowserTestKit は Headless Chrome / Playwright 等を統合し、実画面でのレイアウト・キー操作・回帰テストを決定論的に検証します。"},
-            {"repo": "CaChereCyCle",
-             "prompt": "捜査リソースや街の状態を無駄なく循環利用する発想に通じる CaChereCyCle の特徴は？",
-             "choices": ["計算結果やメモリキャッシュの効率的なライフサイクル管理", "自転車の走行ルート記録", "ゴミ分別のスケジュール通知"], "correct": 0,
-             "explanation": "CaChereCyCle はキャッシュの生存期間と再利用サイクルを最適化し、低オーバーヘッドで高スループットを実現します。"},
-        ],
+        "quizzes": [{"witness": "npc-chief", "prompt": "現場の紙片には「城東」とある。署長の通報記録と食い違う供述は？",
+                     "choices": ["紙片には城東とある", "目撃通報は梅田だった", "署長が通報を受けた"], "correct": 1,
+                     "explanation": "署長への通報と紙片はどちらも城東を指す。梅田だったという供述だけが一致しない。"}],
     }
 
 
