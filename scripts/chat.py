@@ -7,11 +7,12 @@ ontautology.py (🧬 /onto, 🎯 /guess), olnm.py (🧷 /olnm) and Err-o-RoadRun
 pinned in pyproject.toml's pages group — and mcp-toolcall-lab's Wikipedia tools, PokéAPI reader and Jev router (🔌 /mcp, 🤖 /ask),
 at the commit the index recorded. What it knows about the other repositories is ``media/chat/index.json``,
 written at deploy time by ``project_pages.py --record-chat``: every JSON / JSONL file of every active repository at its
-commit, and the tools mcp-toolcall-lab advertises. TalkCompress's shorthand compressor is fetched on first use.
+commit, and the mcp-toolcall-lab code the MCP server runs. TalkCompress's shorthand compressor is fetched on first use.
 
 ``respond(text)`` → Markdown, ``reply_html(text)`` → HTML (markdown.py escapes raw HTML), ``configure(index, base)``
 for the page. 🔌 ``mcp_rpc`` is an MCP server in the page (JSON-RPC 2.0: initialize, ping, tools/list, tools/call); /mcp and 🤖 /ask
-are its clients. /ask: ``ask_messages`` (the context, and ⚖️ Jev's choice of the tools to offer), ``ask_tools`` (those tools, from
+are its clients. A tool wraps an API (the lab's readers; the page fetches the keyless ones itself) and shapes what it reads: Markdown
+for people and the model, and the record itself as ``structuredContent``, whether a model reads it or not. /ask: ``ask_messages`` (the context, and ⚖️ Jev's choice of the tools to offer), ``ask_tools`` (those tools, from
 tools/list) and ``ask_call`` (one call: offered, then the server's check of its arguments — mcp-toolcall-lab's rule). Every
 message and decision joins the 🧾 trace (``/mcp log``, JSONL). Every command is a cli_args subparser, so a typo gets "maybe you meant".
 """
@@ -64,10 +65,11 @@ COMMANDS = {
     'flow': ('🔀', 'A > B > C', '流れ図を ASCII と Mermaid に（A, B > C で合流）', ('/flow 入力, 履歴 > 圧縮 > 出力',)),
     'compress': ('🗂', 'TEXT', '会話を短く（TalkCompress の略語・合意台帳）と、LLM 出力の整理（markdown.py）',
                  ('/compress As soon as possible, please send me the report. Thank you very much!',)),
-    'mcp': ('🔌', '[TOOL {JSON} | log]', 'ページの中の MCP サーバーと話す（tools/list・tools/call。mcp-toolcall-lab の Wikipedia・PokéAPI と '
-                                        'このチャットの find・show・onto）。log は JSON-RPC と ⚖️ Jev の判定の記録（JSONL）',
-            ('/mcp', '/mcp fetch_pokemon {"name": "ditto"}', '/mcp fetch_wikipedia_article {"title": 3}', '/mcp fetch_wikipedia_artcle {}',
-             '/mcp log')),
+    'mcp': ('🔌', '[言葉 | TOOL 値 | TOOL {JSON} | log]', 'ページの中の MCP サーバーと話す（tools/list・tools/call。mcp-toolcall-lab の Wikipedia・PokéAPI、'
+                                        'キー不要の 🔗 oEmbed（YouTube・Vimeo・SoundCloud・Spotify など URL の形で）・🕸️ Wikidata・🧬 UniProt・🐙 GitHub、このチャットの find・show・onto。'
+                                        '結果は Markdown と structuredContent）。log は JSON-RPC と ⚖️ Jev の判定の記録（JSONL）',
+            ('/mcp', '/mcp ditto のポケモン', '/mcp https://youtu.be/dQw4w9WgXcQ の題名', '/mcp Q6607 って何', '/mcp wikidata ギター',
+             '/mcp fetch_wikipedia_article 東京タワー', '/mcp fetch_pokemon {"name": "ditto"}', '/mcp fetch_wikipedia_artcle {}', '/mcp log')),
     'find': ('🔎', 'WORDS [--repo R] [--kind K]', 'リポジトリ横断で JSON / JSONL を探す（K: ' + ' '.join(KINDS) + '）',
              ('onto', '/find --kind onto', '/find --kind jsonl --repo Aoi', 'TaxOntOy')),
     'show': ('👀', 'REPO/PATH', 'JSON / JSONL の中身を表にまとめる（そのコミットの raw を読む）', ('/show TaxOntOy/otl-relations.json',)),
@@ -94,16 +96,17 @@ CHAT_TOOLS = {
 }
 ASK_CALLS, ASK_RESULT = 2, 600   # 🔧 calls per question, characters of a result the model reads (the context is 2048 tokens)
 # 🔌 mcp-toolcall-lab's code the page's MCP server runs, in the repository's layout (record_chat copies it at the lab's commit into
-# media/chat/lab/): its Wikipedia tools with their FastMCP catalog, its PokéAPI reader and Jev's keyword router.
+# media/chat/lab/): its Wikipedia tools with their FastMCP catalog, its PokéAPI reader, its keyless API readers and Jev's router.
 LAB = tuple(f'src/mcp_toolcall_lab/{name}' for name in (
     '__init__.py', 'catalog.py', 'wikipedia_tool.py', 'pixiv_dictionary_tool.py', 'pixiv_markup_normalize.py', 'markdown_lib.py',
     'jev_router.py', 'jev_backend.py', 'jev_shim.py', 'jev_typesafe.py', 'fixture_selection.py', 'mock/__init__.py', 'mock/common.py',
-    'adapters/__init__.py', 'adapters/pokeapi.py')) + ('fixtures/jev_router/keywords.json', 'deploy/wikipedia-mcp/catalog.generated.json')
+    'adapters/__init__.py', 'adapters/pokeapi.py', 'adapters/keyless.py')) + ('fixtures/jev_router/keywords.json',
+                                                                      'deploy/wikipedia-mcp/catalog.generated.json')
 MCP_PROTOCOL = '2025-06-18'
 POKEAPI = 'https://pokeapi.co/api/v2/pokemon/{name}'
 # ⚖️ Jev's tool families → the server's tools /ask offers ('none': no tool; another family or a low confidence: every tool)
-FAMILIES = {'wikipedia': ('fetch_wikipedia_article', 'fetch_wikipedia_section'), 'pokeapi': ('fetch_pokemon',),
-            'ironmate': ('find', 'show'), 'none': ()}
+FAMILIES = {'wikipedia': ('fetch_wikipedia_article', 'fetch_wikipedia_section', 'search_wikidata', 'fetch_wikidata_entity'),
+            'pokeapi': ('fetch_pokemon',), 'ironmate': ('find', 'show', 'fetch_github_repo'), 'none': ()}
 TYPOS = ('/flwo a > b', '/find --kidn onto', '/find --kind ont')    # ⌨️ what cli_args answers with "maybe you meant"
 _STATE = {'index': None, 'base': '', 'fetch': None, 'talkcompress': None, 'concepts': None, 'guess': None, 'triage': None, 'calls': [],
           'lab': None, 'route': None, 'trace': [], 'mcp_id': 0, 'mcp_ready': False}
@@ -250,7 +253,7 @@ def compress_reply(text: str, fetch=None, base: str | None = None, commit: str |
 
 
 def _check(schema: dict, value, path: str = 'arguments') -> list[str]:
-    """The JSON Schema subset the lab's tools use: type, required, properties, additionalProperties, enum, items."""
+    """The JSON Schema subset the lab's tools use: type, required, properties, additionalProperties, enum, pattern, items."""
     kinds = {'string': str, 'integer': int, 'number': (int, float), 'boolean': bool, 'object': dict, 'array': list, 'null': type(None)}
     want = schema.get('type')
     if want in kinds and (not isinstance(value, kinds[want]) or (want in ('integer', 'number') and isinstance(value, bool))):
@@ -258,6 +261,8 @@ def _check(schema: dict, value, path: str = 'arguments') -> list[str]:
     problems = []
     if 'enum' in schema and value not in schema['enum']:
         problems.append(f'{path}: {schema["enum"]} のどれでもない')
+    if 'pattern' in schema and isinstance(value, str) and not re.search(schema['pattern'], value):
+        problems.append(f'{path}: {schema.get("description") or schema["pattern"]} の形ではない')
     if isinstance(value, dict):
         props = schema.get('properties', {})
         problems += [f'{path}.{key}: 必須' for key in schema.get('required', []) if key not in value]
@@ -290,7 +295,7 @@ def _lab(fetch=None, base: str | None = None):
                 sys.path.insert(0, str(root / 'src'))
             os.environ.setdefault('MARKDOWN_PY', md.__file__)       # 📝 its vendored markdown.py: the one this chat runs
             from mcp_toolcall_lab import catalog, wikipedia_tool
-            from mcp_toolcall_lab.adapters import pokeapi
+            from mcp_toolcall_lab.adapters import keyless, pokeapi
             from mcp_toolcall_lab.jev_backend import KeywordBackend
             from mcp_toolcall_lab.jev_router import decide_route
         except Exception:
@@ -306,14 +311,16 @@ def _lab(fetch=None, base: str | None = None):
                 raise wikipedia_tool.WikipediaFetchError(f'could not fetch {title!r} from {lang}.wikipedia.org: {exc}') from exc
         wikipedia_tool._fetch_extract_payload = mediawiki
         tree = Path(wikipedia_tool.__file__).resolve().parents[2]
-        _STATE['lab'] = {'catalog': catalog, 'pokeapi': pokeapi, 'router': KeywordBackend.from_path(), 'decide': decide_route,
+        _STATE['lab'] = {'catalog': catalog, 'pokeapi': pokeapi, 'keyless': keyless, 'router': KeywordBackend.from_path(), 'decide': decide_route,
                          'tools': json.loads((tree / 'deploy/wikipedia-mcp/catalog.generated.json').read_text(encoding='utf-8'))['tools']}
     return _STATE['lab']
 
 
 def server_tools(fetch=None) -> dict:
     """🔌 What the page's MCP server lists (name → MCP tool: name, description, inputSchema): the lab's Wikipedia tools (its FastMCP
-    catalog), its PokéAPI reader and this bot's find · show · onto (without the lab, only these)."""
+    catalog), its PokéAPI reader and keyless API readers (``adapters/keyless.py``: oEmbed, Wikidata, UniProt, GitHub; the
+    page fetches them itself, they answer with CORS) and this bot's find · show · onto (without the lab, only these). The lab's
+    ``BROWSER_BLOCKED`` providers (Niconico, pixiv) are not listed: a browser cannot read them."""
     tools = {}
     lab = _lab(fetch)
     if lab:
@@ -321,24 +328,35 @@ def server_tools(fetch=None) -> dict:
         tools['fetch_pokemon'] = {'name': 'fetch_pokemon', 'description': 'PokéAPI の pokemon（タイプ・種族値・特性）。名前は英語の小文字（pikachu）か図鑑番号（25）',
                                   'inputSchema': {'type': 'object', 'properties': {'name': {'type': 'string'}}, 'required': ['name'],
                                                   'additionalProperties': False}}
+        tools |= {name: {'name': name, 'description': what, 'inputSchema': schema} for name, (_, what, schema, _) in lab['keyless'].TOOLS.items()}
     return {**tools, **{name: {'name': name, 'description': what, 'inputSchema': {
         'type': 'object', 'properties': props, 'required': required, 'additionalProperties': False}} for name, (what, props, required) in CHAT_TOOLS.items()}}
 
 
-def _run_tool(name: str, args: dict, index: dict | None, fetch) -> str:
-    """🔧 One listed tool, its arguments already checked: the text of its result."""
+def _run_tool(name: str, args: dict, index: dict | None, fetch) -> tuple[str, dict | None]:
+    """🔧 One listed tool, its arguments already checked: its result as Markdown (what people and the model read) and, for an
+    API, the record it read (``structuredContent``: the same facts as data, used or not by a model)."""
     if name == 'find':
-        return find_reply(index, args.get('words', []), args.get('repo'), args.get('kind'))
+        return find_reply(index, args.get('words', []), args.get('repo'), args.get('kind')), None
     if name == 'show':
-        return show_reply(index, args['target'], fetch)
+        return show_reply(index, args['target'], fetch), None
     if name == 'onto':
-        return onto_reply(args['word'], index, fetch)
+        return onto_reply(args['word'], index, fetch), None
     lab, _STATE['get'] = _lab(fetch), fetch or _STATE['fetch'] or _fetch
+    if name in lab['keyless'].TOOLS:                      # 🌐 the lab's reader of what this page fetched
+        record = lab['keyless'].read(name, args, _STATE['get'])
+        return lab['keyless'].markdown(name, record), record
     if name == 'fetch_pokemon':                           # 🐾 the lab's reader of the JSON this page fetched
         url = POKEAPI.format(name=quote(args['name'].strip().lower(), safe=''))
         record = lab['pokeapi'].pokemon_source(_STATE['get'](url), url)
-        return record.get('markdown') or json.dumps(record, ensure_ascii=False)
-    return json.dumps(lab['catalog'].dispatch_tool(name, args), ensure_ascii=False)   # 📚 the lab's dispatch (Wikipedia)
+        return record.pop('markdown', '') or json.dumps(record, ensure_ascii=False), record
+    result = lab['catalog'].dispatch_tool(name, args)     # 📚 the lab's dispatch (Wikipedia)
+    if name == 'fetch_wikipedia_article':                 # 📚 the heading tree, then the start of the extract
+        tree = '\n'.join('  ' * (h.get('level', 1) - 1) + f'- {h["heading"]}' for h in result['headings'][:16])
+        return f'### 📚 {result["canonical_title"]} ({result["lang"]})\n\n{tree}\n\n{result["extract"][:800]}', result
+    if any('body' in row for row in result):              # 📑 a section: its heading and body
+        return '\n\n'.join(f'{row["heading_markdown"]}\n\n{row["body"][:800]}' for row in result), {'sections': result}
+    return md.bullet_list([row['heading'] for row in result]).strip() or '0 件', {'sections': result}   # 📑 the headings to pick from
 
 
 TRACE_ROWS = 400   # 🧾 the trace keeps its last rows
@@ -390,10 +408,10 @@ def mcp_rpc(message, index: dict | None = None, fetch=None) -> dict | None:
     if problems:
         return reply(code=-32602, text='Invalid params', data={'problems': problems})
     try:
-        text, failed = _run_tool(name, args, index, fetch), False
+        (text, record), failed = _run_tool(name, args, index, fetch), False
     except Exception as exc:                              # ⚠️ the tool ran and failed (404, CORS, offline): the model reads why
-        text, failed = f'{type(exc).__name__}: {exc}', True
-    return reply({'content': [{'type': 'text', 'text': text}], 'isError': failed})
+        (text, record), failed = (f'{type(exc).__name__}: {exc}', None), True
+    return reply({'content': [{'type': 'text', 'text': text}], **({'structuredContent': record} if record is not None else {}), 'isError': failed})
 
 
 def _rpc(method: str, params: dict | None = None, *, index: dict | None = None, fetch=None, notify: bool = False) -> dict | None:
@@ -431,18 +449,106 @@ def mcp_reply(text: str, index: dict | None, fetch=None) -> str:
                 for t in listed]
         return ('## 🔌 ページの中の MCP サーバー（tools/list）\n\n' + md.table(['道具', '⚖️ Jev', '必須', '説明'], rows).strip()
                 + ('' if _lab(fetch) else '\n\n⏸ mcp-toolcall-lab を読めない（このビルドは記録していないか、オフライン）')
-                + '\n\n`/mcp 道具 {"引数": "値"}` で tools/call、`/mcp log` で記録（JSONL）')
-    try:
-        arguments = json.loads(raw) if raw.strip() else {}
-    except json.JSONDecodeError as exc:
-        return f'❌ 引数が JSON ではない（{exc.msg}, {exc.pos} 文字目）'
+                + '\n\n🗣️ `/mcp ditto のポケモン`・`/mcp 道具 値`（key=値 も、JSON も）で tools/call、`/mcp log` で記録（JSONL）')
+    tools, said = server_tools(fetch), []
+    if name in tools or '_' in name or raw.lstrip().startswith('{'):   # 🔧 a tool's name (or a typo of one), then its arguments
+        try:
+            arguments = _loose_args(tools[name]['inputSchema'] if name in tools else {}, raw)
+        except json.JSONDecodeError as exc:
+            return f'❌ 引数が JSON ではない（{exc.msg}, {exc.pos} 文字目）'
+    else:                                                 # 🗣️ a sentence: the tool and its arguments from its words
+        picked = _from_words(text.strip(), tools, fetch)
+        if not picked:
+            return '🤔 どの道具か決められない（`/mcp` で一覧、`/mcp 道具 値` で名指し）'
+        name, arguments, why = picked
+        said = [f'🗣️ → `{name}`（{why}）']
     response = _rpc('tools/call', {'name': name, 'arguments': arguments}, index=index, fetch=fetch)
     ok, result = _call_text(response)
     sent = next(row['message'] for row in reversed(_STATE['trace']) if row['event'] == 'mcp/request')
     head = ('✅ tools/call' if ok else '⚠️ isError' if 'result' in response else '❌ 断る（JSON-RPC のエラー）')
     body = result if len(result) <= 1500 else result[:1499] + '…'
-    return '\n\n'.join([f'### 🔌 {head}', _code(json.dumps(sent, ensure_ascii=False), 'json'),
-                          body if ok and name in ('find', 'show', 'onto', 'fetch_pokemon') else _code(body)])
+    return '\n\n'.join([f'### 🔌 {head}', *said, _code(json.dumps(sent, ensure_ascii=False), 'json'),
+                          body if ok else _code(body)]
+                         + ([f'🧱 structuredContent: `{"` `".join(response["result"]["structuredContent"])}`']
+                            if ok and response['result'].get('structuredContent') else []))
+
+
+def _loose_args(schema: dict, raw: str) -> dict:
+    """🗣️ A tool's arguments as typed: JSON, or words — ``key=値`` (``:`` ``＝`` ``：`` too), a value of an enum, and the rest
+    for the required properties in order (the last takes the words left; an array, if nothing is required). Quotes are
+    optional (「」 too); numbers and true / false follow the schema, and Japanese words set an unset ``lang`` to ja."""
+    raw = raw.strip()
+    if raw.startswith('{'):
+        return json.loads(raw)
+    props, args, rest = schema.get('properties', {}), {}, []
+    unquote = lambda word: re.sub(r'^([「“\x22\x27])(.*)[」”\x22\x27]$', r'\2', word, flags=re.S)
+    for word in re.findall(r'(?:[A-Za-z_]\w*[=:＝：])?(?:「[^」]*」|“[^”]*”|\x22[^\x22]*\x22|\x27[^\x27]*\x27|\S+)', raw):
+        key = re.match(r'([A-Za-z_]\w*)[=:＝：](.*)', word, re.S)
+        if key and key[1] in props:
+            args[key[1]] = unquote(key[2])
+        elif enum := next((k for k, p in props.items() if unquote(word) in p.get('enum', ()) and k not in args), None):
+            args[enum] = unquote(word)
+        else:
+            rest.append(unquote(word))
+    slots = [k for k in schema.get('required', []) if k not in args] or [k for k, p in props.items() if p.get('type') == 'array' and k not in args][:1]
+    for i, key in enumerate(slots):
+        if rest[i:]:
+            args[key] = rest[i:] if props[key].get('type') == 'array' else ' '.join(rest[i:]) if i == len(slots) - 1 else rest[i]
+    for key, value in args.items():
+        want = props.get(key, {}).get('type')
+        if isinstance(value, str) and want == 'array':
+            args[key] = [v for v in re.split(r'[,、\s]+', value) if v]
+        elif isinstance(value, str) and want in ('integer', 'number') and re.fullmatch(r'-?\d+(\.\d+)?', value):
+            args[key] = int(value) if want == 'integer' and value.lstrip('-').isdigit() else float(value)
+        elif isinstance(value, str) and want == 'boolean' and value.casefold() in ('true', 'false', 'yes', 'no', 'はい', 'いいえ'):
+            args[key] = value.casefold() in ('true', 'yes', 'はい')
+    if 'lang' in props and 'lang' not in args and re.search(r'[\u3040-\u30ff\u4e00-\u9fff]', ' '.join(map(str, args.values()))):
+        args['lang'] = 'ja'
+    return args
+
+
+def _from_words(sentence: str, tools: dict, fetch=None) -> tuple[str, dict, str] | None:
+    """🗣️ /mcp in words, without a model: each tool whose required arguments the sentence fills — a shaped one (its JSON Schema
+    ``pattern``: a URL, Q42, OWNER/NAME) by a run of ASCII in it, at most one free string by what is left once the naming words
+    (tool names, the keyless APIs' cues, ⚖️ Jev's keywords) and the particles around them go. The tool the sentence names
+    (🏷️) wins, then the ones Jev offers (⚖️, ``ask_route``, which joins the trace), then more shaped arguments (🧩), then the
+    server's order. None when no tool fits."""
+    lab, saved = _lab(fetch), _STATE['route']
+    route, _STATE['route'] = ask_route(sentence, fetch), saved            # ⚖️ /ask's route stays as it was
+    parts = {t: {p for p in t.split('_') if p not in ('fetch', 'search')} for t in tools}
+    naming = {p for ps in parts.values() for p in ps} | ({cue for *_, cues in lab['keyless'].TOOLS.values() for cue in cues if '://' not in cue}
+                                                         | {cue for cues in lab['router'].weights.values() for cue in cues} if lab else set())
+    runs = [w.rstrip('.,;:!?)]') for w in re.findall(r'[!-~]+', sentence)]
+    named = set(route['cued']) | {t for t, ps in parts.items() if ps & {w.casefold() for w in runs}}
+    best = None
+    for order, (name, tool) in enumerate(tools.items()):
+        props, required, args = tool['inputSchema'].get('properties', {}), tool['inputSchema'].get('required', []), {}
+        free = [k for k in required if 'pattern' not in props[k]]
+        for key in required:
+            if 'pattern' in props[key]:
+                args[key] = next((w for w in runs if w.casefold() not in naming and re.search(props[key]['pattern'], w)), None)
+        if not required or None in args.values() or len(free) > 1 or any(props[k].get('type') != 'string' for k in free):
+            continue
+        if free:
+            left = sentence
+            for value in args.values():
+                left = left.replace(value, ' ')
+            for word in sorted(naming, key=len, reverse=True):
+                edge = rf'(?<![A-Za-z0-9]){re.escape(word)}(?![A-Za-z0-9])' if word.isascii() else re.escape(word)
+                left = re.sub(rf'[のをでにと]?\s*{edge}(?:って|[てでのをはがにと])?', ' ', left, flags=re.I)
+            left = re.sub(r'(?:\s|[、。,.？?！!]|について|って何|ってなに|とは|って|は何|はなに|は誰|を?(?:調べて|教えて|見せて|知りたい)|ください|下さい)+$', '', left)
+            if not (left := re.sub(r'\s+', ' ', left).strip(' 、。,.')):
+                continue
+            args[free[0]] = left
+        if 'lang' in props and re.search(r'[\u3040-\u30ff\u4e00-\u9fff]', ' '.join(args.values())):
+            args['lang'] = 'ja'
+        rank = (2 if name in named else 1 if name in route['offered'] else 0, len(required) - len(free), -order)
+        if best is None or rank > best[0]:
+            best = (rank, name, args)
+    if best is None:
+        return None
+    (level, shaped, _), name, args = best
+    return name, args, ' · '.join(['🏷️ 名指し', '⚖️ Jev', '既定の順'][2 - level:3 - level] + (['🧩 形'] if shaped else []))
 
 
 def mcp_log(rows: int = 8) -> str:
@@ -1007,14 +1113,20 @@ def ask_messages(text: str, index: dict | None = None, fetch=None) -> str:
 
 def ask_route(question: str, fetch=None) -> dict:
     """⚖️ Jev (the lab's keyword router, ``decide_route``) on the question: which of the server's tools /ask offers — one family's
-    when it is confident, none when it is confident no tool is needed, else every tool. The decision joins the 🧾 trace."""
+    when it is confident, none when it is confident no tool is needed, else every tool. A keyless API whose ``cues`` (the lab's
+    ``keyless.TOOLS``) the question names joins them, and alone stands in for none or every tool (Jev has no family for it). The
+    decision joins the 🧾 trace."""
     tools, lab = list(server_tools(fetch)), _lab(fetch)
+    text = question.casefold()
+    cued = [name for name, (*_, cues) in (lab['keyless'].TOOLS.items() if lab else ()) if any(cue in text for cue in cues)]
     if not lab:
-        row = {'needs_tool': None, 'tool_family': None, 'fallback_reason': 'no_lab', 'offered': tools}
+        row = {'needs_tool': None, 'tool_family': None, 'fallback_reason': 'no_lab', 'offered': cued or tools}
     else:
         decision = dataclasses.asdict(lab['decide'](lab['router'], question))
         family = decision['tool_family'] if not decision['fallback_reason'] else None
-        row = {**decision, 'offered': [t for t in tools if t in FAMILIES[family]] if family in FAMILIES else tools}
+        chosen = [t for t in tools if t in FAMILIES[family]] if family in FAMILIES and family != 'none' else None
+        row = {**decision, 'offered': list(dict.fromkeys([*(chosen or []), *cued])) if chosen or cued else [] if family == 'none' else tools}
+    row['cued'] = cued
     _trace('jev/route_decision', question=question, **row)
     _STATE['route'] = row
     return row

@@ -821,9 +821,9 @@ def chat_document(ui) -> str:
     chat = _chat()
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '💬 横断チャット', 'description':
                              'markdown.py・ascii_artist・cli_args・TalkCompress・mcp-toolcall-lab・OnTautoLogy・OLNM・Err-o-RoadRunner をページの中の Python で。'
-                             '公開リポジトリの JSON / JSONL を索引から検索できる。🔌 /mcp はページの中の MCP サーバー（Wikipedia・PokéAPI・索引・台帳）、'
+                             '公開リポジトリの JSON / JSONL を索引から検索できる。🔌 /mcp はページの中の MCP サーバー（Wikipedia・PokéAPI・oEmbed・Wikidata・UniProt・GitHub・索引・台帳）、'
                              '🤖 /ask は llama.cpp が端末の中で答え、⚖️ Jev が選んだその道具を呼ぶ。'
-                             '送った文はどこにも送らない（/show は GitHub の raw を、/ask はモデルを読むだけ。🔌 Wikipedia・PokéAPI の道具だけは、その引数をそのサイトへ）。',
+                             '送った文はどこにも送らない（/show は GitHub の raw を、/ask はモデルを読むだけ。🔌 API の道具だけは、その引数をその API へ）。',
                              'blocks': [{'type': 'tabs', 'id': 'chat', 'tabs': [
                                  {'label': '💬 チャット', 'blocks': [{'type': 'text', 'text': _CHAT_SLOT}]},
                                  {'label': '📇 索引', 'blocks': [{'type': 'runbook', 'id': 'chat-index', 'choice': '📇 道具',
