@@ -5053,7 +5053,7 @@ export function bindWorldRescue(el){
     textEl.textContent="✨ セーヌ水路の清流により、水タンクと体力が満タンまで急速補給された！";checkQuests();
    }}));
    if(node.shop)actionsEl.append(rescueEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🛒 補給ショップ",onclick:()=>openShopDialog(nodeId)}));
-   if(node.quiz)actionsEl.append(rescueEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🎓 クイズに挑戦",onclick:()=>openQuizDialog(nodeId)}));
+   if(node.quiz&&rescue.quizzes.length)actionsEl.append(rescueEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🎓 クイズに挑戦",onclick:()=>openQuizDialog(nodeId)}));
    actionsEl.append(rescueEl("button",{type:"button",className:"ui-rpg-btn",...(idx===pages.length-1?{"data-primary":""}:{}),textContent:"とじる",onclick:closeModal}));
   };
   renderPage();
@@ -5179,7 +5179,7 @@ export function bindWorldRescue(el){
    body.replaceChildren();
    if(activeTab==="quests"){
     body.append(rescueEl("div",{className:"ui-rpg-list"},...rescue.quests.map(q=>{
-     const cur=questProgress(q),done=cur>=q.count;
+     const done=state.completedQuests.has(q.id),cur=done?q.count:questProgress(q);
      return rescueEl("div",{className:"ui-rpg-row"},
       rescueEl("div",{className:"ui-rpg-row-top"},
        rescueEl("span",{textContent:(done?"✅ ":"⏳ ")+q.title}),
@@ -5764,7 +5764,7 @@ export function bindWorldDetective(el){
     textEl.textContent="✨ 科学捜査研究所のバイタルケアにより、スタミナと気力が満タンまで急速補給された！";checkQuests();
    }}));
    if(node.shop)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🛒 船場どうぐ屋",onclick:()=>openShopDialog(nodeId)}));
-   if(node.quiz)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🎓 推理クイズに挑戦",onclick:()=>openQuizDialog(nodeId)}));
+   if(node.quiz&&detective.quizzes.length)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🎓 推理クイズに挑戦",onclick:()=>openQuizDialog(nodeId)}));
    actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",...(idx===pages.length-1?{"data-primary":""}:{}),textContent:"とじる",onclick:closeModal}));
   };
   renderPage();
@@ -7404,7 +7404,7 @@ def _paris_rescue_spec() -> dict[str, Any]:
         "quests": [
             {"id": "q-talk-captain", "title": "マルゴ隊長へ着任報告", "desc": "マルゴ隊長(24, 5)に話しかけて消火任務の説明を受ける。",
              "kind": "talk", "target": "npc-captain", "count": 1, "reward_exp": 15, "reward_medals": 10},
-            {"id": "q-first-fire", "title": "初めての消火活動", "desc": "フェイクパリの火災を1箇所消火して街に緑を咲かせる。",
+            {"id": "q-first-fire", "title": "初めての消火活動", "desc": "フェイクパリの火災を1箇所鎮火する。村で手に入る癒しの水で消しても達成。",
              "kind": "fire", "count": 1, "reward_exp": 25, "reward_medals": 15},
             {"id": "q-three-fires", "title": "街角の火災鎮圧", "desc": "火災を3箇所以上消火してヘルメット宝箱の封印を解く。",
              "kind": "fire", "count": 3, "reward_exp": 40, "reward_medals": 25},

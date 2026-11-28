@@ -1974,6 +1974,26 @@ class FakeParisHeroTests(unittest.TestCase):
         page.wait_for_selector(".ui-rpg-card", state="hidden")
         self.assertEqual(self.errors, [])
 
+    def test_restoring_village_water_preserves_earned_mission(self):
+        page = self.open()
+        fire = page.locator('[data-fire-id="fire-0"]')
+        def restore(hidden):
+            fire.evaluate("""(fire, hidden) => {
+              fire.hidden = hidden;
+              fire.closest('.ui-world').dispatchEvent(new Event('world-rescue-fires-changed'));
+            }""", hidden)
+        restore(True)
+        medals = page.text_content('[data-rescue-medals]')
+        restore(False)
+        self.assertIn('鎮火 0/', page.text_content('[data-rescue-fires]'))
+        page.click('[data-rescue-journal-btn]')
+        row = page.locator('.ui-rpg-row').filter(has_text='初めての消火活動')
+        self.assertIn('✅', row.inner_text())
+        self.assertIn('1/1', row.inner_text())
+        restore(True)
+        self.assertEqual(page.text_content('[data-rescue-medals]'), medals)
+        self.assertEqual(self.errors, [])
+
     def test_every_guide_fire_can_be_extinguished(self):
         graph = json.loads((ROOT / "docs/world-guide.json").read_text(encoding="utf-8"))
         fires = [n for n in graph["nodes"] if "heat" in n]
@@ -2120,6 +2140,24 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         self.assertIn("[2/4]", dialog.inner_text())
         dialog.locator(".ui-rpg-close").click()
         page.wait_for_selector(".ui-rpg-card", state="hidden")
+        self.assertEqual(self.errors, [])
+
+    def test_npcs_can_talk_when_no_quizzes_are_configured(self):
+        spec = W.example_data("cities")
+        for game in ("rescue", "detective"):
+            spec[game]["quizzes"] = []
+        path = Path(self.tmp.name) / "without-quizzes.html"
+        path.write_text(W.world_document(spec), encoding="utf-8")
+        page = self.open(path=path)
+        for game in ("detective", "rescue"):
+            data = spec[game]
+            page.select_option(".ui-world-goto", data["floor"])
+            npc = next(n for n in data["nodes"] if n.get("quiz"))
+            page.locator(f'[data-{game}-id="{npc["id"]}"]').dispatch_event("click")
+            card = page.locator(".ui-rpg-card")
+            self.assertIn(npc["greeting"], card.inner_text())
+            self.assertEqual(card.locator('button').filter(has_text="クイズ").count(), 0)
+            card.locator(".ui-rpg-close").click()
         self.assertEqual(self.errors, [])
 
     def test_osaka_chief_briefs_the_player_at_osaka_station(self):

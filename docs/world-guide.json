@@ -2311,7 +2311,7 @@
    "id": "quest/q-first-fire",
    "type": "Goal",
    "name": "初めての消火活動",
-   "detail": "フェイクパリの火災を1箇所消火して街に緑を咲かせる。"
+   "detail": "フェイクパリの火災を1箇所鎮火する。村で手に入る癒しの水で消しても達成。"
   },
   {
    "id": "condition/q-first-fire",
