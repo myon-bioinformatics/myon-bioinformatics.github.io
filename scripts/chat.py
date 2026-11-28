@@ -66,7 +66,7 @@ COMMANDS = {
     'compress': ('🗂', 'TEXT', '会話を短く（TalkCompress の略語・合意台帳）と、LLM 出力の整理（markdown.py）',
                  ('/compress As soon as possible, please send me the report. Thank you very much!',)),
     'mcp': ('🔌', '[TOOL {JSON} | log]', 'ページの中の MCP サーバーと話す（tools/list・tools/call。mcp-toolcall-lab の Wikipedia・PokéAPI、'
-                                        'キー不要の 🎬 YouTube oEmbed・🕸️ Wikidata・🧬 UniProt・🐙 GitHub、このチャットの find・show・onto。'
+                                        'キー不要の 🔗 oEmbed（YouTube・Vimeo・SoundCloud・Spotify など URL の形で）・🕸️ Wikidata・🧬 UniProt・🐙 GitHub、このチャットの find・show・onto。'
                                         '結果は Markdown と structuredContent）。log は JSON-RPC と ⚖️ Jev の判定の記録（JSONL）',
             ('/mcp', '/mcp fetch_pokemon {"name": "ditto"}', '/mcp fetch_wikidata_entity {"id": "Q6607"}', '/mcp fetch_wikipedia_article {"title": 3}', '/mcp fetch_wikipedia_artcle {}',
              '/mcp log')),
@@ -316,7 +316,7 @@ def _lab(fetch=None, base: str | None = None):
 
 def server_tools(fetch=None) -> dict:
     """🔌 What the page's MCP server lists (name → MCP tool: name, description, inputSchema): the lab's Wikipedia tools (its FastMCP
-    catalog), its PokéAPI reader and keyless API readers (``adapters/keyless.py``: YouTube oEmbed, Wikidata, UniProt, GitHub; the
+    catalog), its PokéAPI reader and keyless API readers (``adapters/keyless.py``: oEmbed, Wikidata, UniProt, GitHub; the
     page fetches them itself, they answer with CORS) and this bot's find · show · onto (without the lab, only these). The lab's
     ``BROWSER_BLOCKED`` providers (Niconico, pixiv) are not listed: a browser cannot read them."""
     tools = {}

@@ -1262,7 +1262,7 @@ def test_chat_mcp_server_speaks_json_rpc_with_the_labs_tools(mcp_session):
     assert rpc({'jsonrpc': '2.0', 'id': 2, 'method': 'ping'})['result'] == {}
     listed = rpc({'jsonrpc': '2.0', 'id': 3, 'method': 'tools/list'})['result']['tools']
     catalog = json.loads((LAB_CHECKOUT / 'deploy/wikipedia-mcp/catalog.generated.json').read_text(encoding='utf-8'))['tools']
-    assert [t['name'] for t in listed] == [t['name'] for t in catalog] + ['fetch_pokemon', *['fetch_youtube_oembed', 'search_wikidata', 'fetch_wikidata_entity', 'search_uniprot', 'fetch_github_repo'], 'find', 'show', 'onto']
+    assert [t['name'] for t in listed] == [t['name'] for t in catalog] + ['fetch_pokemon', *['fetch_oembed', 'search_wikidata', 'fetch_wikidata_entity', 'search_uniprot', 'fetch_github_repo'], 'find', 'show', 'onto']
     assert [t['inputSchema'] for t in listed[:len(catalog)]] == [t['inputSchema'] for t in catalog]   # 📚 the lab's, not a copy
     call = lambda name, args: rpc({'jsonrpc': '2.0', 'id': 4, 'method': 'tools/call', 'params': {'name': name, 'arguments': args}})
     ditto = call('fetch_pokemon', {'name': 'Ditto'})['result']
@@ -1290,6 +1290,9 @@ def test_chat_mcp_server_speaks_json_rpc_with_the_labs_tools(mcp_session):
 
 
 OPEN_API_ANSWERS = {    # 🌐 what each keyless API answers (its documented shape, cut down), by a piece of the request URL
+    'oembed-providers@': [{'provider_name': 'YouTube', 'endpoints': [{'schemes': ['https://youtu.be/*'], 'url': 'https://www.youtube.com/oembed'}]},
+                          {'provider_name': 'Vimeo', 'endpoints': [{'schemes': ['https://vimeo.com/*'], 'url': 'https://vimeo.com/api/oembed.{format}'}]}],
+    'https://vimeo.com/api/oembed.json?': {'type': 'video', 'title': 'A Vimeo video', 'author_name': 'Someone', 'author_url': '', 'width': 640, 'height': 360},
     'https://www.youtube.com/oembed?': {'title': 'A video', 'author_name': 'A channel', 'author_url': 'https://www.youtube.com/@a', 'type': 'video',
                                         'thumbnail_url': 'https://i.ytimg.com/vi/x/hqdefault.jpg', 'thumbnail_width': 480, 'thumbnail_height': 360,
                                         'provider_name': 'YouTube', 'html': '<iframe src="https://www.youtube.com/embed/x"></iframe>'},
@@ -1314,7 +1317,7 @@ OPEN_API_ANSWERS = {    # 🌐 what each keyless API answers (its documented sha
 @needs_lab
 def test_chat_mcp_wraps_keyless_apis_into_markdown_and_records(mcp_session):
     """🌐 The lab's keyless readers (adapters/keyless.py) are tools of the page's MCP server; the page fetches what they ask for:
-    🎬 YouTube oEmbed, 🕸️ Wikidata (search, and an item with what it is an instance and a subclass of, labelled by a second
+    🔗 oEmbed (the provider from oembed.com's registry by the shape of the URL), 🕸️ Wikidata (search, and an item with what it is an instance and a subclass of, labelled by a second
     request), 🧬 UniProt, 🐙 GitHub — each a Markdown table to read and its record as structuredContent; a bad argument stops
     before any request, and the lab's BROWSER_BLOCKED providers are not listed."""
     asked = []
@@ -1326,12 +1329,19 @@ def test_chat_mcp_wraps_keyless_apis_into_markdown_and_records(mcp_session):
         return json.dumps(next(answer for piece, answer in OPEN_API_ANSWERS.items() if piece in url))
     call = lambda name, args: CHAT.mcp_rpc({'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call', 'params': {'name': name, 'arguments': args}},
                                            CHAT_INDEX, fetch)['result']
-    video = call('fetch_youtube_oembed', {'url': 'https://youtu.be/x'})
-    assert asked[-1] == 'https://www.youtube.com/oembed?url=https%3A%2F%2Fyoutu.be%2Fx&format=json'
-    assert video['content'][0]['text'].startswith('### 🎬 [A video](https://youtu.be/x)') and 'html' not in video['structuredContent']
-    assert video['structuredContent'] | {} == {'schema': 'youtube-oembed/1', 'url': 'https://youtu.be/x', 'title': 'A video', 'author_name': 'A channel',
-                                              'author_url': 'https://www.youtube.com/@a', 'thumbnail_url': 'https://i.ytimg.com/vi/x/hqdefault.jpg',
-                                              'thumbnail_width': 480, 'thumbnail_height': 360, 'provider_name': 'YouTube'}
+    CHAT._STATE['lab'] or CHAT._lab(fetch)
+    CHAT._STATE['lab']['keyless']._REGISTRY.clear()                            # 📇 the registry is read once per page
+    video = call('fetch_oembed', {'url': 'https://youtu.be/x'})
+    assert asked[-2:] == [CHAT._STATE['lab']['keyless'].OEMBED_PROVIDERS, 'https://www.youtube.com/oembed?url=https%3A%2F%2Fyoutu.be%2Fx&format=json']
+    assert video['content'][0]['text'].startswith('### 🔗 [A video](https://youtu.be/x) — YouTube') and 'html' not in video['structuredContent']
+    assert video['structuredContent'] | {} == {'schema': 'oembed/1', 'url': 'https://youtu.be/x', 'provider': 'YouTube', 'type': 'video', 'title': 'A video',
+                                              'author_name': 'A channel', 'author_url': 'https://www.youtube.com/@a', 'provider_name': 'YouTube',
+                                              'thumbnail_url': 'https://i.ytimg.com/vi/x/hqdefault.jpg', 'thumbnail_width': 480, 'thumbnail_height': 360,
+                                              'width': None, 'height': None}
+    vimeo = call('fetch_oembed', {'url': 'https://vimeo.com/1'})                 # 🔗 another provider, by its scheme; the registry once
+    assert asked[-1] == 'https://vimeo.com/api/oembed.json?url=https%3A%2F%2Fvimeo.com%2F1&format=json' and asked.count(asked[-3]) == 1
+    assert vimeo['structuredContent']['provider'] == 'Vimeo' and '640×360' in vimeo['content'][0]['text']
+    assert 'no oEmbed provider' in call('fetch_oembed', {'url': 'https://example.com/x'})['content'][0]['text']
     found = call('search_wikidata', {'query': 'ギター'})
     assert 'origin=%2A' in asked[-1] and 'language=ja' in asked[-1] and '| [Q6607](https://www.wikidata.org/wiki/Q6607) | ギター | 弦楽器 |' in found['content'][0]['text']
     item = call('fetch_wikidata_entity', {'id': 'q6607'})
@@ -1346,7 +1356,7 @@ def test_chat_mcp_wraps_keyless_apis_into_markdown_and_records(mcp_session):
     assert asked[-1] == 'https://api.github.com/repos/myon-bioinformatics/ONTO' and repo['structuredContent']['stars'] == 3
     assert '| Python | 3 | 0 | 1 | MIT | 2026-11-28 |' in repo['content'][0]['text']
     before = len(asked)
-    bad = [call('fetch_youtube_oembed', {'url': 'https://evil.test/watch?v=x'}), call('fetch_wikidata_entity', {'id': 'Q0; drop'}),
+    bad = [call('fetch_oembed', {'url': 'javascript:alert(1)'}), call('fetch_wikidata_entity', {'id': 'Q0; drop'}),
            call('fetch_github_repo', {'repo': '../../users/x'})]
     assert all(r['isError'] and 'ValueError' in r['content'][0]['text'] for r in bad) and len(asked) == before   # 🚫 no request made
     listed = {t['name'] for t in CHAT.server_tools(fetch).values()}
@@ -1405,9 +1415,9 @@ def test_chat_ask_offers_what_jev_picks_and_calls_through_mcp(mcp_session, monke
     assert offered('/ask ditto の種族値は？') == ['fetch_pokemon']
     assert offered('/ask Exampleville をウィキペディアで') == ['fetch_wikipedia_article', 'fetch_wikipedia_section', 'search_wikidata', 'fetch_wikidata_entity']
     assert offered('/ask TaxOntOy って何？') == [] and '呼んでよい' not in json.loads(CHAT.ask_messages('/ask TaxOntOy って何？', CHAT_INDEX, _lab_fetch))[0]['content']
-    assert offered('/ask 調べて') == ['fetch_wikipedia_article', 'fetch_wikipedia_section', 'fetch_pokemon', *['fetch_youtube_oembed', 'search_wikidata', 'fetch_wikidata_entity', 'search_uniprot', 'fetch_github_repo'], 'find', 'show', 'onto']
+    assert offered('/ask 調べて') == ['fetch_wikipedia_article', 'fetch_wikipedia_section', 'fetch_pokemon', *['fetch_oembed', 'search_wikidata', 'fetch_wikidata_entity', 'search_uniprot', 'fetch_github_repo'], 'find', 'show', 'onto']
     assert offered('/ask オントロジーの台帳はどのリポジトリ？') == ['fetch_github_repo', 'find', 'show']
-    assert offered('/ask この動画は？ https://youtu.be/x') == ['fetch_youtube_oembed']                # 🎬 a cue where Jev says none
+    assert offered('/ask この動画は？ https://youtu.be/x') == ['fetch_oembed']                        # 🔗 a cue (a URL) where Jev says none
     assert offered('/ask ヘモグロビンのタンパク質は？') == ['search_uniprot']
     system = json.loads(CHAT.ask_messages('/ask オントロジーの台帳はどのリポジトリ？', CHAT_INDEX, _lab_fetch))[0]['content']
     assert '道具（fetch_github_repo・find・show）を呼んでよい' in system
