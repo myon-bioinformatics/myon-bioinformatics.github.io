@@ -25,12 +25,16 @@ _IRONMATE = {'repository': 'myon-bioinformatics/Ironmate', 'run': ('image_studio
 # ./tools/#id); any other leads to a relative, named by its own emoji and words. ``build``: a tool another repository makes, as
 # ``{'repository', 'run', 'page'}`` (run with python in its checkout; ``{out}`` is where it writes its site, else its page is stdout;
 # ``page``, the folder of that site the tool is); it is placed at tools/<id>/ and framed on the screen when it has its own CSP.
+# ``make``: a tool this site makes, the function (scripts/project_pages.py, or ``module:function`` of scripts/module.py) that
+# returns its document, or ``{path: content}``: its one #panel and the files it brings (hash-locked); a maker that takes ``output``
+# is made when the site is built, from what ``record``, the function run at deploy time (``--record``), put there.
 # One card is one tool: its folder, its #panel, 🚪, 🏠 and README's table follow from it. ``words`` are the names in 🌐's other languages. ``from`` names the repositories a card is built from (🧩, plain
 # text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. Everything is escaped.
 PORTAL = [
  {'title': '📄 HTML文書取込', 'id': 'html-import',
   'text': 'HTML を貼るかファイルを選び、本文・見出し・リンクを端末の中で抽出。',
-  'words': {'HTML文書取込': ['HTML import', 'Import HTML', 'Importar HTML', 'Importar HTML', 'استيراد HTML', 'HTML 导入', 'Импорт HTML', 'Impor HTML', 'HTML-Import', 'Kuingiza HTML']}},
+  'words': {'HTML文書取込': ['HTML import', 'Import HTML', 'Importar HTML', 'Importar HTML', 'استيراد HTML', 'HTML 导入', 'Импорт HTML', 'Impor HTML', 'HTML-Import', 'Kuingiza HTML']},
+  'make': 'html_import_panel'},
  {'title': '🗃️ 形式変換・検証', 'id': 'format-lab',
   'text': 'ファイルや貼った原文を静的検査し、Base64 の復元差分と検証記録を確認。CaChereCyCle の資産は SHA-256 も照合。',
   'words': {'形式変換・検証': ['Format conversion & checks', 'Conversion et vérification de formats', 'Conversión y verificación de formatos', 'Conversão e verificação de formatos', 'تحويل الصيغ والتحقق منها', '格式转换与校验', 'Преобразование и проверка форматов', 'Konversi dan pemeriksaan format', 'Formatumwandlung und Prüfung', 'Ubadilishaji na ukaguzi wa miundo']},
@@ -39,7 +43,12 @@ PORTAL = [
  {'title': '📍 地図URL・座標ピン留め', 'id': 'maps',
   'text': '緯度・経度から Apple Maps と Google Maps の URL を作り、地点をピン留め・共有。',
   'words': {'地図URL・座標ピン留め': ['Map URLs & coordinate pins', 'URL de carte et épingles de coordonnées', 'URL de mapa y chinchetas de coordenadas', 'URL de mapa e alfinetes de coordenadas', 'روابط الخرائط ودبابيس الإحداثيات', '地图 URL 与坐标图钉', 'URL карт и метки координат', 'URL peta dan penanda koordinat', 'Karten-URLs und Koordinaten-Pins', 'URL za ramani na pini za kuratibu'], 'パラレル東京': ['Parallel Tokyo', 'Tokyo parallèle', 'Tokio paralelo', 'Tóquio paralela', 'طوكيو الموازية', '平行东京', 'Параллельный Токио', 'Tokyo Paralel', 'Paralleles Tokio', 'Tokyo sambamba']},
+  'make': 'maps_panel',
   'links': [('開く →', './tools/#maps'), ('🗼 パラレル東京 →', './tools/#tokyo')]},
+ {'title': '🪐 仮想・拡張エリア', 'id': 'worlds',
+  'text': '緯度・経度ではなく、歩いて回る空間。村・学校・パラレル都市・カメラ（AR）。',
+  'words': {'仮想・拡張エリア': ['Virtual & extended areas', 'Espaces virtuels et étendus', 'Áreas virtuales y extendidas', 'Áreas virtuais e estendidas', 'مناطق افتراضية وموسّعة', '虚拟与扩展区域', 'Виртуальные и расширенные области', 'Area virtual dan perluasan', 'Virtuelle und erweiterte Bereiche', 'Maeneo pepe na yaliyopanuliwa']},
+  'make': 'worlds_panel'},
  {'title': '🖼️ 画像工房', 'id': 'image-studio',
   'text': 'レイヤー・作業履歴・クリップボード棚で画像を編集。数値行列のヒートマップと PNG Base64 の受け渡しも。',
   'words': {'画像工房': ['Image studio', 'Atelier d’images', 'Taller de imágenes', 'Estúdio de imagens', 'استوديو الصور', '图像工坊', 'Студия изображений', 'Studio gambar', 'Bildwerkstatt', 'Studio ya picha']},
@@ -64,11 +73,12 @@ PORTAL = [
  {'title': '🧾 テスト結果', 'id': 'test-report',
   'text': 'JUnit の結果を読み、前回と比べて新規・再発・解消を分ける。🧯 で失敗をチャットの /triage へ。結果は送らない。',
   'words': {'テスト結果': ['Test results', 'Résultats de tests', 'Resultados de pruebas', 'Resultados de testes', 'نتائج الاختبار', '测试结果', 'Результаты тестов', 'Hasil pengujian', 'Testergebnisse', 'Matokeo ya majaribio']},
-  'from': ('PySaiyanWeBoo',)},
+  'from': ('PySaiyanWeBoo',), 'make': 'report_page'},
  {'title': '💬 横断チャット', 'id': 'chat',
   'text': 'Markdown・ASCII アート・圧縮・JSON 索引・🧯 triage・🔌 MCP を Python で。🤖 LLM も呼ぶ。',
   'words': {'横断チャット': ['Cross-repo chat', 'Chat inter-dépôts', 'Chat entre repositorios', 'Chat entre repositórios', 'دردشة عبر المستودعات', '跨仓库聊天', 'Чат по всем репозиториям', 'Obrolan lintas repo', 'Repo-übergreifender Chat', 'Gumzo la hazina zote']},
-  'from': ('markdown', 'ascii_artist', 'cli_args', 'TalkCompress', 'mcp-toolcall-lab', 'Err-o-RoadRunner')},
+  'from': ('markdown', 'ascii_artist', 'cli_args', 'TalkCompress', 'mcp-toolcall-lab', 'Err-o-RoadRunner'),
+  'make': 'chat_panel', 'record': 'record_chat'},
  {'title': '🧭 統合運用', 'id': 'operations',
   'text': 'リポジトリ横断の運用ダッシュボード：CI の失敗・競合・未解決レビュー、監査と依存、実行手順、記録と差分。',
   'words': {'統合運用': ['Operations', 'Opérations', 'Operaciones', 'Operações', 'العمليات', '综合运维', 'Эксплуатация', 'Operasi', 'Betrieb', 'Uendeshaji']},
@@ -77,14 +87,15 @@ PORTAL = [
  {'title': '🎞 GIF工房', 'id': 'gif',
   'text': '手持ちの画像を並べて GIF に。端末の中で完結し、画像はどこにも送らず保存もしない。',
   'words': {'GIF工房': ['GIF studio', 'Atelier GIF', 'Taller GIF', 'Oficina GIF', 'استوديو GIF', 'GIF 工坊', 'Студия GIF', 'Studio GIF', 'GIF-Werkstatt', 'Studio ya GIF']},
-  'from': ('PySaiyanWeBoo',)},
+  'from': ('PySaiyanWeBoo',), 'make': 'gif_panel'},
  {'title': '🌊 流れの実験室', 'id': 'flow',
   'text': 'FFSS の全場面を 🌊 動く像で、DRAgoWing の全図を 📊 静止図で。水回り・そうめん・お金・からだ・火力まで。',
   'words': {'流れの実験室': ['Flow lab', 'Labo des flux', 'Laboratorio de flujos', 'Laboratório de fluxos', 'مختبر التدفق', '流动实验室', 'Лаборатория потоков', 'Lab aliran', 'Strömungslabor', 'Maabara ya mtiririko']},
-  'from': ('FluidFullSpeedSimulation', 'DRAgoWing')},
+  'from': ('FluidFullSpeedSimulation', 'DRAgoWing'), 'make': 'render_flow', 'record': 'record_flow'},
  {'title': '🧠 リポジトリ地図', 'id': 'repo-map',
   'text': 'どのリポジトリがどのファイルを写して使うか。vendor.lock.json と Aoi の subtree から公開ごとに描き直す。',
-  'words': {'リポジトリ地図': ['Repository map', 'Carte des dépôts', 'Mapa de repositorios', 'Mapa de repositórios', 'خريطة المستودعات', '仓库地图', 'Карта репозиториев', 'Peta repositori', 'Repository-Karte', 'Ramani ya hazina']}}]
+  'words': {'リポジトリ地図': ['Repository map', 'Carte des dépôts', 'Mapa de repositorios', 'Mapa de repositórios', 'خريطة المستودعات', '仓库地图', 'Карта репозиториев', 'Peta repositori', 'Repository-Karte', 'Ramani ya hazina']},
+  'make': 'render_map', 'record': 'record_map'}]
 PORTAL = [{'links': [('開く →', f"./tools/#{card['id']}")], **card} for card in PORTAL]   # 🔗 開く → its #panel, unless it says
 
 

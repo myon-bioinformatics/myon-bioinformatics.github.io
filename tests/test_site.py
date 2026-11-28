@@ -85,6 +85,32 @@ def test_readme_lists_every_card_as_the_cards_say():
     assert PAGES.tools_readme().count('\n| ') == len(PAGES._front_module().PORTAL) + 1
 
 
+def test_one_card_places_a_tool_everywhere(monkeypatch):
+    """🧰 One card is all a tool needs: the function it names (``make``) makes its #panel and the files it brings, and the screen's
+    view, 🚪, 🏠, the board and README's row follow from the card; what it records (``record``) runs with every card's at deploy
+    time (``--record``), each best effort; a maker that takes ``output`` is made from that recording when the site is built."""
+    import pysaiyanweboo as ui
+    page = lambda text: f'<!doctype html><html><head><title>T</title></head><body><main><p>{text}</p></main></body></html>'
+    monkeypatch.setitem(vars(PAGES), 'trial_panel', lambda ui: {'tools/#trial': page('🧪'), 'tools/trial/data.json': '{}'})
+    monkeypatch.setitem(vars(PAGES), 'trial_record', lambda output: ['🧪 recorded'])
+    monkeypatch.setitem(vars(PAGES), 'trial_late', lambda ui, output: page(f'📼 {output}'))
+    monkeypatch.setitem(vars(PAGES), 'broken_record', lambda output: 1 / 0)
+    monkeypatch.setattr(PAGES, 'record_tools', lambda output: ['🧰 built'])
+    cards = [{'title': '🧪 試し', 'id': 'trial', 'text': '一枚で置かれる。', 'links': [('開く →', './tools/#trial')], 'make': 'trial_panel', 'record': 'trial_record'},
+             {'title': '📼 記録から', 'id': 'late', 'text': '記録から作る。', 'links': [('開く →', './tools/#late')], 'make': 'trial_late', 'record': 'broken_record'}]
+    monkeypatch.setattr(PAGES._front_module(), 'PORTAL', cards)
+    assert PAGES.card_parts(ui) == {'tools/#trial': page('🧪').encode(), 'tools/trial/data.json': b'{}'}       # 🔒 hash-locked
+    assert PAGES.card_parts(ui, Path('out'), recorded=True) == {'tools/#late': page('📼 out').encode()}      # 📼 made at build
+    assert PAGES.record(Path('out')) == ['🧪 recorded', '⏸ broken_record: ZeroDivisionError', '🧰 built']
+    assert [place['href'] for place in PAGES.tools_places()] == ['../tools/#trial', '../tools/#late']       # 🚪
+    assert '| 🧪 試し | 一枚で置かれる。 | このサイト | [開く](https://myon-bioinformatics.github.io/tools/#trial) |' in PAGES.tools_readme()
+    shell = PAGES.render_shell(ui, {'tools/#trial': (page('🧪').encode(), None, False)}).decode()
+    assert '<section id="trial" data-ui-view data-title="🧪 試し"' in shell and 'href="#trial"' in shell        # 🏠 and its view
+    monkeypatch.setitem(vars(PAGES), 'trial_panel', lambda ui: {'tools/#other': page('🧪')})
+    with pytest.raises(ValueError, match='one #panel, named as the card'):
+        PAGES.card_parts(ui)
+
+
 def test_the_service_catalog_names_where_the_cards_place_their_tools():
     """🧰 A card is where its tool is (tools/#<id>, a #panel of the screen); services.json, which other repositories read, names the
     same places, and a relative's shortcut (the heatmap's to 🖼️) is no second door."""

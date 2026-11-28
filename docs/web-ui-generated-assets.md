@@ -15,11 +15,13 @@ A mismatch fails the build before upload; there is no fallback to stale assets.
 `tools/vendor/web-ui/generated.lock.json` publishes this provenance beside the assets.
 The lab's `publication.json` separately identifies the imported report source.
 
-🧰 The same generator also builds this site's own panels of the one screen (`render_pages()` in `scripts/project_pages.py`): 🌍 the world,
-📄 the HTML import, 🧾 PySaiyanWeBoo's JUnit reader, 📍 the map, 🎞 the GIF workshop and 💬 the chat. Each is keyed `folder/#name`: the folder its document is built for (the screen's,
-`tools/`; the HTML import's own, `tools/html-import/`, beside its module) and its `#name` on `tools/index.html`. None is published as a
-page of its own. Their SHA-256 values are under `pages` in the same lock, so `presentation_identity()` (the shared assets, `outputs`)
-is unchanged. `--refresh-lock` rewrites their hashes with the assets'.
+🧰 The same generator also builds this site's own panels of the one screen: each 🧰 Tools card that names its maker (`make` in
+`scripts/front_page.py`, `card_parts()` in `scripts/project_pages.py`): 🪐 the world, 📄 the HTML import, 🧾 PySaiyanWeBoo's JUnit
+reader, 📍 the map, 🎞 the GIF workshop and 💬 the chat. Each is keyed `folder/#name`: the folder its document is built for (the
+screen's, `tools/`; the HTML import's own, `tools/html-import/`, beside its module) and its `#name` on `tools/index.html`. None is
+published as a page of its own. Their SHA-256 values are under `pages` in the same lock; the files a maker brings beside its panel
+(the world's CSS and JS, the HTML import's module, the chat's sources) are under `outputs` with the shared assets, so
+`presentation_identity()` is unchanged. `--refresh-lock` rewrites their hashes with the assets'.
 
 The two published pages share one chrome (`add_site_chrome()`): the header (the board with the clock and the page's description,
 🏠 ⭐ ⚙️: PySaiyanWeBoo's chrome from the spec `tools_chrome()` makes), the side (☰ ⋯) and the foot (🚪 PySaiyanWeBoo's Door-to-Door,

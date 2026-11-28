@@ -6,7 +6,7 @@ The same file runs in CPython (tests, ``python scripts/chat.py "/flow 入力 > �
 ontautology.py (🧬 /onto, 🎯 /guess), olnm.py (🧷 /olnm) and Err-o-RoadRunner's triage.py + errlib (🧯 /triage) — the commits
 pinned in pyproject.toml's pages group — and mcp-toolcall-lab's Wikipedia tools, PokéAPI reader and Jev router (🔌 /mcp, 🤖 /ask),
 at the commit the index recorded. What it knows about the other repositories is ``media/chat/index.json``,
-written at deploy time by ``project_pages.py --record-chat``: every JSON / JSONL file of every active repository at its
+written at deploy time by ``project_pages.py --record`` (the chat card's ``record``): every JSON / JSONL file of every active repository at its
 commit, and the tools mcp-toolcall-lab advertises. TalkCompress's shorthand compressor is fetched on first use.
 
 ``respond(text)`` → Markdown, ``reply_html(text)`` → HTML (markdown.py escapes raw HTML), ``configure(index, base)``

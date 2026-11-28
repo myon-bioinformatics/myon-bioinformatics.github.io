@@ -8,15 +8,15 @@ writes them (Pages overlays them on its build), ``--stage DIR`` writes the whole
 and ``--refresh-lock`` rewrites the lock after the pin moves.
 
 The 🧰 Tools cards (scripts/front_page.py ``PORTAL``) list the practical pages, each one working on what the visitor brings:
-the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in the page; ``--record-chat`` indexes the other repositories at deploy
-time) and PySaiyanWeBoo's own tool documents (🧾 the JUnit reader, whose 🧯 hands a run to the chat's /triage), published with
-the portfolio's way back, shortcut label and icons. The 🌍 world pages (scripts/world.py: the travel world, 🏫 the school,
-🗼 the parallel cities, 🎬 the camera: the screen's #worlds panel) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and
-are not among the cards. Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
+the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in the page; its card's ``record`` indexes the other repositories at deploy
+time, ``--record``) and PySaiyanWeBoo's own tool documents (🧾 the JUnit reader, whose 🧯 hands a run to the chat's /triage), published with
+the portfolio's shortcut label and icons, and 🪐 the world (scripts/world.py: the travel world, 🏫 the school, 🗼 the parallel
+cities, 🎬 the camera: the screen's #worlds panel). Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
 
 🧰 Every tool, built here or in another repository, is a #panel of one screen, ``tools/index.html`` (``render_shell``): this
-site's own are keyed ``folder/#name`` (``render_pages``, hash-locked), the others' are built in their folders (``--record-tools``),
-and none is published as a page of its own. The two
+site's own are made by the function each card names (``make``: ``card_parts``, hash-locked, keyed ``folder/#name``), the others'
+are built in their folders (``build``, at deploy time: ``--record``), and none is published as a page of its own. One card places
+a tool everywhere: its #panel, 🚪, 🏠, its folder, README's table and what is recorded for it. The two
 pages (the site and the screen) share one chrome, ``add_site_chrome()``: 🧰 PySaiyanWeBoo's board with the clock, 🏠 ⭐ ⚙️ and
 each page's own ☰ ⋯, and 🚪 its Door-to-Door, every 🧰 Tools link as a footer pull-down (``tools_site()``).
 ``load_module()`` loads a file of this repository by path (a sibling script or a vendored module) without touching ``sys.path``.
@@ -28,7 +28,9 @@ import functools
 import hashlib
 import html
 import importlib.util
+import inspect
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -96,6 +98,13 @@ def _world() -> ModuleType:
     return load_module('world', 'scripts/world.py')
 
 
+def worlds_panel(ui) -> dict[str, bytes | str]:
+    """🪐 The world's panel (``world_page``) and the files it loads beside it: its engine's CSS and JS, 🐉 the London dragon."""
+    grid = (ROOT / 'scripts/london-dragon.json').read_bytes()
+    return {'tools/#worlds': world_page(ui), WORLD_CSS_ASSET: '@layer components{' + _world().world_base_css() + '}',
+            WORLD_JS_ASSET: _world().WORLD_JS, DRAGON_GRID_ASSET: grid, DRAGON_PNG_ASSET: ui.pixel_grid_png(json.loads(grid))}
+
+
 def world_page(ui) -> str:
     shell = load_module('world_shell', 'scripts/world_shell.py')
     maps = load_module('map_tool', 'scripts/map_tool.py')
@@ -138,19 +147,13 @@ def verify_pin(commit: str, root: Path = ROOT) -> None:
 
 
 def render(ui) -> dict[str, bytes]:
-    """Every public asset rendered by the generator module, keyed by its published path."""
+    """PySaiyanWeBoo's shared assets (tools/vendor/web-ui/), keyed by their published paths; a tool's own files come with its card
+    (``card_parts``)."""
     result = {}
     for name in ASSETS:
         kind, filename = name.split('/', 1)
         source = ui.css_source(filename) if kind == 'css' else ui.js_source(filename)
         result[ASSET_BASE + name] = source.encode('utf-8')
-    result[WORLD_CSS_ASSET] = ('@layer components{' + _world().world_base_css() + '}').encode('utf-8')
-    result[WORLD_JS_ASSET] = _world().WORLD_JS.encode('utf-8')
-    grid = (ROOT / 'scripts/london-dragon.json').read_bytes()
-    result[DRAGON_GRID_ASSET] = grid
-    result[DRAGON_PNG_ASSET] = ui.pixel_grid_png(json.loads(grid))
-    result[HTML_IMPORT_MODULE] = html_import_files(ui)["extract.mjs"]
-    result[CHAT_SOURCES] = json.dumps(chat_sources(), ensure_ascii=False).encode('utf-8')
     for name, builder in STYLESHEET_BUNDLES.items():
         result[ASSET_BASE + name] = getattr(ui, builder)().encode()
     return result
@@ -175,7 +178,9 @@ def load_module(name: str, relative_path: str | Path) -> ModuleType:
 
 
 @functools.cache
+@functools.lru_cache(maxsize=None)
 def _front_module():
+    """🧰 scripts/front_page.py, loaded once: its ``PORTAL`` is the cards every part of the site is placed from."""
     return load_module('front_page', 'scripts/front_page.py')
 
 
@@ -244,6 +249,23 @@ HTML_IMPORT = posixpath.dirname(HTML_IMPORT_MODULE) + '/#html-import'   # 📄 i
 
 def html_import_files(ui):
     return ui.html_import_files(shared_base="../vendor/web-ui", docs_href="../../docs/html-import.md")
+
+
+def html_import_panel(ui) -> dict[str, bytes]:
+    """📄 PySaiyanWeBoo's HTML import, its document beside its module (framed: its CSP stays its own)."""
+    files = html_import_files(ui)
+    return {HTML_IMPORT: files['index.html'], HTML_IMPORT_MODULE: files['extract.mjs']}
+
+
+def maps_panel(ui) -> str:
+    """📍 The map tool, with the parallel cities' Tokyo as its first points."""
+    map_tool = load_module('map_tool', 'scripts/map_tool.py')
+    return map_tool.map_document(ui, map_tool.tokyo_points(_world().example_data('cities')))
+
+
+def gif_panel(ui) -> str:
+    """🎞 PySaiyanWeBoo's GIF maker."""
+    return ui.gif_maker_document(filename='gif-kobo.gif', css=ui.bundled_css())
 
 
 def pages_urls(root: Path = ROOT) -> dict[str, str]:
@@ -355,7 +377,7 @@ def collect_flow(output: Path, ffss: Path, dragowing: Path, commits: dict[str, s
     folder.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
-        run = lambda cwd, *args: subprocess.run([sys.executable, '-S', *args], cwd=cwd, check=True, capture_output=True, timeout=900)
+        run = lambda cwd, *args: subprocess.run([sys.executable, '-S', *args], cwd=cwd, check=True, capture_output=True, timeout=900, env=_their_env())
         for experiment in FLOW_EXPERIMENTS:
             run(ffss, 'fluidfullspeedsimulation.py', 'run', experiment, '--jsonl', str(tmp / f'{experiment}.jsonl'))
         (tmp / 'records.jsonl').write_bytes(b''.join((tmp / f'{e}.jsonl').read_bytes() for e in FLOW_EXPERIMENTS))
@@ -843,6 +865,11 @@ def chat_document(ui) -> str:
 
 
 CHAT_SOURCES = 'tools/chat/sources.json'   # 🐍 chat_sources(), beside it: the page fetches them when the chat opens
+
+
+def chat_panel(ui) -> dict[str, bytes | str]:
+    """💬 The chat's panel (``chat_document``) and 🐍 the sources it fetches when it opens."""
+    return {'tools/#chat': chat_document(ui), CHAT_SOURCES: json.dumps(chat_sources(), ensure_ascii=False)}
 def _tree(repository: str, commit: str) -> tuple[list[tuple[str, int]], bool]:
     """Return the API's blob paths and sizes at ``commit``, plus its truncation flag."""
     github = load_module('repos_catalog', 'scripts/repos_catalog.py')
@@ -982,7 +1009,7 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
             with tempfile.TemporaryDirectory() as tmp:       # build aside; what was there stays for a card the build did not make
                 built, mapped = Path(tmp) / 'site', Path(tmp) / 'mapped'
                 done = subprocess.run([sys.executable, *(str(built) if arg == '{out}' else arg for arg in run)], cwd=checkouts[repository],
-                                      check=True, capture_output=True, timeout=900)
+                                      check=True, capture_output=True, timeout=900, env=_their_env())
                 if '{out}' not in run:                       # 🌡️ one page on stdout
                     built.mkdir()
                     (built / 'index.html').write_bytes(done.stdout)
@@ -1024,6 +1051,24 @@ def record_tools(output: Path, remote: str = 'https://github.com/') -> list[str]
     return lines
 
 
+def _their_env() -> dict[str, str]:
+    """🔑 The environment another repository's code runs in at deploy time: this one's, without its GITHUB_TOKEN (the chat's
+    recording reads the API with it; the code a card builds or records from never needs it)."""
+    return {key: value for key, value in os.environ.items() if key != 'GITHUB_TOKEN'}
+
+
+def record(output: Path) -> list[str]:
+    """📼 At deploy time, under ``output``: what each card records (its ``record``), then the tools other repositories build
+    (``record_tools``), each best effort: one that fails says ⏸ and the others still record."""
+    lines = []
+    for job in [*(card['record'] for card in _front_module().PORTAL if 'record' in card), 'record_tools']:
+        try:
+            lines += _named(job)(output)
+        except Exception as exc:                                          # noqa: BLE001 — a recording never stops the deploy
+            lines.append(f'⏸ {job}: {type(exc).__name__}')
+    return lines
+
+
 def _checkout_commit(checkout: Path) -> str:
     return subprocess.run(['git', '-C', str(checkout), 'rev-parse', 'HEAD'], check=True, capture_output=True, text=True).stdout.strip()
 
@@ -1047,7 +1092,7 @@ def _paused(ui, repository: str, why: str = 'このビルドでは作ってい�
 
 def tool_panels(ui, output: Path | None = None) -> dict[str, tuple[bytes, str, bool]]:
     """🧰 The tools the cards build from other repositories as #panels of the screen (none has a page of its own): each page
-    ``--record-tools`` placed at tools/<id>/, taken out of the tree (its files stay), else ⏸; ``{source: (document, repository,
+    ``--record`` placed at tools/<id>/, taken out of the tree (its files stay), else ⏸; ``{source: (document, repository,
     framed)}`` for ``render_shell``. A page with its own Content-Security-Policy (an app that owns its document) runs framed."""
     path = Path(output) / TOOLS if output else None
     made = json.loads(path.read_text(encoding='utf-8'))['made'] if path and path.is_file() else []
@@ -1068,17 +1113,35 @@ def tool_panels(ui, output: Path | None = None) -> dict[str, tuple[bytes, str, b
     return panels
 
 
+def _named(name: str):
+    """A card's ``make`` or ``record``: a function of this module, or ``module:function`` of scripts/module.py."""
+    module, _, function = name.rpartition(':')
+    return getattr(load_module(module, f'scripts/{module}.py'), function) if module else globals()[function]
+
+
+def card_parts(ui, output: Path | None = None, *, recorded: bool = False) -> dict[str, bytes]:
+    """🧰 What the cards this site makes (``make``) put on the site: each card's #panel of the one screen (``render_shell``), keyed
+    ``folder/#id`` (the folder its document is built for: the screen's, ``tools/``, unless it says), and the files it brings.
+    A maker returns its document, or ``{path: content}`` with its one #panel among them. ``recorded``: the makers that take
+    ``output`` instead, made when the site is built from what their card's ``record`` put there (not in the lock)."""
+    parts = {}
+    for card in _front_module().PORTAL:
+        if 'make' not in card:
+            continue
+        make = _named(card['make'])
+        if ('output' in inspect.signature(make).parameters) != recorded:
+            continue
+        made = make(ui, output) if recorded else make(ui)
+        made = {f'tools/#{card["id"]}': made} if isinstance(made, str) else made
+        if [key.partition('#')[2] for key in made if '#' in key] != [card['id']]:
+            raise ValueError(f"🧰 {card['id']}: its maker makes one #panel, named as the card: {sorted(made)}")
+        parts.update({key: data.encode('utf-8') if isinstance(data, str) else data for key, data in made.items()})
+    return parts
+
+
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
-    """🧰 This site's own hash-locked panels of the one screen (``render_shell``), keyed ``folder/#name``: the folder a document
-    is built for (the screen's, ``tools/``; the HTML import's own, beside its module) and its #name on the screen."""
-    map_tool = load_module('map_tool', 'scripts/map_tool.py')
-    pages = {'tools/#worlds': world_page(ui),                                                    # 🌍 the village, school, cities, camera
-             HTML_IMPORT: html_import_files(ui)['index.html'].decode('utf-8'),                  # 📄 framed: its CSP stays its own
-             'tools/#test-report': report_page(ui),                                         # 🧾 PySaiyanWeBoo's JUnit reader
-             'tools/#maps': map_tool.map_document(ui, map_tool.tokyo_points(_world().example_data('cities'))),
-             'tools/#gif': ui.gif_maker_document(filename='gif-kobo.gif', css=ui.bundled_css()),
-             'tools/#chat': chat_document(ui)}
-    return {key: page.encode('utf-8') for key, page in pages.items()}
+    """🧰 This site's own hash-locked parts (``card_parts``): the cards' #panels and the files they bring."""
+    return card_parts(ui)
 
 
 # ── 🧰 One screen: every tool is a #panel of tools/index.html, under one header, one foot and one ⚙️ ──
@@ -1150,6 +1213,12 @@ def _site_url() -> str:
     return json.loads((ROOT / 'services.json').read_text(encoding='utf-8'))['services']['portfolio']['pages']['url']
 
 
+def _locked(ui, root: Path = ROOT) -> tuple[dict[str, bytes], dict[str, bytes]]:
+    """What the lock holds: (``outputs``, the shared assets and the files the cards bring; ``pages``, the cards' #panels)."""
+    parts = render_pages(ui, root)
+    return {**render(ui), **{key: data for key, data in parts.items() if '#' not in key}}, {key: data for key, data in parts.items() if '#' in key}
+
+
 def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str, bytes]:
     lock = json.loads((root / 'web-ui-assets.lock.json').read_text(encoding='utf-8'))
     if lock['schema'] != 'web-ui-generated/2':
@@ -1158,17 +1227,16 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
     verify_pin(commit, root)
     if commit != lock['commit']:
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
-    if set(lock['outputs']) != {HTML_IMPORT_MODULE, CHAT_SOURCES, *WORLD_ASSETS, *DRAGON_ASSETS, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
-        raise ValueError('generated output paths differ from public URL contract')
     if ui is None:
         import pysaiyanweboo as ui
-    result = render(ui)
+    result, pages = _locked(ui, root)
+    if set(lock['outputs']) != set(result):
+        raise ValueError('generated output paths differ from the cards and the shared assets')
     for target, data in result.items():
         if hashlib.sha256(data).hexdigest() != lock['outputs'][target]:
             raise ValueError(f'generated asset hash mismatch: {target}')
-    pages = render_pages(ui, root)
     if set(lock.get('pages', {})) != set(pages):
-        raise ValueError('generated page paths differ from the tool and world lists')
+        raise ValueError('generated page paths differ from the cards')
     for target, data in pages.items():
         if hashlib.sha256(data).hexdigest() != lock['pages'][target]:
             raise ValueError(f'generated page hash mismatch: {target}')
@@ -1184,7 +1252,7 @@ def validate_output(output: Path, root: Path = ROOT) -> None:
 def build(output: Path, root: Path = ROOT) -> None:
     validate_output(output, root)
     import pysaiyanweboo as ui
-    payload = {**generate(root), **render_front(root, recorded_samples(output)), **render_flow(ui, output), **render_map(ui, output)}  # Fail closed first.
+    payload = {**generate(root), **render_front(root, recorded_samples(output)), **card_parts(ui, output, recorded=True)}  # Fail closed first.
     own = {key: (doc, None, b'Content-Security-Policy' in doc)            # 🧰 every #name is a panel; 🔒 one with its own CSP runs framed
            for key, doc in ((key, payload.pop(key)) for key in [key for key in payload if '#' in key])}
     payload[SHELL_PAGE] = render_shell(ui, {**own, **tool_panels(ui, output)})
@@ -1243,7 +1311,7 @@ def refresh_lock(root: Path = ROOT) -> dict:
     import pysaiyanweboo as ui
     commit = installed_commit()
     verify_pin(commit, root)
-    payload, pages = render(ui), render_pages(ui, root)
+    payload, pages = _locked(ui, root)
     lock = {
         'schema': 'web-ui-generated/2',
         'generator': 'pysaiyanweboo (pyproject.toml pages group)',
@@ -1269,14 +1337,9 @@ def main(argv=None):
                         help='rewrite web-ui-assets.lock.json from the installed generator')
     parser.add_argument('--record-samples', type=Path, metavar='DIR',
                         help="🎥 record a moving sample of every repository's Pages and of every 🧰 Tools card's page under DIR/media/pages/ (Chromium; best effort)")
-    parser.add_argument('--record-flow', type=Path, metavar='DIR',
-                        help='🌊 run FFSS and DRAgoWing (their default branches) and put the flow lab media under DIR/media/flow/')
-    parser.add_argument('--record-tools', type=Path, metavar='DIR',
-                        help='🧰 build the tools the cards build from other repositories (their default branches) under DIR/tools/<id>/')
-    parser.add_argument('--record-map', type=Path, metavar='DIR',
-                        help="🧠 read every repository's vendor.lock.json (and Aoi's subtrees) and draw the map under DIR/media/map/")
-    parser.add_argument('--record-chat', type=Path, metavar='DIR',
-                        help="💬 index every repository's JSON / JSONL, mcp-toolcall-lab's code (the page's MCP server) and TalkCompress's compressor under DIR/media/chat/")
+    parser.add_argument('--record', type=Path, metavar='DIR',
+                        help="📼 what the cards record at deploy time, under DIR (each card's record: 🌊 media/flow/, 🧠 media/map/, "
+                             "💬 media/chat/), and 🧰 the tools the cards build from other repositories' default branches (DIR/tools/<id>/)")
     args = parser.parse_args(argv)
     for target in (args.output, args.stage, args.copy_source):
         if target:
@@ -1289,23 +1352,16 @@ def main(argv=None):
         print('\n'.join(record_samples(args.record_samples, {**pages_urls(), **{name: url for name, (url, _) in tools.items()}},
                                        captions={name: title for name, (_, title) in tools.items()},
                                        stand_ins={name: sample_stand_in(title) for name, (_, title) in tools.items()})))
-    if args.record_map:
-        print('\n'.join(record_map(args.record_map)))
-    if args.record_chat:
-        print('\n'.join(record_chat(args.record_chat)))
-    if args.record_flow:
-        print('\n'.join(record_flow(args.record_flow)))
-    if args.record_tools:
-        print('\n'.join(record_tools(args.record_tools)))
+    if args.record:
+        print('\n'.join(record(args.record)))
     if args.refresh_lock:
         print(json.dumps(refresh_lock(), indent=2))
     if args.output:
         build(args.output)
     if args.stage:
         stage(args.stage)
-    if not (args.refresh_lock or args.output or args.stage or args.copy_source or args.record_samples or args.record_flow or args.record_map
-            or args.record_tools or args.record_chat):
-        parser.error('give --output DIR, --stage DIR, --refresh-lock and/or a --record-… DIR')
+    if not (args.refresh_lock or args.output or args.stage or args.copy_source or args.record_samples or args.record):
+        parser.error('give --output DIR, --stage DIR, --refresh-lock, --record DIR and/or --record-samples DIR')
 
 
 if __name__ == '__main__':

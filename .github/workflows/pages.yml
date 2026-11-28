@@ -70,41 +70,20 @@ jobs:
           uv run --locked --only-group samples python -m playwright install --with-deps chromium
           uv run --locked --only-group samples python scripts/project_pages.py --record-samples _site | tee -a "$GITHUB_STEP_SUMMARY"
 
-      # 🌊 FFSS's demo GIFs and DRAgoWing's figures from the same FFSS records (media/flow/, not kept in git).
-      - name: Record the flow lab (best effort)
-        if: github.event_name != 'pull_request'
-        continue-on-error: true
-        timeout-minutes: 10
-        run: uv run --locked --only-group pages python scripts/project_pages.py --record-flow _site | tee -a "$GITHUB_STEP_SUMMARY"
-
-      # 🧠 Each repository's vendor.lock.json (and Aoi's subtrees) at its current commit (media/map/, not kept in git).
-      - name: Record the repository map (best effort)
-        if: github.event_name != 'pull_request'
-        continue-on-error: true
-        timeout-minutes: 5
-        run: uv run --locked --only-group pages python scripts/project_pages.py --record-map _site | tee -a "$GITHUB_STEP_SUMMARY"
-
-      # 💬 What the chat answers about the other repositories: every JSON / JSONL file at its current commit (GitHub's tree
-      # API, one call each), the mcp-toolcall-lab code its MCP server runs and TalkCompress's compressor (media/chat/, not kept in git).
-      - name: Record the chat's cross-repo index (best effort)
-        if: github.event_name != 'pull_request'
-        continue-on-error: true
-        timeout-minutes: 5
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: uv run --locked --only-group pages python scripts/project_pages.py --record-chat _site | tee -a "$GITHUB_STEP_SUMMARY"
-
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "26"
 
-      # 🧰 The tools the cards build from other repositories (each card's build), from their default branches (tools/<id>/, not in git).
-      # A tool that fails gets the ⏸ the build below writes (the 🧰 screen takes the panels in).
-      - name: Record the tools built from other repositories (best effort)
+      # 📼 What each 🧰 Tools card records (its record: 🌊 the flow lab from FFSS and DRAgoWing, 🧠 every vendor.lock.json, 💬 every
+      # JSON / JSONL for the chat) and 🧰 the tools the cards build from other repositories (their build), from the default branches,
+      # not kept in git. Each is best effort: one that fails says ⏸ (the build below writes its ⏸ panel) and the others still record.
+      - name: Record what the cards record (best effort)
         if: github.event_name != 'pull_request'
         continue-on-error: true
-        timeout-minutes: 10
-        run: uv run --locked --only-group pages python scripts/project_pages.py --record-tools _site | tee -a "$GITHUB_STEP_SUMMARY"
+        timeout-minutes: 25
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: uv run --locked --only-group pages python scripts/project_pages.py --record _site | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Generate verified shared browser assets with the pinned generator (PySaiyanWeBoo)
         if: github.event_name != 'pull_request'

@@ -89,6 +89,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 | 📄 HTML文書取込 | HTML を貼るかファイルを選び、本文・見出し・リンクを端末の中で抽出。 | このサイト | [開く](https://myon-bioinformatics.github.io/tools/#html-import) |
 | 🗃️ 形式変換・検証 | ファイルや貼った原文を静的検査し、Base64 の復元差分と検証記録を確認。CaChereCyCle の資産は SHA-256 も照合。 | myon-bioinformatics | [開く](https://myon-bioinformatics.github.io/tools/#format-lab) |
 | 📍 地図URL・座標ピン留め | 緯度・経度から Apple Maps と Google Maps の URL を作り、地点をピン留め・共有。 | このサイト | [開く](https://myon-bioinformatics.github.io/tools/#maps) · [🗼 パラレル東京](https://myon-bioinformatics.github.io/tools/#tokyo) |
+| 🪐 仮想・拡張エリア | 緯度・経度ではなく、歩いて回る空間。村・学校・パラレル都市・カメラ（AR）。 | このサイト | [開く](https://myon-bioinformatics.github.io/tools/#worlds) |
 | 🖼️ 画像工房 | レイヤー・作業履歴・クリップボード棚で画像を編集。数値行列のヒートマップと PNG Base64 の受け渡しも。 | Ironmate | [開く](https://myon-bioinformatics.github.io/tools/#image-studio) |
 | 🎨 ブラウザ道具 | ドット絵・比較用の一枚・容量確認を、ブラウザだけで。 | Ironmate | [開く](https://myon-bioinformatics.github.io/tools/#browser-tools) |
 | 📽️ スライド工房 | ブラウザでスライドを作り、文字・図形・矢印を編集できる PPTX に出力。Markdown→PPTX は CLI の試作実装。 | Ironmate | [開く](https://myon-bioinformatics.github.io/tools/#slide-studio) |
@@ -101,11 +102,17 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 | 🧠 リポジトリ地図 | どのリポジトリがどのファイルを写して使うか。vendor.lock.json と Aoi の subtree から公開ごとに描き直す。 | このサイト | [開く](https://myon-bioinformatics.github.io/tools/#repo-map) |
 <!-- /🧰 tools -->
 
-1 つの道具に 1 枚のカード（`scripts/front_page.py` の `PORTAL`）です。カードの題名（絵文字 ＋ 日本語）が、カード・🚪・道具の画面の 🏠 一覧・タブの名前です。説明は 70 字以内で、開いている間は画面の掲示板にも出ます。最初のリンクは「開く →」で、書かなければその道具の `#パネル` です。ほかのリンクは関連する場所へ行き、自分の絵文字と名前を持ちます。🌐 のほかの言語の名前は `words` に書きます。ほかのリポジトリが作る道具は `build`（リポジトリ・作り方・そのサイトのどのフォルダか）を書けば、`tools/<id>/` に置かれ、パネル・🚪・🏠・この表まで自動でそろいます。
+1 つの道具に 1 枚のカード（`scripts/front_page.py` の `PORTAL`）です。カードの題名（絵文字 ＋ 日本語）が、カード・🚪・道具の画面の 🏠 一覧・タブの名前です。説明は 70 字以内で、開いている間は画面の掲示板にも出ます。最初のリンクは「開く →」で、書かなければその道具の `#パネル` です。ほかのリンクは関連する場所へ行き、自分の絵文字と名前を持ちます。🌐 のほかの言語の名前は `words` に書きます。道具の作り方もカードに書きます。
 
-新しい道具を足すときは、カードを 1 件足して `python scripts/project_pages.py --refresh-lock` で表と lock を書き直します（このサイトで作る道具は、`render_pages` にその作り方も足します）。
+| 🏷️ カードの欄 | 🛠️ 作るもの |
+| --- | --- |
+| `build` | ほかのリポジトリが作る道具（リポジトリ・作り方・そのサイトのどのフォルダか）。公開のたびにその main から作り、`tools/<id>/` に置く |
+| `make` | このサイトが作る道具。`scripts/project_pages.py` の関数（`モジュール:関数` なら `scripts/モジュール.py` の関数）の名前。関数はページか、`{置き場所: 中身}`（`#パネル` 1 つと、一緒に置くファイル）を返す |
+| `record` | 公開のたびに記録するもの（`--record`）。`output` を受け取る `make` は、その記録から作る |
 
-🧰 The tools other repositories make (each card's `build`: Ironmate's 🖼️ 画像工房, 🎨 ブラウザ道具 and 📽️ スライド工房 from one build, DRAgoWing's 🌡️ heatmap, the parent's 🗃️ format lab) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories) and placed at `tools/<card id>/`, the links between the folders of one build following the move (`place_built`). A build that could not record one leaves a ⏸ panel in its place. Ironmate has a local metadata card (`project-ironmate.json`); it still owns the generated editor and data formats.
+どれを書いても、パネル・🚪・🏠・タブ・掲示板・この表まで自動でそろいます。新しい道具を足すときは、カードを 1 件足して `python scripts/project_pages.py --refresh-lock` で表と lock を書き直します。
+
+🧰 The tools other repositories make (each card's `build`: Ironmate's 🖼️ 画像工房, 🎨 ブラウザ道具 and 📽️ スライド工房 from one build, DRAgoWing's 🌡️ heatmap, the parent's 🗃️ format lab) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record`; the code stays in those repositories) and placed at `tools/<card id>/`, the links between the folders of one build following the move (`place_built`). A build that could not record one leaves a ⏸ panel in its place. Ironmate has a local metadata card (`project-ironmate.json`); it still owns the generated editor and data formats.
 
 ## 🚀 公開リポジトリ
 
@@ -318,7 +325,7 @@ add_site_chrome(page, 'tools/index.html', {'🗼': {'label': 'パラレル都市
 | 🔌 | `/mcp 道具 {JSON}` | mcp-toolcall-lab のプロンプト実験が広告する道具（✅ tools/call／❌ 断る） |
 | 🧬🎯 | `/onto ギター` `/onto 撥弦 + フレット` `/guess` | OnTautoLogy の `define_concepts`（属＝似たものと共通・種差＝決め手）と `roundtrip_elements`（要素から逆引き）。台帳は全リポジトリの `concepts-*.json`（ontautology-concepts/1、索引のコミットの raw）。🏷 台帳の `names`（略称・英名・別名・読み・絵文字略称）でも引ける（`/onto 中日`・`/onto 🐯`）。`絵文字略称/根拠:🐯` は台帳の `name_basis` の強い順（同じ ＞ 代用 ＞ … ＞ 親会社）で、取り合う 🦅 は強い方（楽天）へ、見出しの顔は取られていないいちばん強いもの（ソフトバンクは 🐶）。同じ強さで重なる名前は候補を並べる。🎯 は y / n / ? で回答。食い違いを 1 回まで許し、最後の候補名に y と答えると確定 |
 | 🧷 | `/olnm ls git` `/olnm show gp` `/olnm calc 6 mul 7` | OLNM の olnm.py そのもの（探す・読む・もしかして・電卓）。ワンライナーの実行は端末で（入れ方の 1 行を返す） |
-| 🔎👀 | `onto` `/find --kind jsonl` `/show REPO/PATH` | 公開時に `--record-chat` で取得した JSON / JSONL の索引（`media/chat/index.json`）と、そのコミットの raw |
+| 🔎👀 | `onto` `/find --kind jsonl` `/show REPO/PATH` | 公開時に `--record`（チャットのカードの `record`）で取得した JSON / JSONL の索引（`media/chat/index.json`）と、そのコミットの raw |
 | ⌨️ | `/flwo` → `/flow` | cli_args の「もしかして」 |
 | 🤖 | `/ask 質問` | llama.cpp（wllama 4.0.0、jsDelivr）が Qwen3.5-0.8B（Q4_0、約 560 MB、Hugging Face）を端末の中で動かす。初回だけ読み、あとはブラウザが保存。GitHub Pages は COOP/COEP を返せないので CPU は 1 スレッド、WebGPU があれば GPU。考えた過程（reasoning）を書いたときは 💭 で引用して見せる。📚 質問が名指すもの（リポジトリ名・頭文字の略称 OTL / PSWB・要約の単語・見つかるファイル、台帳の概念と 🏷 別名）だけを、README の要約（`api/repos.json`、索引の `repos`）・属＋種差・ファイル名としてシステムに渡す（文脈は 2048 トークン） |
 
@@ -330,7 +337,7 @@ add_site_chrome(page, 'tools/index.html', {'🗼': {'label': 'パラレル都市
 
 ```sh
 uv run --locked --only-group pages python scripts/chat.py "/flow 入力, 履歴 > 圧縮 > 出力"      # 💬 the same reply in the shell
-uv run --locked --only-group pages python scripts/project_pages.py --record-chat .generated-site  # 🔎 the cross-repo index (GITHUB_TOKEN)
+uv run --locked --only-group pages python scripts/project_pages.py --record .generated-site  # 📼 every card's recording: 🔎 the cross-repo index (GITHUB_TOKEN), 🌊, 🧠, 🧰
 uv run --locked --only-group browser python -m pytest tests/test_site.py -k chat_in_chromium   # 🎞 test-results/chat/chat-conversation-<UTC>.gif（/ask は 1.2 MB の stories260K で。CHAT_MIRROR=DIR で通信なし）
 ```
 
