@@ -1692,6 +1692,62 @@ class FakeParisHeroTests(unittest.TestCase):
         page.wait_for_selector(".ui-rpg-card", state="hidden")
         self.assertEqual(self.errors, [])
 
+    def test_every_guide_fire_can_be_extinguished(self):
+        graph = json.loads((ROOT / "docs/world-guide.json").read_text(encoding="utf-8"))
+        fires = [n for n in graph["nodes"] if "heat" in n]
+        page = self.open()
+        data = CITIES["rescue"]
+        def visit(uid):
+            page.locator(f'[data-rescue-id="{uid}"]').dispatch_event("click")
+
+        captain = next(q["target"] for q in data["quests"] if q["kind"] == "talk")
+        visit(captain)
+        page.locator(".ui-rpg-close").click()
+        visit(next(n["id"] for n in data["nodes"] if n["kind"] == "drop"))
+        hydrant = next(n["id"] for n in data["nodes"] if n["kind"] == "hydrant")
+        chests = [n for n in data["nodes"] if n["kind"] == "chest"]
+        for i, fire in enumerate(fires):
+            for n in chests:
+                visit(n["id"])
+                opened = page.locator(f'[data-rescue-id="{n["id"]}"]').get_attribute("data-rescue-opened")
+                self.assertEqual(opened == "true", i >= n.get("requires_fires", 0))
+            visit(hydrant)
+            marker = page.locator(f'[data-fire-id="{fire["id"].split("/")[-1]}"]')
+            marker.dispatch_event("click")
+            card = page.locator(".ui-rpg-card")
+            self.assertIn(f'{fire["heat"]}/{fire["heat"]}', card.inner_text())
+            for _ in range(fire["heat"]):
+                card.get_by_role("button", name="放水ジェット", exact=False).click()
+                if marker.get_attribute("data-extinguished") == "true":
+                    break
+            card.get_by_role("button", name="消火完了", exact=False).click()
+        self.assertIn(f"{len(fires)}/{len(fires)}", page.text_content("[data-rescue-fires]"))
+        visit(next(n["id"] for n in data["nodes"] if n.get("quiz")))
+        page.locator(".ui-rpg-card").get_by_role("button", name="クイズに挑戦", exact=False).click()
+        for quiz in data["quizzes"]:
+            page.get_by_role("button", name=f'{quiz["correct"]+1}. {quiz["choices"][quiz["correct"]]}').click()
+            page.get_by_role("button", name="つぎの問題 ▶").click()
+        page.locator(".ui-rpg-card .ui-rpg-close").click()
+        page.click("[data-rescue-journal-btn]")
+        self.assertEqual(page.locator(".ui-rpg-card").inner_text().count("✅"), len(data["quests"]))
+        page.get_by_role("button", name="🏅 勲章バッジ").click()
+        self.assertEqual(page.locator('.ui-rpg-badge[data-unlocked="true"]').count(), len(data["badges"]))
+        self.assertEqual(self.errors, [])
+
+    def test_cooling_gel_is_reserved_for_a_fire(self):
+        page = self.open()
+        page.locator('[data-rescue-id="drop-cryo"]').dispatch_event("click")
+        page.click("[data-rescue-journal-btn]")
+        page.locator(".ui-rpg-card").get_by_role("button", name="どうぐ", exact=False).click()
+        self.assertTrue(page.get_by_role("button", name="火災現場専用").is_disabled())
+        page.locator(".ui-rpg-card .ui-rpg-close").click()
+        page.locator('[data-fire-id="fire-0"]').dispatch_event("click")
+        page.get_by_role("button", name="🎒 どうぐを使う").click()
+        page.locator(".ui-rpg-card").get_by_role("button", name="瞬間冷却ジェル弾", exact=False).click()
+        self.assertEqual(page.locator('[data-fire-id="fire-0"]').get_attribute("data-extinguished"), "true")
+        self.assertNotIn("瞬間冷却ジェル弾", page.locator(".ui-world-bag").text_content())
+        self.assertEqual(self.errors, [])
+
     def test_shop_and_quiz_and_journal_tabs(self):
         page = self.open(floor="paris")
         # Open baker NPC dialogue via node click
@@ -1702,7 +1758,7 @@ class FakeParisHeroTests(unittest.TestCase):
         page.wait_for_selector(".ui-rpg-card:has-text('補給ショップ')", state="visible")
         page.locator('.ui-rpg-card button:has-text("補給する")').first.click()
         page.wait_for_timeout(300)
-        self.assertIn("🪙 20", page.text_content("[data-rescue-medals]"))
+        self.assertIn("🪙 10", page.text_content("[data-rescue-medals]"))
         page.locator('.ui-rpg-card button:has-text("会話にもどる")').click()
         page.wait_for_selector(".ui-rpg-card:has-text('パン職人コレット')", state="visible")
         page.locator(".ui-rpg-card .ui-rpg-close").click()

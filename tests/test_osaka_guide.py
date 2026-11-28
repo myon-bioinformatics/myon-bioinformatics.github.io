@@ -51,3 +51,22 @@ def test_unreachable_and_unknown_are_distinct():
     hat["requires_clues"] = 36
     with pytest.raises(ValueError, match="unreachable clue lock"):
         build(spec)
+
+
+def test_all_world_guide_covers_every_registered_floor_and_route():
+    from world_guide import build as build_worlds, render
+    from world_shell import SPACES
+    from world import world_validate
+    graph = build_worlds()
+    assert json.loads((ROOT / "docs/world-guide.json").read_text(encoding="utf-8")) == graph
+    assert (ROOT / "docs/world-guide.md").read_text(encoding="utf-8") == render(graph)
+    scenes = {scene for scene, _ in SPACES.values()}
+    expected = {f'{scene}/{f["id"]}' for scene in scenes
+                for f in world_validate(example_data(scene))["floors"]}
+    floors = [e for e in graph["edges"] if e["kind"] == "contains"]
+    assert {e["target"] for e in floors} == expected
+    assert {e["source"] for e in floors} == {"#"+route for route in SPACES}
+    spec = copy.deepcopy(example_data("overworld"))
+    spec["rpg"]["loot"]["meadow-chest-charm"]["requires_enemy"] = "meadow-town"
+    with pytest.raises(ValueError, match="identify an enemy"):
+        world_validate(spec)

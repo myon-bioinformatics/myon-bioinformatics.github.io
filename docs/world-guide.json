@@ -1,0 +1,3847 @@
+{
+ "nodes": [
+  {
+   "id": "guide",
+   "type": "Guide",
+   "name": "ワールド探索ガイド"
+  },
+  {
+   "id": "#world",
+   "type": "Guide",
+   "name": "🌍 村",
+   "scene": "overworld"
+  },
+  {
+   "id": "#school",
+   "type": "Guide",
+   "name": "🏫 学校",
+   "scene": "school"
+  },
+  {
+   "id": "#tokyo",
+   "type": "Guide",
+   "name": "🗼 パラレル東京",
+   "scene": "cities"
+  },
+  {
+   "id": "#london",
+   "type": "Guide",
+   "name": "🎡 Reverse London",
+   "scene": "cities"
+  },
+  {
+   "id": "#paris",
+   "type": "Guide",
+   "name": "🥖 Fake Paris",
+   "scene": "cities"
+  },
+  {
+   "id": "#osaka",
+   "type": "Guide",
+   "name": "🐙 せやかて大阪",
+   "scene": "cities"
+  },
+  {
+   "id": "#camera",
+   "type": "Guide",
+   "name": "🎬 カメラ",
+   "scene": "world"
+  },
+  {
+   "id": "overworld/meadow",
+   "type": "State",
+   "name": "🌱 草原"
+  },
+  {
+   "id": "overworld/meadow/meadow-town",
+   "type": "Task",
+   "name": "🏘️ はじまりの村",
+   "detail": "家がならぶ、のどかな村です。",
+   "x": 400,
+   "y": 272
+  },
+  {
+   "id": "overworld/meadow/meadow-landmark",
+   "type": "Task",
+   "name": "🌼 ひろば",
+   "detail": "見晴らしのよい広場です。",
+   "x": 208,
+   "y": 176
+  },
+  {
+   "id": "overworld/meadow/meadow-hirugaoka",
+   "type": "Task",
+   "name": "🍠 昼ヶ丘（ヒルガオカ）",
+   "detail": "ヒルガオ科のサツマイモを育てている、日当たりのよい丘です。",
+   "x": 592,
+   "y": 176
+  },
+  {
+   "id": "item/overworld/meadow/meadow-hirugaoka",
+   "type": "Resource",
+   "name": "サツマイモ",
+   "detail": "昼ヶ丘で育てたヒルガオ科のいも。食べると経験値が20増えます。誰におすそ分けするか、村の道具屋に聞いてみよう。",
+   "usage": "消費"
+  },
+  {
+   "id": "overworld/meadow/meadow-npc-cat",
+   "type": "Task",
+   "name": "🐱 案内猫ミョン",
+   "detail": "はじまりの村の入口にいる案内猫。近づくと操作と冒険の基本を教えてくれます。",
+   "x": 432,
+   "y": 432
+  },
+  {
+   "id": "overworld/meadow/meadow-npc-elder",
+   "type": "Task",
+   "name": "👴 村長",
+   "detail": "はじまりの村を見守る長老。ポートフォリオと冒険の目的を語ってくれます。",
+   "x": 368,
+   "y": 272
+  },
+  {
+   "id": "overworld/meadow/meadow-npc-smith",
+   "type": "Task",
+   "name": "⚒️ 道具屋の店主",
+   "detail": "冒険に役立つ回復アイテムやだんごをゴールドで販売しています。",
+   "x": 304,
+   "y": 272
+  },
+  {
+   "id": "overworld/meadow/meadow-npc-researcher",
+   "type": "Task",
+   "name": "🔬 研究員",
+   "detail": "バイオインフォマティクスと個人開発リポジトリのクイズを出題します。",
+   "x": 496,
+   "y": 272
+  },
+  {
+   "id": "overworld/meadow/meadow-npc-fountain",
+   "type": "Task",
+   "name": "⛲ 回復の泉",
+   "detail": "清らかな水が湧く泉。触れると傷ついた体と魔力をやさしく癒してくれます。",
+   "x": 496,
+   "y": 304
+  },
+  {
+   "id": "overworld/meadow/meadow-npc-monument",
+   "type": "Task",
+   "name": "🗿 PSWB石碑",
+   "detail": "PySaiyanWeBoo（PSWB）と共通UI設計の歴史が刻まれた村の記念碑。",
+   "x": 432,
+   "y": 240
+  },
+  {
+   "id": "overworld/meadow/meadow-drop-herb",
+   "type": "Task",
+   "name": "🌿 やくそう",
+   "detail": "道ばたに落ちている香り高い薬草。戦闘中や冒険手帳から使えます。",
+   "x": 368,
+   "y": 368
+  },
+  {
+   "id": "item/overworld/meadow/meadow-drop-herb",
+   "type": "Resource",
+   "name": "やくそう",
+   "detail": "HPを15回復するみずみずしい薬草。",
+   "usage": "消費"
+  },
+  {
+   "id": "overworld/meadow/meadow-drop-mana",
+   "type": "Task",
+   "name": "💧 癒しの水",
+   "detail": "人に使うとMPを10回復。パリでは目の前の火を一つ消せます。",
+   "x": 208,
+   "y": 240
+  },
+  {
+   "id": "item/overworld/meadow/meadow-drop-mana",
+   "type": "Resource",
+   "name": "癒しの水",
+   "detail": "MP回復か消火に一度だけ使える水。",
+   "usage": "消費"
+  },
+  {
+   "id": "overworld/meadow/meadow-drop-scroll",
+   "type": "Task",
+   "name": "📜 探索の巻物",
+   "detail": "近くのどうぐの在りかを照らす古い巻物。何度でも使えます。",
+   "x": 656,
+   "y": 400
+  },
+  {
+   "id": "item/overworld/meadow/meadow-drop-scroll",
+   "type": "Resource",
+   "name": "探索の巻物",
+   "detail": "移動中は同じ階の6マス以内にある未取得のどうぐが3秒間光ります。戦闘中は1ターン使い、30%の確率でやくそうを1個拾います。何度でも使えます。",
+   "usage": "繰り返し使える"
+  },
+  {
+   "id": "overworld/meadow/meadow-chest-sword",
+   "type": "Task",
+   "name": "🎁 はじまりの剣",
+   "detail": "村の片隅に置かれた宝箱。装備すると攻撃力（ATK）が上がります。",
+   "x": 304,
+   "y": 304
+  },
+  {
+   "id": "item/overworld/meadow/meadow-chest-sword",
+   "type": "Resource",
+   "name": "はじまりの剣",
+   "detail": "PySaiyanWeBooの剣。持っているだけで ATK +4。",
+   "usage": "装備"
+  },
+  {
+   "id": "overworld/meadow/meadow-chest-shield",
+   "type": "Task",
+   "name": "🎁 守りの盾",
+   "detail": "北東の木立に隠された宝箱。防御力（DEF）と最大HPが上がります。",
+   "x": 656,
+   "y": 112
+  },
+  {
+   "id": "item/overworld/meadow/meadow-chest-shield",
+   "type": "Resource",
+   "name": "守りの盾",
+   "detail": "堅牢なテストの盾。DEF +3、最大HP +6。",
+   "usage": "装備"
+  },
+  {
+   "id": "overworld/meadow/meadow-chest-charm",
+   "type": "Task",
+   "name": "🎁 PSWBの護符",
+   "detail": "ボス魔物が守る特別な宝箱。全ステータスを底上げします。",
+   "x": 112,
+   "y": 400
+  },
+  {
+   "id": "item/overworld/meadow/meadow-chest-charm",
+   "type": "Resource",
+   "name": "PSWBの護符",
+   "detail": "ATK +2、DEF +2、最大MP +5。ボス討伐で開く。",
+   "usage": "装備"
+  },
+  {
+   "id": "guard/overworld/meadow/meadow-chest-charm",
+   "type": "Condition",
+   "name": "スパゲッティゴーレムの討伐"
+  },
+  {
+   "id": "overworld/meadow/meadow-enemy-slime",
+   "type": "Task",
+   "name": "🟢 バグスライム",
+   "detail": "仕様のスキマから生まれたぷるぷるのスライム。『バグ』属性の技に弱い。",
+   "x": 272,
+   "y": 400
+  },
+  {
+   "id": "enemy/overworld/meadow/meadow-enemy-slime",
+   "type": "Goal",
+   "name": "バグスライムの討伐",
+   "hp": 18
+  },
+  {
+   "id": "overworld/meadow/meadow-enemy-bat",
+   "type": "Task",
+   "name": "🦇 タイポコウモリ",
+   "detail": "夜な夜な識別子を綴り間違えるコウモリ。『パイプライン』技が効果的。",
+   "x": 560,
+   "y": 336
+  },
+  {
+   "id": "enemy/overworld/meadow/meadow-enemy-bat",
+   "type": "Goal",
+   "name": "タイポコウモリの討伐",
+   "hp": 24
+  },
+  {
+   "id": "overworld/meadow/meadow-enemy-golem",
+   "type": "Task",
+   "name": "👾 スパゲッティゴーレム",
+   "detail": "北の空地に棲むこの地域のボス。3ターンごとの強攻撃は『ぼうぎょ』で防ごう。",
+   "x": 400,
+   "y": 112
+  },
+  {
+   "id": "enemy/overworld/meadow/meadow-enemy-golem",
+   "type": "Goal",
+   "name": "スパゲッティゴーレムの討伐",
+   "hp": 44
+  },
+  {
+   "id": "overworld/forest",
+   "type": "State",
+   "name": "🌲 森"
+  },
+  {
+   "id": "overworld/forest/forest-town",
+   "type": "Task",
+   "name": "🏡 森の家",
+   "detail": "木々にかこまれた小さな家です。",
+   "x": 400,
+   "y": 272
+  },
+  {
+   "id": "overworld/forest/forest-landmark",
+   "type": "Task",
+   "name": "⛩️ ほこら",
+   "detail": "森の奥にある古いほこらです。",
+   "x": 48,
+   "y": 80
+  },
+  {
+   "id": "overworld/forest/forest-chest-cloak",
+   "type": "Task",
+   "name": "🎁 森のマント",
+   "detail": "森の奥の木陰に置かれた宝箱。",
+   "x": 48,
+   "y": 176
+  },
+  {
+   "id": "item/overworld/forest/forest-chest-cloak",
+   "type": "Resource",
+   "name": "森のマント",
+   "detail": "自然の加護。DEF +3、最大HP +8。",
+   "usage": "装備"
+  },
+  {
+   "id": "overworld/forest/forest-enemy-ent",
+   "type": "Task",
+   "name": "🌳 古樹トレント",
+   "detail": "古い依存関係が絡み合った森の番人。",
+   "x": 720,
+   "y": 336
+  },
+  {
+   "id": "enemy/overworld/forest/forest-enemy-ent",
+   "type": "Goal",
+   "name": "古樹トレントの討伐",
+   "hp": 34
+  },
+  {
+   "id": "overworld/mountain",
+   "type": "State",
+   "name": "⛰️ 山"
+  },
+  {
+   "id": "overworld/mountain/mountain-town",
+   "type": "Task",
+   "name": "⛺ 山のふもと",
+   "detail": "旅人が休むキャンプ地です。",
+   "x": 400,
+   "y": 272
+  },
+  {
+   "id": "overworld/mountain/mountain-landmark",
+   "type": "Task",
+   "name": "🕳️ ほら穴",
+   "detail": "山の奥へ続くほら穴です。",
+   "x": 80,
+   "y": 48
+  },
+  {
+   "id": "overworld/mountain/mountain-chest-pick",
+   "type": "Task",
+   "name": "🎁 岩砕きのツルハシ",
+   "detail": "岩壁のそばに残された頑丈な道具。",
+   "x": 48,
+   "y": 144
+  },
+  {
+   "id": "item/overworld/mountain/mountain-chest-pick",
+   "type": "Resource",
+   "name": "岩砕きのツルハシ",
+   "detail": "重い岩も一撃。ATK +5。",
+   "usage": "装備"
+  },
+  {
+   "id": "overworld/mountain/mountain-enemy-gargoyle",
+   "type": "Task",
+   "name": "🪨 岩ゴーレム",
+   "detail": "固いロックファイルのように手ごわい山の巨人。",
+   "x": 720,
+   "y": 400
+  },
+  {
+   "id": "enemy/overworld/mountain/mountain-enemy-gargoyle",
+   "type": "Goal",
+   "name": "岩ゴーレムの討伐",
+   "hp": 42
+  },
+  {
+   "id": "overworld/desert",
+   "type": "State",
+   "name": "🏜️ 砂漠"
+  },
+  {
+   "id": "overworld/desert/desert-town",
+   "type": "Task",
+   "name": "🏜️ 砂の町",
+   "detail": "日よけの屋根がならぶ町です。",
+   "x": 400,
+   "y": 272
+  },
+  {
+   "id": "overworld/desert/desert-landmark",
+   "type": "Task",
+   "name": "🌴 オアシス",
+   "detail": "水と木陰のある休み場です。",
+   "x": 176,
+   "y": 240
+  },
+  {
+   "id": "overworld/desert/desert-drop-elixir",
+   "type": "Task",
+   "name": "🏺 砂漠の秘薬",
+   "detail": "オアシスの旅人が落とした霊薬。",
+   "x": 48,
+   "y": 144
+  },
+  {
+   "id": "item/overworld/desert/desert-drop-elixir",
+   "type": "Resource",
+   "name": "砂漠の秘薬",
+   "detail": "HPを30・MPを10回復する秘薬。",
+   "usage": "消費"
+  },
+  {
+   "id": "overworld/desert/desert-enemy-scorpion",
+   "type": "Task",
+   "name": "🦂 大サソリ",
+   "detail": "乾いたログから現れる素早い大サソリ。",
+   "x": 720,
+   "y": 368
+  },
+  {
+   "id": "enemy/overworld/desert/desert-enemy-scorpion",
+   "type": "Goal",
+   "name": "大サソリの討伐",
+   "hp": 40
+  },
+  {
+   "id": "overworld/coast",
+   "type": "State",
+   "name": "🌊 海辺"
+  },
+  {
+   "id": "overworld/coast/coast-town",
+   "type": "Task",
+   "name": "⚓ みなと町",
+   "detail": "船がとまる小さな港町です。",
+   "x": 400,
+   "y": 272
+  },
+  {
+   "id": "overworld/coast/coast-landmark",
+   "type": "Task",
+   "name": "🐚 砂浜",
+   "detail": "貝がらが落ちている浜辺です。",
+   "x": 400,
+   "y": 144
+  },
+  {
+   "id": "overworld/coast/coast-chest-compass",
+   "type": "Task",
+   "name": "🎁 航海の羅針盤",
+   "detail": "潮風が運んできた正確な羅針盤。",
+   "x": 48,
+   "y": 240
+  },
+  {
+   "id": "item/overworld/coast/coast-chest-compass",
+   "type": "Resource",
+   "name": "航海の羅針盤",
+   "detail": "迷わず進む指針。ATK +3、DEF +2。",
+   "usage": "装備"
+  },
+  {
+   "id": "overworld/coast/coast-enemy-kraken",
+   "type": "Task",
+   "name": "🦑 潮風クラーケン",
+   "detail": "海辺のタイムアウトを巻き起こす大イカ。",
+   "x": 720,
+   "y": 368
+  },
+  {
+   "id": "enemy/overworld/coast/coast-enemy-kraken",
+   "type": "Goal",
+   "name": "潮風クラーケンの討伐",
+   "hp": 52
+  },
+  {
+   "id": "overworld/castle",
+   "type": "State",
+   "name": "🏰 城下町"
+  },
+  {
+   "id": "overworld/castle/castle-town",
+   "type": "Task",
+   "name": "🏰 お城",
+   "detail": "町を見まもる大きなお城です。",
+   "x": 400,
+   "y": 272
+  },
+  {
+   "id": "overworld/castle/castle-landmark",
+   "type": "Task",
+   "name": "🎪 広場",
+   "detail": "市が立つにぎやかな広場です。",
+   "x": 80,
+   "y": 48
+  },
+  {
+   "id": "overworld/castle/castle-chest-crown",
+   "type": "Task",
+   "name": "🎁 王冠バッジ",
+   "detail": "城の一角に眠る開発者の勲章。",
+   "x": 48,
+   "y": 144
+  },
+  {
+   "id": "item/overworld/castle/castle-chest-crown",
+   "type": "Resource",
+   "name": "王冠バッジ",
+   "detail": "ATK +5、DEF +4、最大HP +12。",
+   "usage": "装備"
+  },
+  {
+   "id": "overworld/castle/castle-enemy-daemon",
+   "type": "Task",
+   "name": "🐲 幻影ドラゴン",
+   "detail": "最終テストを守る伝説の竜。",
+   "x": 720,
+   "y": 400
+  },
+  {
+   "id": "enemy/overworld/castle/castle-enemy-daemon",
+   "type": "Goal",
+   "name": "幻影ドラゴンの討伐",
+   "hp": 68
+  },
+  {
+   "id": "overworld/real",
+   "type": "State",
+   "name": "実空間×仮想"
+  },
+  {
+   "id": "overworld/real/real-gate",
+   "type": "Task",
+   "name": "入口",
+   "detail": "⋯ の 🖼️📷 で、写真かカメラをうしろに映せます（ページの中だけ。保存も送信もしません）。",
+   "x": 192,
+   "y": 96
+  },
+  {
+   "id": "quest/talk-cat",
+   "type": "Goal",
+   "name": "村の案内を聞こう",
+   "detail": "案内猫ミョン（または村人）に話しかける"
+  },
+  {
+   "id": "condition/talk-cat",
+   "type": "Condition",
+   "name": "talk",
+   "minimum": 1,
+   "target": null
+  },
+  {
+   "id": "quest/find-drops",
+   "type": "Goal",
+   "name": "道ばたの落とし物",
+   "detail": "村に落ちているどうぐを2つひろう"
+  },
+  {
+   "id": "condition/find-drops",
+   "type": "Condition",
+   "name": "drop",
+   "minimum": 2,
+   "target": null
+  },
+  {
+   "id": "quest/open-chests",
+   "type": "Goal",
+   "name": "宝箱トレジャー",
+   "detail": "宝箱(🎁)を2つ見つけて開ける"
+  },
+  {
+   "id": "condition/open-chests",
+   "type": "Condition",
+   "name": "chest",
+   "minimum": 2,
+   "target": null
+  },
+  {
+   "id": "quest/first-battle",
+   "type": "Goal",
+   "name": "バグ退治の一歩",
+   "detail": "バグスライムを1体たおす"
+  },
+  {
+   "id": "condition/first-battle",
+   "type": "Condition",
+   "name": "battle",
+   "minimum": 1,
+   "target": "meadow-enemy-slime"
+  },
+  {
+   "id": "quest/pass-quizzes",
+   "type": "Goal",
+   "name": "ポートフォリオ博士",
+   "detail": "研究員のクイズに2問正解する"
+  },
+  {
+   "id": "condition/pass-quizzes",
+   "type": "Condition",
+   "name": "quiz",
+   "minimum": 2,
+   "target": null
+  },
+  {
+   "id": "quest/defeat-golem",
+   "type": "Goal",
+   "name": "村の守護者討伐",
+   "detail": "ボス『スパゲッティゴーレム』をたおす"
+  },
+  {
+   "id": "condition/defeat-golem",
+   "type": "Condition",
+   "name": "boss",
+   "minimum": 1,
+   "target": "meadow-enemy-golem"
+  },
+  {
+   "id": "quest/visit-lands",
+   "type": "Goal",
+   "name": "扉をわたる旅人",
+   "detail": "🛗から3つの土地をおとずれる"
+  },
+  {
+   "id": "condition/visit-lands",
+   "type": "Condition",
+   "name": "floor",
+   "minimum": 3,
+   "target": null
+  },
+  {
+   "id": "buy/pot",
+   "type": "Task",
+   "name": "村特製ポーションを購入",
+   "detail": "HPを22回復する定番の薬"
+  },
+  {
+   "id": "price/buy/pot",
+   "type": "Condition",
+   "name": "15G以上"
+  },
+  {
+   "id": "buy/ether",
+   "type": "Task",
+   "name": "MPエーテルを購入",
+   "detail": "とくぎ用のMPを12回復する結晶"
+  },
+  {
+   "id": "price/buy/ether",
+   "type": "Condition",
+   "name": "20G以上"
+  },
+  {
+   "id": "buy/dango",
+   "type": "Task",
+   "name": "昼ヶ丘いもだんごを購入",
+   "detail": "甘くてほくほく！HP30・MP6を同時に回復"
+  },
+  {
+   "id": "price/buy/dango",
+   "type": "Condition",
+   "name": "28G以上"
+  },
+  {
+   "id": "school/classroom",
+   "type": "State",
+   "name": "教室"
+  },
+  {
+   "id": "school/classroom/classroom-board",
+   "type": "Task",
+   "name": "黒板",
+   "detail": "今日の連絡や課題を書く場所です。",
+   "x": 192,
+   "y": 16
+  },
+  {
+   "id": "school/classroom/classroom-teacher",
+   "type": "Task",
+   "name": "先生の机",
+   "detail": "先生の席です。",
+   "x": 192,
+   "y": 112
+  },
+  {
+   "id": "school/classroom/classroom-door",
+   "type": "Task",
+   "name": "出入口",
+   "detail": "廊下や校庭へ出られます。",
+   "x": 192,
+   "y": 432
+  },
+  {
+   "id": "school/yard",
+   "type": "State",
+   "name": "校庭"
+  },
+  {
+   "id": "school/yard/bar",
+   "type": "Task",
+   "name": "鉄棒",
+   "detail": "ここで体を動かします。",
+   "x": 160,
+   "y": 128
+  },
+  {
+   "id": "school/yard/flowers",
+   "type": "Task",
+   "name": "花だん",
+   "detail": "季節の花が咲いています。",
+   "x": 480,
+   "y": 96
+  },
+  {
+   "id": "cities/tokyo",
+   "type": "State",
+   "name": "Parallel Tokyo"
+  },
+  {
+   "id": "cities/tokyo/tokyo-marunouchi-c",
+   "type": "Task",
+   "name": "丸の内中央口",
+   "detail": "東京駅の丸の内側、ちょうど真ん中の出入口です。",
+   "x": 816,
+   "y": 1232
+  },
+  {
+   "id": "cities/tokyo/tokyo-marunouchi-n",
+   "type": "Task",
+   "name": "丸の内北口",
+   "detail": "東京駅の丸の内側、北の出入口です。",
+   "x": 784,
+   "y": 1104
+  },
+  {
+   "id": "cities/tokyo/tokyo-marunouchi-s",
+   "type": "Task",
+   "name": "丸の内南口",
+   "detail": "東京駅の丸の内側、南の出入口です。",
+   "x": 784,
+   "y": 1360
+  },
+  {
+   "id": "cities/tokyo/tokyo-yaesu-c",
+   "type": "Task",
+   "name": "八重洲中央口",
+   "detail": "東京駅の八重洲側、ちょうど真ん中の出入口です。",
+   "x": 1008,
+   "y": 1232
+  },
+  {
+   "id": "cities/tokyo/tokyo-yaesu-n",
+   "type": "Task",
+   "name": "八重洲北口",
+   "detail": "東京駅の八重洲側、北の出入口です。",
+   "x": 976,
+   "y": 1104
+  },
+  {
+   "id": "cities/tokyo/tokyo-yaesu-s",
+   "type": "Task",
+   "name": "八重洲南口",
+   "detail": "東京駅の八重洲側、南の出入口です。",
+   "x": 976,
+   "y": 1360
+  },
+  {
+   "id": "cities/tokyo/tokyo-otemachi",
+   "type": "Task",
+   "name": "大手町",
+   "detail": "東京駅の北西、歩いて行ける駅です。",
+   "x": 496,
+   "y": 624
+  },
+  {
+   "id": "cities/tokyo/tokyo-nijubashimae",
+   "type": "Task",
+   "name": "二重橋前",
+   "detail": "東京駅の西、丸の内の駅です。",
+   "x": 336,
+   "y": 1328
+  },
+  {
+   "id": "cities/tokyo/tokyo-yurakucho",
+   "type": "Task",
+   "name": "有楽町",
+   "detail": "東京駅の南、ひと駅となりです。",
+   "x": 496,
+   "y": 1936
+  },
+  {
+   "id": "cities/tokyo/tokyo-hibiya",
+   "type": "Task",
+   "name": "日比谷",
+   "detail": "有楽町の西にある駅です。",
+   "x": 208,
+   "y": 2032
+  },
+  {
+   "id": "cities/tokyo/tokyo-ginza",
+   "type": "Task",
+   "name": "銀座",
+   "detail": "有楽町の南にある駅です。",
+   "x": 560,
+   "y": 2288
+  },
+  {
+   "id": "cities/tokyo/tokyo-ginza-itchome",
+   "type": "Task",
+   "name": "銀座一丁目",
+   "detail": "銀座の北東にある駅です。",
+   "x": 880,
+   "y": 2000
+  },
+  {
+   "id": "cities/tokyo/tokyo-kyobashi",
+   "type": "Task",
+   "name": "京橋",
+   "detail": "東京駅の南東、八重洲のむこうの駅です。",
+   "x": 1136,
+   "y": 1744
+  },
+  {
+   "id": "cities/tokyo/tokyo-nihombashi",
+   "type": "Task",
+   "name": "日本橋",
+   "detail": "東京駅の東、八重洲のむこうの駅です。",
+   "x": 1520,
+   "y": 1168
+  },
+  {
+   "id": "cities/tokyo/tokyo-mitsukoshimae",
+   "type": "Task",
+   "name": "三越前",
+   "detail": "日本橋の北にある駅です。",
+   "x": 1456,
+   "y": 624
+  },
+  {
+   "id": "cities/tokyo/tokyo-shin-nihombashi",
+   "type": "Task",
+   "name": "新日本橋",
+   "detail": "三越前の北にある駅です。",
+   "x": 1488,
+   "y": 272
+  },
+  {
+   "id": "cities/tokyo/tokyo-kanda",
+   "type": "Task",
+   "name": "神田",
+   "detail": "東京駅の北、ひと駅となりです。",
+   "x": 1200,
+   "y": 80
+  },
+  {
+   "id": "cities/tokyo/tokyo-takebashi",
+   "type": "Task",
+   "name": "竹橋",
+   "detail": "大手町の北西にある駅です。",
+   "x": 80,
+   "y": 208
+  },
+  {
+   "id": "cities/tokyo/tokyo-shimbashi",
+   "type": "Task",
+   "name": "新橋",
+   "detail": "有楽町の南、ふた駅となりです。",
+   "x": 80,
+   "y": 2896
+  },
+  {
+   "id": "cities/tokyo/tokyo-concourse",
+   "type": "Task",
+   "name": "◀ 丸の内 | 八重洲 ▶",
+   "detail": "東京駅の、丸の内口と八重洲口のあいだです。",
+   "x": 896,
+   "y": 1280
+  },
+  {
+   "id": "cities/tokyo/tokyo-north-south",
+   "type": "Task",
+   "name": "▲ 神田 | 有楽町 ▼",
+   "detail": "東京駅の北と南、となりの駅の方向です。",
+   "x": 896,
+   "y": 960
+  },
+  {
+   "id": "cities/london",
+   "type": "State",
+   "name": "Reverse London"
+  },
+  {
+   "id": "cities/london/london-kings-cross",
+   "type": "Task",
+   "name": "キングス・クロス",
+   "detail": "北へ向かう列車が出る大きな駅です。",
+   "x": 848,
+   "y": 80
+  },
+  {
+   "id": "cities/london/london-st-pancras",
+   "type": "Task",
+   "name": "セント・パンクラス",
+   "detail": "海をわたる列車も出る、赤れんがの駅です。",
+   "x": 784,
+   "y": 80
+  },
+  {
+   "id": "cities/london/london-euston",
+   "type": "Task",
+   "name": "ユーストン",
+   "detail": "北西へ向かう列車の駅です。",
+   "x": 688,
+   "y": 144
+  },
+  {
+   "id": "cities/london/london-paddington",
+   "type": "Task",
+   "name": "パディントン",
+   "detail": "西へ向かう列車の駅です。",
+   "x": 80,
+   "y": 464
+  },
+  {
+   "id": "cities/london/london-marylebone",
+   "type": "Task",
+   "name": "マリルボーン",
+   "detail": "こぢんまりとした北西の駅です。",
+   "x": 240,
+   "y": 304
+  },
+  {
+   "id": "cities/london/london-liverpool-street",
+   "type": "Task",
+   "name": "リバプール・ストリート",
+   "detail": "東へ向かう列車の駅です。",
+   "x": 1424,
+   "y": 400
+  },
+  {
+   "id": "cities/london/london-fenchurch-street",
+   "type": "Task",
+   "name": "フェンチャーチ・ストリート",
+   "detail": "東の海辺へ向かう列車の駅です。",
+   "x": 1488,
+   "y": 560
+  },
+  {
+   "id": "cities/london/london-cannon-street",
+   "type": "Task",
+   "name": "キャノン・ストリート",
+   "detail": "川の北岸にある、南東へ向かう駅です。",
+   "x": 1328,
+   "y": 560
+  },
+  {
+   "id": "cities/london/london-london-bridge",
+   "type": "Task",
+   "name": "ロンドン・ブリッジ",
+   "detail": "川の南岸にある、南へ向かう駅です。",
+   "x": 1392,
+   "y": 720
+  },
+  {
+   "id": "cities/london/london-blackfriars",
+   "type": "Task",
+   "name": "ブラックフライアーズ",
+   "detail": "橋の上に駅がある、川をまたぐ駅です。",
+   "x": 1136,
+   "y": 528
+  },
+  {
+   "id": "cities/london/london-waterloo",
+   "type": "Task",
+   "name": "ウォータールー",
+   "detail": "川の南岸にある、いちばん大きな駅です。",
+   "x": 976,
+   "y": 752
+  },
+  {
+   "id": "cities/london/london-charing-cross",
+   "type": "Task",
+   "name": "チャリング・クロス",
+   "detail": "川の北岸にある、南東へ向かう駅です。",
+   "x": 816,
+   "y": 624
+  },
+  {
+   "id": "cities/london/london-victoria",
+   "type": "Task",
+   "name": "ヴィクトリア",
+   "detail": "南へ向かう列車の駅です。",
+   "x": 528,
+   "y": 944
+  },
+  {
+   "id": "cities/london/london-edgware-road",
+   "type": "Task",
+   "name": "エッジウェア・ロード",
+   "detail": "パディントンとマリルボーンの間の駅です。",
+   "x": 176,
+   "y": 368
+  },
+  {
+   "id": "cities/london/london-baker-street",
+   "type": "Task",
+   "name": "ベイカー・ストリート",
+   "detail": "マリルボーンのとなりの駅です。",
+   "x": 336,
+   "y": 304
+  },
+  {
+   "id": "cities/london/london-warren-street",
+   "type": "Task",
+   "name": "ウォーレン・ストリート",
+   "detail": "ユーストンのとなりの駅です。",
+   "x": 624,
+   "y": 240
+  },
+  {
+   "id": "cities/london/london-angel",
+   "type": "Task",
+   "name": "エンジェル",
+   "detail": "キングス・クロスの東のとなりの駅です。",
+   "x": 1104,
+   "y": 80
+  },
+  {
+   "id": "cities/london/london-russell-square",
+   "type": "Task",
+   "name": "ラッセル・スクエア",
+   "detail": "キングス・クロスの南のとなりの駅です。",
+   "x": 816,
+   "y": 272
+  },
+  {
+   "id": "cities/london/london-farringdon",
+   "type": "Task",
+   "name": "ファリンドン",
+   "detail": "キングス・クロスの南東のとなりの駅です。",
+   "x": 1104,
+   "y": 336
+  },
+  {
+   "id": "cities/london/london-moorgate",
+   "type": "Task",
+   "name": "ムーアゲート",
+   "detail": "リバプール・ストリートの西のとなりの駅です。",
+   "x": 1360,
+   "y": 400
+  },
+  {
+   "id": "cities/london/london-aldgate",
+   "type": "Task",
+   "name": "オールドゲート",
+   "detail": "リバプール・ストリートの南東のとなりの駅です。",
+   "x": 1552,
+   "y": 496
+  },
+  {
+   "id": "cities/london/london-tower-hill",
+   "type": "Task",
+   "name": "タワー・ヒル",
+   "detail": "フェンチャーチ・ストリートのとなりの駅です。",
+   "x": 1520,
+   "y": 592
+  },
+  {
+   "id": "cities/london/london-bank",
+   "type": "Task",
+   "name": "バンク",
+   "detail": "キャノン・ストリートのとなりの駅です。",
+   "x": 1360,
+   "y": 528
+  },
+  {
+   "id": "cities/london/london-monument",
+   "type": "Task",
+   "name": "モニュメント",
+   "detail": "キャノン・ストリートの東のとなりの駅です。",
+   "x": 1392,
+   "y": 560
+  },
+  {
+   "id": "cities/london/london-borough",
+   "type": "Task",
+   "name": "ボロー",
+   "detail": "ロンドン・ブリッジの南西のとなりの駅です。",
+   "x": 1264,
+   "y": 816
+  },
+  {
+   "id": "cities/london/london-st-pauls",
+   "type": "Task",
+   "name": "セント・ポールズ",
+   "detail": "ブラックフライアーズの北東のとなりの駅です。",
+   "x": 1232,
+   "y": 496
+  },
+  {
+   "id": "cities/london/london-temple",
+   "type": "Task",
+   "name": "テンプル",
+   "detail": "ブラックフライアーズの西のとなりの駅です。",
+   "x": 976,
+   "y": 560
+  },
+  {
+   "id": "cities/london/london-southwark",
+   "type": "Task",
+   "name": "サザーク",
+   "detail": "川の南、ウォータールーの東のとなりの駅です。",
+   "x": 1104,
+   "y": 720
+  },
+  {
+   "id": "cities/london/london-lambeth-north",
+   "type": "Task",
+   "name": "ランベス・ノース",
+   "detail": "ウォータールーの南のとなりの駅です。",
+   "x": 1008,
+   "y": 848
+  },
+  {
+   "id": "cities/london/london-embankment",
+   "type": "Task",
+   "name": "エンバンクメント",
+   "detail": "チャリング・クロスのとなりの駅です。",
+   "x": 848,
+   "y": 624
+  },
+  {
+   "id": "cities/london/london-westminster",
+   "type": "Task",
+   "name": "ウェストミンスター",
+   "detail": "チャリング・クロスの南のとなりの駅です。",
+   "x": 784,
+   "y": 816
+  },
+  {
+   "id": "cities/london/london-green-park",
+   "type": "Task",
+   "name": "グリーン・パーク",
+   "detail": "ヴィクトリアの北のとなりの駅です。",
+   "x": 560,
+   "y": 656
+  },
+  {
+   "id": "cities/london/london-pimlico",
+   "type": "Task",
+   "name": "ピムリコ",
+   "detail": "ヴィクトリアの南東のとなりの駅です。",
+   "x": 688,
+   "y": 1072
+  },
+  {
+   "id": "cities/london/london-nogard",
+   "type": "Task",
+   "name": "nogard",
+   "detail": "うしろから読んでみて。",
+   "x": 992,
+   "y": 768
+  },
+  {
+   "id": "cities/london/london-mind-the-gap",
+   "type": "Task",
+   "name": "mind the gap",
+   "detail": "駅のホームでよく聞く言葉です。",
+   "x": 512,
+   "y": 928
+  },
+  {
+   "id": "cities/london/london-platform",
+   "type": "Task",
+   "name": "◀ 北 | 南 ▶",
+   "detail": "キングス・クロスとセント・パンクラスの前です。",
+   "x": 768,
+   "y": 128
+  },
+  {
+   "id": "cities/paris",
+   "type": "State",
+   "name": "Fake Paris"
+  },
+  {
+   "id": "cities/paris/paris-gare-du-nord",
+   "type": "Task",
+   "name": "パリ北駅",
+   "detail": "北へ向かう列車の大きな駅です。",
+   "x": 784,
+   "y": 144
+  },
+  {
+   "id": "cities/paris/paris-gare-de-lest",
+   "type": "Task",
+   "name": "パリ東駅",
+   "detail": "東へ向かう列車の駅です。",
+   "x": 848,
+   "y": 240
+  },
+  {
+   "id": "cities/paris/paris-saint-lazare",
+   "type": "Task",
+   "name": "サン・ラザール駅",
+   "detail": "西へ向かう列車の駅です。",
+   "x": 304,
+   "y": 240
+  },
+  {
+   "id": "cities/paris/paris-gare-de-lyon",
+   "type": "Task",
+   "name": "リヨン駅",
+   "detail": "南東へ向かう列車の駅です。",
+   "x": 1072,
+   "y": 1008
+  },
+  {
+   "id": "cities/paris/paris-austerlitz",
+   "type": "Task",
+   "name": "オステルリッツ駅",
+   "detail": "川の南岸にある、南西へ向かう駅です。",
+   "x": 944,
+   "y": 1040
+  },
+  {
+   "id": "cities/paris/paris-montparnasse",
+   "type": "Task",
+   "name": "モンパルナス駅",
+   "detail": "川の南にある、西へ向かう駅です。",
+   "x": 240,
+   "y": 1072
+  },
+  {
+   "id": "cities/paris/paris-poissonniere",
+   "type": "Task",
+   "name": "ポワソニエール",
+   "detail": "北駅の西のとなりの駅です。",
+   "x": 688,
+   "y": 208
+  },
+  {
+   "id": "cities/paris/paris-barbes",
+   "type": "Task",
+   "name": "バルベス・ロシュシュアール",
+   "detail": "北駅の北西のとなりの駅です。",
+   "x": 688,
+   "y": 80
+  },
+  {
+   "id": "cities/paris/paris-chateau-deau",
+   "type": "Task",
+   "name": "シャトー・ドー",
+   "detail": "東駅の南のとなりの駅です。",
+   "x": 784,
+   "y": 304
+  },
+  {
+   "id": "cities/paris/paris-louis-blanc",
+   "type": "Task",
+   "name": "ルイ・ブラン",
+   "detail": "東駅の北東のとなりの駅です。",
+   "x": 912,
+   "y": 112
+  },
+  {
+   "id": "cities/paris/paris-havre-caumartin",
+   "type": "Task",
+   "name": "アーヴル・コーマルタン",
+   "detail": "サン・ラザール駅の南のとなりの駅です。",
+   "x": 336,
+   "y": 304
+  },
+  {
+   "id": "cities/paris/paris-europe",
+   "type": "Task",
+   "name": "ヨーロッパ",
+   "detail": "サン・ラザール駅の北西のとなりの駅です。",
+   "x": 272,
+   "y": 176
+  },
+  {
+   "id": "cities/paris/paris-bastille",
+   "type": "Task",
+   "name": "バスティーユ",
+   "detail": "リヨン駅の北西のとなりの駅です。",
+   "x": 976,
+   "y": 784
+  },
+  {
+   "id": "cities/paris/paris-quai-de-la-rapee",
+   "type": "Task",
+   "name": "ケ・ド・ラ・ラペ",
+   "detail": "リヨン駅とオステルリッツ駅のあいだの駅です。",
+   "x": 944,
+   "y": 912
+  },
+  {
+   "id": "cities/paris/paris-saint-marcel",
+   "type": "Task",
+   "name": "サン・マルセル",
+   "detail": "オステルリッツ駅の南のとなりの駅です。",
+   "x": 848,
+   "y": 1136
+  },
+  {
+   "id": "cities/paris/paris-jussieu",
+   "type": "Task",
+   "name": "ジュシュー",
+   "detail": "オステルリッツ駅の北西のとなりの駅です。",
+   "x": 752,
+   "y": 944
+  },
+  {
+   "id": "cities/paris/paris-edgar-quinet",
+   "type": "Task",
+   "name": "エドガー・キネ",
+   "detail": "モンパルナス駅の東のとなりの駅です。",
+   "x": 304,
+   "y": 1072
+  },
+  {
+   "id": "cities/paris/paris-vavin",
+   "type": "Task",
+   "name": "ヴァヴァン",
+   "detail": "モンパルナス駅の北東のとなりの駅です。",
+   "x": 336,
+   "y": 1040
+  },
+  {
+   "id": "cities/paris/paris-falguiere",
+   "type": "Task",
+   "name": "ファルギエール",
+   "detail": "モンパルナス駅の西のとなりの駅です。",
+   "x": 80,
+   "y": 1008
+  },
+  {
+   "id": "cities/paris/paris-to-lyon",
+   "type": "Task",
+   "name": "▶ Lyon",
+   "detail": "リヨン駅から、リヨンへ向かう列車が出ます。",
+   "x": 1056,
+   "y": 992
+  },
+  {
+   "id": "cities/paris/paris-rive-gauche",
+   "type": "Task",
+   "name": "rive gauche ▼",
+   "detail": "川の南がわ、左岸という意味です。",
+   "x": 608,
+   "y": 800
+  },
+  {
+   "id": "rescue/npc-captain",
+   "type": "Task",
+   "name": "マルゴ隊長",
+   "detail": "よくぞ来てくれた新人レスキュー！フェイクパリの街で火災が発生している。街角の小火からセーヌ川の向こうまで、消火活動をお願いするよ！",
+   "tx": 24,
+   "ty": 5
+  },
+  {
+   "id": "rescue/npc-dispatcher",
+   "type": "Task",
+   "name": "通信士エミール",
+   "detail": "司令室からの情報電波をキャッチしています！右上のコンパス🧭を見れば、最も近い火災への方向と距離が一目で分かりますよ。",
+   "tx": 28,
+   "ty": 7
+  },
+  {
+   "id": "rescue/npc-baker",
+   "type": "Task",
+   "name": "パン職人コレット",
+   "detail": "いらっしゃい！消防活動ご苦労さま！消火活動で手に入れたレスキューメダル🪙で、焼きたてパンや冷却アイテムを補給していってね！",
+   "tx": 12,
+   "ty": 7
+  },
+  {
+   "id": "rescue/npc-engineer",
+   "type": "Task",
+   "name": "水路技師クロード",
+   "detail": "セーヌ川の水路管理はお任せあれ！装備の点検と高圧水タンクの満タン給水💧を今すぐ行おう！",
+   "tx": 27,
+   "ty": 24
+  },
+  {
+   "id": "rescue/npc-archivist",
+   "type": "Task",
+   "name": "記録官ルネ",
+   "detail": "私はポートフォリオの記録官ルネ。街の消火活動と技術リポジトリの歴史を記録している。君の知識を試すクイズに挑戦してみないかい？",
+   "tx": 21,
+   "ty": 29
+  },
+  {
+   "id": "rescue/npc-conductor",
+   "type": "Task",
+   "name": "駅長ベルナール",
+   "detail": "モンパルナス方面の警備を担当しているベルナールだ。左岸の奥地に最大級の大火災インフェルノ🌋が発生しているとの報告がある！",
+   "tx": 5,
+   "ty": 33
+  },
+  {
+   "id": "rescue/hydrant-nord",
+   "type": "Task",
+   "name": "北駅給水栓",
+   "detail": "北駅前の高圧消火栓だ。タンクの水路弁を開いて満タンまで急速補給した！",
+   "tx": 22,
+   "ty": 5
+  },
+  {
+   "id": "rescue/hydrant-ouest",
+   "type": "Task",
+   "name": "西区給水栓",
+   "detail": "サン・ラザール西区の消火栓だ。清涼な水でタンクを満タンまで補給した！",
+   "tx": 12,
+   "ty": 9
+  },
+  {
+   "id": "rescue/hydrant-seine",
+   "type": "Task",
+   "name": "セーヌ給水ポンプ",
+   "detail": "セーヌ川の直接吸水ポンプだ。豊かな水流でタンクと活力を満タンまで補給した！",
+   "tx": 28,
+   "ty": 30
+  },
+  {
+   "id": "rescue/hydrant-sud",
+   "type": "Task",
+   "name": "左岸給水栓",
+   "detail": "左岸南部の消火栓だ。長距離遠征に備えて水タンクを満タンまで補給した！",
+   "tx": 15,
+   "ty": 33
+  },
+  {
+   "id": "rescue/drop-capsule",
+   "type": "Task",
+   "name": "消火カプセル",
+   "detail": "携帯用の高圧水カプセル。水タンクを28回復する。",
+   "tx": 24,
+   "ty": 6
+  },
+  {
+   "id": "item/rescue/drop-capsule",
+   "type": "Resource",
+   "name": "消火カプセル",
+   "usage": "消費"
+  },
+  {
+   "id": "rescue/drop-croissant",
+   "type": "Task",
+   "name": "焼きたてクロワッサン",
+   "detail": "香ばしいクロワッサン。HPを20、水タンクを12回復する。",
+   "tx": 16,
+   "ty": 6
+  },
+  {
+   "id": "item/rescue/drop-croissant",
+   "type": "Resource",
+   "name": "焼きたてクロワッサン",
+   "usage": "消費"
+  },
+  {
+   "id": "rescue/drop-cryo",
+   "type": "Task",
+   "name": "瞬間冷却ジェル弾",
+   "detail": "急速冷凍ジェル。消火活動で炎に大ダメージを与える。",
+   "tx": 30,
+   "ty": 9
+  },
+  {
+   "id": "item/rescue/drop-cryo",
+   "type": "Resource",
+   "name": "瞬間冷却ジェル弾",
+   "usage": "消費・火災現場専用"
+  },
+  {
+   "id": "rescue/drop-baguette",
+   "type": "Task",
+   "name": "パリジャン・バゲット",
+   "detail": "パリ伝統の堅焼きバゲット。HPを24、水タンクを16回復する。",
+   "tx": 25,
+   "ty": 29
+  },
+  {
+   "id": "item/rescue/drop-baguette",
+   "type": "Resource",
+   "name": "パリジャン・バゲット",
+   "usage": "消費"
+  },
+  {
+   "id": "rescue/drop-thermal",
+   "type": "Task",
+   "name": "サーマル冷却アンプル",
+   "detail": "医療用サーマルアンプル。HPを10、水タンクを36回復する。",
+   "tx": 13,
+   "ty": 31
+  },
+  {
+   "id": "item/rescue/drop-thermal",
+   "type": "Resource",
+   "name": "サーマル冷却アンプル",
+   "usage": "消費"
+  },
+  {
+   "id": "rescue/chest-nozzle",
+   "type": "Task",
+   "name": "流体ターボノズル",
+   "detail": "放水水流を加速する特製ノズル。放水威力+5。",
+   "tx": 23,
+   "ty": 2
+  },
+  {
+   "id": "item/rescue/chest-nozzle",
+   "type": "Resource",
+   "name": "流体ターボノズル",
+   "usage": "装備"
+  },
+  {
+   "id": "rescue/chest-suit",
+   "type": "Task",
+   "name": "耐熱ヒーロースーツ",
+   "detail": "高熱を反射するアラミド繊維スーツ。耐熱シールド+4、最大HP+14。",
+   "tx": 6,
+   "ty": 8
+  },
+  {
+   "id": "item/rescue/chest-suit",
+   "type": "Resource",
+   "name": "耐熱ヒーロースーツ",
+   "usage": "装備"
+  },
+  {
+   "id": "rescue/chest-tank",
+   "type": "Task",
+   "name": "セーヌ大容量タンク",
+   "detail": "大容量の加圧水タンク。最大水容量+32。",
+   "tx": 32,
+   "ty": 24
+  },
+  {
+   "id": "item/rescue/chest-tank",
+   "type": "Resource",
+   "name": "セーヌ大容量タンク",
+   "usage": "装備"
+  },
+  {
+   "id": "rescue/chest-helm",
+   "type": "Task",
+   "name": "黄金の消防ヘルメット",
+   "detail": "名誉消防士の黄金ヘルメット。威力+6、シールド+4、HP+12、水+20。",
+   "tx": 25,
+   "ty": 33
+  },
+  {
+   "id": "item/rescue/chest-helm",
+   "type": "Resource",
+   "name": "黄金の消防ヘルメット",
+   "usage": "装備"
+  },
+  {
+   "id": "guard/rescue/chest-helm",
+   "type": "Condition",
+   "name": "鎮火 3件以上"
+  },
+  {
+   "id": "rescue/fire-0",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 0,
+   "ty": 0,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-1",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 14,
+   "ty": 3,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-2",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 20,
+   "ty": 4,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-3",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 25,
+   "ty": 2,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-4",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 33,
+   "ty": 6,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-5",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 0,
+   "ty": 9,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-6",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 14,
+   "ty": 8,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-7",
+   "type": "Task",
+   "name": "延焼ブレイズ",
+   "tx": 16,
+   "ty": 11,
+   "heat": 22
+  },
+  {
+   "id": "rescue/fire-8",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 29,
+   "ty": 12,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-9",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 34,
+   "ty": 11,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-10",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 6,
+   "ty": 20,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-11",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 9,
+   "ty": 19,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-12",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 19,
+   "ty": 19,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-13",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 30,
+   "ty": 22,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-14",
+   "type": "Task",
+   "name": "延焼ブレイズ",
+   "tx": 33,
+   "ty": 20,
+   "heat": 22
+  },
+  {
+   "id": "rescue/fire-15",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 4,
+   "ty": 24,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-16",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 8,
+   "ty": 26,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-17",
+   "type": "Task",
+   "name": "大火災インフェルノ",
+   "tx": 21,
+   "ty": 31,
+   "heat": 42
+  },
+  {
+   "id": "rescue/fire-18",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 31,
+   "ty": 26,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-19",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 35,
+   "ty": 29,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-20",
+   "type": "Task",
+   "name": "延焼ブレイズ",
+   "tx": 7,
+   "ty": 36,
+   "heat": 22
+  },
+  {
+   "id": "rescue/fire-21",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 12,
+   "ty": 35,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-22",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 19,
+   "ty": 34,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-23",
+   "type": "Task",
+   "name": "小火スパーク",
+   "tx": 28,
+   "ty": 37,
+   "heat": 10
+  },
+  {
+   "id": "rescue/fire-24",
+   "type": "Task",
+   "name": "延焼ブレイズ",
+   "tx": 33,
+   "ty": 34,
+   "heat": 22
+  },
+  {
+   "id": "cities/osaka",
+   "type": "State",
+   "name": "Seyakate Osaka"
+  },
+  {
+   "id": "cities/osaka/osaka-shin-osaka",
+   "type": "Task",
+   "name": "新大阪駅",
+   "detail": "新幹線が発着する大阪の北の玄関口です。",
+   "x": 496,
+   "y": 80
+  },
+  {
+   "id": "cities/osaka/osaka-osaka-umeda",
+   "type": "Task",
+   "name": "大阪・梅田",
+   "detail": "巨大な地下街と百貨店が広がるキタの中心駅です。",
+   "x": 464,
+   "y": 560
+  },
+  {
+   "id": "cities/osaka/osaka-namba",
+   "type": "Task",
+   "name": "なんば",
+   "detail": "道頓堀や千日前が広がるミナミの中心駅です。",
+   "x": 528,
+   "y": 1200
+  },
+  {
+   "id": "cities/osaka/osaka-abeno",
+   "type": "Task",
+   "name": "あべの橋",
+   "detail": "南大阪へ向かう列車が発着する南のターミナルです。",
+   "x": 688,
+   "y": 1488
+  },
+  {
+   "id": "cities/osaka/osaka-kyobashi",
+   "type": "Task",
+   "name": "京橋",
+   "detail": "下町の活気があふれる東の交通結節点です。",
+   "x": 976,
+   "y": 656
+  },
+  {
+   "id": "cities/osaka/osaka-nishikujo",
+   "type": "Task",
+   "name": "西九条",
+   "detail": "ベイエリアへ線路が分岐する西の結節点です。",
+   "x": 80,
+   "y": 880
+  },
+  {
+   "id": "cities/osaka/osaka-nakatsu",
+   "type": "Task",
+   "name": "中津",
+   "detail": "梅田のすぐ北に位置する下町の駅です。",
+   "x": 496,
+   "y": 432
+  },
+  {
+   "id": "cities/osaka/osaka-minamimorimachi",
+   "type": "Task",
+   "name": "南森町",
+   "detail": "日本一長い商店街の入口に近い駅です。",
+   "x": 656,
+   "y": 624
+  },
+  {
+   "id": "cities/osaka/osaka-yodoyabashi",
+   "type": "Task",
+   "name": "淀屋橋",
+   "detail": "大阪市役所と中之島へ続くビジネス街の駅です。",
+   "x": 528,
+   "y": 720
+  },
+  {
+   "id": "cities/osaka/osaka-honmachi",
+   "type": "Task",
+   "name": "本町",
+   "detail": "繊維街・船場商人の歴史が息づく商業の中心です。",
+   "x": 528,
+   "y": 912
+  },
+  {
+   "id": "cities/osaka/osaka-shinsaibashi",
+   "type": "Task",
+   "name": "心斎橋",
+   "detail": "華やかなブティックやアーケードが連なる駅です。",
+   "x": 528,
+   "y": 1072
+  },
+  {
+   "id": "cities/osaka/osaka-daikokucho",
+   "type": "Task",
+   "name": "大国町",
+   "detail": "木津卸売市場に近く庶民的な活気のある駅です。",
+   "x": 496,
+   "y": 1360
+  },
+  {
+   "id": "cities/osaka/osaka-morinomiya",
+   "type": "Task",
+   "name": "森ノ宮",
+   "detail": "大きな公園と歴史的な城跡が広がる駅です。",
+   "x": 944,
+   "y": 912
+  },
+  {
+   "id": "cities/osaka/osaka-osakajo-koen",
+   "type": "Task",
+   "name": "大阪城公園",
+   "detail": "緑豊かな本丸の堀と木々を望む駅です。",
+   "x": 944,
+   "y": 784
+  },
+  {
+   "id": "cities/osaka/osaka-tenmabashi",
+   "type": "Task",
+   "name": "天満橋",
+   "detail": "大川の舟運と水辺の景色が美しい駅です。",
+   "x": 752,
+   "y": 752
+  },
+  {
+   "id": "cities/osaka/osaka-tamatsukuri",
+   "type": "Task",
+   "name": "玉造",
+   "detail": "古代の勾玉作りの歴史が伝わる駅です。",
+   "x": 944,
+   "y": 1040
+  },
+  {
+   "id": "cities/osaka/osaka-dotonbori-sign",
+   "type": "Task",
+   "name": "▶ Dotonbori",
+   "detail": "道頓堀の看板と賑わいがすぐそこに見えます。",
+   "x": 512,
+   "y": 1120
+  },
+  {
+   "id": "cities/osaka/osaka-semba-sign",
+   "type": "Task",
+   "name": "Semba 商い ▼",
+   "detail": "船場の商人と知恵が息づく街筋角です。",
+   "x": 544,
+   "y": 864
+  },
+  {
+   "id": "osaka-guide.json",
+   "type": "Guide",
+   "name": "大阪の捜査手帳",
+   "markdown": "osaka-guide.md"
+  },
+  {
+   "id": "quest/q-talk-captain",
+   "type": "Goal",
+   "name": "マルゴ隊長へ着任報告",
+   "detail": "マルゴ隊長(24, 5)に話しかけて消火任務の説明を受ける。"
+  },
+  {
+   "id": "condition/q-talk-captain",
+   "type": "Condition",
+   "name": "talk",
+   "minimum": 1,
+   "target": "npc-captain"
+  },
+  {
+   "id": "quest/q-first-fire",
+   "type": "Goal",
+   "name": "初めての消火活動",
+   "detail": "フェイクパリの火災を1箇所消火して街に緑を咲かせる。"
+  },
+  {
+   "id": "condition/q-first-fire",
+   "type": "Condition",
+   "name": "fire",
+   "minimum": 1,
+   "target": null
+  },
+  {
+   "id": "quest/q-three-fires",
+   "type": "Goal",
+   "name": "街角の火災鎮圧",
+   "detail": "火災を3箇所以上消火してヘルメット宝箱の封印を解く。"
+  },
+  {
+   "id": "condition/q-three-fires",
+   "type": "Condition",
+   "name": "fire",
+   "minimum": 3,
+   "target": null
+  },
+  {
+   "id": "quest/q-find-drop",
+   "type": "Goal",
+   "name": "消火道具の拾得",
+   "detail": "路上に落ちている消火カプセルやパンを拾って道具箱に入れる。"
+  },
+  {
+   "id": "condition/q-find-drop",
+   "type": "Condition",
+   "name": "drop",
+   "minimum": 1,
+   "target": null
+  },
+  {
+   "id": "quest/q-open-chest",
+   "type": "Goal",
+   "name": "消防装備の獲得",
+   "detail": "街の宝箱を開けて放水ノズルや耐熱スーツを装備する。"
+  },
+  {
+   "id": "condition/q-open-chest",
+   "type": "Condition",
+   "name": "chest",
+   "minimum": 1,
+   "target": null
+  },
+  {
+   "id": "quest/q-hydrant-refill",
+   "type": "Goal",
+   "name": "消火栓で急速補給",
+   "detail": "街の給水栓やセーヌ水路で水タンクを満タンにする。"
+  },
+  {
+   "id": "condition/q-hydrant-refill",
+   "type": "Condition",
+   "name": "refill",
+   "minimum": 1,
+   "target": null
+  },
+  {
+   "id": "quest/q-solve-quiz",
+   "type": "Goal",
+   "name": "技術記録官の試練",
+   "detail": "記録官ルネの技術ポートフォリオクイズに正解する。"
+  },
+  {
+   "id": "condition/q-solve-quiz",
+   "type": "Condition",
+   "name": "quiz",
+   "minimum": 1,
+   "target": null
+  },
+  {
+   "id": "quest/q-boss-inferno",
+   "type": "Goal",
+   "name": "大火災インフェルノ鎮火",
+   "detail": "左岸奥地の大火災インフェルノ(21, 31)を完全鎮圧する！"
+  },
+  {
+   "id": "condition/q-boss-inferno",
+   "type": "Condition",
+   "name": "boss_fire",
+   "minimum": 1,
+   "target": null
+  },
+  {
+   "id": "buy/shop-croissant",
+   "type": "Task",
+   "name": "焼きたてクロワッサンを購入",
+   "detail": "香ばしいクロワッサン。HP+22, 水+14。"
+  },
+  {
+   "id": "price/buy/shop-croissant",
+   "type": "Condition",
+   "name": "10メダル以上"
+  },
+  {
+   "id": "buy/shop-water",
+   "type": "Task",
+   "name": "高圧消火ボンベを購入",
+   "detail": "加圧消火ボンベ。水タンク+32。"
+  },
+  {
+   "id": "price/buy/shop-water",
+   "type": "Condition",
+   "name": "12メダル以上"
+  },
+  {
+   "id": "buy/shop-cryo",
+   "type": "Task",
+   "name": "液体窒素クール弾を購入",
+   "detail": "瞬時に大熱を奪う冷却弾。炎に30ダメージ。"
+  },
+  {
+   "id": "price/buy/shop-cryo",
+   "type": "Condition",
+   "name": "18メダル以上"
+  },
+  {
+   "id": "shot/world/gate",
+   "type": "Task",
+   "name": "Arrive",
+   "detail": "One page, no page changes. Scroll to move the camera through the shots."
+  },
+  {
+   "id": "shot/world/hall",
+   "type": "Task",
+   "name": "Look around",
+   "detail": "Each shot is data: a label, a title, a text and a color. Python writes the HTML and CSS."
+  },
+  {
+   "id": "shot/world/deck",
+   "type": "Task",
+   "name": "Zoom in",
+   "detail": "The only JavaScript marks what is on screen; CSS reacts to that mark."
+  },
+  {
+   "id": "shot/world/exit",
+   "type": "Task",
+   "name": "Find it",
+   "detail": "Scrolling reaches the information you came for."
+  },
+  {
+   "id": "world/1f",
+   "type": "State",
+   "name": "1F"
+  },
+  {
+   "id": "world/1f/gate",
+   "type": "Task",
+   "name": "Gate",
+   "detail": "Entrance and help desk.",
+   "x": 120,
+   "y": 320
+  },
+  {
+   "id": "world/1f/hall",
+   "type": "Task",
+   "name": "Hall",
+   "detail": "The central hall connects every area.",
+   "x": 480,
+   "y": 320
+  },
+  {
+   "id": "world/1f/cafe",
+   "type": "Task",
+   "name": "Cafe",
+   "detail": "Drinks and light meals.",
+   "x": 800,
+   "y": 160
+  },
+  {
+   "id": "world/1f/shop",
+   "type": "Task",
+   "name": "Shop",
+   "detail": "Snacks and souvenirs.",
+   "x": 800,
+   "y": 480
+  },
+  {
+   "id": "world/2f",
+   "type": "State",
+   "name": "2F"
+  },
+  {
+   "id": "world/2f/deck",
+   "type": "Task",
+   "name": "Deck",
+   "detail": "Open-air deck with a view of the hall.",
+   "x": 240,
+   "y": 160
+  },
+  {
+   "id": "world/2f/lab",
+   "type": "Task",
+   "name": "Lab",
+   "detail": "Hands-on corner for the curious.",
+   "x": 720,
+   "y": 400
+  },
+  {
+   "id": "fact/0",
+   "type": "Claim",
+   "name": "竜の巻物 → 呼べる → ドラゴン",
+   "detail": "ロンドンで初めてドラゴンをなでると竜の巻物を受け取る。旅先でも同じドラゴンを呼べる。"
+  },
+  {
+   "id": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/831cf43785329c799966775153147b82ddc28638/scripts/world.py#L2571",
+   "type": "Evidence",
+   "name": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/831cf43785329c799966775153147b82ddc28638/scripts/world.py#L2571"
+  },
+  {
+   "id": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/831cf43785329c799966775153147b82ddc28638/scripts/world.py#L2604",
+   "type": "Evidence",
+   "name": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/831cf43785329c799966775153147b82ddc28638/scripts/world.py#L2604"
+  },
+  {
+   "id": "fact/1",
+   "type": "Claim",
+   "name": "探索の巻物 → 発見対象 → 未取得のどうぐ",
+   "detail": "移動中は同じ階の6マス以内にある未取得のどうぐが3秒間光ります。何度でも使えます。"
+  },
+  {
+   "id": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/904cff96506cb6b8d8e2afeaeb171d0da63f41eb/scripts/world.py#L2280-L2287",
+   "type": "Evidence",
+   "name": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/904cff96506cb6b8d8e2afeaeb171d0da63f41eb/scripts/world.py#L2280-L2287"
+  },
+  {
+   "id": "fact/2",
+   "type": "Claim",
+   "name": "探索の巻物 → 発見対象 → やくそう",
+   "detail": "戦闘中は1ターン使い、30%の確率でやくそうを1個拾います。何度でも使えます。"
+  },
+  {
+   "id": "fact/3",
+   "type": "Claim",
+   "name": "竜の巻物 → 攻撃対象 → 敵",
+   "detail": "戦闘中はドラゴンが敵1体を攻撃する。巻物は何度でも使える。"
+  },
+  {
+   "id": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/2f27ccdf682ad02d717b894889f1dc225d894925/scripts/world.py#L2925",
+   "type": "Evidence",
+   "name": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/2f27ccdf682ad02d717b894889f1dc225d894925/scripts/world.py#L2925"
+  },
+  {
+   "id": "fact/4",
+   "type": "Claim",
+   "name": "昼ヶ丘 → 産物 → サツマイモ",
+   "detail": "昼ヶ丘でサツマイモが育つ。"
+  },
+  {
+   "id": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L3322",
+   "type": "Evidence",
+   "name": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L3322"
+  },
+  {
+   "id": "fact/5",
+   "type": "Claim",
+   "name": "ドラゴン → 好物 → サツマイモ",
+   "detail": "昼ヶ丘のいもを焼くと、リバースロンドンの木の看板の陰から鼻先がのぞくんだって。ドラゴンもあの甘い匂いが好きみたいだよ。"
+  },
+  {
+   "id": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L3302",
+   "type": "Evidence",
+   "name": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L3302"
+  },
+  {
+   "id": "fact/6",
+   "type": "Claim",
+   "name": "ドラゴン → 現れる → 木の看板",
+   "detail": "木の看板の陰にドラゴンがいるらしい。"
+  },
+  {
+   "id": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L2580",
+   "type": "Evidence",
+   "name": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L2580"
+  },
+  {
+   "id": "fact/7",
+   "type": "Claim",
+   "name": "木の看板 → 所在地 → リバースロンドン",
+   "detail": "ロンドンには nogard と書かれた木の看板がある。"
+  },
+  {
+   "id": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L3259",
+   "type": "Evidence",
+   "name": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L3259"
+  },
+  {
+   "id": "fact/8",
+   "type": "Claim",
+   "name": "癒しの水 → 消す → 火",
+   "detail": "癒しの水は正面の火を一つ消す。"
+  },
+  {
+   "id": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L2540",
+   "type": "Evidence",
+   "name": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L2540"
+  },
+  {
+   "id": "fact/9",
+   "type": "Claim",
+   "name": "火 → 所在地 → パリ",
+   "detail": "パリでは村で拾った水を火に使える。"
+  },
+  {
+   "id": "fact/10",
+   "type": "Claim",
+   "name": "癒しの水 → 回復 → MP",
+   "detail": "人に使うとMPを10回復する。"
+  },
+  {
+   "id": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L3482",
+   "type": "Evidence",
+   "name": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L3482"
+  },
+  {
+   "id": "fact/11",
+   "type": "Claim",
+   "name": "冒険手帳 → 保存形式 → 復活の呪文",
+   "detail": "冒険手帳はPSWBのかなの呪文で進捗を保存できる。"
+  },
+  {
+   "id": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L2838",
+   "type": "Evidence",
+   "name": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L2838"
+  },
+  {
+   "id": "https://github.com/myon-bioinformatics/PySaiyanWeBoo/blob/e249a7c33071a5e70ff4866492506ebfd7719875/pysaiyanweboo.py#L86",
+   "type": "Evidence",
+   "name": "https://github.com/myon-bioinformatics/PySaiyanWeBoo/blob/e249a7c33071a5e70ff4866492506ebfd7719875/pysaiyanweboo.py#L86"
+  }
+ ],
+ "edges": [
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "#world"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "#school"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "#tokyo"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "#london"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "#paris"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "#osaka"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "#camera"
+  },
+  {
+   "source": "#world",
+   "kind": "contains",
+   "target": "overworld/meadow"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-town"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-landmark"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-hirugaoka"
+  },
+  {
+   "source": "overworld/meadow/meadow-hirugaoka",
+   "kind": "provides",
+   "target": "item/overworld/meadow/meadow-hirugaoka"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-npc-cat"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-npc-elder"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-npc-smith"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-npc-researcher"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-npc-fountain"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-npc-monument"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-drop-herb"
+  },
+  {
+   "source": "overworld/meadow/meadow-drop-herb",
+   "kind": "provides",
+   "target": "item/overworld/meadow/meadow-drop-herb"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-drop-mana"
+  },
+  {
+   "source": "overworld/meadow/meadow-drop-mana",
+   "kind": "provides",
+   "target": "item/overworld/meadow/meadow-drop-mana"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-drop-scroll"
+  },
+  {
+   "source": "overworld/meadow/meadow-drop-scroll",
+   "kind": "provides",
+   "target": "item/overworld/meadow/meadow-drop-scroll"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-chest-sword"
+  },
+  {
+   "source": "overworld/meadow/meadow-chest-sword",
+   "kind": "provides",
+   "target": "item/overworld/meadow/meadow-chest-sword"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-chest-shield"
+  },
+  {
+   "source": "overworld/meadow/meadow-chest-shield",
+   "kind": "provides",
+   "target": "item/overworld/meadow/meadow-chest-shield"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-chest-charm"
+  },
+  {
+   "source": "overworld/meadow/meadow-chest-charm",
+   "kind": "provides",
+   "target": "item/overworld/meadow/meadow-chest-charm"
+  },
+  {
+   "source": "overworld/meadow/meadow-chest-charm",
+   "kind": "guarded_by",
+   "target": "guard/overworld/meadow/meadow-chest-charm"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-enemy-slime"
+  },
+  {
+   "source": "overworld/meadow/meadow-enemy-slime",
+   "kind": "offers",
+   "target": "enemy/overworld/meadow/meadow-enemy-slime"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-enemy-bat"
+  },
+  {
+   "source": "overworld/meadow/meadow-enemy-bat",
+   "kind": "offers",
+   "target": "enemy/overworld/meadow/meadow-enemy-bat"
+  },
+  {
+   "source": "overworld/meadow",
+   "kind": "offers",
+   "target": "overworld/meadow/meadow-enemy-golem"
+  },
+  {
+   "source": "overworld/meadow/meadow-enemy-golem",
+   "kind": "offers",
+   "target": "enemy/overworld/meadow/meadow-enemy-golem"
+  },
+  {
+   "source": "#world",
+   "kind": "contains",
+   "target": "overworld/forest"
+  },
+  {
+   "source": "overworld/forest",
+   "kind": "offers",
+   "target": "overworld/forest/forest-town"
+  },
+  {
+   "source": "overworld/forest",
+   "kind": "offers",
+   "target": "overworld/forest/forest-landmark"
+  },
+  {
+   "source": "overworld/forest",
+   "kind": "offers",
+   "target": "overworld/forest/forest-chest-cloak"
+  },
+  {
+   "source": "overworld/forest/forest-chest-cloak",
+   "kind": "provides",
+   "target": "item/overworld/forest/forest-chest-cloak"
+  },
+  {
+   "source": "overworld/forest",
+   "kind": "offers",
+   "target": "overworld/forest/forest-enemy-ent"
+  },
+  {
+   "source": "overworld/forest/forest-enemy-ent",
+   "kind": "offers",
+   "target": "enemy/overworld/forest/forest-enemy-ent"
+  },
+  {
+   "source": "#world",
+   "kind": "contains",
+   "target": "overworld/mountain"
+  },
+  {
+   "source": "overworld/mountain",
+   "kind": "offers",
+   "target": "overworld/mountain/mountain-town"
+  },
+  {
+   "source": "overworld/mountain",
+   "kind": "offers",
+   "target": "overworld/mountain/mountain-landmark"
+  },
+  {
+   "source": "overworld/mountain",
+   "kind": "offers",
+   "target": "overworld/mountain/mountain-chest-pick"
+  },
+  {
+   "source": "overworld/mountain/mountain-chest-pick",
+   "kind": "provides",
+   "target": "item/overworld/mountain/mountain-chest-pick"
+  },
+  {
+   "source": "overworld/mountain",
+   "kind": "offers",
+   "target": "overworld/mountain/mountain-enemy-gargoyle"
+  },
+  {
+   "source": "overworld/mountain/mountain-enemy-gargoyle",
+   "kind": "offers",
+   "target": "enemy/overworld/mountain/mountain-enemy-gargoyle"
+  },
+  {
+   "source": "#world",
+   "kind": "contains",
+   "target": "overworld/desert"
+  },
+  {
+   "source": "overworld/desert",
+   "kind": "offers",
+   "target": "overworld/desert/desert-town"
+  },
+  {
+   "source": "overworld/desert",
+   "kind": "offers",
+   "target": "overworld/desert/desert-landmark"
+  },
+  {
+   "source": "overworld/desert",
+   "kind": "offers",
+   "target": "overworld/desert/desert-drop-elixir"
+  },
+  {
+   "source": "overworld/desert/desert-drop-elixir",
+   "kind": "provides",
+   "target": "item/overworld/desert/desert-drop-elixir"
+  },
+  {
+   "source": "overworld/desert",
+   "kind": "offers",
+   "target": "overworld/desert/desert-enemy-scorpion"
+  },
+  {
+   "source": "overworld/desert/desert-enemy-scorpion",
+   "kind": "offers",
+   "target": "enemy/overworld/desert/desert-enemy-scorpion"
+  },
+  {
+   "source": "#world",
+   "kind": "contains",
+   "target": "overworld/coast"
+  },
+  {
+   "source": "overworld/coast",
+   "kind": "offers",
+   "target": "overworld/coast/coast-town"
+  },
+  {
+   "source": "overworld/coast",
+   "kind": "offers",
+   "target": "overworld/coast/coast-landmark"
+  },
+  {
+   "source": "overworld/coast",
+   "kind": "offers",
+   "target": "overworld/coast/coast-chest-compass"
+  },
+  {
+   "source": "overworld/coast/coast-chest-compass",
+   "kind": "provides",
+   "target": "item/overworld/coast/coast-chest-compass"
+  },
+  {
+   "source": "overworld/coast",
+   "kind": "offers",
+   "target": "overworld/coast/coast-enemy-kraken"
+  },
+  {
+   "source": "overworld/coast/coast-enemy-kraken",
+   "kind": "offers",
+   "target": "enemy/overworld/coast/coast-enemy-kraken"
+  },
+  {
+   "source": "#world",
+   "kind": "contains",
+   "target": "overworld/castle"
+  },
+  {
+   "source": "overworld/castle",
+   "kind": "offers",
+   "target": "overworld/castle/castle-town"
+  },
+  {
+   "source": "overworld/castle",
+   "kind": "offers",
+   "target": "overworld/castle/castle-landmark"
+  },
+  {
+   "source": "overworld/castle",
+   "kind": "offers",
+   "target": "overworld/castle/castle-chest-crown"
+  },
+  {
+   "source": "overworld/castle/castle-chest-crown",
+   "kind": "provides",
+   "target": "item/overworld/castle/castle-chest-crown"
+  },
+  {
+   "source": "overworld/castle",
+   "kind": "offers",
+   "target": "overworld/castle/castle-enemy-daemon"
+  },
+  {
+   "source": "overworld/castle/castle-enemy-daemon",
+   "kind": "offers",
+   "target": "enemy/overworld/castle/castle-enemy-daemon"
+  },
+  {
+   "source": "#world",
+   "kind": "contains",
+   "target": "overworld/real"
+  },
+  {
+   "source": "overworld/real",
+   "kind": "offers",
+   "target": "overworld/real/real-gate"
+  },
+  {
+   "source": "#world",
+   "kind": "offers",
+   "target": "quest/talk-cat"
+  },
+  {
+   "source": "quest/talk-cat",
+   "kind": "completed_when",
+   "target": "condition/talk-cat"
+  },
+  {
+   "source": "#world",
+   "kind": "offers",
+   "target": "quest/find-drops"
+  },
+  {
+   "source": "quest/find-drops",
+   "kind": "completed_when",
+   "target": "condition/find-drops"
+  },
+  {
+   "source": "#world",
+   "kind": "offers",
+   "target": "quest/open-chests"
+  },
+  {
+   "source": "quest/open-chests",
+   "kind": "completed_when",
+   "target": "condition/open-chests"
+  },
+  {
+   "source": "#world",
+   "kind": "offers",
+   "target": "quest/first-battle"
+  },
+  {
+   "source": "quest/first-battle",
+   "kind": "completed_when",
+   "target": "condition/first-battle"
+  },
+  {
+   "source": "#world",
+   "kind": "offers",
+   "target": "quest/pass-quizzes"
+  },
+  {
+   "source": "quest/pass-quizzes",
+   "kind": "completed_when",
+   "target": "condition/pass-quizzes"
+  },
+  {
+   "source": "#world",
+   "kind": "offers",
+   "target": "quest/defeat-golem"
+  },
+  {
+   "source": "quest/defeat-golem",
+   "kind": "completed_when",
+   "target": "condition/defeat-golem"
+  },
+  {
+   "source": "#world",
+   "kind": "offers",
+   "target": "quest/visit-lands"
+  },
+  {
+   "source": "quest/visit-lands",
+   "kind": "completed_when",
+   "target": "condition/visit-lands"
+  },
+  {
+   "source": "#world",
+   "kind": "offers",
+   "target": "buy/pot"
+  },
+  {
+   "source": "buy/pot",
+   "kind": "guarded_by",
+   "target": "price/buy/pot"
+  },
+  {
+   "source": "#world",
+   "kind": "offers",
+   "target": "buy/ether"
+  },
+  {
+   "source": "buy/ether",
+   "kind": "guarded_by",
+   "target": "price/buy/ether"
+  },
+  {
+   "source": "#world",
+   "kind": "offers",
+   "target": "buy/dango"
+  },
+  {
+   "source": "buy/dango",
+   "kind": "guarded_by",
+   "target": "price/buy/dango"
+  },
+  {
+   "source": "#school",
+   "kind": "contains",
+   "target": "school/classroom"
+  },
+  {
+   "source": "school/classroom",
+   "kind": "offers",
+   "target": "school/classroom/classroom-board"
+  },
+  {
+   "source": "school/classroom",
+   "kind": "offers",
+   "target": "school/classroom/classroom-teacher"
+  },
+  {
+   "source": "school/classroom",
+   "kind": "offers",
+   "target": "school/classroom/classroom-door"
+  },
+  {
+   "source": "#school",
+   "kind": "contains",
+   "target": "school/yard"
+  },
+  {
+   "source": "school/yard",
+   "kind": "offers",
+   "target": "school/yard/bar"
+  },
+  {
+   "source": "school/yard",
+   "kind": "offers",
+   "target": "school/yard/flowers"
+  },
+  {
+   "source": "#tokyo",
+   "kind": "contains",
+   "target": "cities/tokyo"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-marunouchi-c"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-marunouchi-n"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-marunouchi-s"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-yaesu-c"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-yaesu-n"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-yaesu-s"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-otemachi"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-nijubashimae"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-yurakucho"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-hibiya"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-ginza"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-ginza-itchome"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-kyobashi"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-nihombashi"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-mitsukoshimae"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-shin-nihombashi"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-kanda"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-takebashi"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-shimbashi"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-concourse"
+  },
+  {
+   "source": "cities/tokyo",
+   "kind": "offers",
+   "target": "cities/tokyo/tokyo-north-south"
+  },
+  {
+   "source": "#london",
+   "kind": "contains",
+   "target": "cities/london"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-kings-cross"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-st-pancras"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-euston"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-paddington"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-marylebone"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-liverpool-street"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-fenchurch-street"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-cannon-street"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-london-bridge"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-blackfriars"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-waterloo"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-charing-cross"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-victoria"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-edgware-road"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-baker-street"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-warren-street"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-angel"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-russell-square"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-farringdon"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-moorgate"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-aldgate"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-tower-hill"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-bank"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-monument"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-borough"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-st-pauls"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-temple"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-southwark"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-lambeth-north"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-embankment"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-westminster"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-green-park"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-pimlico"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-nogard"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-mind-the-gap"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-platform"
+  },
+  {
+   "source": "#paris",
+   "kind": "contains",
+   "target": "cities/paris"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-gare-du-nord"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-gare-de-lest"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-saint-lazare"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-gare-de-lyon"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-austerlitz"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-montparnasse"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-poissonniere"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-barbes"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-chateau-deau"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-louis-blanc"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-havre-caumartin"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-europe"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-bastille"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-quai-de-la-rapee"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-saint-marcel"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-jussieu"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-edgar-quinet"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-vavin"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-falguiere"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-to-lyon"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "cities/paris/paris-rive-gauche"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/npc-captain"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/npc-dispatcher"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/npc-baker"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/npc-engineer"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/npc-archivist"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/npc-conductor"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/hydrant-nord"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/hydrant-ouest"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/hydrant-seine"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/hydrant-sud"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/drop-capsule"
+  },
+  {
+   "source": "rescue/drop-capsule",
+   "kind": "provides",
+   "target": "item/rescue/drop-capsule"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/drop-croissant"
+  },
+  {
+   "source": "rescue/drop-croissant",
+   "kind": "provides",
+   "target": "item/rescue/drop-croissant"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/drop-cryo"
+  },
+  {
+   "source": "rescue/drop-cryo",
+   "kind": "provides",
+   "target": "item/rescue/drop-cryo"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/drop-baguette"
+  },
+  {
+   "source": "rescue/drop-baguette",
+   "kind": "provides",
+   "target": "item/rescue/drop-baguette"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/drop-thermal"
+  },
+  {
+   "source": "rescue/drop-thermal",
+   "kind": "provides",
+   "target": "item/rescue/drop-thermal"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/chest-nozzle"
+  },
+  {
+   "source": "rescue/chest-nozzle",
+   "kind": "provides",
+   "target": "item/rescue/chest-nozzle"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/chest-suit"
+  },
+  {
+   "source": "rescue/chest-suit",
+   "kind": "provides",
+   "target": "item/rescue/chest-suit"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/chest-tank"
+  },
+  {
+   "source": "rescue/chest-tank",
+   "kind": "provides",
+   "target": "item/rescue/chest-tank"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/chest-helm"
+  },
+  {
+   "source": "rescue/chest-helm",
+   "kind": "provides",
+   "target": "item/rescue/chest-helm"
+  },
+  {
+   "source": "rescue/chest-helm",
+   "kind": "guarded_by",
+   "target": "guard/rescue/chest-helm"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-0"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-1"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-2"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-3"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-4"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-5"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-6"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-7"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-8"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-9"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-10"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-11"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-12"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-13"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-14"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-15"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-16"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-17"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-18"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-19"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-20"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-21"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-22"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-23"
+  },
+  {
+   "source": "cities/paris",
+   "kind": "offers",
+   "target": "rescue/fire-24"
+  },
+  {
+   "source": "#osaka",
+   "kind": "contains",
+   "target": "cities/osaka"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-shin-osaka"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-osaka-umeda"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-namba"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-abeno"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-kyobashi"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-nishikujo"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-nakatsu"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-minamimorimachi"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-yodoyabashi"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-honmachi"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-shinsaibashi"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-daikokucho"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-morinomiya"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-osakajo-koen"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-tenmabashi"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-tamatsukuri"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-dotonbori-sign"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "offers",
+   "target": "cities/osaka/osaka-semba-sign"
+  },
+  {
+   "source": "cities/osaka",
+   "kind": "see_also",
+   "target": "osaka-guide.json"
+  },
+  {
+   "source": "#paris",
+   "kind": "offers",
+   "target": "quest/q-talk-captain"
+  },
+  {
+   "source": "quest/q-talk-captain",
+   "kind": "completed_when",
+   "target": "condition/q-talk-captain"
+  },
+  {
+   "source": "#paris",
+   "kind": "offers",
+   "target": "quest/q-first-fire"
+  },
+  {
+   "source": "quest/q-first-fire",
+   "kind": "completed_when",
+   "target": "condition/q-first-fire"
+  },
+  {
+   "source": "#paris",
+   "kind": "offers",
+   "target": "quest/q-three-fires"
+  },
+  {
+   "source": "quest/q-three-fires",
+   "kind": "completed_when",
+   "target": "condition/q-three-fires"
+  },
+  {
+   "source": "#paris",
+   "kind": "offers",
+   "target": "quest/q-find-drop"
+  },
+  {
+   "source": "quest/q-find-drop",
+   "kind": "completed_when",
+   "target": "condition/q-find-drop"
+  },
+  {
+   "source": "#paris",
+   "kind": "offers",
+   "target": "quest/q-open-chest"
+  },
+  {
+   "source": "quest/q-open-chest",
+   "kind": "completed_when",
+   "target": "condition/q-open-chest"
+  },
+  {
+   "source": "#paris",
+   "kind": "offers",
+   "target": "quest/q-hydrant-refill"
+  },
+  {
+   "source": "quest/q-hydrant-refill",
+   "kind": "completed_when",
+   "target": "condition/q-hydrant-refill"
+  },
+  {
+   "source": "#paris",
+   "kind": "offers",
+   "target": "quest/q-solve-quiz"
+  },
+  {
+   "source": "quest/q-solve-quiz",
+   "kind": "completed_when",
+   "target": "condition/q-solve-quiz"
+  },
+  {
+   "source": "#paris",
+   "kind": "offers",
+   "target": "quest/q-boss-inferno"
+  },
+  {
+   "source": "quest/q-boss-inferno",
+   "kind": "completed_when",
+   "target": "condition/q-boss-inferno"
+  },
+  {
+   "source": "#paris",
+   "kind": "offers",
+   "target": "buy/shop-croissant"
+  },
+  {
+   "source": "buy/shop-croissant",
+   "kind": "guarded_by",
+   "target": "price/buy/shop-croissant"
+  },
+  {
+   "source": "#paris",
+   "kind": "offers",
+   "target": "buy/shop-water"
+  },
+  {
+   "source": "buy/shop-water",
+   "kind": "guarded_by",
+   "target": "price/buy/shop-water"
+  },
+  {
+   "source": "#paris",
+   "kind": "offers",
+   "target": "buy/shop-cryo"
+  },
+  {
+   "source": "buy/shop-cryo",
+   "kind": "guarded_by",
+   "target": "price/buy/shop-cryo"
+  },
+  {
+   "source": "#camera",
+   "kind": "offers",
+   "target": "shot/world/gate"
+  },
+  {
+   "source": "#camera",
+   "kind": "offers",
+   "target": "shot/world/hall"
+  },
+  {
+   "source": "#camera",
+   "kind": "offers",
+   "target": "shot/world/deck"
+  },
+  {
+   "source": "#camera",
+   "kind": "offers",
+   "target": "shot/world/exit"
+  },
+  {
+   "source": "#camera",
+   "kind": "contains",
+   "target": "world/1f"
+  },
+  {
+   "source": "world/1f",
+   "kind": "offers",
+   "target": "world/1f/gate"
+  },
+  {
+   "source": "world/1f",
+   "kind": "offers",
+   "target": "world/1f/hall"
+  },
+  {
+   "source": "world/1f",
+   "kind": "offers",
+   "target": "world/1f/cafe"
+  },
+  {
+   "source": "world/1f",
+   "kind": "offers",
+   "target": "world/1f/shop"
+  },
+  {
+   "source": "#camera",
+   "kind": "contains",
+   "target": "world/2f"
+  },
+  {
+   "source": "world/2f",
+   "kind": "offers",
+   "target": "world/2f/deck"
+  },
+  {
+   "source": "world/2f",
+   "kind": "offers",
+   "target": "world/2f/lab"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "fact/0"
+  },
+  {
+   "source": "fact/0",
+   "kind": "supported_by",
+   "target": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/831cf43785329c799966775153147b82ddc28638/scripts/world.py#L2571"
+  },
+  {
+   "source": "fact/0",
+   "kind": "supported_by",
+   "target": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/831cf43785329c799966775153147b82ddc28638/scripts/world.py#L2604"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "fact/1"
+  },
+  {
+   "source": "fact/1",
+   "kind": "supported_by",
+   "target": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/904cff96506cb6b8d8e2afeaeb171d0da63f41eb/scripts/world.py#L2280-L2287"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "fact/2"
+  },
+  {
+   "source": "fact/2",
+   "kind": "supported_by",
+   "target": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/904cff96506cb6b8d8e2afeaeb171d0da63f41eb/scripts/world.py#L2280-L2287"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "fact/3"
+  },
+  {
+   "source": "fact/3",
+   "kind": "supported_by",
+   "target": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/2f27ccdf682ad02d717b894889f1dc225d894925/scripts/world.py#L2925"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "fact/4"
+  },
+  {
+   "source": "fact/4",
+   "kind": "supported_by",
+   "target": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L3322"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "fact/5"
+  },
+  {
+   "source": "fact/5",
+   "kind": "supported_by",
+   "target": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L3302"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "fact/6"
+  },
+  {
+   "source": "fact/6",
+   "kind": "supported_by",
+   "target": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L2580"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "fact/7"
+  },
+  {
+   "source": "fact/7",
+   "kind": "supported_by",
+   "target": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L3259"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "fact/8"
+  },
+  {
+   "source": "fact/8",
+   "kind": "supported_by",
+   "target": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L2540"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "fact/9"
+  },
+  {
+   "source": "fact/9",
+   "kind": "supported_by",
+   "target": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L2540"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "fact/10"
+  },
+  {
+   "source": "fact/10",
+   "kind": "supported_by",
+   "target": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L3482"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "fact/11"
+  },
+  {
+   "source": "fact/11",
+   "kind": "supported_by",
+   "target": "https://github.com/myon-bioinformatics/myon-bioinformatics.github.io/blob/88954d2a64d4776a6291ddf6ef9796531c01c7ac/scripts/world.py#L2838"
+  },
+  {
+   "source": "fact/11",
+   "kind": "supported_by",
+   "target": "https://github.com/myon-bioinformatics/PySaiyanWeBoo/blob/e249a7c33071a5e70ff4866492506ebfd7719875/pysaiyanweboo.py#L86"
+  }
+ ]
+}

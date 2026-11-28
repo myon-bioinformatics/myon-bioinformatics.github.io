@@ -733,6 +733,9 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
                         **({"drop_spot": drop_spot} if drop_spot is not None else {}),
                         **({"boss": True} if entry.get("boss") else {}),
                         **({"on_contact": True} if entry.get("on_contact") else {})}
+    for sid, item in loot.items():
+        if "requires_enemy" in item and item["requires_enemy"] not in enemies:
+            raise ValueError(f"{sid}: requires_enemy must identify an enemy")
     quests_in = rpg_in.get("quests", [])
     if not isinstance(quests_in, list) or len(quests_in) > 24:
         raise ValueError("rpg quests lists up to 24 entries")
@@ -1110,12 +1113,16 @@ def rescue_validate(rescue_in: Any, *, floors: list[dict[str, Any]]) -> dict[str
         raise ValueError("rescue quests lists up to 24 entries")
     quests, seen_q = [], set()
     for q in quests_in:
-        if not isinstance(q, dict) or set(q) - {"id", "title", "desc", "kind", "count", "reward_exp", "reward_medals"}:
+        if not isinstance(q, dict) or set(q) - {"id", "title", "desc", "kind", "target", "count", "reward_exp", "reward_medals"}:
             raise ValueError("rescue quest has id, title, desc, kind, count, reward_exp and reward_medals")
         qkind = q.get("kind")
         if qkind not in RESCUE_QUEST_KINDS:
             raise ValueError(f"rescue quest kind is one of {', '.join(RESCUE_QUEST_KINDS)}")
+        if "target" in q and (qkind != "talk" or not any(
+                n["id"] == q["target"] and n["kind"] == "npc" for n in nodes)):
+            raise ValueError("talk target must identify a rescue NPC")
         quests.append({
+            **({"target": q["target"]} if "target" in q else {}),
             "id": _world_id(q.get("id"), "quest id", seen_q),
             "title": _world_text(q.get("title"), "quest title", 48),
             "desc": _world_text(q.get("desc"), "quest desc", 160),
@@ -3199,7 +3206,8 @@ export function bindWorldRpg(el){
   bag:bagButtons.map(b=>b.dataset.itemId)
  };
  const stock=new Map();
- for(const [id,it] of Object.entries(rpg.loot))if(it.consumable){
+ // Reusable tools keep their inventory slot in older save layouts.
+ for(const [id,it] of Object.entries(rpg.loot))if(it.consumable||id===explorationScroll.id){
   const meta=spotMeta(id);
   stock.set("spot:"+id,{...it,spotId:id,emoji:meta.emoji,label:meta.itemLabel});
  }
@@ -3254,7 +3262,7 @@ export function bindWorldRpg(el){
    if(data[key]>1)invalid();
    if(data[key])next[group].add(id);
   }
-  for(const id of next.looted)if(!rpg.loot[id].consumable)next.equipment.add(id);
+  for(const id of next.looted)if(!stock.has("spot:"+id))next.equipment.add(id);
   for(const [key,item] of stock)if(data[key]){
    if(item.spotId&&(!next.looted.has(item.spotId)||data[key]!==1))invalid();
    next.consumables.set(key,{...item,key,count:data[key]});
@@ -3350,7 +3358,7 @@ export function bindWorldRpg(el){
   state.looted.add(sid);
   const meta=spotMeta(sid);
   if(meta.take&&meta.take.getAttribute("aria-pressed")!=="true")meta.take.click();
-  if(entry.consumable){
+  if(stock.has("spot:"+sid)){
    const key="spot:"+sid,cur=state.consumables.get(key)||{key,spotId:sid,emoji:meta.emoji,label:meta.itemLabel,item_type:entry.item_type,hp:entry.hp,mp:entry.mp,atk:entry.atk,count:0};
    cur.count+=1;state.consumables.set(key,cur);
   }else{
@@ -3419,7 +3427,10 @@ export function bindWorldRpg(el){
  const fires=[...(paris?.querySelectorAll('.ui-prop[data-kind="fire"]')||[])];
  const atSavedFire=(fire,save)=>Math.floor(parseFloat(fire.style.left)/tile)+1===save.fireX&&Math.floor(parseFloat(fire.style.top)/tile)+1===save.fireY;
  let syncDragon;
- const syncCityItems=()=>{for(const fire of fires)fire.hidden=atSavedFire(fire,state)};
+ const syncCityItems=()=>{
+  for(const fire of fires)fire.hidden=atSavedFire(fire,state);
+  cities?.dispatchEvent(new Event("world-rescue-fires-changed"));
+ };
  if(cities){
   const cityTools=cities.querySelector(".ui-world-tools"),note=rpgEl("output",{"aria-live":"polite"});
   const cityButton=(route,label,act)=>{
@@ -3431,7 +3442,7 @@ export function bindWorldRpg(el){
    const [dx,dy]=({north:[0,-1],south:[0,1],west:[-1,0],east:[1,0]})[player.dataset.facing||"south"];
    const front={fireX:Math.floor(parseFloat(player.style.getPropertyValue("--px"))/tile)+dx+1,
                 fireY:Math.floor(parseFloat(player.style.getPropertyValue("--py"))/tile)+dy+1};
-   if(!fires.some(f=>!f.hidden&&atSavedFire(f,front)))return "目の前に火がありません";
+   if(!fires.some(f=>!f.hidden&&!f.hasAttribute("data-extinguished")&&atSavedFire(f,front)))return "目の前に火がありません";
    if(!consume("spot:meadow-drop-mana"))return "癒しの水がありません";
    Object.assign(state,front);syncCityItems();return "火を一つ消しました";
   });
@@ -4183,6 +4194,10 @@ export function bindWorldRescue(el){
   });
  };
  refreshFireProps();
+ // Village water is saved by coordinates. Re-evaluate it together with the firefighter's local progress.
+ const isOut=id=>state.extinguished.has(id)||Boolean(fireMap.get(id)?.prop.hidden);
+ const outCount=()=>[...fireMap.keys()].filter(isOut).length;
+ const bossIsOut=()=>[...fireMap.values()].some(f=>f.prof.boss&&isOut(f.prof.id));
 
  const updateRadar=()=>{
   const checkedFloor=el.querySelector("input[name$='-floor']:checked")?.value||"";
@@ -4190,18 +4205,18 @@ export function bindWorldRescue(el){
   const pl=curFloorEl()?.querySelector(".ui-player");if(!pl)return;
   const px=parseFloat(pl.style.getPropertyValue("--px"))||Number(pl.dataset.x)||0;
   const py=parseFloat(pl.style.getPropertyValue("--py"))||Number(pl.dataset.y)||0;
-  const activeFires=[...fireMap.values()].filter(f=>!state.extinguished.has(f.prof.id));
+  const activeFires=[...fireMap.values()].filter(f=>!isOut(f.prof.id));
   const radarSpan=hud?.querySelector("[data-rescue-radar]");
   if(!radarSpan)return;
   if(!activeFires.length){radarSpan.textContent="✅ 全鎮火達成！";return}
   const nr=rescueNearestFire(px,py,activeFires.map(f=>({id:f.prof.id,x:f.x,y:f.y})),tile);
-  if(nr)radarSpan.textContent=`${nr.arrow} ${nr.tiles}m`;
+  if(nr)radarSpan.textContent=`${nr.arrow} ${nr.tiles}マス`;
  };
 
  const renderHud=()=>{
   clampVitals();if(!hud)return;
   const st=stats(),playerGlyph=el.querySelector(".ui-player span")?.textContent||"🦸";
-  const totalFires=fireMap.size||25,extCount=state.extinguished.size;
+  const totalFires=fireMap.size||25,extCount=outCount();
   const pct=totalFires?Math.round(100*extCount/totalFires):0;
   const qDone=state.completedQuests.size,qTotal=rescue.quests.length;
   hud.querySelector("[data-rescue-hero]").textContent=`${playerGlyph} Lv.${st.rank.level} ${st.rank.title}`;
@@ -4228,11 +4243,11 @@ export function bindWorldRescue(el){
  };
 
  const questProgress=q=>{
-  if(q.kind==="talk")return state.talked.size;
+  if(q.kind==="talk")return q.target?Number(state.talked.has(q.target)):state.talked.size;
   if(q.kind==="drop")return state.looted.size;
   if(q.kind==="chest")return state.openedChests.size;
-  if(q.kind==="fire")return state.extinguished.size;
-  if(q.kind==="boss_fire")return [...state.extinguished].some(id=>fireMap.get(id)?.prof.boss)?1:0;
+  if(q.kind==="fire")return outCount();
+  if(q.kind==="boss_fire")return bossIsOut()?1:0;
   if(q.kind==="refill")return state.hydrantUses;
   if(q.kind==="quiz")return state.quizzesSolved.size;
   return 0;
@@ -4240,9 +4255,9 @@ export function bindWorldRescue(el){
 
  const evalBadges=()=>{
   const checks={
-   "b-first-fire":state.extinguished.size>=1,
-   "b-fire-five":state.extinguished.size>=5,
-   "b-boss-down":[...state.extinguished].some(id=>fireMap.get(id)?.prof.boss),
+   "b-first-fire":outCount()>=1,
+   "b-fire-five":outCount()>=5,
+   "b-boss-down":bossIsOut(),
    "b-geared-up":["chest-nozzle","chest-suit","chest-tank","chest-helm"].every(id=>state.equipment.has(id)),
    "b-hydrant-master":state.hydrantUses>=3,
    "b-quiz-scholar":state.quizzesSolved.size>=3,
@@ -4284,7 +4299,7 @@ export function bindWorldRescue(el){
  };
 
  const extinguishFire=(prof,waterUsed=0)=>{
-  if(state.extinguished.has(prof.id))return;
+  if(isOut(prof.id))return;
   state.extinguished.add(prof.id);state.water=Math.max(0,state.water-waterUsed);
   state.medals+=prof.medals;gainExp(prof.exp);
   const curG=rescueGarden(rescue.seed,state.gardenActions);
@@ -4315,7 +4330,7 @@ export function bindWorldRescue(el){
  };
 
  const openFireModal=fireId=>{
-  const item=fireMap.get(fireId);if(!item||state.extinguished.has(fireId))return;
+  const item=fireMap.get(fireId);if(!item||isOut(fireId))return;
   const prof=item.prof;
   let foeHeat=prof.heat;
   const heatMeter=rescueEl("i",{style:`width:100%`});
@@ -4534,8 +4549,8 @@ export function bindWorldRescue(el){
   }
   if(node.kind==="chest"){
    if(state.openedChests.has(nodeId))return;
-   if(node.requires_fires&&state.extinguished.size<node.requires_fires){
-    const left=node.requires_fires-state.extinguished.size;
+   if(node.requires_fires&&outCount()<node.requires_fires){
+    const left=node.requires_fires-outCount();
     showToast(`🔒 炎が燃え盛っていて開かない！（あと ${left} 箇所の鎮火が必要）`);return;
    }
    state.openedChests.add(nodeId);state.equipment.add(nodeId);
@@ -4586,7 +4601,8 @@ export function bindWorldRescue(el){
      state.consumables.size?rescueEl("div",{className:"ui-rpg-list"},...[...state.consumables.values()].map(c=>rescueEl("div",{className:"ui-rpg-row"},
       rescueEl("div",{className:"ui-rpg-row-top"},rescueEl("span",{textContent:`${c.emoji} ${c.label} ×${c.count}`})),
       rescueEl("div",{className:"ui-rpg-actions"},rescueEl("button",{
-       type:"button",className:"ui-rpg-btn",textContent:"つかう",onclick:()=>{useConsumable(c.key);drawBody()}
+       type:"button",className:"ui-rpg-btn",textContent:c.item_type==="bomb"?"火災現場専用":"つかう",
+       disabled:c.item_type==="bomb",onclick:()=>{useConsumable(c.key);drawBody()}
       }))
      ))):rescueEl("p",{className:"ui-rpg-subnote",textContent:"使えるアイテムはありません。街のドロップやパン屋で補給しましょう。"})
     );
@@ -4625,7 +4641,7 @@ export function bindWorldRescue(el){
   const pl=curFloorEl()?.querySelector(".ui-player");if(!pl)return;
   const px=parseFloat(pl.style.getPropertyValue("--px"))||Number(pl.dataset.x)||0;
   const py=parseFloat(pl.style.getPropertyValue("--py"))||Number(pl.dataset.y)||0;
-  const active=[...fireMap.values()].filter(f=>!state.extinguished.has(f.prof.id));
+  const active=[...fireMap.values()].filter(f=>!isOut(f.prof.id));
   if(!active.length){showToast("🕊️ 全ての火災は鎮火しています！");return}
   const nr=rescueNearestFire(px,py,active.map(f=>({id:f.prof.id,x:f.x,y:f.y})),tile);
   if(nr){
@@ -4645,7 +4661,7 @@ export function bindWorldRescue(el){
   const fireProp=e.target.closest('.ui-floor[data-floor="paris"] .ui-prop[data-kind="fire"]');
   if(fireProp){
    const fid=fireProp.getAttribute("data-fire-id");
-   if(fid&&!state.extinguished.has(fid)){
+   if(fid&&!isOut(fid)){
     e.preventDefault();openFireModal(fid);
    }
   }
@@ -4678,7 +4694,7 @@ export function bindWorldRescue(el){
     }
     let hitFire=null;
     for(const fItem of fireMap.values()){
-     if(!state.extinguished.has(fItem.prof.id)&&Math.hypot(fItem.x-px,fItem.y-py)<=contactRange){
+     if(!isOut(fItem.prof.id)&&Math.hypot(fItem.x-px,fItem.y-py)<=contactRange){
       hitFire=fItem.prof;break;
      }
     }
@@ -4710,6 +4726,7 @@ export function bindWorldRescue(el){
   setTimeout(()=>requestAnimationFrame(watch),110);
  };
 
+ el.addEventListener("world-rescue-fires-changed",checkQuests);
  checkQuests();renderHud();requestAnimationFrame(watch);
  return el;
 }
@@ -5991,13 +6008,14 @@ def _overworld_spec() -> dict[str, Any]:
                 "meadow-bird": {
                     "speaker": "伝令バト", "emoji": "🐦",
                     "greeting": "クルックー！ フッターの🛗から森・山・砂漠・海辺・お城へも旅立てますよ！",
-                    "lines": ["それぞれの土地にも、宝箱と守護モンスターが1つずつ隠れています！"],
+                    "lines": ["森や山の宝箱、砂漠の落とし物も探してみてください！"],
                 },
             },
             "loot": {
                 "meadow-drop-herb": {"kind": "drop", "item_type": "heal", "hp": 15, "exp": 5},
                 "meadow-drop-mana": {"kind": "drop", "item_type": "mana", "mp": 10, "exp": 5},
-                EXPLORATION_SCROLL["id"]: {"kind": "drop", "item_type": "scroll", "exp": 8},
+                EXPLORATION_SCROLL["id"]: {"kind": "drop", "item_type": "scroll", "exp": 8,
+                                           "consumable": not EXPLORATION_SCROLL["reusable"]},
                 "meadow-chest-sword": {"kind": "chest", "item_type": "weapon", "atk": 4, "exp": 10, "gold": 15, "opened_mark": "📭"},
                 "meadow-chest-shield": {"kind": "chest", "item_type": "armor", "def": 3, "hp": 6, "exp": 10, "gold": 15, "opened_mark": "📭"},
                 "meadow-chest-charm": {"kind": "chest", "item_type": "charm", "atk": 2, "def": 2, "mp": 5, "exp": 25, "gold": 40,
@@ -6211,7 +6229,7 @@ def _paris_rescue_spec() -> dict[str, Any]:
         ],
         "quests": [
             {"id": "q-talk-captain", "title": "マルゴ隊長へ着任報告", "desc": "マルゴ隊長(24, 5)に話しかけて消火任務の説明を受ける。",
-             "kind": "talk", "count": 1, "reward_exp": 15, "reward_medals": 10},
+             "kind": "talk", "target": "npc-captain", "count": 1, "reward_exp": 15, "reward_medals": 10},
             {"id": "q-first-fire", "title": "初めての消火活動", "desc": "フェイクパリの火災を1箇所消火して街に緑を咲かせる。",
              "kind": "fire", "count": 1, "reward_exp": 25, "reward_medals": 15},
             {"id": "q-three-fires", "title": "街角の火災鎮圧", "desc": "火災を3箇所以上消火してヘルメット宝箱の封印を解く。",
