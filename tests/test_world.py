@@ -1630,9 +1630,8 @@ def test_tokyo_vigilance_rpg_has_dialogues_evidence_drops_crime_safes_and_valid_
     assert len(quizzes) == 5, f"Expected 5 takedown quizzes, got {len(quizzes)}"
     assert len(talks) >= 15, f"Expected at least 15 spot dialogues, got {len(talks)}"
 
-    # Moving actors: patrol car, patrol dog, patrol drone
-    actor_ids = {a["id"] for a in tokyo["actors"]}
-    assert {"patrol-car", "patrol-dog", "patrol-drone"} <= actor_ids
+    assert {a["id"]: a["emoji"] for a in tokyo["actors"]} == {
+        "city-train": "🚃", "patrol-car": "🚗", "patrol-dog": "🐕"}
     for ac in tokyo["actors"]:
         assert "talk" in ac and ac["talk"].get("speaker")
 

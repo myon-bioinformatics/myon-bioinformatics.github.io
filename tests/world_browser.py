@@ -1434,13 +1434,16 @@ class CitiesTests(unittest.TestCase):
 
     def test_tokyo_patrol_actor_contact_dialogue(self):
         """Approaching or clicking a patrol vehicle/actor in Parallel Tokyo shows its contact vigilance dialogue."""
-        page = self.open("desktop")
+        page = self.open("desktop", reduced=True)
         self.start(page, "🗼")
         self.show(page, "tokyo")
-        page.click('#cities-actor-patrol-car')
-        self.assertTrue(page.is_visible("#cities-spot-patrol-car"))
-        self.assertIn("青色防犯パトロールカー", page.text_content("#cities-spot-patrol-car .ui-talk-static-who"))
-        page.click(".ui-sheet-close:visible")
+        for actor, speaker in (("city-train", "🚃 車内放送"), ("patrol-car", "🚗 青色防犯パトロールカー"),
+                               ("patrol-dog", "🐕 見守り犬「ポチ」")):
+            page.locator(f"#cities-actor-{actor}").press("Enter")
+            sheet = page.locator(f"#cities-spot-{actor}")
+            self.assertTrue(sheet.is_visible())
+            self.assertEqual(sheet.locator(".ui-talk-static-who").inner_text().strip(), speaker)
+            page.click(".ui-sheet-close:visible")
         self.assertEqual(self.errors, [])
 
 
