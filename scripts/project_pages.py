@@ -955,10 +955,15 @@ def tool_builds() -> dict[tuple[str, tuple[str, ...]], dict[str, str]]:
     return builds
 
 
-def place_built(built: Path, routes: dict[str, str], mapped: Path) -> None:
+def place_built(built: Path, routes: dict[str, str], mapped: Path) -> set[str]:
     """🧰 Place a repository's built site under ``mapped``: each file goes to the folder of the longest ``routes`` prefix it is under
     (``{'': 'tools/image-studio/', 'slides/': 'tools/slide-studio/'}``), and the links between them, a web manifest's shortcuts and
-    scope follow the move. Every route has its page (index.html); a page that only forwards (meta refresh) is left out."""
+    scope follow the move. Returns the routes the build has no page (index.html) for: their files stay with the route above, so the
+    others are placed (⏸ for that card only); a page that only forwards (meta refresh) is left out."""
+    if '' not in routes:
+        raise ValueError('a build places its root somewhere (routes has "")')
+    missing = {page for page in routes if not (built / page / 'index.html').is_file()}
+    routes = {page: folder for page, folder in routes.items() if not page or page not in missing}
     order = sorted(routes, key=len, reverse=True)
     def moved(path: str) -> str:
         prefix = next(prefix for prefix in order if path.startswith(prefix))
@@ -974,11 +979,6 @@ def place_built(built: Path, routes: dict[str, str], mapped: Path) -> None:
             return url
         path = posixpath.relpath(moved(target), posixpath.dirname(moved(source))) + ('/' if parts.path.endswith('/') else '')
         return urlunsplit(('', '', path, parts.query, parts.fragment))
-    if '' not in routes:
-        raise ValueError('a build places its root somewhere (routes has "")')
-    for page in routes:
-        if not (built / page / 'index.html').is_file():
-            raise FileNotFoundError(page + 'index.html')
     for path in built.rglob('*'):
         if not path.is_file() or path.name == '.nojekyll':
             continue
@@ -998,6 +998,7 @@ def place_built(built: Path, routes: dict[str, str], mapped: Path) -> None:
             target.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         else:
             shutil.copyfile(path, target)
+    return missing
 
 
 def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, str]) -> dict:
@@ -1009,23 +1010,24 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
         if repository not in checkouts:
             continue
         try:
-            with tempfile.TemporaryDirectory() as tmp:       # build aside; the ⏸ page stays unless the whole build made it
+            with tempfile.TemporaryDirectory() as tmp:       # build aside; what was there stays for a card the build did not make
                 built, mapped = Path(tmp) / 'site', Path(tmp) / 'mapped'
                 done = subprocess.run([sys.executable, *(str(built) if arg == '{out}' else arg for arg in run)], cwd=checkouts[repository],
                                       check=True, capture_output=True, timeout=900)
                 if '{out}' not in run:                       # 🌡️ one page on stdout
                     built.mkdir()
                     (built / 'index.html').write_bytes(done.stdout)
-                place_built(built, {page: f'tools/{card}/' for page, card in pages.items()}, mapped)
-                for card in pages.values():
+                missing = place_built(built, {page: f'tools/{card}/' for page, card in pages.items()}, mapped)
+                failed.update({card: 'no page' for page, card in pages.items() if page in missing})   # ⏸ that card only
+                for card in (card for page, card in pages.items() if page not in missing):
                     dest = Path(output) / 'tools' / card
                     if dest.exists():
                         shutil.rmtree(dest)
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     shutil.move(str(mapped / 'tools' / card), str(dest))
-            made += pages.values()
+                    made.append(card)
         except (OSError, subprocess.SubprocessError, ValueError, ImportError) as exc:
-            failed.update(dict.fromkeys(pages.values(), type(exc).__name__))
+            failed.update({card: type(exc).__name__ for card in pages.values() if card not in made})
     receipt = {'schema': 'portfolio-tools/2', 'commits': commits, 'made': made, 'failed': failed}
     path = Path(output) / TOOLS
     path.parent.mkdir(parents=True, exist_ok=True)

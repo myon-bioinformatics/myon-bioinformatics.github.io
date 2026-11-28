@@ -434,6 +434,14 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
     manifest = json.loads((tools / 'image-studio/brand/manifest.webmanifest').read_text())
     assert manifest['scope'] == '../../'
     assert manifest['shortcuts'] == [{'url': '../../slide-studio/'}]
+    (checkout / 'image_studio.py').write_text(                             # 🧩 a build that no longer makes one card's page (one editor)
+        "import pathlib,sys\nroot = pathlib.Path(sys.argv[2])\n"
+        "for name in ('index.html', 'tools/index.html', 'slides/studio.js'):\n"
+        " p = root / name; p.parent.mkdir(parents=True, exist_ok=True); p.write_text('<main>one editor</main>')\n", encoding='utf-8')
+    receipt = PAGES.collect_tools(out, {'myon-bioinformatics/Ironmate': checkout}, {'myon-bioinformatics/Ironmate': '0' * 40})
+    assert receipt['made'] == ['image-studio', 'browser-tools'] and receipt['failed'] == {'slide-studio': 'no page'}   # ⏸ that card only
+    assert 'one editor' in (tools / 'image-studio/index.html').read_text() and (tools / 'image-studio/slides/studio.js').is_file()
+    assert (tools / 'slide-studio/index.html').read_text() == slides                 # what was there stays
 
 
 def test_the_screen_carries_the_site_chrome_once_and_every_door_is_a_panel():
