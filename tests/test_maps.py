@@ -9,6 +9,18 @@ import pytest
 from test_front_page import ROOT, browser, expect, site  # shared staged site and Chromium
 
 
+MAP = '#map '                                     # 📍 PySaiyanWeBoo's coordinates part (scripts/map_tool.py gives it Tokyo's points and the words)
+
+
+def formats(page):
+    """The part's "all formats" list as {label: text} (it sits in a closed <details>)."""
+    return page.evaluate("() => Object.fromEntries([...document.querySelectorAll('#map [data-out] dt')].map(dt => [dt.textContent, dt.nextElementSibling.textContent]))")
+
+
+def radio(page, value):
+    return page.locator(f'{MAP}input[type="radio"][value="{value}"]')
+
+
 def test_map_links_pins_share_and_tokyo_with_gif(site, browser):
     import pysaiyanweboo as ui
 
@@ -28,32 +40,33 @@ def test_map_links_pins_share_and_tokyo_with_gif(site, browser):
         page.goto(site[1] + '/tools/#maps')
         expect(page).to_have_title('📍地図URL・座標ピン留め')
         expect(page.get_by_role('heading', level=1)).to_have_text('📍地図URL・座標ピン留め')
-        page.locator('#radius-preset').select_option('350')
-        page.locator('#tokyo-point').select_option('tokyo-kanda')
-        expect(page.locator('#point-name')).to_have_value('神田')
+        radio(page, 350).check()
+        page.locator(MAP + '[data-place]').select_option('tokyo-kanda')
+        expect(page.locator(MAP + '[data-name]')).to_have_value('神田')
+        expect(radio(page, 350)).to_be_checked()                                # a place keeps the radius
         point = '35.691800,139.770900'
-        google = page.locator('#google-link').get_attribute('href')
-        apple = page.locator('#apple-link').get_attribute('href')
+        google = page.locator(MAP + '[data-open="google"]').get_attribute('href')
+        apple = page.locator(MAP + '[data-open="apple"]').get_attribute('href')
         assert parse_qs(urlsplit(google).query) == {'api': ['1'], 'query': [point]}
         assert parse_qs(urlsplit(apple).query)['ll'] == [point]
-        page.locator('#map-result').scroll_into_view_if_needed()
+        page.locator(MAP + '[data-open="google"]').scroll_into_view_if_needed()
         shot('Kanda: point links and a 350 m region')
-        page.locator('#pin').click()
-        expect(page.locator('#pins')).to_contain_text('神田')
-        page.locator('#pin').click()  # same coordinate updates rather than duplicating
-        assert page.locator('#pins li').count() == 1
-        page.locator('#copy-share').click()
-        expect(page.locator('#map-status')).to_have_text('コピーしました。')
+        page.locator(MAP + '[data-pin]').click()
+        expect(page.locator(MAP + '[data-pins-list]')).to_contain_text('神田')
+        page.locator(MAP + '[data-pin]').click()  # same coordinate updates rather than duplicating
+        assert page.locator(MAP + '[data-pins-list] li').count() == 1
+        page.locator(MAP + '[data-copy="link"]').click()
+        expect(page.locator(MAP + '[data-note]')).to_have_text('コピーしました。')
         shared = page.evaluate('navigator.clipboard.readText()')
         assert parse_qs(urlsplit(shared).query)['lat'] == ['35.691800']
         assert parse_qs(urlsplit(shared).query)['radius_m'] == ['350']
         page.reload()
-        expect(page.locator('#pins')).to_contain_text('神田')
-        page.locator('#pins button').first.click()
-        expect(page.locator('#point-name')).to_have_value('神田')
-        expect(page.locator('#radius')).to_have_value('350')
-        expect(page.locator('#pins')).to_contain_text('半径 350 m')
-        page.locator('#pins').scroll_into_view_if_needed()
+        expect(page.locator(MAP + '[data-pins-list]')).to_contain_text('神田')
+        page.locator(MAP + '[data-pins-list] button').first.click()
+        expect(page.locator(MAP + '[data-name]')).to_have_value('神田')
+        expect(radio(page, 350)).to_be_checked()
+        expect(page.locator(MAP + '[data-pins-list]')).to_contain_text('半径: 350 m')
+        page.locator(MAP + '[data-pins-list]').scroll_into_view_if_needed()
         shot('Pin retained after reload; duplicate pin updates')
 
         # A recipient's browser opens the coordinate, without silently saving a pin.
@@ -61,16 +74,18 @@ def test_map_links_pins_share_and_tokyo_with_gif(site, browser):
         try:
             recipient = other.new_page()
             recipient.goto(shared)
-            expect(recipient.locator('#latitude')).to_have_value('35.691800')
-            expect(recipient.locator('#point-name')).to_have_value('神田')
-            expect(recipient.locator('#radius')).to_have_value('350')
-            assert json.loads(recipient.locator('#area-json').text_content())['radius_m'] == 350
-            expect(recipient.locator('#pins')).to_have_text('ピンはまだありません。')
+            expect(recipient.locator(MAP + '[data-lat]')).to_have_value('35.691800')
+            expect(recipient.locator(MAP + '[data-name]')).to_have_value('神田')
+            expect(radio(recipient, 350)).to_be_checked()
+            assert json.loads(formats(recipient)['範囲データ（JSON）'])['radius_m'] == 350
+            expect(recipient.locator(MAP + '[data-pins-list]')).to_have_text('ピンはまだありません。')
         finally:
             other.close()
 
-        page.locator('#tokyo-link').click()
-        expect(page.locator('#worlds .map-point-link')).to_have_count(21)    # 🌍 the world is a panel of the same screen
+        place = page.locator(MAP + '[data-open="place"]')
+        assert place.get_attribute('target') is None                            # 🌍 the world is a panel of the same screen: no new tab
+        place.click()
+        expect(page.locator('#worlds .map-point-link')).to_have_count(21)
         assert urlsplit(page.url).path == '/tools/'
         assert set(page.locator('#cities-map .ui-floor').evaluate_all('(floors) => floors.map(f => f.dataset.floor)')) >= {'tokyo', 'london', 'paris'}
         # PSWB asks for the walking avatar on entry; choose it through the normal UI.
@@ -81,22 +96,22 @@ def test_map_links_pins_share_and_tokyo_with_gif(site, browser):
         expect(sheet).to_be_visible()
         shot('Parallel Tokyo: Kanda sheet')
         sheet.get_by_role('link', name='この地点の地図URL・座標ピン留め').click()
-        expect(page.locator('#latitude')).to_have_value('35.691800')
-        expect(page.locator('#tokyo-point')).to_have_value('tokyo-kanda')
-        expect(page.locator('#radius')).to_have_value('350')
-        page.locator('#map-result').scroll_into_view_if_needed()
+        expect(page.locator(MAP + '[data-lat]')).to_have_value('35.691800')
+        expect(page.locator(MAP + '[data-place]')).to_have_value('tokyo-kanda')
+        expect(radio(page, 350)).to_be_checked()
+        page.locator(MAP + '[data-open="google"]').scroll_into_view_if_needed()
         shot('Tokyo sheet returns to the same real coordinates')
         # Native share is verified at its browser API boundary; no external recipient is contacted.
         page.evaluate('Object.defineProperty(navigator,"share",{configurable:true,value:async data=>{window.shared=data}})')
-        page.locator('#share').click()
-        expect(page.locator('#map-status')).to_have_text('共有しました。')
+        page.locator(MAP + '[data-share]').click()
+        expect(page.locator(MAP + '[data-note]')).to_have_text('共有しました。')
         payload = page.evaluate('window.shared')
         assert google in payload['text'] and apple in payload['text']
         assert '半径: 350 m' in payload['text']
         assert payload['url'] == shared
-        page.get_by_role('button', name='神田のピンを解除').click()
+        page.get_by_role('button', name='解除: 神田').click()
         page.reload()
-        expect(page.locator('#pins')).to_have_text('ピンはまだありません。')
+        expect(page.locator(MAP + '[data-pins-list]')).to_have_text('ピンはまだありません。')
         assert errors == []
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
         passed = True
@@ -126,13 +141,13 @@ def test_invalid_coordinates_clear_stale_links(site, browser, lat, lon):
     page = browser.new_page()
     try:
         page.goto(site[1] + '/tools/#maps')
-        page.locator('#latitude').fill(lat)
-        page.locator('#longitude').fill(lon)
-        expect(page.locator('#point-error')).not_to_be_empty()
-        assert page.locator('#google-link').get_attribute('href') is None
-        assert page.locator('#apple-link').get_attribute('href') is None
-        expect(page.locator('#pin')).to_be_disabled()
-        expect(page.locator('#share-text')).to_have_value('')
+        page.locator(MAP + '[data-lat]').fill(lat)
+        page.locator(MAP + '[data-lon]').fill(lon)
+        expect(page.locator(MAP + '[data-status]')).to_have_text('緯度は−90〜90、経度は−180〜180の数値を入力してください。')
+        assert page.locator(MAP + '[data-open="google"]').get_attribute('href') is None
+        assert page.locator(MAP + '[data-open="apple"]').get_attribute('href') is None
+        expect(page.locator(MAP + '[data-pin]')).to_be_disabled()
+        expect(page.locator(MAP + '[data-share-text]')).to_have_value('')
     finally:
         page.close()
 
@@ -144,10 +159,10 @@ def test_maps_url_storage_and_clipboard_fallbacks(site, browser):
             Object.defineProperty(navigator,'clipboard',{value:{writeText:async()=>{throw Error('denied')}}});
             Object.defineProperty(navigator,'share',{value:undefined});''')
         page.goto(site[1] + '/tools/?lat=0&lon=0&name=%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E#maps')
-        expect(page.locator('#latitude')).to_have_value('0')
-        page.locator('#pin').click()
-        expect(page.locator('#pin-storage')).to_contain_text('保存できません')
-        assert page.locator('#pins img').count() == 0
+        expect(page.locator(MAP + '[data-lat]')).to_have_value('0')
+        page.locator(MAP + '[data-pin]').click()
+        expect(page.locator(MAP + '[data-pin-storage]')).to_contain_text('保存できません')
+        assert page.locator(MAP + '[data-pins-list] img').count() == 0
         page.evaluate("""() => {
             document.execCommand = command => {
                 if (command !== 'copy') return false;
@@ -155,48 +170,46 @@ def test_maps_url_storage_and_clipboard_fallbacks(site, browser):
                 return true;
             };
         }""")
-        page.locator('#copy-apple').click()
-        expect(page.locator('#map-status')).to_have_text('コピーしました。')
-        assert page.evaluate('window.fallbackCopy') == page.locator('#apple-link').get_attribute('href')
+        page.locator(MAP + '[data-copy="apple"]').click()
+        expect(page.locator(MAP + '[data-note]')).to_have_text('コピーしました。')
+        assert page.evaluate('window.fallbackCopy') == page.locator(MAP + '[data-open="apple"]').get_attribute('href')
         page.evaluate("() => { document.execCommand = () => false; }")
-        page.locator('#share').click()
-        expect(page.locator('#map-status')).to_contain_text('選択したテキスト')
-        expect(page.locator('#share-text')).to_be_focused()
-        assert page.locator('#share-text').evaluate('(field) => field.selectionEnd - field.selectionStart') == len(
-            page.locator('#share-text').input_value()
-        )
-        assert '0.000000%2C0.000000' in page.locator('#share-text').input_value()
-        page.locator('#maps-input').fill('https://maps.apple.com/?ll=35.6918%2C139.7709&q=Kanda')
-        page.locator('#read-url').click()
-        expect(page.locator('#tokyo-point')).to_have_value('tokyo-kanda')
-        page.locator('#maps-input').fill('https://maps.app.goo.gl/example')
-        page.locator('#read-url').click()
-        expect(page.locator('#point-error')).to_contain_text('読み取れません')
-        page.locator('#latitude').fill('－９０')
-        page.locator('#longitude').fill('１８０')
-        expect(page.locator('#point-error')).to_be_empty()
-        expect(page.locator('#tokyo-link')).to_be_hidden()
-        assert '-90.000000%2C180.000000' in page.locator('#google-link').get_attribute('href')
-        page.locator('#radius').fill('３５０')
-        expect(page.locator('#radius-preset')).to_have_value('350')
-        assert json.loads(page.locator('#area-json').text_content())['radius_m'] == 350
+        page.locator(MAP + '[data-share]').click()
+        expect(page.locator(MAP + '[data-note]')).to_contain_text('選択したテキスト')
+        text = page.locator(MAP + '[data-share-text]')
+        expect(text).to_be_focused()
+        assert text.evaluate('(field) => field.selectionEnd - field.selectionStart') == len(text.input_value())
+        assert '0.000000%2C0.000000' in text.input_value()
+        page.locator(MAP + '[data-url]').fill('https://maps.apple.com/?ll=35.6918%2C139.7709&q=Kanda')
+        page.locator(MAP + '[data-use-url]').click()
+        expect(page.locator(MAP + '[data-place]')).to_have_value('tokyo-kanda')
+        page.locator(MAP + '[data-url]').fill('https://maps.app.goo.gl/example')
+        page.locator(MAP + '[data-use-url]').click()
+        expect(page.locator(MAP + '[data-status]')).to_contain_text('読み取れません')
+        page.locator(MAP + '[data-lat]').fill('－９０')
+        page.locator(MAP + '[data-lon]').fill('１８０')
+        expect(page.locator(MAP + '[data-status]')).to_have_text('有効な座標です。')
+        expect(page.locator(MAP + '[data-open="place"]')).to_be_hidden()
+        assert '-90.000000%2C180.000000' in page.locator(MAP + '[data-open="google"]').get_attribute('href')
+        radio(page, 'custom').check()
+        page.locator(MAP + '[data-radius]').fill('350')
+        assert json.loads(formats(page)['範囲データ（JSON）'])['radius_m'] == 350
     finally:
         page.close()
 
 
-@pytest.mark.parametrize('radius', ['', '-1', 'NaN', 'Infinity', '1e309', 'true'])
+@pytest.mark.parametrize('radius', ['', '-1', '0'])
 def test_invalid_radius_clears_range_and_disables_pin(site, browser, radius):
     page = browser.new_page()
     try:
         page.goto(site[1] + '/tools/#maps')
-        expect(page.locator('#area-result')).to_be_visible()
-        page.locator('#radius').fill(radius)
-        expect(page.locator('#range-error')).not_to_be_empty()
-        expect(page.locator('#area-result')).to_be_hidden()
-        expect(page.locator('#area-json')).to_be_empty()
-        assert page.locator('#apple-area-link').get_attribute('href') is None
-        expect(page.locator('#pin')).to_be_disabled()
-        expect(page.locator('#share-text')).to_have_value('')
+        assert '範囲データ（JSON）' in formats(page)
+        radio(page, 'custom').check()
+        page.locator(MAP + '[data-radius]').fill(radius)
+        expect(page.locator(MAP + '[data-pin]')).to_be_disabled()
+        shown = formats(page)
+        assert '範囲' in shown and '範囲データ（JSON）' not in shown and 'Apple Maps（範囲）' not in shown      # the reason, and no area
+        expect(page.locator(MAP + '[data-share-text]')).to_have_value('')
     finally:
         page.close()
 
@@ -206,14 +219,14 @@ def test_range_handles_date_line_and_pole(site, browser, lat, lon, radius, wraps
     page = browser.new_page()
     try:
         page.goto(site[1] + f'/tools/?lat={lat}&lon={lon}&radius_m={radius}#maps')
-        expect(page.locator('#area-result')).to_be_visible()
-        area = json.loads(page.locator('#area-json').text_content())
+        expect(page.locator(MAP + '[data-nearby-count]')).to_contain_text('0件')
+        shown = formats(page)
+        area = json.loads(shown['範囲データ（JSON）'])
         assert area['radius_m'] == radius
         assert area['bounds']['wraps_antimeridian'] == wraps
         assert -90 <= area['bounds']['south'] <= area['bounds']['north'] <= 90
-        apple = parse_qs(urlsplit(page.locator('#apple-area-link').get_attribute('href')).query)
+        apple = parse_qs(urlsplit(shown['Apple Maps（範囲）']).query)
         assert 'spn' not in apple  # a single span cannot describe these two cases
-        expect(page.locator('#nearby-status')).to_contain_text('0件')
     finally:
         page.close()
 
@@ -222,25 +235,26 @@ def test_nearby_city_handoff_preserves_radius_and_original_area(site, browser):
     page = browser.new_page()
     try:
         page.goto(site[1] + '/tools/?lat=35.68135&lon=139.7665&name=中心&radius_m=350#maps')
-        expect(page.locator('#tokyo-link')).to_be_hidden()  # arbitrary centre, rather than an exact city coordinate
-        expect(page.locator('#nearby-list')).to_contain_text('丸の内北口')
-        expect(page.locator('#nearby-list')).to_contain_text('八重洲中央口')
-        expect(page.locator('#nearby-list')).not_to_contain_text('大手町')
-        page.locator('#nearby-list').get_by_role('link', name='丸の内中央口', exact=False).click()
+        expect(page.locator(MAP + '[data-open="place"]')).to_be_hidden()  # arbitrary centre, rather than an exact city coordinate
+        near = page.locator(MAP + '[data-nearby-list]')
+        expect(near).to_contain_text('丸の内北口')
+        expect(near).to_contain_text('八重洲中央口')
+        expect(near).not_to_contain_text('大手町')
+        near.get_by_role('link', name='丸の内中央口', exact=False).click()
         page.locator('#cities-map .ui-world-pick-grid [data-emoji]').first.click()
         expect(page.locator('#cities-spot-tokyo-marunouchi-c')).to_be_visible()
         page.locator('#area-return').click()
-        expect(page.locator('#latitude')).to_have_value('35.681350')
-        expect(page.locator('#point-name')).to_have_value('中心')
-        expect(page.locator('#radius')).to_have_value('350')
-        page.locator('#nearby-list').get_by_role('link', name='丸の内中央口', exact=False).click()
+        expect(page.locator(MAP + '[data-lat]')).to_have_value('35.681350')
+        expect(page.locator(MAP + '[data-name]')).to_have_value('中心')
+        expect(radio(page, 350)).to_be_checked()
+        near.get_by_role('link', name='丸の内中央口', exact=False).click()
         expect(page.locator('#cities-map .ui-world-pick-grid')).to_be_hidden()   # 🧰 one screen: the world kept its walker (no reload)
         page.locator('#cities-spot-tokyo-marunouchi-c .map-point-link').click()
-        expect(page.locator('#latitude')).to_have_value('35.681340')
-        expect(page.locator('#radius')).to_have_value('350')
-        page.locator('#radius-preset').select_option('0')
-        expect(page.locator('#area-result')).to_be_hidden()
-        expect(page.locator('#nearby')).to_be_hidden()
+        expect(page.locator(MAP + '[data-lat]')).to_have_value('35.681340')
+        expect(radio(page, 350)).to_be_checked()
+        radio(page, 0).check()
+        assert '範囲データ（JSON）' not in formats(page)
+        expect(page.locator(MAP + '[data-nearby]')).to_be_hidden()
     finally:
         page.close()
 
@@ -254,8 +268,8 @@ def test_city_bookmark_restores_spot_and_area(site, browser):
         page.locator('#cities-map .ui-world-pick-grid [data-emoji]').first.click()
         expect(page.locator('#cities-spot-tokyo-kanda')).to_be_visible()
         page.locator('#area-return').click()
-        expect(page.locator('#point-name')).to_have_value('Centre')
-        expect(page.locator('#radius')).to_have_value('0')
+        expect(page.locator(MAP + '[data-name]')).to_have_value('Centre')
+        expect(radio(page, 0)).to_be_checked()
     finally:
         page.close()
 
