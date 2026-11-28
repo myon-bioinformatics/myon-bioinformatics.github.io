@@ -1,6 +1,9 @@
 name: Vendor lock
 
 on:
+  schedule:
+    - cron: "31 21 * * *"  # 🔁 follow-main
+  workflow_dispatch:
   pull_request:
   push:
     branches: [main]
@@ -34,7 +37,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/myon-bioinformatics
-          ref: 26c442bc51b8a2837fe2556782b2937f396932af
+          ref: main
           path: .vendor-sync-tools
           persist-credentials: false
       - name: Verify and recreate locked vendor snapshot
@@ -48,3 +51,15 @@ jobs:
           uv run --locked --only-group pages python scripts/project_pages.py --output "$RUNNER_TEMP/web-ui-assets"
           uv run --locked --only-group pages python scripts/project_pages.py --output "$RUNNER_TEMP/web-ui-assets-repeat"
           diff -r "$RUNNER_TEMP/web-ui-assets" "$RUNNER_TEMP/web-ui-assets-repeat"
+
+  # 🔁 own sources follow main: on schedule / manual run, take main of own repositories and push to main
+  follow-main:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-follow-main.yml@main
+    permissions:
+      contents: write
+    with:
+      node-version: "26"
+      after: uv run --locked --only-group pages python scripts/project_pages.py --refresh-lock
+      check: |
+        uv run --locked --only-group test python -m pytest tests -q
