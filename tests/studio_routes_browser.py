@@ -25,8 +25,9 @@ def studio_origin(tmp_path_factory):
     site = tmp_path_factory.mktemp("portfolio-studios")
     ironmate = root / ".test-deps/ironmate-studio"
     sha = subprocess.check_output(["git", "-C", str(ironmate), "rev-parse", "HEAD"], text=True).strip()
-    receipt = pages.collect_tools(site, {"ironmate": ironmate}, {"ironmate": sha})   # 🧰 the tools first: the screen takes them in
-    assert receipt["made"] == ["ironmate"] and not receipt["failed"], receipt
+    repository = "myon-bioinformatics/Ironmate"
+    receipt = pages.collect_tools(site, {repository: ironmate}, {repository: sha})   # 🧰 the tools first: the screen takes them in
+    assert receipt["made"] == ["image-studio", "browser-tools", "slide-studio"] and not receipt["failed"], receipt
     pages.build(site)
     assert not (site / "tools/ironmate").exists() and not list((site / "tools").glob("*-studio/index.html"))
     server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(SimpleHTTPRequestHandler, directory=site))
@@ -192,14 +193,17 @@ def test_the_old_slide_addresses_are_gone(browser, studio_origin):
 
 
 @pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
-@pytest.mark.parametrize("route", ["image-studio/", "slide-studio/", "browser-tools/"])
+@pytest.mark.parametrize("route", ["home", "image-studio/", "slide-studio/", "browser-tools/"])
 def test_studio_has_one_tools_destination(browser, studio_origin, mobile, route):
     page = _page(browser, studio_origin, mobile=mobile)
     try:
-        _studio(page, studio_origin, route.removesuffix("/"))
+        if route == "home":
+            assert page.goto(studio_origin + "/tools/#home").ok
+        else:
+            _studio(page, studio_origin, route.removesuffix("/"))
         target = studio_origin + "/index.html#tools"
-        links = page.locator("a[href]").evaluate_all(                            # 🏠 the screen's, in sight (the home panel's is hidden)
-            "(anchors, target) => anchors.filter(a => a.href === target && a.offsetParent).length", target
+        links = page.locator("a[href]").evaluate_all(  # Include hidden anchors, not only visible ones.
+            "(anchors, target) => anchors.filter(a => a.href === target).length", target
         )
         assert links == 1
         home = page.locator(".ui-chrome a.ui-world-home")
@@ -305,5 +309,30 @@ def test_image_handoff_can_be_retried_after_the_slide_layer_limit(browser, studi
         assert slide.evaluate("IronmatePhone.deck.slides[0].layers.at(-1).kind") == "image"
         slide.locator('[data-act="undo"]').click()
         assert slide.evaluate("IronmatePhone.deck") == available
+    finally:
+        page.context.close()
+
+
+@pytest.mark.parametrize("name", ["image-studio", "slide-studio"])
+def test_the_screens_header_carries_each_studios_switch_and_colours(browser, studio_origin, name):
+    """🧰 The one screen's header places what the open studio brings: one ⋯ 💻 To textual ⇄ 📱 To iconic (the studio's own row, or
+    PySaiyanWeBoo's for the switch it holds), which flips the studio inside its frame; ⚙️ 🎨 recolours the studio too, and
+    "this page's own" gives it its own look back. Another panel takes the row away."""
+    page = _page(browser, studio_origin)
+    try:
+        studio = _studio(page, studio_origin, name)
+        rows = page.locator('.ui-chrome [data-chrome-hosted] [data-chrome-action="labels"]')
+        expect(rows).to_have_count(1)
+        before, own = studio.evaluate("[document.body.dataset.uiLabels, document.body.dataset.uiTheme]")
+        page.click('.ui-chrome [data-menu="more"] > summary')
+        rows.click()
+        assert studio.evaluate("document.body.dataset.uiLabels") == ("emoji" if before == "words" else "words")
+        page.click('.ui-chrome [data-menu="settings"] > summary')
+        page.select_option(".ui-chrome [data-ui-theme-switch]", "purple")
+        assert studio.evaluate("document.body.dataset.uiTheme") == "purple"
+        page.select_option(".ui-chrome [data-ui-theme-switch]", "")
+        assert studio.evaluate("document.body.dataset.uiTheme") == own
+        page.evaluate("location.hash = 'home'")
+        expect(rows).to_have_count(0)
     finally:
         page.context.close()

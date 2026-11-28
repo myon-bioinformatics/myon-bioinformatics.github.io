@@ -1,7 +1,7 @@
 {
   "schema": "web-ui-generated/2",
   "generator": "pysaiyanweboo (pyproject.toml pages group)",
-  "commit": "43335dfce36a2d5afa2beb29035db40abb8e7ee7",
+  "commit": "655553c5145c5f98fa3fc6739945c092e9fefc40",
   "outputs": {
     "tools/vendor/web-ui/css/base.css": "89bf5a2371b7be9057540501bba09f399d60f9207971c47fd9dac7f473ea928d",
     "tools/vendor/web-ui/css/components.css": "fbf50a97238b2f1df40d32cda93e1321b43b35dae5bc7c0eab586b5d8bc7c7ae",
@@ -18,15 +18,15 @@
     "tools/worlds/london-dragon.png": "2478a91c5d1c6cb04255b8247ca879f08f6a9ba30051bdb743f14a8a4a6429a9",
     "tools/html-import/extract.mjs": "09602fc4b02d21ed9a5981569069e92ecfd160adca421f1363aa4120dee4c072",
     "tools/chat/sources.json": "c9e5e43d7b01b6383754a40505b018e867b9ded0b2651a3dae2326efd66b104c",
-    "tools/vendor/web-ui/css/bundle.css": "677ff61aaf9b6c8a231a3610f04fc18bb7892e5c348f95813fc00c3f8e1b04ae",
+    "tools/vendor/web-ui/css/bundle.css": "9b935312956d56546784a80d0e16e04660c57758de853f9e62b1e78f0c049dce",
     "tools/vendor/web-ui/css/core.css": "6161b50462c2cfc8b40547e988636525989a1d29585eb98d5042646ffbb5cabd"
   },
   "pages": {
-    "tools/#worlds": "9be071d9a5ddd112709782ac277248285b660e54ad003739e9513684b37262bc",
-    "tools/html-import/#html-import": "fd20a47b927a60c20ad91fd78bb23260ccbdabdf7f8cd66ec19681773065822a",
-    "tools/#test-report": "ee10290827e76ae476f66d43b86a240d1b689a1542ff453e53c8dff1439e3f9a",
-    "tools/#maps": "57288310abc78ab1238157101f2ced28f39ca94df246bdb506ef1c195d2de522",
-    "tools/#gif": "76d930708979cf289c6ec1b1deaedffbadbf8efce37cfded69bda2956f11cbe7",
-    "tools/#chat": "da0b786f0bdc74797d037ed00dc2bd5d1a09db3f334196d10f3c0e3ac6813f97"
+    "tools/#worlds": "20179f1313dc46878b23fd60d2fab0e344993a5207e28ba4388cc0053c0400d7",
+    "tools/html-import/#html-import": "c23e4e1fce82159ae2fa5fbfb8d71b9761feada66e38cce9e52d0234eb2d2809",
+    "tools/#test-report": "9ef8cd3fb2387b5e1f31fd2b23187129a3b92a370a9799153f846e323f054428",
+    "tools/#maps": "8b3f7b82ef6266506831fea78ad9d641d24a39c363d2ca667992805375adf9de",
+    "tools/#gif": "67e5619ebcf2d4286204019216d1530a2c71c497c64e9ae20f8f2fa616c05e09",
+    "tools/#chat": "6f2146a8b2c9f80274a60257c36916188cec93fbcb654dd4e6347dda042c85be"
   }
 }

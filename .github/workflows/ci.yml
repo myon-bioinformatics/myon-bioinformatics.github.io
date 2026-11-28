@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/mcp-toolcall-lab
-          ref: a62cf8401b224cb7ecca1906a6de05194595baf3
+          ref: 4f6df7b8ad4537c6437fb056d1fd977153f5405c
           path: .test-deps/mcp-toolcall-lab
           persist-credentials: false
       - name: Validate portal links
@@ -75,7 +75,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/mcp-toolcall-lab
-          ref: a62cf8401b224cb7ecca1906a6de05194595baf3
+          ref: 4f6df7b8ad4537c6437fb056d1fd977153f5405c
           path: .test-deps/mcp-toolcall-lab
           persist-credentials: false
       - name: Install locked Python Playwright
