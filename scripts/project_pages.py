@@ -1116,11 +1116,17 @@ const connectHandoff=frame=>frame.contentDocument.querySelector('[data-slide-han
   if(!slide)throw Error('Slide Studio is unavailable');
   if(!slide.dataset.ready)await new Promise(resolve=>slide.addEventListener('load',resolve,{once:true}));
   if(current!=='image-studio'||location.hash!==from)return;
-  const app=slide.contentWindow;
-  if(!app.IronmatePhone?.act)throw Error('Slide Studio did not load');
+  const app=slide.contentWindow,phone=app.IronmatePhone;
+  if(typeof phone?.act!=='function')throw Error('Slide Studio did not load');
+  // The pinned editor checks Blob against its own iframe's constructor.
+  const image=new app.Blob([blob],{type:blob.type});
+  const previousSelection=phone.selected;
+  const imported=await phone.act('image',image);
+  // Older Ironmate revisions select the new layer but return no result.
+  if(!(imported??(phone.selected&&phone.selected!==previousSelection)))throw Error('Slide Studio could not add the image');
+  if(current!=='image-studio'||location.hash!==from)return;
   link.closest('dialog')?.close();location.hash='slide-studio';show(panel);
-  await app.IronmatePhone.act('image',new app.File([blob],'ironmate-image.png',{type:'image/png'}));  // its own realm's File
- }catch{status.textContent='画像を渡せませんでした。PNGを書き出し、スライド工房で読み込んでください。'}
+ }catch{status.textContent='画像を渡せませんでした。スライド工房の状態を確認し、もう一度お試しください。'}
  finally{if(!status.textContent)status.remove();sending=false}
 });
 const mount=panel=>{const inert=panel.querySelector(':scope>template');if(inert){const part=document.importNode(inert.content,true);  // 💤 a panel loads when first opened

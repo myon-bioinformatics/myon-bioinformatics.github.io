@@ -253,3 +253,47 @@ def test_image_shelf_sends_current_png_to_slide_in_the_same_tab(browser, studio_
         assert errors == []
     finally:
         page.context.close()
+
+
+def test_image_handoff_can_be_retried_after_the_slide_layer_limit(browser, studio_origin):
+    page = _page(browser, studio_origin)
+    try:
+        slide = _studio(page, studio_origin, "slide-studio")
+        slide.evaluate("""async () => {
+            await IronmatePhone.act('rect');
+            const deck = IronmatePhone.deck;
+            const layer = deck.slides[0].layers[0];
+            deck.slides[0].layers = Array.from({length: 99}, (_, i) => ({...layer, id: 'fixture-' + i}));
+            await IronmatePhone.act('open', new Blob([JSON.stringify(deck)], {type: 'application/json'}));
+            await IronmatePhone.act('rect');
+        }""")
+        full = slide.evaluate("IronmatePhone.deck")
+        selected = slide.evaluate("IronmatePhone.selected")
+        assert len(full["slides"][0]["layers"]) == 100 and selected
+
+        page.evaluate("location.hash = 'image-studio'")
+        page.wait_for_function("() => document.querySelector('#image-studio iframe')?.dataset.ready")
+        studio = page.locator("#image-studio iframe").element_handle().content_frame()
+        _imported(page, studio, "画像", {"name": "fixture.png", "mimeType": "image/png", "buffer": _fixture_png()})
+        expect(studio.locator("#layers button").filter(has_text="fixture.png")).to_have_count(1)
+        original = studio.evaluate("IronmateStudio.scene")
+        studio.locator('#studio-toolbar [data-act="import"]').click()
+        studio.locator('#studio-candidates button:text-is("シェルフ")').click()
+        link = studio.get_by_role("link", name="編集中の画像をスライド工房へ")
+        link.click()
+        expect(studio.get_by_role("status").filter(has_text="画像を渡せませんでした")).to_be_visible()
+        expect(page).to_have_url(re.compile(r"/tools/#image-studio$"))
+        expect(link).to_be_visible()
+        assert slide.evaluate("IronmatePhone.deck") == full
+        assert slide.evaluate("IronmatePhone.selected") == selected
+        assert studio.evaluate("IronmateStudio.scene") == original
+
+        slide.evaluate("IronmatePhone.act('delete')")
+        available = slide.evaluate("IronmatePhone.deck")
+        link.click()
+        page.wait_for_url("**/tools/#slide-studio")
+        assert slide.evaluate("IronmatePhone.deck.slides[0].layers.at(-1).kind") == "image"
+        slide.locator('[data-act="undo"]').click()
+        assert slide.evaluate("IronmatePhone.deck") == available
+    finally:
+        page.context.close()
