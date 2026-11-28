@@ -1291,7 +1291,6 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
     page = ui.render_document(title='🧰 Tools', theme='modern', trusted_html=home + mark + f'<script>{_SHELL_JS}</script>',
                               css='.ui-tools-index{display:grid;gap:8px;padding:0;list-style:none}' + _FRAME_CSS)
     page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace('<head>', f'<head><meta name="description" content="{description}">', 1).replace('<style>', f'<link rel="stylesheet" href="{sheet}"><style>', 1)
-    page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': '../index.html#tools'}], test_id='portfolio-back')   # 🏠 the home panel's first line
     cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './#tokyo'}}   # 🗺️ the map's neighbour
     views = {panel_name(source): data.decode('utf-8') for source, (data, _, _) in panels.items()}   # ⚙️ ⋯ what each panel declares (Ironmate's 📋 💻)
     page = add_site_chrome(page, SHELL_PAGE, cities, views=views).replace(mark, ''.join(sections), 1)

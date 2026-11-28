@@ -576,18 +576,26 @@ def test_door_to_door_in_chromium_with_a_gif():
     target['door-to-door-pulldown'].write_bytes(gif)
 
 
-def test_every_tool_page_has_the_same_back_link_first_in_main():
-    import re
-    for page in (SITE / PAGES.SHELL_PAGE,):
-        html = page.read_text(encoding="utf-8")
-        main = re.search(r"<main[^>]*>", html)
-        assert main, page
-        after = html[main.end():]
-        prefix = '../' * page.relative_to(SITE).as_posix().count('/')
-        assert after.startswith('<nav class="ui-back" aria-label="関連リンク" data-ui-back data-testid="portfolio-back">'
-                                f'<p class="ui-links"><a href="{prefix}index.html#tools">← 🧰 Tools</a>'), page
-        assert html.count('data-ui-back') == 1, page
-        assert "Back to portfolio" not in html, page
+def test_tools_shell_has_one_normalized_return_link():
+    from html.parser import HTMLParser
+    from urllib.parse import urljoin
+
+    class Anchors(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.targets = []
+
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if tag == "a" and "href" in attrs:
+                self.targets.append(urljoin("https://example.test/tools/index.html", attrs["href"]))
+
+    page = (SITE / PAGES.SHELL_PAGE).read_text(encoding="utf-8")
+    parser = Anchors()
+    parser.feed(page)
+    assert parser.targets.count("https://example.test/index.html#tools") == 1
+    assert 'data-testid="portfolio-back"' not in page
+    assert '<a class="ui-world-home" href="../index.html#tools"' in page
 
 
 # ═══ 🐍 front page (scripts/front_page.py) ═══════════════════════════════════════════════════════════════════════
@@ -972,9 +980,9 @@ def test_home_screen_in_chromium_with_a_gif():
             assert probe.evaluate(load, icons) == ["32x32", "170x170"]
             page.goto(base + "tools/")
             frames.append((page.screenshot(), "🧰 " + page.title() + " · no manifest · icons 32x32 170x170"))
-            page.get_by_test_id("portfolio-back").get_by_role("link").click()
+            page.locator(".ui-chrome a.ui-world-home").click()
             page.wait_for_url(base + "index.html#tools")
-            frames.append((page.screenshot(), "↩️ ← 🧰 Tools → index.html#tools"))
+            frames.append((page.screenshot(), "↩️ 🏠 → index.html#tools"))
 
             recorder = browser.new_page()
             recorder.set_content(ui.gif_recorder_document())
