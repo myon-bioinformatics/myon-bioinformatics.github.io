@@ -44,8 +44,8 @@
   {
    "id": "#nagoya",
    "type": "Guide",
-   "name": "🏯 名古屋",
-   "scene": "cities"
+   "name": "🏯 聖地ナゴヤ",
+   "scene": "nagoya"
   },
   {
    "id": "#camera",
@@ -135,7 +135,7 @@
    "id": "overworld/meadow/meadow-npc-researcher",
    "type": "Task",
    "name": "🔬 研究員",
-   "detail": "バイオインフォマティクスと個人開発リポジトリのクイズを出題します。",
+   "detail": "草原の落とし物を調べている研究員です。",
    "x": 496,
    "y": 272
   },
@@ -556,6 +556,32 @@
    "y": 96
   },
   {
+   "id": "learn/bug-buster",
+   "type": "Task",
+   "name": "バグバスターを習得",
+   "detail": "バグ系の敵に大ダメージ(160%)"
+  },
+  {
+   "id": "wisdom/learn/bug-buster",
+   "type": "Condition",
+   "name": "かしこさ8以上",
+   "minimum": 8,
+   "attribute": "wisdom"
+  },
+  {
+   "id": "learn/pswb-heal",
+   "type": "Task",
+   "name": "PSWBヒーリングを習得",
+   "detail": "回復オーブでHPを大きく回復"
+  },
+  {
+   "id": "wisdom/learn/pswb-heal",
+   "type": "Condition",
+   "name": "かしこさ10以上",
+   "minimum": 10,
+   "attribute": "wisdom"
+  },
+  {
    "id": "quest/talk-cat",
    "type": "Goal",
    "name": "村の案内を聞こう",
@@ -610,15 +636,15 @@
   {
    "id": "quest/pass-quizzes",
    "type": "Goal",
-   "name": "ポートフォリオ博士",
-   "detail": "研究員のクイズに2問正解する"
+   "name": "草原の調査報告",
+   "detail": "草原の研究員に話を聞く"
   },
   {
    "id": "condition/pass-quizzes",
    "type": "Condition",
-   "name": "quiz",
-   "minimum": 2,
-   "target": null
+   "name": "talk",
+   "minimum": 1,
+   "target": "meadow-npc-researcher"
   },
   {
    "id": "quest/defeat-golem",
@@ -688,7 +714,7 @@
    "id": "school/classroom/classroom-board",
    "type": "Task",
    "name": "黒板",
-   "detail": "今日の連絡や課題を書く場所です。",
+   "detail": "科目と問題を開き、選択肢を選ぶと解説が読めます。",
    "x": 192,
    "y": 16
   },
@@ -924,6 +950,12 @@
    "id": "cities/london",
    "type": "State",
    "name": "Reverse London"
+  },
+  {
+   "id": "actor/cities/london/owl",
+   "type": "Actor",
+   "name": "🦉 霧フクロウ",
+   "detail": "ロンドンの夜霧を静かに見守っている。"
   },
   {
    "id": "cities/london/london-kings-cross",
@@ -1190,6 +1222,363 @@
    "y": 1072
   },
   {
+   "id": "cities/london/london-rl-npc-arthur",
+   "type": "Task",
+   "name": "霧の探偵アーサー",
+   "detail": "ロンドンの霧を調査している敏腕探偵。",
+   "x": 912,
+   "y": 80
+  },
+  {
+   "id": "cities/london/london-rl-npc-cecil",
+   "type": "Task",
+   "name": "学者セシル",
+   "detail": "ロンドンの守護龍の伝承に詳しい若き研究者。",
+   "x": 1392,
+   "y": 208
+  },
+  {
+   "id": "cities/london/london-rl-npc-belle",
+   "type": "Task",
+   "name": "給仕ベラ",
+   "detail": "温かい紅茶とスコーンをふるまう喫茶の看板娘。",
+   "x": 464,
+   "y": 272
+  },
+  {
+   "id": "cities/london/london-rl-npc-fountain",
+   "type": "Task",
+   "name": "記憶の古泉",
+   "detail": "清らかな水が湧き出る古泉。触れると癒される。",
+   "x": 816,
+   "y": 464
+  },
+  {
+   "id": "cities/london/london-rl-npc-merlin",
+   "type": "Task",
+   "name": "時計師マーリン",
+   "detail": "リバースロンドンの時空歯車を管理する老人。",
+   "x": 1072,
+   "y": 656
+  },
+  {
+   "id": "cities/london/london-rl-drop-feather",
+   "type": "Task",
+   "name": "風切りの銀羽",
+   "detail": "リバースロンドンの夜風を切り裂く軽やかな銀の羽。",
+   "x": 688,
+   "y": 208
+  },
+  {
+   "id": "item/cities/london/london-rl-drop-feather",
+   "type": "Resource",
+   "name": "風切りの銀羽",
+   "detail": "リバースロンドンの夜風を切り裂く軽やかな銀の羽。身軽になり素早さが高まる。",
+   "usage": "消費"
+  },
+  {
+   "id": "cities/london/london-rl-drop-tea",
+   "type": "Task",
+   "name": "高級アールグレイ茶葉",
+   "detail": "ベルモント産の極上茶葉。芳醇な香りで心身を落ち着かせる。",
+   "x": 432,
+   "y": 304
+  },
+  {
+   "id": "item/cities/london/london-rl-drop-tea",
+   "type": "Resource",
+   "name": "高級アールグレイ茶葉",
+   "detail": "ベルモント産の極上茶葉。芳醇な香りで心身を落ち着かせる。竜の大好物。",
+   "usage": "消費"
+  },
+  {
+   "id": "cities/london/london-rl-drop-gear",
+   "type": "Task",
+   "name": "歯車のかけら",
+   "detail": "時空時計の精巧な真鍮歯車。ドラゴンの育成や機械の強化に役立つ。",
+   "x": 1456,
+   "y": 272
+  },
+  {
+   "id": "item/cities/london/london-rl-drop-gear",
+   "type": "Resource",
+   "name": "歯車のかけら",
+   "detail": "時空時計の精巧な真鍮歯車。ドラゴンの育成や機械の強化に役立つ。",
+   "usage": "消費"
+  },
+  {
+   "id": "cities/london/london-rl-drop-scone",
+   "type": "Task",
+   "name": "焼きたてスコーン",
+   "detail": "英国伝統の香ばしい焼き菓子。竜の大好物。",
+   "x": 976,
+   "y": 368
+  },
+  {
+   "id": "item/cities/london/london-rl-drop-scone",
+   "type": "Resource",
+   "name": "焼きたてスコーン",
+   "detail": "英国伝統の香ばしい焼き菓子。竜の絆を深める極上のおやつ。",
+   "usage": "消費"
+  },
+  {
+   "id": "cities/london/london-rl-drop-compass",
+   "type": "Task",
+   "name": "星盤の羅針盤",
+   "detail": "霧の向こうにある隠された駅や未知の空間を指す神秘のコンパス。",
+   "x": 784,
+   "y": 784
+  },
+  {
+   "id": "item/cities/london/london-rl-drop-compass",
+   "type": "Resource",
+   "name": "星盤の羅針盤",
+   "detail": "霧の向こうにある隠された駅や未知の空間を指す神秘のコンパス。マップツールとも共鳴する。",
+   "usage": "装備"
+  },
+  {
+   "id": "cities/london/london-rl-chest-potion",
+   "type": "Task",
+   "name": "霊薬の宝箱",
+   "detail": "頑丈な真鍮の宝箱。中に秘薬が眠っている。",
+   "x": 752,
+   "y": 144
+  },
+  {
+   "id": "guard/cities/london/london-rl-chest-potion",
+   "type": "Condition",
+   "name": "宝箱を開ける"
+  },
+  {
+   "id": "item/cities/london/london-rl-chest-potion",
+   "type": "Resource",
+   "name": "女王の万能エリクサー",
+   "detail": "ロイヤル調合師が精製した秘薬。HPとMPを大きく回復する。",
+   "usage": "消費",
+   "collection": true,
+   "href": "#cities-spot-london-rl-chest-potion"
+  },
+  {
+   "id": "cities/london/london-rl-chest-monocle",
+   "type": "Task",
+   "name": "名探偵の片眼鏡",
+   "detail": "宝箱に眠る片眼鏡。異界共鳴で防御力と知性を高める。",
+   "x": 1296,
+   "y": 176
+  },
+  {
+   "id": "guard/cities/london/london-rl-chest-monocle",
+   "type": "Condition",
+   "name": "宝箱を開ける"
+  },
+  {
+   "id": "item/cities/london/london-rl-chest-monocle",
+   "type": "Resource",
+   "name": "名探偵の片眼鏡",
+   "detail": "真実を見抜く単眼鏡。異界共鳴で防御力と知性を大幅に高める秘宝。",
+   "usage": "装備",
+   "collection": true,
+   "href": "#cities-spot-london-rl-chest-monocle"
+  },
+  {
+   "id": "cities/london/london-rl-chest-boots",
+   "type": "Task",
+   "name": "疾風のブーツ",
+   "detail": "宝箱に眠る俊足の革靴。足取りを軽やかにする。",
+   "x": 528,
+   "y": 240
+  },
+  {
+   "id": "guard/cities/london/london-rl-chest-boots",
+   "type": "Condition",
+   "name": "宝箱を開ける"
+  },
+  {
+   "id": "item/cities/london/london-rl-chest-boots",
+   "type": "Resource",
+   "name": "疾風のエルメスブーツ",
+   "detail": "履く者に風の加護を与える革靴。身軽さと耐久力を高める。",
+   "usage": "装備",
+   "collection": true,
+   "href": "#cities-spot-london-rl-chest-boots"
+  },
+  {
+   "id": "cities/london/london-rl-chest-lance",
+   "type": "Task",
+   "name": "騎士の白銀槍",
+   "detail": "旧時計塔の番兵が守る伝説の宝箱に眠る白銀の名槍。",
+   "x": 1104,
+   "y": 528
+  },
+  {
+   "id": "guard/cities/london/london-rl-chest-lance",
+   "type": "Condition",
+   "name": "時計塔の番兵を倒して宝箱を開ける"
+  },
+  {
+   "id": "item/cities/london/london-rl-chest-lance",
+   "type": "Resource",
+   "name": "円卓の白銀聖槍",
+   "detail": "純白の輝きを放つ名槍。他の場所で装備するとATK+25という凄まじい力を発揮する！",
+   "usage": "装備",
+   "collection": true,
+   "href": "#cities-spot-london-rl-chest-lance"
+  },
+  {
+   "id": "cities/london/london-rl-dragon-pyth",
+   "type": "Task",
+   "name": "ピタゴラス龍",
+   "detail": "幾何学の理を司る緑の角龍。論理的な思考を好む。",
+   "x": 656,
+   "y": 144
+  },
+  {
+   "id": "guard/cities/london/london-rl-dragon-pyth",
+   "type": "Condition",
+   "name": "ピタゴラス龍との絆 30 以上"
+  },
+  {
+   "id": "item/cities/london/london-rl-dragon-pyth",
+   "type": "Resource",
+   "name": "ピタゴラスの三角錐",
+   "usage": "竜の秘宝",
+   "collection": true,
+   "href": "#cities-spot-london-rl-dragon-pyth"
+  },
+  {
+   "id": "cities/london/london-rl-dragon-wing",
+   "type": "Task",
+   "name": "ドラゴウィング",
+   "detail": "流体力学の揚力を翼に受けて舞う蒼穹の飛龍。",
+   "x": 368,
+   "y": 240
+  },
+  {
+   "id": "guard/cities/london/london-rl-dragon-wing",
+   "type": "Condition",
+   "name": "ドラゴウィングとの絆 30 以上"
+  },
+  {
+   "id": "item/cities/london/london-rl-dragon-wing",
+   "type": "Resource",
+   "name": "ドラゴウィングの風翔翼",
+   "usage": "竜の秘宝",
+   "collection": true,
+   "href": "#cities-spot-london-rl-dragon-wing"
+  },
+  {
+   "id": "cities/london/london-rl-dragon-queryu",
+   "type": "Task",
+   "name": "クエリ龍",
+   "detail": "電脳潮流から生まれた知恵の水龍。検索と選別の知恵を司る。",
+   "x": 1424,
+   "y": 240
+  },
+  {
+   "id": "guard/cities/london/london-rl-dragon-queryu",
+   "type": "Condition",
+   "name": "クエリ龍との絆 30 以上"
+  },
+  {
+   "id": "item/cities/london/london-rl-dragon-queryu",
+   "type": "Resource",
+   "name": "クエリの蒼深珠",
+   "usage": "竜の秘宝",
+   "collection": true,
+   "href": "#cities-spot-london-rl-dragon-queryu"
+  },
+  {
+   "id": "cities/london/london-rl-dragon-cachere",
+   "type": "Task",
+   "name": "カシェール龍",
+   "detail": "循環再利用の円環を背負う緋色の輪龍。",
+   "x": 1104,
+   "y": 624
+  },
+  {
+   "id": "guard/cities/london/london-rl-dragon-cachere",
+   "type": "Condition",
+   "name": "カシェール龍との絆 30 以上"
+  },
+  {
+   "id": "item/cities/london/london-rl-dragon-cachere",
+   "type": "Resource",
+   "name": "カシェールの無限環",
+   "usage": "竜の秘宝",
+   "collection": true,
+   "href": "#cities-spot-london-rl-dragon-cachere"
+  },
+  {
+   "id": "cities/london/london-rl-dragon-dragoon",
+   "type": "Task",
+   "name": "碧天守護竜ドラグーン",
+   "detail": "テムズにかかる橋の上を青い翼が旋回している。",
+   "x": 1200,
+   "y": 624
+  },
+  {
+   "id": "guard/cities/london/london-rl-dragon-dragoon",
+   "type": "Condition",
+   "name": "ドラグーンとの絆 30 以上"
+  },
+  {
+   "id": "item/cities/london/london-rl-dragon-dragoon",
+   "type": "Resource",
+   "name": "蒼天竜のメガストーン",
+   "usage": "竜の秘宝",
+   "collection": true,
+   "href": "#cities-spot-london-rl-dragon-dragoon"
+  },
+  {
+   "id": "cities/london/london-rl-dragon-nogard",
+   "type": "Task",
+   "name": "古龍ノガード",
+   "detail": "ロンドンの地下深くに眠る伝説の始祖巨龍。",
+   "x": 880,
+   "y": 752
+  },
+  {
+   "id": "guard/cities/london/london-rl-dragon-nogard",
+   "type": "Condition",
+   "name": "古龍ノガードとの絆 30 以上"
+  },
+  {
+   "id": "item/cities/london/london-rl-dragon-nogard",
+   "type": "Resource",
+   "name": "始祖龍ノガードの逆鱗",
+   "usage": "竜の秘宝",
+   "collection": true,
+   "href": "#cities-spot-london-rl-dragon-nogard"
+  },
+  {
+   "id": "cities/london/london-rl-enemy-fog-wolf",
+   "type": "Task",
+   "name": "夜霧の群れ狼",
+   "detail": "夜霧に潜む凶暴な魔狼。幾何の光に弱い。",
+   "x": 720,
+   "y": 176
+  },
+  {
+   "id": "enemy/cities/london/london-rl-enemy-fog-wolf",
+   "type": "Goal",
+   "name": "夜霧の群れ狼の討伐",
+   "hp": 36
+  },
+  {
+   "id": "cities/london/london-rl-enemy-clock-golem",
+   "type": "Task",
+   "name": "時計塔の番兵",
+   "detail": "旧時計台の秘宝を守る機械の番兵。流体に弱い。",
+   "x": 1168,
+   "y": 528
+  },
+  {
+   "id": "enemy/cities/london/london-rl-enemy-clock-golem",
+   "type": "Goal",
+   "name": "時計塔の番兵の討伐",
+   "hp": 58
+  },
+  {
    "id": "cities/london/london-nogard",
    "type": "Task",
    "name": "nogard",
@@ -1422,7 +1811,7 @@
    "id": "rescue/npc-archivist",
    "type": "Task",
    "name": "記録官ルネ",
-   "detail": "私はポートフォリオの記録官ルネ。街の消火活動と技術リポジトリの歴史を記録している。君の知識を試すクイズに挑戦してみないかい？",
+   "detail": "私は記録官ルネ。消防隊の出動記録をつけている。タンクの残量は確かめた？",
    "tx": 21,
    "ty": 29
   },
@@ -1953,49 +2342,180 @@
    "markdown": "osaka-guide.md"
   },
   {
-   "id": "cities/nagoya",
-   "type": "State",
-   "name": "Nagoya"
+   "id": "survey/team-1",
+   "type": "Task",
+   "name": "第1班を派遣",
+   "detail": "未調査の1地点を報告し、経験値+5。"
   },
   {
-   "id": "cities/nagoya/nagoya-meieki",
-   "type": "Task",
-   "name": "名古屋駅",
-   "detail": "名駅から街歩きを始めよう。東へ向かうと柳橋に出る。",
-   "x": 80,
-   "y": 80
+   "id": "wisdom/survey/team-1",
+   "type": "Condition",
+   "name": "かしこさ8以上",
+   "minimum": 8,
+   "attribute": "wisdom"
   },
   {
-   "id": "cities/nagoya/nagoya-yanagibashi",
+   "id": "survey/team-2",
    "type": "Task",
-   "name": "柳橋",
-   "detail": "橋のたもとから西に名駅、東に伏見の街並みを望める。",
-   "x": 240,
-   "y": 144
+   "name": "第2班を派遣",
+   "detail": "未調査の1地点を報告し、経験値+5。"
   },
   {
-   "id": "cities/nagoya/nagoya-fushimi",
-   "type": "Task",
-   "name": "伏見駅",
-   "detail": "栄へ続く道と、南の大須へ向かう道が分かれる。",
-   "x": 432,
-   "y": 112
+   "id": "wisdom/survey/team-2",
+   "type": "Condition",
+   "name": "かしこさ10以上",
+   "minimum": 10,
+   "attribute": "wisdom"
   },
   {
-   "id": "cities/nagoya/nagoya-sakae",
+   "id": "survey/team-3",
    "type": "Task",
-   "name": "栄駅",
-   "detail": "にぎやかな街角。西へ歩くと伏見に戻れる。",
-   "x": 720,
-   "y": 80
+   "name": "第3班を派遣",
+   "detail": "未調査の1地点を報告し、経験値+5。"
   },
   {
-   "id": "cities/nagoya/nagoya-osu",
+   "id": "wisdom/survey/team-3",
+   "type": "Condition",
+   "name": "かしこさ14以上",
+   "minimum": 14,
+   "attribute": "wisdom"
+  },
+  {
+   "id": "quest/talk-arthur",
+   "type": "Goal",
+   "name": "名探偵のオリエンテーション",
+   "detail": "探偵アーサーに話を聞く"
+  },
+  {
+   "id": "condition/talk-arthur",
+   "type": "Condition",
+   "name": "talk",
+   "minimum": 1,
+   "target": "london-rl-npc-arthur"
+  },
+  {
+   "id": "quest/q-dragon-dragoon",
+   "type": "Goal",
+   "name": "蒼き守護竜との出会い",
+   "detail": "テムズの橋にいるドラグーンと心を通わせる"
+  },
+  {
+   "id": "condition/q-dragon-dragoon",
+   "type": "Condition",
+   "name": "dragon",
+   "minimum": 1,
+   "target": "london-rl-dragon-dragoon"
+  },
+  {
+   "id": "quest/care-dragon",
+   "type": "Goal",
+   "name": "龍とのふれあい",
+   "detail": "龍を1頭見つけてお世話する"
+  },
+  {
+   "id": "condition/care-dragon",
+   "type": "Condition",
+   "name": "care",
+   "minimum": 1,
+   "target": null
+  },
+  {
+   "id": "quest/master-bond",
+   "type": "Goal",
+   "name": "心を通わせし者",
+   "detail": "いずれかの龍との絆を最大にする"
+  },
+  {
+   "id": "condition/master-bond",
+   "type": "Condition",
+   "name": "bond",
+   "minimum": 1,
+   "target": null
+  },
+  {
+   "id": "quest/all-dragons",
+   "type": "Goal",
+   "name": "すべての守護龍の発見",
+   "detail": "ロンドンの守護龍をすべて見つける"
+  },
+  {
+   "id": "condition/all-dragons",
+   "type": "Condition",
+   "name": "dragon",
+   "minimum": 6,
+   "target": null
+  },
+  {
+   "id": "quest/collect-drops",
+   "type": "Goal",
+   "name": "ロンドンの落とし物拾い",
+   "detail": "道具を3つ拾う"
+  },
+  {
+   "id": "condition/collect-drops",
+   "type": "Condition",
+   "name": "drop",
+   "minimum": 3,
+   "target": null
+  },
+  {
+   "id": "quest/defeat-clock",
+   "type": "Goal",
+   "name": "時計塔の番兵討伐",
+   "detail": "番兵を倒す"
+  },
+  {
+   "id": "condition/defeat-clock",
+   "type": "Condition",
+   "name": "boss",
+   "minimum": 1,
+   "target": "london-rl-enemy-clock-golem"
+  },
+  {
+   "id": "quest/cecil-quiz",
+   "type": "Goal",
+   "name": "守護龍の観察記録",
+   "detail": "異なる守護龍を2頭見つける"
+  },
+  {
+   "id": "condition/cecil-quiz",
+   "type": "Condition",
+   "name": "dragon",
+   "minimum": 2,
+   "target": null
+  },
+  {
+   "id": "buy/tea",
    "type": "Task",
-   "name": "大須観音駅",
-   "detail": "商店街の入口。北に向かうと伏見に戻れる。",
-   "x": 496,
-   "y": 336
+   "name": "ベルモント・ロイヤルティーを購入",
+   "detail": "心安らぐ英国紅茶。龍のおやつにも最適"
+  },
+  {
+   "id": "price/buy/tea",
+   "type": "Condition",
+   "name": "18G以上"
+  },
+  {
+   "id": "buy/scone",
+   "type": "Task",
+   "name": "自家製焼きたてスコーンを購入",
+   "detail": "外サクサク中ふわふわ。龍の絆を深める"
+  },
+  {
+   "id": "price/buy/scone",
+   "type": "Condition",
+   "name": "22G以上"
+  },
+  {
+   "id": "buy/potion",
+   "type": "Task",
+   "name": "ロンドン薬草酒を購入",
+   "detail": "伝統的なハーブ酒。HPを35回復する"
+  },
+  {
+   "id": "price/buy/potion",
+   "type": "Condition",
+   "name": "25G以上"
   },
   {
    "id": "quest/q-talk-captain",
@@ -2014,7 +2534,7 @@
    "id": "quest/q-first-fire",
    "type": "Goal",
    "name": "初めての消火活動",
-   "detail": "フェイクパリの火災を1箇所消火して街に緑を咲かせる。"
+   "detail": "フェイクパリの火災を1箇所鎮火する。村で手に入る癒しの水で消しても達成。"
   },
   {
    "id": "condition/q-first-fire",
@@ -2078,13 +2598,13 @@
   {
    "id": "quest/q-solve-quiz",
    "type": "Goal",
-   "name": "技術記録官の試練",
-   "detail": "記録官ルネの技術ポートフォリオクイズに正解する。"
+   "name": "巡回隊の補給",
+   "detail": "消火で水を使ったあと、消火栓か給水所でタンクを補充する。"
   },
   {
    "id": "condition/q-solve-quiz",
    "type": "Condition",
-   "name": "quiz",
+   "name": "replenish",
    "minimum": 1,
    "target": null
   },
@@ -2133,6 +2653,663 @@
    "id": "price/buy/shop-cryo",
    "type": "Condition",
    "name": "18メダル以上"
+  },
+  {
+   "id": "nagoya/nagoya-map",
+   "type": "State",
+   "name": "聖地ナゴヤ"
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-station",
+   "type": "Task",
+   "name": "JR名古屋駅・金時計",
+   "detail": "聖地ナゴヤの玄関口。東海道新幹線や各線が集い、多くのドラゴンズファンが行き交う。",
+   "x": 160,
+   "y": 384
+  },
+  {
+   "id": "enemy/nagoya/nagoya-map/nagoya-station",
+   "type": "Goal",
+   "name": "熱血ビジターサポーターの討伐",
+   "hp": 35
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-meieki-sky",
+   "type": "Task",
+   "name": "名駅スカイプロムナード",
+   "detail": "名駅の高層ビル群から聖地ナゴヤの街並みとドーム方面を一望できる展望デッキ。",
+   "x": 192,
+   "y": 320
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-dome",
+   "type": "Task",
+   "name": "バンテリンドーム ナゴヤ",
+   "detail": "ドラゴンズの一軍の本拠地。二軍の観戦イベントはナゴヤ球場へ。",
+   "x": 864,
+   "y": 256
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-farm-ballpark",
+   "type": "Task",
+   "name": "ナゴヤ球場",
+   "detail": "ドラゴンズのファームの本拠地。スタンドで二軍の試合を観て、若手に声援を送ろう。",
+   "x": 160,
+   "y": 576
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-aeon-mall",
+   "type": "Task",
+   "name": "イオンモール ナゴヤドーム前",
+   "detail": "ドーム直結の大型商業施設！メガホンやお弁当、応援グッズが勢ぞろいするファンの補給基地。",
+   "x": 928,
+   "y": 256
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-castle",
+   "type": "Task",
+   "name": "名古屋城・本丸御殿",
+   "detail": "名城の威容を誇る名古屋のシンボル。金シャチが天守に輝く。",
+   "x": 512,
+   "y": 192
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-kinshachi",
+   "type": "Task",
+   "name": "天守閣の金シャチ",
+   "detail": "城の頂で黄金に煌めく守り神。職人たちの技と街の誇りが凝縮されている。",
+   "x": 544,
+   "y": 160
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-tv-tower",
+   "type": "Task",
+   "name": "MIRAI TOWER",
+   "detail": "久屋大通の中心にそびえる日本最古の電波塔。夜には青きライトアップが灯る。",
+   "x": 576,
+   "y": 384
+  },
+  {
+   "id": "enemy/nagoya/nagoya-map/nagoya-tv-tower",
+   "type": "Goal",
+   "name": "スタジアムの魔球使いの討伐",
+   "hp": 60
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-oasis21",
+   "type": "Task",
+   "name": "オアシス21・水の宇宙船",
+   "detail": "空中に浮かぶガラスの大屋根。水面越しにテレビ塔とナゴヤの街を一望できる。",
+   "x": 640,
+   "y": 384
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-hisaya",
+   "type": "Task",
+   "name": "久屋大通公園",
+   "detail": "栄の中心を南北に貫く緑豊かな憩いの空間。ファンイベントや物産展で賑わう。",
+   "x": 576,
+   "y": 448
+  },
+  {
+   "id": "enemy/nagoya/nagoya-map/nagoya-hisaya",
+   "type": "Goal",
+   "name": "覇王ドラゴントレーナーの討伐",
+   "hp": 110
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-osu-gate",
+   "type": "Task",
+   "name": "大須商店街・ふれあい広場",
+   "detail": "巨大招き猫が見守る大須の名物広場。下町情緒と賑わいがあふれる。",
+   "x": 480,
+   "y": 544
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-osu-arcade",
+   "type": "Task",
+   "name": "大須電気街アーケード",
+   "detail": "サブカルチャーと最新ガジェット、食べ歩きグルメが混ざり合う活気満点の通り。",
+   "x": 544,
+   "y": 544
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-shikemichi",
+   "type": "Task",
+   "name": "四間道の蔵小路",
+   "detail": "江戸の風情を今に残す白壁の土蔵と石垣が美しい歴史の小径。",
+   "x": 416,
+   "y": 288
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-kinshachi-yokocho",
+   "type": "Task",
+   "name": "金シャチ横丁・義直ゾーン",
+   "detail": "名古屋城の麓に佇む伝統のなごやめし横丁。美味しい香りが立ち込める。",
+   "x": 480,
+   "y": 224
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-higashiyama",
+   "type": "Task",
+   "name": "東山動植物園・緑の杜",
+   "detail": "広大な自然の中で動物たちが暮らす癒やしの森。シャバーニもここにいる。",
+   "x": 928,
+   "y": 480
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-port",
+   "type": "Task",
+   "name": "名古屋港・シャチの入江",
+   "detail": "爽やかな潮風が吹き抜ける海辺の広場。大きな船やシャチの姿が見られる。",
+   "x": 448,
+   "y": 672
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-noritake",
+   "type": "Task",
+   "name": "ノリタケの森・赤レンガ棟",
+   "detail": "緑豊かな敷地に明治の赤レンガ建築が並ぶクラフトと歴史の拠点。",
+   "x": 288,
+   "y": 256
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-atsuta-forest",
+   "type": "Task",
+   "name": "熱田の杜・千年の森",
+   "detail": "古より生い茂る大楠と静寂に包まれた緑の杜。旅の安全と必勝を祈願する。",
+   "x": 512,
+   "y": 640
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-npc-ouendan",
+   "type": "Task",
+   "name": "応援団長リュウジ",
+   "detail": "「来たなドラ魂を持つ者よ！俺たちの熱い声援でチームを勝利に導くぞ！」",
+   "x": 800,
+   "y": 288
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-npc-boy",
+   "type": "Task",
+   "name": "熱烈野球少年コータ",
+   "detail": "「ドームの周りにサインボールが落ちてなかったかな？見つけたら教えて！」",
+   "x": 896,
+   "y": 320
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-npc-cafe",
+   "type": "Task",
+   "name": "喫茶モーニングのママ",
+   "detail": "「いらっしゃい！名古屋の朝は小倉トーストと珈琲で決まりよ。仕込みも手伝ってね。」",
+   "x": 224,
+   "y": 416
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-npc-craftsman",
+   "type": "Task",
+   "name": "金シャチ職人タツゾウ",
+   "detail": "「街が綺麗なら金シャチもより輝く。ポイ捨てゴミを拾ってきてくれたら礼をするぞ。」",
+   "x": 448,
+   "y": 192
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-npc-grandpa",
+   "type": "Task",
+   "name": "聖地の生き字引 爺さん",
+   "detail": "「フォッフォッ、かつての優勝パレードやドームの熱戦なら何でも聞いておくれ。」",
+   "x": 608,
+   "y": 320
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-drop-megaphone",
+   "type": "Task",
+   "name": "応援青メガホン",
+   "detail": "熱烈なファンが大切にしている青きメガホン。声援を響かせよう。",
+   "x": 768,
+   "y": 352
+  },
+  {
+   "id": "item/nagoya/nagoya-map/nagoya-drop-megaphone",
+   "type": "Resource",
+   "name": "応援青メガホン",
+   "detail": "熱烈なファンが大切にしている青きメガホン。声援を響かせよう。",
+   "usage": "装備"
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-drop-toast",
+   "type": "Task",
+   "name": "名物小倉トースト",
+   "detail": "こんがりトーストにたっぷりの小倉餡とバター。元気百倍になる。",
+   "x": 256,
+   "y": 480
+  },
+  {
+   "id": "item/nagoya/nagoya-map/nagoya-drop-toast",
+   "type": "Resource",
+   "name": "名物小倉トースト",
+   "detail": "こんがりトーストにたっぷりの小倉餡とバター。元気百倍になる。",
+   "usage": "消費"
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-drop-wings",
+   "type": "Task",
+   "name": "秘伝の手羽先",
+   "detail": "甘辛スパイシーな秘伝ダレが効いた名物手羽先。魔力がみなぎる。",
+   "x": 512,
+   "y": 480
+  },
+  {
+   "id": "item/nagoya/nagoya-map/nagoya-drop-wings",
+   "type": "Resource",
+   "name": "秘伝の手羽先",
+   "detail": "甘辛スパイシーな秘伝ダレが効いた名物手羽先。魔力がみなぎる。",
+   "usage": "消費"
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-drop-ball",
+   "type": "Task",
+   "name": "練習用サインボール",
+   "detail": "熱い練習の跡が残る硬式ボール。少年に届けると喜ばれそうだ。",
+   "x": 960,
+   "y": 288
+  },
+  {
+   "id": "item/nagoya/nagoya-map/nagoya-drop-ball",
+   "type": "Resource",
+   "name": "練習用サインボール",
+   "detail": "熱い練習の跡が残る硬式ボール。少年に届けると喜ばれそうだ。",
+   "usage": "装備"
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-drop-trash",
+   "type": "Task",
+   "name": "街のポイ捨てゴミ",
+   "detail": "道端に落ちていた空き缶やゴミ。拾って分別し職人タツゾウに届けよう。",
+   "x": 608,
+   "y": 480
+  },
+  {
+   "id": "item/nagoya/nagoya-map/nagoya-drop-trash",
+   "type": "Resource",
+   "name": "街のポイ捨てゴミ",
+   "detail": "道端に落ちていた空き缶やゴミ。拾って分別し職人タツゾウに届けよう。",
+   "usage": "消費"
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-chest-uniform",
+   "type": "Task",
+   "name": "青き魂の応援ユニフォーム",
+   "detail": "背番号と青きプライドが縫い込まれた伝説の応援ユニフォーム。",
+   "x": 832,
+   "y": 224
+  },
+  {
+   "id": "guard/nagoya/nagoya-map/nagoya-chest-uniform",
+   "type": "Condition",
+   "name": "宝箱を開ける"
+  },
+  {
+   "id": "item/nagoya/nagoya-map/nagoya-chest-uniform",
+   "type": "Resource",
+   "name": "青き魂の応援ユニフォーム",
+   "detail": "背番号と青きプライドが縫い込まれた伝説の応援ユニフォーム。",
+   "usage": "装備",
+   "collection": true,
+   "href": "#nagoya-spot-nagoya-chest-uniform"
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-chest-bat",
+   "type": "Task",
+   "name": "黄金の金シャチバット",
+   "detail": "天守の金シャチの加護を宿した黄金に輝く特製バット。",
+   "x": 576,
+   "y": 128
+  },
+  {
+   "id": "guard/nagoya/nagoya-map/nagoya-chest-bat",
+   "type": "Condition",
+   "name": "宝箱を開ける"
+  },
+  {
+   "id": "item/nagoya/nagoya-map/nagoya-chest-bat",
+   "type": "Resource",
+   "name": "黄金の金シャチバット",
+   "detail": "天守の金シャチの加護を宿した黄金に輝く特製バット。",
+   "usage": "装備",
+   "collection": true,
+   "href": "#nagoya-spot-nagoya-chest-bat"
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-chest-mitt",
+   "type": "Task",
+   "name": "守護のキャッチャーミット",
+   "detail": "どんな豪速球もしっかり受け止める堅牢な守護のミット。",
+   "x": 896,
+   "y": 224
+  },
+  {
+   "id": "guard/nagoya/nagoya-map/nagoya-chest-mitt",
+   "type": "Condition",
+   "name": "宝箱を開ける"
+  },
+  {
+   "id": "item/nagoya/nagoya-map/nagoya-chest-mitt",
+   "type": "Resource",
+   "name": "守護のキャッチャーミット",
+   "detail": "どんな豪速球もしっかり受け止める堅牢な守護のミット。",
+   "usage": "装備",
+   "collection": true,
+   "href": "#nagoya-spot-nagoya-chest-mitt"
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-chest-flag",
+   "type": "Task",
+   "name": "歓喜のビクトリーフラッグ",
+   "detail": "スタジアムを青く染め上げる勝利の歓喜の大旗。",
+   "x": 736,
+   "y": 192
+  },
+  {
+   "id": "guard/nagoya/nagoya-map/nagoya-chest-flag",
+   "type": "Condition",
+   "name": "宝箱を開ける"
+  },
+  {
+   "id": "item/nagoya/nagoya-map/nagoya-chest-flag",
+   "type": "Resource",
+   "name": "歓喜のビクトリーフラッグ",
+   "detail": "スタジアムを青く染め上げる勝利の歓喜の大旗。",
+   "usage": "装備",
+   "collection": true,
+   "href": "#nagoya-spot-nagoya-chest-flag"
+  },
+  {
+   "id": "nagoya/nagoya-map/nagoya-portal",
+   "type": "Task",
+   "name": "異世界広域ポータル",
+   "detail": "広大なる表層界や東京、ロンドン、パリ、学校へと繋がる転移門。",
+   "x": 160,
+   "y": 448
+  },
+  {
+   "id": "nagoya/nagoya-city",
+   "type": "State",
+   "name": "名古屋の街歩き"
+  },
+  {
+   "id": "nagoya/nagoya-city/nagoya-city-meieki",
+   "type": "Task",
+   "name": "名古屋駅",
+   "detail": "名駅から街歩きを始めよう。東へ向かうと柳橋に出る。",
+   "x": 80,
+   "y": 80
+  },
+  {
+   "id": "nagoya/nagoya-city/nagoya-city-yanagibashi",
+   "type": "Task",
+   "name": "柳橋",
+   "detail": "橋のたもとから西に名駅、東に伏見の街並みを望める。",
+   "x": 240,
+   "y": 144
+  },
+  {
+   "id": "nagoya/nagoya-city/nagoya-city-fushimi",
+   "type": "Task",
+   "name": "伏見駅",
+   "detail": "栄へ続く道と、南の大須へ向かう道が分かれる。",
+   "x": 432,
+   "y": 112
+  },
+  {
+   "id": "nagoya/nagoya-city/nagoya-city-sakae",
+   "type": "Task",
+   "name": "栄駅",
+   "detail": "にぎやかな街角。西へ歩くと伏見に戻れる。",
+   "x": 720,
+   "y": 80
+  },
+  {
+   "id": "nagoya/nagoya-city/nagoya-city-osu",
+   "type": "Task",
+   "name": "大須観音駅",
+   "detail": "商店街の入口。北に向かうと伏見に戻れる。",
+   "x": 496,
+   "y": 336
+  },
+  {
+   "id": "event/cheer-call",
+   "type": "Task",
+   "name": "熱血コールを練習する",
+   "detail": "知名度+15pt。希望時はスタミナ1でHPを最大6回復。"
+  },
+  {
+   "id": "heal/event/cheer-call",
+   "type": "Task",
+   "name": "参加時にHP回復を選ぶ",
+   "healing": 6
+  },
+  {
+   "id": "stamina/heal/event/cheer-call",
+   "type": "Condition",
+   "name": "スタミナ1以上",
+   "minimum": 1,
+   "attribute": "stamina"
+  },
+  {
+   "id": "hp/heal/event/cheer-call",
+   "type": "Condition",
+   "name": "HPが最大値未満"
+  },
+  {
+   "id": "event/dome-sponsor",
+   "type": "Task",
+   "name": "ナゴヤ球場で二軍の試合を観る",
+   "detail": "知名度+25pt。希望時はスタミナ3でHPを最大16回復。"
+  },
+  {
+   "id": "cost/event/dome-sponsor",
+   "type": "Condition",
+   "name": "所持金（G）30以上",
+   "minimum": 30,
+   "attribute": "gold"
+  },
+  {
+   "id": "heal/event/dome-sponsor",
+   "type": "Task",
+   "name": "参加時にHP回復を選ぶ",
+   "healing": 16
+  },
+  {
+   "id": "stamina/heal/event/dome-sponsor",
+   "type": "Condition",
+   "name": "スタミナ3以上",
+   "minimum": 3,
+   "attribute": "stamina"
+  },
+  {
+   "id": "hp/heal/event/dome-sponsor",
+   "type": "Condition",
+   "name": "HPが最大値未満"
+  },
+  {
+   "id": "quest/q-talk-ryuji",
+   "type": "Goal",
+   "name": "熱血団長への挨拶",
+   "detail": "応援団長リュウジと話してドラ魂の極意を教わろう"
+  },
+  {
+   "id": "condition/q-talk-ryuji",
+   "type": "Condition",
+   "name": "talk",
+   "minimum": 1,
+   "target": "nagoya-npc-ouendan"
+  },
+  {
+   "id": "quest/q-get-uniform",
+   "type": "Goal",
+   "name": "青き誇りを身に纏え",
+   "detail": "聖地に眠る「青き魂の応援ユニフォーム」を見つけ出す"
+  },
+  {
+   "id": "condition/q-get-uniform",
+   "type": "Condition",
+   "name": "chest",
+   "minimum": 1,
+   "target": "nagoya-chest-uniform"
+  },
+  {
+   "id": "quest/q-fame-starter",
+   "type": "Goal",
+   "name": "名物ファンへの第一歩",
+   "detail": "街のお手伝いを重ねて知名度を20pt以上に高める"
+  },
+  {
+   "id": "condition/q-fame-starter",
+   "type": "Condition",
+   "name": "fame",
+   "minimum": 20,
+   "target": null
+  },
+  {
+   "id": "quest/q-dome-sponsor",
+   "type": "Goal",
+   "name": "二軍の試合を観に行こう",
+   "detail": "ナゴヤ球場でチケットを購入し、二軍の試合を観戦しよう"
+  },
+  {
+   "id": "condition/q-dome-sponsor",
+   "type": "Condition",
+   "name": "deed",
+   "minimum": 1,
+   "target": "dome-sponsor"
+  },
+  {
+   "id": "quest/q-mall-shopping",
+   "type": "Goal",
+   "name": "ドーム前で応援準備",
+   "detail": "イオンモール ナゴヤドーム前でお買い物をして応援気分を高める"
+  },
+  {
+   "id": "condition/q-mall-shopping",
+   "type": "Condition",
+   "name": "deed",
+   "minimum": 1,
+   "target": "mall-shopping"
+  },
+  {
+   "id": "quest/q-deed-helper",
+   "type": "Goal",
+   "name": "街の頼れるサポーター",
+   "detail": "ゴミ拾いやサインボール返却など3つ以上のお手伝いを完了する"
+  },
+  {
+   "id": "condition/q-deed-helper",
+   "type": "Condition",
+   "name": "deed",
+   "minimum": 3,
+   "target": null
+  },
+  {
+   "id": "quest/q-fame-master",
+   "type": "Goal",
+   "name": "世界一のファンの鑑へ",
+   "detail": "あらゆるお手伝いを極め、知名度95pt（世界一のファンの鑑）に到達する！"
+  },
+  {
+   "id": "condition/q-fame-master",
+   "type": "Condition",
+   "name": "fame",
+   "minimum": 95,
+   "target": null
+  },
+  {
+   "id": "buy/toast",
+   "type": "Task",
+   "name": "名物小倉トーストを購入",
+   "detail": "サクサクあんバター。HPを40回復する"
+  },
+  {
+   "id": "price/buy/toast",
+   "type": "Condition",
+   "name": "20G以上"
+  },
+  {
+   "id": "buy/coffee",
+   "type": "Task",
+   "name": "深煎りブレンド珈琲を購入",
+   "detail": "香り高いナゴヤの珈琲。MPを20回復する"
+  },
+  {
+   "id": "price/buy/coffee",
+   "type": "Condition",
+   "name": "18G以上"
+  },
+  {
+   "id": "buy/wings",
+   "type": "Task",
+   "name": "特製手羽先パックを購入",
+   "detail": "観戦のおともに。HPを30、MPを15回復する"
+  },
+  {
+   "id": "price/buy/wings",
+   "type": "Condition",
+   "name": "30G以上"
+  },
+  {
+   "id": "buy/aeon-bento",
+   "type": "Task",
+   "name": "ドーム観戦必勝弁当を購入",
+   "detail": "みそかつやエビフライが入ったボリューム満点の応援弁当。HPを55回復する"
+  },
+  {
+   "id": "price/buy/aeon-bento",
+   "type": "Condition",
+   "name": "25G以上"
+  },
+  {
+   "id": "buy/aeon-towel",
+   "type": "Task",
+   "name": "応援マフラータオルを購入",
+   "detail": "掲げて選手を鼓舞する青きタオル。心身を整えHPとMPを15回復する"
+  },
+  {
+   "id": "price/buy/aeon-towel",
+   "type": "Condition",
+   "name": "20G以上"
+  },
+  {
+   "id": "buy/aeon-drink",
+   "type": "Task",
+   "name": "ナゴヤエナジースカッシュを購入",
+   "detail": "爽快感あふれる炭酸エナジードリンク。MPを25回復する"
+  },
+  {
+   "id": "price/buy/aeon-drink",
+   "type": "Condition",
+   "name": "15G以上"
+  },
+  {
+   "id": "buy/aeon-plush",
+   "type": "Task",
+   "name": "ドラ竜マスコットぬいぐるみを購入",
+   "detail": "ふわふわ可愛い守護竜のマスコット。癒やしでHPとMPを25回復する"
+  },
+  {
+   "id": "price/buy/aeon-plush",
+   "type": "Condition",
+   "name": "35G以上"
+  },
+  {
+   "id": "buy/aeon-tenmusu",
+   "type": "Task",
+   "name": "一口名物天むすパックを購入",
+   "detail": "ぷりぷり海老天のひとくちおむすび。手軽にHPを35回復する"
+  },
+  {
+   "id": "price/buy/aeon-tenmusu",
+   "type": "Condition",
+   "name": "18G以上"
   },
   {
    "id": "shot/world/gate",
@@ -2773,6 +3950,26 @@
   {
    "source": "#world",
    "kind": "offers",
+   "target": "learn/bug-buster"
+  },
+  {
+   "source": "learn/bug-buster",
+   "kind": "guarded_by",
+   "target": "wisdom/learn/bug-buster"
+  },
+  {
+   "source": "#world",
+   "kind": "offers",
+   "target": "learn/pswb-heal"
+  },
+  {
+   "source": "learn/pswb-heal",
+   "kind": "guarded_by",
+   "target": "wisdom/learn/pswb-heal"
+  },
+  {
+   "source": "#world",
+   "kind": "offers",
    "target": "quest/talk-cat"
   },
   {
@@ -3038,6 +4235,11 @@
   {
    "source": "cities/london",
    "kind": "offers",
+   "target": "actor/cities/london/owl"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
    "target": "cities/london/london-kings-cross"
   },
   {
@@ -3199,6 +4401,251 @@
    "source": "cities/london",
    "kind": "offers",
    "target": "cities/london/london-pimlico"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-npc-arthur"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-npc-cecil"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-npc-belle"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-npc-fountain"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-npc-merlin"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-drop-feather"
+  },
+  {
+   "source": "cities/london/london-rl-drop-feather",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-drop-feather"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-drop-tea"
+  },
+  {
+   "source": "cities/london/london-rl-drop-tea",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-drop-tea"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-drop-gear"
+  },
+  {
+   "source": "cities/london/london-rl-drop-gear",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-drop-gear"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-drop-scone"
+  },
+  {
+   "source": "cities/london/london-rl-drop-scone",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-drop-scone"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-drop-compass"
+  },
+  {
+   "source": "cities/london/london-rl-drop-compass",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-drop-compass"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-chest-potion"
+  },
+  {
+   "source": "cities/london/london-rl-chest-potion",
+   "kind": "guarded_by",
+   "target": "guard/cities/london/london-rl-chest-potion"
+  },
+  {
+   "source": "cities/london/london-rl-chest-potion",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-chest-potion"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-chest-monocle"
+  },
+  {
+   "source": "cities/london/london-rl-chest-monocle",
+   "kind": "guarded_by",
+   "target": "guard/cities/london/london-rl-chest-monocle"
+  },
+  {
+   "source": "cities/london/london-rl-chest-monocle",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-chest-monocle"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-chest-boots"
+  },
+  {
+   "source": "cities/london/london-rl-chest-boots",
+   "kind": "guarded_by",
+   "target": "guard/cities/london/london-rl-chest-boots"
+  },
+  {
+   "source": "cities/london/london-rl-chest-boots",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-chest-boots"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-chest-lance"
+  },
+  {
+   "source": "cities/london/london-rl-chest-lance",
+   "kind": "guarded_by",
+   "target": "guard/cities/london/london-rl-chest-lance"
+  },
+  {
+   "source": "cities/london/london-rl-chest-lance",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-chest-lance"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-dragon-pyth"
+  },
+  {
+   "source": "cities/london/london-rl-dragon-pyth",
+   "kind": "guarded_by",
+   "target": "guard/cities/london/london-rl-dragon-pyth"
+  },
+  {
+   "source": "cities/london/london-rl-dragon-pyth",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-dragon-pyth"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-dragon-wing"
+  },
+  {
+   "source": "cities/london/london-rl-dragon-wing",
+   "kind": "guarded_by",
+   "target": "guard/cities/london/london-rl-dragon-wing"
+  },
+  {
+   "source": "cities/london/london-rl-dragon-wing",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-dragon-wing"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-dragon-queryu"
+  },
+  {
+   "source": "cities/london/london-rl-dragon-queryu",
+   "kind": "guarded_by",
+   "target": "guard/cities/london/london-rl-dragon-queryu"
+  },
+  {
+   "source": "cities/london/london-rl-dragon-queryu",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-dragon-queryu"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-dragon-cachere"
+  },
+  {
+   "source": "cities/london/london-rl-dragon-cachere",
+   "kind": "guarded_by",
+   "target": "guard/cities/london/london-rl-dragon-cachere"
+  },
+  {
+   "source": "cities/london/london-rl-dragon-cachere",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-dragon-cachere"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-dragon-dragoon"
+  },
+  {
+   "source": "cities/london/london-rl-dragon-dragoon",
+   "kind": "guarded_by",
+   "target": "guard/cities/london/london-rl-dragon-dragoon"
+  },
+  {
+   "source": "cities/london/london-rl-dragon-dragoon",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-dragon-dragoon"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-dragon-nogard"
+  },
+  {
+   "source": "cities/london/london-rl-dragon-nogard",
+   "kind": "guarded_by",
+   "target": "guard/cities/london/london-rl-dragon-nogard"
+  },
+  {
+   "source": "cities/london/london-rl-dragon-nogard",
+   "kind": "provides",
+   "target": "item/cities/london/london-rl-dragon-nogard"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-enemy-fog-wolf"
+  },
+  {
+   "source": "cities/london/london-rl-enemy-fog-wolf",
+   "kind": "offers",
+   "target": "enemy/cities/london/london-rl-enemy-fog-wolf"
+  },
+  {
+   "source": "cities/london",
+   "kind": "offers",
+   "target": "cities/london/london-rl-enemy-clock-golem"
+  },
+  {
+   "source": "cities/london/london-rl-enemy-clock-golem",
+   "kind": "offers",
+   "target": "enemy/cities/london/london-rl-enemy-clock-golem"
   },
   {
    "source": "cities/london",
@@ -3696,34 +5143,144 @@
    "target": "osaka-guide.json"
   },
   {
-   "source": "#nagoya",
-   "kind": "contains",
-   "target": "cities/nagoya"
+   "source": "#tokyo",
+   "kind": "offers",
+   "target": "survey/team-1"
   },
   {
-   "source": "cities/nagoya",
-   "kind": "offers",
-   "target": "cities/nagoya/nagoya-meieki"
+   "source": "survey/team-1",
+   "kind": "guarded_by",
+   "target": "wisdom/survey/team-1"
   },
   {
-   "source": "cities/nagoya",
+   "source": "#tokyo",
    "kind": "offers",
-   "target": "cities/nagoya/nagoya-yanagibashi"
+   "target": "survey/team-2"
   },
   {
-   "source": "cities/nagoya",
-   "kind": "offers",
-   "target": "cities/nagoya/nagoya-fushimi"
+   "source": "survey/team-2",
+   "kind": "guarded_by",
+   "target": "wisdom/survey/team-2"
   },
   {
-   "source": "cities/nagoya",
+   "source": "#tokyo",
    "kind": "offers",
-   "target": "cities/nagoya/nagoya-sakae"
+   "target": "survey/team-3"
   },
   {
-   "source": "cities/nagoya",
+   "source": "survey/team-3",
+   "kind": "guarded_by",
+   "target": "wisdom/survey/team-3"
+  },
+  {
+   "source": "#london",
    "kind": "offers",
-   "target": "cities/nagoya/nagoya-osu"
+   "target": "quest/talk-arthur"
+  },
+  {
+   "source": "quest/talk-arthur",
+   "kind": "completed_when",
+   "target": "condition/talk-arthur"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "quest/q-dragon-dragoon"
+  },
+  {
+   "source": "quest/q-dragon-dragoon",
+   "kind": "completed_when",
+   "target": "condition/q-dragon-dragoon"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "quest/care-dragon"
+  },
+  {
+   "source": "quest/care-dragon",
+   "kind": "completed_when",
+   "target": "condition/care-dragon"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "quest/master-bond"
+  },
+  {
+   "source": "quest/master-bond",
+   "kind": "completed_when",
+   "target": "condition/master-bond"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "quest/all-dragons"
+  },
+  {
+   "source": "quest/all-dragons",
+   "kind": "completed_when",
+   "target": "condition/all-dragons"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "quest/collect-drops"
+  },
+  {
+   "source": "quest/collect-drops",
+   "kind": "completed_when",
+   "target": "condition/collect-drops"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "quest/defeat-clock"
+  },
+  {
+   "source": "quest/defeat-clock",
+   "kind": "completed_when",
+   "target": "condition/defeat-clock"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "quest/cecil-quiz"
+  },
+  {
+   "source": "quest/cecil-quiz",
+   "kind": "completed_when",
+   "target": "condition/cecil-quiz"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "buy/tea"
+  },
+  {
+   "source": "buy/tea",
+   "kind": "guarded_by",
+   "target": "price/buy/tea"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "buy/scone"
+  },
+  {
+   "source": "buy/scone",
+   "kind": "guarded_by",
+   "target": "price/buy/scone"
+  },
+  {
+   "source": "#london",
+   "kind": "offers",
+   "target": "buy/potion"
+  },
+  {
+   "source": "buy/potion",
+   "kind": "guarded_by",
+   "target": "price/buy/potion"
   },
   {
    "source": "#paris",
@@ -3834,6 +5391,481 @@
    "source": "buy/shop-cryo",
    "kind": "guarded_by",
    "target": "price/buy/shop-cryo"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "contains",
+   "target": "nagoya/nagoya-map"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-station"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-station",
+   "kind": "offers",
+   "target": "enemy/nagoya/nagoya-map/nagoya-station"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-meieki-sky"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-dome"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-farm-ballpark"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-aeon-mall"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-castle"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-kinshachi"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-tv-tower"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-tv-tower",
+   "kind": "offers",
+   "target": "enemy/nagoya/nagoya-map/nagoya-tv-tower"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-oasis21"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-hisaya"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-hisaya",
+   "kind": "offers",
+   "target": "enemy/nagoya/nagoya-map/nagoya-hisaya"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-osu-gate"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-osu-arcade"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-shikemichi"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-kinshachi-yokocho"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-higashiyama"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-port"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-noritake"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-atsuta-forest"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-npc-ouendan"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-npc-boy"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-npc-cafe"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-npc-craftsman"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-npc-grandpa"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-drop-megaphone"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-drop-megaphone",
+   "kind": "provides",
+   "target": "item/nagoya/nagoya-map/nagoya-drop-megaphone"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-drop-toast"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-drop-toast",
+   "kind": "provides",
+   "target": "item/nagoya/nagoya-map/nagoya-drop-toast"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-drop-wings"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-drop-wings",
+   "kind": "provides",
+   "target": "item/nagoya/nagoya-map/nagoya-drop-wings"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-drop-ball"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-drop-ball",
+   "kind": "provides",
+   "target": "item/nagoya/nagoya-map/nagoya-drop-ball"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-drop-trash"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-drop-trash",
+   "kind": "provides",
+   "target": "item/nagoya/nagoya-map/nagoya-drop-trash"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-chest-uniform"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-chest-uniform",
+   "kind": "guarded_by",
+   "target": "guard/nagoya/nagoya-map/nagoya-chest-uniform"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-chest-uniform",
+   "kind": "provides",
+   "target": "item/nagoya/nagoya-map/nagoya-chest-uniform"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-chest-bat"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-chest-bat",
+   "kind": "guarded_by",
+   "target": "guard/nagoya/nagoya-map/nagoya-chest-bat"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-chest-bat",
+   "kind": "provides",
+   "target": "item/nagoya/nagoya-map/nagoya-chest-bat"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-chest-mitt"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-chest-mitt",
+   "kind": "guarded_by",
+   "target": "guard/nagoya/nagoya-map/nagoya-chest-mitt"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-chest-mitt",
+   "kind": "provides",
+   "target": "item/nagoya/nagoya-map/nagoya-chest-mitt"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-chest-flag"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-chest-flag",
+   "kind": "guarded_by",
+   "target": "guard/nagoya/nagoya-map/nagoya-chest-flag"
+  },
+  {
+   "source": "nagoya/nagoya-map/nagoya-chest-flag",
+   "kind": "provides",
+   "target": "item/nagoya/nagoya-map/nagoya-chest-flag"
+  },
+  {
+   "source": "nagoya/nagoya-map",
+   "kind": "offers",
+   "target": "nagoya/nagoya-map/nagoya-portal"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "contains",
+   "target": "nagoya/nagoya-city"
+  },
+  {
+   "source": "nagoya/nagoya-city",
+   "kind": "offers",
+   "target": "nagoya/nagoya-city/nagoya-city-meieki"
+  },
+  {
+   "source": "nagoya/nagoya-city",
+   "kind": "offers",
+   "target": "nagoya/nagoya-city/nagoya-city-yanagibashi"
+  },
+  {
+   "source": "nagoya/nagoya-city",
+   "kind": "offers",
+   "target": "nagoya/nagoya-city/nagoya-city-fushimi"
+  },
+  {
+   "source": "nagoya/nagoya-city",
+   "kind": "offers",
+   "target": "nagoya/nagoya-city/nagoya-city-sakae"
+  },
+  {
+   "source": "nagoya/nagoya-city",
+   "kind": "offers",
+   "target": "nagoya/nagoya-city/nagoya-city-osu"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "event/cheer-call"
+  },
+  {
+   "source": "event/cheer-call",
+   "kind": "offers",
+   "target": "heal/event/cheer-call"
+  },
+  {
+   "source": "heal/event/cheer-call",
+   "kind": "guarded_by",
+   "target": "stamina/heal/event/cheer-call"
+  },
+  {
+   "source": "heal/event/cheer-call",
+   "kind": "guarded_by",
+   "target": "hp/heal/event/cheer-call"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "event/dome-sponsor"
+  },
+  {
+   "source": "event/dome-sponsor",
+   "kind": "guarded_by",
+   "target": "cost/event/dome-sponsor"
+  },
+  {
+   "source": "event/dome-sponsor",
+   "kind": "offers",
+   "target": "heal/event/dome-sponsor"
+  },
+  {
+   "source": "heal/event/dome-sponsor",
+   "kind": "guarded_by",
+   "target": "stamina/heal/event/dome-sponsor"
+  },
+  {
+   "source": "heal/event/dome-sponsor",
+   "kind": "guarded_by",
+   "target": "hp/heal/event/dome-sponsor"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "quest/q-talk-ryuji"
+  },
+  {
+   "source": "quest/q-talk-ryuji",
+   "kind": "completed_when",
+   "target": "condition/q-talk-ryuji"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "quest/q-get-uniform"
+  },
+  {
+   "source": "quest/q-get-uniform",
+   "kind": "completed_when",
+   "target": "condition/q-get-uniform"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "quest/q-fame-starter"
+  },
+  {
+   "source": "quest/q-fame-starter",
+   "kind": "completed_when",
+   "target": "condition/q-fame-starter"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "quest/q-dome-sponsor"
+  },
+  {
+   "source": "quest/q-dome-sponsor",
+   "kind": "completed_when",
+   "target": "condition/q-dome-sponsor"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "quest/q-mall-shopping"
+  },
+  {
+   "source": "quest/q-mall-shopping",
+   "kind": "completed_when",
+   "target": "condition/q-mall-shopping"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "quest/q-deed-helper"
+  },
+  {
+   "source": "quest/q-deed-helper",
+   "kind": "completed_when",
+   "target": "condition/q-deed-helper"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "quest/q-fame-master"
+  },
+  {
+   "source": "quest/q-fame-master",
+   "kind": "completed_when",
+   "target": "condition/q-fame-master"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "buy/toast"
+  },
+  {
+   "source": "buy/toast",
+   "kind": "guarded_by",
+   "target": "price/buy/toast"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "buy/coffee"
+  },
+  {
+   "source": "buy/coffee",
+   "kind": "guarded_by",
+   "target": "price/buy/coffee"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "buy/wings"
+  },
+  {
+   "source": "buy/wings",
+   "kind": "guarded_by",
+   "target": "price/buy/wings"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "buy/aeon-bento"
+  },
+  {
+   "source": "buy/aeon-bento",
+   "kind": "guarded_by",
+   "target": "price/buy/aeon-bento"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "buy/aeon-towel"
+  },
+  {
+   "source": "buy/aeon-towel",
+   "kind": "guarded_by",
+   "target": "price/buy/aeon-towel"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "buy/aeon-drink"
+  },
+  {
+   "source": "buy/aeon-drink",
+   "kind": "guarded_by",
+   "target": "price/buy/aeon-drink"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "buy/aeon-plush"
+  },
+  {
+   "source": "buy/aeon-plush",
+   "kind": "guarded_by",
+   "target": "price/buy/aeon-plush"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "offers",
+   "target": "buy/aeon-tenmusu"
+  },
+  {
+   "source": "buy/aeon-tenmusu",
+   "kind": "guarded_by",
+   "target": "price/buy/aeon-tenmusu"
   },
   {
    "source": "#camera",

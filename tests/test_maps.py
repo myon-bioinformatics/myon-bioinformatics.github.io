@@ -25,7 +25,9 @@ def test_map_links_pins_share_and_tokyo_with_gif(site, browser):
                        'caption': label, 'ok': True, 'delay': 1200})
 
     try:
-        page.goto(site[1] + '/tools/maps/')
+        page.goto(site[1] + '/tools/#maps')
+        expect(page).to_have_title('📍地図URL・座標ピン留め')
+        expect(page.get_by_role('heading', level=1)).to_have_text('📍地図URL・座標ピン留め')
         page.locator('#radius-preset').select_option('350')
         page.locator('#tokyo-point').select_option('tokyo-kanda')
         expect(page.locator('#point-name')).to_have_value('神田')
@@ -68,8 +70,8 @@ def test_map_links_pins_share_and_tokyo_with_gif(site, browser):
             other.close()
 
         page.locator('#tokyo-link').click()
-        assert urlsplit(page.url).path == '/tools/demos/world.html'
-        assert page.locator('.map-point-link').count() == 21
+        expect(page.locator('#worlds .map-point-link')).to_have_count(21)    # 🌍 the world is a panel of the same screen
+        assert urlsplit(page.url).path == '/tools/'
         assert set(page.locator('#cities-map .ui-floor').evaluate_all('(floors) => floors.map(f => f.dataset.floor)')) >= {'tokyo', 'london', 'paris'}
         # PSWB asks for the walking avatar on entry; choose it through the normal UI.
         expect(page.locator('#cities-map .ui-world-pick')).to_be_visible()
@@ -78,7 +80,7 @@ def test_map_links_pins_share_and_tokyo_with_gif(site, browser):
         sheet = page.locator('#cities-spot-tokyo-kanda')
         expect(sheet).to_be_visible()
         shot('Parallel Tokyo: Kanda sheet')
-        sheet.get_by_role('link', name='この地点の地図URL・ピン留め').click()
+        sheet.get_by_role('link', name='この地点の地図URL・座標ピン留め').click()
         expect(page.locator('#latitude')).to_have_value('35.691800')
         expect(page.locator('#tokyo-point')).to_have_value('tokyo-kanda')
         expect(page.locator('#radius')).to_have_value('350')
@@ -123,7 +125,7 @@ def test_map_links_pins_share_and_tokyo_with_gif(site, browser):
 def test_invalid_coordinates_clear_stale_links(site, browser, lat, lon):
     page = browser.new_page()
     try:
-        page.goto(site[1] + '/tools/maps/')
+        page.goto(site[1] + '/tools/#maps')
         page.locator('#latitude').fill(lat)
         page.locator('#longitude').fill(lon)
         expect(page.locator('#point-error')).not_to_be_empty()
@@ -141,7 +143,7 @@ def test_maps_url_storage_and_clipboard_fallbacks(site, browser):
         page.add_init_script('''Storage.prototype.setItem=()=>{throw Error('denied')};
             Object.defineProperty(navigator,'clipboard',{value:{writeText:async()=>{throw Error('denied')}}});
             Object.defineProperty(navigator,'share',{value:undefined});''')
-        page.goto(site[1] + '/tools/maps/?lat=0&lon=0&name=%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E')
+        page.goto(site[1] + '/tools/?lat=0&lon=0&name=%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E#maps')
         expect(page.locator('#latitude')).to_have_value('0')
         page.locator('#pin').click()
         expect(page.locator('#pin-storage')).to_contain_text('保存できません')
@@ -186,7 +188,7 @@ def test_maps_url_storage_and_clipboard_fallbacks(site, browser):
 def test_invalid_radius_clears_range_and_disables_pin(site, browser, radius):
     page = browser.new_page()
     try:
-        page.goto(site[1] + '/tools/maps/')
+        page.goto(site[1] + '/tools/#maps')
         expect(page.locator('#area-result')).to_be_visible()
         page.locator('#radius').fill(radius)
         expect(page.locator('#range-error')).not_to_be_empty()
@@ -203,7 +205,7 @@ def test_invalid_radius_clears_range_and_disables_pin(site, browser, radius):
 def test_range_handles_date_line_and_pole(site, browser, lat, lon, radius, wraps):
     page = browser.new_page()
     try:
-        page.goto(site[1] + f'/tools/maps/?lat={lat}&lon={lon}&radius_m={radius}')
+        page.goto(site[1] + f'/tools/?lat={lat}&lon={lon}&radius_m={radius}#maps')
         expect(page.locator('#area-result')).to_be_visible()
         area = json.loads(page.locator('#area-json').text_content())
         assert area['radius_m'] == radius
@@ -219,7 +221,7 @@ def test_range_handles_date_line_and_pole(site, browser, lat, lon, radius, wraps
 def test_nearby_city_handoff_preserves_radius_and_original_area(site, browser):
     page = browser.new_page()
     try:
-        page.goto(site[1] + '/tools/maps/?lat=35.68135&lon=139.7665&name=中心&radius_m=350')
+        page.goto(site[1] + '/tools/?lat=35.68135&lon=139.7665&name=中心&radius_m=350#maps')
         expect(page.locator('#tokyo-link')).to_be_hidden()  # arbitrary centre, rather than an exact city coordinate
         expect(page.locator('#nearby-list')).to_contain_text('丸の内北口')
         expect(page.locator('#nearby-list')).to_contain_text('八重洲中央口')
@@ -232,7 +234,7 @@ def test_nearby_city_handoff_preserves_radius_and_original_area(site, browser):
         expect(page.locator('#point-name')).to_have_value('中心')
         expect(page.locator('#radius')).to_have_value('350')
         page.locator('#nearby-list').get_by_role('link', name='丸の内中央口', exact=False).click()
-        page.locator('#cities-map .ui-world-pick-grid [data-emoji]').first.click()
+        expect(page.locator('#cities-map .ui-world-pick-grid')).to_be_hidden()   # 🧰 one screen: the world kept its walker (no reload)
         page.locator('#cities-spot-tokyo-marunouchi-c .map-point-link').click()
         expect(page.locator('#latitude')).to_have_value('35.681340')
         expect(page.locator('#radius')).to_have_value('350')
@@ -248,7 +250,7 @@ def test_city_bookmark_restores_spot_and_area(site, browser):
     try:
         suffix = '?lat=35.68135&lon=139.7665&name=Centre&radius_m=0#cities-spot-tokyo-kanda'
         assert page.request.get(site[1] + '/tools/maps/tokyo.html').status == 404
-        page.goto(site[1] + '/tools/demos/world.html' + suffix)
+        page.goto(site[1] + '/tools/' + suffix)
         page.locator('#cities-map .ui-world-pick-grid [data-emoji]').first.click()
         expect(page.locator('#cities-spot-tokyo-kanda')).to_be_visible()
         page.locator('#area-return').click()
@@ -268,7 +270,7 @@ def test_world_shell_routes_and_shared_favorites(site, browser, width):
     page = context.new_page()
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
-    path = site[1] + '/tools/demos/world.html'
+    path = site[1] + '/tools/'                                            # 🧰 the world: a panel of the one screen
     space = page.locator('[data-world-shell]')
 
     def choose(name):
@@ -277,7 +279,7 @@ def test_world_shell_routes_and_shared_favorites(site, browser, width):
         expect(space).to_have_attribute('data-world-route', name)
 
     try:
-        for name, label in [('paris', 'Fake Paris'), ('london', 'Reverse London'), ('nagoya', '名古屋'), ('osaka', '大阪')]:
+        for name, label in [('paris', 'Fake Paris'), ('london', 'Reverse London'), ('osaka', '大阪')]:
             page.goto('about:blank')
             page.goto(path + '#' + name)
             expect(space).to_have_attribute('data-world-route', name)
@@ -317,7 +319,7 @@ def test_world_shell_routes_and_shared_favorites(site, browser, width):
         page.get_by_text('⭐ お気に入り', exact=True).click()
         expect(page.locator('#world-favorites a')).to_have_count(2)
         page.get_by_text('🧰 道具', exact=True).click()
-        expect(page.locator('#world-switcher a[href="../../tools/maps/"]')).to_be_visible()
+        expect(page.locator('#world-switcher a[href="#maps"]')).to_be_visible()   # 🧰 the map: a panel of the same screen
         choose('camera')
         expect(page.locator('#demo-shots')).to_be_visible()
         choose('world')
@@ -334,7 +336,7 @@ def test_world_shell_routes_and_shared_favorites(site, browser, width):
 
 def test_every_world_destination_is_reachable_from_every_other(site, browser):
     page = browser.new_page()
-    base = site[1] + '/tools/demos/world.html'
+    base = site[1] + '/tools/'
     try:
         page.goto(base + '#camera')
         page.evaluate('window.originalWorldDocument = document')
@@ -362,15 +364,130 @@ def test_every_world_destination_is_reachable_from_every_other(site, browser):
         page.close()
 
 
+def test_every_relic_link_opens_its_world_floor_and_spot(site, browser):
+    graph = json.loads((ROOT / 'docs/world-guide.json').read_text(encoding='utf-8'))
+    resources = {n['id']: n for n in graph['nodes'] if n.get('collection')}
+    destinations = {resources[e['target']]['href']: e['source'].split('/')[:2]
+                    for e in graph['edges'] if e['kind'] == 'provides' and e['target'] in resources}
+    page = browser.new_page(reduced_motion='reduce')
+    page.goto(site[1] + '/tools/#school')
+    page.evaluate('window.originalWorldDocument = document')
+    menu = page.locator('#world-relics-menu')
+    try:
+        assert set(menu.locator('a').evaluate_all('(links) => links.map(a => a.hash)')) == set(destinations)
+        expect(menu.locator('#world-relics-count')).to_have_text(f'0/{len(destinations)}')
+        for href, (scene, floor) in destinations.items():
+            menu.locator('summary').click()
+            menu.locator(f'a[href="{href}"]').click()
+            expect(page).to_have_url(site[1] + '/tools/' + href)
+            expect(page.locator(f'[data-world-space="{scene}"] .ui-floor[data-floor="{floor}"]')).to_be_visible()
+            expect(page.locator(href)).to_have_attribute('data-open', '')
+        assert page.evaluate('window.originalWorldDocument === document')
+    finally:
+        page.close()
+
+
+@pytest.mark.parametrize('export_button', ['セーブ文字列を作る', '復活の呪文を作る'])
+def test_relic_collection_survives_loading_into_a_fresh_browser(site, browser, export_button):
+    url = site[1] + '/tools/'
+    page = browser.new_page(reduced_motion='reduce')
+    restored = browser.new_page(reduced_motion='reduce')
+    errors = []
+    for tab in (page, restored):
+        tab.on('pageerror', lambda error: errors.append(str(error)))
+
+    def enter(tab, route, map_id):
+        tab.goto(url + '#' + route)
+        scene = tab.locator(map_id)
+        picker = scene.locator('.ui-world-pick-grid [data-emoji]').first
+        if picker.is_visible():
+            picker.click()
+        return scene
+
+    def visit(tab, fragment, action='.ui-rpg-sheet-btn'):
+        tab.goto(url + fragment)
+        tab.locator(fragment).locator(action).click()
+
+    def save_tab(scene):
+        scene.locator('[data-rpg-journal-btn]').click()
+        journal = scene.locator('.ui-rpg-journal-card')
+        journal.get_by_role('button', name='💾 セーブ').click()
+        return journal, journal.get_by_role('textbox', name='冒険データ')
+
+    count = page.locator('#world-relics-count')
+    unlocked = []
+    try:
+        enter(page, 'world', '#overworld-map')
+        total = page.locator('#world-relics-list a').count()
+        visit(page, '#overworld-spot-meadow-chest-sword')
+        page.get_by_role('button', name='やったね！').click()
+        expect(count).to_have_text(f'0/{total}')
+
+        tokens = []
+        for route, map_id, chest, dragon in (
+            ('london', '#cities-map', '#cities-spot-london-rl-chest-potion', '#cities-spot-london-rl-dragon-dragoon'),
+            ('nagoya', '#nagoya-map', '#nagoya-spot-nagoya-chest-flag', None),
+        ):
+            scene = enter(page, route, map_id)
+            if route == 'london':
+                visit(page, '#cities-spot-london-rl-chest-lance', '.ui-world-take')
+                expect(scene.get_by_role('dialog', name='封印された宝箱')).to_be_visible()
+                page.keyboard.press('Escape')
+                expect(count).to_have_text(f'0/{total}')
+            visit(page, chest)
+            page.get_by_role('button', name='やったね！').click()
+            unlocked.append(chest)
+            expect(count).to_have_text(f'{len(unlocked)}/{total}')
+
+            if dragon:
+                visit(page, dragon, '.ui-world-take')
+                for _ in range(4):
+                    scene.get_by_role('button', name='🪮 ブラッシング').click()
+                expect(count).to_have_text(f'{len(unlocked)}/{total}')
+                scene.get_by_role('button', name='🪮 ブラッシング').click()
+                scene.get_by_role('button', name='またね！').click()
+                unlocked.append(dragon)
+                expect(count).to_have_text(f'{len(unlocked)}/{total}')
+
+            journal, box = save_tab(scene)
+            if route == 'london':
+                journal.get_by_role('button', name='🧙 ステータス').click()
+                journal.get_by_role('button', name='女王の万能エリクサー', exact=False).click()
+                expect(journal.get_by_role('button', name='女王の万能エリクサー', exact=False)).to_have_count(0)
+                expect(count).to_have_text(f'{len(unlocked)}/{total}')
+                journal.get_by_role('button', name='💾 セーブ').click()
+            journal.get_by_role('button', name=export_button).click()
+            expect(journal.get_by_role('status')).to_have_text(
+                '空白・改行を含めてコピーできます' if export_button == '復活の呪文を作る' else '別の端末にコピーできます')
+            tokens.append((route, map_id, box.input_value()))
+            journal.locator('.ui-rpg-close').click()
+
+        for i, (route, map_id, token) in enumerate(tokens, start=1):
+            scene = enter(restored, route, map_id)
+            journal, box = save_tab(scene)
+            box.fill(token)
+            journal.get_by_role('button', name='読み込む').click()
+            expect(journal.get_by_role('status')).to_have_text('冒険データを復元しました')
+            expect(restored.locator('#world-relics-count')).to_have_text(f'{i + 1}/{total}')
+            journal.locator('.ui-rpg-close').click()
+        for href in unlocked:
+            status = restored.locator('#world-relics-list li').filter(has=restored.locator(f'a[href="{href}"]'))
+            expect(status.locator('[data-relic-status]')).to_have_text('✅ 取得済み', use_inner_text=False)
+        assert errors == []
+    finally:
+        restored.close()
+        page.close()
+
+
 def test_the_world_is_one_document_entered_by_fragment_with_queries_and_spots(site, browser):
     page = browser.new_page()
-    base = site[1] + '/tools/demos/'
+    base = site[1] + '/tools/'
     try:
-        for old in ('school.html', 'cities.html', 'world-shots.html'):   # 🌍 no forwarding pages: the scenes are world.html#…
+        for old in ('demos/school.html', 'demos/cities.html', 'demos/world-shots.html', 'demos/world.html'):   # 🌍 no pages of its own: the scenes are #…
             assert page.goto(base + old).status == 404
         query = '?lat=35.68135&lon=139.7665&name=Centre&radius_m=0#cities-spot-tokyo-kanda'
-        page.goto(base + 'world.html' + query)
-        expect(page).to_have_url(base + 'world.html' + query)
+        page.goto(base + query)
+        expect(page).to_have_url(base + query)
         expect(page.locator('[data-world-shell]')).to_have_attribute('data-world-route', 'tokyo')
     finally:
         page.close()
@@ -380,7 +497,7 @@ def test_adventure_transfer_on_unified_world(site, browser, record_property):
     import pysaiyanweboo as ui
 
     def enter(page):
-        page.goto(site[1] + '/tools/demos/world.html#world')
+        page.goto(site[1] + '/tools/#world')
         world = page.locator('#overworld-map')
         world.locator('[data-emoji="🧙"]').click()
         return world
@@ -449,7 +566,7 @@ def test_village_items_work_in_cities_and_on_hero(site, browser):
 
     page = browser.new_page(reduced_motion='reduce')
     try:
-        page.goto(site[1] + '/tools/demos/world.html#world')
+        page.goto(site[1] + '/tools/#world')
         village = page.locator('#overworld-map')
         village.locator('[data-emoji="🧙"]').click()
         for item in ('meadow-drop-mana', 'meadow-hirugaoka'):
@@ -550,7 +667,7 @@ def test_london_dragon_care_and_colors(site, browser):
 
     page = browser.new_page(viewport={'width': 390, 'height': 844}, has_touch=True)
     try:
-        page.goto(site[1] + '/tools/demos/world.html#london')
+        page.goto(site[1] + '/tools/#london')
         cities = page.locator('#cities-map')
         cities.locator('.ui-world-pick-grid [data-emoji]').first.tap()
         sign = cities.locator('.ui-spot[href="#cities-spot-london-nogard"]')
@@ -638,7 +755,7 @@ def test_shop_rumor_and_optional_world_dialogue(site, browser):
               }
             """)
         page.route('**/wllama@*/esm/index.js', engine)
-        page.goto(site[1] + '/tools/demos/world.html#world')
+        page.goto(site[1] + '/tools/#world')
         village = page.locator('#overworld-map')
         village.locator('[data-emoji="🧙"]').click()
         village.locator('[data-menu="spots"] summary').click()
@@ -709,7 +826,7 @@ def test_reusable_scrolls_in_field_and_battle(site, browser):
 
     page = browser.new_page(reduced_motion='reduce')
     try:
-        page.goto(site[1] + '/tools/demos/world.html#world')
+        page.goto(site[1] + '/tools/#world')
         page.get_by_text('📖 攻略ガイド', exact=True).click()
         guide = page.get_by_role('article', name='探索の巻物をいつ使う？')
         expect(guide).to_contain_text('6マス以内')
@@ -777,7 +894,7 @@ def test_every_guide_floor_opens_from_its_world_route(site, browser):
     page = browser.new_page(reduced_motion='reduce')
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
-    url = site[1] + '/tools/demos/world.html'
+    url = site[1] + '/tools/'
     try:
         for edge in (e for e in graph['edges'] if e['kind'] == 'contains'):
             route = edge['source']
@@ -801,5 +918,164 @@ def test_every_guide_floor_opens_from_its_world_route(site, browser):
                              for e in graph['edges'])
             expect(active.locator('.ui-spot')).to_have_count(spot_count)
         assert errors == []
+    finally:
+        page.close()
+
+
+def test_shared_player_spends_stamina_and_keeps_school_progress_across_routes(site, browser):
+    page = browser.new_page(reduced_motion='reduce')
+    url = site[1] + '/tools/#'
+    stats = page.locator('[data-player-stats]')
+    try:
+        page.goto(url + 'school-spot-classroom-board')
+        page.locator('#school-map .ui-world-pick-grid [data-emoji]').first.click()
+        board = page.locator('[aria-label="黒板の練習問題"]')
+        answer = board.locator('[data-school-answer]').first
+        answer.evaluate("(el) => { for(let p=el.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true }")
+        answer.locator('summary').click()
+        expect(board.locator('[data-school-progress]')).to_have_text('正解 1/29')
+        before = stats.text_content()
+        answer.locator('summary').click()
+        answer.locator('summary').click()
+        for route in ('camera', 'tokyo', 'nagoya', 'london'):
+            page.goto(url + route)
+            expect(stats).to_have_text(before)
+        page.goto(url + 'overworld-spot-meadow-enemy-slime')
+        page.locator('#overworld-map .ui-world-pick-grid [data-emoji]').first.click()
+        page.locator('#overworld-spot-meadow-enemy-slime .ui-rpg-sheet-btn').click()
+        expect(stats).to_contain_text('スタミナ 47')
+        page.goto(url + 'paris')
+        scene = page.locator('#cities-map')
+        scene.locator('.ui-world-pick-grid [data-emoji]').first.click()
+        scene.locator('[data-fire-id="fire-0"]').dispatch_event('click')
+        scene.get_by_role('button', name='放水ジェット', exact=False).click()
+        expect(stats).to_contain_text('スタミナ 46')
+        page.goto(url + 'school')
+        expect(board.locator('[data-school-progress]')).to_have_text('正解 1/29')
+        expect(stats).to_contain_text('スタミナ 46')
+        page.goto(url + 'osaka')
+        scene.locator('[data-shadow-boss="true"]').dispatch_event('click')
+        scene.get_by_role('button', name='ポーカーフェイス', exact=False).click()
+        expect(scene.locator('[data-detective-gear]')).to_contain_text('ポーカーフェイス 1/')
+        scene.get_by_role('button', name='閃きロジックバースト', exact=False).click()
+        expect(scene.locator('[data-detective-gear]')).to_contain_text('ポーカーフェイス 0/')
+    finally:
+        page.close()
+
+
+def test_tokyo_field_reports_unlock_village_magic_and_a_second_squad(site, browser):
+    page = browser.new_page(reduced_motion='reduce')
+    url = site[1] + '/tools/#'
+    village = page.locator('#overworld-map')
+
+    def spells():
+        page.goto(url + 'overworld-spot-meadow-enemy-slime')
+        picker = village.locator('.ui-world-pick-grid [data-emoji]').first
+        if picker.is_visible():
+            picker.click()
+        village.locator('#overworld-spot-meadow-enemy-slime .ui-rpg-sheet-btn').click()
+        village.get_by_role('button', name='✨ とくぎ').click()
+
+    try:
+        spells()
+        healing = village.get_by_role('button', name='PSWBヒーリング', exact=False)
+        expect(healing).to_be_disabled()
+        expect(healing).to_contain_text('かしこさ10')
+        village.get_by_role('button', name='💨 にげる').click()
+
+        page.goto(url + 'tokyo')
+        survey = page.locator('#tokyo-survey')
+        survey.locator('summary').click()
+        teams = survey.locator('select')
+        submit = survey.get_by_role('button')
+        ids = teams.first.locator('option').evaluate_all('(rows) => rows.map(r=>r.value).filter(Boolean)')
+        expect(teams.nth(1)).to_be_disabled()
+        for index in range(6):
+            teams.first.select_option(ids[index])
+            submit.click()
+            expect(survey.locator('output')).to_have_text(f'調査済み {index + 1}/21')
+            expect(submit).to_be_disabled()
+            if index < 5:
+                expect(teams.nth(1)).to_be_disabled()
+        expect(teams.nth(1)).to_be_enabled()
+        expect(teams.nth(2)).to_be_disabled()
+        teams.first.select_option(ids[6])
+        expect(teams.nth(1).locator(f'option[value="{ids[6]}"]')).to_have_js_property("disabled", True)
+        teams.nth(1).select_option(ids[7])
+        submit.click()
+        expect(survey.locator('li')).to_have_count(8)
+        expect(page.locator('[data-player-stats]')).to_contain_text('経験値 40')
+        spells()
+        expect(healing).to_be_enabled()
+        healing.click()
+        expect(village.locator('.ui-rpg-log')).to_contain_text('PSWBヒーリング！')
+        village.get_by_role('button', name='💨 にげる').click()
+        village.locator('[data-rpg-journal-btn]').click()
+        village.get_by_role('button', name='💾 セーブ').click()
+        village.get_by_text('セーブ文字列を作る', exact=True).click()
+        token = village.get_by_role('textbox', name='冒険データ').input_value()
+        page.reload()
+        village.locator('.ui-world-pick-grid [data-emoji]').first.click()
+        village.locator('[data-rpg-journal-btn]').click()
+        village.get_by_role('button', name='💾 セーブ').click()
+        village.get_by_role('textbox', name='冒険データ').fill(token)
+        village.get_by_role('button', name='読み込む').click()
+        expect(village.get_by_role('status').filter(has_text='冒険データを復元しました')).to_be_visible()
+        page.goto(url + 'tokyo')
+        expect(survey.locator('li')).to_have_count(8)
+        expect(teams.nth(1)).to_be_enabled()
+    finally:
+        page.close()
+
+
+@pytest.mark.parametrize('hp,stamina,gold,opt_in', [
+    (20, 0, 30, False), (94, 3, 30, False), (20, 3, 30, False),
+    (20, 3, 30, True), (92, 3, 30, True), (20, 3, 29, False),
+])
+def test_nagoya_ticket_with_optional_recovery(site, browser, hp, stamina, gold, opt_in):
+    import pysaiyanweboo as ui
+
+    page = browser.new_page()
+    url = site[1] + '/tools/#'
+    scene = page.locator('#nagoya-map')
+    try:
+        page.goto(url + 'nagoya')
+        scene.locator('.ui-world-pick-grid [data-emoji]').first.click()
+        scene.locator('[data-rpg-journal-btn]').click()
+        scene.get_by_role('button', name='💾 セーブ').click()
+        box = scene.get_by_role('textbox', name='冒険データ')
+        scene.get_by_text('セーブ文字列を作る', exact=True).click()
+        saved = ui.save_state(box.input_value())
+        # A veteran avoids the separate full heal from leveling up.
+        saved['data'].update(exp=1250, hp=hp, stamina=stamina, gold=gold)
+        box.fill(ui.save_text(saved))
+        scene.get_by_role('button', name='読み込む').click()
+        expect(scene.get_by_role('status').filter(has_text='冒険データを復元しました')).to_be_visible()
+        scene.locator('.ui-rpg-journal-card .ui-rpg-close').click()
+        page.goto(url + 'nagoya-spot-nagoya-farm-ballpark')
+        scene.locator('#nagoya-spot-nagoya-farm-ballpark .ui-rpg-sheet-btn').click()
+        action = scene.locator('[data-rpg-deed-btn]')
+        stats = page.locator('[data-player-stats]')
+        option = scene.get_by_role('checkbox', name='回復もする', exact=False)
+        expect(option).not_to_be_checked()
+        if hp == 94 or stamina < 3 or gold < 30:
+            expect(option).to_be_disabled()
+        if opt_in:
+            option.check()
+        if gold < 30:
+            expect(action).to_be_disabled()
+            expect(scene.locator('[data-rpg-gold]')).to_contain_text('29G')
+            expect(scene.locator('[data-rpg-fame-text]')).to_contain_text('知名度 0pt')
+        else:
+            action.click()
+            expect(scene.locator('[data-rpg-fame-text]')).to_contain_text('知名度 25pt')
+            expect(option).not_to_be_checked()
+            before = int(scene.locator('[data-rpg-gold]').inner_text().split()[1][:-1])
+            action.click()
+            expect(scene.locator('[data-rpg-gold]')).to_contain_text(f'{before - 30}G')
+            expect(scene.locator('[data-rpg-fame-text]')).to_contain_text('知名度 50pt')
+        page.goto(url + 'camera')
+        expect(stats).to_contain_text(f'スタミナ {stamina - (3 if opt_in else 0)}')
+        expect(stats).to_contain_text(f'HP {min(94, hp + (16 if opt_in else 0))}')
     finally:
         page.close()

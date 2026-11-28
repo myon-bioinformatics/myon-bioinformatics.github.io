@@ -70,3 +70,51 @@ def test_all_world_guide_covers_every_registered_floor_and_route():
     spec["rpg"]["loot"]["meadow-chest-charm"]["requires_enemy"] = "meadow-town"
     with pytest.raises(ValueError, match="identify an enemy"):
         world_validate(spec)
+
+
+def test_relic_conditions_and_destinations_are_generated_from_the_world():
+    from world import relic_catalogue, world_validate
+    from world_guide import build as build_worlds
+    from world_shell import SPACES
+
+    specs = {scene: example_data(scene) for scene, _ in SPACES.values()}
+    catalogue = [relic for spec in specs.values() for relic in relic_catalogue(world_validate(spec))]
+    assert len(catalogue) == 14
+    assert {relic["floor"] for relic in catalogue} == {"london", "nagoya-map"}
+    graph = build_worlds()
+    nodes = {node["id"]: node for node in graph["nodes"]}
+    resources = {node["href"]: node for node in nodes.values() if node.get("collection")}
+    assert set(resources) == {"#" + relic["fragment"] for relic in catalogue}
+    for relic in catalogue:
+        resource = resources["#" + relic["fragment"]]
+        assert resource["name"] == relic["label"]
+        task, = [edge["source"] for edge in graph["edges"]
+                 if edge["kind"] == "provides" and edge["target"] == resource["id"]]
+        condition, = [nodes[edge["target"]]["name"] for edge in graph["edges"]
+                      if edge["kind"] == "guarded_by" and edge["source"] == task]
+        assert condition == relic["condition"]
+
+    cities = specs["cities"]
+    cities["rpg"]["dragons"]["london-rl-dragon-pyth"]["bond_max"] = 37
+    cities["rpg"]["loot"]["london-rl-chest-potion"]["kind"] = "drop"
+    changed = relic_catalogue(world_validate(cities))
+    assert len(changed) == 9
+    assert any(relic["condition"].endswith("37 以上") for relic in changed)
+    assert not any(relic["spot"] == "london-rl-chest-potion" for relic in changed)
+
+
+def test_city_guide_includes_each_games_quests_and_shop_prices():
+    from world import world_validate
+    from world_guide import build as build_worlds
+
+    spec = world_validate(example_data("cities"))
+    graph = build_worlds()
+    offers = {(e["source"], e["target"]) for e in graph["edges"] if e["kind"] == "offers"}
+    nodes = {n["id"]: n for n in graph["nodes"]}
+    for system, route, currency in (("rpg", "#london", "G"), ("rescue", "#paris", "メダル")):
+        for quest in spec[system]["quests"]:
+            assert (route, "quest/" + quest["id"]) in offers
+        for item in spec[system]["shop"]:
+            uid = "buy/" + item["id"]
+            assert (route, uid) in offers
+            assert nodes["price/" + uid]["name"] == f'{item["cost"]}{currency}以上'

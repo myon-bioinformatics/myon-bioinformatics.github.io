@@ -12,8 +12,7 @@
       "initial": {
         "hp": 40,
         "stamina": 48,
-        "logic": 8,
-        "pokerface": 2,
+        "wisdom": 8,
         "medals": 20
       }
     },
@@ -208,7 +207,7 @@
     {
       "id": "q-stand-refill",
       "type": "Goal",
-      "name": "茶房・給水処で急速補給"
+      "name": "捜査の合間にひと休み"
     },
     {
       "id": "spec/q-stand-refill",
@@ -218,32 +217,32 @@
     {
       "id": "task/q-stand-refill",
       "type": "Task",
-      "name": "茶房・給水処で急速補給",
+      "name": "捜査の合間にひと休み",
       "section": "事件・バッジ",
-      "detail": "街の給水処や茶房スタンドで調査体力を満タンにする。"
+      "detail": "捜査の合間に茶房や研究所で休憩する。"
     },
     {
       "id": "condition/refill/1",
       "type": "Condition",
-      "name": "補給回数 ≥ 1",
+      "name": "休憩回数 ≥ 1",
       "metric": "refill",
       "minimum": 1
     },
     {
       "id": "state/refill",
       "type": "State",
-      "name": "補給回数"
+      "name": "休憩回数"
     },
     {
       "id": "claim/condition/refill/1",
       "type": "Claim",
-      "name": "補給回数 ≥ 1",
+      "name": "休憩回数 ≥ 1",
       "value": null
     },
     {
       "id": "q-solve-quiz",
       "type": "Goal",
-      "name": "暗号解読士の推理試練"
+      "name": "城東の目撃証言"
     },
     {
       "id": "spec/q-solve-quiz",
@@ -253,26 +252,26 @@
     {
       "id": "task/q-solve-quiz",
       "type": "Task",
-      "name": "暗号解読士の推理試練",
+      "name": "城東の目撃証言",
       "section": "事件・バッジ",
-      "detail": "暗号解読士の技術ポートフォリオクイズに正解する。"
+      "detail": "暗号解読士の紙片と目撃通報を照合し、矛盾する供述を特定する。"
     },
     {
       "id": "condition/quiz/1",
       "type": "Condition",
-      "name": "正解した異なる問題 ≥ 1",
+      "name": "矛盾を特定した証言 ≥ 1",
       "metric": "quiz",
       "minimum": 1
     },
     {
       "id": "state/quiz",
       "type": "State",
-      "name": "正解した異なる問題"
+      "name": "矛盾を特定した証言"
     },
     {
       "id": "claim/condition/quiz/1",
       "type": "Claim",
-      "name": "正解した異なる問題 ≥ 1",
+      "name": "矛盾を特定した証言 ≥ 1",
       "value": null
     },
     {
@@ -419,50 +418,37 @@
       "type": "Task",
       "name": "茶房マイスター",
       "section": "事件・バッジ",
-      "detail": "茶房や給水処で3回以上補給した"
+      "detail": "捜査の合間に3回以上休憩した"
     },
     {
       "id": "condition/refill/3",
       "type": "Condition",
-      "name": "補給回数 ≥ 3",
+      "name": "休憩回数 ≥ 3",
       "metric": "refill",
       "minimum": 3
     },
     {
       "id": "claim/condition/refill/3",
       "type": "Claim",
-      "name": "補給回数 ≥ 3",
+      "name": "休憩回数 ≥ 3",
       "value": null
     },
     {
-      "id": "b-quiz-scholar",
+      "id": "b-testimony",
       "type": "Goal",
-      "name": "浪速知識人"
+      "name": "証言の裏取り"
     },
     {
-      "id": "spec/b-quiz-scholar",
+      "id": "spec/b-testimony",
       "type": "Evidence",
-      "name": "detective.badges[id=b-quiz-scholar]"
+      "name": "detective.badges[id=b-testimony]"
     },
     {
-      "id": "task/b-quiz-scholar",
+      "id": "task/b-testimony",
       "type": "Task",
-      "name": "浪速知識人",
+      "name": "証言の裏取り",
       "section": "事件・バッジ",
-      "detail": "技術リポジトリクイズに3問以上正解した"
-    },
-    {
-      "id": "condition/quiz/3",
-      "type": "Condition",
-      "name": "正解した異なる問題 ≥ 3",
-      "metric": "quiz",
-      "minimum": 3
-    },
-    {
-      "id": "claim/condition/quiz/3",
-      "type": "Claim",
-      "name": "正解した異なる問題 ≥ 3",
-      "value": null
+      "detail": "通報と供述の矛盾を突き止めた"
     },
     {
       "id": "b-green-osaka",
@@ -770,6 +756,31 @@
       "detail": "(32, 48) · Lv.1 · トリック 10"
     },
     {
+      "id": "task/testimony-0",
+      "type": "Task",
+      "name": "証言の照合",
+      "section": "現場での手順",
+      "detail": "現場の紙片には「城東」とある。署長の通報記録と食い違う供述は？"
+    },
+    {
+      "id": "condition/talk:npc-chief/1",
+      "type": "Condition",
+      "name": "浪速署長との会話 ≥ 1",
+      "metric": "talk:npc-chief",
+      "minimum": 1
+    },
+    {
+      "id": "state/talk:npc-chief",
+      "type": "State",
+      "name": "浪速署長との会話"
+    },
+    {
+      "id": "claim/condition/talk:npc-chief/1",
+      "type": "Claim",
+      "name": "浪速署長との会話 ≥ 1",
+      "value": null
+    },
+    {
       "id": "task/tac-standard",
       "type": "Task",
       "name": "現場検証",
@@ -794,7 +805,7 @@
       "type": "Task",
       "name": "閃きロジックバースト",
       "section": "現場での手順",
-      "detail": "直感と論理を一気に爆発。大威力の推理で急解明する。"
+      "detail": "蓄えたポーカーフェイスをすべて使い、その分だけかしこさを上乗せして推理する。"
     },
     {
       "id": "condition/stamina/8",
@@ -814,7 +825,7 @@
       "type": "Task",
       "name": "ポーカーフェイス",
       "section": "現場での手順",
-      "detail": "冷静沈着な探偵の構え。影の揺さぶりを半減しつつ精神集中する。"
+      "detail": "影の揺さぶりを半減し、ポーカーフェイスを1蓄える。"
     },
     {
       "id": "condition/stamina/3",
@@ -833,78 +844,78 @@
       "id": "task/npc-heita",
       "type": "Task",
       "name": "熱血探偵ヘイタ",
-      "section": "聞き込みと補給",
+      "section": "聞き込みと休憩",
       "detail": "(14, 18) 新人探偵はん、よう来たな！オオサカの街に怪しい影や暗号トリックがうごめいとるんや！"
     },
     {
       "id": "task/npc-trail-dog",
       "type": "Task",
       "name": "浪速の捜索犬",
-      "section": "聞き込みと補給",
-      "detail": "(15, 18) 捜索犬が地面に鼻をつけ、西の給水処の方を向いた。"
+      "section": "聞き込みと休憩",
+      "detail": "(15, 18) 捜索犬が地面に鼻をつけ、西の喫茶店の方を向いた。"
     },
     {
       "id": "task/npc-ayaka",
       "type": "Task",
       "name": "助手アヤカ",
-      "section": "聞き込みと補給",
+      "section": "聞き込みと休憩",
       "detail": "(15, 14) ヘイタ先輩の助手をやってますアヤカです！右上のコンパス🧭を見れば、一番近い未解明の影の方向と距離が一発で分かりますよ！"
     },
     {
       "id": "task/npc-semba",
       "type": "Task",
       "name": "船場情報屋センバ",
-      "section": "聞き込みと補給",
+      "section": "聞き込みと休憩",
       "detail": "(17, 28) まいど！捜査ご苦労さんなこってす！現場解決で貯めた調査メダル🪙で、船場名物のおやつや捜査アイテム仕入れていきまへんか！"
     },
     {
       "id": "task/npc-hakase",
       "type": "Task",
       "name": "科学捜査官ハカセ",
-      "section": "聞き込みと補給",
-      "detail": "(23, 22) 科学捜査研究所へようこそ！水都大阪の分析技術と鑑識データで、君の体力⚡と推理コンディションを満タンまで即時回復しよう！"
+      "section": "聞き込みと休憩",
+      "detail": "(23, 22) 科学捜査研究所へようこそ！鑑識結果を待つ間、ここの椅子で休んでいってくれ。"
     },
     {
       "id": "task/npc-archivist",
       "type": "Task",
       "name": "暗号解読士",
-      "section": "聞き込みと補給",
-      "detail": "(29, 27) 暗号解読を担当してるんや。事件簿に出てくる技術用語、いくつ読み解けるか試してみるか？"
+      "section": "聞き込みと休憩",
+      "detail": "(29, 27) この紙片を見てくれ。「城東」と書いてある。署長が受けた目撃通報と突き合わせよう。"
     },
     {
       "id": "task/npc-chief",
       "type": "Task",
       "name": "浪速署長",
-      "section": "聞き込みと補給",
+      "section": "聞き込みと休憩",
       "detail": "(15, 17) 浪速署の署長や。城東から怪盗黒幕シャドウの目撃情報が入った。駅前の聞き込みはヘイタに任せてある。あんたは現場の痕跡と照らし合わせてくれるか。"
     },
     {
       "id": "task/stand-shin-osaka",
       "type": "Task",
       "name": "新大阪茶房",
-      "section": "聞き込みと補給",
-      "detail": "(16, 2) 新大阪駅前の茶房スタンドや。淹れたての宇治茶を一杯飲んで、調査体力⚡を満タンまで急速補給したで！"
+      "section": "聞き込みと休憩",
+      "detail": "(16, 2) 新大阪駅前の茶房スタンドや。淹れたての宇治茶でひと息ついていき。"
     },
     {
       "id": "task/stand-umeda",
       "type": "Task",
-      "name": "梅田給水処",
-      "section": "聞き込みと補給",
-      "detail": "(13, 17) 梅田地下街前の給水処や。清涼な冷水で喉を潤して、調査体力⚡を満タンまで補給したで！"
+      "name": "梅田の喫茶店",
+      "section": "聞き込みと休憩",
+      "detail": "(13, 17) 地下街の喫茶店や。奥の席で手帳を広げて、ひと息ついていき。"
     },
     {
       "id": "task/stand-semba",
       "type": "Task",
       "name": "船場茶房",
-      "section": "聞き込みと補給",
-      "detail": "(16, 27) 船場商人の路地裏茶房や。香ばしいほうじ茶をいただいて、調査体力⚡と気力を満タンまで補給したで！"
+      "section": "聞き込みと休憩",
+      "detail": "(16, 27) 船場商人の路地裏茶房や。捜査の合間に、ほうじ茶はいかが？"
     },
     {
       "id": "task/stand-namba",
       "type": "Task",
       "name": "難波茶房処",
-      "section": "聞き込みと補給",
-      "detail": "(17, 37) 道頓堀近くの茶房処や。名物のお茶で一服して、長距離捜査の疲れと体力⚡を満タンまで急速補給したで！"
+      "section": "聞き込みと休憩",
+      "detail": "(17, 37) 道頓堀近くの茶房処や。歩き疲れたら、ここで一服していき。"
     },
     {
       "id": "resource/drop-takoyaki",
@@ -935,7 +946,7 @@
       "type": "Task",
       "name": "探偵ルーペ",
       "section": "持ち物と入手場所",
-      "detail": "(14, 16) · 常備・取得時から有効 · 微細な痕跡も見逃さない精密ルーペ。 論理力+5"
+      "detail": "(14, 16) · 常備・取得時から有効 · 微細な痕跡も見逃さない精密ルーペ。 かしこさ+5"
     },
     {
       "id": "use/drop-loupe",
@@ -1007,7 +1018,7 @@
       "type": "Task",
       "name": "浪速の調査靴",
       "section": "持ち物と入手場所",
-      "detail": "(15, 1) · 常備・取得時から有効 · 水辺の石畳でも足元がぶれず、痕跡を追いやすい調査靴。 最大スタミナ+20、論理力+6"
+      "detail": "(15, 1) · 常備・取得時から有効 · 水辺の石畳でも足元がぶれず、痕跡を追いやすい調査靴。 最大スタミナ+20、かしこさ+6"
     },
     {
       "id": "use/chest-shoes",
@@ -1061,7 +1072,7 @@
       "type": "Task",
       "name": "黄金の名探偵ハット",
       "section": "持ち物と入手場所",
-      "detail": "(29, 31) · 常備・取得時から有効 · 東西の名探偵に受け継がれる栄誉のハット。 最大HP+15、最大スタミナ+25、論理力+8、ポーカーフェイス+6"
+      "detail": "(29, 31) · 常備・取得時から有効 · 東西の名探偵に受け継がれる栄誉のハット。 最大HP+15、最大スタミナ+25、かしこさ+8、ポーカーフェイス+6"
     },
     {
       "id": "use/chest-hat",
@@ -1691,40 +1702,30 @@
     {
       "source": "guide",
       "kind": "explains",
-      "target": "b-quiz-scholar"
+      "target": "b-testimony"
     },
     {
-      "source": "b-quiz-scholar",
+      "source": "b-testimony",
       "kind": "defined_by",
-      "target": "spec/b-quiz-scholar"
+      "target": "spec/b-testimony"
     },
     {
       "source": "actor",
       "kind": "performs",
-      "target": "task/b-quiz-scholar"
+      "target": "task/b-testimony"
     },
     {
-      "source": "b-quiz-scholar",
+      "source": "b-testimony",
       "kind": "achieved_by",
-      "target": "task/b-quiz-scholar"
+      "target": "task/b-testimony"
     },
     {
-      "source": "claim/condition/quiz/3",
-      "kind": "about",
-      "target": "state/quiz"
-    },
-    {
-      "source": "condition/quiz/3",
-      "kind": "evaluated_by",
-      "target": "claim/condition/quiz/3"
-    },
-    {
-      "source": "b-quiz-scholar",
+      "source": "b-testimony",
       "kind": "completed_when",
-      "target": "condition/quiz/3"
+      "target": "condition/quiz/1"
     },
     {
-      "source": "task/b-quiz-scholar",
+      "source": "task/b-testimony",
       "kind": "produces",
       "target": "state/quiz"
     },
@@ -2432,6 +2433,31 @@
       "source": "task/shadow-34",
       "kind": "can_use",
       "target": "task/walk"
+    },
+    {
+      "source": "actor",
+      "kind": "performs",
+      "target": "task/testimony-0"
+    },
+    {
+      "source": "claim/condition/talk:npc-chief/1",
+      "kind": "about",
+      "target": "state/talk:npc-chief"
+    },
+    {
+      "source": "condition/talk:npc-chief/1",
+      "kind": "evaluated_by",
+      "target": "claim/condition/talk:npc-chief/1"
+    },
+    {
+      "source": "task/testimony-0",
+      "kind": "guarded_by",
+      "target": "condition/talk:npc-chief/1"
+    },
+    {
+      "source": "task/testimony-0",
+      "kind": "produces",
+      "target": "state/quiz"
     },
     {
       "source": "actor",

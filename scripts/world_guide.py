@@ -6,7 +6,7 @@ from pathlib import Path
 import world
 from markdown import heading
 from ontautology import check
-from world_shell import SPACES, dialogue_graph
+from world_shell import SPACES, TOKYO_TEAM_WISDOM, TOKYO_REPORT_EXP, dialogue_graph
 
 
 def build():
@@ -31,9 +31,12 @@ def build():
             tid = add("shot/"+scene+"/"+shot["id"], "Task", shot["title"], detail=shot["body"])
             link("#"+primary, "offers", tid)
         rpg = spec.get("rpg", {})
+        relics = {relic["spot"]: relic for relic in world.relic_catalogue(spec)}
+        spot_routes = {}
         for floor in spec["floors"]:
             fid = floor["id"]
             route = fid if SPACES.get(fid, (None,))[0] == scene else primary
+            spot_routes.update((p["id"], route) for p in floor["spots"] + floor["actors"])
             area = add(f"{scene}/{fid}", "State", floor["label"])
             link("#"+route, "contains", area)
             for actor in floor["actors"]:
@@ -43,15 +46,23 @@ def build():
                 sid = s["id"]
                 spot = add(f"{area}/{sid}", "Task", s["label"], detail=s["body"], x=s["x"], y=s["y"])
                 link(area, "offers", spot)
-                if "item" in s:
+                relic = relics.get(sid)
+                if relic:
+                    link(spot, "guarded_by", add("guard/"+spot, "Condition", relic["condition"]))
+                if relic and relic["kind"] == "dragon":
+                    resource = add("item/"+spot, "Resource", relic["label"], usage="竜の秘宝",
+                                   collection=True, href="#"+relic["fragment"])
+                    link(spot, "provides", resource)
+                elif "item" in s:
                     item = rpg.get("loot", {}).get(sid, {})
                     mode = ("消費" if item.get("consumable") else
                             "繰り返し使える" if sid == world.EXPLORATION_SCROLL["id"] else
                             "装備" if item else "取得")
+                    attrs = dict(collection=True, href="#"+relic["fragment"]) if relic else {}
                     resource = add("item/"+spot, "Resource", s["item"]["label"],
-                                   detail=s["item"]["body"], usage=mode)
+                                   detail=s["item"]["body"], usage=mode, **attrs)
                     link(spot, "provides", resource)
-                    if "requires_enemy" in item:
+                    if "requires_enemy" in item and not relic:
                         guard = add("guard/"+spot, "Condition", rpg["enemies"][item["requires_enemy"]]["name"]+"の討伐")
                         link(spot, "guarded_by", guard)
                 if sid in rpg.get("enemies", {}):
@@ -75,18 +86,47 @@ def build():
                     link(area, "offers", add(f'rescue/{f["id"]}', "Task", f["name"], tx=f["tx"], ty=f["ty"], heat=f["heat"]))
             if fid == spec.get("detective", {}).get("floor"):
                 link(area, "see_also", add("osaka-guide.json", "Guide", "大阪の捜査手帳", markdown="osaka-guide.md"))
-        for q in spec.get("rescue", rpg).get("quests", []):
-            parent = spec.get("rescue", {}).get("floor", primary)
-            goal = add("quest/"+q["id"], "Goal", q["title"], detail=q["desc"])
-            link("#"+parent, "offers", goal)
-            link(goal, "completed_when", add("condition/"+q["id"], "Condition", q["kind"], minimum=q["count"],
-                                             target=q.get("target")))
-        for shop in spec.get("rescue", rpg).get("shop", []):
-            parent = spec.get("rescue", {}).get("floor", primary)
-            buy = add("buy/"+shop["id"], "Task", shop["label"]+"を購入", detail=shop["desc"])
-            link("#"+parent, "offers", buy)
-            currency = "メダル" if "rescue" in spec else "G"
-            link(buy, "guarded_by", add("price/"+buy, "Condition", f'{shop["cost"]}{currency}以上'))
+        npc_routes = {spot_routes[sid] for sid in rpg.get("npcs", {})}
+        rpg_route = next(iter(npc_routes)) if len(npc_routes) == 1 else primary
+        for sid, npc in rpg.get("npcs", {}).items():
+            event = npc.get("help", {})
+            if not event.get("stamina_cost"):
+                continue
+            task = add("event/"+event["deed_id"], "Task", event["action_label"],
+                       detail=f'知名度+{event["fame"]}pt。希望時はスタミナ{event["stamina_cost"]}でHPを最大{event["heal_hp"]}回復。')
+            link("#"+spot_routes[sid], "offers", task)
+            if event.get("cost"):
+                minimum = event["cost"]
+                link(task, "guarded_by", add("cost/"+task, "Condition", f"所持金（G）{minimum}以上",
+                                             minimum=minimum, attribute="gold"))
+            extra = add("heal/"+task, "Task", "参加時にHP回復を選ぶ", healing=event["heal_hp"])
+            link(task, "offers", extra)
+            link(extra, "guarded_by", add("stamina/"+extra, "Condition", f'スタミナ{event["stamina_cost"]}以上',
+                                          minimum=event["stamina_cost"], attribute="stamina"))
+            link(extra, "guarded_by", add("hp/"+extra, "Condition", "HPが最大値未満"))
+        for skill in rpg.get("skills", []):
+            if skill["min_wisdom"]:
+                task = add("learn/"+skill["id"], "Task", skill["label"]+"を習得", detail=skill["desc"])
+                link("#"+rpg_route, "offers", task)
+                link(task, "guarded_by", add("wisdom/"+task, "Condition", f'かしこさ{skill["min_wisdom"]}以上',
+                                             minimum=skill["min_wisdom"], attribute="wisdom"))
+        if scene == "cities":
+            for i, minimum in enumerate(TOKYO_TEAM_WISDOM, 1):
+                task = add(f"survey/team-{i}", "Task", f"第{i}班を派遣", detail=f"未調査の1地点を報告し、経験値+{TOKYO_REPORT_EXP}。")
+                link("#tokyo", "offers", task)
+                link(task, "guarded_by", add("wisdom/"+task, "Condition", f"かしこさ{minimum}以上",
+                                             minimum=minimum, attribute="wisdom"))
+        rescue = spec.get("rescue", {})
+        for rules, route, currency in ((rpg, rpg_route, "G"), (rescue, rescue.get("floor"), "メダル")):
+            for q in rules.get("quests", []):
+                goal = add("quest/"+q["id"], "Goal", q["title"], detail=q["desc"])
+                link("#"+spot_routes.get(q.get("target"), route), "offers", goal)
+                link(goal, "completed_when", add("condition/"+q["id"], "Condition", q["kind"],
+                                                 minimum=q["count"], target=q.get("target")))
+            for shop in rules.get("shop", []):
+                buy = add("buy/"+shop["id"], "Task", shop["label"]+"を購入", detail=shop["desc"])
+                link("#"+spot_routes.get(shop.get("spot_id"), route), "offers", buy)
+                link(buy, "guarded_by", add("price/"+buy, "Condition", f'{shop["cost"]}{currency}以上'))
     for i, fact in enumerate(dialogue_graph(world)["facts"]):
         claim = add(f"fact/{i}", "Claim", fact["edge"], detail=fact["text"])
         link(root, "explains", claim)
@@ -110,7 +150,7 @@ def render(graph):
         return children.get((n["id"], relation), [])
 
     lines = [heading(ns["guide"]["name"]).rstrip(), "",
-             "ワールド画面の ☰ から各入口へ。村と学校では 🛗 でフロアを切り替えます。", ""]
+             "ワールド画面の ☰ から各入口へ。🛗 でフロアを切り替えます。", ""]
     for n in related(ns["guide"], "explains"):
         if n["type"] != "Guide":
             continue
@@ -126,7 +166,10 @@ def render(graph):
                 if "detail" in task:
                     text += "　"+task["detail"]
                 for resource in related(task, "provides"):
-                    text += f'　{resource["name"]}（{resource["usage"]}）'
+                    name = resource["name"]
+                    if resource.get("collection"):
+                        name = f'[{name}](https://myon-bioinformatics.github.io/tools/{resource["href"]})'
+                    text += f'　{name}（{resource["usage"]}）'
                 for guard in related(task, "guarded_by"):
                     text += "　前提 "+guard["name"]
                 lines.append("- "+text)
@@ -136,7 +179,7 @@ def render(graph):
         for task in related(n, "offers"):
             guards = related(task, "guarded_by")
             condition = related(task, "completed_when")
-            note = "　必要 "+guards[0]["name"] if guards else ""
+            note = "　必要 "+"・".join(g["name"] for g in guards) if guards else ""
             if condition:
                 note += f'　達成数 {condition[0]["minimum"]}'
             lines.append(f'- **{task["name"]}**　{task["detail"]}'+note)

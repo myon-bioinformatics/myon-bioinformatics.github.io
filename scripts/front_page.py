@@ -25,20 +25,20 @@ def _service_url(project: str, endpoint: str, *, relative: bool = False) -> str:
 # 🧰 Tools: one card each, named for what it does — practical tools only. ``from`` names the repositories a card is built from (🧩, plain
 # text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. ``points`` are trusted HTML (they carry <code>);
 # everything else is escaped.
-PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル選択から、端末内で本文・見出し・リンクを抽出。', 'id': 'html-import', 'links': [('Open HTML Import →', './tools/html-import/')]},
+PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル選択から、端末内で本文・見出し・リンクを抽出。', 'id': 'html-import', 'words': {'HTML文書取込': ['HTML import', 'Import HTML', 'Importar HTML', 'Importar HTML', 'استيراد HTML', 'HTML 导入', 'Импорт HTML', 'Impor HTML', 'HTML-Import', 'Kuingiza HTML']}, 'links': [('Open HTML Import →', './tools/#html-import')]},
  {'title': '🗃️ 形式変換・検証',
-  'id': 'format-lab',
+  'id': 'format-lab', 'words': {'形式変換・検証': ['Format conversion & checks', 'Conversion et vérification de formats', 'Conversión y verificación de formatos', 'Conversão e verificação de formatos', 'تحويل الصيغ والتحقق منها', '格式转换与校验', 'Преобразование и проверка форматов', 'Konversi dan pemeriksaan format', 'Formatumwandlung und Prüfung', 'Ubadilishaji na ukaguzi wa miundo'], 'Format Lab を開く': ['Open Format Lab', 'Ouvrir Format Lab', 'Abrir Format Lab', 'Abrir o Format Lab', 'افتح Format Lab', '打开 Format Lab', 'Открыть Format Lab', 'Buka Format Lab', 'Format Lab öffnen', 'Fungua Format Lab']},
   'text': 'ファイルや貼り付けた原文を静的検査し、Base64の復元差分と検証記録を確認。CaChereCyCleのJSONLは資産のSHA-256も照合。',
   'from': ('myon-bioinformatics', 'PySaiyanWeBoo'),
-  'links': [('Format Lab を開く →', './tools/format-lab/')]},
- {'title': '地図URL・ピン留め',
+  'links': [('Format Lab を開く →', './tools/#format-lab')]},
+ {'title': '📍地図URL・座標ピン留め',
   'text': '緯度・経度からApple MapsとGoogle MapsのURLを作成。地点のピン留め・共有と、パラレル東京の対応地点へ。',
-  'id': 'maps',
-  'links': [('地図URLを作成 →', './tools/maps/'), ('パラレル東京 →', './tools/demos/world.html#tokyo')]},
+  'id': 'maps', 'words': {'地図URL・座標ピン留め': ['Map URLs & coordinate pins', 'URL de carte et épingles de coordonnées', 'URL de mapa y chinchetas de coordenadas', 'URL de mapa e alfinetes de coordenadas', 'روابط الخرائط ودبابيس الإحداثيات', '地图 URL 与坐标图钉', 'URL карт и метки координат', 'URL peta dan penanda koordinat', 'Karten-URLs und Koordinaten-Pins', 'URL za ramani na pini za kuratibu'], '地図URLを作成': ['Make a map URL', 'Créer une URL de carte', 'Crear una URL de mapa', 'Criar uma URL de mapa', 'أنشئ رابط خريطة', '生成地图 URL', 'Создать URL карты', 'Buat URL peta', 'Karten-URL erstellen', 'Tengeneza URL ya ramani'], 'パラレル東京': ['Parallel Tokyo', 'Tokyo parallèle', 'Tokio paralelo', 'Tóquio paralela', 'طوكيو الموازية', '平行东京', 'Параллельный Токио', 'Tokyo Paralel', 'Paralleles Tokio', 'Tokyo sambamba']},
+  'links': [('地図URLを作成 →', './tools/#maps'), ('パラレル東京 →', './tools/#tokyo')]},
  {'title': '🖼️ スライド・画像工房',
   'text': 'ブラウザでスライドを作成し、文字・図形・矢印を編集可能なPPTXへ出力。Image Studio はレイヤー、数値行列のヒートマップ、作業履歴、クリップボード棚、PNG Base64 の受け渡しに対応し、Browser Tools '
           'ではドット絵・比較用の一枚・容量確認ができます。Markdown→PPTX変換と既存PPTXの属性編集はローカルCLIの試作実装です。',
-  'id': 'studios',
+  'id': 'studios', 'words': {'スライド・画像工房': ['Slide & image studio', 'Atelier diapos et images', 'Taller de diapositivas e imágenes', 'Estúdio de slides e imagens', 'استوديو الشرائح والصور', '幻灯片与图像工坊', 'Студия слайдов и изображений', 'Studio slide dan gambar', 'Folien- und Bildwerkstatt', 'Studio ya slaidi na picha']},
   'from': ('Ironmate',),
   'links': [('Open Image Studio →', _service_url('Ironmate', 'pages')),
             ('Open Browser Tools →', _service_url('Ironmate', 'browserTools')),
@@ -46,47 +46,47 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
  {'title': '🌡️ ヒートマップ',
   'text': '数値行列か Plotly の heatmap を貼って描き、色の段階・値の表示を変えて SVG・PNG・シーン JSON に。'
           'シーンは Ironmate の Image Studio でレイヤーとして編集できます。',
-  'id': 'heatmap',
+  'id': 'heatmap', 'words': {'ヒートマップ': ['Heatmap', 'Carte de chaleur', 'Mapa de calor', 'Mapa de calor', 'خريطة حرارية', '热图', 'Тепловая карта', 'Peta panas', 'Heatmap', 'Ramani ya joto'], 'ヒートマップを描く': ['Draw a heatmap', 'Dessiner une carte de chaleur', 'Dibujar un mapa de calor', 'Desenhar um mapa de calor', 'ارسم خريطة حرارية', '绘制热图', 'Нарисовать тепловую карту', 'Gambar peta panas', 'Heatmap zeichnen', 'Chora ramani ya joto'], 'Image Studio で編集': ['Edit in Image Studio', 'Modifier dans Image Studio', 'Editar en Image Studio', 'Editar no Image Studio', 'حرّر في Image Studio', '在 Image Studio 中编辑', 'Редактировать в Image Studio', 'Edit di Image Studio', 'In Image Studio bearbeiten', 'Hariri katika Image Studio']},
   'from': ('DRAgoWing', 'Ironmate'),
-  'links': [('ヒートマップを描く →', './tools/heatmap/'), ('Image Studio で編集 →', _service_url('Ironmate', 'pages', relative=True))]},
+  'links': [('ヒートマップを描く →', './tools/#heatmap'), ('Image Studio で編集 →', _service_url('Ironmate', 'pages', relative=True))]},
  {'title': '🔌 MCP 実験室',
   'text': 'AI が MCP で呼ぶ道具（Wikipedia 表示・Pixiv 原文抽出・ニコニコ検索・ポケモン）をブラウザで試し、ツール呼び出しの記録（JSONL）を集計。'
           '検証の結果は、ラボの Actions の写し。接続試験は、新旧の protocol・PKCE・Bearer・OAuth メタデータを端末の中で確かめる。',
-  'id': 'mcp',
+  'id': 'mcp', 'words': {'MCP 実験室': ['MCP lab', 'Labo MCP', 'Laboratorio MCP', 'Laboratório MCP', 'مختبر MCP', 'MCP 实验室', 'Лаборатория MCP', 'Lab MCP', 'MCP-Labor', 'Maabara ya MCP'], 'MCP 接続試験': ['MCP connection test', 'Test de connexion MCP', 'Prueba de conexión MCP', 'Teste de conexão MCP', 'اختبار اتصال MCP', 'MCP 连接测试', 'Проверка подключения MCP', 'Uji koneksi MCP', 'MCP-Verbindungstest', 'Jaribio la muunganisho wa MCP']},
   'from': ('mcp-toolcall-lab',),
-  'links': [('Open Tool Lab →', './tools/mcp/'),
+  'links': [('Open Tool Lab →', './tools/#mcp'),
             ('Open Execution Lab →', _service_url('mcp-toolcall-lab', 'execution')),
-            ('MCP 接続試験 →', './tools/mcp-protocol/')]},
+            ('MCP 接続試験 →', './tools/#protocol')]},
  {'title': '🧾 テスト結果',
   'text': 'JUnit の結果を貼るか開いて読み、前回と比べて新規・再発・解消を分ける。端末の中で完結し、結果はどこにも送らない。',
-  'id': 'test-report',
+  'id': 'test-report', 'words': {'テスト結果': ['Test results', 'Résultats de tests', 'Resultados de pruebas', 'Resultados de testes', 'نتائج الاختبار', '测试结果', 'Результаты тестов', 'Hasil pengujian', 'Testergebnisse', 'Matokeo ya majaribio'], '結果を読む': ['Read the results', 'Lire les résultats', 'Leer los resultados', 'Ler os resultados', 'اقرأ النتائج', '读取结果', 'Прочитать результаты', 'Baca hasil', 'Ergebnisse lesen', 'Soma matokeo']},
   'from': ('PySaiyanWeBoo',),
-  'links': [('結果を読む →', './tools/test-report/')]},
+  'links': [('結果を読む →', './tools/#test-report')]},
  {'title': '💬 横断チャット',
   'text': 'リポジトリ横断の道具をチャットで：Markdown の表示・表、ASCII アートと流れ図、会話の圧縮、MCP の道具呼び出しの確認、'
           '全リポジトリの JSON / JSONL（オントロジーの台帳も）の索引と中身。ページの中の Python（Pyodide）で、それぞれのリポジトリのコードがそのまま動く。',
-  'id': 'chat',
+  'id': 'chat', 'words': {'横断チャット': ['Cross-repo chat', 'Chat inter-dépôts', 'Chat entre repositorios', 'Chat entre repositórios', 'دردشة عبر المستودعات', '跨仓库聊天', 'Чат по всем репозиториям', 'Obrolan lintas repo', 'Repo-übergreifender Chat', 'Gumzo la hazina zote'], '話しかける': ['Talk to it', 'Lui parler', 'Hablarle', 'Falar com ele', 'تحدّث إليه', '和它聊聊', 'Поговорить', 'Ajak bicara', 'Ansprechen', 'Zungumza nayo']},
   'from': ('markdown', 'ascii_artist', 'cli_args', 'TalkCompress', 'mcp-toolcall-lab'),
-  'links': [('💬 話しかける →', './tools/chat/')]},
+  'links': [('💬 話しかける →', './tools/#chat')]},
  {'title': '🧭 統合運用',
   'text': 'リポジトリ横断の運用ダッシュボード：CI の失敗・競合・未解決レビューの優先確認、監査と依存、実行手順、記録と差分。',
-  'id': 'operations',
+  'id': 'operations', 'words': {'統合運用': ['Operations', 'Opérations', 'Operaciones', 'Operações', 'العمليات', '综合运维', 'Эксплуатация', 'Operasi', 'Betrieb', 'Uendeshaji']},
   'from': ('myon-bioinformatics',),
   'links': [('Open Dashboard →', 'https://myon-bioinformatics.github.io/myon-bioinformatics/')]},
  {'title': '🎞 GIF工房',
   'text': '手持ちの画像を並べて GIF に。端末の中で完結し、画像はどこにも送らず保存もしない（PySaiyanWeBoo の gif.js）。',
-  'id': 'gif',
+  'id': 'gif', 'words': {'GIF工房': ['GIF studio', 'Atelier GIF', 'Taller GIF', 'Oficina GIF', 'استوديو GIF', 'GIF 工坊', 'Студия GIF', 'Studio GIF', 'GIF-Werkstatt', 'Studio ya GIF'], 'GIF をつくる': ['Make a GIF', 'Créer un GIF', 'Crear un GIF', 'Criar um GIF', 'أنشئ GIF', '制作 GIF', 'Сделать GIF', 'Buat GIF', 'GIF erstellen', 'Tengeneza GIF']},
   'from': ('PySaiyanWeBoo',),
-  'links': [('GIF をつくる →', './tools/gif/')]},
+  'links': [('GIF をつくる →', './tools/#gif')]},
  {'title': '🌊 流れの実験室',
   'text': 'FFSS の全場面を 🌊 動く像（流れと遅れ）で、その記録から描ける DRAgoWing の全図を 📊 静止図（行き先の内訳）で。水回り・流しそうめん・お金・からだ・火力・ヒートポンプまで。',
-  'id': 'flow',
+  'id': 'flow', 'words': {'流れの実験室': ['Flow lab', 'Labo des flux', 'Laboratorio de flujos', 'Laboratório de fluxos', 'مختبر التدفق', '流动实验室', 'Лаборатория потоков', 'Lab aliran', 'Strömungslabor', 'Maabara ya mtiririko'], '実験室へ': ['To the lab', 'Vers le labo', 'Al laboratorio', 'Ao laboratório', 'إلى المختبر', '前往实验室', 'В лабораторию', 'Ke lab', 'Zum Labor', 'Kwenda maabara']},
   'from': ('FluidFullSpeedSimulation', 'DRAgoWing'),
-  'links': [('実験室へ →', './tools/flow/')]},
+  'links': [('実験室へ →', './tools/#flow')]},
  {'title': '🧠 リポジトリ地図',
   'text': 'どのリポジトリが、どのリポジトリのファイルを写して使っているか。各リポジトリの vendor.lock.json と Aoi の subtree から、公開のたびに描き直す。',
-  'id': 'repo-map',
-  'links': [('地図へ →', './tools/repo-map/')]}]
+  'id': 'repo-map', 'words': {'リポジトリ地図': ['Repository map', 'Carte des dépôts', 'Mapa de repositorios', 'Mapa de repositórios', 'خريطة المستودعات', '仓库地图', 'Карта репозиториев', 'Peta repositori', 'Repository-Karte', 'Ramani ya hazina'], '地図へ': ['To the map', 'Vers la carte', 'Al mapa', 'Ao mapa', 'إلى الخريطة', '前往地图', 'К карте', 'Ke peta', 'Zur Karte', 'Kwenda ramani']},
+  'links': [('地図へ →', './tools/#repo-map')]}]
 
 
 # 🔗 The front page's own emoji in the shared header (scripts/project_pages.py ``add_site_chrome``): where else to find the author.
@@ -111,8 +111,6 @@ def portal_cards(samples=frozenset()) -> str:
         parts.append('<p>' + html.escape(card['text'], quote=False) + '</p>')
         if 'from' in card:
             parts.append('<p class="portal-from">🧩 出どころ: ' + ' · '.join(html.escape(name, quote=False) for name in card['from']) + '</p>')
-        if 'points' in card:
-            parts.append('<ul class="portal-points">' + ''.join(f'<li>{point}</li>' for point in card['points']) + '</ul>')
         if not shown or len(card['links']) > 1:
             parts += [f'<a href="{html.escape(href, quote=True)}">{html.escape(label, quote=False)}</a>' for label, href in card['links']]
         out.append('        <article class="card portal-card">' + ''.join(parts) + '</article>\n')
@@ -695,33 +693,6 @@ h2{margin:0 0 .75rem}
   color: var(--muted);
   font-style: italic;
 }
-.card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 10px;
-  gap: 8px;
-}
-.copy-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 3px 8px;
-  font: inherit;
-  font-size: 0.75rem;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all .15s ease;
-}
-.copy-btn:hover {
-  color: var(--fg);
-  border-color: var(--fg);
-}
-.copy-btn.copied {
-  background: #2da44e;
-  border-color: #2da44e;
-  color: #ffffff;
-}
 
 .grid {
   display: grid;
@@ -738,14 +709,6 @@ h2{margin:0 0 .75rem}
 .card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.06); }
 .card h3 { margin: 0 0 6px; font-size: 1.05rem; }
 .card p { margin: 0 0 10px; color: var(--muted); line-height: 1.4; }
-.badges { display: flex; flex-wrap: wrap; gap: 6px; }
-.badges .tag {
-  font-size: .75rem; background: #f3f4f6; border: 1px solid var(--border);
-  padding: 2px 8px; border-radius: 999px; color: #333;
-}
-@media (prefers-color-scheme: dark) {
-  .badges .tag { background: #141417; color: #ddd; }
-}
 .more { margin-top: 8px; font-size: .95rem; }
 
 /* ── Profile tabs (PySaiyanWeBoo's tabs_html: a radio and a label each, no script) ── */
@@ -806,8 +769,7 @@ body[data-view-mode="modern"] {
   color: var(--terminal-fg);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
-body[data-view-mode="modern"] .site-header,
-body[data-view-mode="modern"] .site-footer {
+body[data-view-mode="modern"] .site-header {
   border-color: var(--terminal-border);
   border-style: dashed;
 }
@@ -821,8 +783,7 @@ body[data-view-mode="modern"] .view-mode-switch select {
 }
 body[data-view-mode="modern"] .intro h2::before,
 body[data-view-mode="modern"] #profile h2::before,
-body[data-view-mode="modern"] #projects h2::before,
-body[data-view-mode="modern"] .outro h2::before {
+body[data-view-mode="modern"] #projects h2::before {
   content: "> ";
   color: var(--terminal-accent);
 }
@@ -856,8 +817,12 @@ body[data-view-mode="modern"] .btn-refresh {
   background: var(--terminal-panel);
   color: var(--terminal-fg);
 }
-body[data-view-mode="modern"] .btn-refresh::before { content: "[ "; color: var(--terminal-border); }
-body[data-view-mode="modern"] .btn-refresh::after { content: " ]"; color: var(--terminal-border); }
+body[data-view-mode="modern"] .btn-refresh::before,
+body[data-view-mode="modern"] .ui-tab::before,
+body[data-view-mode="modern"] .tag-btn::before { content: "[ "; color: var(--terminal-border); }
+body[data-view-mode="modern"] .btn-refresh::after,
+body[data-view-mode="modern"] .ui-tab::after,
+body[data-view-mode="modern"] .tag-btn::after { content: " ]"; color: var(--terminal-border); }
 body[data-view-mode="modern"] .ui-tabs { gap: 0; }
 body[data-view-mode="modern"] .ui-tab-panel { border-top: 1px dashed var(--terminal-border); }
 body[data-view-mode="modern"] .ui-tab {
@@ -865,14 +830,13 @@ body[data-view-mode="modern"] .ui-tab {
   border-bottom: 0;
   color: var(--terminal-muted);
 }
-body[data-view-mode="modern"] .ui-tab::before { content: "[ "; color: var(--terminal-border); }
-body[data-view-mode="modern"] .ui-tab::after { content: " ]"; color: var(--terminal-border); }
 body[data-view-mode="modern"] .ui-tab-input:checked + .ui-tab {
   border-right-color: var(--terminal-border);
   color: var(--terminal-fg);
   background: rgba(126,231,135,.08);
 }
-body[data-view-mode="modern"] .ui-tab-input:checked + .ui-tab::before { content: "[> "; color: var(--terminal-accent); }
+body[data-view-mode="modern"] .ui-tab-input:checked + .ui-tab::before,
+body[data-view-mode="modern"] .tag-btn.active::before { content: "[> "; color: var(--terminal-accent); }
 body[data-view-mode="modern"] .card {
   border-radius: 0;
   border-color: var(--terminal-border);
@@ -884,13 +848,6 @@ body[data-view-mode="modern"] .card p,
 body[data-view-mode="modern"] .tl-body p,
 body[data-view-mode="modern"] .tl-year,
 body[data-view-mode="modern"] .skill-category { color: var(--terminal-muted); }
-body[data-view-mode="modern"] .badges .tag {
-  border-radius: 0;
-  border-color: var(--terminal-border);
-  background: transparent;
-  color: var(--terminal-fg);
-}
-body[data-view-mode="modern"] .badges .tag::before { content: "#"; color: var(--terminal-accent); }
 body[data-view-mode="modern"] .skill-bar-track {
   height: 10px;
   border: 1px solid var(--terminal-border);
@@ -926,63 +883,27 @@ body[data-view-mode="modern"] .tag-btn {
   border-color: var(--terminal-border);
   color: var(--terminal-muted);
 }
-body[data-view-mode="modern"] .tag-btn::before { content: "[ "; color: var(--terminal-border); }
-body[data-view-mode="modern"] .tag-btn::after { content: " ]"; color: var(--terminal-border); }
 body[data-view-mode="modern"] .tag-btn.active {
   background: rgba(126, 231, 135, .12);
   color: var(--terminal-fg);
   border-color: var(--terminal-accent);
 }
-body[data-view-mode="modern"] .tag-btn.active::before { content: "[> "; color: var(--terminal-accent); }
 body[data-view-mode="modern"] .projects-count,
 body[data-view-mode="modern"] .empty-projects-msg {
   color: var(--terminal-muted);
-}
-body[data-view-mode="modern"] .copy-btn {
-  border-radius: 0;
-  border-color: var(--terminal-border);
-  background: transparent;
-  color: var(--terminal-fg);
-}
-body[data-view-mode="modern"] .copy-btn.copied {
-  background: var(--terminal-accent);
-  color: var(--terminal-bg);
-  border-color: var(--terminal-accent);
 }
 
 /* ── XML-like mode ───────────────────────────────────────────────────────── */
 body[data-view-mode="xml-like"] {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
-body[data-view-mode="xml-like"] h2[data-tag]::before {
-  content: "<" attr(data-tag) ">";
-  margin-right: .4rem;
-  color: var(--syntax-xml);
-  font-size: .9em;
-}
-body[data-view-mode="xml-like"] h2[data-tag]::after {
-  content: "</" attr(data-tag) ">";
-  margin-left: .4rem;
-  color: var(--syntax-xml);
-  font-size: .9em;
-}
-body[data-view-mode="xml-like"] .card,
-body[data-view-mode="xml-like"] .timeline-item,
-body[data-view-mode="xml-like"] .skill-group {
+body[data-view-mode="xml-like"] .card {
   border-radius: 0;
 }
 
 /* ── JSON mode ───────────────────────────────────────────────────────────── */
 body[data-view-mode="json"] {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
-body[data-view-mode="json"] h2[data-tag]::before {
-  content: '"' attr(data-tag) '": ';
-  color: var(--syntax-json-punctuation);
-}
-body[data-view-mode="json"] h2[data-tag]::after {
-  content: ",";
-  color: var(--syntax-json-punctuation);
 }
 body[data-view-mode="json"] .container {
   border-left: 3px solid var(--border);
@@ -1016,17 +937,10 @@ body[data-view-mode="github-like"] {
   color: #24292f;
 }
 body[data-view-mode="github-like"] .site-header,
-body[data-view-mode="github-like"] .site-footer,
 body[data-view-mode="github-like"] .card,
 body[data-view-mode="github-like"] .ui-tab-panel,
 body[data-view-mode="github-like"] .view-mode-switch select {
   background: #ffffff;
-}
-body[data-view-mode="github-like"] .site-header,
-body[data-view-mode="github-like"] .site-footer,
-body[data-view-mode="github-like"] .card,
-body[data-view-mode="github-like"] .ui-tab-panel,
-body[data-view-mode="github-like"] .view-mode-switch select {
   border-color: #d0d7de;
 }
 body[data-view-mode="github-like"] .card {
@@ -1036,10 +950,6 @@ body[data-view-mode="github-like"] .card {
 body[data-view-mode="github-like"] .card:hover {
   transform: none;
   box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
-}
-body[data-view-mode="github-like"] .badges .tag {
-  background: #f6f8fa;
-  color: #57606a;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1159,13 +1069,6 @@ body[data-view-mode="modern"] #projects .section-sub { color: var(--terminal-mut
   font-weight: 600;
 }
 .portal-card > a.project-sample { margin: 0 0 8px; }
-.portal-points {
-  margin: 0 0 12px;
-  padding-left: 1.2em;
-  font-size: 0.9em;
-  overflow-wrap: anywhere;
-}
-.portal-points li + li { margin-top: 4px; }
 .portal-from { margin: 0 0 8px; font-size: 0.8em; color: var(--ui-muted); overflow-wrap: anywhere; }
 
 /* Dedicated notation renderers. Layout lives here; content still comes from profile.json/projects.json. */

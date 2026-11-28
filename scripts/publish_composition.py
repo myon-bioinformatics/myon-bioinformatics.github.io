@@ -1,23 +1,29 @@
-"""Attach Portfolio's local Tone.js player to Ironmate's arrangement editor."""
+"""Attach Portfolio's local Tone.js player to Ironmate's arrangement editor (the one screen's framed #browser-tools)."""
 import argparse
+from html import escape, unescape
 from pathlib import Path
+import re
 import shutil
+
+_FRAME = re.compile(r'(<section id="browser-tools"[^>]*><template><iframe[^>]*\bsrcdoc=")([^"]*)(")')
 
 
 def publish(site):
     """🎵 Returns True when the player was attached. ⏸ Until Ironmate's default branch has the arrangement editor (a pull
-    request preview stages it from its branch), there is nothing to attach: the deploy goes on without audio."""
-    directory = site / "tools/browser-tools"
-    page = directory / "index.html"
-    html = page.read_text(encoding="utf-8") if page.is_file() else ""
-    if 'id="song-audio"' not in html:
+    request preview stages it from its branch), there is nothing to attach: the deploy goes on without audio. The editor is
+    Browser Tools, framed in tools/index.html; the player loads from its folder (``/tools/browser-tools/audition.mjs``)."""
+    directory, shell = site / "tools/browser-tools", site / "tools/index.html"
+    html = shell.read_text(encoding="utf-8") if shell.is_file() else ""
+    frame = _FRAME.search(html)
+    page = unescape(frame[2]) if frame else ""
+    if 'id="song-audio"' not in page:
         print("⏸ 🎵 Ironmate's arrangement editor is not staged yet: no audition player")
         return False
     if not (directory / "async-task.js").is_file():
         raise ValueError("The staged Ironmate tools must include async-task.js")
     shutil.copyfile(Path(__file__).with_name("audition.mjs"), directory / "audition.mjs")
-    tag = '<script type="module" src="./audition.mjs"></script>'
-    page.write_text(html.replace("</body>", tag + "</body>", 1), encoding="utf-8")
+    page = page.replace("</body>", '<script type="module" src="/tools/browser-tools/audition.mjs"></script></body>', 1)
+    shell.write_text(html[:frame.start(2)] + escape(page) + html[frame.end(2):], encoding="utf-8")
     return True
 
 

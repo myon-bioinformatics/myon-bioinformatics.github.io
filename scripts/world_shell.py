@@ -10,16 +10,21 @@ SPACES = {
     'london': ('cities', '🎡 Reverse London'),
     'paris': ('cities', '🥖 Fake Paris'),
     'osaka': ('cities', '🐙 せやかて大阪'),
-    'nagoya': ('cities', '🏯 名古屋'),
+    'nagoya': ('nagoya', '🏯 聖地ナゴヤ'),
     'camera': ('world', '🎬 カメラ'),
 }
+
+TOKYO_TEAM_WISDOM = (8, 10, 14)
+TOKYO_REPORT_EXP = 5
 
 CSS = """
 [data-world-shell]:not([data-world-route="osaka"]) [data-city-item="osaka"],
 [data-world-shell]:not([data-world-route="paris"]) [data-city-item="paris"],
 [data-world-shell]:not([data-world-route="london"]) [data-city-item="london"],
 [data-world-space][hidden],[data-world-shell] [data-menu="favorites"],
-[data-world-route]:not([data-world-route="tokyo"]) :is(#tokyo-range,#area-return){display:none!important}
+[data-world-route]:not([data-world-route="tokyo"]) :is(#tokyo-range,#area-return,#tokyo-survey){display:none!important}
+#tokyo-survey label{display:inline-grid;gap:.25rem;margin:.35rem}
+#tokyo-survey select,#tokyo-survey button{min-height:44px}
 [data-world-shell]>header{position:sticky;top:0;z-index:10;background:var(--ui-bg)}
 [data-world-space]{position:relative;isolation:isolate;scroll-margin-top:5rem}
 .world-switcher .ui-world-tools{flex-wrap:wrap;gap:.35rem}
@@ -40,6 +45,11 @@ CSS = """
 .world-switcher a{display:block;padding:.5rem;color:var(--ui-fg)}
 .world-switcher [aria-current="location"]{font-weight:bold;text-decoration:underline}
 .world-switcher .ui-world-tools>*{flex-shrink:0}
+#world-relics-menu ol{list-style:none;padding:0;margin:0}
+#world-relics-menu li{padding:.3rem .5rem}
+#world-relics-menu li a{padding:0}
+#world-relics-menu small{display:block}
+[data-world-shell]:not([data-world-route="london"]) #cities-map .ui-rpg-hud{display:none}
 """
 
 JS = r"""
@@ -51,6 +61,73 @@ const cities=shell.querySelector('#cities-map');
 const cityFloors=[...nav].filter(a=>a.dataset.scene==='cities').map(a=>a.hash.slice(1));
 const favorites=shell.querySelector('#world-favorites');
 const linked=new Map(nav.map(a=>[a.hash.slice(1),a]));
+const base=JSON.parse(shell.dataset.playerBase);
+const player={exp:0,hp:base.hp,mp:base.mp,stamina:base.stamina,schoolSolved:new Set(),surveyed:new Set()};
+const controllers=new Map();
+const output=shell.querySelector('[data-player-stats]');
+const school=shell.querySelector('[data-school-progress]');
+const lessons=[...shell.querySelectorAll('[data-school-answer]')].map(answer=>answer.dataset.schoolAnswer);
+const growth=()=>globalThis.webUiWorld?.rpgLevelForExp(player.exp)??{level:1,bonus_hp:0,bonus_mp:0,bonus_atk:0,bonus_def:0};
+const wisdom=()=>base.wisdom+(growth().bonus_wisdom??0);
+const survey=shell.querySelector('#tokyo-survey');
+const squads=[...survey.querySelectorAll('select')];
+const stations=[...squads[0].options].map(option=>option.value).filter(Boolean);
+const report=survey.querySelector('ul');
+function syncSurvey(){
+ const assigned=new Set();
+ for(const squad of squads){
+  squad.disabled=wisdom()<Number(squad.dataset.minWisdom);
+  if(squad.disabled||player.surveyed.has(squad.value)||assigned.has(squad.value))squad.value='';
+  if(squad.value)assigned.add(squad.value);
+ }
+ for(const squad of squads)for(const option of squad.options){
+  option.disabled=player.surveyed.has(option.value)||(assigned.has(option.value)&&option.value!==squad.value);
+ }
+ survey.querySelector('button').disabled=!assigned.size;
+ survey.querySelector('output').textContent=`調査済み ${player.surveyed.size}/${stations.length}`;
+}
+function showReports(){
+ report.replaceChildren();
+ for(const id of player.surveyed){
+  const sheet=document.getElementById('cities-spot-'+id);
+  const link=document.createElement('a');
+  link.href='#'+sheet.id;link.textContent=sheet.querySelector('h3').textContent;
+  const row=document.createElement('li');row.append(link,'　'+sheet.querySelector('p').textContent);
+  report.append(row);
+ }
+}
+survey.addEventListener('change',syncSurvey);
+survey.querySelector('button').addEventListener('click',()=>{
+ syncSurvey();
+ const targets=squads.filter(squad=>!squad.disabled&&squad.value).map(squad=>squad.value);
+ for(const id of targets)player.surveyed.add(id);
+ player.exp+=targets.length*Number(survey.dataset.reward);
+ showReports();showPlayer();
+});
+function showPlayer(){
+ if(shell.dataset.worldRoute==="tokyo")syncSurvey();
+ const g=growth();
+ output.textContent=`経験値 ${player.exp}　HP ${player.hp}　MP ${player.mp}　基礎攻撃 ${base.atk+g.bonus_atk}　基礎防御 ${base.def+g.bonus_def}　スタミナ ${player.stamina}　かしこさ ${wisdom()}`;
+ if(school)school.textContent=`正解 ${player.schoolSolved.size}/${lessons.length}`;
+}
+shell.player={
+ growth,wisdom,lessons,stations,
+ bind(state,route,refresh){
+  controllers.set(state,{route,refresh});
+  for(const key of Object.keys(player))Object.defineProperty(state,key,{
+   get:()=>player[key],set(value){if(player[key]!==value){player[key]=value;if(key==="surveyed")showReports();showPlayer()}}
+  });
+ },
+ active(state){return controllers.get(state)?.route===shell.dataset.worldRoute},
+ spend(){if(player.stamina<1)return false;player.stamina--;showPlayer();return true},
+ rest(){player.stamina=Math.max(player.stamina,base.stamina);showPlayer()}
+};
+shell.addEventListener('toggle',event=>{
+ const answer=event.target;
+ if(!answer.open||!answer.hasAttribute('data-school-answer'))return;
+ const lesson=answer.dataset.schoolAnswer;
+ if(!player.schoolSolved.has(lesson)){player.schoolSolved.add(lesson);player.exp+=1;showPlayer()}
+},true);
 function route(){
  const hash=location.hash.slice(1), spot=document.getElementById(hash);
  const inside=spot?.closest('[data-world-space]')?.dataset.worldSpace;
@@ -67,6 +144,8 @@ function route(){
  }
  for(const a of nav){if(a===entry)a.setAttribute('aria-current','location');else a.removeAttribute('aria-current');}
  shell.querySelector('#world-space-name').textContent=entry.textContent;
+ for(const controller of controllers.values())if(controller.route===name)controller.refresh();
+ showPlayer();
 }
 function listFavorites(){
  const links=new Map();
@@ -90,9 +169,27 @@ cities.addEventListener('change',e=>{
  if(!cityFloors.includes(shell.dataset.worldRoute)||!(control.matches('.ui-world-goto')||control.name==='cities-floor')||!cityFloors.includes(control.value))return;
  if(shell.dataset.worldRoute!==control.value){history.pushState(null,'','#'+control.value);route();}
 });
+const pill=shell.querySelector('#world-relics-count');
+const relics=[...shell.querySelectorAll('#world-relics-list li')].map(row=>{
+ const link=row.querySelector('a');
+ const spot=shell.querySelector(`.ui-floor a[href="${CSS.escape(link.hash)}"]`);
+ return {status:row.querySelector('[data-relic-status]'),spot,flag:row.dataset.relicState};
+});
+function syncRelics(){
+ let collected=0;
+ for(const {status,spot,flag} of relics){
+  const earned=spot?.hasAttribute(flag);
+  status.textContent=earned?'✅ 取得済み':'未取得';
+  if(earned)collected++;
+ }
+ const count=`${collected}/${relics.length}`;
+ if(pill.textContent!==count)pill.textContent=count;
+}
+const relicObserver=new MutationObserver(syncRelics);
+for(const {spot,flag} of relics)if(spot)relicObserver.observe(spot,{attributeFilter:[flag]});
 addEventListener('hashchange',route);
 shell.addEventListener('world-location',route);
-route();listFavorites();
+route();listFavorites();syncRelics();
 """
 
 
@@ -182,21 +279,48 @@ def dialogue_graph(world):
     return {"terms": {name: [name, *aliases] for name, (_, aliases) in nodes.items()}, "facts": records, "paths": paths}
 
 
-def document(ui, world, maps, places, css_href, js_href, dialogue="", *, dragon_png, dragon_grid):
+def relic_menu(world, specs):
+    relics = [relic for spec in specs for relic in world.relic_catalogue(world.world_validate(spec))]
+    rows = []
+    for relic in relics:
+        flag = "data-rpg-bonded" if relic["kind"] == "dragon" else "data-rpg-opened"
+        rows.append(f'<li data-relic-state="{flag}"><a href="#{relic["fragment"]}">'
+                    f'{escape(relic["emoji"])} {escape(relic["label"])}</a>'
+                    f'<small><span data-relic-status>未取得</span> · {escape(relic["condition"])}</small></li>')
+    return ('<details id="world-relics-menu"><summary id="world-relics-btn">🐉 竜と秘宝 '
+            f'<span id="world-relics-count" aria-live="polite">0/{len(relics)}</span></summary>'
+            f'<div id="world-relics-list"><ol>{"".join(rows)}</ol></div></details>')
+
+
+def tokyo_survey(points):
+    options = '<option value="">未配属</option>' + ''.join(
+        f'<option value="{escape(p["id"], quote=True)}">{escape(p["label"])}</option>' for p in points)
+    teams = ''.join(f'<label>第{i}班（かしこさ{minimum}）<select data-min-wisdom="{minimum}">{options}</select></label>'
+                    for i, minimum in enumerate(TOKYO_TEAM_WISDOM, 1))
+    return (f'<details id="tokyo-survey" data-reward="{TOKYO_REPORT_EXP}"><summary>東京の調査隊</summary>'
+            f'<p>各班の調査先を選んで派遣。初調査は1地点につき経験値+{TOKYO_REPORT_EXP}。</p>'
+            f'{teams}<button type="button" disabled>派遣して報告を受け取る</button> <output></output><ul></ul></details>')
+
+
+def document(ui, world, maps, places, css_href, js_href, dialogue="", *, dragon_png, dragon_grid, site_words=None):
     specs = {name: world.example_data(name) for name in dict.fromkeys(spec for spec, _ in SPACES.values())}
     sections = []
     for spec, data in specs.items():
         route, *aliases = [key for key, (value, _) in SPACES.items() if value == spec]
         body = world.world_html(data, embedded=True)
         if spec == 'cities':
-            body = maps.tokyo_links(ui, body, maps.tokyo_points(data))
+            points = maps.tokyo_points(data)
+            body = tokyo_survey(points) + maps.tokyo_links(ui, body, points)
         body = ''.join(f'<span id="{alias}"></span>' for alias in aliases) + body
         sections.append(f'<section id="{route}" data-world-space="{spec}" aria-label="{escape(SPACES[route][1])}">{body}</section>')
     nav = ''.join(f'<a href="#{route}" data-scene="{scene}">{escape(label)}</a>' for route, (scene, label) in SPACES.items())
     tools = ''.join(f'<a href="{escape(p["href"], quote=True)}">{escape(p["label"])}</a>' for p in places)
-    header = ('<header class="ui-world-head"><div id="world-switcher" class="world-switcher"><nav class="ui-world-tools" aria-label="ワールド">'
+    words = escape(json.dumps(site_words or {}, ensure_ascii=False, separators=(",", ":")), quote=True)   # 🌐 the site's names: they join the catalogue
+    header = (f'<header class="ui-world-head" data-words="{words}"><div id="world-switcher" class="world-switcher"><nav class="ui-world-tools" aria-label="ワールド">'
               f'<details data-world-nav><summary aria-label="空間一覧">☰</summary><div>{nav}</div></details>'
               '<strong id="world-space-name">🌍 ワールド</strong>'
+              + '<details><summary>🧑 主人公</summary><div data-player-stats></div></details>'
+              + relic_menu(world, specs.values()) +
               '<details><summary>⭐ お気に入り</summary><div id="world-favorites">まだありません</div></details>'
               f'<details><summary>🧰 道具</summary><div>{tools}</div></details>'
               f'<details data-world-guide><summary>📖 攻略ガイド</summary><div>{exploration_scroll_guide(world)}</div></details>'
@@ -205,9 +329,10 @@ def document(ui, world, maps, places, css_href, js_href, dialogue="", *, dragon_
     dialogue += f"\nconst worldKnowledge={knowledge};\n"
     sprite = (f'<template id="dragon-art"><img class="dragon-portrait" alt="" src="{escape(dragon_png, quote=True)}">'
               f'<a download="london-dragon.json" href="{escape(dragon_grid, quote=True)}">原画JSONを保存</a></template>')
-    body = ('<main><div data-world-shell>' + sprite + header + ''.join(sections) + '</div></main>'
+    base = escape(json.dumps(world.PLAYER_BASE), quote=True)
+    body = (f'<main><div data-world-shell data-player-base="{base}">' + sprite + header + ''.join(sections) + '</div></main>'
             + ui.module_script(JS) + f'<script type="module" src="{js_href}"></script>'
-            + ui.module_script(f'import "{js_href}";\n' + dialogue + world.world_game_modules(specs.values(), "../vendor/web-ui/js/records.js")) + maps.tokyo_modules(ui))
+            + ui.module_script(f'import "{js_href}";\n' + dialogue + world.world_game_modules(specs.values(), "./vendor/web-ui/js/records.js")) + maps.tokyo_modules(ui))
     css = ''.join(world.world_css(data, base=False) for data in specs.values()) + f'@layer components{{{CSS}}}'
     page = ui.render_document(title='🌍 ワールド', theme='modern', trusted_html=body, css=ui.bundled_css())
     return page.replace('</head>', f'<link rel="stylesheet" href="{css_href}"><style>{css}</style></head>', 1)

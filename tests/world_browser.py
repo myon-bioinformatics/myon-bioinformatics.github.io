@@ -59,6 +59,24 @@ class SchoolTests(unittest.TestCase):
         page.wait_for_function("() => !document.querySelector('.ui-world').hasAttribute('data-pick')")
         page.wait_for_timeout(400)                                          # the camera finishes its short glide
 
+    def test_blackboard_allows_retry_with_explanation(self):
+        page = self.open(width=390, height=844, touch=True)
+        self.start(page)
+        self.menu(page, "spots")
+        page.click('.ui-world-spots a[href="#school-spot-classroom-board"]')
+        board = page.get_by_role("region", name="黒板の練習問題")
+        self.assertEqual(board.locator(":scope > details").count(), len(W.SCHOOL_LESSONS))
+        topic = board.locator(":scope > details").first
+        topic.locator(":scope > summary").click()
+        question = topic.locator(":scope > details").first
+        question.locator(":scope > summary").click()
+        choices = question.locator(":scope > details")
+        choices.nth(1).locator("summary").click()
+        self.assertIn("もう一度", choices.nth(1).inner_text())
+        choices.first.locator("summary").click()
+        self.assertIn("正解。", choices.first.inner_text())
+        self.assertEqual(self.errors, [])
+
     def cell(self, page):
         x, y = page.evaluate(POS)
         tile = int(page.get_attribute(CLASSROOM, "data-tile"))
@@ -1083,7 +1101,7 @@ class CitiesTests(unittest.TestCase):
     def test_every_language_labels_the_city_tools(self):
         page = self.open("phone")
         self.start(page)
-        codes = [code for code, _ in W.WORLD_LANGS]
+        codes = [code for code, _ in W.CHROME_LANGS]
         for code in codes:
             with self.subTest(lang=code):
                 self.menu(page, "settings")
@@ -1097,6 +1115,30 @@ class CitiesTests(unittest.TestCase):
                     self.assertNotEqual(labels[0], "ホーム")
                 self.shot(page, "lang", "tokyo", code, f"🌐 {code}: {' · '.join(labels[:4])}")
                 page.keyboard.press("Escape")
+        self.assertEqual(self.errors, [])
+
+    def test_every_language_leaves_no_japanese_label_but_a_name(self):
+        """🌐 Every button, tooltip and placeholder of the village, the school and the cities reads in each of the eleven languages: a
+        label still in Japanese is only the name of something the scene shows by that name (a place, a person, a thing), which the
+        browser's own translate reads, never a button's. The text the shell writes for every scene (⭐ 🧰 📖) follows too."""
+        kana = r"[぀-ヿ]"
+        leftover = """re => { const shown = new Set(); const w = document.createTreeWalker(document.body, 4);
+            for (let t; (t = w.nextNode());) shown.add(t.nodeValue.trim());
+            const bare = s => s.replace(/^[^\\p{L}\\p{N}]+|[^\\p{L}\\p{N}]+$/gu, '');
+            return [...document.querySelectorAll('[aria-label],[title],[placeholder]')].flatMap(n => ['aria-label', 'title', 'placeholder'].map(a => n.getAttribute(a)))
+                .filter(v => v && new RegExp(re).test(v) && !shown.has(v) && ![...shown].some(s => bare(s) === bare(v))) }"""
+        for name in ("overworld", "school", "cities"):
+            path = Path(self.tmp.name) / f"{name}-lang.html"
+            path.write_text(W.world_document(W.example_data(name)), encoding="utf-8")
+            page = self.open("desktop", path=path)
+            if page.locator("[data-emoji]").count():
+                page.locator("[data-emoji]").first.click()
+            for code, _ in W.CHROME_LANGS[1:]:
+                with self.subTest(world=name, lang=code):
+                    page.evaluate("c => { for (const s of document.querySelectorAll('[data-lang]')) { s.value = c; s.dispatchEvent(new Event('change', {bubbles: true})) } }", code)
+                    self.assertEqual(page.evaluate(leftover, kana), [])
+            page.evaluate("() => { for (const s of document.querySelectorAll('[data-lang]')) { s.value = 'ja'; s.dispatchEvent(new Event('change', {bubbles: true})) } }")
+            self.assertEqual(page.evaluate("[...document.querySelectorAll('.ui-player')].map(p => p.getAttribute('aria-label'))")[:1], ["自分"])   # and back
         self.assertEqual(self.errors, [])
 
     def test_without_javascript_each_city_is_a_static_map(self):
@@ -1528,8 +1570,8 @@ class OverworldRpgTests(unittest.TestCase):
         dialog.get_by_role("button", name="やったね！").click()
         dialog.wait_for(state="hidden")
 
-        # ATK rose from 6 to 10 (6 + 4 from sword) and both items are synced into 🎒 Bag
-        self.assertIn("⚔️ 10", page.locator("[data-rpg-gear]").inner_text())
+        # The sword adds four points to the shared starting attack.
+        self.assertIn(f"⚔️ {W.PLAYER_BASE['atk'] + 4}", page.locator("[data-rpg-gear]").inner_text())
         self.assertEqual(page.get_attribute('.ui-spot[href="#overworld-spot-meadow-chest-sword"]', "data-rpg-opened"), "")
         self.assertIn("📭", page.inner_text('.ui-spot[href="#overworld-spot-meadow-chest-sword"]'))
         page.click('.ui-world-menu[data-menu="bag"] > summary')
@@ -1558,22 +1600,20 @@ class OverworldRpgTests(unittest.TestCase):
         self.assertFalse(page.locator("[data-rpg-exp]").inner_text().startswith("✨ 0/"))
         self.assertEqual(self.errors, [])
 
-    def test_journal_quests_badges_quiz_and_responsive_layout(self):
+    def test_journal_quests_badges_and_responsive_layout(self):
         for width, height, touch in ((1280, 800, False), (390, 844, True)):
             with self.subTest(width=width):
                 page = self.open(width=width, height=height, touch=touch)
                 self.assertEqual(page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth"), 0)
                 if width == 1280:
-                    # Quiz with 🔬 研究員
+                    # Talk to the meadow researcher
                     page.click('.ui-world-menu[data-menu="spots"] > summary')
                     page.click('.ui-world-spots a[href="#overworld-spot-meadow-npc-researcher"]')
                     page.click('#overworld-spot-meadow-npc-researcher .ui-rpg-sheet-btn')
                     dialog = page.locator(".ui-rpg-card")
                     dialog.wait_for(state="visible")
-                    dialog.get_by_role("button", name="🎓 クイズに挑戦").click()
-                    dialog.locator(".ui-rpg-actions button").first.click()
-                    self.assertIn("せいかい", dialog.inner_text())
-                    dialog.get_by_role("button", name="とじる").click()
+                    self.assertEqual(dialog.get_by_role("button", name="🎓 クイズに挑戦").count(), 0)
+                    dialog.locator(".ui-rpg-close").click()
                     dialog.wait_for(state="hidden")
                     # Open 📜 Journal and inspect tabs
                     page.click("[data-rpg-journal-btn]")
@@ -1590,6 +1630,300 @@ class OverworldRpgTests(unittest.TestCase):
                     journal.wait_for(state="hidden")
                 self.assertEqual(self.errors, [])
 
+
+class ReverseLondonRpgBrowserTests(unittest.TestCase):
+    """Reverse London RPG, dialogue, dragon care and world relics contract in Chromium."""
+
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+        from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+        import functools
+        import threading
+        import shutil
+
+        spec = importlib.util.spec_from_file_location("project_pages", ROOT / "scripts/project_pages.py")
+        pages = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(pages)
+        cls.tmp_dir = Path(tempfile.mkdtemp(prefix="portfolio-london-"))
+        pages.stage(cls.tmp_dir)
+
+        class QuietHandler(SimpleHTTPRequestHandler):
+            def log_message(self, format, *args):
+                pass
+
+        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(QuietHandler, directory=str(cls.tmp_dir)))
+        cls.server_thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.server_thread.start()
+        cls.server_url = f"http://127.0.0.1:{cls.server.server_port}"
+
+        cls.pw = sync_playwright().start()
+        cls.browser = W.launch(cls.pw)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.browser.close()
+        cls.pw.stop()
+        cls.server.shutdown()
+        cls.server.server_close()
+        import shutil
+        shutil.rmtree(cls.tmp_dir, ignore_errors=True)
+
+    def test_discovery_care_and_bond_rewards_have_distinct_thresholds(self):
+        import math
+
+        dragons = W.example_data("cities")["rpg"]["dragons"]
+        context = self.browser.new_context()
+        self.addCleanup(context.close)
+        page = context.new_page()
+        page.goto(self.server_url + "/tools/#london")
+        page.click('#cities-map [data-emoji="🧳"]')
+        city = page.locator("#cities-map")
+        dialog = city.get_by_role("dialog")
+
+        def visit(sid):
+            city.locator(f"#cities-spot-{sid} .ui-rpg-sheet-btn").dispatch_event("click")
+
+        def check_journal(cared, mastered):
+            dialog.get_by_role("button", name="またね！").click()
+            city.locator("[data-rpg-journal-btn]").click()
+            quest = dialog.locator("li").filter(has_text="龍とのふれあい")
+            self.assertIn("1/1" if cared else "0/1", quest.inner_text())
+            dialog.get_by_role("button", name="🏅 実績").click()
+            for title, earned in (("龍の友愛", cared), ("龍の盟友", mastered)):
+                badge = dialog.locator(".ui-rpg-badge").filter(has_text=title)
+                self.assertEqual(badge.get_attribute("data-unlocked"), str(earned).lower())
+            page.keyboard.press("Escape")
+
+        first = next(iter(dragons))
+        visit(first)
+        check_journal(False, False)
+        visit(first)
+        dialog.get_by_role("button", name="🪮 ブラッシング").click()
+        check_journal(True, False)
+        for index, (sid, dragon) in enumerate(dragons.items()):
+            visit(sid)
+            remaining = dragon["bond_max"] - (6 if sid == first else 0)
+            for _ in range(math.ceil(remaining / 6)):
+                dialog.get_by_role("button", name="🪮 ブラッシング").click()
+            check_journal(True, index + 1 == len(dragons))
+
+    def test_reverse_london_dialogue_dragon_care_and_journal(self):
+        context = self.browser.new_context(viewport={"width": 1280, "height": 800})
+        self.addCleanup(context.close)
+        page = context.new_page()
+        errors = []
+        page.on("pageerror", lambda err: errors.append(str(err)))
+        page.goto(self.server_url + "/tools/#london", wait_until="networkidle")
+
+        # 0. Pick avatar for cities
+        page.click('#cities-map [data-emoji="🧳"]')
+        page.wait_for_timeout(300)
+
+        overlay = page.locator('#cities-map .ui-rpg-overlay')
+
+        # 1. Contact Arthur & dialogue
+        page.evaluate('() => document.querySelector("#cities-spot-london-rl-npc-arthur .ui-rpg-sheet-btn").click()')
+        overlay.wait_for(state="visible")
+        dialog = overlay.locator(".ui-rpg-card")
+        self.assertIn("探偵アーサー", dialog.inner_text())
+        page.click('#cities-map .ui-rpg-card [data-primary]')  # Next page
+        self.assertIn("[2/4]", dialog.inner_text())
+        page.click('#cities-map .ui-rpg-card button:has-text("とじる")')
+        overlay.wait_for(state="hidden")
+
+        # 2. Interact with Pythagoras Dragon and perform care actions
+        page.evaluate('() => document.querySelector("#cities-spot-london-rl-dragon-pyth .ui-rpg-sheet-btn").click()')
+        overlay.wait_for(state="visible")
+        dialog = overlay.locator(".ui-rpg-card")
+        self.assertIn("ピタゴラス龍", dialog.inner_text())
+        self.assertIn("PythDRagoras", dialog.inner_text())
+
+        # Care: brushing (+6 bond)
+        page.click('#cities-map .ui-rpg-card button:has-text("ブラッシング")')
+        self.assertIn("絆: 6/30", dialog.inner_text())
+
+        # Care: resonance (+8 bond)
+        page.click('#cities-map .ui-rpg-card button:has-text("共鳴・対話")')
+        self.assertIn("絆: 14/30", dialog.inner_text())
+        page.click('#cities-map .ui-rpg-card button:has-text("またね！")')
+        overlay.wait_for(state="hidden")
+
+        # 3. Open Journal and verify dragons tab
+        page.click('#cities-map [data-rpg-journal-btn]')
+        journal = page.locator("#cities-map .ui-rpg-journal-card")
+        journal.wait_for(state="visible")
+        dragons_tab = journal.get_by_role("button", name="🐉 竜の手帳")
+        self.assertTrue(dragons_tab.is_visible())
+        dragons_tab.click()
+        self.assertIn("ピタゴラス龍", journal.inner_text())
+        self.assertIn("未知の龍", journal.inner_text())
+        page.keyboard.press("Escape")
+        journal.wait_for(state="hidden")
+
+        # 4. Header relics menu
+        relics_btn = page.locator('#world-relics-btn')
+        self.assertTrue(relics_btn.is_visible())
+        relics_btn.click()
+        self.assertTrue(page.locator('#world-relics-list').is_visible())
+
+        self.assertEqual(errors, [])
+
+
+class NagoyaRpgBrowserTests(unittest.TestCase):
+    """Nagoya RPG, dialogues, deeds, fan fame gamification and world shell in Chromium."""
+
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+        from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+        import functools
+        import threading
+        import shutil
+
+        spec = importlib.util.spec_from_file_location("project_pages", ROOT / "scripts/project_pages.py")
+        pages = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(pages)
+        cls.tmp_dir = Path(tempfile.mkdtemp(prefix="portfolio-nagoya-"))
+        pages.stage(cls.tmp_dir)
+
+        class QuietHandler(SimpleHTTPRequestHandler):
+            def log_message(self, format, *args):
+                pass
+
+        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(QuietHandler, directory=str(cls.tmp_dir)))
+        cls.server_thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.server_thread.start()
+        cls.server_url = f"http://127.0.0.1:{cls.server.server_port}"
+
+        cls.pw = sync_playwright().start()
+        cls.browser = W.launch(cls.pw)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.browser.close()
+        cls.pw.stop()
+        cls.server.shutdown()
+        cls.server.server_close()
+        import shutil
+        shutil.rmtree(cls.tmp_dir, ignore_errors=True)
+
+    def test_nagoya_dialogues_deeds_fame_and_journal(self):
+        context = self.browser.new_context(viewport={"width": 1280, "height": 800})
+        self.addCleanup(context.close)
+        page = context.new_page()
+        errors = []
+        page.on("pageerror", lambda err: errors.append(str(err)))
+        page.goto(self.server_url + "/tools/#nagoya", wait_until="networkidle")
+
+        # 0. Check world switcher recognizes nagoya
+        self.assertEqual(page.locator("#world-space-name").inner_text().strip(), "🏯 聖地ナゴヤ")
+
+        # Pick avatar for nagoya
+        page.click('#nagoya-map [data-emoji="🧢"]')
+        page.wait_for_timeout(300)
+
+        overlay = page.locator('#nagoya-map .ui-rpg-overlay')
+
+        # 1. Check HUD fame meter
+        fame_btn = page.locator('#nagoya-map [data-rpg-fame-btn]')
+        self.assertTrue(fame_btn.is_visible())
+        self.assertIn("知名度 0pt", fame_btn.inner_text())
+
+        # 2. Contact Ryuji & do cheer practice deed
+        page.evaluate('() => document.querySelector("#nagoya-spot-nagoya-npc-ouendan .ui-rpg-sheet-btn").click()')
+        overlay.wait_for(state="visible")
+        dialog = overlay.locator(".ui-rpg-card")
+        self.assertIn("応援団長リュウジ", dialog.inner_text())
+        self.assertIn("ドラ魂", dialog.inner_text())
+
+        # Action: cheer practice deed (+15 fame)
+        help_btn = dialog.locator('[data-rpg-deed-btn]')
+        self.assertTrue(help_btn.is_visible())
+        help_btn.click()
+        self.assertIn("知名度が 15pt 上昇した", dialog.inner_text())
+        page.click('#nagoya-map .ui-rpg-card button:has-text("とじる")')
+        overlay.wait_for(state="hidden")
+
+        # Verify HUD fame updated
+        self.assertIn("15pt", fame_btn.inner_text())
+
+        # 3. Visit Vantelin Dome: Pay 30G for match ticket to cheer from stands (+25 fame)
+        gold_el = page.locator('#nagoya-map [data-rpg-gold]')
+        self.assertIn("125G", gold_el.inner_text())
+        page.evaluate('() => document.querySelector("#nagoya-spot-nagoya-farm-ballpark .ui-rpg-sheet-btn").click()')
+        overlay.wait_for(state="visible")
+        dome_dialog = overlay.locator(".ui-rpg-card")
+        self.assertIn("ナゴヤ球場", dome_dialog.inner_text())
+        self.assertIn("二軍の試合", dome_dialog.inner_text())
+        dome_deed_btn = dome_dialog.locator('[data-rpg-deed-btn]')
+        self.assertTrue(dome_deed_btn.is_visible())
+        self.assertIn("30G", dome_deed_btn.inner_text())
+        self.assertIn("+25知名度", dome_deed_btn.inner_text())
+        self.assertIn("ナゴヤ球場で二軍の試合を観る", dome_deed_btn.inner_text())
+        self.assertIn("125G", gold_el.inner_text())
+        dome_deed_btn.click()
+        self.assertIn("スタンドで二軍の試合を観戦した", dome_dialog.inner_text())
+        page.click('#nagoya-map .ui-rpg-card button:has-text("とじる")')
+        overlay.wait_for(state="hidden")
+
+        # Fame is now 15 + 25 = 40pt; Gold is 125 + 40 (ticket quest) - 30 (cost) + 75 (fame*3) + 60 (fame starter quest) = 270G
+        self.assertIn("40pt", fame_btn.inner_text())
+        self.assertIn("270G", gold_el.inner_text())
+
+        # 4. Visit Aeon Mall: Shop and buy cheer goods, do shopping deed (+15 fame)
+        page.evaluate('() => document.querySelector("#nagoya-spot-nagoya-aeon-mall .ui-rpg-sheet-btn").click()')
+        overlay.wait_for(state="visible")
+        aeon_dialog = overlay.locator(".ui-rpg-card")
+        self.assertIn("モール店員ナミ", aeon_dialog.inner_text())
+        self.assertIn("イオンモール ナゴヤドーム前へようこそ", aeon_dialog.inner_text())
+
+        self.assertIn("270G", gold_el.inner_text())
+        self.assertEqual(aeon_dialog.locator("[data-rpg-deed-btn]").count(), 0)
+        aeon_dialog.locator('button:has-text("🛒 おみせ")').click()
+        shop_card = overlay.locator('.ui-rpg-card[aria-label="モール店員ナミのお店"]')
+        shop_card.wait_for(state="visible")
+        self.assertIn("ドーム観戦必勝弁当", shop_card.inner_text())
+        self.assertIn("ナゴヤエナジースカッシュ", shop_card.inner_text())
+        # Buying the drink completes the mall deed and the third-deed quest.
+        shop_card.locator('.ui-rpg-row:has-text("ナゴヤエナジースカッシュ") button:has-text("かう")').click()
+        page.wait_for_timeout(200)
+        self.assertIn("410G", gold_el.inner_text())
+
+        shop_card.locator('.ui-rpg-row:has-text("ナゴヤエナジースカッシュ") button:has-text("かう")').click()
+        self.assertIn("395G", gold_el.inner_text())
+        shop_card.get_by_role("button", name="とじる", exact=True).click()
+        overlay.wait_for(state="hidden")
+
+        # Fame is now 40 + 15 = 55pt (rank: 聖地ナゴヤの名物ファン)
+        self.assertIn("55pt", fame_btn.inner_text())
+        self.assertIn("395G", gold_el.inner_text())
+
+        # 5. Open Journal and inspect Fan Fame tab & badges
+        fame_btn.click()
+        journal = page.locator('#nagoya-map .ui-rpg-journal-card')
+        journal.wait_for(state="visible")
+        self.assertIn("熱血コール＆レスポンス", journal.inner_text())
+        self.assertIn("街の美化活動（ゴミ拾い）", journal.inner_text())
+        self.assertIn("ナゴヤ球場で二軍を応援", journal.inner_text())
+        self.assertIn("ドーム前商業施設で応援準備", journal.inner_text())
+
+        # Inspect badges tab
+        journal.locator('button:has-text("🏅 実績")').click()
+        self.assertIn("熱血現地サポーター", journal.inner_text())
+        self.assertIn("応援準備マスター", journal.inner_text())
+
+        page.keyboard.press("Escape")
+        journal.wait_for(state="hidden")
+
+        # 6. Header relics menu reflects Nagoya relics
+        relics_btn = page.locator('#world-relics-btn')
+        self.assertTrue(relics_btn.is_visible())
+        self.assertIn("/14", relics_btn.inner_text())
+        relics_btn.click()
+        self.assertTrue(page.locator('#world-relics-list').is_visible())
+
+        self.assertEqual(errors, [])
 
 
 class FakeParisHeroTests(unittest.TestCase):
@@ -1658,8 +1992,8 @@ class FakeParisHeroTests(unittest.TestCase):
         page.wait_for_timeout(300)
         self.assertEqual(page.get_attribute('.ui-rescue-node[data-rescue-id="chest-nozzle"]', "data-rescue-opened"), "true")
         self.assertEqual(page.text_content('.ui-rescue-node[data-rescue-id="chest-nozzle"] .ui-rescue-glyph'), "📭")
-        self.assertIn("🚿 15", page.text_content("[data-rescue-gear]"))
-        self.assertIn("🛡️ 3", page.text_content("[data-rescue-gear]"))
+        self.assertIn("🚿 13", page.text_content("[data-rescue-gear]"))
+        self.assertIn("🛡️ 2", page.text_content("[data-rescue-gear]"))
         # Verify 🎒 Bag in header has both items
         page.click('.ui-world-menu[data-menu="bag"] > summary')
         bag_text = page.text_content(".ui-world-bag")
@@ -1692,6 +2026,26 @@ class FakeParisHeroTests(unittest.TestCase):
         page.wait_for_selector(".ui-rpg-card", state="hidden")
         self.assertEqual(self.errors, [])
 
+    def test_restoring_village_water_preserves_earned_mission(self):
+        page = self.open()
+        fire = page.locator('[data-fire-id="fire-0"]')
+        def restore(hidden):
+            fire.evaluate("""(fire, hidden) => {
+              fire.hidden = hidden;
+              fire.closest('.ui-world').dispatchEvent(new Event('world-rescue-fires-changed'));
+            }""", hidden)
+        restore(True)
+        medals = page.text_content('[data-rescue-medals]')
+        restore(False)
+        self.assertIn('鎮火 0/', page.text_content('[data-rescue-fires]'))
+        page.click('[data-rescue-journal-btn]')
+        row = page.locator('.ui-rpg-row').filter(has_text='初めての消火活動')
+        self.assertIn('✅', row.inner_text())
+        self.assertIn('1/1', row.inner_text())
+        restore(True)
+        self.assertEqual(page.text_content('[data-rescue-medals]'), medals)
+        self.assertEqual(self.errors, [])
+
     def test_every_guide_fire_can_be_extinguished(self):
         graph = json.loads((ROOT / "docs/world-guide.json").read_text(encoding="utf-8"))
         fires = [n for n in graph["nodes"] if "heat" in n]
@@ -1722,12 +2076,6 @@ class FakeParisHeroTests(unittest.TestCase):
                     break
             card.get_by_role("button", name="消火完了", exact=False).click()
         self.assertIn(f"{len(fires)}/{len(fires)}", page.text_content("[data-rescue-fires]"))
-        visit(next(n["id"] for n in data["nodes"] if n.get("quiz")))
-        page.locator(".ui-rpg-card").get_by_role("button", name="クイズに挑戦", exact=False).click()
-        for quiz in data["quizzes"]:
-            page.get_by_role("button", name=f'{quiz["correct"]+1}. {quiz["choices"][quiz["correct"]]}').click()
-            page.get_by_role("button", name="つぎの問題 ▶").click()
-        page.locator(".ui-rpg-card .ui-rpg-close").click()
         page.click("[data-rescue-journal-btn]")
         self.assertEqual(page.locator(".ui-rpg-card").inner_text().count("✅"), len(data["quests"]))
         page.get_by_role("button", name="🏅 勲章バッジ").click()
@@ -1766,11 +2114,7 @@ class FakeParisHeroTests(unittest.TestCase):
         # Open archivist NPC dialogue & quiz
         page.click('.ui-rescue-node[data-rescue-id="npc-archivist"]')
         page.wait_for_selector(".ui-rpg-card", state="visible")
-        page.locator('.ui-rpg-card button:has-text("クイズに挑戦")').click()
-        page.wait_for_selector(".ui-rpg-card:has-text('技術クイズ')", state="visible")
-        page.locator(".ui-rpg-card .ui-rpg-actions button").first.click()
-        page.wait_for_timeout(300)
-        self.assertIn("正解！", page.text_content(".ui-rpg-card"))
+        self.assertIn("記録官ルネ", page.locator(".ui-rpg-card").inner_text())
         page.locator(".ui-rpg-card .ui-rpg-close").click()
         page.wait_for_selector(".ui-rpg-card", state="hidden")
         # Open 📋 Hero Journal
@@ -1838,6 +2182,25 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         self.assertIn("[2/4]", dialog.inner_text())
         dialog.locator(".ui-rpg-close").click()
         page.wait_for_selector(".ui-rpg-card", state="hidden")
+        self.assertEqual(self.errors, [])
+
+    def test_npcs_can_talk_when_no_quizzes_are_configured(self):
+        spec = W.example_data("cities")
+        for game in ("rescue", "detective"):
+            spec[game]["quizzes"] = []
+            next(n for n in spec[game]["nodes"] if n["id"] == "npc-archivist")["quiz"] = True
+        path = Path(self.tmp.name) / "without-quizzes.html"
+        path.write_text(W.world_document(spec), encoding="utf-8")
+        page = self.open(path=path)
+        for game in ("detective", "rescue"):
+            data = spec[game]
+            page.select_option(".ui-world-goto", data["floor"])
+            npc = next(n for n in data["nodes"] if n.get("quiz"))
+            page.locator(f'[data-{game}-id="{npc["id"]}"]').dispatch_event("click")
+            card = page.locator(".ui-rpg-card")
+            self.assertIn(npc["greeting"], card.inner_text())
+            self.assertEqual(card.locator('button').filter(has_text="クイズ").count(), 0)
+            card.locator(".ui-rpg-close").click()
         self.assertEqual(self.errors, [])
 
     def test_osaka_chief_briefs_the_player_at_osaka_station(self):
@@ -1918,7 +2281,7 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
             page.locator(".ui-rpg-card .ui-rpg-close").click()
 
         visit("npc-trail-dog")
-        self.assertIn("西の給水処", page.text_content(".ui-rpg-card"))
+        self.assertIn("西の喫茶店", page.text_content(".ui-rpg-card"))
         close()
         visit("npc-ayaka")
         close()
@@ -1963,11 +2326,13 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         for item in data["nodes"]:
             if item["kind"] == "chest":
                 visit(item["id"])
+        visit("npc-chief")
+        close()
         visit(next(n["id"] for n in data["nodes"] if n.get("quiz")))
-        page.get_by_role("button", name="🎓 推理クイズに挑戦").click()
+        page.get_by_role("button", name="📝 証言を照合する").click()
         for quiz in data["quizzes"]:
             page.get_by_role("button", name=f'{quiz["correct"]+1}. {quiz["choices"][quiz["correct"]]}').click()
-            page.get_by_role("button", name="つぎの問題 ▶").click()
+            page.get_by_role("button", name="もう一度照合").click()
         close()
         page.click("[data-detective-journal-btn]")
         self.assertEqual(page.locator(".ui-rpg-card").inner_text().count("✅"), len(data["quests"]))
@@ -1987,7 +2352,7 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         page.wait_for_timeout(300)
         self.assertEqual(page.get_attribute('.ui-detective-node[data-detective-id="chest-shoes"]', "data-detective-opened"), "true")
         self.assertEqual(page.text_content('.ui-detective-node[data-detective-id="chest-shoes"] .ui-detective-glyph'), "📭")
-        self.assertIn("💡 16", page.text_content("[data-detective-gear]"))
+        self.assertIn("かしこさ 16", page.text_content("[data-detective-gear]"))
         # Verify 🎒 Bag in header has both items
         page.click('.ui-world-menu[data-menu="bag"] > summary')
         bag_text = page.text_content(".ui-world-bag")
@@ -2044,10 +2409,14 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         page.click('.ui-detective-node[data-detective-id="npc-archivist"]')
         page.wait_for_selector(".ui-rpg-card", state="visible")
         self.assertIn("暗号解読士", page.text_content(".ui-rpg-card"))
-        page.locator('.ui-rpg-card button:has-text("推理クイズに挑戦")').click()
-        page.wait_for_selector(".ui-rpg-card:has-text('技術推理クイズ')", state="visible")
-        page.locator(".ui-rpg-card .ui-rpg-actions button").first.click()
-        page.wait_for_timeout(300)
+        page.get_by_role("button", name="📝 証言を照合する").click()
+        self.assertEqual(page.get_by_role("dialog", name="証言照合").count(), 0)
+        page.locator(".ui-rpg-card .ui-rpg-close").click()
+        page.locator('[data-detective-id="npc-chief"]').dispatch_event("click")
+        page.locator(".ui-rpg-card .ui-rpg-close").click()
+        page.locator('[data-detective-id="npc-archivist"]').dispatch_event("click")
+        page.get_by_role("button", name="📝 証言を照合する").click()
+        page.get_by_role("button", name="2. 目撃通報は梅田だった").click()
         self.assertIn("正解！", page.text_content(".ui-rpg-card"))
         page.locator(".ui-rpg-card .ui-rpg-close").click()
         page.wait_for_selector(".ui-rpg-card", state="hidden")

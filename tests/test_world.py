@@ -579,17 +579,24 @@ console.log('ok');
 
 
 def test_the_chrome_speaks_the_eleven_languages_of_flutter_navigation_basic():
-    codes = [code for code, _ in W.WORLD_LANGS]
-    assert codes == ["ja", "en", "fr", "es", "pt", "ar", "zh", "ru", "id", "de", "sw"]
+    import pysaiyanweboo as ui                                                   # 🌐 PySaiyanWeBoo's languages and catalogue, the world's words on top
+    assert [code for code, _ in W.CHROME_LANGS] == ["ja", "en", "fr", "es", "pt", "ar", "zh", "ru", "id", "de", "sw"]
     for key, words in W.WORLD_TEXT.items():                                   # every word in every language, none left as a stand-in
         assert len(words) == 11 and all(w.strip() for w in words), key
         assert len(set(words)) >= 6, key                                       # a few are the same word in several languages (Hotel-like), not all
+    shared = json.loads(ui.shell_js(page="").split("CHROME_TEXT=")[1].split(";\n")[0])
+    assert not set(W.WORLD_TEXT) & set(shared)                                 # a word is written once: 🏠 ⭐ ⚙️ 🫧 🚪 📦 "in N min" are PySaiyanWeBoo's
+    assert not {w[0] for w in W.WORLD_TEXT.values()} & {w[0] for w in shared.values()}
     runtime = ("invalid", "camera", "photo", "clear", "unavailable")           # said by the script (a validity message, the ask() choices), not in the markup
-    assert all(f'data-t="{k}"' in W.world_html(W.EXAMPLES["overworld"]) or k in runtime for k in W.WORLD_TEXT)
-    assert all(f"'{k}'" in W.WORLD_JS for k in runtime[1:])
-    assert W.WORLD_JS.startswith(W.WORLD_MOTION_JS + W.WORLD_SHARED_JS + W.WORLD_TEXT_JS)
-    catalogue = json.loads(W.WORLD_TEXT_JS.split("WORLD_TEXT=")[1].rstrip(";\n"))
-    assert catalogue == {k: list(v) for k, v in W.WORLD_TEXT.items()}
+    overworld = W.world_html(W.EXAMPLES["overworld"])
+    # 🌐 the rest sayIn finds by their words: the scenes' buttons and labels, the shell's (world_shell.py); each is in one of them, in Japanese
+    by_words = [k for k in W.WORLD_TEXT if f'data-t="{k}"' not in overworld and k not in runtime]
+    scenes = "".join(W.world_html(W.example_data(name)) for name in W.EXAMPLES) + "".join(
+        path.read_text(encoding="utf-8") for path in (ROOT / "scripts").glob("*.py"))
+    assert all(W.WORLD_TEXT[k][0] in scenes for k in by_words), [k for k in by_words if W.WORLD_TEXT[k][0] not in scenes]
+    assert all(f"'{k}'" in W.WORLD_JS for k in runtime)
+    assert W.WORLD_JS.startswith(W.WORLD_MOTION_JS + W.WORLD_SHARED_JS + ui.shell_js(W.WORLD_TEXT, page=""))   # the shell a tool page's chrome is made of
+    assert "sayAround(to,around)" in W.WORLD_JS and "WORLD_TEXT" not in W.WORLD_JS                # the site's foot and 🚪 follow, the way a chrome does it
     assert 'lang="ar">العربية</option>' in W.world_html(_world())
 
 
@@ -788,7 +795,10 @@ def test_a_mark_is_an_emoji_in_place_of_the_dot_scaled_by_the_world():
     """A spot's mark (or its category's, through place_floor marks=) replaces the dot and leads the name; mark_scale sets every mark's width and height."""
     cities = W.world_validate(W.example_data("cities"))
     assert cities["mark_scale"] == [1.5, 1.5]
-    assert {s["category"]: s.get("mark") for f in cities["floors"] for s in f["spots"]} == {"exit": "🎫", "station": "🚉", "terminus": "🚆", "sign": None, "landmark": None}
+    assert {s["category"]: s.get("mark") for f in cities["floors"] for s in f["spots"]} == {
+        "exit": "🎫", "station": "🚉", "terminus": "🚆", "sign": None,
+        "npc": "💬", "item": "✨", "dragon": "🐲", "battle": "⚔️",
+    }
     html = W.world_html(W.example_data("cities"))
     assert 'style="--mark-x:1.5;--mark-y:1.5"' in html
     assert "top:1232px;--mark:'🎫'\"" in html and "--mark:'🛗'" not in html           # 🛗 is the footer's: an exit is a ticket gate
@@ -931,7 +941,7 @@ const actor=node(), avatar=node(), button=node(), board=node(), form=node();
 form.elements={x:{value:'100'},y:{value:'32'}};form.reportValidity=()=>true;
 const controls=node();controls.querySelector=s=>s==='form'?form:s==='output'?board:button;
 avatar.dataset={x:'64',y:'32',speed:'10'};
-const clock=node(), countdown=node();countdown.dataset.at='10:30';board.dataset.offset='0';
+const clock=node(), countdown=node();countdown.dataset.at='10:30';board.dataset.offset='0';board.closest=()=>({lang:'ja'});
 board.querySelector=s=>s==='[data-clock]'?clock:null;board.querySelectorAll=s=>s==='[data-at]'?[countdown]:[];   // the board also has gauges now: answer by selector
 const f=node();f.dataset={w:'128',h:'64',floor:'one'};f.querySelector=()=>avatar;f.getBoundingClientRect=()=>({left:0,top:0,width:128,height:64});
 const other=node();other.dataset={w:'128',h:'64',floor:'two'};other.querySelector=()=>null;other.getBoundingClientRect=f.getBoundingClientRect;
@@ -1199,7 +1209,7 @@ def by_id(floor):
 
 
 def test_the_city_floors_with_every_spot_walkable(cities):
-    assert list(cities) == ["tokyo", "london", "paris", "osaka", "nagoya"]
+    assert list(cities) == ["tokyo", "london", "paris", "osaka"]
     for floor in cities.values():
         reach = walkable(floor)
         assert len(floor["props"]) <= 512 and len(floor["spots"]) <= 64
@@ -1246,7 +1256,7 @@ def test_london_is_its_main_termini_and_the_stations_beside_them(cities):
     kinds = {}
     for key, spot in spots.items():
         kinds.setdefault(spot["category"], []).append(key)
-    assert sorted(kinds) == ["sign", "station", "terminus"]                                          # transport only: no sights, no institutions
+    assert sorted(kinds) == ["battle", "dragon", "item", "npc", "sign", "station", "terminus"]
     assert len(kinds["terminus"]) == 13
     for key in ("kings-cross", "paddington", "waterloo", "victoria", "liverpool-street", "london-bridge", "euston", "charing-cross"):
         assert key in kinds["terminus"]
@@ -1321,7 +1331,7 @@ def test_the_nogard_sign_stands_by_a_station_and_turns_into_a_dragon(cities):
 def test_the_demo_page_and_the_cli_carry_the_cities():
     import project_pages
     import pysaiyanweboo as ui
-    page = project_pages.world_page(ui)                            # 🌍 tools/demos/world.html#tokyo
+    page = project_pages.world_page(ui)                            # 🌍 tools/#tokyo
     for text in ("丸の内中央口", "リバースロンドン", "Fake Paris", "Parallel Tokyo", 'data-category="exit"', 'data-category="terminus"',
                  'data-flip="🐉"'):
         assert text in page
@@ -1977,6 +1987,168 @@ class OverworldRpgTests(unittest.TestCase):
         self.assertIn("ui-rpg-hud", overworld_doc)
         self.assertIn("bindWorldRpg", overworld_doc)
 
+
+class ReverseLondonRpgTests(unittest.TestCase):
+    def test_reverse_london_rpg_structure(self):
+        cities = W.world_validate(W.example_data("cities"))
+        self.assertIn("rpg", cities)
+        rpg = cities["rpg"]
+        self.assertEqual(len(rpg["dragons"]), 6)
+        for sid in ("london-rl-dragon-pyth", "london-rl-dragon-wing", "london-rl-dragon-queryu",
+                    "london-rl-dragon-cachere", "london-rl-dragon-nogard", "london-rl-dragon-dragoon"):
+            self.assertIn(sid, rpg["dragons"])
+            d = rpg["dragons"][sid]
+            self.assertEqual(d["bond_max"], 30)
+            self.assertTrue(d["relic_label"])
+            self.assertIn("cross_effect", d)
+            stats_sum = d["cross_effect"].get("atk", 0) + d["cross_effect"].get("def", 0) + d["cross_effect"].get("hp", 0)
+            self.assertGreater(stats_sum, 0)
+
+        # 5 NPCs, 5 drops, 4 chests, 2 enemies
+        london = next(f for f in cities["floors"] if f["id"] == "london")
+        self.assertEqual(len(london["spots"]), 58)
+        self.assertEqual([a["id"] for a in london["actors"]], ["owl"])
+        by_category = {}
+        for s in london["spots"]:
+            by_category.setdefault(s["category"], []).append(s["id"])
+        self.assertEqual(len(by_category["npc"]), 5)
+        self.assertEqual(len(by_category["item"]), 9)
+        self.assertEqual(set(by_category["dragon"]), set(rpg["dragons"]))
+        self.assertEqual(len(by_category["battle"]), 2)
+
+    def test_rpg_dragon_stage_thresholds(self):
+        self.assertEqual(W.rpg_dragon_stage(0)["stage"], 0)
+        self.assertEqual(W.rpg_dragon_stage(0)["emoji"], "🥚")
+        self.assertEqual(W.rpg_dragon_stage(5)["stage"], 1)
+        self.assertEqual(W.rpg_dragon_stage(5)["emoji"], "🐣")
+        self.assertEqual(W.rpg_dragon_stage(15)["stage"], 2)
+        self.assertEqual(W.rpg_dragon_stage(15)["emoji"], "🐲")
+        self.assertEqual(W.rpg_dragon_stage(30)["stage"], 3)
+        self.assertEqual(W.rpg_dragon_stage(30)["emoji"], "🐉")
+
+    def test_cross_world_synergy_and_nogard_relic(self):
+        overworld = W.world_validate(W.example_data("overworld"))
+        synergy = overworld["rpg"]["synergy"]
+        self.assertIn("cities-spot-london-rl-dragon-nogard", synergy)
+        nogard = synergy["cities-spot-london-rl-dragon-nogard"]
+        self.assertEqual(nogard["atk"], 22)
+        self.assertEqual(nogard["skill"]["label"], "リバース・ドラグーン")
+        self.assertEqual(nogard["skill"]["mult_pct"], 320)
+
+
+class NagoyaRpgTests(unittest.TestCase):
+    def test_nagoya_spec_validation(self):
+        nagoya = W.world_validate(W.example_data("nagoya"))
+        self.assertIn("rpg", nagoya)
+        rpg = nagoya["rpg"]
+        self.assertEqual([f["id"] for f in nagoya["floors"]], ["nagoya-map", "nagoya-city"])
+        self.assertEqual(len(nagoya["floors"][0]["spots"]), 33)
+        self.assertEqual(len(nagoya["floors"][0]["actors"]), 0)
+
+        # Fame and Deeds
+        self.assertEqual(rpg["fame"]["target"], 95)
+        self.assertEqual(len(rpg["deeds"]), 7)
+        deed_ids = {d["id"] for d in rpg["deeds"]}
+        self.assertEqual(deed_ids, {"clean-trash", "cheer-call", "give-ball", "morning-prep", "history-quiz", "dome-sponsor", "mall-shopping"})
+        total_fame = sum(d["fame"] for d in rpg["deeds"])
+        self.assertEqual(total_fame, 125)
+
+        # NPCs and help
+        self.assertEqual(len(rpg["npcs"]), 8)
+        ouendan = rpg["npcs"]["nagoya-npc-ouendan"]
+        self.assertTrue(ouendan["on_contact"])
+        self.assertEqual(ouendan["help"]["deed_id"], "cheer-call")
+        self.assertEqual(ouendan["help"]["fame"], 15)
+
+        boy = rpg["npcs"]["nagoya-npc-boy"]
+        self.assertEqual(boy["help"]["req_item"], "nagoya-drop-ball")
+
+        craftsman = rpg["npcs"]["nagoya-npc-craftsman"]
+        self.assertEqual(craftsman["help"]["req_item"], "nagoya-drop-trash")
+
+        self.assertNotIn("nagoya-dome", rpg["npcs"])
+        dome = rpg["npcs"]["nagoya-farm-ballpark"]
+        self.assertEqual(dome["speaker"], "ナゴヤ球場")
+        self.assertEqual(dome["emoji"], "⚾")
+        self.assertTrue(dome["on_contact"])
+        self.assertEqual(dome["help"]["deed_id"], "dome-sponsor")
+        self.assertEqual(dome["help"]["cost"], 30)
+        self.assertEqual(dome["help"]["fame"], 25)
+        self.assertTrue(dome["help"]["repeatable"])
+
+        dome_spot = next(s for s in nagoya["floors"][0]["spots"] if s["id"] == "nagoya-dome")
+        self.assertEqual(dome_spot.get("mark"), "🏟️")
+
+        aeon = rpg["npcs"]["nagoya-aeon-mall"]
+        self.assertTrue(aeon["on_contact"])
+        self.assertTrue(aeon["shop"])
+        shopping = next(d for d in rpg["deeds"] if d["id"] == "mall-shopping")
+        self.assertEqual(shopping["npc_id"], "nagoya-aeon-mall")
+        self.assertTrue(shopping["on_purchase"])
+
+        # Shop: 3 cafe + 5 aeon = 8 items
+        self.assertEqual(len(rpg["shop"]), 8)
+        cafe_items = [s for s in rpg["shop"] if s.get("spot_id") == "nagoya-npc-cafe"]
+        aeon_items = [s for s in rpg["shop"] if s.get("spot_id") == "nagoya-aeon-mall"]
+        self.assertEqual(len(cafe_items), 3)
+        self.assertEqual(len(aeon_items), 5)
+
+        # Enemies: boss at hisaya
+        self.assertIn("nagoya-hisaya", rpg["enemies"])
+        self.assertTrue(rpg["enemies"]["nagoya-hisaya"]["boss"])
+
+        # Loot: 5 drops + 4 chests = 9 items
+        self.assertEqual(len(rpg["loot"]), 9)
+        drops = [k for k, v in rpg["loot"].items() if v["kind"] == "drop"]
+        chests = [k for k, v in rpg["loot"].items() if v["kind"] == "chest"]
+        self.assertEqual(len(drops), 5)
+        self.assertEqual(len(chests), 4)
+
+        self.assertFalse(rpg.get("dragons"))
+
+        # Quests and Badges
+        self.assertEqual(len(rpg["quests"]), 7)
+        self.assertEqual(len(rpg["badges"]), 7)
+        badge_ids = {b["id"] for b in rpg["badges"]}
+        self.assertIn("dome-patron", badge_ids)
+        self.assertIn("aeon-shopper", badge_ids)
+
+    def test_fan_fame_rank_thresholds(self):
+        self.assertEqual(W.rpg_fan_fame_rank(0)["rank"], "見習いファン")
+        self.assertEqual(W.rpg_fan_fame_rank(0)["emoji"], "🥉")
+        self.assertEqual(W.rpg_fan_fame_rank(19)["rank"], "見習いファン")
+        self.assertEqual(W.rpg_fan_fame_rank(20)["rank"], "熱心な応援団員")
+        self.assertEqual(W.rpg_fan_fame_rank(20)["emoji"], "🥈")
+        self.assertEqual(W.rpg_fan_fame_rank(44)["rank"], "熱心な応援団員")
+        self.assertEqual(W.rpg_fan_fame_rank(45)["rank"], "聖地ナゴヤの名物ファン")
+        self.assertEqual(W.rpg_fan_fame_rank(45)["emoji"], "🥇")
+        self.assertEqual(W.rpg_fan_fame_rank(69)["rank"], "聖地ナゴヤの名物ファン")
+        self.assertEqual(W.rpg_fan_fame_rank(70)["rank"], "全国に轟くファンの鑑")
+        self.assertEqual(W.rpg_fan_fame_rank(70)["emoji"], "💎")
+        self.assertEqual(W.rpg_fan_fame_rank(94)["rank"], "全国に轟くファンの鑑")
+        self.assertEqual(W.rpg_fan_fame_rank(95)["rank"], "世界一のファンの鑑")
+        self.assertEqual(W.rpg_fan_fame_rank(95)["emoji"], "👑")
+        self.assertEqual(W.rpg_fan_fame_rank(120)["rank"], "世界一のファンの鑑")
+
+    def test_no_forbidden_religious_words_in_nagoya_spec(self):
+        forbidden = ("大聖堂", "寺院", "教会", "聖堂", "神社", "寺", "モスク", "霊廟")
+        nagoya = W.example_data("nagoya")
+        import json
+        dumped = json.dumps(nagoya, ensure_ascii=False)
+        for word in forbidden:
+            self.assertNotIn(word, dumped)
+
+    def test_cross_world_synergy_has_nagoya_relics(self):
+        overworld = W.world_validate(W.example_data("overworld"))
+        cities = W.world_validate(W.example_data("cities"))
+        for world_data in (overworld, cities):
+            synergy = world_data["rpg"]["synergy"]
+            self.assertIn("nagoya-spot-nagoya-chest-bat", synergy)
+        for world_data in (overworld, W.world_validate(W.example_data("nagoya"))):
+            relic = world_data["rpg"]["synergy"]["cities-spot-london-rl-dragon-dragoon"]
+            self.assertEqual(relic["skill"]["label"], "ドラグーンスカイバースト")
+
+
 class FakeParisRescueTests(unittest.TestCase):
     """Fake Paris Firefighting Hero & Gamification: pure Python oracles, Node parity, and data invariants."""
 
@@ -1992,7 +2164,7 @@ class FakeParisRescueTests(unittest.TestCase):
         self.assertEqual(len(rescue["shop"]), 3)
         self.assertEqual(len(rescue["quests"]), 8)
         self.assertEqual(len(rescue["badges"]), 7)
-        self.assertEqual(len(rescue["quizzes"]), 6)
+        self.assertEqual(len(rescue["quizzes"]), 0)
 
     def test_rescue_nodes_and_fires_are_walkable_and_reachable_from_start(self):
         world = W.world_validate(W.example_data("cities"))
@@ -2071,7 +2243,7 @@ class FakeParisRescueTests(unittest.TestCase):
             {**valid, "hero": {"hp": -1}},
             {**valid, "nodes": []},
             {**valid, "nodes": [{**valid["nodes"][0], "tx": 0, "ty": 0}]},  # out-of-bounds or blocked
-            {**valid, "quizzes": [{**valid["quizzes"][0], "choices": ["only two"]}]},
+            {**valid, "quizzes": [{"prompt": "Q", "correct": 0, "explanation": "A", "choices": ["only two"]}]},
             {**valid, "unknown_key": True},
         ]
         for bad in bad_specs:
@@ -2093,7 +2265,7 @@ class OsakaDetectiveTests(unittest.TestCase):
         self.assertEqual(len(detective["shop"]), 3)
         self.assertEqual(len(detective["quests"]), 8)
         self.assertEqual(len(detective["badges"]), 7)
-        self.assertEqual(len(detective["quizzes"]), 6)
+        self.assertEqual(len(detective["quizzes"]), 1)
 
     def test_shared_radar_module_and_half_tile_rounding(self):
         specs = [W.example_data("cities")] * 2
@@ -2201,7 +2373,7 @@ class OsakaDetectiveTests(unittest.TestCase):
             {**valid, "hero": {"hp": -1}},
             {**valid, "nodes": []},
             {**valid, "nodes": [{**valid["nodes"][0], "tx": 0, "ty": 0}]},  # out-of-bounds or blocked
-            {**valid, "quizzes": [{**valid["quizzes"][0], "choices": ["only two"]}]},
+            {**valid, "quizzes": [{"prompt": "Q", "correct": 0, "explanation": "A", "choices": ["only two"]}]},
             {**valid, "unknown_key": True},
         ]
         for bad in bad_specs:
