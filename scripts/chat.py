@@ -3,25 +3,33 @@
 
 The same file runs in CPython (tests, ``python scripts/chat.py "/flow 入力 > 圧縮 > 出力"``) and in the chat page
 (tools/chat/), where Pyodide loads it next to markdown.py (md-market), ascii_artist.py, cli_args.py,
-ontautology.py (🧬 /onto, 🎯 /guess) and olnm.py (🧷 /olnm) — the commits pinned in pyproject.toml's pages group. What it knows about the other repositories is ``media/chat/index.json``,
+ontautology.py (🧬 /onto, 🎯 /guess), olnm.py (🧷 /olnm) and Err-o-RoadRunner's triage.py + errlib (🧯 /triage) — the commits
+pinned in pyproject.toml's pages group — and mcp-toolcall-lab's Wikipedia tools, PokéAPI reader and Jev router (🔌 /mcp, 🤖 /ask),
+at the commit the index recorded. What it knows about the other repositories is ``media/chat/index.json``,
 written at deploy time by ``project_pages.py --record-chat``: every JSON / JSONL file of every active repository at its
 commit, and the tools mcp-toolcall-lab advertises. TalkCompress's shorthand compressor is fetched on first use.
 
 ``respond(text)`` → Markdown, ``reply_html(text)`` → HTML (markdown.py escapes raw HTML), ``configure(index, base)``
-for the page. Every command is a cli_args subparser, so a typo gets "maybe you meant".
+for the page. 🔌 ``mcp_rpc`` is an MCP server in the page (JSON-RPC 2.0: initialize, ping, tools/list, tools/call); /mcp and 🤖 /ask
+are its clients. /ask: ``ask_messages`` (the context, and ⚖️ Jev's choice of the tools to offer), ``ask_tools`` (those tools, from
+tools/list) and ``ask_call`` (one call: offered, then the server's check of its arguments — mcp-toolcall-lab's rule). Every
+message and decision joins the 🧾 trace (``/mcp log``, JSONL). Every command is a cli_args subparser, so a typo gets "maybe you meant".
 """
 from __future__ import annotations
 
 import argparse
 import contextlib
+import dataclasses
 import difflib
 import io
 import json
+import os
 import re
 import sys
+import tempfile
 import unicodedata
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 import ascii_artist as aa
 import cli_args
@@ -29,7 +37,7 @@ import markdown as md
 import ontautology as otl
 
 OWNER = 'myon-bioinformatics'
-MODULES = ('markdown', 'ascii_artist', 'cli_args', 'ontautology', 'olnm')   # 📦 the page writes these next to this file in Pyodide
+MODULES = ('markdown', 'ascii_artist', 'cli_args', 'ontautology', 'olnm', 'triage', 'errlib')   # 📦 the page writes these next to this file in Pyodide
 # 🐍 the page's Python (Pyodide, CPython 3.14, stdlib only), 🤖 llama.cpp in WebAssembly (wllama; WebGPU when the browser has it)
 # and the GGUF /ask loads once (then the browser keeps it): GitHub Pages sends no COOP/COEP, so the CPU runs one thread
 RUNTIME = {'pyodide': 'https://cdn.jsdelivr.net/npm/pyodide@314.0.8/',
@@ -56,9 +64,10 @@ COMMANDS = {
     'flow': ('🔀', 'A > B > C', '流れ図を ASCII と Mermaid に（A, B > C で合流）', ('/flow 入力, 履歴 > 圧縮 > 出力',)),
     'compress': ('🗂', 'TEXT', '会話を短く（TalkCompress の略語・合意台帳）と、LLM 出力の整理（markdown.py）',
                  ('/compress As soon as possible, please send me the report. Thank you very much!',)),
-    'mcp': ('🔌', '[TOOL {JSON}]', 'MCP の道具呼び出しを確かめる（mcp-toolcall-lab が広告する道具と引数の型）',
-            ('/mcp', '/mcp find_municipalities {"query": "Exampleville"}', '/mcp find_municipalities {"query": 3}',
-             '/mcp query_unadvertised_tool {}')),
+    'mcp': ('🔌', '[TOOL {JSON} | log]', 'ページの中の MCP サーバーと話す（tools/list・tools/call。mcp-toolcall-lab の Wikipedia・PokéAPI と '
+                                        'このチャットの find・show・onto）。log は JSON-RPC と ⚖️ Jev の判定の記録（JSONL）',
+            ('/mcp', '/mcp fetch_pokemon {"name": "ditto"}', '/mcp fetch_wikipedia_article {"title": 3}', '/mcp fetch_wikipedia_artcle {}',
+             '/mcp log')),
     'find': ('🔎', 'WORDS [--repo R] [--kind K]', 'リポジトリ横断で JSON / JSONL を探す（K: ' + ' '.join(KINDS) + '）',
              ('onto', '/find --kind onto', '/find --kind jsonl --repo Aoi', 'TaxOntOy')),
     'show': ('👀', 'REPO/PATH', 'JSON / JSONL の中身を表にまとめる（そのコミットの raw を読む）', ('/show TaxOntOy/otl-relations.json',)),
@@ -68,10 +77,36 @@ COMMANDS = {
               ('/guess',)),
     'olnm': ('🧷', '[ls | grep | like | show | calc | sections] …', '端末のワンライナー集 OLNM を動かす（探す・読む・もしかして・電卓）',
              ('/olnm like uvtets', '/olnm show gp', '/olnm calc 6 mul 7', '/olnm grep json')),
-    'ask': ('🤖', 'TEXT', '小さな LLM に聞く（llama.cpp をページの中で。初回だけモデルを読む）。質問が名指すリポジトリの要約・台帳の概念を添える', ('/ask オントロジーの台帳はどのリポジトリにある？',)),
+    'triage': ('🧯', 'LOG', '失敗のログを Err-o-RoadRunner の triage で調べる（✅ FOUND・❔ NOT FOUND・💡 HINT。ページの中で）。JUnit は 🧾 テスト結果で前回と比べられる',
+               ('/triage Traceback (most recent call last):\n  File "app.py", line 3, in <module>\n    import numpy\n'
+                "ModuleNotFoundError: No module named 'numpy'",)),
+    'ask': ('🤖', 'TEXT', '小さな LLM に聞く（llama.cpp をページの中で。初回だけモデルを読む）。質問が名指すリポジトリの要約・台帳の概念と直前の 🧯 を添え、'
+                          '⚖️ Jev が選んだ 🔌 MCP の道具をモデルが呼ぶ（渡した道具と型の合う引数だけ）', ('/ask オントロジーの台帳はどのリポジトリにある？',)),
 }
+# 🔧 This bot's read-only commands as tools of the page's MCP server (name → description, properties, required)
+CHAT_TOOLS = {
+    'find': ('リポジトリ横断で JSON / JSONL のファイルを探す（パスの語・リポジトリ・種類）',
+             {'words': {'type': 'array', 'items': {'type': 'string'}, 'description': 'パスに含まれる語'},
+              'repo': {'type': 'string', 'description': 'リポジトリ名'},
+              'kind': {'type': 'string', 'enum': list(KINDS), 'description': '種類（onto はオントロジーの台帳）'}}, []),
+    'show': ('記録にあるファイル（リポジトリ/パス）の中身を表にまとめる', {'target': {'type': 'string', 'description': 'REPO/PATH'}}, ['target']),
+    'onto': ('オントロジーの台帳で概念を定義する（属と種差、似たもの）', {'word': {'type': 'string', 'description': '概念の名前'}}, ['word']),
+}
+ASK_CALLS, ASK_RESULT = 2, 600   # 🔧 calls per question, characters of a result the model reads (the context is 2048 tokens)
+# 🔌 mcp-toolcall-lab's code the page's MCP server runs, in the repository's layout (record_chat copies it at the lab's commit into
+# media/chat/lab/): its Wikipedia tools with their FastMCP catalog, its PokéAPI reader and Jev's keyword router.
+LAB = tuple(f'src/mcp_toolcall_lab/{name}' for name in (
+    '__init__.py', 'catalog.py', 'wikipedia_tool.py', 'pixiv_dictionary_tool.py', 'pixiv_markup_normalize.py', 'markdown_lib.py',
+    'jev_router.py', 'jev_backend.py', 'jev_shim.py', 'jev_typesafe.py', 'fixture_selection.py', 'mock/__init__.py', 'mock/common.py',
+    'adapters/__init__.py', 'adapters/pokeapi.py')) + ('fixtures/jev_router/keywords.json', 'deploy/wikipedia-mcp/catalog.generated.json')
+MCP_PROTOCOL = '2025-06-18'
+POKEAPI = 'https://pokeapi.co/api/v2/pokemon/{name}'
+# ⚖️ Jev's tool families → the server's tools /ask offers ('none': no tool; another family or a low confidence: every tool)
+FAMILIES = {'wikipedia': ('fetch_wikipedia_article', 'fetch_wikipedia_section'), 'pokeapi': ('fetch_pokemon',),
+            'ironmate': ('find', 'show'), 'none': ()}
 TYPOS = ('/flwo a > b', '/find --kidn onto', '/find --kind ont')    # ⌨️ what cli_args answers with "maybe you meant"
-_STATE = {'index': None, 'base': '', 'fetch': None, 'talkcompress': None, 'concepts': None, 'guess': None}
+_STATE = {'index': None, 'base': '', 'fetch': None, 'talkcompress': None, 'concepts': None, 'guess': None, 'triage': None, 'calls': [],
+          'lab': None, 'route': None, 'trace': [], 'mcp_id': 0, 'mcp_ready': False}
 
 
 def configure(index=None, base: str = '', fetch=None) -> None:
@@ -237,32 +272,204 @@ def _check(schema: dict, value, path: str = 'arguments') -> list[str]:
     return problems
 
 
-def mcp_reply(text: str, index: dict | None) -> str:
-    tools = {tool['name']: tool for tool in (index or {}).get('tools', [])}
-    if not tools:
-        return '⏸ このビルドは mcp-toolcall-lab の道具を記録していない'
-    name, _, raw = text.strip().partition(' ')
-    if not name:
-        rows = [[f'`{t["name"]}`', ', '.join(t.get('parameters', {}).get('required', [])) or '—', _cell(t.get('description', ''))]
-                for t in tools.values()]
-        return '## 🔌 広告されている道具\n\n' + md.table(['道具', '必須', '説明'], rows).strip() + \
-            '\n\n`/mcp 道具 {"引数": "値"}` で、その呼び出しを出してよいかを確かめる'
+def _lab(fetch=None, base: str | None = None):
+    """🔌 mcp-toolcall-lab's modules (``LAB``): importable (a checkout's src/ on sys.path, ``--lab``) or fetched from ``base``lab/ (all
+    files first); False when neither works (not recorded, offline). Its Wikipedia tool reads MediaWiki through ``_STATE['get']``
+    (in the page the browser's XMLHttpRequest, with ``origin=*`` for CORS, in place of urllib); the rest runs as the lab wrote it."""
+    if _STATE['lab'] is None:
+        try:
+            try:
+                import mcp_toolcall_lab.jev_router  # noqa: F401
+            except ImportError:
+                get, base = fetch or _STATE['fetch'] or _fetch, _STATE['base'] if base is None else base
+                texts = {name: get(f'{base}lab/{name}') for name in LAB}
+                root = Path(tempfile.gettempdir()) / 'mcp-toolcall-lab'
+                for name, text in texts.items():
+                    (root / name).parent.mkdir(parents=True, exist_ok=True)
+                    (root / name).write_text(text, encoding='utf-8')
+                sys.path.insert(0, str(root / 'src'))
+            os.environ.setdefault('MARKDOWN_PY', md.__file__)       # 📝 its vendored markdown.py: the one this chat runs
+            from mcp_toolcall_lab import catalog, wikipedia_tool
+            from mcp_toolcall_lab.adapters import pokeapi
+            from mcp_toolcall_lab.jev_backend import KeywordBackend
+            from mcp_toolcall_lab.jev_router import decide_route
+        except Exception:
+            _STATE['lab'] = False
+            return False
+
+        def mediawiki(title: str, lang: str) -> dict:     # 🌐 the request wikipedia_tool makes, through the page
+            query = urlencode({'action': 'query', 'format': 'json', 'prop': 'extracts', 'explaintext': 1, 'exsectionformat': 'wiki',
+                               'redirects': 1, 'titles': title, 'origin': '*'})
+            try:
+                return json.loads(_STATE['get'](f'{wikipedia_tool.WIKIPEDIA_API.format(lang=lang)}?{query}'))
+            except (OSError, ValueError) as exc:
+                raise wikipedia_tool.WikipediaFetchError(f'could not fetch {title!r} from {lang}.wikipedia.org: {exc}') from exc
+        wikipedia_tool._fetch_extract_payload = mediawiki
+        tree = Path(wikipedia_tool.__file__).resolve().parents[2]
+        _STATE['lab'] = {'catalog': catalog, 'pokeapi': pokeapi, 'router': KeywordBackend.from_path(), 'decide': decide_route,
+                         'tools': json.loads((tree / 'deploy/wikipedia-mcp/catalog.generated.json').read_text(encoding='utf-8'))['tools']}
+    return _STATE['lab']
+
+
+def server_tools(fetch=None) -> dict:
+    """🔌 What the page's MCP server lists (name → MCP tool: name, description, inputSchema): the lab's Wikipedia tools (its FastMCP
+    catalog), its PokéAPI reader and this bot's find · show · onto (without the lab, only these)."""
+    tools = {}
+    lab = _lab(fetch)
+    if lab:
+        tools = {t['name']: {key: t[key] for key in ('name', 'description', 'inputSchema')} for t in lab['tools']}
+        tools['fetch_pokemon'] = {'name': 'fetch_pokemon', 'description': 'PokéAPI の pokemon（タイプ・種族値・特性）。名前は英語の小文字（pikachu）か図鑑番号（25）',
+                                  'inputSchema': {'type': 'object', 'properties': {'name': {'type': 'string'}}, 'required': ['name'],
+                                                  'additionalProperties': False}}
+    return {**tools, **{name: {'name': name, 'description': what, 'inputSchema': {
+        'type': 'object', 'properties': props, 'required': required, 'additionalProperties': False}} for name, (what, props, required) in CHAT_TOOLS.items()}}
+
+
+def _run_tool(name: str, args: dict, index: dict | None, fetch) -> str:
+    """🔧 One listed tool, its arguments already checked: the text of its result."""
+    if name == 'find':
+        return find_reply(index, args.get('words', []), args.get('repo'), args.get('kind'))
+    if name == 'show':
+        return show_reply(index, args['target'], fetch)
+    if name == 'onto':
+        return onto_reply(args['word'], index, fetch)
+    lab, _STATE['get'] = _lab(fetch), fetch or _STATE['fetch'] or _fetch
+    if name == 'fetch_pokemon':                           # 🐾 the lab's reader of the JSON this page fetched
+        url = POKEAPI.format(name=quote(args['name'].strip().lower(), safe=''))
+        record = lab['pokeapi'].pokemon_source(_STATE['get'](url), url)
+        return record.get('markdown') or json.dumps(record, ensure_ascii=False)
+    return json.dumps(lab['catalog'].dispatch_tool(name, args), ensure_ascii=False)   # 📚 the lab's dispatch (Wikipedia)
+
+
+TRACE_ROWS = 400   # 🧾 the trace keeps its last rows
+
+
+def _trace(event: str, **row) -> None:
+    _STATE['trace'].append({'event': event, **row})
+    del _STATE['trace'][:-TRACE_ROWS]
+
+
+def mcp_rpc(message, index: dict | None = None, fetch=None) -> dict | None:
+    """🔌 The page's MCP server: one JSON-RPC 2.0 message (a dict or its JSON text) in, its response out (None for a notification) —
+    initialize, ping, tools/list and tools/call, the messages the lab's Streamable HTTP /mcp answers, here without HTTP. tools/call
+    runs a tool only when it is listed and its arguments pass its inputSchema (``_check``): an unknown tool or bad arguments are
+    errors (-32602), a tool that fails is a result with ``isError``. Both directions join the 🧾 trace."""
+    index = _STATE['index'] if index is None else index
+    try:
+        request = json.loads(message) if isinstance(message, str) else message
+    except json.JSONDecodeError:
+        request = None
+    _trace('mcp/request', message=request if request is not None else str(message)[:200])
+    rid = request.get('id') if isinstance(request, dict) else None
+
+    def reply(result=None, code: int = 0, text: str = '', data=None) -> dict:
+        error = {'code': code, 'message': text, **({'data': data} if data else {})}
+        response = {'jsonrpc': '2.0', 'id': rid, **({'error': error} if code else {'result': result})}
+        _trace('mcp/response', message=response)
+        return response
+    if not isinstance(request, dict) or request.get('jsonrpc') != '2.0' or not isinstance(request.get('method'), str):
+        return reply(code=-32700 if request is None else -32600, text='Parse error' if request is None else 'Invalid Request')
+    method, params = request['method'], request.get('params') or {}
+    if 'id' not in request:                               # 📣 a notification (notifications/initialized): no response
+        return None
+    if method == 'initialize':
+        return reply({'protocolVersion': MCP_PROTOCOL, 'capabilities': {'tools': {'listChanged': False}},
+                      'serverInfo': {'name': 'myon-bioinformatics chat', 'version': ((index or {}).get('commits', {}).get('mcp-toolcall-lab') or '-')[:7]}})
+    if method == 'ping':
+        return reply({})
+    tools = server_tools(fetch)
+    if method == 'tools/list':
+        return reply({'tools': list(tools.values())})
+    if method != 'tools/call':
+        return reply(code=-32601, text=f'Method not found: {method}')
+    name, args = params.get('name'), params.get('arguments', {})
     if name not in tools:
-        top = cli_args.make_parser(prog='🔌', exit_on_error=False, add_help=False)
-        top.add_argument('tool', choices=list(tools))
-        _, hint = _parse([name], top)
-        maybe = re.search(r"maybe you meant '([^']+)'", hint)
-        return '\n\n'.join(['❌ 広告されていない道具 → `tool_calls` を出さずに断る（lab の fictional_tool_reject と同じ）',
-                            f'❓ もしかして `{maybe.group(1)}`' if maybe else '', '`/mcp` で一覧']).replace('\n\n\n\n', '\n\n')
+        near = difflib.get_close_matches(str(name), tools, n=1)
+        return reply(code=-32602, text=f'Unknown tool: {name}', data={'did_you_mean': near[0]} if near else None)
+    problems = _check(tools[name]['inputSchema'], args)
+    if problems:
+        return reply(code=-32602, text='Invalid params', data={'problems': problems})
+    try:
+        text, failed = _run_tool(name, args, index, fetch), False
+    except Exception as exc:                              # ⚠️ the tool ran and failed (404, CORS, offline): the model reads why
+        text, failed = f'{type(exc).__name__}: {exc}', True
+    return reply({'content': [{'type': 'text', 'text': text}], 'isError': failed})
+
+
+def _rpc(method: str, params: dict | None = None, *, index: dict | None = None, fetch=None, notify: bool = False) -> dict | None:
+    """🔌 The client's side: one message to the page's server; the session starts with initialize → notifications/initialized."""
+    if not _STATE['mcp_ready'] and method != 'initialize':
+        _STATE['mcp_ready'] = True
+        _rpc('initialize', {'protocolVersion': MCP_PROTOCOL, 'capabilities': {}, 'clientInfo': {'name': 'chat', 'version': '1'}},
+             index=index, fetch=fetch)
+        _rpc('notifications/initialized', index=index, fetch=fetch, notify=True)
+    message = {'jsonrpc': '2.0', 'method': method, **({'params': params} if params is not None else {})}
+    if not notify:
+        _STATE['mcp_id'] += 1
+        message['id'] = _STATE['mcp_id']
+    return mcp_rpc(message, index, fetch)
+
+
+def _call_text(response: dict) -> tuple[bool, str]:
+    """✅ / ❌ and the text of a tools/call response (an error's message with its problems or did-you-mean)."""
+    if 'error' in response:
+        error, data = response['error'], response['error'].get('data', {})
+        more = data.get('problems') or ([f'もしかして {data["did_you_mean"]}'] if data.get('did_you_mean') else [])
+        return False, ' · '.join([f'{error["message"]} ({error["code"]})', *more])
+    return not response['result']['isError'], response['result']['content'][0]['text']
+
+
+def mcp_reply(text: str, index: dict | None, fetch=None) -> str:
+    """🔌 /mcp: the page's server's tools/list, one tools/call, or (log) the 🧾 trace."""
+    name, _, raw = text.strip().partition(' ')
+    if name == 'log':
+        return mcp_log()
+    if not name:
+        listed = _rpc('tools/list', index=index, fetch=fetch)['result']['tools']
+        family = {tool: f for f, names in FAMILIES.items() for tool in names}
+        rows = [[f'`{t["name"]}`', family.get(t['name'], '—'), ', '.join(t['inputSchema'].get('required', [])) or '—', _cell(t['description'])]
+                for t in listed]
+        return ('## 🔌 ページの中の MCP サーバー（tools/list）\n\n' + md.table(['道具', '⚖️ Jev', '必須', '説明'], rows).strip()
+                + ('' if _lab(fetch) else '\n\n⏸ mcp-toolcall-lab を読めない（このビルドは記録していないか、オフライン）')
+                + '\n\n`/mcp 道具 {"引数": "値"}` で tools/call、`/mcp log` で記録（JSONL）')
     try:
         arguments = json.loads(raw) if raw.strip() else {}
     except json.JSONDecodeError as exc:
         return f'❌ 引数が JSON ではない（{exc.msg}, {exc.pos} 文字目）'
-    problems = _check(tools[name].get('parameters', {'type': 'object'}), arguments)
-    if problems:
-        return '❌ 引数が広告と合わない\n\n' + md.bullet_list(problems).strip()
-    call = {'jsonrpc': '2.0', 'id': 2, 'method': 'tools/call', 'params': {'name': name, 'arguments': arguments}}
-    return '✅ 広告どおり → この呼び出しを送ってよい\n\n' + _code(json.dumps(call, ensure_ascii=False, indent=2), 'json')
+    response = _rpc('tools/call', {'name': name, 'arguments': arguments}, index=index, fetch=fetch)
+    ok, result = _call_text(response)
+    sent = next(row['message'] for row in reversed(_STATE['trace']) if row['event'] == 'mcp/request')
+    head = ('✅ tools/call' if ok else '⚠️ isError' if 'result' in response else '❌ 断る（JSON-RPC のエラー）')
+    body = result if len(result) <= 1500 else result[:1499] + '…'
+    return '\n\n'.join([f'### 🔌 {head}', _code(json.dumps(sent, ensure_ascii=False), 'json'),
+                          body if ok and name in ('find', 'show', 'onto', 'fetch_pokemon') else _code(body)])
+
+
+def mcp_log(rows: int = 8) -> str:
+    """🧾 The trace in numbers (requests by method, tools/call outcomes, ⚖️ Jev's decisions) and its last ``rows`` as JSONL."""
+    trace = _STATE['trace']
+    if not trace:
+        return '🧾 まだ記録がない（/ask か /mcp で MCP を話すと、JSON-RPC と ⚖️ Jev の判定が JSONL で残る）'
+    sent = {row['message'].get('id'): row['message'].get('method') for row in trace
+            if row['event'] == 'mcp/request' and isinstance(row['message'], dict)}
+    methods, outcomes, routes = {}, {'✅': 0, '⚠️': 0, '❌': 0}, {}
+    for row in trace:
+        if row['event'] == 'mcp/request' and isinstance(row['message'], dict):
+            methods[row['message'].get('method')] = methods.get(row['message'].get('method'), 0) + 1
+        elif row['event'] == 'mcp/response' and sent.get(row['message'].get('id')) == 'tools/call':
+            outcomes['❌' if 'error' in row['message'] else '⚠️' if row['message']['result']['isError'] else '✅'] += 1
+        elif row['event'] == 'jev/route_decision':
+            key = row['tool_family'] if not row.get('fallback_reason') else f'⏸ {row["fallback_reason"]}'
+            routes[key] = routes.get(key, 0) + 1
+        elif row['event'] == 'ask/refused':
+            outcomes['❌'] += 1
+    clip = lambda line: line if len(line) <= 240 else line[:239] + '…'
+    return '\n\n'.join(['### 🧾 MCP の記録', _kv([
+        ('📨', ' · '.join(f'{m} {n}' for m, n in methods.items()) or '—'),
+        ('🔧', ' · '.join(f'{k} {n}' for k, n in outcomes.items())),
+        ('⚖️', ' · '.join(f'{k} {n}' for k, n in routes.items()) or '—'),
+        ('🧾', f'{len(trace)} 行（下は最後の {min(rows, len(trace))} 行）')]),
+        _code('\n'.join(clip(json.dumps(row, ensure_ascii=False)) for row in trace[-rows:]), 'jsonl')])
 
 
 def kinds_of(repo: str, path: str) -> list[str]:
@@ -702,6 +909,36 @@ def olnm_reply(text: str, index: dict | None = None) -> str:
     return '\n\n'.join(part for part in [f'🧷 `olnm {" ".join([sub, *rest])}`', _code(shown, 'sh' if sub == 'show' else 'text'), tail] if part)
 
 
+def triage_reply(text: str) -> str:
+    """🧯 Err-o-RoadRunner's triage on a pasted log: JUnit XML, a GitHub Actions log or stderr (a traceback, a Node stack, …).
+
+    Its facts about the machine that runs it (Python, environment, node / gh, lock files) would describe this page, not the
+    failure, so they are left out. The lines are kept for /ask, which may explain them — as a guess, beside the facts. A JUnit
+    report also points to 🧾 テスト結果 (#test-report), which compares it with the previous run."""
+    import triage
+    text = text.strip('\n')
+    if not text.strip():
+        return '🧯 `/triage` の後に失敗のログ（traceback・Node のスタック・JUnit XML・Actions のログ）を貼る'
+    junit, path = [], Path(tempfile.gettempdir()) / 'junit.xml'
+    if text.lstrip().startswith(('<?xml', '<testsuite')):
+        path.write_text(text.strip(), encoding='utf-8')
+        junit = [str(path)]
+    actions = text if re.search(r'^(\S+Z )?##\[(error|group)\]', text, re.M) else None
+    runtime, triage.collect_runtime_facts = triage.collect_runtime_facts, lambda report, root: None
+    try:
+        report = triage.triage(exit_code=None, stderr_text=None if junit or actions else text, log_text=None,
+                               actions_log_text=actions, junit_paths=junit, project_root=None)
+    finally:
+        triage.collect_runtime_facts = runtime
+    tidy = lambda lines: [line.replace(f' ({path})', '') for line in lines if line.rpartition(': ')[2] != 'exit code']   # 📋 no exit code, no file
+    _STATE['triage'] = [line for line in tidy(report.lines()) if not line.startswith('NOT FOUND')]   # 🤖 for /ask: facts and hints
+    groups = [('✅ FOUND', tidy(report.found)), ('❔ NOT FOUND', tidy(report.not_found)), ('💡 HINT', tidy(report.hints))]
+    out = ['### 🧯 Err-o-RoadRunner triage'] + [f'**{label}**\n\n' + md.bullet_list(lines).strip() for label, lines in groups if lines]
+    if junit:
+        out.append('🧾 前回の実行と比べる（新規・継続・解消）→ [🧾 テスト結果](#test-report)')
+    return '\n\n'.join(out + ['🤖 `/ask この失敗は？` で 💡 を説明（推測）'])
+
+
 def abbr(name: str) -> str:
     """The capitals of a CamelCase name, as the fleet shortens them (OnTautoLogy → OTL, PySaiyanWeBoo → PSWB); '' below two."""
     caps = re.sub(r'[^A-Z]', '', name)
@@ -748,9 +985,12 @@ def grounding(question: str, index: dict | None = None, fetch=None, *, repos: in
 
 
 def ask_messages(text: str, index: dict | None = None, fetch=None) -> str:
-    """🤖 The chat messages /ask sends to the model (JSON): who it is, the commands, and what ``grounding`` finds for the question."""
+    """🤖 The chat messages /ask sends to the model (JSON): who it is, the commands, what ``grounding`` finds for the question and
+    the last 🧯 triage. A new question starts a new 🔧 trail (``ask_call``) and asks ⚖️ Jev which tools to offer (``ask_route``)."""
     question = re.sub(r'^/ask\s*', '', text.strip(), flags=re.I) or 'こんにちは'
     found = grounding(question, index, fetch)
+    _STATE['calls'] = []
+    offered = ask_route(question, fetch)['offered']
     lines = lambda title, rows: f'\n{title}:\n' + '\n'.join(f'- {row}' for row in rows) if rows else ''
     system = ('あなたは myon-bioinformatics のポートフォリオにある横断チャットの案内役。日本語で、短く、Markdown で答える。'
               '下の資料にあることを根拠にし、分からないことは分からないと言う。索引にない情報の有無は断定しない。道具はコマンドで: '
@@ -758,15 +998,75 @@ def ask_messages(text: str, index: dict | None = None, fetch=None) -> str:
               + ('\nリポジトリ: ' + ', '.join(found['names']) if found['names'] else '')
               + lines('関係しそうなリポジトリ（README の要約）', found['repos'])
               + lines('台帳の概念（OnTautoLogy）', found['concepts'])
-              + ('\n記録にあるファイル: ' + ', '.join(found['files']) if found['files'] else ''))
+              + ('\n記録にあるファイル: ' + ', '.join(found['files']) if found['files'] else '')
+              + ('\n資料が足りなければ道具（' + '・'.join(offered) + '）を呼んでよい。道具の結果は事実として使う。' if offered else '')
+              + ('\n直前の 🧯 triage（FOUND は事実、HINT は推測。説明は推測として書く）:\n' + '\n'.join(_STATE['triage'][:16])
+                 if _STATE['triage'] else ''))
     return json.dumps([{'role': 'system', 'content': system}, {'role': 'user', 'content': question}], ensure_ascii=False)
 
 
+def ask_route(question: str, fetch=None) -> dict:
+    """⚖️ Jev (the lab's keyword router, ``decide_route``) on the question: which of the server's tools /ask offers — one family's
+    when it is confident, none when it is confident no tool is needed, else every tool. The decision joins the 🧾 trace."""
+    tools, lab = list(server_tools(fetch)), _lab(fetch)
+    if not lab:
+        row = {'needs_tool': None, 'tool_family': None, 'fallback_reason': 'no_lab', 'offered': tools}
+    else:
+        decision = dataclasses.asdict(lab['decide'](lab['router'], question))
+        family = decision['tool_family'] if not decision['fallback_reason'] else None
+        row = {**decision, 'offered': [t for t in tools if t in FAMILIES[family]] if family in FAMILIES else tools}
+    _trace('jev/route_decision', question=question, **row)
+    _STATE['route'] = row
+    return row
+
+
+def ask_tools(index: dict | None = None, fetch=None) -> str:
+    """🔧 The tools /ask offers (``ask_route``) from the server's tools/list, as the OpenAI-style ``tools`` (JSON) wllama takes."""
+    listed = _rpc('tools/list', index=index, fetch=fetch)['result']['tools']
+    offered = (_STATE['route'] or {}).get('offered')
+    return json.dumps([{'type': 'function', 'function': {'name': t['name'], 'description': t['description'], 'parameters': t['inputSchema']}}
+                       for t in listed if offered is None or t['name'] in offered], ensure_ascii=False)
+
+
+def ask_call(name: str, arguments, index: dict | None = None, fetch=None) -> str:
+    """🔧 One tool call of the model (``arguments``: the JSON text it wrote, or a dict), as JSON ``{ok, call, result}``. The client
+    sends it as tools/call only when the tool was offered, the question has calls left (``ASK_CALLS``) and the arguments are
+    JSON; the server then checks them against the tool's inputSchema. ``result`` says why not when it did not run (the model reads
+    it either way); each call joins the 🔧 trail ``ask_html`` shows."""
+    offered = (_STATE['route'] or {}).get('offered')
+    problems, args = [], arguments
+    if offered is not None and name not in offered:
+        near = difflib.get_close_matches(str(name), offered, n=1)
+        problems.append('渡していない道具' + (f'（もしかして {near[0]}）' if near else ''))
+    elif len(_STATE['calls']) >= ASK_CALLS:
+        problems.append(f'道具は 1 つの質問につき {ASK_CALLS} 回まで')
+    else:
+        try:
+            args = json.loads(arguments or '{}') if isinstance(arguments, str) else arguments
+        except json.JSONDecodeError as exc:
+            problems.append(f'引数が JSON ではない（{exc.msg}）')
+    if problems:
+        ok, result = False, '❌ ' + ' · '.join(problems)
+        _trace('ask/refused', name=name, problems=problems)
+    else:
+        ok, result = _call_text(_rpc('tools/call', {'name': name, 'arguments': args}, index=index, fetch=fetch))
+        result = result if ok else '❌ ' + result
+    call = f'{name} ' + (json.dumps(args, ensure_ascii=False) if isinstance(args, dict) else str(arguments)[:60])
+    _STATE['calls'].append({'call': call, 'ok': ok})
+    return json.dumps({'ok': ok, 'call': call, 'result': result if len(result) <= ASK_RESULT else result[:ASK_RESULT - 1] + '…'},
+                      ensure_ascii=False)
+
+
 def ask_html(output: str, tokens: int, seconds: float, *, threads: int = 1, webgpu: bool = False) -> str:
-    """🤖 The model's answer as HTML, with its reasoning (if it wrote any) quoted as 💭 above it, what produced it and how fast."""
+    """🤖 The model's answer as HTML: ⚖️ the tools Jev offered, the 🔧 calls the model made (✅ ran, ❌ refused), its reasoning (if
+    it wrote any) quoted as 💭, the answer, what produced it and how fast."""
     parts = md.split_reasoning(output)
     thought = '\n'.join(parts['reasoning']).strip()
-    answer = ('> 💭 ' + thought.replace('\n', '\n> ') + '\n\n' if thought else '') + (parts['answer'].strip() or '…')
+    route = _STATE['route'] or {}
+    trail = (f'⚖️ Jev {route.get("tool_family") if not route.get("fallback_reason") else "⏸ " + route["fallback_reason"]} → '
+             + (' · '.join(f'`{t}`' for t in route['offered']) or '道具なし') + '  \n' if route else '')
+    trail += ''.join(f'🔧 {"✅" if c["ok"] else "❌"} `{c["call"]}`  \n' for c in _STATE['calls'])
+    answer = (trail + '\n' if trail else '') + ('> 💭 ' + thought.replace('\n', '\n> ') + '\n\n' if thought else '') + (parts['answer'].strip() or '…')
     speed = f'{tokens / seconds:.1f} tok/s' if seconds > 0 else ''
     where = '⚡ WebGPU' if webgpu else f'🧮 CPU 🧵{threads}'
     model = RUNTIME['model'].rsplit('/', 1)[-1]
@@ -793,7 +1093,7 @@ def respond(text: str, *, index: dict | None = None, fetch=None) -> str:
     if name == 'show':
         return show_reply(index, rest, fetch)
     if name == 'mcp':
-        return mcp_reply(rest, index)
+        return mcp_reply(rest, index, fetch)
     if name == 'onto':
         return onto_reply(rest, index, fetch)
     if name == 'guess':
@@ -802,6 +1102,8 @@ def respond(text: str, *, index: dict | None = None, fetch=None) -> str:
         return olnm_reply(rest, index)
     if name == 'compress':
         return compress_reply(rest, fetch, commit=(index or {}).get('commits', {}).get('TalkCompress'))
+    if name == 'triage':
+        return triage_reply(text.strip()[len('/triage'):])
     if name == 'ask':                                   # the page answers it with wllama; here there is no model
         return '🤖 `/ask` はチャットのページで、ブラウザの中の llama.cpp（wllama）が答える'
     return {'md': md_reply, 'table': table_reply, 'ascii': ascii_reply, 'box': box_reply, 'flow': flow_reply}[name](rest)
@@ -828,10 +1130,13 @@ def main(argv=None) -> int:
     cli.add_argument('message', nargs='+', help='the message, e.g. "/flow a > b"')
     cli.add_argument('--index', type=Path, help='a recorded media/chat/index.json (for /find, /show, /mcp)')
     cli.add_argument('--talkcompress', type=Path, help='a TalkCompress checkout (for /compress)')
+    cli.add_argument('--lab', type=Path, help='an mcp-toolcall-lab checkout (for /mcp and the tools of /ask)')
     cli.add_argument('--html', action='store_true', help='print the HTML the page shows')
     args = cli.parse_args(argv)
     if args.talkcompress:
         sys.path[:0] = [str(args.talkcompress), str(args.talkcompress / 'ShorthandSessionEdge')]
+    if args.lab:
+        sys.path.insert(0, str(args.lab / 'src'))
     index = json.loads(args.index.read_text(encoding='utf-8')) if args.index else None
     text = ' '.join(args.message)
     print(reply_html(text, index=index) if args.html else respond(text, index=index))

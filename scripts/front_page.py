@@ -51,6 +51,7 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'links': [('ヒートマップを描く →', './tools/#heatmap'), ('Image Studio で編集 →', _service_url('Ironmate', 'pages', relative=True))]},
  {'title': '🔌 MCP 実験室',
   'text': 'AI が MCP で呼ぶ道具（Wikipedia 表示・Pixiv 原文抽出・ニコニコ検索・ポケモン）をブラウザで試し、ツール呼び出しの記録（JSONL）を集計。'
+          '💬 チャットの /mcp はページの中の MCP サーバー（ラボの Wikipedia・PokéAPI・⚖️ Jev）で、/ask の小さな LLM がその道具を呼ぶ。'
           '検証の結果は、ラボの Actions の写し。接続試験は、新旧の protocol・PKCE・Bearer・OAuth メタデータを端末の中で確かめる。',
   'id': 'mcp', 'words': {'MCP 実験室': ['MCP lab', 'Labo MCP', 'Laboratorio MCP', 'Laboratório MCP', 'مختبر MCP', 'MCP 实验室', 'Лаборатория MCP', 'Lab MCP', 'MCP-Labor', 'Maabara ya MCP'], 'MCP 接続試験': ['MCP connection test', 'Test de connexion MCP', 'Prueba de conexión MCP', 'Teste de conexão MCP', 'اختبار اتصال MCP', 'MCP 连接测试', 'Проверка подключения MCP', 'Uji koneksi MCP', 'MCP-Verbindungstest', 'Jaribio la muunganisho wa MCP']},
   'from': ('mcp-toolcall-lab',),
@@ -58,15 +59,16 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
             ('Open Execution Lab →', _service_url('mcp-toolcall-lab', 'execution')),
             ('MCP 接続試験 →', './tools/#protocol')]},
  {'title': '🧾 テスト結果',
-  'text': 'JUnit の結果を貼るか開いて読み、前回と比べて新規・再発・解消を分ける。端末の中で完結し、結果はどこにも送らない。',
+  'text': 'JUnit の結果を貼るか開いて読み、前回と比べて新規・再発・解消を分ける。🧯 で失敗をチャットの /triage へ。端末の中で完結し、結果はどこにも送らない。',
   'id': 'test-report', 'words': {'テスト結果': ['Test results', 'Résultats de tests', 'Resultados de pruebas', 'Resultados de testes', 'نتائج الاختبار', '测试结果', 'Результаты тестов', 'Hasil pengujian', 'Testergebnisse', 'Matokeo ya majaribio'], '結果を読む': ['Read the results', 'Lire les résultats', 'Leer los resultados', 'Ler os resultados', 'اقرأ النتائج', '读取结果', 'Прочитать результаты', 'Baca hasil', 'Ergebnisse lesen', 'Soma matokeo']},
   'from': ('PySaiyanWeBoo',),
   'links': [('結果を読む →', './tools/#test-report')]},
  {'title': '💬 横断チャット',
   'text': 'リポジトリ横断の道具をチャットで：Markdown の表示・表、ASCII アートと流れ図、会話の圧縮、MCP の道具呼び出しの確認、'
-          '全リポジトリの JSON / JSONL（オントロジーの台帳も）の索引と中身。ページの中の Python（Pyodide）で、それぞれのリポジトリのコードがそのまま動く。',
+          '全リポジトリの JSON / JSONL（オントロジーの台帳も）の索引と中身、🧯 失敗のログの triage（Err-o-RoadRunner）。'
+          '🤖 /ask の小さな LLM はこれらを道具として呼ぶ。ページの中の Python（Pyodide）で、それぞれのリポジトリのコードがそのまま動く。',
   'id': 'chat', 'words': {'横断チャット': ['Cross-repo chat', 'Chat inter-dépôts', 'Chat entre repositorios', 'Chat entre repositórios', 'دردشة عبر المستودعات', '跨仓库聊天', 'Чат по всем репозиториям', 'Obrolan lintas repo', 'Repo-übergreifender Chat', 'Gumzo la hazina zote'], '話しかける': ['Talk to it', 'Lui parler', 'Hablarle', 'Falar com ele', 'تحدّث إليه', '和它聊聊', 'Поговорить', 'Ajak bicara', 'Ansprechen', 'Zungumza nayo']},
-  'from': ('markdown', 'ascii_artist', 'cli_args', 'TalkCompress', 'mcp-toolcall-lab'),
+  'from': ('markdown', 'ascii_artist', 'cli_args', 'TalkCompress', 'mcp-toolcall-lab', 'Err-o-RoadRunner'),
   'links': [('💬 話しかける →', './tools/#chat')]},
  {'title': '🧭 統合運用',
   'text': 'リポジトリ横断の運用ダッシュボード：CI の失敗・競合・未解決レビューの優先確認、監査と依存、実行手順、記録と差分。',
