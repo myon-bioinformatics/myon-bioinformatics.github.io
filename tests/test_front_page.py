@@ -639,3 +639,44 @@ def test_each_hosted_page_loads_and_draws(page, path):
     assert response.status == 200
     page.wait_for_load_state("networkidle")
     assert len(page.screenshot(type="png")) > 1000
+
+
+def test_keyboard_shortcut_reaches_current_content(browser, tmp_path):
+    """Tab past the shared chrome without leaving the active route or loading another tool."""
+    import pysaiyanweboo as ui
+
+    spec = importlib.util.spec_from_file_location("project_pages", ROOT / "scripts/project_pages.py")
+    pages = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pages)
+    sample = b'<html><head><title>Editor</title></head><body><main><button>Edit</button></main></body></html>'
+    front = tmp_path / 'index.html'
+    front.write_bytes(pages.render_front()['index.html'])
+    tools = tmp_path / 'tools.html'
+    tools.write_bytes(pages.render_shell(ui, {'tools/#maps': (sample, None, False),
+                                             'tools/slide-studio/index.html': (sample, 'Ironmate', True)}))
+    page = browser.new_page()
+    try:
+        for url, target in [(front.as_uri(), 'main'), (tools.as_uri() + '#maps', '#maps'),
+                            (tools.as_uri() + '#slide-studio', '#slide-studio iframe')]:
+            page.goto('about:blank')
+            page.goto(url)
+            skip = page.locator('.ui-skip-content')
+            expect(skip).to_be_visible()
+            if target == 'main':
+                page.keyboard.press('Tab')
+            else:
+                # A deep link starts sequential navigation at its fragment.
+                skip.focus()
+            expect(skip).to_be_focused()
+            page.keyboard.press('Enter')
+            expect(page.locator(target)).to_be_focused()
+            expect(page).to_have_url(url)
+            if target == '#maps':
+                expect(page.locator('#slide-studio > template')).to_have_count(1)
+                page.keyboard.press('Tab')
+                expect(page.get_by_role('button', name='Edit')).to_be_focused()
+            elif target.endswith('iframe'):
+                page.keyboard.press('Tab')
+                expect(page.frame_locator(target).get_by_role('button', name='Edit')).to_be_focused()
+    finally:
+        page.close()

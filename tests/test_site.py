@@ -457,7 +457,7 @@ def test_the_screen_carries_the_site_chrome_once_and_every_door_is_a_panel():
     import pysaiyanweboo as ui
     chrome = ui.component_parts('chrome')['js']                    # 🌐 a page keeps, of the body's words, only those it holds
     module = (re.compile(re.escape('<script type="module">' + chrome[:chrome.index('CHROME_TEXT=')]) + '.*?' + re.escape(chrome[-64:] + '</script><div class="ui-door-foot"><div class="ui-door ui-door-compact" id="door" data-ui-door '), re.S),
-              '</span></p></div><script type="module">' + ui.js_source('door.js') + '</script></body>')
+              '</span></p></div><script type="module">' + ui.js_source('door.js') + '</script>' + ui.module_script(PAGES._SKIP_JS) + '</body>')   # ⌨️ the site's skip link follows it
     assert 'addEventListener("pageshow",fill)' in module[1]                                   # PySaiyanWeBoo's door.js alone
     cards = [html.escape(card['title']) for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL]
     assert sorted(p.relative_to(SITE).as_posix() for p in SITE.rglob('*.html') if 'media' not in p.parts) == ['index.html', PAGES.SHELL_PAGE]   # 🧰 two pages
@@ -1825,3 +1825,13 @@ def test_the_one_screen_keeps_one_owner_per_id():
     from html import unescape
     inner = unescape(framed[1])
     assert '<base href="./app/">' in inner and '<a target="_top" href="/tools/#a">' in inner and '<a href="#status">' in inner
+
+
+def test_the_skip_link_is_added_once_and_only_to_a_page_with_the_header():
+    """⌨️ 本文へ移動 comes with the site's header once: a page that has it keeps it, a page without a header gets nothing."""
+    import pysaiyanweboo as ui
+    plain = ui.render_document(title='plain', theme='modern', trusted_html='<main>本文</main>')
+    assert PAGES.add_skip_link(plain) == plain                                       # no header: nothing to put it in
+    built = PAGES.add_site_chrome(plain, 'tools/index.html', title='MYON')
+    assert built.count('class="ui-skip-content"') == 1 and built.index('class="ui-skip-content"') < built.index('class="ui-board"')
+    assert PAGES.add_skip_link(built) == built                                       # twice: still once

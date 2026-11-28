@@ -220,14 +220,50 @@ def tools_site(prefix: str = '../', tools: dict | None = None, *, home: bool = T
 X_URL = 'https://twitter.com/myonitbusiness'
 
 
+# Keyboard entry to the current document or tool, across both layouts of the shared chrome.
+_SKIP_TEXT = {'ja': '本文へ移動', 'en': 'Skip to content', 'fr': 'Aller au contenu', 'es': 'Saltar al contenido',
+              'pt': 'Ir para o conteúdo', 'ar': 'انتقل إلى المحتوى', 'zh': '跳到主要内容', 'ru': 'Перейти к содержимому',
+              'id': 'Langsung ke konten', 'de': 'Zum Inhalt springen', 'sw': 'Nenda kwenye maudhui'}
+_SKIP_CSS = """
+.ui-skip-content:not(:focus){position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);padding:0;border:0}
+.ui-skip-content:focus{position:fixed;inset-block-start:.5rem;inset-inline-start:.5rem;z-index:1000;padding:.6rem 1rem}
+"""
+_SKIP_JS = """
+const skipContent=document.querySelector('[data-ui-chrome] .ui-skip-content');
+skipContent.hidden=false;
+skipContent.addEventListener('click',()=>{
+ const panel=document.querySelector('[data-ui-view]:not([hidden])');
+ const target=panel?.querySelector(':scope > iframe')||panel||document.querySelector('main');
+ if(!target)return;
+ if(!target.matches('iframe,[tabindex]'))target.tabIndex=-1;
+ target.focus();
+ target.scrollIntoView({block:'start'});
+});
+"""
+
+
+def add_skip_link(page: str) -> str:
+    """⌨️ 本文へ移動: the first stop of the shared header (right after its opening tag, before the board), a button that moves focus to the shown view (its frame, else the view) or
+    to ``main``. The page's own ``<html lang>`` names it (🌐 ``page_language``), ``data-texts`` follows ⚙️'s language; one page has one, and 📦 counts it."""
+    import pysaiyanweboo as ui
+    head = re.search(r'<div class="ui-chrome ui-world-head"[^>]*>', page)
+    if 'class="ui-skip-content"' in page or not head:
+        return page
+    lang = ui.page_language(page)
+    skip = (f'<button type="button" hidden class="ui-skip-content" data-texts="{html.escape(json.dumps(_SKIP_TEXT, ensure_ascii=False))}">'
+            f'{_SKIP_TEXT.get(lang, _SKIP_TEXT["en"])}</button>')
+    return ui.stamp_page_size(ui.add_part(page[:head.end()] + skip + page[head.end():], {'css': _SKIP_CSS, 'js': _SKIP_JS}))   # 📦 after the last part
+
+
 def add_site_chrome(page: str, path: str, tools: dict | None = None, *, title: str = 'TOOLS', home: bool = True, views: dict | None = None) -> str:
     """🧰 The parts both pages of the site share (``index.html``, ``tools/index.html``: ``path``): PySaiyanWeBoo's ``add_site_chrome``,
     the one the repositories' guides carry, told what this site is (``tools_site``): 📟 the board (what the page says of itself, then
     the cards), 🫧, 🏠 ⭐ ⚙️, ☰ ⋯, and 🚪 every tool, 🐦 X and 📦 at the foot. What a page asks of the header it declares itself
-    (``chrome_rows_script``: the front page's 🧾), and ``views``, a screen's panels (name → document), bring theirs while they show."""
+    (``chrome_rows_script``: the front page's 🧾), and ``views``, a screen's panels (name → document), bring theirs while they show.
+    ⌨️ ``add_skip_link`` puts the keyboard's way past the header first."""
     import pysaiyanweboo as ui
     prefix = '../' * path.count('/') or './'
-    return ui.add_site_chrome(page, [], title=title, site=tools_site(prefix, tools, home=home), views=views)
+    return add_skip_link(ui.add_site_chrome(page, [], title=title, site=tools_site(prefix, tools, home=home), views=views))
 
 
 def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
