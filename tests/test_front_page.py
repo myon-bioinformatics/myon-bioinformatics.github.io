@@ -192,8 +192,19 @@ def open_front(page, site, config_mode="modern"):
     return page.locator("body").get_attribute("data-view-mode")
 
 
+MODE, COLOURS = '[data-chrome-choice="mode"]', "[data-ui-theme-switch]"   # ⚙️ 🧾 the display mode, 🎨 the colours (the site chrome's)
+
+
+def choose(page, control, value):
+    """Pick in ⚙️ as a visitor does: open it if it is shut, then choose."""
+    menu = page.locator('.ui-chrome [data-menu="settings"]')
+    if not menu.evaluate("d => d.open"):
+        menu.locator("> summary").click()
+    page.select_option(f".ui-chrome {control}", value)
+
+
 def select_mode(page, mode):
-    page.select_option("#view-mode-select", mode)
+    choose(page, MODE, mode)
     expect(page.locator("body")).to_have_attribute("data-view-mode", mode)
 
 
@@ -209,7 +220,7 @@ CARDS = "#projects-render-root .ui-card"
 def test_every_active_repository_is_reachable_in_every_display_mode(page):
     page.goto("/")
     for mode in MODES:
-        page.select_option("#view-mode-select", mode)
+        choose(page, MODE, mode)
         expect(count(page)).to_have_text(SHOWING_ALL)
         urls = page.locator("#projects-render-root a").evaluate_all(
             "links => [...new Set(links.map(link => link.getAttribute('href')))].sort()")
@@ -233,7 +244,7 @@ def test_topic_and_search_combine_and_survive_mode_changes(page):
     page.locator('#project-tags-filter button[data-tag="nvd"]').click()
     page.locator("#project-search-input").fill("NVD_NIST")
     for mode in MODES:
-        page.select_option("#view-mode-select", mode)
+        choose(page, MODE, mode)
         expect(count(page)).to_have_text(ONE_OF)
         expect(page.locator("#projects-render-root")).to_contain_text("nvd_nist_known_vulns")
     page.locator("#project-search-input").fill("no-such-project-term")
@@ -258,7 +269,7 @@ def test_the_full_catalog_and_expanded_topics_fit_a_phone(page):
     page.goto("/")
     page.locator(".project-topic-controls summary").click()
     for mode in MODES:
-        page.select_option("#view-mode-select", mode)
+        choose(page, MODE, mode)
         expect(count(page)).to_have_text(SHOWING_ALL)
         assert page.evaluate("document.documentElement.scrollWidth") <= 390, mode
 
@@ -352,7 +363,7 @@ def test_combined_search_and_topic_persist_through_every_display_mode(filters):
     filters.locator("#project-search-input").fill("SCAPY")
     expect(count(filters)).to_have_text(NO_MATCH)
     for mode in MODES:
-        filters.select_option("#view-mode-select", mode)
+        choose(filters, MODE, mode)
         expect(count(filters)).to_have_text(NO_MATCH)
         filters.locator("#project-search-clear").click()
         expect(count(filters)).to_have_text(ONE_OF)
@@ -376,7 +387,7 @@ def test_cards_and_controls_use_the_pinned_shared_ui(page):
     for selector in (CARDS, "#project-search-input", "#projects-render-root .project-copy"):
         expect(page.locator(selector).first).to_have_css("border-top-color", "rgb(1, 2, 3)")
     for mode in ("github-like", "xml-like", "json", "markdown", "modern"):
-        page.select_option("#view-mode-select", mode)
+        choose(page, MODE, mode)
         expect(page.locator("body")).to_have_attribute("data-ui-theme", mode if mode in ("modern", "github-like") else "plain")
     page.set_viewport_size({"width": 390, "height": 844})
     for selector in ("#project-search-input", "#projects-render-root .project-copy"):
@@ -388,7 +399,7 @@ def test_a_colour_theme_recolours_every_display_mode_and_is_remembered(page, sit
     background = lambda: page.evaluate("getComputedStyle(document.body).backgroundColor")
     seen = {background()}
     for theme in ("purple", "green", "terminal"):
-        page.select_option("#theme-select", theme)
+        choose(page, COLOURS, theme)
         for mode in MODES:
             select_mode(page, mode)
             expect(page.locator("body")).to_have_attribute("data-ui-theme", theme)
@@ -396,10 +407,25 @@ def test_a_colour_theme_recolours_every_display_mode_and_is_remembered(page, sit
     assert len(seen) == 4                                   # the mode's own colours, then three different palettes
     page.reload()
     expect(page.locator("body")).to_have_attribute("data-ui-theme", "terminal")
-    page.select_option("#theme-select", "")                 # back to the display mode's own colours
+    choose(page, COLOURS, "")                 # back to the display mode's own colours
     select_mode(page, "github-like")
     expect(page.locator("body")).to_have_attribute("data-ui-theme", "github-like")
     expect(page.locator(CARDS)).to_have_count(COUNT)
+
+
+def test_the_colours_picked_here_are_the_tools_screens_and_back(page, site):
+    """🎨 is one choice for the site: picked on the front page, tools/ opens in it, and "this page's own" picked there is each page's
+    own look again (here, the display mode's)."""
+    open_front(page, site)
+    choose(page, COLOURS, "green")
+    page.goto("/tools/")
+    page.wait_for_selector(".ui-chrome[data-js]")
+    expect(page.locator("body")).to_have_attribute("data-ui-theme", "green")
+    choose(page, COLOURS, "")
+    page.goto("/")
+    page.wait_for_load_state("networkidle")
+    expect(page.locator("body")).to_have_attribute("data-ui-theme", "modern")
+    assert page.evaluate("Object.keys(localStorage).filter(k => /theme|color/.test(k))") == []
 
 
 # ═══ 👁️ display modes ══════════════════════════════════════════════════════════════════════════════════════════
@@ -420,10 +446,10 @@ def test_the_dropdown_changes_mode_and_notation_at_once(page, site):
 
 def test_the_chosen_mode_is_stored_and_restored(page, site):
     open_front(page, site)
-    page.select_option("#view-mode-select", "json")
+    choose(page, MODE, "json")
     assert page.evaluate("localStorage.getItem('site:view-mode')") == "json"
     assert page.evaluate("localStorage.getItem('site:view-mode-base')") == "modern"
-    page.select_option("#view-mode-select", "github-like")
+    choose(page, MODE, "github-like")
     page.reload()
     page.wait_for_load_state("networkidle")
     expect(page.locator("body")).to_have_attribute("data-view-mode", "github-like")
@@ -431,7 +457,7 @@ def test_the_chosen_mode_is_stored_and_restored(page, site):
 
 def test_a_changed_config_overrides_a_stale_choice(page, site):
     open_front(page, site)
-    page.select_option("#view-mode-select", "xml-like")
+    choose(page, MODE, "xml-like")
     write_config(site, "json")
     page.reload()
     page.wait_for_load_state("networkidle")
@@ -546,19 +572,19 @@ def test_live_highlights_follow_every_mode_and_a_late_answer_keeps_the_current_o
     page.route(AI_SEARCH, lambda route: held.append(route))
     page.goto("/")
     expect(page.locator(CARDS)).to_have_count(COUNT)
-    page.select_option("#view-mode-select", "json")
+    choose(page, MODE, "json")
     held[0].fulfill(json={"items": [{"full_name": f"demo/model{i}", "html_url": f"https://github.com/demo/model{i}",
                                      "description": "Safe AI example", "stargazers_count": 1001 + i, "language": "Python"} for i in range(4)]})
     expect(page.locator("#ai-highlights-status")).to_contain_text("public GitHub API")
     expect(page.locator("body")).to_have_attribute("data-view-mode", "json")
     root = page.locator("#ai-highlights-render-root")
     for mode, notation in (("xml-like", "xml"), ("json", "json"), ("markdown", "markdown"), ("github-like", "web"), ("modern", "web")):
-        page.select_option("#view-mode-select", mode)
+        choose(page, MODE, mode)
         expect(root).to_have_attribute("data-renderer", notation)
         expect(root).to_contain_text("demo/model")
     page.locator("#ai-highlights-refresh").click()
     expect(root.locator(".card")).to_have_count(3)
-    page.select_option("#view-mode-select", "json")             # the filled JSON notation is real JSON
+    choose(page, MODE, "json")             # the filled JSON notation is real JSON
     shown = json.loads(root.text_content())
     assert len(shown) == 3 and all(item["name"].startswith("demo/model") and item["stars"] > 1000 for item in shown)
 

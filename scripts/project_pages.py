@@ -196,11 +196,11 @@ def tools_places(prefix: str = '../') -> list[dict]:
     """🧰 Every link of the 🧰 Tools cards (front_page.py ``PORTAL``, so a new card is a new row) as ``{'id', 'label', 'href'}``, for
     a page ``prefix`` below the site root (``../``: the screen's): the doors of 🚪 Door-to-Door. ``text`` is the card's own description (the board shows it).
 
-    Every label is ``emoji words``, one emoji per page (the door knows a page by its emoji): the card's own, or the one named here
-    for a link that has none or shares its card's. 🌐 Its words in the other languages are the card's (``tools_words``): the chrome and
+    Every label is ``emoji words``, one emoji per page (the door knows a page by its emoji): the link's own, the card's, or the one
+    named here for a link that has none or shares its card's. 🌐 Its words in the other languages are the card's (``tools_words``): the chrome and
     a world carry them (``data-words``), so 🌐 finds them wherever the label is shown."""
     site, places = 'https://myon-bioinformatics.github.io/tools/', {}
-    marks = {'html-import': '📄', 'maps': '🗺️', 'world': '🌍', 'school': '🏫', 'tokyo': '🗼', 'london': '🎡', 'paris': '🥖', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'protocol': '🤝'}
+    marks = {'html-import': '📄', 'maps': '🗺️', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'protocol': '🤝'}
     for card in _front_module().PORTAL:
         mark, _, title = card['title'].partition(' ')
         if not title or any(c.isalnum() for c in mark):                  # a title without an emoji: all of it is words
@@ -209,26 +209,31 @@ def tools_places(prefix: str = '../') -> list[dict]:
             href = prefix + href[2:] if href.startswith('./') else prefix + 'tools/' + href[len(site):] if href.startswith(site) else href
             name = re.sub(r'[^a-z0-9]+', '-', href.partition('tools/')[2].removesuffix('.html').lower()).strip('-') or card['id']
             words = title if len(card['links']) == 1 else label.removesuffix(' →').removeprefix('Open ')   # several links: each link's own words
-            places.setdefault(href, {'id': name, 'href': href, 'label': f'{marks.get(name, mark)} {words}', 'text': card['text']})
+            own = words.partition(' ')                                   # a link that carries its own emoji ("🌍 村 →") is known by it
+            door = words if own[2] and not any(c.isalnum() for c in own[0]) else f'{marks.get(name, mark)} {words}'
+            places.setdefault(href, {'id': name, 'href': href, 'label': door, 'text': card['text']})
     return list(places.values())
 
 
 def tools_words() -> dict[str, list[str]]:
     """🌐 The 🧰 Tools cards' names in the ten other languages of 🌐 (each card's ``words``: its title and its links' words), as
     PySaiyanWeBoo's chrome takes them: wherever a page shows one (the board, ☰, 🚪, a card), it reads in the visitor's language."""
-    return {ja: row for card in _front_module().PORTAL for ja, row in card.get('words', {}).items()}
+    front = _front_module()
+    return {**{ja: row for card in front.PORTAL for ja, row in card.get('words', {}).items()}, **front.WORDS}   # and ⚙️'s own rows (WORDS)
 
 
 def tools_chrome(prefix: str = '../', tools: dict | None = None, description: str = '', *, title: str = 'TOOLS', home: bool = True,
-                 lang: str = 'ja') -> dict:
+                 lang: str = 'ja', settings: list | None = None) -> dict:
     """🧰 The chrome both pages of the site carry (PySaiyanWeBoo's ``chrome_validate``), for a page ``prefix`` below the site root:
     the board (``title``, the clock, then ``description`` — what this page is, a sentence per item — and the cards' titles), 🏠 back
-    to the cards (``home=False``: the front page itself) and ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``).
+    to the cards (``home=False``: the front page itself), ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``), and
+    ``settings``, the page's own rows of ⚙️ (the front page's 🧾 display mode, beside 🌐 and 🎨, which every page shares).
     ☰ is each page's own (itself and its sections, listed in the page); the tools themselves are 🚪 Door-to-Door's rows (``tools_places``)."""
     cards = _front_module().PORTAL
     about = [{'text': part if len(part) <= 120 else part[:119] + '…'}
              for part in (p.strip() for p in re.split(r'(?<=[。！？])|(?<=[.!?])\s+', html.unescape(description))) if part][:3]
     return {'id': 'tools', 'lang': lang, 'words': tools_words(), **({'home': prefix + 'index.html#tools'} if home else {}), 'tools': tools or {},
+            'settings': settings or [],
             'board': {'title': title, 'items': (about + [{'text': card['title']} for card in cards])[:12]}}
 
 
@@ -245,7 +250,7 @@ def tools_door(ui, prefix: str = '../') -> dict[str, str]:
 X_URL = 'https://twitter.com/myonitbusiness'
 
 
-def add_site_chrome(page: str, path: str, tools: dict | None = None, *, title: str = 'TOOLS', home: bool = True) -> str:
+def add_site_chrome(page: str, path: str, tools: dict | None = None, *, title: str = 'TOOLS', home: bool = True, settings: list | None = None) -> str:
     """🧰 The parts both pages of the site share (``index.html``, ``tools/index.html``: ``path``): the header (``tools_chrome``: the
     board reads the page's ``<meta name="description">``, 🫧 the round face that follows the pointer, 🏠 ⭐ ⚙️), the side (☰ ⋯)
     and the foot (``tools_door``: 🚪 every tool as a pull-down, 🐦 X, 📦 the page's size). The parts are PySaiyanWeBoo's
@@ -259,7 +264,7 @@ def add_site_chrome(page: str, path: str, tools: dict | None = None, *, title: s
         page = re.sub(r'<html lang="en"', '<html lang="ja"', page, count=1)
     face = ui.component_parts('gaze-avatar', label='まばたき')
     face['html'] = face['html'].replace(' aria-label="', ' data-t="blink" aria-label="', 1)   # 🫧 its name follows 🌐 too
-    head = ui.component_parts('chrome', tools_chrome(prefix, tools, meta[1] if meta else '', title=title, home=home, lang=lang))
+    head = ui.component_parts('chrome', tools_chrome(prefix, tools, meta[1] if meta else '', title=title, home=home, lang=lang, settings=settings))
     tools_nav = '<nav class="ui-world-tools">'
     head['html'] = head['html'].replace(tools_nav, face['html'] + tools_nav, 1)                  # 🫧 after the board
     page = ui.add_part(page, {'css': face['css'] + '.ui-world-head .ui-gaze{flex:none;margin:0 4px}', 'js': face['js']})
@@ -273,7 +278,7 @@ def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
 
     It is not in the lock: api/repos.json is refreshed by a workflow, and the page must follow it without a lock refresh."""
     front = _front_module()
-    return {'index.html': add_site_chrome(front.document(root, samples=samples), 'index.html', front.LINKS, title='MYON', home=False).encode('utf-8')}
+    return {'index.html': add_site_chrome(front.document(root, samples=samples), 'index.html', front.LINKS, title='MYON', home=False, settings=front.SETTINGS).encode('utf-8')}
 
 
 HTML_IMPORT = posixpath.dirname(HTML_IMPORT_MODULE) + '/#html-import'   # 📄 its document beside its module (it imports ../vendor/…)
