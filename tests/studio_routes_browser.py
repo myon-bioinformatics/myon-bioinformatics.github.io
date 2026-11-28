@@ -156,14 +156,16 @@ def test_the_one_slide_editor_opens_a_deck_and_exports_pptx(browser, studio_orig
         studio.locator('[data-act="text"]').click()
         page.keyboard.type("Portfolio fixture")
         studio.locator('[data-act="export"]').click()                            # 📤 then the format, in the candidate row
-        deck = json.loads(_download(page, studio.locator('#phone-candidates button[title^="全スライドJSON"]')))
+        deck = json.loads(_download(page, studio.locator('#phone-candidates button[aria-label^="JSON"]')))
         assert deck["schema"] == "ironmate-slide-deck/1" and deck["slides"][0]["layers"][0]["text"] == "Portfolio fixture"
         deck["slides"][0]["layers"][0]["text"] = "Imported fixture title"
         studio.locator('input[data-file="open"]').set_input_files({
             "name": "fixture.json", "mimeType": "application/json", "buffer": json.dumps(deck).encode(),
         })
         studio.wait_for_function("() => IronmatePhone.deck.slides[0].layers[0].text === 'Imported fixture title'")
-        pptx = _download(page, studio.locator('#phone-candidates button[title^="PPTX"]'))
+        if not studio.locator("#phone-candidates").is_visible():
+            studio.locator('[data-act="export"]').click()
+        pptx = _download(page, studio.locator('#phone-candidates button[aria-label^="PPTX"]'))
         with zipfile.ZipFile(BytesIO(pptx)) as office:
             xml = ElementTree.fromstring(office.read("ppt/slides/slide1.xml"))
             text = [node.text for node in xml.iter("{http://schemas.openxmlformats.org/drawingml/2006/main}t")]
@@ -197,5 +199,52 @@ def test_studio_has_one_tools_destination(browser, studio_origin, mobile, route)
         expect(home).to_be_visible()
         home.click()
         page.wait_for_url(target)
+    finally:
+        page.context.close()
+
+
+@pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
+def test_image_shelf_sends_current_png_to_slide_in_the_same_tab(browser, studio_origin, mobile):
+    page = _page(browser, studio_origin, mobile=mobile)
+    try:
+        studio = _studio(page, studio_origin, "image-studio")
+        studio.locator("#image").set_input_files({"name": "fixture.png", "mimeType": "image/png", "buffer": _fixture_png()})
+        layer = studio.locator("#layers button").filter(has_text="fixture.png")
+        expect(layer).to_have_count(1)
+        link = studio.get_by_role("link", name="編集中の画像をスライド工房へ")
+        errors = []
+        page.on("console", lambda m: errors.append(m.text) if "Content Security Policy" in m.text else None)
+        for _ in range(2):  # first on a cold destination, then in the already-mounted editor
+            menu = studio.locator("#studio-import")
+            if not menu.evaluate("menu => menu.open"):
+                menu.locator(":scope > summary").click()
+            studio.locator("#shelf-button").click()
+            expect(link).to_have_attribute("href", "/tools/#slide-studio")
+            link.click()
+            page.wait_for_url("**/tools/#slide-studio")
+            slide = page.locator("#slide-studio iframe").element_handle().content_frame()
+            slide.wait_for_function("""() => {
+                const layers = window.IronmatePhone?.deck.slides[0].layers;
+                return layers?.length === 1 && layers[0].kind === 'image' && layers[0].src.startsWith('data:image/png');
+            }""")
+            assert slide.evaluate("""async () => {
+                const img = new Image();
+                img.src = IronmatePhone.deck.slides[0].layers[0].src;
+                await img.decode();
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                return [[150, 180], [700, 180]].map(([x, y]) => Array.from(ctx.getImageData(x, y, 1, 1).data));
+            }""") == [[255, 0, 0, 255], [0, 0, 255, 255]]
+            assert len(page.context.pages) == 1
+            slide.locator('[data-act="undo"]').click()
+            slide.wait_for_function("() => IronmatePhone.deck.slides[0].layers.length === 0")
+            page.go_back()
+            page.wait_for_url("**/tools/#image-studio")
+            expect(layer).to_be_visible()
+            expect(studio.locator("#shelf-dialog")).to_be_hidden()
+        assert errors == []
     finally:
         page.context.close()
