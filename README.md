@@ -292,7 +292,7 @@ add_site_chrome(page, 'tools/index.html', {'🗼': {'label': 'パラレル都市
 ![ドア to ドア：フッターの 🚪 プルダウンで GIF工房 → 流れの実験室、ブラウザの「戻る」でも表示が付いてきて、同じドアをもう一度開け、🏠 でカードへ（Chromium 560×480）](docs/evidence/door-to-door.gif)
 
 🗓️ 2026-11-27 · `uv run --locked --only-group browser python -m pytest tests/test_site.py -k door_to_door` writes `test-results/door-to-door/door-to-door-pulldown-<UTC>.gif`（`docs/evidence/door-to-door.gif` へコピー）。
-部品は PySaiyanWeBoo（`component_parts('chrome' | 'door' | 'gaze-avatar')`・`door_html(foot=True)`・`add_part`・`stamp_page_size`）、ポートフォリオ側は指定だけ：`scripts/project_pages.py`（`tools_chrome` / `tools_places` / `tools_door` / `add_back_nav`）。
+部品は PySaiyanWeBoo（`component_parts('chrome' | 'door' | 'gaze-avatar')`・`door_html(foot=True)`・`add_part`・`stamp_page_size`）、ポートフォリオ側は指定だけ：`scripts/project_pages.py`（`tools_chrome` / `tools_places` / `tools_door` / `add_site_chrome`）。
 
 ### 🎥 Tools カードの動く見本と 🗓️ 週次ノート
 

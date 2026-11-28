@@ -22,11 +22,11 @@
     "tools/vendor/web-ui/css/core.css": "6161b50462c2cfc8b40547e988636525989a1d29585eb98d5042646ffbb5cabd"
   },
   "pages": {
-    "tools/worlds.html": "fdec5b13dabe7c3f78b7cbb48f7755685e719d9353ee9425488055bb33443d3d",
-    "tools/html-import/index.html": "3cd48e3abf67f8c2c19a6b164711ce75fafe4ba6633d4ca58dc5d575ad7cf141",
-    "tools/test-report/index.html": "ece7e0df830109e30f33b58499d23b570b5034e6073ce33d4c5eb5bbc415dabe",
-    "tools/maps.html": "01077f04e016ede10541e8ae676e14a78acd3ef688ce8d637c9860abc167afff",
-    "tools/gif/index.html": "82eeb1e28db79f0654342939db35d4114d8129d216f193c20c6eb80adef1d55a",
-    "tools/chat/index.html": "423980bc2e7b09846cf3c59cb1d21e831f978f93c895ff15e6186f5faf087458"
+    "tools/#worlds": "fdec5b13dabe7c3f78b7cbb48f7755685e719d9353ee9425488055bb33443d3d",
+    "tools/html-import/#html-import": "3cd48e3abf67f8c2c19a6b164711ce75fafe4ba6633d4ca58dc5d575ad7cf141",
+    "tools/#test-report": "ece7e0df830109e30f33b58499d23b570b5034e6073ce33d4c5eb5bbc415dabe",
+    "tools/#maps": "01077f04e016ede10541e8ae676e14a78acd3ef688ce8d637c9860abc167afff",
+    "tools/#gif": "82eeb1e28db79f0654342939db35d4114d8129d216f193c20c6eb80adef1d55a",
+    "tools/#chat": "423980bc2e7b09846cf3c59cb1d21e831f978f93c895ff15e6186f5faf087458"
   }
 }

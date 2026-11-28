@@ -2,7 +2,6 @@
 
 This is a build-time adapter, not a browser dependency or a copy of the editor.
 """
-from collections.abc import Callable
 import json
 from pathlib import Path
 import posixpath
@@ -47,7 +46,7 @@ def _studio_href(source: str, url: str) -> str:
     return urlunsplit(('', '', new_path, parts.query, parts.fragment))
 
 
-def stage_ironmate_studios(built: Path, mapped: Path, add_navigation: Callable[[str, str], str]) -> None:
+def stage_ironmate_studios(built: Path, mapped: Path) -> None:
     """Relocate Ironmate's generated pages and keep their shared assets and cross-links working."""
     for page in _IRONMATE_ENTRY_PAGES:
         if not (built / page).is_file():
@@ -63,7 +62,7 @@ def stage_ironmate_studios(built: Path, mapped: Path, add_navigation: Callable[[
         target.parent.mkdir(parents=True, exist_ok=True)
         if path.suffix == '.html':
             page = _STUDIO_LINK.sub(lambda m: m['attr'] + m['quote'] + _studio_href(source, m['url']) + m['quote'], page)
-            target.write_text(add_navigation(page, 'tools/' + _studio_path(source)), encoding='utf-8')
+            target.write_text(page, encoding='utf-8')
         elif source == 'brand/manifest.webmanifest':
             manifest = json.loads(path.read_text(encoding='utf-8'))
             # One shared app can open its two sibling tools under /tools/.
