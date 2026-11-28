@@ -1127,7 +1127,7 @@ body[data-ui-theme-chosen]:not([data-ui-theme-chosen="modern"], [data-ui-theme-c
 
 SCRIPT = '''// The page script. What each notation looks like is decided in Python (scripts/front_page.py) and arrives as <template>
 // elements; this script shows one, drops the projects a search hides, and fills the AI highlight slots.
-import { copyText } from './tools/vendor/web-ui/js/ui.js';
+import { copyText, pageTheme } from './tools/vendor/web-ui/js/ui.js';
 
 const DEFAULT_VIEW_MODE = 'modern';
 const VIEW_MODE_KEY = 'site:view-mode';
@@ -1186,18 +1186,12 @@ function dropLastComma(root) {
   if (commas.length) commas[commas.length - 1].remove();
 }
 
-// 🎨 is ⚙️'s (PySaiyanWeBoo's bindTheme: one choice for every page of the site, so tools/ has it too); its "this page's own" is the
-// display mode's look. The page tells bindTheme which look is its own (pageTheme's contract: data-ui-theme-page).
-function applyOwnColours() {
-  const mode = getCurrentMode(), body = document.body;
-  body.dataset.uiThemePage = mode === 'modern' || mode === 'github-like' ? mode : 'plain';
-  if (body.dataset.uiThemeChosen === undefined) body.dataset.uiTheme = body.dataset.uiThemePage;
-}
-
 function applyViewMode(mode) {
   const normalized = normalizeViewMode(mode);
   document.body.dataset.viewMode = normalized;
-  applyOwnColours();
+  // 🎨 is ⚙️'s (PySaiyanWeBoo's bindTheme: one choice for every page of the site, so tools/ has it too); "this page's own" is the
+  // display mode's look, which PySaiyanWeBoo's pageTheme tells it.
+  pageTheme(normalized === 'modern' || normalized === 'github-like' ? normalized : 'plain');
   const choice = document.querySelector('[data-chrome-choice="mode"]');   // ⚙️ 🧾 says the mode in effect
   if (choice && choice.value !== normalized) choice.value = normalized;
   renderPortfolio();
