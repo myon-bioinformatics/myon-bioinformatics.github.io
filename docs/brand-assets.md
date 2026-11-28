@@ -26,7 +26,7 @@ recorded in `assets/brand/portfolio-brand-manifest.json`.
 
 - `manifest.webmanifest` gives the label `🧬 myon` and the existing 48×48 and 170×170 PNGs. It sets `start_url`/`scope` `./`, so the shortcut opens `index.html`, and `display: browser`, so the portfolio opens in the browser and the other repositories' Pages keep their back button. Chromium reports nothing missing, only that this is a shortcut rather than an app window. A one-word change (`minimal-ui`) would make it an installable app.
 - iOS reads the same 170×170 icon (`apple-touch-icon`) and label (`apple-mobile-web-app-title`) from `index.html`; nothing is upscaled.
-- Tool pages link no manifest, so their shortcuts open the page itself. `add_home_label()` in `scripts/project_pages.py` gives each one a label that fits under the icon: `📄 HTML取込`, `🧪 MCP Lab`, `🩺 Lab診断`. HTML import shows the portfolio icons; its CSP now has `img-src 'self'` so they load.
+- The one tool screen (`tools/index.html`) links no manifest, so its shortcut opens the screen itself. `render_shell()` in `scripts/project_pages.py` gives it the label `🧰 道具` (it fits under the icon) and the portfolio icons. The framed HTML import's CSP has `img-src 'self'`, so its images load.
 - `tests/test_site.py` (📱 home screen) checks all of this, and also that every local link and asset resolves. The Chromium part records `test-results/home-screen/home-screen-shortcut-<UTC>.gif`.
 
 ## 概念図の確認メモ（2026-10-22）
