@@ -256,10 +256,10 @@ jobs:
 
             const map = await browser.newPage({permissions: ['clipboard-read', 'clipboard-write']});
             await map.goto('http://127.0.0.1:8000/tools/?lat=0&lon=0#maps');   // 🧰 the one screen's map panel
-            await map.locator('#copy-apple').click();
-            await map.waitForFunction(() => document.querySelector('#map-status')?.textContent === 'コピーしました。');
+            await map.locator('#map [data-copy="apple"]').click();   // 🔁 PySaiyanWeBoo main: data-* parts (tests/test_maps.py)
+            await map.waitForFunction(() => document.querySelector('#map [data-note]')?.textContent === 'コピーしました。');
             assert.equal(await map.evaluate(() => navigator.clipboard.readText()),
-              await map.locator('#apple-link').getAttribute('href'));
+              await map.locator('#map [data-open="apple"]').getAttribute('href'));
           } finally {
             await browser.close();
           }
