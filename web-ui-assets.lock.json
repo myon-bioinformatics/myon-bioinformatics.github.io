@@ -22,11 +22,11 @@
     "tools/vendor/web-ui/css/core.css": "6161b50462c2cfc8b40547e988636525989a1d29585eb98d5042646ffbb5cabd"
   },
   "pages": {
-    "tools/worlds.html": "524fcf1fede68ee1e4571168dec22c401530290cb5076818355ce5ff1236815e",
-    "tools/html-import/index.html": "3cd48e3abf67f8c2c19a6b164711ce75fafe4ba6633d4ca58dc5d575ad7cf141",
-    "tools/test-report/index.html": "259658a6c4080f70aaf8c40fe5e8a532a4e6db36f7a59a650ce45f80f356e2f7",
-    "tools/maps.html": "01077f04e016ede10541e8ae676e14a78acd3ef688ce8d637c9860abc167afff",
-    "tools/gif/index.html": "82eeb1e28db79f0654342939db35d4114d8129d216f193c20c6eb80adef1d55a",
-    "tools/chat/index.html": "e7a3496743d91736a3d202c7e9332417fa3330713171866167c601bb7c3d1cd2"
+    "tools/#worlds": "524fcf1fede68ee1e4571168dec22c401530290cb5076818355ce5ff1236815e",
+    "tools/html-import/#html-import": "3cd48e3abf67f8c2c19a6b164711ce75fafe4ba6633d4ca58dc5d575ad7cf141",
+    "tools/#test-report": "259658a6c4080f70aaf8c40fe5e8a532a4e6db36f7a59a650ce45f80f356e2f7",
+    "tools/#maps": "01077f04e016ede10541e8ae676e14a78acd3ef688ce8d637c9860abc167afff",
+    "tools/#gif": "82eeb1e28db79f0654342939db35d4114d8129d216f193c20c6eb80adef1d55a",
+    "tools/#chat": "e7a3496743d91736a3d202c7e9332417fa3330713171866167c601bb7c3d1cd2"
   }
 }

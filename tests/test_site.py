@@ -204,11 +204,11 @@ def test_flow_lab_shows_every_ffss_scene_and_every_dragowing_figure(tmp_path):
     assert [d["id"] for d in receipt["demos"]] == ["D01", "D13", "D24"] and receipt["figures"] == ["F03_losses", "F09_blood-flow"]
     assert (tmp_path / "site/media/flow/D13.gif").read_bytes() == b"GIF89aD13"
     rendered = PAGES.render_flow(ui, tmp_path / "site")
-    page = rendered[PAGES.FLOW_PAGE].decode()
+    page = rendered["tools/#flow"].decode()                                            # 🧰 a #panel, built for tools/
     records = rendered[PAGES.FLOW_MARKDOWN].decode()
-    assert 'id="workbench"' in page and 'src="./rig.mjs"' in page
-    assert 'href="#records"' in page and 'href="./records.md"' in page and "⏸" not in page
-    assert PAGES.FLOW_PAGE.replace("index.html", "records.html") not in rendered      # 📜 one page: the records are its #records
+    assert 'id="workbench"' in page and 'src="./flow/rig.mjs"' in page
+    assert 'href="#records"' in page and 'href="./flow/records.md"' in page and "⏸" not in page
+    assert sorted(rendered) == sorted(["tools/#flow", PAGES.FLOW_MARKDOWN, PAGES.FLOW_RIG_JS])   # 📜 one page: the records are its #records
     archive = page[page.index('<div id="records">'):]
     assert archive.count('loading="lazy"') == 3 + 2 and page.count("media/flow/") == 3 + 2  # every picture waits for the scroll
     for record in (archive, records):
@@ -271,8 +271,8 @@ def test_repository_map_reads_each_lock_and_aois_subtrees(tmp_path):
     svg = (tmp_path / "site/media/map/map.svg").read_text()
     assert svg.startswith("<svg") and svg.count("<path") == 3 and "Meiryo" in svg
     assert "🗄 Old" in PAGES.map_svg([{"from": "Old", "to": "Aoi", "kind": "vendor", "files": ["LICENSE"]}], {"Old"})   # archived is marked
-    page = PAGES.render_map(ui, tmp_path / "site")[PAGES.MAP_PAGE].decode()
-    assert 'src="../../media/map/map.svg"' in page and "📥 xprobe" in page and "⏸" not in page
+    page = PAGES.render_map(ui, tmp_path / "site")["tools/#repo-map"].decode()          # 🧰 a #panel, built for tools/
+    assert 'src="../media/map/map.svg"' in page and "📥 xprobe" in page and "⏸" not in page
     assert "⏸" in shell_panel("repo-map")                                                # nothing recorded in the staged site
 
 
@@ -381,7 +381,7 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
         assert not any(f'/tools/{name}/' in href.lower() for _, href in links for name in names), card['title']
 
 
-# PySaiyanWeBoo's tool documents (PSWB_TOOLS) and the 🌍 world pages (WORLD_PAGE, tools/demos/) come from scripts/project_pages.py; they are tool pages too.
+# 🧰 This site's own panels (render_pages: PySaiyanWeBoo's tool documents, 🌍 the world, …) and the other repositories' tools are panels of the screen.
 def shell_frame(name: str) -> str:
     """🖼️ The document the one screen's framed ``#name`` panel runs (its ``<iframe srcdoc>``)."""
     from html import unescape
@@ -1035,8 +1035,8 @@ def test_generated_page_is_current():
     # Built by the site builder and hash-locked (web-ui-assets.lock.json), not kept in git.
     import pysaiyanweboo as ui
     lock = json.loads((ROOT / 'web-ui-assets.lock.json').read_text(encoding='utf-8'))
-    built = PAGES.render_html_import(ui)[PAGES.HTML_IMPORT_PAGE]                    # 🖼️ the framed #html-import panel's document
-    assert hashlib.sha256(built).hexdigest() == lock['pages'][PAGES.HTML_IMPORT_PAGE] and not (SITE / PAGES.HTML_IMPORT_PAGE).exists()
+    built = PAGES.render_pages(ui)[PAGES.HTML_IMPORT]                                # 🖼️ the framed #html-import panel's document
+    assert hashlib.sha256(built).hexdigest() == lock['pages'][PAGES.HTML_IMPORT] and not (SITE / 'tools/html-import/index.html').exists()
     assert 'srcdoc=' in (SITE / PAGES.SHELL_PAGE).read_text(encoding='utf-8') and 'Content-Security-Policy' in shell_frame('html-import')
 
 
@@ -1789,7 +1789,7 @@ def test_portfolio_worlds_share_one_engine_and_standalone_stays_self_contained()
     css_link = '<link rel="stylesheet" href="./world-assets/world.css">'
     js_link = '<script type="module" src="./world-assets/world.js"></script>'
     page = shell_panel('worlds')                                     # 🌍 a #panel of the one screen; the scenes are its #school, #tokyo, #camera
-    assert not (SITE / 'tools/demos').exists() and not (SITE / PAGES.WORLD_PAGE).exists()
+    assert not (SITE / 'tools/demos').exists() and not (SITE / 'tools/worlds.html').exists()
     assert page.count(css_link) == page.count(js_link) == 1
     screen = (SITE / PAGES.SHELL_PAGE).read_text(encoding='utf-8')
     assert screen.index('css/bundle.css') < screen.index(css_link)

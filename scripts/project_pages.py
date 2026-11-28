@@ -9,7 +9,7 @@ and ``--refresh-lock`` rewrites the lock after the pin moves.
 
 The 🧰 Tools cards (scripts/front_page.py ``PORTAL``) list the practical pages, each one working on what the visitor brings:
 the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in the page; ``--record-chat`` indexes the other repositories at deploy
-time) and PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``: 🧾 the JUnit reader; 🤝 its MCP connection test is the lab's #protocol panel), published with
+time) and PySaiyanWeBoo's own tool documents (🧾 the JUnit reader; 🤝 its MCP connection test is the lab's #protocol panel), published with
 the portfolio's way back, shortcut label and icons. The 🌍 world pages (scripts/world.py: the travel world, 🏫 the school,
 🗼 the parallel cities, 🎬 the camera: the screen's #worlds panel) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and
 are not among the cards. Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
@@ -46,9 +46,7 @@ ASSETS = ('css/base.css', 'css/components.css', 'css/themes/modern.css',
           'js/coordinates.js')
 STYLESHEET_BUNDLES = {'css/bundle.css': 'bundled_css', 'css/core.css': 'core_css'}
 DISTRIBUTION = 'pysaiyanweboo'
-WORLD_PAGE = 'tools/worlds.html'   # 🌍 a #panel of the 🧰 screen (render_shell), built for tools/; never published
 # 🌍 One document: the school, the cities and the camera are its #school, #tokyo and #camera (no forwarding pages).
-HTML_IMPORT_PAGE = 'tools/html-import/index.html'
 HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
 WORLD_CSS_ASSET = 'tools/world-assets/world.css'
 WORLD_JS_ASSET = 'tools/world-assets/world.js'
@@ -56,7 +54,6 @@ WORLD_ASSETS = (WORLD_CSS_ASSET, WORLD_JS_ASSET)
 DRAGON_PNG_ASSET = 'tools/world-assets/london-dragon.png'
 DRAGON_GRID_ASSET = 'tools/world-assets/london-dragon.json'
 DRAGON_ASSETS = (DRAGON_PNG_ASSET, DRAGON_GRID_ASSET)
-MAP_PINS_PAGE = 'tools/maps.html'   # 📍 a #panel of the 🧰 screen, built for tools/ (as the world is: they link each other)
 
 # Files served verbatim. The generators write every other public file to the output tree.
 PUBLIC_SOURCE_FILES = (
@@ -81,11 +78,6 @@ PUBLIC_SOURCE_FILES = (
     'tools/vendor/web-ui/LICENSE',
 )
 
-# 🧰 PySaiyanWeBoo's documents that work on what the visitor brings, each a 🧰 Tools link (front_page.py PORTAL):
-# published path -> (how it is built from pysaiyanweboo, the home-screen name)
-PSWB_TOOLS = {
-    'tools/test-report/index.html': (lambda ui: ui.report_document(), '🧾 テスト結果'),
-}
 @functools.lru_cache(maxsize=None)
 def _world() -> ModuleType:
     """🌍 scripts/world.py (the world engine and its specs), loaded once."""
@@ -95,11 +87,11 @@ def _world() -> ModuleType:
 def world_page(ui) -> str:
     shell = load_module('world_shell', 'scripts/world_shell.py')
     maps = load_module('map_tool', 'scripts/map_tool.py')
-    css, js = ('./' + posixpath.relpath(path, posixpath.dirname(WORLD_PAGE)) for path in WORLD_ASSETS)   # ./ : an import specifier needs it
+    css, js = ('./' + path.removeprefix('tools/') for path in WORLD_ASSETS)       # from tools/ (the screen); ./ : an import specifier needs it
     places = tools_places('../')                                          # 🧰 from tools/ (the screen)
     runtime = {key: _chat().RUNTIME[key] for key in ('wllama', 'model')}
     dialogue = WLLAMA_JS + f'\nconst worldAnswer = localModel({json.dumps(runtime)});\n'
-    dragon_png, dragon_grid = ('./' + posixpath.relpath(path, posixpath.dirname(WORLD_PAGE)) for path in DRAGON_ASSETS)
+    dragon_png, dragon_grid = ('./' + path.removeprefix('tools/') for path in DRAGON_ASSETS)
     return shell.document(ui, _world(), maps, places, css, js, dialogue,
                           dragon_png=dragon_png, dragon_grid=dragon_grid)
 
@@ -262,23 +254,11 @@ def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
     return {'index.html': add_site_chrome(front.document(root, samples=samples), 'index.html', front.LINKS, title='MYON', home=False).encode('utf-8')}
 
 
-def render_world(ui) -> dict[str, bytes]:
-    """🌍 The world (village, school, parallel cities, camera): a #panel of the 🧰 screen."""
-    return {WORLD_PAGE: world_page(ui).encode('utf-8')}
-
-
-def render_pswb_tools(ui) -> dict[str, bytes]:
-    """🧾 PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``), each a #panel of the one 🧰 screen (``render_shell``)."""
-    return {path: build(ui).encode('utf-8') for path, (build, _) in PSWB_TOOLS.items()}
+HTML_IMPORT = posixpath.dirname(HTML_IMPORT_MODULE) + '/#html-import'   # 📄 its document beside its module (it imports ../vendor/…)
 
 
 def html_import_files(ui):
     return ui.html_import_files(shared_base="../vendor/web-ui", docs_href="../../docs/html-import.md")
-
-
-def render_html_import(ui) -> dict[str, bytes]:
-    """📄 The HTML import: a framed #panel of the 🧰 screen (its CSP, nothing leaves the page, stays its own)."""
-    return {HTML_IMPORT_PAGE: html_import_files(ui)["index.html"]}
 
 
 def pages_urls(root: Path = ROOT) -> dict[str, str]:
@@ -289,14 +269,7 @@ def pages_urls(root: Path = ROOT) -> dict[str, str]:
 
 
 # ── 🎞 GIF工房 and 🎥 the moving samples: both draw with PySaiyanWeBoo's gif.js (window.UiGif) ──────────────────────────
-GIF_PAGE = 'tools/gif/index.html'
 SAMPLES = 'media/pages/'          # 🎥 one moving sample per repository's Pages, recorded at deploy time (not kept in git)
-def render_gif_tool(ui) -> dict[str, bytes]:
-    """🎞 GIF工房: PySaiyanWeBoo's ``gif_maker_document`` — images the visitor picks become one looping GIF in the page."""
-    page = ui.gif_maker_document(filename='gif-kobo.gif', css=ui.bundled_css())   # the shared sheet is the 🧰 screen's (render_shell)
-    return {GIF_PAGE: page.encode('utf-8')}
-
-
 def recorded_samples(output: Path) -> frozenset[str]:
     """The lower-case names whose 🎥 sample is under ``output`` (the front page shows only those): a repository's name, or
     ``tools/<id>`` for a 🧰 Tools card."""
@@ -381,7 +354,6 @@ def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), 
 
 
 # ── 🌊 流れの実験室: every FFSS scene as it moves (FFSS's demo GIFs) and every DRAgoWing figure from the same records ──
-FLOW_PAGE = 'tools/flow/index.html'
 FLOW = 'media/flow/'                     # recorded at deploy time (pages.yml), with receipt.json; not kept in git
 FLOW_REPOSITORIES = {'ffss': 'myon-bioinformatics/FluidFullSpeedSimulation', 'dragowing': 'myon-bioinformatics/DRAgoWing'}
 FLOW_EXPERIMENTS = ('E30', 'E31', 'E32')
@@ -572,7 +544,7 @@ def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
               {'type': 'kv', 'rows': [['🌊', f"FFSS {commits.get('ffss', '—')[:7]} · 🎞 {len(demos)} 場面"],
                                       ['📊', f"DRAgoWing {commits.get('dragowing', '—')[:7]} · {len(figures)} 図"]]},
               {'type': 'links', 'items': [{'label': '📜 実験記録を見る', 'href': '#records'},
-                                          {'label': 'Markdown原本', 'href': './records.md'},
+                                          {'label': 'Markdown原本', 'href': './' + FLOW_MARKDOWN.removeprefix('tools/')},
                                           {'label': '🌊 FFSS', 'href': link('ffss')},
                                           {'label': '📊 DRAgoWing', 'href': link('dragowing')}]}]
     if not demos and not figures:
@@ -583,21 +555,20 @@ def render_flow(ui, output: Path | None = None) -> dict[str, bytes]:
     if page.count(slot) != 1:
         raise ValueError('flow workbench placeholder missing')
     page = page.replace(slot, FLOW_RIG, 1).replace('</head>', FLOW_RIG_CSS + '</head>', 1)
-    page = page.replace('</body>', '<script type="module" src="./rig.mjs"></script></body>', 1)
+    page = page.replace('</body>', f'<script type="module" src="./{FLOW_RIG_JS.removeprefix("tools/")}"></script></body>', 1)
 
     records = flow_markdown(demos, figures)   # 📜 the same page, below the rig: its pictures load only when scrolled to
     slot = '<p>FLOW_RECORDS_SLOT</p>'
     if page.count(slot) != 1:
         raise ValueError('flow records placeholder missing')
-    archive = md_market.markdown_to_html(records).replace('<img src="../../media/flow/', '<img loading="lazy" src="../../media/flow/')
+    archive = md_market.markdown_to_html(records).replace('<img src="../../media/flow/', '<img loading="lazy" src="../media/flow/')   # 📜 from tools/
     page = page.replace(slot, f'<div id="records">{archive}</div>', 1)
     page = page.replace('</head>', '<style>#records img{max-width:100%;height:auto}</style></head>', 1)
-    return {FLOW_PAGE: page.encode('utf-8'),   # 🧰 a #panel of the one screen (render_shell)
+    return {'tools/#flow': page.encode('utf-8'),   # 🧰 a #panel of the one screen (render_shell), built for tools/
             FLOW_MARKDOWN: records.encode('utf-8'), FLOW_RIG_JS: FLOW_RIG_SOURCE.encode('utf-8')}
 
 
 # ── 🧠 リポジトリ地図: who copies what from whom, read from each repository's own vendor.lock.json (and Aoi's subtrees) ──
-MAP_PAGE = 'tools/repo-map/index.html'
 MAP = 'media/map/'                       # graph.json and map.svg, recorded at deploy time (pages.yml); not kept in git
 OWNER = 'myon-bioinformatics'
 
@@ -698,7 +669,7 @@ def render_map(ui, output: Path | None = None) -> dict[str, bytes]:
             uses.setdefault(e['to'], []).append(e['from'])
         blocks += [{'type': 'kv', 'rows': [['🔗', f"{len(graph['edges'])} 本"], ['📦', f"{len(graph['commits'])} リポジトリ"],
                                            ['🟦', 'vendor（ファイルを写す）'], ['🟩', 'subtree（Aoi の子）']]},
-                   {'type': 'image', 'src': f'../../{MAP}map.svg', 'alt': '🧠 写す元 → 写す先の地図'},
+                   {'type': 'image', 'src': f'../{MAP}map.svg', 'alt': '🧠 写す元 → 写す先の地図'},
                    {'type': 'section', 'title': '📋 リポジトリごと', 'blocks': [{'type': 'kv', 'rows': [
                        [name, ' · '.join(part for part in (('📥 ' + ', '.join(sorted(uses[name]))) if name in uses else '',
                                                           ('📤 ' + ', '.join(sorted(users[name]))) if name in users else '') if part)]
@@ -707,7 +678,7 @@ def render_map(ui, output: Path | None = None) -> dict[str, bytes]:
         blocks.append({'type': 'text', 'text': '⏸ このビルドでは記録していない'})
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '🧠 リポジトリ地図', 'blocks': blocks}).replace(
         '</head>', '<style>.ui-page img{max-width:100%;height:auto}.ui-kv dd{overflow-wrap:anywhere}</style></head>', 1)
-    return {MAP_PAGE: page.encode('utf-8')}   # 🧰 a #panel of the one screen (render_shell)
+    return {'tools/#repo-map': page.encode('utf-8')}   # 🧰 a #panel of the one screen (render_shell), built for tools/
 
 
 # ── 💬 横断チャット: scripts/chat.py in Pyodide with the pinned markdown.py · ascii_artist.py · cli_args.py (pages group);
@@ -857,13 +828,7 @@ def chat_document(ui) -> str:
     return page.replace(slot, body, 1).replace('</head>', f'<style>{parts["css"]}{CHAT_CSS}</style></head>', 1)
 
 
-CHAT_PAGE = 'tools/chat/index.html'   # 💬 a #panel of the 🧰 screen (render_shell), not one of the 🤖 stubs
 CHAT_SOURCES = 'tools/chat/sources.json'   # 🐍 chat_sources(), beside it: the page fetches them when the chat opens
-def render_chat_tool(ui) -> dict[str, bytes]:
-    """💬 横断チャット: ``chat_document``, a #panel of the 🧰 screen."""
-    return {CHAT_PAGE: chat_document(ui).encode('utf-8')}
-
-
 def _tree(repository: str, commit: str) -> tuple[list[tuple[str, int]], bool]:
     """Return the API's blob paths and sizes at ``commit``, plus its truncation flag."""
     github = load_module('repos_catalog', 'scripts/repos_catalog.py')
@@ -1063,16 +1028,20 @@ def tool_panels(ui, output: Path | None = None) -> dict[str, tuple[bytes, str, b
 
 
 def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
-    """Every hash-locked page: the demos and world pages, HTML import, map tools and the GIF workshop, keyed by published path."""
+    """🧰 This site's own hash-locked panels of the one screen (``render_shell``), keyed ``folder/#name``: the folder a document
+    is built for (the screen's, ``tools/``; the HTML import's own, beside its module) and its #name on the screen."""
     map_tool = load_module('map_tool', 'scripts/map_tool.py')
-    maps = {MAP_PINS_PAGE: map_tool.map_document(ui, map_tool.tokyo_points(_world().example_data('cities'))).encode()}
-    return {**render_world(ui), **render_html_import(ui), **render_pswb_tools(ui), **maps, **render_gif_tool(ui),
-            **render_chat_tool(ui)}   # 🧰 every one a #panel of the screen (render_shell)
+    pages = {'tools/#worlds': world_page(ui),                                                    # 🌍 the village, school, cities, camera
+             HTML_IMPORT: html_import_files(ui)['index.html'].decode('utf-8'),                  # 📄 framed: its CSP stays its own
+             'tools/#test-report': ui.report_document(),                                         # 🧾 PySaiyanWeBoo's JUnit reader
+             'tools/#maps': map_tool.map_document(ui, map_tool.tokyo_points(_world().example_data('cities'))),
+             'tools/#gif': ui.gif_maker_document(filename='gif-kobo.gif', css=ui.bundled_css()),
+             'tools/#chat': chat_document(ui)}
+    return {key: page.encode('utf-8') for key, page in pages.items()}
 
 
 # ── 🧰 One screen: every tool is a #panel of tools/index.html, under one header, one foot and one ⚙️ ──
 SHELL_PAGE = 'tools/index.html'
-PANEL_PAGES = (GIF_PAGE, MAP_PINS_PAGE, *PSWB_TOOLS, FLOW_PAGE, MAP_PAGE, CHAT_PAGE, WORLD_PAGE, HTML_IMPORT_PAGE)   # this site's own panels; never published
 _LINK = re.compile(r'(?P<attr>\b(?:href|src)=)(?P<quote>["\'])(?P<url>[^"\']*)(?P=quote)')
 _SCRIPT = re.compile(r'<script\b[^>]*>.*?</script>', re.S)
 _SHELL_JS = """(()=>{const panels=[...document.querySelectorAll('[data-tools-panel]')],names=panels.map(p=>p.id);let current='';
@@ -1128,8 +1097,9 @@ _FRAME_CSS = '.ui-tools-frame{display:block;width:100%;height:calc(100dvh - 72px
 
 
 def panel_name(source: str) -> str:
-    """🧰 The #name a tool has on the screen: its path under tools/ (``tools/mcp/execution/index.html`` → ``mcp-execution``)."""
-    return re.sub(r'(?:/index)?\.html$', '', source.removeprefix('tools/')).replace('/', '-')
+    """🧰 The #name a tool has on the screen: this site's own name it (``tools/#gif``), another's is its path under tools/
+    (``tools/mcp/execution/index.html`` → ``mcp-execution``)."""
+    return source.partition('#')[2] or re.sub(r'(?:/index)?\.html$', '', source.removeprefix('tools/')).replace('/', '-')
 
 
 def _rebase_links(markup: str, source: str, name: str, root: bool = False) -> str:
@@ -1261,7 +1231,8 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
         owners.update(dict.fromkeys(ids, name))
         markup_of[source] = title, markup, classes, set()
     sections = []
-    for source in panels:                                                  # 🧰 in the order given
+    rank = {href.partition('#')[2]: i for i, href in enumerate(places)}    # 🚪 the home list reads like the door: the cards' order
+    for source in sorted(panels, key=lambda source: rank.get(panel_name(source), len(rank))):
         name, (title, markup, classes, own) = panel_name(source), markup_of[source]
         index.append(f'<li><a href="#{name}">{html.escape(places.get(f"../tools/#{name}", title), quote=False)}</a></li>')
         css = f' class="{html.escape(classes)}"' if classes else ''      # the page's <body> class (ui-elements) holds for its panel
@@ -1297,9 +1268,6 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         raise ValueError(f'generator provenance mismatch: installed {commit[:8]}, lock {lock["commit"][:8]}')
     if set(lock['outputs']) != {HTML_IMPORT_MODULE, CHAT_SOURCES, *WORLD_ASSETS, *DRAGON_ASSETS, *(ASSET_BASE + name for name in (*ASSETS, *STYLESHEET_BUNDLES))}:
         raise ValueError('generated output paths differ from public URL contract')
-    expected = {HTML_IMPORT_PAGE, GIF_PAGE, CHAT_PAGE, MAP_PINS_PAGE, WORLD_PAGE, *PSWB_TOOLS}
-    if set(lock.get('pages', {})) != expected:
-        raise ValueError('generated page paths differ from the tool and world lists')
     if ui is None:
         import pysaiyanweboo as ui
     result = render(ui)
@@ -1307,6 +1275,8 @@ def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str,
         if hashlib.sha256(data).hexdigest() != lock['outputs'][target]:
             raise ValueError(f'generated asset hash mismatch: {target}')
     pages = render_pages(ui, root)
+    if set(lock.get('pages', {})) != set(pages):
+        raise ValueError('generated page paths differ from the tool and world lists')
     for target, data in pages.items():
         if hashlib.sha256(data).hexdigest() != lock['pages'][target]:
             raise ValueError(f'generated page hash mismatch: {target}')
@@ -1323,8 +1293,8 @@ def build(output: Path, root: Path = ROOT) -> None:
     validate_output(output, root)
     import pysaiyanweboo as ui
     payload = {**generate(root), **render_front(root, recorded_samples(output)), **render_flow(ui, output), **render_map(ui, output)}  # Fail closed first.
-    own = {path: (doc, None, b'Content-Security-Policy' in doc)           # 🔒 a page with its own CSP runs framed
-           for path, doc in ((path, payload.pop(path)) for path in PANEL_PAGES)}
+    own = {key: (doc, None, b'Content-Security-Policy' in doc)            # 🧰 every #name is a panel; 🔒 one with its own CSP runs framed
+           for key, doc in ((key, payload.pop(key)) for key in [key for key in payload if '#' in key])}
     payload[SHELL_PAGE] = render_shell(ui, {**own, **tool_panels(ui, output)})
     for name, data in payload.items():
         path = output / name
