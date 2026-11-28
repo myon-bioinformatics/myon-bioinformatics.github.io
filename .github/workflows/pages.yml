@@ -85,7 +85,7 @@ jobs:
         run: uv run --locked --only-group pages python scripts/project_pages.py --record-map _site | tee -a "$GITHUB_STEP_SUMMARY"
 
       # 💬 What the chat answers about the other repositories: every JSON / JSONL file at its current commit (GitHub's tree
-      # API, one call each), mcp-toolcall-lab's advertised tools and TalkCompress's compressor (media/chat/, not kept in git).
+      # API, one call each), the mcp-toolcall-lab code its MCP server runs and TalkCompress's compressor (media/chat/, not kept in git).
       - name: Record the chat's cross-repo index (best effort)
         if: github.event_name != 'pull_request'
         continue-on-error: true
@@ -98,8 +98,8 @@ jobs:
         with:
           node-version: "26"
 
-      # 🧰 Ironmate's studios, mcp-toolcall-lab's tools and execution lab (🔌 #mcp, #mcp-execution) and DRAgoWing's heatmap from their
-      # default branches (tools/…, not kept in git); the execution lab's build runs Node. A tool that fails gets the ⏸ the build below writes (the 🧰 screen takes the panels in).
+      # 🧰 The tools the cards build from other repositories (each card's build), from their default branches (tools/<id>/, not in git).
+      # A tool that fails gets the ⏸ the build below writes (the 🧰 screen takes the panels in).
       - name: Record the tools built from other repositories (best effort)
         if: github.event_name != 'pull_request'
         continue-on-error: true
@@ -115,7 +115,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/Ironmate
-          ref: ba98d5cd12e2acf4642d53cb312b1d4f38b13c20
+          ref: c467d3c7bfaf5dff5fdc02d0abf4527b85029157
           path: .test-deps/Ironmate
           persist-credentials: false
 

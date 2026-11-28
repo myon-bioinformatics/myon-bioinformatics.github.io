@@ -18,7 +18,19 @@ import pysaiyanweboo as ui
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from vendor.cli_args import run_cli  # noqa: E402
+
+def load_vendored(name, relpath):
+    """Load a vendored file by path under a repo-unique name (cli_args README: Loading a vendored copy)."""
+    if name not in sys.modules:
+        spec = importlib.util.spec_from_file_location(name, ROOT / relpath)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module  # before exec: dataclasses and pickling look the module up here
+        spec.loader.exec_module(module)
+    return sys.modules[name]
+
+
+run_cli = load_vendored("portfolio_cli_args", "vendor/cli_args.py").run_cli
+
 sys.path.insert(0, str(ROOT / "scripts"))
 import world as W  # noqa: E402  (scripts/world.py: the engine, the specs and the demo recorder)
 

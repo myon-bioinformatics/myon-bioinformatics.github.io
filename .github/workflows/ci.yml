@@ -15,7 +15,7 @@ jobs:
   changes:
     permissions:
       contents: read
-    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@9e3da7ae1846e9604ebc24bb5178f7de094a4e77
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@27dedd9651efc816fa88d8922adb5f242725df69
 
   static:
     timeout-minutes: 30
@@ -33,12 +33,12 @@ jobs:
           # Pull requests restore the cache and never write it; only main saves it.
           save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           prune-cache: true
-      # 🔌 The lab whose tools --stage builds (files in tools/mcp/, pages as the screen's #mcp panels; same pin in ci.yml and html-import.yml).
+      # 🔌 The lab whose code the chat's MCP server runs (tests read it here as the page reads media/chat/lab/; one pin for both jobs).
       - name: Checkout the verified mcp-toolcall-lab source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/mcp-toolcall-lab
-          ref: a62cf8401b224cb7ecca1906a6de05194595baf3
+          ref: 4f6df7b8ad4537c6437fb056d1fd977153f5405c
           path: .test-deps/mcp-toolcall-lab
           persist-credentials: false
       - name: Validate portal links
@@ -69,13 +69,13 @@ jobs:
           save-cache: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
           prune-cache: true
       # Browser tests are Python Playwright in this active venv; each stages the site (source tree + generated files) itself.
-      # The HTML import and MCP lab specs run in the Docker contract (html-import.yml), on Chromium and WebKit.
-      # 🔌 The lab whose tools --stage builds (files in tools/mcp/, pages as the screen's #mcp panels; same pin in ci.yml and html-import.yml).
+      # The HTML import spec runs in the Docker contract (html-import.yml), on Chromium and WebKit.
+      # 🔌 The lab whose code the chat's MCP server runs (tests read it here as the page reads media/chat/lab/; one pin for both jobs).
       - name: Checkout the verified mcp-toolcall-lab source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/mcp-toolcall-lab
-          ref: a62cf8401b224cb7ecca1906a6de05194595baf3
+          ref: 4f6df7b8ad4537c6437fb056d1fd977153f5405c
           path: .test-deps/mcp-toolcall-lab
           persist-credentials: false
       - name: Install locked Python Playwright
@@ -96,7 +96,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/Ironmate
-          ref: ba98d5cd12e2acf4642d53cb312b1d4f38b13c20
+          ref: c467d3c7bfaf5dff5fdc02d0abf4527b85029157
           path: .test-deps/ironmate-studio
           persist-credentials: false
       - name: Check routed Image and Slide Studio file operations in Chromium
@@ -124,7 +124,7 @@ jobs:
     permissions:
       contents: read
       actions: read
-    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-junit-identity.yml@9e3da7ae1846e9604ebc24bb5178f7de094a4e77
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-junit-identity.yml@27dedd9651efc816fa88d8922adb5f242725df69
     with:
       expected-reports: '["junit-portal-py3.15/portal.xml"]'
       commit-sha: ${{ github.event.pull_request.head.sha || github.sha }}

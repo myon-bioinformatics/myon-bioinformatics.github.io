@@ -16,7 +16,18 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from vendor.cli_args import run_cli
+
+def load_vendored(name, relpath):
+    """Load a vendored file by path under a repo-unique name (cli_args README: Loading a vendored copy)."""
+    if name not in sys.modules:
+        spec = importlib.util.spec_from_file_location(name, ROOT / relpath)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module  # before exec: dataclasses and pickling look the module up here
+        spec.loader.exec_module(module)
+    return sys.modules[name]
+
+
+run_cli = load_vendored("portfolio_cli_args", "vendor/cli_args.py").run_cli
 
 
 # ═══ 🟢 Node version message ═══════════════════════════════════════════════════════════════════════════════════════
@@ -69,25 +80,9 @@ def test_load_module_not_found():
     assert 'Vendor module file not found' in str(exc_info.value)
 
 
-def test_mcp_lab_adapter_does_not_mutate_sys_path():
-    import importlib.util
-
-    before = sys.path.copy()
-    path = ROOT / '_src' / 'tools' / 'mcp_lab.py'
-    spec = importlib.util.spec_from_file_location('mcp_lab_path_test', path)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    assert sys.path == before
-
-
-# ═══ 📞 callable entrypoints ══════════════════════════════════════════════════════════════════════════════
-# Imported entry points accept argv without consuming the caller's CLI.
-
 PARSERS = [
     'scripts/project_pages.py',
     'scripts/chat.py',
-    'scripts/probe_niconico_live.py',
     'scripts/repos_catalog.py',
 ]
 
@@ -288,8 +283,6 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     (root / 'scripts').mkdir(parents=True)
     shutil.copyfile(ROOT / 'pyproject.toml', root / 'pyproject.toml')
     shutil.copyfile(ROOT / 'scripts/project_pages.py', root / 'scripts/project_pages.py')
-    (root / '_src/tools').mkdir(parents=True)
-    shutil.copyfile(ROOT / '_src/tools/studio_routes.py', root / '_src/tools/studio_routes.py')
     shutil.copyfile(ROOT / 'scripts/front_page.py', root / 'scripts/front_page.py')         # the front page is generated too
     shutil.copyfile(ROOT / 'scripts/map_tool.py', root / 'scripts/map_tool.py')
     shutil.copyfile(ROOT / 'scripts/world.py', root / 'scripts/world.py')                 # 🌍 the world pages and Parallel Tokyo
@@ -505,7 +498,7 @@ def test_composition_audio_waits_for_ironmates_editor_instead_of_failing_the_dep
     from html import escape, unescape
     tools, shell = tmp_path / 'tools/browser-tools', tmp_path / 'tools/index.html'
     tools.mkdir(parents=True)
-    screen = lambda page: f'<section id="browser-tools" data-tools-panel hidden><template><iframe srcdoc="{escape(page)}"></iframe></template></section>'
+    screen = lambda page: f'<section id="browser-tools" data-ui-view hidden><template><iframe srcdoc="{escape(page)}"></iframe></template></section>'
     shell.write_text(screen('<body>no editor yet</body>'), encoding='utf-8')
     assert publish(tmp_path) is False and shell.read_text(encoding='utf-8') == screen('<body>no editor yet</body>')   # ⏸
     shell.write_text(screen('<body><div id="song-audio"></div></body>'), encoding='utf-8')
