@@ -29,6 +29,9 @@ def studio_origin(tmp_path_factory):
     receipt = pages.collect_tools(site, {repository: ironmate}, {repository: sha})   # 🧰 the tools first: the screen takes them in
     assert receipt["made"] == ["slide-studio", "browser-tools"] and not receipt["failed"], receipt
     pages.build(site)
+    assert sorted(file.relative_to(site).as_posix() for file in site.rglob("*.html")) == [
+        "index.html", "tools/index.html",
+    ]  # Published HTML remains two pages; hosted Ironmate documents live in views.
     assert not (site / "tools/ironmate").exists() and not list((site / "tools").glob("*-studio/index.html"))
     server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(SimpleHTTPRequestHandler, directory=site))
     thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -163,6 +166,34 @@ def test_the_one_slide_editor_opens_a_deck_and_exports_pptx(browser, studio_orig
             xml = ElementTree.fromstring(office.read("ppt/slides/slide1.xml"))
             text = [node.text for node in xml.iter("{http://schemas.openxmlformats.org/drawingml/2006/main}t")]
             assert "Imported fixture title" in text
+    finally:
+        page.context.close()
+
+
+@pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
+def test_pixel_art_in_unified_editor_exports_svg_and_undoes(browser, studio_origin, mobile):
+    """A pixel grid is placed in the shared editor, exported and undone via Portfolio on both layouts."""
+    page = _page(browser, studio_origin, mobile=mobile)
+    try:
+        studio = _studio(page, studio_origin, "slide-studio")
+        studio.locator("#pixel-editor summary").click()
+        studio.wait_for_function("() => !!window.IronmateWorkbench?.grid")
+        studio.locator("#generate").click()
+        before = studio.evaluate("IronmateSlideStudio.deck.slides[IronmateSlideStudio.active].layers.length")
+        studio.locator("#place-grid").click()
+        studio.wait_for_function(
+            """n => IronmateSlideStudio.deck.slides[IronmateSlideStudio.active].layers.length === n + 1""", before
+        )
+        art = studio.evaluate("IronmateSlideStudio.deck.slides[IronmateSlideStudio.active].layers.at(-1)")
+        assert art["kind"] == "image" and art["sampling"] == "pixelated"
+        studio.locator('[data-act="export"]').click()
+        svg = _download(page, studio.locator('#slides-candidates button[aria-label^="SVG"]'))
+        assert b"<svg" in svg[:1024]
+        studio.locator('[data-act="undo"]').click()
+        studio.wait_for_function(
+            """n => IronmateSlideStudio.deck.slides[IronmateSlideStudio.active].layers.length === n""", before
+        )
+        assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
     finally:
         page.context.close()
 
