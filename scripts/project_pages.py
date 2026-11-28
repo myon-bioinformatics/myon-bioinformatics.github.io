@@ -1112,230 +1112,64 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
 
 # ── 🧰 One screen: every tool is a #panel of tools/index.html, under one header, one foot and one ⚙️ ──
 SHELL_PAGE = 'tools/index.html'
-_LINK = re.compile(r'(?P<attr>\b(?:href|src)=)(?P<quote>["\'])(?P<url>[^"\']*)(?P=quote)')
-_SCRIPT = re.compile(r'<script\b[^>]*>.*?</script>', re.S)
-_SHELL_JS = """(()=>{const panels=[...document.querySelectorAll('[data-tools-panel]')],names=panels.map(p=>p.id);let current='';
-const mark=()=>{const door=document.querySelector('[data-door-select]');if(!door?.options.length)return;   // 🚪 shows where you are (🏠: no row of its own)
- door.value=([...door.options].find(o=>o.value.endsWith('#'+current))||door.options[0]).value};
-const inside=(panel,target,fragment)=>{const frame=panel.querySelector('iframe');if(!frame)return(document.getElementById(target)||panel).scrollIntoView();
- const go=()=>{if(location.hash===fragment)frame.contentWindow.location.replace('about:srcdoc'+fragment)};
- if(frame.dataset.ready)go();else frame.addEventListener('load',go,{once:true})};
-const runs={test:type=>['','text/javascript','module'].includes(type)};
-const play=async marks=>{for(const[mark,old]of marks){const s=document.createElement('script');for(const a of old.attributes)s.setAttribute(a.name,a.value);   // ▶️ in the page's order, one after another
-  if(old.src){s.async=false;const done=new Promise(r=>{s.onload=s.onerror=r});mark.replaceWith(s);await done}
-  else if(s.type==='module'){const id='tools-ran-'+Math.random().toString(36).slice(2),done=new Promise(r=>{addEventListener(id,r,{once:true});addEventListener('error',r,{once:true});setTimeout(r,10000)});
-   s.textContent=old.textContent+'\\n;dispatchEvent(new Event('+JSON.stringify(id)+'))';mark.replaceWith(s);await done}
-  else{s.textContent=old.textContent;mark.replaceWith(s)}}};
-// 📽️ The old popup handoff stays on this screen. IronmatePhone.act("image", file) is the slide editor's own 📥 画像 (undoable).
-let sending=false;
-const connectHandoff=frame=>frame.contentDocument.querySelector('[data-slide-handoff]')?.addEventListener('click',async e=>{
+# 📽️ The image studio's 🖼️ → 📽️ shelf, on this screen: the slide studio's own 📥 画像 (IronmatePhone.act("image", file), undoable)
+# takes the image, no popup. The screen is PySaiyanWeBoo's views; it says when a framed studio loads (ui-view-frame).
+_HANDOFF_JS = """(()=>{let sending=false;
+const connect=frame=>frame.contentDocument.querySelector('[data-slide-handoff]')?.addEventListener('click',async e=>{
  e.preventDefault();if(sending)return;sending=true;
- const from=location.hash,link=e.currentTarget;
+ const from=location.hash,link=e.currentTarget,views=globalThis.uiViews;
  const status=link.nextElementSibling?.matches('[data-handoff-status]')?link.nextElementSibling:frame.contentDocument.createElement('span');
  status.setAttribute('data-handoff-status','');status.setAttribute('role','status');status.textContent='';link.after(status);
  try{
   const blob=await frame.contentWindow.IronmateStudio.pngBlob(1);
-  if(current!=='image-studio'||location.hash!==from)return;
-  const panel=document.getElementById('slide-studio');mount(panel);
+  if(views.current!=='image-studio'||location.hash!==from)return;
+  const panel=document.getElementById('slide-studio');views.mount(panel);
   const slide=panel.querySelector('iframe');
   if(!slide)throw Error('Slide Studio is unavailable');
   if(!slide.dataset.ready)await new Promise(resolve=>slide.addEventListener('load',resolve,{once:true}));
-  if(current!=='image-studio'||location.hash!==from)return;
+  if(views.current!=='image-studio'||location.hash!==from)return;
   const app=slide.contentWindow,phone=app.IronmatePhone;
   if(typeof phone?.act!=='function')throw Error('Slide Studio did not load');
-  // The pinned editor checks Blob against its own iframe's constructor.
-  const image=new app.Blob([blob],{type:blob.type});
+  const image=new app.Blob([blob],{type:blob.type});   // the pinned editor checks Blob against its own iframe's constructor
   const previousSelection=phone.selected;
   const imported=await phone.act('image',image);
-  // Older Ironmate revisions select the new layer but return no result.
-  if(!(imported??(phone.selected&&phone.selected!==previousSelection)))throw Error('Slide Studio could not add the image');
-  if(current!=='image-studio'||location.hash!==from)return;
-  link.closest('dialog')?.close();location.hash='slide-studio';show(panel);
+  if(!(imported??(phone.selected&&phone.selected!==previousSelection)))throw Error('Slide Studio could not add the image');   // older revisions return nothing
+  if(views.current!=='image-studio'||location.hash!==from)return;
+  link.closest('dialog')?.close();location.hash='slide-studio';views.show(panel);
  }catch{status.textContent='画像を渡せませんでした。スライド工房の状態を確認し、もう一度お試しください。'}
  finally{if(!status.textContent)status.remove();sending=false}
 });
-const mount=panel=>{const inert=panel.querySelector(':scope>template');if(inert){const part=document.importNode(inert.content,true);  // 💤 a panel loads when first opened
-  const marks=[...part.querySelectorAll('script')].filter(s=>runs.test(s.type)).map(s=>{const mark=document.createComment('▶️');s.replaceWith(mark);return[mark,s]});
-  panel.replaceChildren(part);play(marks);
-  for(const frame of panel.querySelectorAll('iframe'))frame.addEventListener('load',()=>{
-   if(panel.id==='image-studio')connectHandoff(frame);frame.dataset.ready='1'
-  },{once:true})}};
-const home=document.getElementById('home');let lead=JSON.parse(home.dataset.about||'[]').length;   // 📟 the board: what the open panel is, then the cards
-const tell=panel=>{const run=document.querySelector('.ui-chrome .ui-board-run');if(!run)return;
- const about=JSON.parse((panel.dataset.about?panel:home).dataset.about||'[]'),cards=[...run.children].slice(lead,run.children.length/2);
- const first=[...about.map(text=>Object.assign(document.createElement('span'),{className:'ui-board-item',textContent:text})),...cards];
- run.replaceChildren(...first,...first.map(n=>{const c=n.cloneNode(true);c.setAttribute('aria-hidden','true');return c}));lead=about.length};
-const show=(panel,target,fragment)=>{mount(panel);
- for(const p of panels)p.hidden=p!==panel;document.title=panel.dataset.title;tell(panel);
- if(target)inside(panel,target,fragment);else if(current&&current!==panel.id)scrollTo(0,0);current=panel.id;mark()};
-const route=()=>{const fragment=location.hash;let name='';
- try{name=decodeURIComponent(fragment.slice(1).split('?',1)[0])}catch{}
- if(names.includes(name))return show(document.getElementById(name));
- const owner=name&&panels.find(p=>(p.dataset.routes||'').split(' ').includes(name)||p.querySelector(':scope>template')?.content.getElementById(name)||p.contains(document.getElementById(name)));   // #records: a section of a panel
- if(owner)return show(owner,name,fragment);if(!name||!current)show(document.getElementById('home'))};
-addEventListener('hashchange',route);addEventListener('pageshow',()=>setTimeout(mark));
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',route);else route()})();"""
-# 🖼️ Inside a framed app, a #link stays in its document (a srcdoc page would resolve it against the screen's address).
-_FRAME_JS = "addEventListener('click',e=>{const a=e.target.closest?.('a[href^=\"#\"]');if(!a||e.defaultPrevented||a.target)return;e.preventDefault();location.hash=a.getAttribute('href')})"
-_FRAME_CSS = '.ui-tools-frame{display:block;width:100%;height:calc(100dvh - 72px);border:0}'
-
-
-def panel_name(source: str) -> str:
-    """🧰 The #name a tool has on the screen: this site's own name it (``tools/#gif``), another's is its path under tools/
-    (``tools/heatmap/index.html`` → ``heatmap``)."""
-    return source.partition('#')[2] or re.sub(r'(?:/index)?\.html$', '', source.removeprefix('tools/')).replace('/', '-')
-
-
-def _rebase_links(markup: str, source: str, name: str, root: bool = False) -> str:
-    """Every relative ``href`` / ``src`` of ``markup`` (written for ``source``) as seen from SHELL_PAGE (``root``: from the site's
-    root, ``/tools/…``); a link to the page itself becomes ``#name``. Script bodies are left as they are (only a ``<script src>``
-    moves)."""
-    def move(match):
-        parts = urlsplit(match['url'])
-        if not parts.path or parts.scheme or parts.netloc or parts.path.startswith('/'):
-            return match[0]
-        at = posixpath.normpath(posixpath.join(posixpath.dirname(source), parts.path))
-        if at in (posixpath.dirname(source), source) and not root and not parts.query:
-            url = '#' + (parts.fragment or name)                               # the page itself: its panel (or the #section it holds)
-        else:
-            rel = posixpath.relpath(at, posixpath.dirname(SHELL_PAGE))
-            path = '/' + at if root else './' if rel == '.' else './' + rel + ('/' if parts.path.endswith('/') else '')
-            url = urlunsplit(('', '', path + ('/' if root and parts.path.endswith('/') else ''), parts.query, parts.fragment))
-        return match['attr'] + match['quote'] + url + match['quote']
-    pieces = re.split(r'(<script\b[^>]*>.*?</script>)', markup, flags=re.S)
-    return ''.join(_LINK.sub(move, piece) if i % 2 == 0 else re.sub(r'<script\b[^>]*>', lambda tag: _LINK.sub(move, tag[0]), piece, count=1)
-                   for i, piece in enumerate(pieces))
-
-
-def _title(source: str, page: str) -> str:
-    title = re.search(r'<title>(.*?)</title>', page, re.S)
-    return html.unescape(title[1]).strip() if title else panel_name(source)
-
-
-def _panel(ui, source: str, page: str) -> tuple[str, str, str]:
-    """(title, markup, body class) of a tool's document as a #panel: its <head>'s own styles and scripts (the shared sheet, the
-    name, the icons and the viewport are the screen's), then its <body>, links rebased (``_rebase_links``)."""
-    title = _title(source, page)
-    page = re.sub(r'^\s*<!doctype html>\s*|<html\b[^>]*>|</html>\s*$', '', page, flags=re.I)   # a page may leave <head> / <body> implied
-    head = re.search(r'<head>(.*?)</head>', page, re.S)
-    body = re.search(r'<body\b([^>]*)>(.*)</body>', page, re.S)
-    classes = re.search(r'\bclass="([^"]*)"', body[1]) if body else None
-    head, body = (head[1] if head else ''), (body[2] if body else page[head.end():] if head else page)
-    head, body = (re.sub(r'<meta\b[^>]*>|<title>.*?</title>|<link rel="(?:icon|apple-touch-icon|manifest)"[^>]*>', '', part, flags=re.S)
-                  for part in (head, body))
-    for builder in STYLESHEET_BUNDLES.values():
-        head = head.replace('<style>' + getattr(ui, builder)(), '<style>')
-    return title, _rebase_links(head.replace('<style></style>', '') + body, source, panel_name(source)), classes[1] if classes else ''
-
-
-def _to_top(page: str, source: str, targets: dict[str, set[str] | None]) -> str:
-    """Every ``<a href>`` of a framed page that leaves it opens in the screen (``target="_top"``): one to a tool of the screen
-    becomes ``/tools/#name`` or the #section it holds (``targets``: a framed one's routes, None for a joined one, which holds any)."""
-    pages = {}
-    for path in targets:
-        folder = posixpath.dirname('/' + path) + '/'
-        pages.update({'/' + path: path, **({folder: path} if path.endswith('/index.html') else {})})
-    site = _site_url().rstrip('/')
-    def move(tag):
-        href = re.search(r'\bhref=(["\'])([^"\']*)\1', tag[0])
-        if not href or re.search(r'\b(?:target|download)\b', tag[0]) or href[2].startswith(('#', 'javascript:', 'blob:', 'data:')):
-            return tag[0]
-        parts = urlsplit(href[2])
-        if parts.scheme or parts.netloc:
-            if not href[2].startswith(site + '/'):
-                return tag[0].replace('<a', '<a target="_top"', 1)                  # 🌐 another site
-            path = parts.path
-        else:
-            path = posixpath.normpath(posixpath.join('/' + posixpath.dirname(source), parts.path)) + ('/' if parts.path.endswith('/') else '')
-        if path in ('/' + posixpath.dirname(SHELL_PAGE) + '/', '/' + SHELL_PAGE) and parts.fragment:   # 🧰 the screen itself, at a #panel
-            tag = tag[0].replace(href[0], f'href={href[1]}/{posixpath.dirname(SHELL_PAGE)}/#{parts.fragment}{href[1]}', 1)
-            return tag.replace('<a', '<a target="_top"', 1)
-        if path in pages:
-            own, name = targets[pages[path]], panel_name(pages[path])
-            url = '/' + posixpath.dirname(SHELL_PAGE) + '/#' + (parts.fragment if parts.fragment and (own is None or parts.fragment in own) else name)
-            tag = tag[0].replace(href[0], f'href={href[1]}{url}{href[1]}', 1)
-            return tag.replace('<a', '<a target="_top"', 1)
-        return tag[0].replace('<a', '<a target="_top"', 1)                          # 🏠 the site's other pages and files
-    pieces = re.split(r'(<script\b[^>]*>.*?</script>)', page, flags=re.S)
-    return ''.join(re.sub(r'<a\b[^>]*>', move, piece) if i % 2 == 0 else piece for i, piece in enumerate(pieces))
-
-
-def _routes(page: str) -> set[str]:
-    """The #sections a page links itself to (an ``href="#x"`` with an ``id="x"``): where the screen can open a framed app."""
-    page = _SCRIPT.sub('', page)
-    return set(re.findall(r'href="#([^"]+)"', page)) & set(re.findall(r'\bid="([^"]+)"', page))
-
-
-def _framed(source: str, page: str, targets: dict[str, set[str] | None]) -> tuple[str, str]:
-    """(title, markup) of an app that owns its document (Ironmate's studios, the lab, the HTML import) as a #panel: the page
-    whole in an ``<iframe srcdoc>``, so its ids, styles, scripts and CSP stay its own. Its links leave for the screen
-    (``_to_top``); its files load from the site's root (``/tools/…``: a srcdoc frame's preload ignores ``<base>``); a ``<base>`` of
-    its folder serves what its scripts resolve themselves, and its #links stay in it (``_FRAME_JS``). Both come first in
-    ``<head>``, before any CSP of its own (which governs what follows it)."""
-    title = _title(source, page)
-    if source == 'tools/image-studio/index.html' and 'tools/slide-studio/index.html' in targets:
-        # Standalone Ironmate uses a popup; only the embedded shelf uses the same-screen handoff.
-        page = page.replace('href="../slide-studio/#from-image-studio" target="_blank" rel="opener"',
-                            'href="/tools/#slide-studio" target="_top" data-slide-handoff')
-    page = _rebase_links(_to_top(page, source, targets), source, panel_name(source), root=True)
-    first = f'<base href="./{posixpath.relpath(posixpath.dirname(source), posixpath.dirname(SHELL_PAGE))}/"><script>{_FRAME_JS}</script>'
-    page = (re.sub(r'<head\b[^>]*>', lambda head: head[0] + first, page, count=1) if re.search(r'<head\b', page)
-            else re.sub(r'(<html\b[^>]*>|^)', lambda html_: html_[0] + first, page, count=1))
-    return title, f'<iframe class="ui-tools-frame" title="{html.escape(title)}" srcdoc="{html.escape(page)}"></iframe>'
+document.addEventListener('ui-view-frame',e=>{if(e.detail.name==='image-studio')connect(e.detail.frame)})})();"""
 
 
 def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes:
-    """🧰 tools/index.html: the screen every tool is a panel of (``#gif``, ``#maps``, …; 🏠 ``#home`` lists them). ``panels`` maps
-    the path a tool's document was built for to (document, repository, framed): ``repository`` None is this site's own;
-    ``framed`` runs an app that owns its document in a frame (``_framed``), else its parts join the screen (``_panel``).
-    The header, the side and the foot are the site's (``add_site_chrome``) once; a panel stays an inert ``<template>`` until it is
-    first opened (its styles and scripts load then), and ``#section`` opens the panel that holds it.
-    🆔 One owner per id: two of this site's panels that share one stop the build; another repository's gets ⏸ in its place."""
+    """🧰 tools/index.html: the screen every tool is a view of (``#gif``, ``#maps``, …; 🏠 ``#home`` lists them), built with
+    PySaiyanWeBoo's ``views`` (``component_parts("views", …)``). ``panels`` maps the path a tool's document was built for to
+    (document, repository, framed): ``repository`` None is this site's own (an id it shares stops the build; another's gets ⏸);
+    ``framed`` runs an app that owns its document in a frame, else its parts join the screen. Each is named, described and
+    ordered as its card (``tools_places``: 🚪's order). The header, the side and the foot are the site's (``add_site_chrome``) once."""
     places = {place['href']: place for place in tools_places()}
-    names = [panel_name(source) for source in panels]
-    owners = {name: name for name in ('home', *names, 'door', 'door-select', 'tools-chrome')}
-    routes = {source: _routes(data.decode('utf-8')) - set(owners) for source, (data, _, framed) in panels.items() if framed}
-    index, markup_of = [], {}
-    for source, (data, repository, framed) in sorted(panels.items(), key=lambda item: item[1][2]):   # 🧩 the joined ones first: they own their ids
-        name = panel_name(source)
-        if framed:
-            routes[source] -= set(owners)
-            targets = {other: routes.get(other) for other in panels}
-            title, markup = _framed(source, data.decode('utf-8'), targets)
-            markup_of[source] = title, markup, '', routes[source]
-            continue
-        title, markup, classes = _panel(ui, source, data.decode('utf-8'))
-        ids = set(re.findall(r'\bid="([^"]+)"', _SCRIPT.sub('', markup)))
-        clash = sorted(i for i in ids if owners.get(i, name) != name)
-        if clash and repository is None:
-            raise ValueError(f'🆔 the {name} panel shares ids with another part of the screen: {clash}')
-        if clash:                                                          # 🧰 a tool of another repository: ⏸ rather than a broken screen
-            title, markup, classes = _panel(ui, source, _paused(ui, repository, f'id がほかの道具とぶつかる（{", ".join(clash)}）。'))
-            ids = set()
-        owners.update(dict.fromkeys(ids, name))
-        markup_of[source] = title, markup, classes, set()
-    sections = []
     rank = {href.partition('#')[2]: i for i, href in enumerate(places)}    # 🚪 the home list reads like the door: the cards' order
-    for source in sorted(panels, key=lambda source: rank.get(panel_name(source), len(rank))):
-        name, (title, markup, classes, own) = panel_name(source), markup_of[source]
-        place = places.get(f'../tools/#{name}', {})                     # 🏷️ its card: the one name (🚪, 🏠, the tab) and what it does
-        title, about = place.get('label', title), place.get('text')
-        index.append(f'<li><a href="#{name}">{html.escape(title, quote=False)}</a></li>')
-        css = f' class="{html.escape(classes)}"' if classes else ''      # the page's <body> class (ui-elements) holds for its panel
-        sections.append(f'<section id="{name}"{css} data-tools-panel data-title="{html.escape(title)}"'
-                        + (f' data-about="{html.escape(json.dumps([i["text"] for i in _sentences(about)], ensure_ascii=False))}"' if about else '')
-                        + (f' data-routes="{" ".join(sorted(own))}"' if own else '') + f' hidden><template>{markup}</template></section>')
+    views = []
+    for source in sorted(panels, key=lambda source: rank.get(ui.view_name(source, SHELL_PAGE), len(rank))):
+        data, repository, framed = panels[source]
+        page, place = data.decode('utf-8'), places.get(f'../tools/#{ui.view_name(source, SHELL_PAGE)}', {})
+        if source == 'tools/image-studio/index.html' and 'tools/slide-studio/index.html' in panels:   # 📽️ the shelf hands over here
+            page = page.replace('href="../slide-studio/#from-image-studio" target="_blank" rel="opener"',
+                                'href="/tools/#slide-studio" target="_top" data-slide-handoff')
+        views.append({'source': source, 'document': page, 'title': place.get('label', ''), 'about': place.get('text', ''),
+                      'framed': framed, 'repository': repository})
     description = 'myon-bioinformatics の道具を 1 つの画面で。🚪 で道具を選び、🏠 で一覧へ。'   # 📟 the board's first items while 🏠 is open
-    home = (f'<section id="home" data-tools-panel data-title="🧰 Tools" data-about="{html.escape(json.dumps([i["text"] for i in _sentences(description)], ensure_ascii=False))}">'
-            f'<main class="ui-page"><h1>🧰 Tools</h1><ul class="ui-tools-index">{"".join(index)}</ul></main></section>')
-    mark = '<!-- 🧰 panels -->'                                            # the chrome first: a panel's own header (🌍) is not the screen's
+    screen = ui.component_parts('views', views, at=SHELL_PAGE, site=_site_url(), reserved=('door', 'door-select', 'tools-chrome'),
+                                home={'title': '🧰 Tools', 'heading': '🧰 Tools', 'about': description})
+    mark = '<!-- 🧰 views -->'                                             # the chrome first: a view's own header (🌍) is not the screen's
     sheet = posixpath.relpath(ASSET_BASE + 'css/bundle.css', posixpath.dirname(SHELL_PAGE))          # 🎨 the shared sheet, one file for both
-    page = ui.render_document(title='🧰 Tools', theme='modern', trusted_html=home + mark + f'<script>{_SHELL_JS}</script>',
-                              css='.ui-tools-index{display:grid;gap:8px;padding:0;list-style:none}' + _FRAME_CSS)
+    page = ui.render_document(title='🧰 Tools', theme='modern', trusted_html=mark + f'<script>{_HANDOFF_JS}</script>', css=screen['css'])
     page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace('<head>', f'<head><meta name="description" content="{description}">', 1).replace('<style>', f'<link rel="stylesheet" href="{sheet}"><style>', 1)
-    page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': '../index.html#tools'}], test_id='portfolio-back')   # 🏠 the home panel's first line
     cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './#tokyo'}}   # 🗺️ the map's neighbour
-    page = add_site_chrome(page, SHELL_PAGE, cities).replace(mark, ''.join(sections), 1)
+    page = ui.add_part(page, {'js': screen['js']})                         # a module: it binds once the views below are parsed
+    page = add_site_chrome(page, SHELL_PAGE, cities).replace(mark, screen['html'], 1)
+    page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': '../index.html#tools'}], test_id='portfolio-back')   # 🏠 the home view's first line
     icons = {'icon': '../assets/brand/favicon-32x32.png', 'touch_icon': '../assets/brand/myon-profile-icon.png'}   # 📱 the home-screen shortcut
     return ui.stamp_page_size(ui.home_label(page, '🧰 道具', **icons)).encode('utf-8')
 

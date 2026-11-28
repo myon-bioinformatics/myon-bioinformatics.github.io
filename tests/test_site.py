@@ -364,14 +364,14 @@ def shell_frame(name: str) -> str:
     """🖼️ The document the one screen's framed ``#name`` panel runs (its ``<iframe srcdoc>``), None for a joined one."""
     from html import unescape
     page = (SITE / PAGES.SHELL_PAGE).read_text(encoding="utf-8")
-    found = re.search(rf'<section id="{name}"[^>]*\bdata-tools-panel[^>]*><template><iframe[^>]*\bsrcdoc="([^"]*)"', page, re.S)
+    found = re.search(rf'<section id="{name}"[^>]*\bdata-ui-view[^>]*><template><iframe[^>]*\bsrcdoc="([^"]*)"', page, re.S)
     return unescape(found[1]) if found else None                         # None: a joined panel
 
 
 def shell_panel(name: str) -> str:
     """🧰 The markup of the one screen's ``#name`` panel (inert in its <template> until it is opened)."""
     page = (SITE / PAGES.SHELL_PAGE).read_text(encoding="utf-8")
-    return re.search(rf'<section id="{name}"[^>]*\bdata-tools-panel[^>]*><template>(.*?)</template></section>', page, re.S)[1]
+    return re.search(rf'<section id="{name}"[^>]*\bdata-ui-view[^>]*><template>(.*?)</template></section>', page, re.S)[1]
 
 
 def test_tools_built_from_other_repositories_never_404():
@@ -451,8 +451,8 @@ def test_the_screen_carries_the_site_chrome_once_and_every_door_is_a_panel():
     assert sorted(p.relative_to(SITE).as_posix() for p in SITE.rglob('*.html') if 'media' not in p.parts) == ['index.html', PAGES.SHELL_PAGE]   # 🧰 two pages
     for name in (PAGES.SHELL_PAGE,):
         page = full = (SITE / name).read_text(encoding='utf-8')
-        first = page.index('data-tools-panel', page.index('<section id="home"') + 32)   # 🧰 the screen's own chrome, not what its panels hold
-        page = page[:page.rindex('<section id="', 0, first)] + page[page.index('<script>(()=>{const panels='):]
+        first = page.index('data-ui-view', page.index('<section id="home"') + 32)   # 🧰 the screen's own chrome, not what its panels hold
+        page = page[:page.rindex('<section id="', 0, first)] + page[page.index('<script>(()=>{let sending'):]   # up to the screen's own script
         prefix = '../' * name.count('/')
         body = re.search(r'<body[^>]*>', page)
         assert '<div class="ui-board"' in page and page.count('<div class="ui-door-foot">') == 1, name   # 📟 🚪
@@ -487,7 +487,7 @@ def test_the_screen_carries_the_site_chrome_once_and_every_door_is_a_panel():
         doors = re.findall(r'<option value="([^"]+)"( selected disabled)?>([^<]+)</option>', page[page.index('<div class="ui-door-foot">'):page.index(module[1])])
         assert doors[0] == (f'{prefix}index.html#tools', '', '🏠 Tools') and [href for href, _, _ in doors[1:1 + len(rows)]] == [href for href, _ in rows], name   # 🚪 = 🏠 + the tools
         assert not any(mark for _, mark, _ in doors) and len(doors) == 1 + len(rows), name   # 🧰 each #panel is a door; the screen marks the open one
-        assert {urlparse(href).fragment for href, _ in rows if href.startswith('../tools/#')} <= {*re.findall(r'<section id="([^"]+)"[^>]*\bdata-tools-panel', full),
+        assert {urlparse(href).fragment for href, _ in rows if href.startswith('../tools/#')} <= {*re.findall(r'<section id="([^"]+)"[^>]*\bdata-ui-view', full),
                                                                                                 *' '.join(re.findall(r'\bdata-routes="([^"]*)"', full)).split(), *PageParser.of(full).ids}, name
         assert len({words.split(' ')[0] for _, _, words in doors}) == len(doors), name                    # one emoji, one panel
     maps = (SITE / PAGES.SHELL_PAGE).read_text(encoding='utf-8')                    # 🗼 an emoji a page adds for its own use (the map's)
@@ -1780,8 +1780,8 @@ def test_the_one_screen_keeps_one_owner_per_id():
                                     'tools/format-lab/index.html': (page('<i id="own">', ' class="ui-elements"'), 'myon-bioinformatics/myon-bioinformatics', False),
                                     'tools/app/index.html': (page('<p id="status"><a href="#status">s</a><a href="../a/">a</a>'), 'myon-bioinformatics/App', True)}).decode()
     heatmap = re.search(r'<section id="heatmap"[^>]*><template>(.*?)</template>', shell, re.S)[1]
-    assert '⏸' in heatmap and 'id がほかの道具とぶつかる（status）' in heatmap and 'id="status"' not in heatmap
-    assert '<section id="format-lab" class="ui-elements" data-tools-panel' in shell and '<i id="own">' in shell
+    assert '⏸' in heatmap and 'id がほかとぶつかるので、ここでは開かない（status）' in heatmap and 'id="status"' not in heatmap
+    assert '<section id="format-lab" class="ui-elements" data-ui-view' in shell and '<i id="own">' in shell
     assert '<p id="status">' in shell and shell.count('id="status"') == 1
     framed = re.search(r'<section id="app"[^>]*><template><iframe[^>]*\bsrcdoc="([^"]*)"', shell, re.S)   # 🖼️ an app that owns its document: framed,
     assert framed and 'data-routes' not in shell[framed.start() - 200:framed.start()]                    # its own ids (status is the joined panel's)

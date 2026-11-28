@@ -485,7 +485,7 @@ def test_composition_audio_waits_for_ironmates_editor_instead_of_failing_the_dep
     from html import escape, unescape
     tools, shell = tmp_path / 'tools/browser-tools', tmp_path / 'tools/index.html'
     tools.mkdir(parents=True)
-    screen = lambda page: f'<section id="browser-tools" data-tools-panel hidden><template><iframe srcdoc="{escape(page)}"></iframe></template></section>'
+    screen = lambda page: f'<section id="browser-tools" data-ui-view hidden><template><iframe srcdoc="{escape(page)}"></iframe></template></section>'
     shell.write_text(screen('<body>no editor yet</body>'), encoding='utf-8')
     assert publish(tmp_path) is False and shell.read_text(encoding='utf-8') == screen('<body>no editor yet</body>')   # ⏸
     shell.write_text(screen('<body><div id="song-audio"></div></body>'), encoding='utf-8')
