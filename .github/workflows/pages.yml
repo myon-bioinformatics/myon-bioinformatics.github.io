@@ -115,7 +115,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/Ironmate
-          ref: c467d3c7bfaf5dff5fdc02d0abf4527b85029157
+          ref: c467d3c7bfaf5dff5fdc02d0abf4527b85029157 # 📌 the studio tests here are written against this Ironmate; move both together
           path: .test-deps/Ironmate
           persist-credentials: false
 
@@ -256,10 +256,10 @@ jobs:
 
             const map = await browser.newPage({permissions: ['clipboard-read', 'clipboard-write']});
             await map.goto('http://127.0.0.1:8000/tools/?lat=0&lon=0#maps');   // 🧰 the one screen's map panel
-            await map.locator('#copy-apple').click();
-            await map.waitForFunction(() => document.querySelector('#map-status')?.textContent === 'コピーしました。');
+            await map.locator('#map [data-copy="apple"]').click();   // 🔁 PySaiyanWeBoo main: data-* parts (tests/test_maps.py)
+            await map.waitForFunction(() => document.querySelector('#map [data-note]')?.textContent === 'コピーしました。');
             assert.equal(await map.evaluate(() => navigator.clipboard.readText()),
-              await map.locator('#apple-link').getAttribute('href'));
+              await map.locator('#map [data-open="apple"]').getAttribute('href'));
           } finally {
             await browser.close();
           }

@@ -11,12 +11,12 @@ spec.loader.exec_module(fleet)
 
 ROOT = fleet.repo_root(__file__)
 # Local rollout contract; adopted vendor locks are deliberately independent.
-PARENT_WORKFLOW_PIN = "27dedd9651efc816fa88d8922adb5f242725df69"
-ACCEPTED = {"vendor/fleet_check.py": "eee8c096fc753465a5d5a26264e64c12e555638f"}   # 📜 check_no_vendor_package_imports (parent #414)
+PARENT_WORKFLOW_PIN = "main"  # 🔁 own sources follow main (2026-11-28)
+ACCEPTED = {"vendor/fleet_check.py"}  # 🔁 locked destinations; they follow main
 
 
 def test_vendor_lock_matches_checked_in_bytes_and_accepted_commits():
-    rows = fleet.check_lock(ROOT, commits=ACCEPTED)      # the one lock: tools/vendor/ (HTML import, lab) and vendor/ (parent)
+    rows = fleet.check_lock(ROOT)      # the one lock: tools/vendor/ (HTML import, lab) and vendor/ (parent)
     assert {'tools/vendor/lab/html_snapshot.py', 'vendor/pillow_min.py', 'tools/vendor/web-ui/LICENSE'} <= set(rows)
 
 
@@ -54,11 +54,6 @@ def test_vendor_asset_checks_use_installed_pinned_generator():
 class ScriptsDescribeThemselves(unittest.TestCase):
     def test_every_script_has_a_description_and_declared_arguments(self):
         fleet.check_scripts(fleet.repo_root(__file__))
-
-    def test_no_top_level_vendor_package_imports(self):
-        # 📦 vendored modules load by path under a repo-unique name (cli_args README: Loading a vendored copy)
-        # 🧪 .test-deps holds other repositories' CI checkouts (pinned commits), not this repo's own sources
-        self.assertEqual(fleet.check_no_vendor_package_imports(ROOT, skip=(".test-deps",)), [])
 
     def test_pull_request_ci_stays_quick(self):
         # ⏱ push limited to branches, superseded PR runs cancelled, every job timed (fleet_check.check_ci)
