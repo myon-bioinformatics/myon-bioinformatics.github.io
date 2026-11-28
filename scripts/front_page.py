@@ -9,6 +9,7 @@ highlight slots with what the public GitHub API returns in the browser.
 import html
 import json
 import re
+import runpy
 from pathlib import Path
 from urllib.parse import quote
 
@@ -27,6 +28,10 @@ def _service_url(project: str, endpoint: str, *, relative: bool = False) -> str:
 # on the card and on the screen's board while it is open. The first link opens it (開く →); any other leads to a relative, named by its
 # own emoji and words. ``words`` are the names in 🌐's other languages. ``from`` names the repositories a card is built from (🧩, plain
 # text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. Everything is escaped.
+# ``tap``: what the card's 🎥 sample taps first on its pages (project_pages.py ``record_samples(taps=…)``).
+# 🪐 The spaces of the one world, as world_shell.py names them (``SPACES``; the first is where its panel opens): a space added there is a
+# link of the 🪐 card, a 🚪 row and a 🎥 frame.
+_spaces = runpy.run_path(str(Path(__file__).with_name('world_shell.py')))['SPACES']
 PORTAL = [
  {'title': '📄 HTML文書取込', 'id': 'html-import',
   'text': 'HTML を貼るかファイルを選び、本文・見出し・リンクを端末の中で抽出。',
@@ -38,9 +43,13 @@ PORTAL = [
   'from': ('myon-bioinformatics', 'PySaiyanWeBoo'),
   'links': [('開く →', './tools/#format-lab')]},
  {'title': '📍 地図URL・座標ピン留め', 'id': 'maps',
-  'text': '緯度・経度から Apple Maps と Google Maps の URL を作り、地点をピン留め・共有。',
-  'words': {'地図URL・座標ピン留め': ['Map URLs & coordinate pins', 'URL de carte et épingles de coordonnées', 'URL de mapa y chinchetas de coordenadas', 'URL de mapa e alfinetes de coordenadas', 'روابط الخرائط ودبابيس الإحداثيات', '地图 URL 与坐标图钉', 'URL карт и метки координат', 'URL peta dan penanda koordinat', 'Karten-URLs und Koordinaten-Pins', 'URL za ramani na pini za kuratibu'], 'パラレル東京': ['Parallel Tokyo', 'Tokyo parallèle', 'Tokio paralelo', 'Tóquio paralela', 'طوكيو الموازية', '平行东京', 'Параллельный Токио', 'Tokyo Paralel', 'Paralleles Tokio', 'Tokyo sambamba']},
-  'links': [('開く →', './tools/#maps'), ('🗼 パラレル東京 →', './tools/#tokyo')]},
+  'text': '実在の緯度・経度から Apple Maps と Google Maps の URL を作り、地点をピン留め・共有。',
+  'words': {'地図URL・座標ピン留め': ['Map URLs & coordinate pins', 'URL de carte et épingles de coordonnées', 'URL de mapa y chinchetas de coordenadas', 'URL de mapa e alfinetes de coordenadas', 'روابط الخرائط ودبابيس الإحداثيات', '地图 URL 与坐标图钉', 'URL карт и метки координат', 'URL peta dan penanda koordinat', 'Karten-URLs und Koordinaten-Pins', 'URL za ramani na pini za kuratibu']},
+  'links': [('開く →', './tools/#maps')]},
+ {'title': '🪐 仮想・拡張エリア', 'id': 'worlds', 'tap': '.ui-world-pick [data-emoji]',      # 🌍 not the map: places that are walked
+  'text': '緯度・経度ではなく、歩いて回る空間。村から、学校・パラレル都市・カメラへ。',
+  'words': {'仮想・拡張エリア': ['Virtual & extended areas', 'Espaces virtuels et étendus', 'Áreas virtuales y extendidas', 'Áreas virtuais e estendidas', 'مناطق افتراضية وموسّعة', '虚拟与扩展区域', 'Виртуальные и расширенные области', 'Area virtual dan perluasan', 'Virtuelle und erweiterte Bereiche', 'Maeneo pepe na yaliyopanuliwa'], '学校': ['School', 'École', 'Escuela', 'Escola', 'المدرسة', '学校', 'Школа', 'Sekolah', 'Schule', 'Shule'], 'パラレル東京': ['Parallel Tokyo', 'Tokyo parallèle', 'Tokio paralelo', 'Tóquio paralela', 'طوكيو الموازية', '平行东京', 'Параллельный Токио', 'Tokyo Paralel', 'Paralleles Tokio', 'Tokyo sambamba'], 'カメラ': ['Camera', 'Caméra', 'Cámara', 'Câmera', 'الكاميرا', '相机', 'Камера', 'Kamera', 'Kamera', 'Kamera']},
+  'links': [('開く →', './tools/#worlds')] + [(f'{label} →', f'./tools/#{name}') for name, (_, label) in list(_spaces.items())[1:]]},
  {'title': '🖼️ 画像工房', 'id': 'image-studio',
   'text': 'レイヤー・作業履歴・クリップボード棚で画像を編集。数値行列のヒートマップと PNG Base64 の受け渡しも。',
   'words': {'画像工房': ['Image studio', 'Atelier d’images', 'Taller de imágenes', 'Estúdio de imagens', 'استوديو الصور', '图像工坊', 'Студия изображений', 'Studio gambar', 'Bildwerkstatt', 'Studio ya picha']},

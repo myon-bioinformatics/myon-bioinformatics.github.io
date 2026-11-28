@@ -22,10 +22,10 @@
     "tools/vendor/web-ui/css/core.css": "6161b50462c2cfc8b40547e988636525989a1d29585eb98d5042646ffbb5cabd"
   },
   "pages": {
-    "tools/#worlds": "9be071d9a5ddd112709782ac277248285b660e54ad003739e9513684b37262bc",
+    "tools/#worlds": "55b5b91aba688b318bae92433597fc77675a69baa5cbaf24a8938ed8df656b7e",
     "tools/html-import/#html-import": "fd20a47b927a60c20ad91fd78bb23260ccbdabdf7f8cd66ec19681773065822a",
     "tools/#test-report": "ee10290827e76ae476f66d43b86a240d1b689a1542ff453e53c8dff1439e3f9a",
-    "tools/#maps": "57288310abc78ab1238157101f2ced28f39ca94df246bdb506ef1c195d2de522",
+    "tools/#maps": "9fc47a2cd7a80fea4cc68d377b391b95de4df0d533fd0416646cbe724c8e9263",
     "tools/#gif": "76d930708979cf289c6ec1b1deaedffbadbf8efce37cfded69bda2956f11cbe7",
     "tools/#chat": "da0b786f0bdc74797d037ed00dc2bd5d1a09db3f334196d10f3c0e3ac6813f97"
   }

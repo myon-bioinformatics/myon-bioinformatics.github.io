@@ -90,7 +90,8 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 | --- | --- |
 | 📄 HTML文書取込 | [tools/#html-import](https://myon-bioinformatics.github.io/tools/#html-import) |
 | 🗃️ 形式変換・検証（myon-bioinformatics · PySaiyanWeBoo） | [tools/#format-lab](https://myon-bioinformatics.github.io/tools/#format-lab) |
-| 📍 地図URL・座標ピン留め | [tools/#maps](https://myon-bioinformatics.github.io/tools/#maps) · [🗼 パラレル東京](https://myon-bioinformatics.github.io/tools/#tokyo) |
+| 📍 地図URL・座標ピン留め（実在の緯度・経度） | [tools/#maps](https://myon-bioinformatics.github.io/tools/#maps) |
+| 🪐 仮想・拡張エリア（歩いて回る空間） | [tools/#worlds](https://myon-bioinformatics.github.io/tools/#worlds)（🌍 村） · [🏫 学校](https://myon-bioinformatics.github.io/tools/#school) · [🗼 パラレル東京](https://myon-bioinformatics.github.io/tools/#tokyo) · [🎡 Reverse London](https://myon-bioinformatics.github.io/tools/#london) · [🥖 Fake Paris](https://myon-bioinformatics.github.io/tools/#paris) · [🎬 カメラ](https://myon-bioinformatics.github.io/tools/#camera) |
 | 🖼️ 画像工房（Ironmate） | [tools/#image-studio](https://myon-bioinformatics.github.io/tools/#image-studio) |
 | 🎨 ブラウザ道具（Ironmate） | [tools/#browser-tools](https://myon-bioinformatics.github.io/tools/#browser-tools) |
 | 📽️ スライド工房（Ironmate） | [tools/#slide-studio](https://myon-bioinformatics.github.io/tools/#slide-studio) |
@@ -299,9 +300,13 @@ add_site_chrome(page, 'tools/index.html', {'🗼': {'label': 'パラレル都市
 
 ### 🎥 Tools カードの動く見本と 🗓️ 週次ノート
 
-- 🎥 🧰 Tools の各カードにも、🚀 Projects のカードと同じ動く見本（GIF）が付きます。絵を押すと、その道具が開きます（🧭 統合運用のような別リポジトリのページも同じ）。絵があるカードでは、文字のリンクは開き先が複数ある（似た道具が並ぶ）カードにだけ残します。公開のたびに `--record-samples` が、いま公開中の道具のページを撮ります（`media/pages/tools/<id>.gif`）。ページを開けなかったカードには、名前と 🎥 ⏳ のかわりの絵を付け、どのカードも同じ形にそろえます。
+- 🎥 🧰 Tools の各カードにも、🚀 Projects のカードと同じ動く見本（GIF）が付きます。絵を押すと、その道具が開きます（🧭 統合運用のような別リポジトリのページも同じ）。絵があるカードでは、文字のリンクは開き先が複数ある（似た道具が並ぶ）カードにだけ残します。公開のたびに `--record-samples` が、いま公開中の道具のページを撮ります（`media/pages/tools/<id>.gif`）。開き先が複数あるカードは、開き先ごとに 1 コマです。🪐 仮想・拡張エリアの開き先は `scripts/world_shell.py` の `SPACES` そのもの（「開く」が最初の空間＝村、続けて学校・パラレル都市・カメラ）で、空間を足せば、カードのリンク・🚪 の行・見本のコマも増えます。📷 カメラの映像を背景にする階（AR）は、村の 🛗「実空間×仮想」です。最初に選択を求めるページは、カードの `tap` に書いた場所を押してから撮ります（ワールドの絵文字選び）。ページを開けなかったカードには、名前と 🎥 ⏳ のかわりの絵を付け、どのカードも同じ形にそろえます。
 - 🗓️ 週次ノートは `docs/weekly-view.md`（ふつうの Markdown）です。前の週（月〜日、日本時間）にマージした PR を、毎日の Update repos API が月曜に書き直します（`scripts/repos_catalog.py --weekly`、GitHub の REST 検索）。
 - 📊 ビルド時に markdown.py で HTML にし、表の数値だけの列は棒にします（`table_bars`、JS なし）。別の `.md` を載せるときは `site.config.json` の `documents` に 1 行足します。
+
+📍 地図（実在の緯度・経度）と 🪐 仮想・拡張エリア（歩いて回る空間）は別のカードです。下は 🪐 のカードの見本そのもの（Chromium 392×704 を 240×456 に）。
+
+![🪐 仮想・拡張エリアの動く見本: 村・学校・パラレル東京・Reverse London・Fake Paris・カメラを 1 コマずつ](docs/evidence/tools-sample-worlds.gif)
 
 ![Tools カードの動く見本を押すと 🎞 GIF工房が開き、戻って 🗓️ 週次ノートの表が棒で描かれている（Chromium 560×480）](docs/evidence/tools-sample-weekly-bars.gif)
 
@@ -369,9 +374,11 @@ uv run --locked --only-group browser python tests/world_browser.py -v           
 
 🧰 Tools → **📍 地図URL・座標ピン留め** (`tools/#maps`) で、緯度・経度からApple MapsとGoogle MapsのURLを生成できます。地図URLからの座標入力、端末内のピン保存・解除、地点リンクのコピー、端末の共有メニューに対応します。共有先は保存操作なしで同じ座標を開けます。ピンはブラウザごとの保存で、端末間では同期しません。保存やコピーが許可されていない場合は画面に表示します。
 
-パラレル都市 (`tools/#tokyo`) 内の東京21地点と相互に移動できます。座標・地図URL生成は固定済みPSWB、ミニチュアは `scripts/world.py` から再利用します。東京の座標はミニチュア用の概略値で、施設の正確な入口を保証するものではありません。URLだけを作るため地図APIキーは不要です。
+![📍 地図ツール: 神田を選んで 350 m の範囲を作り、📌 ピン留めは読み直しても残り、🗼 パラレル東京の対応地点と行き来する（Chromium 392×872）](docs/evidence/maps.gif)
 
-Flutterの範囲指定も引き継いでいます。中心＋半径（25 / 100 / 350 / 1,000 / 3,000 m・自由指定）から南北東西の境界と範囲URLを生成し、半径をピン・共有リンクに保存します。初期値は100 m、0は地点のみです。範囲内の東京の地点は中心からの直線距離で絞り込み、移動先から戻っても半径を保持します。「元の指定範囲へ戻る」は元の中心も復元します。範囲URLは表示範囲の指定で、円や矩形を地図上に描画するものではありません。日付変更線・極付近では表現できないApple Mapsの`spn`を省略します。
+パラレル都市 (`tools/#tokyo`) 内の東京21地点と相互に移動できます。画面・ピン留め・共有・地点リストは固定済みPSWBの座標部品（`coordinates_html(spec)`）で、このリポジトリが渡すのは東京の地点と日本語の言葉だけです（`scripts/map_tool.py` の `map_spec`）。ミニチュアは `scripts/world.py` から再利用します。東京の座標はミニチュア用の概略値で、施設の正確な入口を保証するものではありません。URLだけを作るため地図APIキーは不要です。
+
+Flutterの範囲指定も引き継いでいます。中心＋半径（25 / 100 / 350 / 1,000 / 3,000 m・自由指定）から南北東西の境界と範囲URLを生成し、半径をピン・共有リンクに保存します。初期値は100 m、「指定なし」は地点のみです。自由指定の半径は半角の数字で入れます。範囲内の東京の地点は中心からの直線距離で絞り込み、移動先から戻っても半径を保持します。「元の指定範囲へ戻る」は元の中心も復元します。範囲URLは表示範囲の指定で、円や矩形を地図上に描画するものではありません。日付変更線・極付近では表現できないApple Mapsの`spn`を省略します。
 
 ```sh
 uv run --locked --only-group browser python -m pytest tests/test_maps.py -q
