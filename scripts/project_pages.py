@@ -108,7 +108,7 @@ def world_page(ui) -> str:
     dialogue = WLLAMA_JS + f'\nconst worldAnswer = localModel({json.dumps(runtime)});\n'
     dragon_png, dragon_grid = ('./' + path.removeprefix('tools/') for path in DRAGON_ASSETS)
     return shell.document(ui, _world(), maps, places, css, js, dialogue,
-                          dragon_png=dragon_png, dragon_grid=dragon_grid)
+                          dragon_png=dragon_png, dragon_grid=dragon_grid, site_words=tools_words())
 
 
 def installed_commit(distribution: str = DISTRIBUTION) -> str:
@@ -187,10 +187,9 @@ def tools_places(prefix: str = '../') -> list[dict]:
     a page ``prefix`` below the site root (``../``: the screen's): the doors of 🚪 Door-to-Door. ``text`` is the card's own description (the board shows it).
 
     Every label is ``emoji words``, one emoji per page (the door knows a page by its emoji): the card's own, or the one named here
-    for a link that has none or shares its card's. 🌐 ``labels`` is the label in the other languages, when the card names its words
-    (``tools_words``)."""
-    import pysaiyanweboo as ui
-    site, places, names, codes = 'https://myon-bioinformatics.github.io/tools/', {}, tools_words(), [code for code, _ in ui.CHROME_LANGS][1:]
+    for a link that has none or shares its card's. 🌐 Its words in the other languages are the card's (``tools_words``): the chrome and
+    a world carry them (``data-words``), so 🌐 finds them wherever the label is shown."""
+    site, places = 'https://myon-bioinformatics.github.io/tools/', {}
     marks = {'html-import': '📄', 'maps': '🗺️', 'tokyo': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'protocol': '🤝'}
     for card in _front_module().PORTAL:
         mark, _, title = card['title'].partition(' ')
@@ -200,27 +199,29 @@ def tools_places(prefix: str = '../') -> list[dict]:
             href = prefix + href[2:] if href.startswith('./') else prefix + 'tools/' + href[len(site):] if href.startswith(site) else href
             name = re.sub(r'[^a-z0-9]+', '-', href.partition('tools/')[2].removesuffix('.html').lower()).strip('-') or card['id']
             words = title if len(card['links']) == 1 else label.removesuffix(' →').removeprefix('Open ')   # several links: each link's own words
-            places.setdefault(href, {'id': name, 'href': href, 'label': f'{marks.get(name, mark)} {words}', 'text': card['text'],
-                                     **({'labels': {code: f'{marks.get(name, mark)} {w}' for code, w in zip(codes, names[words])}} if words in names else {})})
+            places.setdefault(href, {'id': name, 'href': href, 'label': f'{marks.get(name, mark)} {words}', 'text': card['text']})
     return list(places.values())
 
 
 def tools_words() -> dict[str, list[str]]:
     """🌐 The 🧰 Tools cards' names in the ten other languages of 🌐 (each card's ``words``: its title and its links' words), as
     PySaiyanWeBoo's chrome takes them: wherever a page shows one (the board, ☰, 🚪, a card), it reads in the visitor's language."""
-    return {ja: row for card in _front_module().PORTAL for ja, row in card.get('words', {}).items()}
+    front = _front_module()
+    return {**{ja: row for card in front.PORTAL for ja, row in card.get('words', {}).items()}, **front.WORDS}   # and ⚙️'s own rows (WORDS)
 
 
 def tools_chrome(prefix: str = '../', tools: dict | None = None, description: str = '', *, title: str = 'TOOLS', home: bool = True,
-                 lang: str = 'ja') -> dict:
+                 lang: str = 'ja', settings: list | None = None) -> dict:
     """🧰 The chrome both pages of the site carry (PySaiyanWeBoo's ``chrome_validate``), for a page ``prefix`` below the site root:
     the board (``title``, the clock, then ``description`` — what this page is, a sentence per item — and the cards' titles), 🏠 back
-    to the cards (``home=False``: the front page itself) and ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``).
+    to the cards (``home=False``: the front page itself), ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``), and
+    ``settings``, the page's own rows of ⚙️ (the front page's 🧾 display mode, beside 🌐 and 🎨, which every page shares).
     ☰ is each page's own (itself and its sections, listed in the page); the tools themselves are 🚪 Door-to-Door's rows (``tools_places``)."""
     cards = _front_module().PORTAL
     about = [{'text': part if len(part) <= 120 else part[:119] + '…'}
              for part in (p.strip() for p in re.split(r'(?<=[。！？])|(?<=[.!?])\s+', html.unescape(description))) if part][:3]
     return {'id': 'tools', 'lang': lang, 'words': tools_words(), **({'home': prefix + 'index.html#tools'} if home else {}), 'tools': tools or {},
+            'settings': settings or [],
             'board': {'title': title, 'items': (about + [{'text': card['title']} for card in cards])[:12]}}
 
 
@@ -228,9 +229,8 @@ def tools_door(ui, prefix: str = '../') -> dict[str, str]:
     """🚪 PySaiyanWeBoo's Door-to-Door as the page's foot (``door_html(foot=True)``), as component parts: 🏠 the cards, then every
     tool (``tools_places``: the screen's #panels). After the pull-down: 🐦 the X account and 📦 this page's size
     (``pysaiyanweboo.stamp_page_size`` writes it once the page is whole)."""
-    pages = [{'emoji': '🏠', 'label': 'Tools', 'href': prefix + 'index.html#tools'},              # 🌐 labels: a world's 🌐 has no catalogue of them
-             *({'emoji': mark, 'label': words, 'href': place['href'], **({'labels': {c: w.partition(' ')[2][:40] for c, w in place['labels'].items()}} if 'labels' in place else {})}
-               for place in tools_places(prefix) for mark, _, words in [place['label'].partition(' ')])]
+    pages = [{'emoji': '🏠', 'label': 'Tools', 'href': prefix + 'index.html#tools'},              # 🌐 the names are the chrome's words (data-words)
+             *({'emoji': mark, 'label': words, 'href': place['href']} for place in tools_places(prefix) for mark, _, words in [place['label'].partition(' ')])]
     x = [{'emoji': '🐦', 'label': f'X (Twitter) @{X_URL.rpartition("/")[2]}', 'href': X_URL}]
     return ui.component_parts('door', {'schema': ui.DOOR_SCHEMA, 'k': 0, 'pages': pages}, foot=True, links=x, size=True)
 
@@ -238,7 +238,7 @@ def tools_door(ui, prefix: str = '../') -> dict[str, str]:
 X_URL = 'https://twitter.com/myonitbusiness'
 
 
-def add_site_chrome(page: str, path: str, tools: dict | None = None, *, title: str = 'TOOLS', home: bool = True) -> str:
+def add_site_chrome(page: str, path: str, tools: dict | None = None, *, title: str = 'TOOLS', home: bool = True, settings: list | None = None) -> str:
     """🧰 The parts both pages of the site share (``index.html``, ``tools/index.html``: ``path``): the header (``tools_chrome``: the
     board reads the page's ``<meta name="description">``, 🫧 the round face that follows the pointer, 🏠 ⭐ ⚙️), the side (☰ ⋯)
     and the foot (``tools_door``: 🚪 every tool as a pull-down, 🐦 X, 📦 the page's size). The parts are PySaiyanWeBoo's
@@ -252,7 +252,7 @@ def add_site_chrome(page: str, path: str, tools: dict | None = None, *, title: s
         page = re.sub(r'<html lang="en"', '<html lang="ja"', page, count=1)
     face = ui.component_parts('gaze-avatar', label='まばたき')
     face['html'] = face['html'].replace(' aria-label="', ' data-t="blink" aria-label="', 1)   # 🫧 its name follows 🌐 too
-    head = ui.component_parts('chrome', tools_chrome(prefix, tools, meta[1] if meta else '', title=title, home=home, lang=lang))
+    head = ui.component_parts('chrome', tools_chrome(prefix, tools, meta[1] if meta else '', title=title, home=home, lang=lang, settings=settings))
     tools_nav = '<nav class="ui-world-tools">'
     head['html'] = head['html'].replace(tools_nav, face['html'] + tools_nav, 1)                  # 🫧 after the board
     page = ui.add_part(page, {'css': face['css'] + '.ui-world-head .ui-gaze{flex:none;margin:0 4px}', 'js': face['js']})
@@ -266,7 +266,7 @@ def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
 
     It is not in the lock: api/repos.json is refreshed by a workflow, and the page must follow it without a lock refresh."""
     front = _front_module()
-    return {'index.html': add_site_chrome(front.document(root, samples=samples), 'index.html', front.LINKS, title='MYON', home=False).encode('utf-8')}
+    return {'index.html': add_site_chrome(front.document(root, samples=samples), 'index.html', front.LINKS, title='MYON', home=False, settings=front.SETTINGS).encode('utf-8')}
 
 
 HTML_IMPORT = posixpath.dirname(HTML_IMPORT_MODULE) + '/#html-import'   # 📄 its document beside its module (it imports ../vendor/…)
@@ -724,7 +724,7 @@ function localModel(runtime){
    let output="",tokens=0;
    const start=performance.now(),quiet={temperature:0.3,chat_template_kwargs:{enable_thinking:false}};
    const info=llm.getLoadedContextInfo?.()??{};
-   if(tools&&Math.min(info.n_ctx??0,info.n_ctx_train||info.n_ctx||0)>=2048){   // 🔧 tools need the room; a small model answers as before
+   if(tools?.list.length&&Math.min(info.n_ctx??0,info.n_ctx_train||info.n_ctx||0)>=2048){   // 🔧 tools need the room; a small model answers as before
     let message={};
     try{const first=await llm.createChatCompletion({messages,tools:tools.list,tool_choice:"auto",max_tokens:limit,...quiet});
      message=first.choices?.[0]?.message??{};tokens+=first.usage?.completion_tokens??0}catch{}   // ⏸ no tool pass: answer as before
@@ -749,7 +749,7 @@ const [chat] = webUiChat.bindChat(document);
 let bot = null;
 const generateAnswer=localModel(cfg.runtime);
 async function ask(text,reply){
- const messages=JSON.parse(bot.ask_messages(text));                // 🔧 then the model may call 🔎 find · 👀 show · 🧬 onto
+ const messages=JSON.parse(bot.ask_messages(text));                // ⚖️ Jev picks the 🔌 MCP tools the model may call
  const tools={list:JSON.parse(bot.ask_tools()),call:(name,args)=>{reply.text(`🔧 /${name} …`);return JSON.parse(bot.ask_call(name,args))}};
  const {output,tokens,seconds,llm}=await generateAnswer(messages,s=>reply.text(s),256,tools);
  return bot.ask_html.callKwargs(output,tokens,seconds,
@@ -826,14 +826,14 @@ def chat_books() -> list[dict]:
               ('🔎 JSON / JSONL', ('find', 'show')), ('🧬 オントロジー', ('onto', 'guess')), ('🧷 OLNM', ('olnm',)),
               ('🧯 失敗 · 🤖 LLM', ('triage', 'ask')), ('⌨️ もしかして', ())]           # (a runbook holds 1..8 books)
     recorded = {'compress': '🗂 TalkCompress の短い文と 📏 文字数（TalkCompress は公開時に記録）',
-                'mcp': '🔌 mcp-toolcall-lab が広告する道具で判定（✅ 送ってよい／❌ 断る。道具は公開時に記録）',
+                'mcp': '🔌 ページの中の MCP サーバーが答える（✅ tools/call・⚠️ isError・❌ JSON-RPC のエラー。mcp-toolcall-lab のコードは公開時に記録）',
                 'find': '🔎 公開時に取得できた JSON / JSONL の索引から検索', 'show': '👀 そのコミットの raw を読んで表に',
                 'onto': '🧬 OnTautoLogy の概念の台帳（concepts-*.json、索引のコミットの raw）から、属（似たものと共通）と種差（決め手）',
                 'guess': '🎯 台帳の概念を 1 つ思い浮かべて y / n / ? で回答。最後に候補名を確認する',
                 # argparse's error text varies by Python release; the live chat still shows its suggestions.
                 'typo': '⌨️ もしかして: 入力ミスに近いコマンドや引数を提案する',
                 'ask': '🤖 初回だけ約 560 MB のモデルを読み、端末の中で答える（⚡ WebGPU があれば GPU、なければ 🧮 CPU 1 スレッド）。'
-                       '🔧 モデルが呼んだ道具（✅ 実行・❌ 広告にない／型が合わない）を答えの上に並べる'}
+                       '⚖️ Jev が渡した道具と 🔧 モデルが呼んだ道具（✅ 実行・❌ 渡していない／型が合わない）を答えの上に並べる'}
     books = []
     for label, names in groups:
         examples = [(name, example) for name in names for example in chat.COMMANDS[name][3]] or [('typo', t) for t in chat.TYPOS]
@@ -851,8 +851,9 @@ def chat_document(ui) -> str:
     chat = _chat()
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '💬 横断チャット', 'description':
                              'markdown.py・ascii_artist・cli_args・TalkCompress・mcp-toolcall-lab・OnTautoLogy・OLNM・Err-o-RoadRunner をページの中の Python で。'
-                             '公開リポジトリの JSON / JSONL を索引から検索できる。🤖 /ask は llama.cpp が端末の中で答え、🔎 /find・👀 /show・🧬 /onto を道具として呼ぶ。'
-                             '送った文はどこにも送らない（/show は GitHub の raw を、/ask はモデルを読むだけ）。',
+                             '公開リポジトリの JSON / JSONL を索引から検索できる。🔌 /mcp はページの中の MCP サーバー（Wikipedia・PokéAPI・索引・台帳）、'
+                             '🤖 /ask は llama.cpp が端末の中で答え、⚖️ Jev が選んだその道具を呼ぶ。'
+                             '送った文はどこにも送らない（/show は GitHub の raw を、/ask はモデルを読むだけ。🔌 Wikipedia・PokéAPI の道具だけは、その引数をそのサイトへ）。',
                              'blocks': [{'type': 'tabs', 'id': 'chat', 'tabs': [
                                  {'label': '💬 チャット', 'blocks': [{'type': 'text', 'text': _CHAT_SLOT}]},
                                  {'label': '📇 索引', 'blocks': [{'type': 'runbook', 'id': 'chat-index', 'choice': '📇 道具',
@@ -884,12 +885,12 @@ def _tree(repository: str, commit: str) -> tuple[list[tuple[str, int]], bool]:
 
 def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, tree=_tree) -> list[str]:
     """💬 What the chat knows of the other repositories, at their current commits, under ``output/media/chat/``: index.json
-    (observed JSON / JSONL paths and sizes, repository scan errors, the tools advertised by mcp-toolcall-lab,
-    and README summaries from api/repos.json) and TalkCompress's shorthand compressor (talkcompress/).
+    (observed JSON / JSONL paths and sizes, repository scan errors and README summaries from api/repos.json), TalkCompress's
+    shorthand compressor (talkcompress/) and the mcp-toolcall-lab code the page's MCP server runs (lab/: ``chat.LAB``).
     Repositories in commits without a scan error were fully listed."""
     catalog = json.loads((root / 'api/repos.json').read_text(encoding='utf-8'))
     folder = Path(output) / CHAT
-    commits, files, tools, scan_errors, missed, compressor = {}, [], {}, {}, [], '⏸'
+    commits, files, scan_errors, missed, compressor, lab = {}, [], {}, [], '⏸', '⏸'
     for name in [repo['name'] for repo in catalog['repos'] if not repo.get('archived')]:
         try:
             commit = head(f'{OWNER}/{name}')
@@ -904,12 +905,14 @@ def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, t
         commits[name] = commit
         files += [[name, path, size] for path, size in blobs if path.lower().endswith(('.json', '.jsonl', '.ndjson'))]
         try:
-            if name == 'mcp-toolcall-lab':
-                for path, _ in blobs:
-                    if path.startswith('fixtures/prompt_experiments/') and path.endswith('.json'):
-                        fixture = json.loads(raw(f'{OWNER}/{name}', commit, path) or b'{}')
-                        for tool in fixture.get('openai', {}).get('request', {}).get('tools', []):
-                            tools.setdefault(tool['function']['name'], tool['function'])
+            if name == 'mcp-toolcall-lab':                 # 🔌 the code the page's MCP server runs (chat.LAB), all or nothing
+                texts = {path: raw(f'{OWNER}/{name}', commit, path) for path in _chat().LAB}
+                if None in texts.values():
+                    raise FileNotFoundError(next(path for path, data in texts.items() if data is None))
+                for path, data in texts.items():
+                    (folder / 'lab' / path).parent.mkdir(parents=True, exist_ok=True)
+                    (folder / 'lab' / path).write_bytes(data)
+                lab = f'✅ {commit[:7]}'
             if name == 'TalkCompress':
                 for path in _chat().TALKCOMPRESS:
                     data = raw(f'{OWNER}/{name}', commit, path)
@@ -927,10 +930,9 @@ def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, t
         text = ' '.join(text.split())
         if text and not repo.get('archived'):
             summaries[repo['name']] = text if len(text) <= 160 else text[:159] + '…'
-    index = {'schema': 'chat-index/1', 'owner': OWNER, 'commits': commits, 'files': files, 'tools': list(tools.values()),
-             'repos': summaries, 'scan_errors': scan_errors}
+    index = {'schema': 'chat-index/1', 'owner': OWNER, 'commits': commits, 'files': files, 'repos': summaries, 'scan_errors': scan_errors}
     (folder / 'index.json').write_text(json.dumps(index, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
-    return [f'💬 {len(commits)} repositories · {len(files)} JSON/JSONL · 🔌 {len(tools)} tools · 🗂 TalkCompress {compressor}', *missed]
+    return [f'💬 {len(commits)} repositories · {len(files)} JSON/JSONL · 🔌 mcp-toolcall-lab {lab} · 🗂 TalkCompress {compressor}', *missed]
 
 
 # ── 🧰 道具: Ironmate's studios, mcp-toolcall-lab's tools and execution lab (🔌 MCP 実験室) and DRAgoWing's heatmap, built
@@ -1416,7 +1418,7 @@ def main(argv=None):
     parser.add_argument('--record-map', type=Path, metavar='DIR',
                         help="🧠 read every repository's vendor.lock.json (and Aoi's subtrees) and draw the map under DIR/media/map/")
     parser.add_argument('--record-chat', type=Path, metavar='DIR',
-                        help="💬 index every repository's JSON / JSONL, mcp-toolcall-lab's tools and TalkCompress's compressor under DIR/media/chat/")
+                        help="💬 index every repository's JSON / JSONL, mcp-toolcall-lab's code (the page's MCP server) and TalkCompress's compressor under DIR/media/chat/")
     args = parser.parse_args(argv)
     for target in (args.output, args.stage, args.copy_source):
         if target:

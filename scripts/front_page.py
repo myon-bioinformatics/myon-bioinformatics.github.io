@@ -3,7 +3,7 @@
 ``document()`` returns the one page that ``scripts/project_pages.py`` writes at build time. Everything a visitor reads is
 made here from ``profile.json``, ``api/repos.json`` and ``projects.json``: the page shell, the 🧰 Tools cards
 (``PORTAL``), and the profile and projects in each notation (cards, XML-like, JSON, Markdown). The colour themes are
-PySaiyanWeBoo's palettes. The page script only switches between what Python built, filters projects and fills the AI
+PySaiyanWeBoo's palettes, picked in the site chrome's ⚙️ 🎨, beside 🧾 the display mode (``SETTINGS``). The page script only switches between what Python built, filters projects and fills the AI
 highlight slots with what the public GitHub API returns in the browser.
 """
 import html
@@ -51,6 +51,7 @@ PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル
   'links': [('ヒートマップを描く →', './tools/#heatmap'), ('Image Studio で編集 →', _service_url('Ironmate', 'pages', relative=True))]},
  {'title': '🔌 MCP 実験室',
   'text': 'AI が MCP で呼ぶ道具（Wikipedia 表示・Pixiv 原文抽出・ニコニコ検索・ポケモン）をブラウザで試し、ツール呼び出しの記録（JSONL）を集計。'
+          '💬 チャットの /mcp はページの中の MCP サーバー（ラボの Wikipedia・PokéAPI・⚖️ Jev）で、/ask の小さな LLM がその道具を呼ぶ。'
           '検証の結果は、ラボの Actions の写し。接続試験は、新旧の protocol・PKCE・Bearer・OAuth メタデータを端末の中で確かめる。',
   'id': 'mcp', 'words': {'MCP 実験室': ['MCP lab', 'Labo MCP', 'Laboratorio MCP', 'Laboratório MCP', 'مختبر MCP', 'MCP 实验室', 'Лаборатория MCP', 'Lab MCP', 'MCP-Labor', 'Maabara ya MCP'], 'MCP 接続試験': ['MCP connection test', 'Test de connexion MCP', 'Prueba de conexión MCP', 'Teste de conexão MCP', 'اختبار اتصال MCP', 'MCP 连接测试', 'Проверка подключения MCP', 'Uji koneksi MCP', 'MCP-Verbindungstest', 'Jaribio la muunganisho wa MCP']},
   'from': ('mcp-toolcall-lab',),
@@ -112,8 +113,6 @@ def portal_cards(samples=frozenset()) -> str:
         parts.append('<p>' + html.escape(card['text'], quote=False) + '</p>')
         if 'from' in card:
             parts.append('<p class="portal-from">🧩 出どころ: ' + ' · '.join(html.escape(name, quote=False) for name in card['from']) + '</p>')
-        if 'points' in card:
-            parts.append('<ul class="portal-points">' + ''.join(f'<li>{point}</li>' for point in card['points']) + '</ul>')
         if not shown or len(card['links']) > 1:
             parts += [f'<a href="{html.escape(href, quote=True)}">{html.escape(label, quote=False)}</a>' for label, href in card['links']]
         out.append('        <article class="card portal-card">' + ''.join(parts) + '</article>\n')
@@ -135,6 +134,11 @@ AI_FALLBACK = [
 ]
 # 👁️ display mode -> the notation it draws (modern and github-like differ in colour only).
 MODES = {'modern': 'web', 'xml-like': 'xml', 'json': 'json', 'markdown': 'markdown', 'github-like': 'web'}
+# ⚙️ this page's own row, beside 🌐 and 🎨: 🧾 the notation the profile and projects are shown in (its name follows 🌐: WORDS)
+SETTINGS = [{'label': '🧾 Display mode', 'key': 'mode', 'options': [
+    {'label': label, 'value': mode} for mode, label in zip(MODES, ('Modern', 'XML-like', 'JSON', 'Markdown', 'GitHub-like'))]}]
+WORDS = {'表示形式': ['Display mode', "Mode d'affichage", 'Modo de visualización', 'Modo de exibição', 'وضع العرض', '显示模式',
+                      'Режим отображения', 'Mode tampilan', 'Anzeigemodus', 'Hali ya kuonyesha']}
 NOTATION_CLASS = {'web': '', 'xml': 'notation-root xml-renderer', 'json': 'notation-root json-renderer', 'markdown': 'notation-root markdown-renderer'}
 
 
@@ -341,13 +345,6 @@ def _inline_json(value) -> str:
     return json.dumps(value, ensure_ascii=False).replace('<', '\\u003c')
 
 
-def theme_options(ui) -> str:
-    """🎨 The colour themes PySaiyanWeBoo provides (light and dark palettes), after the display mode's own colours."""
-    mark = {'green': '🟢', 'red': '🔴', 'blue': '🔵', 'purple': '🟣', 'terminal': '⬛'}
-    return '<option value="">🎨 Mode</option>' + ''.join(
-        f'<option value="{_a(name)}">{mark.get(name, "🎨")} {_e(name)}</option>' for name in ui.theme_palettes())
-
-
 def markdown_fragment(root: Path, relative: str) -> str:
     """📄 A reviewed repository .md file (never visitor-supplied HTML) as HTML at build time, by the pinned markdown.py."""
     import markdown as md_market
@@ -409,7 +406,7 @@ def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
     script = ui.module_script('\n'.join((ui.js_source('collection.js'), SCRIPT)))
     page = SHELL
     documents = documents_html(root, read('site.config.json').get('documents', []))
-    for mark, value in (('@@PORTAL@@', portal_cards(samples)), ('@@THEMES@@', theme_options(ui)), ('@@TOPICS@@', topic_buttons(projects)),
+    for mark, value in (('@@PORTAL@@', portal_cards(samples)), ('@@TOPICS@@', topic_buttons(projects)),
                         ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + ui.tabs_css() + '\n' + STYLE + '\n  '),
                         ('@@DOCUMENTS@@', documents), ('@@SCRIPT@@', script)):
         assert page.count(mark) == 1, mark
@@ -443,22 +440,6 @@ SHELL = '''<!doctype html>
   <header class="site-header">
     <div class="container">
       <h1><img class="brand-icon" src="./assets/brand/myon-profile-icon.png" alt="" width="40" height="40">myon-bioinformatics</h1>
-      <div class="header-actions">
-        <div class="view-mode-switch">
-          <label for="view-mode-select">Mode</label>
-          <select id="view-mode-select" aria-label="Display mode">
-            <option value="modern">Modern</option>
-            <option value="xml-like">XML-like</option>
-            <option value="json">JSON</option>
-            <option value="markdown">Markdown</option>
-            <option value="github-like">GitHub-like</option>
-          </select>
-        </div>
-        <div class="view-mode-switch">
-          <label for="theme-select">Color</label>
-          <select id="theme-select" aria-label="Color theme">@@THEMES@@</select>
-        </div>
-      </div>
     </div>
   </header>
 
@@ -554,20 +535,9 @@ STYLE = ''':root {
 a{color:inherit}
 .container{max-width:960px;margin:0 auto;padding:1.5rem}
 .site-header{border-bottom:1px solid var(--border)}
-.site-header .container{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:1rem}
+.site-header .container{display:grid;grid-template-columns:minmax(0,1fr);align-items:center;gap:1rem}
 .site-header h1{display:flex;align-items:center;gap:.75rem;margin:0;max-width:100%;font-size:1.25rem;overflow-wrap:anywhere}
 .site-header .brand-icon{display:block;flex:none;width:40px;height:40px}
-.header-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.view-mode-switch{display:flex;align-items:center;gap:8px}
-.view-mode-switch label{font-size:.85rem;color:var(--muted)}
-.view-mode-switch select{
-  border:1px solid var(--border);
-  border-radius:8px;
-  background:var(--bg);
-  color:var(--fg);
-  padding:4px 8px;
-  font:inherit;
-}
 h2{margin:0 0 .75rem}
 .document{scroll-margin-top:1rem}
 .document-markdown{border:1px solid var(--border);border-radius:10px;padding:1rem;overflow-wrap:anywhere}
@@ -696,33 +666,6 @@ h2{margin:0 0 .75rem}
   color: var(--muted);
   font-style: italic;
 }
-.card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 10px;
-  gap: 8px;
-}
-.copy-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 3px 8px;
-  font: inherit;
-  font-size: 0.75rem;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all .15s ease;
-}
-.copy-btn:hover {
-  color: var(--fg);
-  border-color: var(--fg);
-}
-.copy-btn.copied {
-  background: #2da44e;
-  border-color: #2da44e;
-  color: #ffffff;
-}
 
 .grid {
   display: grid;
@@ -739,14 +682,6 @@ h2{margin:0 0 .75rem}
 .card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.06); }
 .card h3 { margin: 0 0 6px; font-size: 1.05rem; }
 .card p { margin: 0 0 10px; color: var(--muted); line-height: 1.4; }
-.badges { display: flex; flex-wrap: wrap; gap: 6px; }
-.badges .tag {
-  font-size: .75rem; background: #f3f4f6; border: 1px solid var(--border);
-  padding: 2px 8px; border-radius: 999px; color: #333;
-}
-@media (prefers-color-scheme: dark) {
-  .badges .tag { background: #141417; color: #ddd; }
-}
 .more { margin-top: 8px; font-size: .95rem; }
 
 /* ── Profile tabs (PySaiyanWeBoo's tabs_html: a radio and a label each, no script) ── */
@@ -807,23 +742,14 @@ body[data-view-mode="modern"] {
   color: var(--terminal-fg);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
-body[data-view-mode="modern"] .site-header,
-body[data-view-mode="modern"] .site-footer {
+body[data-view-mode="modern"] .site-header {
   border-color: var(--terminal-border);
   border-style: dashed;
 }
 body[data-view-mode="modern"] .site-header h1::before { content: "$ "; color: var(--terminal-accent); }
-body[data-view-mode="modern"] .view-mode-switch label { color: var(--terminal-muted); }
-body[data-view-mode="modern"] .view-mode-switch select {
-  border-radius: 0;
-  border-color: var(--terminal-border);
-  background: var(--terminal-panel);
-  color: var(--terminal-fg);
-}
 body[data-view-mode="modern"] .intro h2::before,
 body[data-view-mode="modern"] #profile h2::before,
-body[data-view-mode="modern"] #projects h2::before,
-body[data-view-mode="modern"] .outro h2::before {
+body[data-view-mode="modern"] #projects h2::before {
   content: "> ";
   color: var(--terminal-accent);
 }
@@ -857,8 +783,12 @@ body[data-view-mode="modern"] .btn-refresh {
   background: var(--terminal-panel);
   color: var(--terminal-fg);
 }
-body[data-view-mode="modern"] .btn-refresh::before { content: "[ "; color: var(--terminal-border); }
-body[data-view-mode="modern"] .btn-refresh::after { content: " ]"; color: var(--terminal-border); }
+body[data-view-mode="modern"] .btn-refresh::before,
+body[data-view-mode="modern"] .ui-tab::before,
+body[data-view-mode="modern"] .tag-btn::before { content: "[ "; color: var(--terminal-border); }
+body[data-view-mode="modern"] .btn-refresh::after,
+body[data-view-mode="modern"] .ui-tab::after,
+body[data-view-mode="modern"] .tag-btn::after { content: " ]"; color: var(--terminal-border); }
 body[data-view-mode="modern"] .ui-tabs { gap: 0; }
 body[data-view-mode="modern"] .ui-tab-panel { border-top: 1px dashed var(--terminal-border); }
 body[data-view-mode="modern"] .ui-tab {
@@ -866,14 +796,13 @@ body[data-view-mode="modern"] .ui-tab {
   border-bottom: 0;
   color: var(--terminal-muted);
 }
-body[data-view-mode="modern"] .ui-tab::before { content: "[ "; color: var(--terminal-border); }
-body[data-view-mode="modern"] .ui-tab::after { content: " ]"; color: var(--terminal-border); }
 body[data-view-mode="modern"] .ui-tab-input:checked + .ui-tab {
   border-right-color: var(--terminal-border);
   color: var(--terminal-fg);
   background: rgba(126,231,135,.08);
 }
-body[data-view-mode="modern"] .ui-tab-input:checked + .ui-tab::before { content: "[> "; color: var(--terminal-accent); }
+body[data-view-mode="modern"] .ui-tab-input:checked + .ui-tab::before,
+body[data-view-mode="modern"] .tag-btn.active::before { content: "[> "; color: var(--terminal-accent); }
 body[data-view-mode="modern"] .card {
   border-radius: 0;
   border-color: var(--terminal-border);
@@ -885,13 +814,6 @@ body[data-view-mode="modern"] .card p,
 body[data-view-mode="modern"] .tl-body p,
 body[data-view-mode="modern"] .tl-year,
 body[data-view-mode="modern"] .skill-category { color: var(--terminal-muted); }
-body[data-view-mode="modern"] .badges .tag {
-  border-radius: 0;
-  border-color: var(--terminal-border);
-  background: transparent;
-  color: var(--terminal-fg);
-}
-body[data-view-mode="modern"] .badges .tag::before { content: "#"; color: var(--terminal-accent); }
 body[data-view-mode="modern"] .skill-bar-track {
   height: 10px;
   border: 1px solid var(--terminal-border);
@@ -927,63 +849,27 @@ body[data-view-mode="modern"] .tag-btn {
   border-color: var(--terminal-border);
   color: var(--terminal-muted);
 }
-body[data-view-mode="modern"] .tag-btn::before { content: "[ "; color: var(--terminal-border); }
-body[data-view-mode="modern"] .tag-btn::after { content: " ]"; color: var(--terminal-border); }
 body[data-view-mode="modern"] .tag-btn.active {
   background: rgba(126, 231, 135, .12);
   color: var(--terminal-fg);
   border-color: var(--terminal-accent);
 }
-body[data-view-mode="modern"] .tag-btn.active::before { content: "[> "; color: var(--terminal-accent); }
 body[data-view-mode="modern"] .projects-count,
 body[data-view-mode="modern"] .empty-projects-msg {
   color: var(--terminal-muted);
-}
-body[data-view-mode="modern"] .copy-btn {
-  border-radius: 0;
-  border-color: var(--terminal-border);
-  background: transparent;
-  color: var(--terminal-fg);
-}
-body[data-view-mode="modern"] .copy-btn.copied {
-  background: var(--terminal-accent);
-  color: var(--terminal-bg);
-  border-color: var(--terminal-accent);
 }
 
 /* ── XML-like mode ───────────────────────────────────────────────────────── */
 body[data-view-mode="xml-like"] {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
-body[data-view-mode="xml-like"] h2[data-tag]::before {
-  content: "<" attr(data-tag) ">";
-  margin-right: .4rem;
-  color: var(--syntax-xml);
-  font-size: .9em;
-}
-body[data-view-mode="xml-like"] h2[data-tag]::after {
-  content: "</" attr(data-tag) ">";
-  margin-left: .4rem;
-  color: var(--syntax-xml);
-  font-size: .9em;
-}
-body[data-view-mode="xml-like"] .card,
-body[data-view-mode="xml-like"] .timeline-item,
-body[data-view-mode="xml-like"] .skill-group {
+body[data-view-mode="xml-like"] .card {
   border-radius: 0;
 }
 
 /* ── JSON mode ───────────────────────────────────────────────────────────── */
 body[data-view-mode="json"] {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
-body[data-view-mode="json"] h2[data-tag]::before {
-  content: '"' attr(data-tag) '": ';
-  color: var(--syntax-json-punctuation);
-}
-body[data-view-mode="json"] h2[data-tag]::after {
-  content: ",";
-  color: var(--syntax-json-punctuation);
 }
 body[data-view-mode="json"] .container {
   border-left: 3px solid var(--border);
@@ -1017,17 +903,9 @@ body[data-view-mode="github-like"] {
   color: #24292f;
 }
 body[data-view-mode="github-like"] .site-header,
-body[data-view-mode="github-like"] .site-footer,
 body[data-view-mode="github-like"] .card,
-body[data-view-mode="github-like"] .ui-tab-panel,
-body[data-view-mode="github-like"] .view-mode-switch select {
+body[data-view-mode="github-like"] .ui-tab-panel {
   background: #ffffff;
-}
-body[data-view-mode="github-like"] .site-header,
-body[data-view-mode="github-like"] .site-footer,
-body[data-view-mode="github-like"] .card,
-body[data-view-mode="github-like"] .ui-tab-panel,
-body[data-view-mode="github-like"] .view-mode-switch select {
   border-color: #d0d7de;
 }
 body[data-view-mode="github-like"] .card {
@@ -1037,10 +915,6 @@ body[data-view-mode="github-like"] .card {
 body[data-view-mode="github-like"] .card:hover {
   transform: none;
   box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
-}
-body[data-view-mode="github-like"] .badges .tag {
-  background: #f6f8fa;
-  color: #57606a;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1057,20 +931,6 @@ body[data-view-mode="github-like"] .badges .tag {
   .container { padding: 1.25rem; }
   body[data-view-mode="json"] .container { padding-left: 1rem; }
   .site-header .container { grid-template-columns:1fr; }
-  .header-actions { align-items:flex-start; }
-  .header-actions {
-    width: 100%;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .view-mode-switch {
-    width: 100%;
-    justify-content: space-between;
-  }
-  .view-mode-switch select {
-    width: min(100%, 220px);
-    min-width: 0;
-  }
   .grid {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
@@ -1101,12 +961,6 @@ body[data-view-mode="github-like"] .badges .tag {
 @media (max-width: 520px) {
   .container { padding: 1rem; }
   .site-header h1 { font-size: 1.1rem; }
-  .view-mode-switch {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .view-mode-switch select { width: 100%; }
   .grid { grid-template-columns: 1fr; }
 }
 
@@ -1160,13 +1014,6 @@ body[data-view-mode="modern"] #projects .section-sub { color: var(--terminal-mut
   font-weight: 600;
 }
 .portal-card > a.project-sample { margin: 0 0 8px; }
-.portal-points {
-  margin: 0 0 12px;
-  padding-left: 1.2em;
-  font-size: 0.9em;
-  overflow-wrap: anywhere;
-}
-.portal-points li + li { margin-top: 4px; }
 .portal-from { margin: 0 0 8px; font-size: 0.8em; color: var(--ui-muted); overflow-wrap: anywhere; }
 
 /* Dedicated notation renderers. Layout lives here; content still comes from profile.json/projects.json. */
@@ -1264,8 +1111,9 @@ body[data-view-mode="modern"] #projects .section-sub { color: var(--terminal-mut
   }
 }
 
-/* 🎨 A chosen colour theme (PySaiyanWeBoo palette, body[data-ui-theme=NAME]) drives this page's own colours too. */
-body[data-color] {
+/* 🎨 A palette chosen in ⚙️ (PySaiyanWeBoo's, body[data-ui-theme=NAME]) drives this page's own colours too; Modern and GitHub-like are
+   this page's own looks (body[data-ui-theme=modern] above). */
+body[data-ui-theme-chosen]:not([data-ui-theme-chosen="modern"], [data-ui-theme-chosen="github-like"]) {
   --fg: var(--ui-fg); --bg: var(--ui-bg); --muted: var(--ui-muted); --border: var(--ui-border);
   --terminal-bg: var(--ui-bg); --terminal-panel: var(--ui-panel); --terminal-fg: var(--ui-fg);
   --terminal-muted: var(--ui-muted); --terminal-border: var(--ui-accent); --terminal-accent: var(--ui-accent);
@@ -1281,7 +1129,6 @@ import { copyText } from './tools/vendor/web-ui/js/ui.js';
 const DEFAULT_VIEW_MODE = 'modern';
 const VIEW_MODE_KEY = 'site:view-mode';
 const VIEW_MODE_BASE_KEY = 'site:view-mode-base';
-const COLOR_THEME_KEY = 'site:color-theme';
 const PAGE = JSON.parse(document.getElementById('page-data').textContent);
 const PROJECTS = JSON.parse(document.getElementById('projects-data').textContent);
 
@@ -1336,22 +1183,20 @@ function dropLastComma(root) {
   if (commas.length) commas[commas.length - 1].remove();
 }
 
-// 🎨 A colour theme from PySaiyanWeBoo's palettes, or the display mode's own colours when none is chosen.
-function applyColorTheme() {
-  const mode = getCurrentMode();
-  const selector = document.getElementById('theme-select');
-  const chosen = selector && [...selector.options].some((option) => option.value === readStored(COLOR_THEME_KEY)) ? readStored(COLOR_THEME_KEY) : '';
-  if (selector) selector.value = chosen;
-  if (chosen) document.body.dataset.color = chosen; else delete document.body.dataset.color;
-  document.body.dataset.uiTheme = chosen || (mode === 'modern' || mode === 'github-like' ? mode : 'plain');
+// 🎨 is ⚙️'s (PySaiyanWeBoo's bindTheme: one choice for every page of the site, so tools/ has it too); its "this page's own" is the
+// display mode's look. The page tells bindTheme which look is its own (pageTheme's contract: data-ui-theme-page).
+function applyOwnColours() {
+  const mode = getCurrentMode(), body = document.body;
+  body.dataset.uiThemePage = mode === 'modern' || mode === 'github-like' ? mode : 'plain';
+  if (body.dataset.uiThemeChosen === undefined) body.dataset.uiTheme = body.dataset.uiThemePage;
 }
 
 function applyViewMode(mode) {
   const normalized = normalizeViewMode(mode);
   document.body.dataset.viewMode = normalized;
-  applyColorTheme();
-  const selector = document.getElementById('view-mode-select');
-  if (selector && selector.value !== normalized) selector.value = normalized;
+  applyOwnColours();
+  const choice = document.querySelector('[data-chrome-choice="mode"]');   // ⚙️ 🧾 says the mode in effect
+  if (choice && choice.value !== normalized) choice.value = normalized;
   renderPortfolio();
 }
 
@@ -1529,15 +1374,12 @@ function bindControls() {
     if (topic) setTagFilter(topic.dataset.topic);
     else if (copy) void copyUrl(copy);
   });
-  document.getElementById('view-mode-select').addEventListener('change', (event) => {
-    const nextMode = normalizeViewMode(event.target.value);
+  document.addEventListener('ui-chrome-action', (event) => {              // ⚙️ 🧾: the chrome tells the mode picked
+    if (event.detail.key !== 'mode') return;
+    const nextMode = normalizeViewMode(event.detail.value);
     applyViewMode(nextMode);
     store(VIEW_MODE_KEY, nextMode);
     store(VIEW_MODE_BASE_KEY, configuredViewMode);
-  });
-  document.getElementById('theme-select').addEventListener('change', (event) => {
-    store(COLOR_THEME_KEY, event.target.value);
-    applyColorTheme();
   });
   document.getElementById('ai-highlights-refresh').addEventListener('click', () => {
     pickRandomAiHighlights();

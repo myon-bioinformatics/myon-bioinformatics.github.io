@@ -697,12 +697,17 @@ def test_front_page_ai_highlight_templates_have_the_same_slots_in_every_notation
 
 
 def test_front_page_offers_the_shared_colour_themes_and_embeds_no_unsafe_json():
+    """⚙️ holds both: 🎨 the site's colours (the chrome's, so tools/ shares the choice) and 🧾 this page's display mode; the header has neither."""
     front = _front()
     ui = pytest.importorskip('pysaiyanweboo')
-    page = front.document()
+    page = PAGES.render_front()['index.html'].decode('utf-8')
+    settings = page[page.index('data-menu="settings"'):page.index('data-menu="spots"')]
     for name in ui.theme_palettes():
-        assert f'<option value="{name}">' in page and f'body[data-ui-theme="{name}"]' in page, name
+        assert f'<option value="{name}">' in settings and f'body[data-ui-theme="{name}"]' in page, name
     assert set(front.MODES) == {'modern', 'xml-like', 'json', 'markdown', 'github-like'}
+    assert re.findall(r'<option value="([a-z-]+)">', settings[settings.index('data-chrome-choice="mode"'):]) == list(front.MODES)
+    assert 'id="theme-select"' not in page and 'id="view-mode-select"' not in page
+    page = front.document()
     data = page[page.index('id="projects-data">') + len('id="projects-data">'):]
     assert '<' not in data[:data.index('</script>')]                                     # nothing can close the script element early
 
@@ -1307,9 +1312,6 @@ CHAT_INDEX = {'schema': 'chat-index/1', 'owner': 'myon-bioinformatics',
                         ['Aoi', 'cycles/c003/units.jsonl', 40 * 1024 ** 2], ['TaxOntOy', 'package.json', 30],
                         ['TaxOntOy', 'otl-relations.json', 64], ['OnTautoLogy', 'examples/concepts-20261115.json', 900]],
               'scan_errors': {},
-              'tools': [{'name': 'find_municipalities', 'description': 'Find mock municipalities.',
-                         'parameters': {'type': 'object', 'properties': {'query': {'type': 'string'}}, 'required': ['query'],
-                                        'additionalProperties': False}}],
               'repos': {'onto': 'ONTO: an index linking ontology-related repositories', 'Aoi': 'Hypothesis-driven baseball analytics.',
                         'TaxOntOy': 'TaxOntOy: Taxonomy × Ontology', 'OnTautoLogy': 'Stdlib-only Python graphlib knowledge graph.'}}
 CHAT_CONCEPTS = {'schema': 'ontautology-concepts/1',                    # 🧬 a small ledger in OnTautoLogy's shape (both entry forms)
@@ -1332,6 +1334,31 @@ def _chat_fetch(url):
     path = url.split('raw.githubusercontent.com/myon-bioinformatics/', 1)[1]
     name, _, rest = path.partition('/')
     return CHAT_RAW[f'{name}/{rest.split("/", 1)[1]}']
+
+
+LAB_CHECKOUT = ROOT / '.test-deps' / 'mcp-toolcall-lab'     # 🔌 where CI checks the lab out (ci.yml pins the commit)
+needs_lab = pytest.mark.skipif(not (LAB_CHECKOUT / '.git').exists(), reason='🔌 needs the mcp-toolcall-lab checkout CI makes in .test-deps')
+
+
+def _lab_fetch(url):
+    """🔌 The lab's code as record_chat copies it (lab/…); PokéAPI and MediaWiki answered from the lab's own fixtures."""
+    if url.startswith('lab/'):
+        return (LAB_CHECKOUT / url[4:]).read_text(encoding='utf-8')
+    if url.startswith(CHAT.POKEAPI.format(name='')):
+        if url.endswith('/ditto'):
+            return (LAB_CHECKOUT / 'fixtures/pokeapi/ditto.json').read_text(encoding='utf-8')
+        raise OSError(f'HTTP 404: {url}')
+    if '.wikipedia.org/w/api.php?' in url:
+        assert 'origin=%2A' in url                                           # 🌐 CORS for the page
+        return (LAB_CHECKOUT / 'fixtures/wikipedia/exampleville_extract.json').read_text(encoding='utf-8')
+    return _chat_fetch(url)
+
+
+@pytest.fixture
+def mcp_session(monkeypatch):
+    """🔌 A new MCP session (no trace, no route); the server loads the lab through the fetch, as the page does."""
+    for key, value in {'lab': None, 'route': None, 'trace': [], 'mcp_id': 0, 'mcp_ready': False, 'calls': []}.items():
+        monkeypatch.setitem(CHAT._STATE, key, value)
 
 
 def test_chat_answers_every_command_from_the_fleets_modules():
@@ -1481,16 +1508,61 @@ def test_chat_empty_search_distinguishes_index_coverage(errors, note):
     assert '索引を記録していない' in CHAT.respond('/find', index={})
 
 
-def test_chat_checks_mcp_tool_calls_against_what_the_lab_advertises():
-    """🔌 Only an advertised tool with arguments that fit its schema becomes a tools/call; anything else is refused."""
-    say = lambda text: CHAT.respond(text, index=CHAT_INDEX)
-    assert '`find_municipalities`' in say('/mcp')
-    ok = say('/mcp find_municipalities {"query": "Exampleville"}')
-    assert ok.startswith('✅') and '"method": "tools/call"' in ok
-    assert '❌' in say('/mcp find_municipalities {"query": 3, "x": 1}') and 'arguments.x' in say('/mcp find_municipalities {"x": 1}')
-    refused = say('/mcp find_municipalitis {}')
-    assert refused.startswith('❌') and '`find_municipalities`' in refused
-    assert 'JSON ではない' in say('/mcp find_municipalities {query}')
+@needs_lab
+def test_chat_mcp_server_speaks_json_rpc_with_the_labs_tools(mcp_session):
+    """🔌 The page's MCP server answers JSON-RPC 2.0 as the lab's /mcp does: initialize, the initialized notification (no reply),
+    ping, tools/list (the lab's FastMCP Wikipedia catalog, its PokéAPI reader, this chat's find · show · onto) and tools/call — an
+    unknown tool or arguments against the inputSchema are -32602 errors, a tool that fails is a result with isError."""
+    rpc = lambda message: CHAT.mcp_rpc(message, CHAT_INDEX, _lab_fetch)
+    init = rpc({'jsonrpc': '2.0', 'id': 1, 'method': 'initialize',
+                'params': {'protocolVersion': CHAT.MCP_PROTOCOL, 'capabilities': {}, 'clientInfo': {'name': 'test', 'version': '1'}}})
+    assert init['result']['protocolVersion'] == CHAT.MCP_PROTOCOL and init['result']['capabilities'] == {'tools': {'listChanged': False}}
+    assert rpc('{"jsonrpc": "2.0", "method": "notifications/initialized"}') is None
+    assert rpc({'jsonrpc': '2.0', 'id': 2, 'method': 'ping'})['result'] == {}
+    listed = rpc({'jsonrpc': '2.0', 'id': 3, 'method': 'tools/list'})['result']['tools']
+    catalog = json.loads((LAB_CHECKOUT / 'deploy/wikipedia-mcp/catalog.generated.json').read_text(encoding='utf-8'))['tools']
+    assert [t['name'] for t in listed] == [t['name'] for t in catalog] + ['fetch_pokemon', 'find', 'show', 'onto']
+    assert [t['inputSchema'] for t in listed[:len(catalog)]] == [t['inputSchema'] for t in catalog]   # 📚 the lab's, not a copy
+    call = lambda name, args: rpc({'jsonrpc': '2.0', 'id': 4, 'method': 'tools/call', 'params': {'name': name, 'arguments': args}})
+    ditto = call('fetch_pokemon', {'name': 'Ditto'})['result']
+    assert not ditto['isError'] and '# ditto (#132)' in ditto['content'][0]['text'] and '| imposter | yes |' in ditto['content'][0]['text']
+    wiki = json.loads(call('fetch_wikipedia_article', {'title': 'Exampleville'})['result']['content'][0]['text'])
+    assert wiki['canonical_title'] == 'Exampleville' and wiki['extract'].startswith('Exampleville is a mock municipality')
+    section = json.loads(call('fetch_wikipedia_section', {'title': 'Exampleville', 'heading': 'Geography'})['result']['content'][0]['text'])
+    assert 'JR Exampleville' in json.dumps(section, ensure_ascii=False)
+    found = call('find', {'kind': 'onto'})['result']
+    assert not found['isError'] and 'docs/graph.json' in found['content'][0]['text']
+    missing = call('fetch_pokemon', {'name': 'missingno'})['result']
+    assert missing['isError'] and 'HTTP 404' in missing['content'][0]['text']
+    assert call('fetch_wikipedia_artcle', {})['error'] == {'code': -32602, 'message': 'Unknown tool: fetch_wikipedia_artcle',
+                                                           'data': {'did_you_mean': 'fetch_wikipedia_article'}}
+    bad = call('fetch_wikipedia_article', {'title': 3, 'x': 1})['error']
+    assert bad['code'] == -32602 and set(bad['data']['problems']) == {'arguments.title: string ではない（int）', 'arguments.x: 広告にない引数'}
+    assert rpc({'jsonrpc': '2.0', 'id': 5, 'method': 'resources/list'})['error']['code'] == -32601
+    assert rpc('{nope')['error']['code'] == -32700 and rpc({'id': 6})['error']['code'] == -32600
+    trace = CHAT._STATE['trace']
+    assert [row['event'] for row in trace].count('mcp/request') == 14 and [row['event'] for row in trace].count('mcp/response') == 13
+
+
+@needs_lab
+def test_chat_mcp_command_lists_calls_and_logs(mcp_session, monkeypatch):
+    """🔌 /mcp is a client of that server: tools/list with ⚖️ Jev's family of each tool, one tools/call (✅, ⚠️ isError, ❌ an
+    error), and /mcp log — the requests by method, the outcomes, Jev's decisions and the last rows of the JSONL trace."""
+    say = lambda text: CHAT.respond(text, index=CHAT_INDEX, fetch=_lab_fetch)
+    assert '🧾 まだ記録がない' in say('/mcp log')
+    listed = say('/mcp')
+    assert '| `fetch_pokemon` | pokeapi | name |' in listed and '| `find` | ironmate | — |' in listed and '| `onto` | — | word |' in listed
+    ok = say('/mcp fetch_pokemon {"name": "ditto"}')
+    assert ok.startswith('### 🔌 ✅ tools/call') and '"method": "tools/call"' in ok and '| hp | 48 |' in ok
+    assert 'string ではない' in say('/mcp fetch_wikipedia_article {"title": 3}') and '❌' in say('/mcp fetch_wikipedia_article {}')
+    assert 'もしかして fetch_wikipedia_article' in say('/mcp fetch_wikipedia_artcle {}')
+    assert '⚠️ isError' in say('/mcp fetch_pokemon {"name": "missingno"}')
+    assert 'JSON ではない' in say('/mcp fetch_pokemon {name}')
+    log = say('/mcp log')
+    assert 'initialize 1 · notifications/initialized 1 · tools/list 1 · tools/call 5' in log and '✅ 1 · ⚠️ 1 · ❌ 3' in log, log
+    assert '```jsonl\n{"event": "mcp/' in log and log.count('\n{"event"') == 8                # 🧾 the last 8 rows
+    monkeypatch.setitem(CHAT._STATE, 'lab', False)                        # ⏸ no lab: this chat's own tools
+    assert '`fetch_pokemon`' not in say('/mcp') and '⏸ mcp-toolcall-lab を読めない' in say('/mcp') and '`onto`' in say('/mcp')
 
 
 def test_chat_triages_a_pasted_failure_and_hands_it_to_ask(monkeypatch):
@@ -1513,35 +1585,41 @@ def test_chat_triages_a_pasted_failure_and_hands_it_to_ask(monkeypatch):
     assert '直前の 🧯 triage' not in json.loads(CHAT.ask_messages('/ask この失敗は？', {}))[0]['content']
 
 
-def test_chat_ask_calls_only_advertised_tools_with_arguments_that_fit():
-    """🔧 /ask advertises 🔎 find · 👀 show · 🧬 onto as tools (the JSON Schema of their arguments, nothing more); a call runs only
-    when the tool is advertised and its arguments fit (mcp-toolcall-lab's rule), at most ASK_CALLS per question, and the 🔧 trail
-    (✅ ran, ❌ refused) stands above the answer."""
-    tools = json.loads(CHAT.ask_tools())
-    assert [t['function']['name'] for t in tools] == list(CHAT.ASK_TOOLS) == ['find', 'show', 'onto']
-    assert all(t['type'] == 'function' and t['function']['parameters']['additionalProperties'] is False for t in tools)
-    call = lambda name, args: json.loads(CHAT.ask_call(name, args, CHAT_INDEX, _chat_fetch))
-    CHAT.ask_messages('/ask onto の台帳は？', CHAT_INDEX, _chat_fetch)                 # 🤖 a new question: a new trail
+@needs_lab
+def test_chat_ask_offers_what_jev_picks_and_calls_through_mcp(mcp_session, monkeypatch):
+    """⚖️ /ask asks the lab's Jev router which tools to offer — one family's when it is confident (wikipedia, pokeapi, ironmate →
+    find · show), none for a confident no-tool, every tool on a low confidence — and offers them from tools/list. A call runs as
+    tools/call only when offered, within ASK_CALLS, with JSON arguments the server's schema check passes; ⚖️ and the 🔧 trail
+    stand above the answer and every decision joins the trace."""
+    offered = lambda question: (CHAT.ask_messages(question, CHAT_INDEX, _lab_fetch),
+                                [t['function']['name'] for t in json.loads(CHAT.ask_tools(CHAT_INDEX, _lab_fetch))])[1]
+    assert offered('/ask ditto の種族値は？') == ['fetch_pokemon']
+    assert offered('/ask Exampleville をウィキペディアで') == ['fetch_wikipedia_article', 'fetch_wikipedia_section']
+    assert offered('/ask TaxOntOy って何？') == [] and '呼んでよい' not in json.loads(CHAT.ask_messages('/ask TaxOntOy って何？', CHAT_INDEX, _lab_fetch))[0]['content']
+    assert offered('/ask 調べて') == ['fetch_wikipedia_article', 'fetch_wikipedia_section', 'fetch_pokemon', 'find', 'show', 'onto']
+    assert offered('/ask オントロジーの台帳はどのリポジトリ？') == ['find', 'show']
+    system = json.loads(CHAT.ask_messages('/ask オントロジーの台帳はどのリポジトリ？', CHAT_INDEX, _lab_fetch))[0]['content']
+    assert '道具（find・show）を呼んでよい' in system
+    call = lambda name, args: json.loads(CHAT.ask_call(name, args, CHAT_INDEX, _lab_fetch))
     found = call('find', '{"kind": "onto"}')
-    assert found['ok'] and found['call'] == '/find --kind onto' and 'docs/graph.json' in found['result']
-    defined = call('onto', {'word': 'ギター'})
-    assert defined['ok'] and defined['call'] == '/onto ギター' and '6弦標準' in defined['result']
-    assert '1 つの質問につき 2 回まで' in call('show', '{"target": "onto/docs/graph.json"}')['result']   # 🔧 ASK_CALLS
-    CHAT.ask_messages('/ask もう一度', CHAT_INDEX, _chat_fetch)
-    refused = [call('fnd', '{}'), call('find', '{"words": "onto"}')]
-    assert [r['ok'] for r in refused] == [False, False]
-    assert 'もしかして find' in refused[0]['result'] and 'arguments.words: array ではない' in refused[1]['result']
-    CHAT.ask_messages('/ask もう一度', CHAT_INDEX, _chat_fetch)
-    assert 'arguments.x: 広告にない引数' in call('show', '{"target": "a/b.json", "x": 1}')['result']
-    assert 'JSON ではない' in call('onto', '{word}')['result']
-    CHAT.ask_messages('/ask もう一度', CHAT_INDEX, _chat_fetch)
-    shown = call('show', '{"target": "onto/docs/graph.json"}')
-    assert shown['ok'] and len(shown['result']) <= CHAT.ASK_RESULT
+    assert found['ok'] and found['call'] == 'find {"kind": "onto"}' and 'docs/graph.json' in found['result']
+    assert call('fetch_pokemon', '{"name": "ditto"}')['result'] == '❌ 渡していない道具'
+    assert '1 つの質問につき 2 回まで' in call('show', '{"target": "onto/docs/graph.json"}')['result']
     page = CHAT.ask_html('答え', 3, 1.0)
-    assert page.index('🔧 ✅ <code>/show onto/docs/graph.json</code>') < page.index('答え')
-    CHAT.ask_messages('/ask 道具なし', CHAT_INDEX, _chat_fetch)
-    assert '🔧' not in CHAT.ask_html('答え', 3, 1.0)
-    assert '道具（find・show・onto）を呼んでよい' in json.loads(CHAT.ask_messages('/ask x', {}))[0]['content']
+    assert '⚖️ Jev ironmate → <code>find</code> · <code>show</code>' in page
+    assert page.index('🔧 ✅ <code>find {"kind": "onto"}</code>') < page.index('🔧 ❌ <code>fetch_pokemon {"name": "ditto"}</code>') < page.index('答え')
+    CHAT.ask_messages('/ask ditto の種族値は？', CHAT_INDEX, _lab_fetch)
+    assert 'string ではない' in call('fetch_pokemon', '{"name": 3}')['result'] and 'JSON ではない' in call('fetch_pokemon', '{name}')['result']
+    CHAT.ask_messages('/ask ditto の種族値は？', CHAT_INDEX, _lab_fetch)
+    ditto = call('fetch_pokemon', {'name': 'ditto'})
+    assert ditto['ok'] and len(ditto['result']) <= CHAT.ASK_RESULT and ditto['result'].startswith('# ditto (#132)')
+    routes = [row for row in CHAT._STATE['trace'] if row['event'] == 'jev/route_decision']
+    assert {row['prob_source'] for row in routes} == {'keyword'} and routes[0]['tool_family'] == 'pokeapi'
+    assert [row['question'] for row in routes if row['fallback_reason'] == 'low_confidence'] == ['調べて']
+    assert '⚖️ **pokeapi 3 · wikipedia 1 · none 2 · ⏸ low_confidence 1 · ironmate 2**' in CHAT.respond('/mcp log', index=CHAT_INDEX)
+    monkeypatch.setitem(CHAT._STATE, 'lab', False)                        # ⏸ no lab: this chat's own tools, Jev not asked
+    assert offered('/ask ditto の種族値は？') == ['find', 'show', 'onto'] and CHAT._STATE['route']['fallback_reason'] == 'no_lab'
+    assert '⚖️ Jev ⏸ no_lab' in CHAT.ask_html('答え', 3, 1.0)
 
 
 def test_the_test_report_hands_its_run_to_the_chats_triage():
@@ -1576,7 +1654,6 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     (root / 'api/repos.json').write_text(json.dumps({'repos': [{'name': n, **({'description': '', 'readmeSummary': '📘 [Guide](https://x.test/)  for  ' + 'x' * 200} if n == 'onto' else {})} for n in names] + [{'name': 'Old', 'archived': True}]}))
     trees = {'onto': [('docs/graph.json', 120), ('README.md', 9)], 'TalkCompress': [('x.jsonl', 3)],
              'mcp-toolcall-lab': [('fixtures/prompt_experiments/a.json', 50), ('fixtures/other.json', 2)], 'Empty': []}
-    fixture = {'openai': {'request': {'tools': [{'type': 'function', 'function': CHAT_INDEX['tools'][0]}]}}}
     requests = []
 
     def head(repository):
@@ -1596,15 +1673,18 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
                                    'truncated': name == 'onto'}).encode())
 
     monkeypatch.setattr('urllib.request.urlopen', open_tree)
-    raw = lambda repository, commit, path: json.dumps(fixture).encode() if path.endswith('a.json') else f'# {path}'.encode()
+    raw = lambda repository, commit, path: f'# {path}'.encode()
     lines = PAGES.record_chat(tmp_path / 'site', root, head=head, raw=raw)
     assert requests == [name for name in names if name != 'BrokenHead']
-    assert lines == ['💬 4 repositories · 4 JSON/JSONL · 🔌 1 tools · 🗂 TalkCompress ✅ eeeeeee', '⚠️ onto: truncated_tree',
+    assert lines == ['💬 4 repositories · 4 JSON/JSONL · 🔌 mcp-toolcall-lab ✅ eeeeeee · 🗂 TalkCompress ✅ eeeeeee', '⚠️ onto: truncated_tree',
                      '⏸ BrokenHead: OSError', '⏸ BrokenTree: HTTPError', '⏸ InvalidTree: ValueError']
     index = json.loads((tmp_path / 'site/media/chat/index.json').read_text())
     assert [row[:2] for row in index['files']] == [['TalkCompress', 'x.jsonl'], ['mcp-toolcall-lab', 'fixtures/prompt_experiments/a.json'],
                                                    ['mcp-toolcall-lab', 'fixtures/other.json'], ['onto', 'docs/graph.json']]
-    assert [tool['name'] for tool in index['tools']] == ['find_municipalities'] and set(index['commits']) == set(names[:4])
+    assert 'tools' not in index and set(index['commits']) == set(names[:4])
+    lab = tmp_path / 'site/media/chat/lab'                                  # 🔌 the code the page's MCP server runs, at that commit
+    assert sorted(str(f.relative_to(lab)) for f in lab.rglob('*') if f.is_file()) == sorted(CHAT.LAB)
+    assert (lab / 'src/mcp_toolcall_lab/jev_router.py').read_text() == '# src/mcp_toolcall_lab/jev_router.py'
     assert index['repos'] == {'onto': ('📘 Guide for ' + 'x' * 200)[:159] + '…'}           # 🤖 README summaries for /ask, links as their text
     assert index['scan_errors'] == {'onto': 'truncated_tree', 'BrokenHead': 'unavailable', 'BrokenTree': 'unavailable',
                                     'InvalidTree': 'unavailable'}
@@ -1664,8 +1744,9 @@ TOOL_ENGINE = """export class Wllama {
 def test_chat_in_chromium_with_pyodide_and_a_gif():
     """💬 In Chromium, Pyodide runs chat.py: typed and tapped commands, a typo, MCP, the cross-repo index, /show, 🧯 /triage
     (Err-o-RoadRunner), 🧾 → 🧯 (the test report hands its run to the chat), the 📇 index's 💬 button, raw HTML stays text, and
-    🤖 /ask runs llama.cpp (wllama) in the page — on a 1.2 MB model in place of the real one; 🔧 the calls a model makes run
-    when advertised (an engine that answers with tool calls stands in for the model there).
+    🤖 /ask runs llama.cpp (wllama) in the page — on a 1.2 MB model in place of the real one; 🔌 /mcp talks to the page's MCP
+    server (the lab's code; PokéAPI from its fixture), and ⚖️ Jev narrows what /ask offers, the calls a model makes going through
+    it (an engine that answers with tool calls stands in for the model there).
     Pyodide and wllama come from jsDelivr; CHAT_MIRROR=DIR serves them from DIR/pyodide/ and DIR/wllama/ (the esm folder), the model
     from DIR/model.gguf and TalkCompress's files from DIR/talkcompress/ (then /compress runs it). Frames go to
     test-results/chat/chat-conversation-<UTC>.gif."""
@@ -1700,6 +1781,11 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             return r.fulfill(response=response, headers={**response.headers, **cors})
         if url.startswith('https://raw.githubusercontent.com/'):
             return r.fulfill(body=_chat_fetch(url), headers=cors)
+        if url.startswith(CHAT.POKEAPI.format(name='')) and LAB_CHECKOUT.exists():   # 🐾 PokéAPI answered from the lab's fixture
+            try:
+                return r.fulfill(body=_lab_fetch(url), content_type='application/json', headers=cors)
+            except OSError:
+                return r.fulfill(status=404, body='', headers=cors)
         return r.abort()
 
     def local_media(r):
@@ -1709,6 +1795,8 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             return r.fulfill(body=json.dumps(index), content_type='application/json')
         if mirror and name.startswith('talkcompress/') and (mirror / name).is_file():
             return r.fulfill(path=str(mirror / name))
+        if name.startswith('lab/') and (LAB_CHECKOUT / name[4:]).is_file():   # 🔌 the lab's code, as record_chat copies it
+            return r.fulfill(path=str(LAB_CHECKOUT / name[4:]))
         return r.fulfill(status=404, body='')
 
     try:
@@ -1749,8 +1837,9 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
 
             say('/flow 入力 > 圧縮 > 出力', 'flowchart TB')
             say('/flwo a', 'もしかして /flow')
-            say('', 'find_municipalities', tap='.ui-chat-chips [data-chat-say="/mcp"]')
-            say('/mcp find_municipalities {"query": "Exampleville"}', 'tools/call')
+            say('', 'fetch_pokemon', tap='.ui-chat-chips [data-chat-say="/mcp"]')          # 🔌 the page's MCP server
+            say('/mcp fetch_pokemon {"name": "ditto"}', 'imposter')
+            say('/mcp log', 'tools/call 1')
             assert '部分取得 1 件・取得不可 1 件' in say('onto', 'docs/graph.json')
             assert '部分取得 1 件' in say('/find missing --repo onto', '0 件（索引内）')
             assert '取得不可 1 件' in say('/find --repo Broken', '0 件（索引内）')
@@ -1798,17 +1887,18 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             tooled.on('pageerror', lambda error: errors.append(str(error)))
             tooled.goto(base + 'tools/#chat')
             tooled.wait_for_function('() => document.documentElement.dataset.chatReady === "true"', timeout=180_000)
-            tooled.fill('[data-chat-input]', '/ask onto の台帳は？')
+            tooled.fill('[data-chat-input]', '/ask オントロジーの台帳はどのリポジトリ？')         # ⚖️ Jev: ironmate → find · show
             tooled.press('[data-chat-input]', 'Enter')
             tooled.wait_for_function('() => document.querySelector("[data-chat-who=bot]:last-child")?.textContent.includes("tok/s")',
                                      timeout=300_000)
             answer = tooled.locator('[data-chat-who="bot"]').last.inner_text()
-            assert '🔧 ✅ /find --kind onto' in answer and '🔧 ❌ /delete_repo' in answer and '台帳は onto' in answer, answer
+            assert '⚖️ Jev ironmate → find · show' in answer and '🔧 ✅ find {"kind": "onto"}' in answer, answer
+            assert '🔧 ❌ delete_repo {}' in answer and '台帳は onto' in answer, answer
             first, final = tooled.evaluate('globalThis.engineCalls')
-            assert first['tools'] == ['find', 'show', 'onto'] and first['choice'] == 'auto' and not first['stream']
+            assert first['tools'] == ['find', 'show'] and first['choice'] == 'auto' and not first['stream']
             results = [m['content'] for m in final['messages'] if m['role'] == 'tool']
-            assert 'docs/graph.json' in results[0] and '広告されていない道具' in results[1] and final['choice'] == 'none', final
-            frames.append((tooled.screenshot(), '🔧 /ask → /find --kind onto'))
+            assert 'docs/graph.json' in results[0] and '渡していない道具' in results[1] and final['choice'] == 'none', final
+            frames.append((tooled.screenshot(), '⚖️ Jev → 🔌 MCP find'))
             assert errors == [], errors
             recorder = browser.new_page()
             recorder.set_content(ui.gif_recorder_document())
@@ -1888,6 +1978,20 @@ def test_a_document_table_draws_its_number_columns_as_bars():
     for kept in ('<p>no table</p>', '<table><tbody>\n<tr><td>a</td><td>b</td></tr>\n</tbody></table>',
                  '<table><tbody>\n<tr><td>0</td></tr>\n</tbody></table>', '<table><tbody>\n<tr><td align="right">3</td></tr>\n</tbody></table>'):
         assert front.table_bars(kept) == kept
+
+
+def test_the_front_page_sheet_names_only_what_the_page_can_draw():
+    """🧹 Every class and id the front page's own sheet (STYLE) selects is one the page can hold: written by the generator or its
+    script, or present in the built page. A rule for something nobody draws any more is dead weight on every visit."""
+    front = _front()
+    source = (ROOT / 'scripts/front_page.py').read_text(encoding='utf-8')
+    assert source.count(front.STYLE) == 1
+    drawn = source.replace(front.STYLE, '') + (SITE / 'index.html').read_text(encoding='utf-8').replace(front.STYLE, '')
+    selectors = re.findall(r'(?:^|[{};])\s*([^{}@;]+?)\s*\{', re.sub(r'/\*.*?\*/', '', front.STYLE, flags=re.S))
+    names = sorted(set(re.findall(r'[.#]([A-Za-z_][\w-]*)', ' '.join(selectors))))
+    assert len(names) > 50 and 'portal-card' in names and 'skill-bar-fill' in names
+    unused = [name for name in names if not re.search(r'(?<![\w-])' + re.escape(name) + r'(?![\w-])', drawn)]
+    assert unused == [], unused
 
 
 def test_weekly_markdown_fragment_rejects_invalid_paths():
