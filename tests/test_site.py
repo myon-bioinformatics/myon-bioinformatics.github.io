@@ -1327,8 +1327,8 @@ def test_chat_mcp_wraps_keyless_apis_into_markdown_and_records(mcp_session):
             return _lab_fetch(url)
         asked.append(url)
         return json.dumps(next(answer for piece, answer in OPEN_API_ANSWERS.items() if piece in url))
-    call = lambda name, args: CHAT.mcp_rpc({'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call', 'params': {'name': name, 'arguments': args}},
-                                           CHAT_INDEX, fetch)['result']
+    call = lambda name, args, part='result': CHAT.mcp_rpc({'jsonrpc': '2.0', 'id': 1, 'method': 'tools/call', 'params': {'name': name, 'arguments': args}},
+                                                         CHAT_INDEX, fetch)[part]
     CHAT._STATE['lab'] or CHAT._lab(fetch)
     CHAT._STATE['lab']['keyless']._REGISTRY.clear()                            # 📇 the registry is read once per page
     video = call('fetch_oembed', {'url': 'https://youtu.be/x'})
@@ -1356,9 +1356,10 @@ def test_chat_mcp_wraps_keyless_apis_into_markdown_and_records(mcp_session):
     assert asked[-1] == 'https://api.github.com/repos/myon-bioinformatics/ONTO' and repo['structuredContent']['stars'] == 3
     assert '| Python | 3 | 0 | 1 | MIT | 2026-11-28 |' in repo['content'][0]['text']
     before = len(asked)
-    bad = [call('fetch_oembed', {'url': 'javascript:alert(1)'}), call('fetch_wikidata_entity', {'id': 'Q0; drop'}),
-           call('fetch_github_repo', {'repo': '../../users/x'})]
-    assert all(r['isError'] and 'ValueError' in r['content'][0]['text'] for r in bad) and len(asked) == before   # 🚫 no request made
+    bad = [call('fetch_oembed', {'url': 'javascript:alert(1)'}, 'error'), call('fetch_wikidata_entity', {'id': 'Q0; drop'}, 'error'),
+           call('fetch_github_repo', {'repo': '../../users/x'}, 'error')]
+    assert [r['data']['problems'] for r in bad] == [['arguments.url: ^https?://[^\\s/]+/\\S*$ の形ではない'], ['arguments.id: Q42 の形ではない'],
+                                                           ['arguments.repo: OWNER/NAME の形ではない']] and len(asked) == before   # 🧩 the schema's pattern; no request
     listed = {t['name'] for t in CHAT.server_tools(fetch).values()}
     assert set(CHAT._STATE['lab']['keyless'].TOOLS) <= listed and not any('niconico' in t or 'pixiv' in t for t in listed)
 
@@ -1382,6 +1383,42 @@ def test_chat_mcp_command_lists_calls_and_logs(mcp_session, monkeypatch):
     assert '```jsonl\n{"event": "mcp/' in log and log.count('\n{"event"') == 8                # 🧾 the last 8 rows
     monkeypatch.setitem(CHAT._STATE, 'lab', False)                        # ⏸ no lab: this chat's own tools
     assert '`fetch_pokemon`' not in say('/mcp') and '⏸ mcp-toolcall-lab を読めない' in say('/mcp') and '`onto`' in say('/mcp')
+
+
+WORDS = {   # 🗣️ /mcp in words → the tool and its arguments (🏷️ named, ⚖️ Jev, 🧩 a shaped argument)
+    'ditto のポケモン': ('fetch_pokemon', {'name': 'ditto'}, '⚖️ Jev'), 'ポケモンのditto': ('fetch_pokemon', {'name': 'ditto'}, '⚖️ Jev'),
+    'pokemon ditto': ('fetch_pokemon', {'name': 'ditto'}, '🏷️ 名指し'),
+    'https://youtu.be/x の題名': ('fetch_oembed', {'url': 'https://youtu.be/x'}, '🏷️ 名指し · 🧩 形'),
+    'この動画は？https://vimeo.com/1': ('fetch_oembed', {'url': 'https://vimeo.com/1'}, '🏷️ 名指し · 🧩 形'),
+    'Q6607 って何': ('fetch_wikidata_entity', {'id': 'Q6607'}, '既定の順 · 🧩 形'),
+    'ギターをwikidataで探して': ('search_wikidata', {'query': 'ギター', 'lang': 'ja'}, '🏷️ 名指し'),
+    '東京タワーについて調べて': ('fetch_wikipedia_article', {'title': '東京タワー', 'lang': 'ja'}, '⚖️ Jev'),
+    'wikipedia 君の名は': ('fetch_wikipedia_article', {'title': '君の名は', 'lang': 'ja'}, '🏷️ 名指し'),     # 🈁 a は of the title stays
+    'github myon-bioinformatics/Ironmate': ('fetch_github_repo', {'repo': 'myon-bioinformatics/Ironmate'}, '🏷️ 名指し · 🧩 形'),
+    'P53 タンパク質': ('search_uniprot', {'query': 'P53'}, '🏷️ 名指し')}
+
+
+@needs_lab
+def test_chat_mcp_takes_words_without_json_or_quotes(mcp_session):
+    """🗣️ /mcp without JSON: a tool's name and its values (key=値, an enum's value, the rest for the required arguments; quotes
+    optional, 「」 too; numbers by the schema; Japanese sets lang), or a sentence — the tool it names, or ⚖️ Jev offers, or the one
+    whose shaped argument (a pattern) a word fits, its free argument what is left once the naming words and particles go. The
+    reply says which and shows the JSON-RPC it sent; /ask's route stays."""
+    say = lambda text: CHAT.respond(text, index=CHAT_INDEX, fetch=_lab_fetch)
+    tools = CHAT.server_tools(_lab_fetch)
+    loose = lambda name, raw: CHAT._loose_args(tools[name]['inputSchema'], raw)
+    assert loose('fetch_wikipedia_article', 'New York lang=en') == {'title': 'New York', 'lang': 'en'}
+    assert loose('fetch_wikipedia_section', '「東京タワー」 heading＝歴史') == {'title': '東京タワー', 'heading': '歴史'}
+    assert loose('search_uniprot', 'hemoglobin size=3') == {'query': 'hemoglobin', 'size': 3}
+    assert loose('find', 'onto') == {'kind': 'onto'} and loose('find', 'otl json repo=Aoi') == {'repo': 'Aoi', 'words': ['otl', 'json']}
+    CHAT._STATE['route'] = {'offered': ['find']}
+    assert {sentence: CHAT._from_words(sentence, tools, _lab_fetch) for sentence in WORDS} == WORDS
+    assert CHAT._STATE['route'] == {'offered': ['find']} and CHAT._from_words('ポケモン', tools, _lab_fetch) is None
+    ok = say('/mcp ditto のポケモン')
+    assert ok.startswith('### 🔌 ✅ tools/call\n\n🗣️ → `fetch_pokemon`（⚖️ Jev）') and '"arguments": {"name": "ditto"}' in ok and '| hp | 48 |' in ok
+    assert '"arguments": {"title": "東京タワー", "lang": "ja"}' in say('/mcp fetch_wikipedia_article 東京タワー')
+    assert 'Q42 の形ではない' in say('/mcp fetch_wikidata_entity Q0') and say('/mcp ポケモン').startswith('🤔')
+    assert '⚖️ **pokeapi ' in say('/mcp log')                                  # 🧾 Jev's decisions on the sentences join the trace
 
 
 def test_chat_triages_a_pasted_failure_and_hands_it_to_ask(monkeypatch):
@@ -1663,7 +1700,7 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             say('/flwo a', 'もしかして /flow')
             say('', 'fetch_pokemon', tap='.ui-chat-chips [data-chat-say="/mcp"]')          # 🔌 the page's MCP server
             say('/mcp fetch_pokemon {"name": "ditto"}', 'imposter')
-            say('/mcp fetch_wikidata_entity {"id": "Q6607"}', '撥弦楽器')       # 🕸️ two requests from the page (the item, its labels)
+            say('/mcp Q6607 って何', '撥弦楽器')                               # 🗣️ in words; 🕸️ two requests from the page (the item, its labels)
             say('/mcp log', 'tools/call 2')
             assert '部分取得 1 件・取得不可 1 件' in say('onto', 'docs/graph.json')
             assert '部分取得 1 件' in say('/find missing --repo onto', '0 件（索引内）')

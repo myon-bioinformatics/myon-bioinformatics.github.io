@@ -65,11 +65,11 @@ COMMANDS = {
     'flow': ('🔀', 'A > B > C', '流れ図を ASCII と Mermaid に（A, B > C で合流）', ('/flow 入力, 履歴 > 圧縮 > 出力',)),
     'compress': ('🗂', 'TEXT', '会話を短く（TalkCompress の略語・合意台帳）と、LLM 出力の整理（markdown.py）',
                  ('/compress As soon as possible, please send me the report. Thank you very much!',)),
-    'mcp': ('🔌', '[TOOL {JSON} | log]', 'ページの中の MCP サーバーと話す（tools/list・tools/call。mcp-toolcall-lab の Wikipedia・PokéAPI、'
+    'mcp': ('🔌', '[言葉 | TOOL 値 | TOOL {JSON} | log]', 'ページの中の MCP サーバーと話す（tools/list・tools/call。mcp-toolcall-lab の Wikipedia・PokéAPI、'
                                         'キー不要の 🔗 oEmbed（YouTube・Vimeo・SoundCloud・Spotify など URL の形で）・🕸️ Wikidata・🧬 UniProt・🐙 GitHub、このチャットの find・show・onto。'
                                         '結果は Markdown と structuredContent）。log は JSON-RPC と ⚖️ Jev の判定の記録（JSONL）',
-            ('/mcp', '/mcp fetch_pokemon {"name": "ditto"}', '/mcp fetch_wikidata_entity {"id": "Q6607"}', '/mcp fetch_wikipedia_article {"title": 3}', '/mcp fetch_wikipedia_artcle {}',
-             '/mcp log')),
+            ('/mcp', '/mcp ditto のポケモン', '/mcp https://youtu.be/dQw4w9WgXcQ の題名', '/mcp Q6607 って何', '/mcp wikidata ギター',
+             '/mcp fetch_wikipedia_article 東京タワー', '/mcp fetch_pokemon {"name": "ditto"}', '/mcp fetch_wikipedia_artcle {}', '/mcp log')),
     'find': ('🔎', 'WORDS [--repo R] [--kind K]', 'リポジトリ横断で JSON / JSONL を探す（K: ' + ' '.join(KINDS) + '）',
              ('onto', '/find --kind onto', '/find --kind jsonl --repo Aoi', 'TaxOntOy')),
     'show': ('👀', 'REPO/PATH', 'JSON / JSONL の中身を表にまとめる（そのコミットの raw を読む）', ('/show TaxOntOy/otl-relations.json',)),
@@ -253,7 +253,7 @@ def compress_reply(text: str, fetch=None, base: str | None = None, commit: str |
 
 
 def _check(schema: dict, value, path: str = 'arguments') -> list[str]:
-    """The JSON Schema subset the lab's tools use: type, required, properties, additionalProperties, enum, items."""
+    """The JSON Schema subset the lab's tools use: type, required, properties, additionalProperties, enum, pattern, items."""
     kinds = {'string': str, 'integer': int, 'number': (int, float), 'boolean': bool, 'object': dict, 'array': list, 'null': type(None)}
     want = schema.get('type')
     if want in kinds and (not isinstance(value, kinds[want]) or (want in ('integer', 'number') and isinstance(value, bool))):
@@ -261,6 +261,8 @@ def _check(schema: dict, value, path: str = 'arguments') -> list[str]:
     problems = []
     if 'enum' in schema and value not in schema['enum']:
         problems.append(f'{path}: {schema["enum"]} のどれでもない')
+    if 'pattern' in schema and isinstance(value, str) and not re.search(schema['pattern'], value):
+        problems.append(f'{path}: {schema.get("description") or schema["pattern"]} の形ではない')
     if isinstance(value, dict):
         props = schema.get('properties', {})
         problems += [f'{path}.{key}: 必須' for key in schema.get('required', []) if key not in value]
@@ -447,20 +449,106 @@ def mcp_reply(text: str, index: dict | None, fetch=None) -> str:
                 for t in listed]
         return ('## 🔌 ページの中の MCP サーバー（tools/list）\n\n' + md.table(['道具', '⚖️ Jev', '必須', '説明'], rows).strip()
                 + ('' if _lab(fetch) else '\n\n⏸ mcp-toolcall-lab を読めない（このビルドは記録していないか、オフライン）')
-                + '\n\n`/mcp 道具 {"引数": "値"}` で tools/call、`/mcp log` で記録（JSONL）')
-    try:
-        arguments = json.loads(raw) if raw.strip() else {}
-    except json.JSONDecodeError as exc:
-        return f'❌ 引数が JSON ではない（{exc.msg}, {exc.pos} 文字目）'
+                + '\n\n🗣️ `/mcp ditto のポケモン`・`/mcp 道具 値`（key=値 も、JSON も）で tools/call、`/mcp log` で記録（JSONL）')
+    tools, said = server_tools(fetch), []
+    if name in tools or '_' in name or raw.lstrip().startswith('{'):   # 🔧 a tool's name (or a typo of one), then its arguments
+        try:
+            arguments = _loose_args(tools[name]['inputSchema'] if name in tools else {}, raw)
+        except json.JSONDecodeError as exc:
+            return f'❌ 引数が JSON ではない（{exc.msg}, {exc.pos} 文字目）'
+    else:                                                 # 🗣️ a sentence: the tool and its arguments from its words
+        picked = _from_words(text.strip(), tools, fetch)
+        if not picked:
+            return '🤔 どの道具か決められない（`/mcp` で一覧、`/mcp 道具 値` で名指し）'
+        name, arguments, why = picked
+        said = [f'🗣️ → `{name}`（{why}）']
     response = _rpc('tools/call', {'name': name, 'arguments': arguments}, index=index, fetch=fetch)
     ok, result = _call_text(response)
     sent = next(row['message'] for row in reversed(_STATE['trace']) if row['event'] == 'mcp/request')
     head = ('✅ tools/call' if ok else '⚠️ isError' if 'result' in response else '❌ 断る（JSON-RPC のエラー）')
     body = result if len(result) <= 1500 else result[:1499] + '…'
-    return '\n\n'.join([f'### 🔌 {head}', _code(json.dumps(sent, ensure_ascii=False), 'json'),
+    return '\n\n'.join([f'### 🔌 {head}', *said, _code(json.dumps(sent, ensure_ascii=False), 'json'),
                           body if ok else _code(body)]
                          + ([f'🧱 structuredContent: `{"` `".join(response["result"]["structuredContent"])}`']
                             if ok and response['result'].get('structuredContent') else []))
+
+
+def _loose_args(schema: dict, raw: str) -> dict:
+    """🗣️ A tool's arguments as typed: JSON, or words — ``key=値`` (``:`` ``＝`` ``：`` too), a value of an enum, and the rest
+    for the required properties in order (the last takes the words left; an array, if nothing is required). Quotes are
+    optional (「」 too); numbers and true / false follow the schema, and Japanese words set an unset ``lang`` to ja."""
+    raw = raw.strip()
+    if raw.startswith('{'):
+        return json.loads(raw)
+    props, args, rest = schema.get('properties', {}), {}, []
+    unquote = lambda word: re.sub(r'^([「“\x22\x27])(.*)[」”\x22\x27]$', r'\2', word, flags=re.S)
+    for word in re.findall(r'(?:[A-Za-z_]\w*[=:＝：])?(?:「[^」]*」|“[^”]*”|\x22[^\x22]*\x22|\x27[^\x27]*\x27|\S+)', raw):
+        key = re.match(r'([A-Za-z_]\w*)[=:＝：](.*)', word, re.S)
+        if key and key[1] in props:
+            args[key[1]] = unquote(key[2])
+        elif enum := next((k for k, p in props.items() if unquote(word) in p.get('enum', ()) and k not in args), None):
+            args[enum] = unquote(word)
+        else:
+            rest.append(unquote(word))
+    slots = [k for k in schema.get('required', []) if k not in args] or [k for k, p in props.items() if p.get('type') == 'array' and k not in args][:1]
+    for i, key in enumerate(slots):
+        if rest[i:]:
+            args[key] = rest[i:] if props[key].get('type') == 'array' else ' '.join(rest[i:]) if i == len(slots) - 1 else rest[i]
+    for key, value in args.items():
+        want = props.get(key, {}).get('type')
+        if isinstance(value, str) and want == 'array':
+            args[key] = [v for v in re.split(r'[,、\s]+', value) if v]
+        elif isinstance(value, str) and want in ('integer', 'number') and re.fullmatch(r'-?\d+(\.\d+)?', value):
+            args[key] = int(value) if want == 'integer' and value.lstrip('-').isdigit() else float(value)
+        elif isinstance(value, str) and want == 'boolean' and value.casefold() in ('true', 'false', 'yes', 'no', 'はい', 'いいえ'):
+            args[key] = value.casefold() in ('true', 'yes', 'はい')
+    if 'lang' in props and 'lang' not in args and re.search(r'[\u3040-\u30ff\u4e00-\u9fff]', ' '.join(map(str, args.values()))):
+        args['lang'] = 'ja'
+    return args
+
+
+def _from_words(sentence: str, tools: dict, fetch=None) -> tuple[str, dict, str] | None:
+    """🗣️ /mcp in words, without a model: each tool whose required arguments the sentence fills — a shaped one (its JSON Schema
+    ``pattern``: a URL, Q42, OWNER/NAME) by a run of ASCII in it, at most one free string by what is left once the naming words
+    (tool names, the keyless APIs' cues, ⚖️ Jev's keywords) and the particles around them go. The tool the sentence names
+    (🏷️) wins, then the ones Jev offers (⚖️, ``ask_route``, which joins the trace), then more shaped arguments (🧩), then the
+    server's order. None when no tool fits."""
+    lab, saved = _lab(fetch), _STATE['route']
+    route, _STATE['route'] = ask_route(sentence, fetch), saved            # ⚖️ /ask's route stays as it was
+    parts = {t: {p for p in t.split('_') if p not in ('fetch', 'search')} for t in tools}
+    naming = {p for ps in parts.values() for p in ps} | ({cue for *_, cues in lab['keyless'].TOOLS.values() for cue in cues if '://' not in cue}
+                                                         | {cue for cues in lab['router'].weights.values() for cue in cues} if lab else set())
+    runs = [w.rstrip('.,;:!?)]') for w in re.findall(r'[!-~]+', sentence)]
+    named = set(route['cued']) | {t for t, ps in parts.items() if ps & {w.casefold() for w in runs}}
+    best = None
+    for order, (name, tool) in enumerate(tools.items()):
+        props, required, args = tool['inputSchema'].get('properties', {}), tool['inputSchema'].get('required', []), {}
+        free = [k for k in required if 'pattern' not in props[k]]
+        for key in required:
+            if 'pattern' in props[key]:
+                args[key] = next((w for w in runs if w.casefold() not in naming and re.search(props[key]['pattern'], w)), None)
+        if not required or None in args.values() or len(free) > 1 or any(props[k].get('type') != 'string' for k in free):
+            continue
+        if free:
+            left = sentence
+            for value in args.values():
+                left = left.replace(value, ' ')
+            for word in sorted(naming, key=len, reverse=True):
+                edge = rf'(?<![A-Za-z0-9]){re.escape(word)}(?![A-Za-z0-9])' if word.isascii() else re.escape(word)
+                left = re.sub(rf'[のをでにと]?\s*{edge}(?:って|[てでのをはがにと])?', ' ', left, flags=re.I)
+            left = re.sub(r'(?:\s|[、。,.？?！!]|について|って何|ってなに|とは|って|は何|はなに|は誰|を?(?:調べて|教えて|見せて|知りたい)|ください|下さい)+$', '', left)
+            if not (left := re.sub(r'\s+', ' ', left).strip(' 、。,.')):
+                continue
+            args[free[0]] = left
+        if 'lang' in props and re.search(r'[\u3040-\u30ff\u4e00-\u9fff]', ' '.join(args.values())):
+            args['lang'] = 'ja'
+        rank = (2 if name in named else 1 if name in route['offered'] else 0, len(required) - len(free), -order)
+        if best is None or rank > best[0]:
+            best = (rank, name, args)
+    if best is None:
+        return None
+    (level, shaped, _), name, args = best
+    return name, args, ' · '.join(['🏷️ 名指し', '⚖️ Jev', '既定の順'][2 - level:3 - level] + (['🧩 形'] if shaped else []))
 
 
 def mcp_log(rows: int = 8) -> str:

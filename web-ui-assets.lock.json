@@ -17,7 +17,7 @@
     "tools/worlds/london-dragon.json": "96f1b4efbd5a900459688403900cd385bf600987e8f76023f2a7d538f9ed133b",
     "tools/worlds/london-dragon.png": "2478a91c5d1c6cb04255b8247ca879f08f6a9ba30051bdb743f14a8a4a6429a9",
     "tools/html-import/extract.mjs": "09602fc4b02d21ed9a5981569069e92ecfd160adca421f1363aa4120dee4c072",
-    "tools/chat/sources.json": "a14f6abb0e09fa58ad57e322d14d9335c276a9bfbd8c41f431716f06b5463e44",
+    "tools/chat/sources.json": "13b7b39ca70d6ecdfa3825da6d2feb409f40557c74254c3e479291984e129007",
     "tools/vendor/web-ui/css/bundle.css": "677ff61aaf9b6c8a231a3610f04fc18bb7892e5c348f95813fc00c3f8e1b04ae",
     "tools/vendor/web-ui/css/core.css": "6161b50462c2cfc8b40547e988636525989a1d29585eb98d5042646ffbb5cabd"
   },
@@ -27,6 +27,6 @@
     "tools/#test-report": "ee10290827e76ae476f66d43b86a240d1b689a1542ff453e53c8dff1439e3f9a",
     "tools/#maps": "57288310abc78ab1238157101f2ced28f39ca94df246bdb506ef1c195d2de522",
     "tools/#gif": "76d930708979cf289c6ec1b1deaedffbadbf8efce37cfded69bda2956f11cbe7",
-    "tools/#chat": "79bacdcdef585fa3b7a14ef049d968a7e4e09cad3326835403718d60ae74cbe9"
+    "tools/#chat": "9c698d46ca4eb14bfe4ccd365d58b67cb4c7b8857740aa9f5124fef0296f887c"
   }
 }
