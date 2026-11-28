@@ -1,4 +1,4 @@
-"""Chromium smoke for Ironmate's generated studios as the one screen's framed panels (tools/#image-studio, #slide-studio, #browser-tools)."""
+"""Chromium smoke for Ironmate's generated studios as the one screen's framed panels (tools/#slide-studio and #browser-tools)."""
 import functools
 import importlib.util
 import json
@@ -27,7 +27,7 @@ def studio_origin(tmp_path_factory):
     sha = subprocess.check_output(["git", "-C", str(ironmate), "rev-parse", "HEAD"], text=True).strip()
     repository = "myon-bioinformatics/Ironmate"
     receipt = pages.collect_tools(site, {repository: ironmate}, {repository: sha})   # 🧰 the tools first: the screen takes them in
-    assert receipt["made"] == ["image-studio", "browser-tools", "slide-studio"] and not receipt["failed"], receipt
+    assert receipt["made"] == ["slide-studio", "browser-tools"] and not receipt["failed"], receipt
     pages.build(site)
     assert not (site / "tools/ironmate").exists() and not list((site / "tools").glob("*-studio/index.html"))
     server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(SimpleHTTPRequestHandler, directory=site))
@@ -85,41 +85,26 @@ def _download(page, locator):
     return pending.value.path().read_bytes()
 
 
-def _saved(page, studio, face):
-    """💾 Image Studio saves with its own 📤 どの形式に？: the toolbar's candidates, hidden again after each pick."""
-    studio.locator('#studio-toolbar [data-act="export"]').click()
-    return _download(page, studio.locator(f'#studio-candidates button:text-is("{face}")'))
-
-
 def _imported(page, studio, face, file):
-    """📥 どの形式から？: the toolbar's candidate opens the toolbar's own file chooser (the page has no input of its own)."""
-    studio.locator('#studio-toolbar [data-act="import"]').click()
+    studio.locator('#slides-toolbar [data-act="import"]').click()
     with page.expect_file_chooser() as chosen:
-        studio.locator(f'#studio-candidates button:text-is("{face}")').click()
+        studio.locator(f'#slides-candidates button[aria-label^="{face}"]').click()
     chosen.value.set_files(file)
 
 
 @pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
-def test_image_studio_import_edit_and_download(browser, studio_origin, mobile):
+def test_unified_studio_imports_an_image_and_undoes_it(browser, studio_origin, mobile):
     page = _page(browser, studio_origin, mobile=mobile)
     try:
-        studio = _studio(page, studio_origin, "image-studio")
-        assert studio.locator('[data-testid="portfolio-back"]').count() == 0      # 🖼️ the way back and the chrome are the screen's
-        expect(page.locator(".ui-chrome a.ui-world-home")).to_have_count(1)
-        expect(studio.locator("#board svg")).to_have_count(1)
+        studio = _studio(page, studio_origin, "slide-studio")
         _imported(page, studio, "画像", {"name": "fixture.png", "mimeType": "image/png", "buffer": _fixture_png()})
-        expect(studio.locator("#layers button").filter(has_text="fixture.png")).to_have_count(1)
-        studio.locator("#cell").fill("7")
-        studio.locator("#cell").dispatch_event("change")
-        expect(studio.locator('#studio-toolbar [data-act="export"]')).to_be_visible()   # 💾 its own 📤
-        scene = json.loads(_saved(page, studio, "JSON"))
-        assert scene["schema"] == "ironmate-image-studio/1"
-        assert scene["layers"][-1]["kind"] == "image"
-        assert scene["layers"][-1]["cell"] == 7
-        png = _saved(page, studio, "PNG")
-        assert png[:8] == b"\x89PNG\r\n\x1a\n"
-        assert int.from_bytes(png[16:20], "big") == scene["width"]
-        assert int.from_bytes(png[20:24], "big") == scene["height"]
+        studio.wait_for_function("""() => IronmateSlideStudio.deck.slides[0].layers.some(
+            layer => layer.kind === 'image' && layer.src.startsWith('data:image/png'))""")
+        studio.locator('[data-act="export"]').click()
+        png = _download(page, studio.locator('#slides-candidates button[aria-label^="PNG"]'))
+        assert png[:8].hex() == "89504e470d0a1a0a"
+        studio.locator('[data-act="undo"]').click()
+        studio.wait_for_function("() => IronmateSlideStudio.deck.slides[0].layers.length === 0")
     finally:
         page.context.close()
 
@@ -133,7 +118,7 @@ def test_studio_csp_admits_the_tools_chrome(browser, studio_origin, mobile):
     try:
         blocked = []
         page.on("console", lambda message: blocked.append(message.text) if "Content Security Policy" in message.text else None)
-        studio = _studio(page, studio_origin, "image-studio")
+        studio = _studio(page, studio_origin, "slide-studio")
         assert "script-src 'self';" in studio.evaluate("document.querySelector('meta[http-equiv=Content-Security-Policy]').content")
         expect(page.locator(".ui-chrome [data-clock]")).to_have_text(re.compile(r"^\d\d:\d\d:\d\d$"))
         box = page.locator('.ui-chrome [data-menu="spots"] > summary').bounding_box()
@@ -143,7 +128,7 @@ def test_studio_csp_admits_the_tools_chrome(browser, studio_origin, mobile):
         expect(page.locator(".ui-chrome .ui-world-spots a[aria-current=page]")).to_have_text(re.compile("^📍"))   # ☰ this page, then its sections
         assert page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") == 0
         door = page.locator(".ui-door-foot [data-door-select]")                 # 🚪 Door-to-Door's sheet and module are listed too
-        assert door.is_visible() and door.bounding_box()["height"] == 40 and door.input_value() == "../tools/#image-studio"
+        assert door.is_visible() and door.bounding_box()["height"] == 40 and door.input_value() == "../tools/#slide-studio"
         assert blocked == [], blocked
     finally:
         page.context.close()
@@ -157,23 +142,23 @@ def test_the_one_slide_editor_opens_a_deck_and_exports_pptx(browser, studio_orig
     page = _page(browser, studio_origin, mobile=mobile)
     try:
         studio = _studio(page, studio_origin, "slide-studio")
-        studio.wait_for_function("() => !!window.IronmatePhone")
+        studio.wait_for_function("() => !!window.IronmateSlideStudio")
         assert studio.locator('[data-testid="portfolio-back"]').count() == 0
         expect(page.locator(".ui-chrome a.ui-world-home")).to_have_count(1)
         studio.locator('[data-act="text"]').click()
         page.keyboard.type("Portfolio fixture")
         studio.locator('[data-act="export"]').click()                            # 📤 then the format, in the candidate row
-        deck = json.loads(_download(page, studio.locator('#phone-candidates button[aria-label^="JSON"]')))
+        deck = json.loads(_download(page, studio.locator('#slides-candidates button[aria-label^="JSON"]')))
         assert deck["schema"] == "ironmate-slide-deck/1" and deck["slides"][0]["layers"][0]["text"] == "Portfolio fixture"
         deck["slides"][0]["layers"][0]["text"] = "Imported fixture title"
         studio.locator('[data-act="import"]').click()                            # 📥 どの形式から？ JSON: the file chooser it opens
         with page.expect_file_chooser() as chosen:
-            studio.locator('#phone-candidates button[aria-label^="JSON"]').click()
+            studio.locator('#slides-candidates button[aria-label^="JSON"]').click()
         chosen.value.set_files({"name": "fixture.json", "mimeType": "application/json", "buffer": json.dumps(deck).encode()})
-        studio.wait_for_function("() => IronmatePhone.deck.slides[0].layers[0].text === 'Imported fixture title'")
-        if not studio.locator("#phone-candidates").is_visible():
+        studio.wait_for_function("() => IronmateSlideStudio.deck.slides[0].layers[0].text === 'Imported fixture title'")
+        if not studio.locator("#slides-candidates").is_visible():
             studio.locator('[data-act="export"]').click()
-        pptx = _download(page, studio.locator('#phone-candidates button[aria-label^="PPTX"]'))
+        pptx = _download(page, studio.locator('#slides-candidates button[aria-label^="PPTX"]'))
         with zipfile.ZipFile(BytesIO(pptx)) as office:
             xml = ElementTree.fromstring(office.read("ppt/slides/slide1.xml"))
             text = [node.text for node in xml.iter("{http://schemas.openxmlformats.org/drawingml/2006/main}t")]
@@ -187,13 +172,13 @@ def test_the_old_slide_addresses_are_gone(browser, studio_origin):
     #slide-studio, one editor, one address."""
     page = _page(browser, studio_origin)
     try:
-        assert [page.request.get(studio_origin + "/tools/slide-studio/" + old).status for old in ("", "phone/", "pc/")] == [404] * 3
+        assert [page.request.get(studio_origin + "/tools/slide-studio/" + old).status for old in ("index.html", "phone/", "pc/")] == [404] * 3
     finally:
         page.context.close()
 
 
 @pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
-@pytest.mark.parametrize("route", ["home", "image-studio/", "slide-studio/", "browser-tools/"])
+@pytest.mark.parametrize("route", ["home", "slide-studio/", "browser-tools/"])
 def test_studio_has_one_tools_destination(browser, studio_origin, mobile, route):
     page = _page(browser, studio_origin, mobile=mobile)
     try:
@@ -215,102 +200,39 @@ def test_studio_has_one_tools_destination(browser, studio_origin, mobile, route)
 
 
 @pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
-def test_image_shelf_sends_current_png_to_slide_in_the_same_tab(browser, studio_origin, mobile):
+def test_heatmap_scene_opens_in_unified_editor_and_browser_tools_remain(browser, studio_origin, mobile):
     page = _page(browser, studio_origin, mobile=mobile)
     try:
-        studio = _studio(page, studio_origin, "image-studio")
-        _imported(page, studio, "画像", {"name": "fixture.png", "mimeType": "image/png", "buffer": _fixture_png()})
-        layer = studio.locator("#layers button").filter(has_text="fixture.png")
-        expect(layer).to_have_count(1)
-        link = studio.get_by_role("link", name="編集中の画像をスライド工房へ")
-        errors = []
-        page.on("console", lambda m: errors.append(m.text) if "Content Security Policy" in m.text else None)
-        for _ in range(2):  # first on a cold destination, then in the already-mounted editor
-            studio.locator('#studio-toolbar [data-act="import"]').click()           # 📥 どの形式から？ → シェルフ
-            studio.locator('#studio-candidates button:text-is("シェルフ")').click()
-            expect(link).to_have_attribute("href", "/tools/#slide-studio")
-            link.click()
-            page.wait_for_url("**/tools/#slide-studio")
-            slide = page.locator("#slide-studio iframe").element_handle().content_frame()
-            slide.wait_for_function("""() => {
-                const layers = window.IronmatePhone?.deck.slides[0].layers;
-                return layers?.length === 1 && layers[0].kind === 'image' && layers[0].src.startsWith('data:image/png');
-            }""")
-            assert slide.evaluate("""async () => {
-                const img = new Image();
-                img.src = IronmatePhone.deck.slides[0].layers[0].src;
-                await img.decode();
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-                return [[150, 180], [700, 180]].map(([x, y]) => Array.from(ctx.getImageData(x, y, 1, 1).data));
-            }""") == [[255, 0, 0, 255], [0, 0, 255, 255]]
-            assert len(page.context.pages) == 1
-            slide.locator('[data-act="undo"]').click()
-            slide.wait_for_function("() => IronmatePhone.deck.slides[0].layers.length === 0")
-            page.go_back()
-            page.wait_for_url("**/tools/#image-studio")
-            expect(layer).to_be_visible()
-            expect(studio.locator("#shelf-dialog")).to_be_hidden()
-        assert errors == []
-    finally:
-        page.context.close()
-
-
-def test_image_handoff_can_be_retried_after_the_slide_layer_limit(browser, studio_origin):
-    page = _page(browser, studio_origin)
-    try:
-        slide = _studio(page, studio_origin, "slide-studio")
-        slide.evaluate("""async () => {
-            await IronmatePhone.act('rect');
-            const deck = IronmatePhone.deck;
-            const layer = deck.slides[0].layers[0];
-            deck.slides[0].layers = Array.from({length: 99}, (_, i) => ({...layer, id: 'fixture-' + i}));
-            await IronmatePhone.act('open', new Blob([JSON.stringify(deck)], {type: 'application/json'}));
-            await IronmatePhone.act('rect');
-        }""")
-        full = slide.evaluate("IronmatePhone.deck")
-        selected = slide.evaluate("IronmatePhone.selected")
-        assert len(full["slides"][0]["layers"]) == 100 and selected
-
-        page.evaluate("location.hash = 'image-studio'")
-        page.wait_for_function("() => document.querySelector('#image-studio iframe')?.dataset.ready")
-        studio = page.locator("#image-studio iframe").element_handle().content_frame()
-        _imported(page, studio, "画像", {"name": "fixture.png", "mimeType": "image/png", "buffer": _fixture_png()})
-        expect(studio.locator("#layers button").filter(has_text="fixture.png")).to_have_count(1)
-        original = studio.evaluate("IronmateStudio.scene")
-        studio.locator('#studio-toolbar [data-act="import"]').click()
-        studio.locator('#studio-candidates button:text-is("シェルフ")').click()
-        link = studio.get_by_role("link", name="編集中の画像をスライド工房へ")
-        link.click()
-        expect(studio.get_by_role("status").filter(has_text="画像を渡せませんでした")).to_be_visible()
-        expect(page).to_have_url(re.compile(r"/tools/#image-studio$"))
-        expect(link).to_be_visible()
-        assert slide.evaluate("IronmatePhone.deck") == full
-        assert slide.evaluate("IronmatePhone.selected") == selected
-        assert studio.evaluate("IronmateStudio.scene") == original
-
-        slide.evaluate("IronmatePhone.act('delete')")
-        available = slide.evaluate("IronmatePhone.deck")
-        link.click()
+        tools = _studio(page, studio_origin, "browser-tools")
+        expect(tools.locator("header a.brand")).to_have_count(0)
+        assert tools.locator("#brand a[download]").count() > 0
+        tools.get_by_role("link", name="📽️ 工房で編集 ↗").click()
         page.wait_for_url("**/tools/#slide-studio")
-        assert slide.evaluate("IronmatePhone.deck.slides[0].layers.at(-1).kind") == "image"
-        slide.locator('[data-act="undo"]').click()
-        assert slide.evaluate("IronmatePhone.deck") == available
+        page.wait_for_function("() => document.querySelector('#slide-studio iframe')?.dataset.ready")
+        studio = page.locator("#slide-studio iframe").element_handle().content_frame()
+        scene = {"schema": "ironmate-image-studio/1", "width": 640, "height": 480, "background": "#FFFFFF", "layers": [
+            {"id": "heat", "kind": "heatmap", "name": "heat", "x": 40, "y": 40, "w": 560, "h": 400,
+             "rotation": 0, "opacity": 1, "z": [[1, 2], [3, 4]], "xlabels": ["a", "b"], "ylabels": ["c", "d"],
+             "low": 1, "high": 4, "levels": 0, "labels": True},
+        ]}
+        _imported(page, studio, "JSON", {"name": "scene.json", "mimeType": "application/json",
+                                        "buffer": json.dumps(scene).encode()})
+        studio.wait_for_function("""() => {
+            const slide = IronmateSlideStudio.deck.slides[0];
+            return slide.width === 640 && slide.height === 480 && slide.layers[0]?.kind === 'heatmap';
+        }""")
+        assert page.locator("#image-studio").count() == 0
     finally:
         page.context.close()
 
 
-@pytest.mark.parametrize("name", ["image-studio", "slide-studio"])
-def test_the_screens_header_carries_each_studios_switch_and_colours(browser, studio_origin, name):
+def test_the_screens_header_carries_the_studio_switch_and_colours(browser, studio_origin):
     """🧰 The one screen's header places what the open studio brings: one ⋯ 💻 To textual ⇄ 📱 To iconic (the studio's own row, or
     PySaiyanWeBoo's for the switch it holds), which flips the studio inside its frame; ⚙️ 🎨 recolours the studio too, and
     "this page's own" gives it its own look back. Another panel takes the row away."""
     page = _page(browser, studio_origin)
     try:
-        studio = _studio(page, studio_origin, name)
+        studio = _studio(page, studio_origin, "slide-studio")
         rows = page.locator('.ui-chrome [data-chrome-hosted] [data-chrome-action="labels"]')
         expect(rows).to_have_count(1)
         before, own = studio.evaluate("[document.body.dataset.uiLabels, document.body.dataset.uiTheme]")

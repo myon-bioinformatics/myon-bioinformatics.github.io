@@ -73,7 +73,7 @@ def test_portal_exposes_expected_pages():
     parser.feed((SITE / "index.html").read_text(encoding="utf-8"))
     assert "tools" in parser.ids
     assert EXPECTED_PAGES <= set(parser.links)
-    assert {"./tools/#image-studio", "./tools/#browser-tools", "./tools/#slide-studio"} <= set(parser.links)   # 🧰 framed #panels, from the site
+    assert {"./tools/#browser-tools", "./tools/#slide-studio"} <= set(parser.links)   # 🧰 framed #panels, from the site
 
 
 def test_readme_lists_every_card_as_the_cards_say():
@@ -89,11 +89,11 @@ def test_the_service_catalog_names_where_the_cards_place_their_tools():
     """🧰 A card is where its tool is (tools/#<id>, a #panel of the screen); services.json, which other repositories read, names the
     same places, and a relative's shortcut (the heatmap's to 🖼️) is no second door."""
     services = json.loads((ROOT / 'services.json').read_text(encoding='utf-8'))['services']['projects']
-    for project, endpoint, card in (('Ironmate', 'pages', 'image-studio'), ('Ironmate', 'browserTools', 'browser-tools'), ('Ironmate', 'slides', 'slide-studio')):
+    for project, endpoint, card in (('Ironmate', 'pages', 'slide-studio'), ('Ironmate', 'browserTools', 'browser-tools'), ('Ironmate', 'slides', 'slide-studio')):
         assert services[project][endpoint]['url'] == f'https://myon-bioinformatics.github.io/tools/#{card}', (project, endpoint)
         assert any(c['id'] == card and c['links'][0][1] == f'./tools/#{card}' for c in PAGES._front_module().PORTAL), card
     doors = [place['href'] for place in PAGES.tools_places('../../')]
-    assert doors.count('../../tools/#image-studio') == 1
+    assert doors.count('../../tools/#slide-studio') == 1
 
 
 def test_every_active_repository_with_pages_is_one_tap_away():
@@ -333,12 +333,10 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
     assert "arrow attributes and advanced formatting" in editing["unsupported"]
 
     html = (SITE / "index.html").read_text(encoding="utf-8")
-    card_start = html.index('<h3 id="slide-studio">📽️ スライド工房</h3>')
+    card_start = html.index('<h3 id="slide-studio">📽️ 画像・スライド工房</h3>')
     card = html[card_start:html.index("</article>", card_start)]
     assert "PPTX対応は計画段階" not in card
-    assert "Markdown→PPTX" in card
-    assert "試作実装" in card
-    assert "ブラウザでスライドを作り" in card
+    assert "ヒートマップのシーン JSON" in card and "PPTX" in card
     assert "Open Repository" not in card
     assert "tools/#slide-studio" in card
 
@@ -392,48 +390,52 @@ def test_tools_built_from_other_repositories_never_404():
     front.feed((SITE / "index.html").read_text(encoding="utf-8"))
     assert "./tools/#heatmap" in front.links                                         # 🌡️ the 🧰 Tools card opens it (a #panel)
     with tempfile.TemporaryDirectory() as tmp:
-        kept = Path(tmp) / 'tools/image-studio/index.html'
+        kept = Path(tmp) / 'tools/slide-studio/index.html'
         kept.parent.mkdir(parents=True)
         kept.write_text('kept', encoding='utf-8')
         receipt = PAGES.collect_tools(Path(tmp), {'myon-bioinformatics/Ironmate': Path(tmp) / 'no-checkout'}, {'myon-bioinformatics/Ironmate': '0' * 40})
-        assert receipt['made'] == [] and 'image-studio' in receipt['failed'] and kept.read_text(encoding='utf-8') == 'kept'
+        assert receipt['made'] == [] and 'slide-studio' in receipt['failed'] and kept.read_text(encoding='utf-8') == 'kept'
 
 
-def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path):
-    checkout = tmp_path / 'checkout'
-    checkout.mkdir()
-    (checkout / 'image_studio.py').write_text(
-        "import pathlib,sys\n"
-        "root = pathlib.Path(sys.argv[2])\n"
-        "pages = {'index.html': '<a href=\\\"slides/\\\">slides</a><script src=\\\"studio.js\\\"></script>',\n"
-        " 'tools/index.html': '<a href=\\\"../slides/#target\\\">slides</a>',\n"
-        " 'slides/index.html': '<a href=\\\"../tools/\\\">tools</a><a href=\\\"../\\\">image</a><script src=\\\"../studio.js\\\"></script>'}\n"
-        "for name, text in pages.items():\n"
-        " p = root / name; p.parent.mkdir(parents=True, exist_ok=True); p.write_text('<main>' + text + '</main>')\n"
-        "for old in ('slides/phone', 'slides/pc'):\n"
-        " (root / old).mkdir(); (root / old / 'index.html').write_text('<meta http-equiv=\\\"refresh\\\" content=\\\"0; url=../\\\" />')\n"
-        "(root / 'studio.js').write_text('shared')\n"
-        "(root / 'brand').mkdir()\n"
-        "(root / 'brand/index.html').write_text('<meta http-equiv=\\\"refresh\\\" content=\\\"0;url=../tools/#brand\\\">')\n"
-        "(root / 'brand/manifest.webmanifest').write_text('{\\\"shortcuts\\\":[{\\\"url\\\":\\\"../slides/\\\"}]}')\n",
-        encoding='utf-8',
+def test_ironmate_publication_relocates_the_unified_editor_and_brand_assets(tmp_path):
+    provider, mapped = tmp_path / "provider", tmp_path / "mapped"
+    (provider / "tools").mkdir(parents=True)
+    (provider / "brand").mkdir()
+    (provider / "index.html").write_text('<script src="studio.js"></script><a href="tools/">tools</a>')
+    (provider / "studio.js").write_text("shared")
+    (provider / "tools/index.html").write_text(
+        '<header><a class="brand" href="../"><img src="../brand/heatmap.svg" /> IRONMATE</a>'
+        '<nav><a href="../">Image Studio ↗</a> <a href="#brand">ロゴ素材</a></nav></header>'
+        '<section id="brand"><a href="../brand/heatmap.svg" download>Logo</a></section>', encoding="utf-8"
     )
-    out = tmp_path / 'site'
-    receipt = PAGES.collect_tools(out, {'myon-bioinformatics/Ironmate': checkout}, {'myon-bioinformatics/Ironmate': '0' * 40})
-    assert receipt['made'] == ['image-studio', 'browser-tools', 'slide-studio']           # 🧰 one build, three cards, each at tools/<id>/
-    assert not (out / 'tools/ironmate').exists() and not (out / 'tools/tools').exists() and not (out / 'tools/slides').exists()
-    tools = out / 'tools'
-    assert 'href="../slide-studio/"' in (tools / 'image-studio/index.html').read_text()
-    assert 'href="../slide-studio/#target"' in (tools / 'browser-tools/index.html').read_text()
-    slides = (tools / 'slide-studio/index.html').read_text()
-    assert 'href="../browser-tools/"' in slides and 'href="../image-studio/"' in slides and 'src="../image-studio/studio.js"' in slides
-    assert 'ui-chrome' not in slides and 'ui-door-foot' not in slides       # 🖼️ framed in the one screen, whose chrome it is
-    assert (tools / 'image-studio/studio.js').read_text() == 'shared'
-    for forward in ('image-studio/brand/index.html', 'slide-studio/phone/index.html', 'slide-studio/pc/index.html'):
-        assert not (tools / forward).exists(), forward                    # 🗑 Ironmate's forward-only pages are not published here
-    manifest = json.loads((tools / 'image-studio/brand/manifest.webmanifest').read_text())
-    assert manifest['scope'] == '../../'
-    assert manifest['shortcuts'] == [{'url': '../../slide-studio/'}]
+    (provider / "brand/heatmap.svg").write_text("<svg/>")
+    (provider / "brand/manifest.webmanifest").write_text('{"shortcuts":[{"url":"../"}]}')
+    routes = {"": "tools/slide-studio/", "tools/": "tools/browser-tools/"}
+    assert PAGES.tool_builds()[("myon-bioinformatics/Ironmate", ("image_studio.py", "--build-site", "{out}"))] == {
+        "": "slide-studio", "tools/": "browser-tools",
+    }
+    PAGES.place_built(provider, routes, mapped)
+    studio, browser = (mapped / folder / "index.html" for folder in routes.values())
+    assert 'href="../browser-tools/"' in studio.read_text()
+    assert 'src="studio.js"' in studio.read_text()
+    assert 'href="../slide-studio/"' in browser.read_text(encoding="utf-8")
+    assert not (mapped / "tools/image-studio").exists()
+    assert (studio.parent / "brand/heatmap.svg").read_text() == "<svg/>"
+    assert json.loads((studio.parent / "brand/manifest.webmanifest").read_text()) == {
+        "shortcuts": [{"url": "../"}], "scope": "../../",
+    }
+    import html
+    import pysaiyanweboo as ui
+    panels = {
+        "tools/browser-tools/index.html": (browser.read_bytes(), "myon-bioinformatics/Ironmate", True),
+        "tools/slide-studio/index.html": (studio.read_bytes(), "myon-bioinformatics/Ironmate", True),
+        "tools/heatmap/index.html": (b'<a href="https://myon-bioinformatics.github.io/tools/#image-studio">heat</a>', None, False),
+    }
+    rendered = html.unescape(PAGES.render_shell(ui, panels).decode())
+    assert 'heatmap.svg" download' in rendered and 'class="brand"' not in rendered
+    assert "📽️ 工房で編集 ↗" in rendered
+    assert "tools/#image-studio" not in rendered and "data-slide-handoff" not in rendered
+    assert 'href="/tools/#slide-studio">heat' in rendered
 
 
 def test_the_screen_carries_the_site_chrome_once_and_every_door_is_a_panel():
@@ -452,7 +454,7 @@ def test_the_screen_carries_the_site_chrome_once_and_every_door_is_a_panel():
     for name in (PAGES.SHELL_PAGE,):
         page = full = (SITE / name).read_text(encoding='utf-8')
         first = page.index('data-ui-view', page.index('<section id="home"') + 32)   # 🧰 the screen's own chrome, not what its panels hold
-        page = page[:page.rindex('<section id="', 0, first)] + page[page.index('<script>(()=>{let sending'):]   # up to the screen's own script
+        page = page[:page.rindex('<section id="', 0, first)] + page[page.index('<script type="module">/* web-ui views:'):]   # up to the screen's own script
         prefix = '../' * name.count('/')
         body = re.search(r'<body[^>]*>', page)
         assert '<div class="ui-board"' in page and page.count('<div class="ui-door-foot">') == 1, name   # 📟 🚪
