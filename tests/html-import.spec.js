@@ -4,9 +4,9 @@ const input='<article class="markdown-body"><h1>見出し</h1><p>本文 <b>日�
 const source='https://example.test/dir/page';
 // 🔌 Where the import is: the framed #html-import panel of the one screen (its CSP and page are its own, in the frame) in
 // this source; the published run goes wherever the deployed front page's link points (a move is published after it merges).
-let IMPORT='/tools/#html-import';
+let IMPORT='/tools/#html-import';const IMPORT_LINK='a[href="./tools/#html-import"],a[href="./tools/html-import/"]';   // 🔗 by place, whatever 🌐 the words say
 test.beforeAll(async({browser})=>{if(!process.env.HTML_TOOL_BASE_URL)return;const page=await browser.newPage();await page.goto(new URL('/',process.env.HTML_TOOL_BASE_URL).href);
- const url=new URL(await page.getByRole('link',{name:'Open HTML Import →'}).getAttribute('href')||IMPORT,page.url());IMPORT=url.pathname+url.hash;await page.close();});
+ const url=new URL(await page.locator(IMPORT_LINK).first().getAttribute('href')||IMPORT,page.url());IMPORT=url.pathname+url.hash;await page.close();});
 async function open(page){await page.goto(IMPORT);const name=new URL(IMPORT,'http://site').hash.slice(1);let f=page.mainFrame();
  if(name){await page.waitForFunction(n=>document.querySelector(`#${n} iframe`)?.dataset.ready,name);f=await(await page.locator(`#${name} iframe`).elementHandle()).contentFrame();}
  await f.locator('#source-url').fill(source);return f;}
@@ -64,7 +64,7 @@ test('size, UTF-8, URL and depth failures clear stale downloads',async({page})=>
  await f.locator('#source-url').fill(source);await f.locator('#html-input').fill('<div>'.repeat(129)+'text'+'</div>'.repeat(129));await f.locator('#paste-load').click();await expect(f.locator('#status')).toContainText('128');
 });
 test('portfolio still exposes old tools and the new independent tool',async({page})=>{
- await page.goto('/');const imp=page.getByRole('link',{name:'Open HTML Import →'});await expect(imp).toBeVisible();if(!process.env.HTML_TOOL_BASE_URL)await expect(imp).toHaveAttribute('href','./tools/#html-import');await expect(page.getByRole('link',{name:'Open Tool Lab →'})).toBeVisible();await expect(page.getByRole('link',{name:'Open Slide Studio →'})).toBeVisible();
+ await page.goto('/');const imp=page.locator(IMPORT_LINK).first();await expect(imp).toBeVisible();if(!process.env.HTML_TOOL_BASE_URL)await expect(imp).toHaveAttribute('href','./tools/#html-import');await expect(page.getByRole('link',{name:'Open Tool Lab →'})).toBeVisible();await expect(page.getByRole('link',{name:'Open Slide Studio →'})).toBeVisible();
 });
 for(const mobile of [false,true]){
  test.describe(mobile?'mobile source navigation':'desktop source navigation',()=>{

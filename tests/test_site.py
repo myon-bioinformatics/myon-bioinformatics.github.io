@@ -356,7 +356,12 @@ def test_lab_pages_are_hosted_by_portfolio():
     assert "mcp" in parser.ids
     assert "./tools/#mcp" in parser.links
     assert not (SITE / "tools/mcp/index.html").exists() and not (SITE / "tools/mcp/execution/index.html").exists()   # 🖼️ framed #panels
-    assert "<title>" in shell_frame("mcp") and "<title>" in shell_frame("mcp-execution")
+    assert "<title>" in shell_frame("mcp")
+    execution = shell_panel("mcp-execution")
+    if execution.startswith("<iframe"):
+        assert "<title>" in shell_frame("mcp-execution")
+    else:                                                       # 🧪 its build runs Node: a job without it gets the ⏸
+        assert "⏸" in execution
     assert not list((SITE / "tools/mcp").glob("**/*.html"))   # 🚫 neither a page nor the runtime's copy of it
 
 

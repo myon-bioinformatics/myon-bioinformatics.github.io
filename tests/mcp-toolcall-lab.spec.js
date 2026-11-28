@@ -32,11 +32,12 @@ test.beforeAll(async ({ browser }) => {
   if (!process.env.HTML_TOOL_BASE_URL) return;
   const page = await browser.newPage();
   await page.goto(new URL('/', process.env.HTML_TOOL_BASE_URL).href);
-  const at = async (name, fallback) => {
-    const url = new URL(await page.getByRole('link', { name }).getAttribute('href') || fallback, page.url());
+  const at = async (links, fallback) => {          // 🔗 by place (before or after the move), whatever 🌐 the words say
+    const url = new URL(await page.locator(links).first().getAttribute('href') || fallback, page.url());
     return url.pathname + url.hash;
   };
-  [LAB, IMPORT] = [await at('Open Tool Lab →', LAB), await at('Open HTML Import →', IMPORT)];
+  [LAB, IMPORT] = [await at('a[href="./tools/#mcp"], a[href="./tools/mcp/"]', LAB),
+                   await at('a[href="./tools/#html-import"], a[href="./tools/html-import/"]', IMPORT)];
   await page.close();
 });
 
