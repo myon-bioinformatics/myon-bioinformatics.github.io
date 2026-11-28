@@ -300,3 +300,28 @@ def test_image_handoff_can_be_retried_after_the_slide_layer_limit(browser, studi
         assert slide.evaluate("IronmatePhone.deck") == available
     finally:
         page.context.close()
+
+
+@pytest.mark.parametrize("name", ["image-studio", "slide-studio"])
+def test_the_screens_header_carries_each_studios_switch_and_colours(browser, studio_origin, name):
+    """🧰 The one screen's header places what the open studio brings: one ⋯ 💻 To textual ⇄ 📱 To iconic (the studio's own row, or
+    PySaiyanWeBoo's for the switch it holds), which flips the studio inside its frame; ⚙️ 🎨 recolours the studio too, and
+    "this page's own" gives it its own look back. Another panel takes the row away."""
+    page = _page(browser, studio_origin)
+    try:
+        studio = _studio(page, studio_origin, name)
+        rows = page.locator('.ui-chrome [data-chrome-hosted] [data-chrome-action="labels"]')
+        expect(rows).to_have_count(1)
+        before, own = studio.evaluate("[document.body.dataset.uiLabels, document.body.dataset.uiTheme]")
+        page.click('.ui-chrome [data-menu="more"] > summary')
+        rows.click()
+        assert studio.evaluate("document.body.dataset.uiLabels") == ("emoji" if before == "words" else "words")
+        page.click('.ui-chrome [data-menu="settings"] > summary')
+        page.select_option(".ui-chrome [data-ui-theme-switch]", "purple")
+        assert studio.evaluate("document.body.dataset.uiTheme") == "purple"
+        page.select_option(".ui-chrome [data-ui-theme-switch]", "")
+        assert studio.evaluate("document.body.dataset.uiTheme") == own
+        page.evaluate("location.hash = 'home'")
+        expect(rows).to_have_count(0)
+    finally:
+        page.context.close()
