@@ -252,7 +252,7 @@ def html_import_files(ui):
 
 
 def html_import_panel(ui) -> dict[str, bytes]:
-    """📄 PySaiyanWeBoo's HTML import, its document beside its module (framed: its CSP stays its own)."""
+    """📄 PySaiyanWeBoo's HTML import, its document beside its module (its own CSP: the screen frames it)."""
     files = html_import_files(ui)
     return {HTML_IMPORT: files['index.html'], HTML_IMPORT_MODULE: files['extract.mjs']}
 
@@ -1090,10 +1090,10 @@ def _paused(ui, repository: str, why: str = 'このビルドでは作ってい�
         {'type': 'links', 'items': [{'label': '🐙 GitHub リポジトリ', 'href': f'https://github.com/{repository}'}]}]})
 
 
-def tool_panels(ui, output: Path | None = None) -> dict[str, tuple[bytes, str, bool]]:
+def tool_panels(ui, output: Path | None = None) -> dict[str, tuple[bytes, str]]:
     """🧰 The tools the cards build from other repositories as #panels of the screen (none has a page of its own): each page
-    ``--record`` placed at tools/<id>/, taken out of the tree (its files stay), else ⏸; ``{source: (document, repository,
-    framed)}`` for ``render_shell``. A page with its own Content-Security-Policy (an app that owns its document) runs framed."""
+    ``--record`` placed at tools/<id>/, taken out of the tree (its files stay), else ⏸; ``{source: (document, repository)}`` for
+    ``render_shell``."""
     path = Path(output) / TOOLS if output else None
     made = json.loads(path.read_text(encoding='utf-8'))['made'] if path and path.is_file() else []
     panels = {}
@@ -1104,12 +1104,12 @@ def tool_panels(ui, output: Path | None = None) -> dict[str, tuple[bytes, str, b
         built = Path(output) / source if output else None
         if card['id'] in made and built.is_file():
             data = built.read_bytes()
-            panels[source] = data, repository, b'Content-Security-Policy' in data
+            panels[source] = data, repository
             built.unlink()
             if not any(built.parent.iterdir()):        # 🌡️ a one-page tool leaves no folder behind
                 built.parent.rmdir()
         else:
-            panels[source] = _paused(ui, repository).encode('utf-8'), repository, False
+            panels[source] = _paused(ui, repository).encode('utf-8'), repository
     return panels
 
 
@@ -1176,23 +1176,23 @@ const connect=frame=>frame.contentDocument.querySelector('[data-slide-handoff]')
 document.addEventListener('ui-view-frame',e=>{if(e.detail.name==='image-studio')connect(e.detail.frame)})})();"""
 
 
-def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes:
+def render_shell(ui, panels: dict[str, tuple[bytes, str | None]]) -> bytes:
     """🧰 tools/index.html: the screen every tool is a view of (``#gif``, ``#maps``, …; 🏠 ``#home`` lists them), built with
     PySaiyanWeBoo's ``views`` (``component_parts("views", …)``). ``panels`` maps the path a tool's document was built for to
-    (document, repository, framed): ``repository`` None is this site's own (an id it shares stops the build; another's gets ⏸);
-    ``framed`` runs an app that owns its document in a frame, else its parts join the screen. Each is named, described and
+    (document, repository): ``repository`` None is this site's own (an id it shares stops the build; another's gets ⏸). An app
+    with its own Content-Security-Policy runs in a frame, the others' parts join the screen (views decides). Each is named, described and
     ordered as its card (``tools_places``: 🚪's order). The header, the side and the foot are the site's (``add_site_chrome``) once."""
     places = {place['href']: place for place in tools_places()}
     rank = {href.partition('#')[2]: i for i, href in enumerate(places)}    # 🚪 the home list reads like the door: the cards' order
     views = []
     for source in sorted(panels, key=lambda source: rank.get(ui.view_name(source, SHELL_PAGE), len(rank))):
-        data, repository, framed = panels[source]
+        data, repository = panels[source]
         page, place = data.decode('utf-8'), places.get(f'../tools/#{ui.view_name(source, SHELL_PAGE)}', {})
         if source == 'tools/image-studio/index.html' and 'tools/slide-studio/index.html' in panels:   # 📽️ the shelf hands over here
             page = page.replace('href="../slide-studio/#from-image-studio" target="_blank" rel="opener"',
                                 'href="/tools/#slide-studio" target="_top" data-slide-handoff')
         views.append({'source': source, 'document': page, 'title': place.get('label', ''), 'about': place.get('text', ''),
-                      'framed': framed, 'repository': repository})
+                      'repository': repository})
     description = 'myon-bioinformatics の道具を 1 つの画面で。🚪 で道具を選び、🏠 で一覧へ。'   # 📟 the board's first items while 🏠 is open
     screen = ui.component_parts('views', views, at=SHELL_PAGE, site=_site_url(), reserved=('door', 'door-select', 'tools-chrome'),
                                 home={'title': '🧰 Tools', 'heading': '🧰 Tools', 'about': description})
@@ -1253,8 +1253,7 @@ def build(output: Path, root: Path = ROOT) -> None:
     validate_output(output, root)
     import pysaiyanweboo as ui
     payload = {**generate(root), **render_front(root, recorded_samples(output)), **card_parts(ui, output, recorded=True)}  # Fail closed first.
-    own = {key: (doc, None, b'Content-Security-Policy' in doc)            # 🧰 every #name is a panel; 🔒 one with its own CSP runs framed
-           for key, doc in ((key, payload.pop(key)) for key in [key for key in payload if '#' in key])}
+    own = {key: (payload.pop(key), None) for key in [key for key in payload if '#' in key]}   # 🧰 every #name is a panel
     payload[SHELL_PAGE] = render_shell(ui, {**own, **tool_panels(ui, output)})
     for name, data in payload.items():
         path = output / name

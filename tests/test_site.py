@@ -104,7 +104,7 @@ def test_one_card_places_a_tool_everywhere(monkeypatch):
     assert PAGES.record(Path('out')) == ['🧪 recorded', '⏸ broken_record: ZeroDivisionError', '🧰 built']
     assert [place['href'] for place in PAGES.tools_places()] == ['../tools/#trial', '../tools/#late']       # 🚪
     assert '| 🧪 試し | 一枚で置かれる。 | このサイト | [開く](https://myon-bioinformatics.github.io/tools/#trial) |' in PAGES.tools_readme()
-    shell = PAGES.render_shell(ui, {'tools/#trial': (page('🧪').encode(), None, False)}).decode()
+    shell = PAGES.render_shell(ui, {'tools/#trial': (page('🧪').encode(), None)}).decode()
     assert '<section id="trial" data-ui-view data-title="🧪 試し"' in shell and 'href="#trial"' in shell        # 🏠 and its view
     monkeypatch.setitem(vars(PAGES), 'trial_panel', lambda ui: {'tools/#other': page('🧪')})
     with pytest.raises(ValueError, match='one #panel, named as the card'):
@@ -1817,9 +1817,10 @@ def test_each_panel_brings_the_rows_it_declares_to_the_screens_header():
     screen's one header while it shows, a panel that declares none gets none, and the screen tells the header which panel shows."""
     import pysaiyanweboo as ui
     shelf = ui.chrome_rows_script({'screen': [{'label': '📋 シェルフ', 'key': 'shelf'}], 'replaces': '#studio-head'})
-    page = lambda body: f'<!doctype html><html><head><title>T</title></head><body>{body}</body></html>'.encode()
-    shell = PAGES.render_shell(ui, {'tools/app/index.html': (page('<header id="studio-head">🏭</header>' + shelf), 'myon-bioinformatics/App', True),
-                                    'tools/a/index.html': (page('<p>a</p>'), None, False)}).decode()
+    page = lambda body, head='': f'<!doctype html><html><head>{head}<title>T</title></head><body>{body}</body></html>'.encode()
+    csp = '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'">'                    # 🔒 an app: framed
+    shell = PAGES.render_shell(ui, {'tools/app/index.html': (page('<header id="studio-head">🏭</header>' + shelf, csp), 'myon-bioinformatics/App'),
+                                    'tools/a/index.html': (page('<p>a</p>'), None)}).decode()
     assert '<template data-chrome-view="app" data-replaces="#studio-head">' in shell and 'data-chrome-view="a"' not in shell
     assert shell.index('<template data-chrome-view="app"') < shell.index('<section id="app"')               # the header's, not the panel's
     assert "document.dispatchEvent(new CustomEvent('ui-chrome-view',{detail:{name:view.id,root:frame?frame.contentDocument:view}}))" in shell   # PySaiyanWeBoo views
@@ -1831,13 +1832,14 @@ def test_the_one_screen_keeps_one_owner_per_id():
     """🆔 Two tools of the one screen never share an id (getElementById would hand one the other's element): the portfolio's own
     panels fail the build, a tool of another repository gets ⏸ in its place; a <body> class (ui-elements) holds for its panel."""
     import pysaiyanweboo as ui
-    page = lambda body, attrs='': f'<!doctype html><html><head><title>T</title></head><body{attrs}>{body}</body></html>'.encode()
+    page = lambda body, attrs='', head='': f'<!doctype html><html><head>{head}<title>T</title></head><body{attrs}>{body}</body></html>'.encode()
     with pytest.raises(ValueError, match=r"\['status'\]"):
-        PAGES.render_shell(ui, {'tools/a/index.html': (page('<p id="status">'), None, False), 'tools/b/index.html': (page('<p id="status">'), None, False)})
-    shell = PAGES.render_shell(ui, {'tools/a/index.html': (page('<p id="status">'), None, False),
-                                    'tools/heatmap/index.html': (page('<p id="status">'), 'myon-bioinformatics/DRAgoWing', False),
-                                    'tools/format-lab/index.html': (page('<i id="own">', ' class="ui-elements"'), 'myon-bioinformatics/myon-bioinformatics', False),
-                                    'tools/app/index.html': (page('<p id="status"><a href="#status">s</a><a href="../a/">a</a>'), 'myon-bioinformatics/App', True)}).decode()
+        PAGES.render_shell(ui, {'tools/a/index.html': (page('<p id="status">'), None), 'tools/b/index.html': (page('<p id="status">'), None)})
+    csp = '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'">'                    # 🔒 an app: framed
+    shell = PAGES.render_shell(ui, {'tools/a/index.html': (page('<p id="status">'), None),
+                                    'tools/heatmap/index.html': (page('<p id="status">'), 'myon-bioinformatics/DRAgoWing'),
+                                    'tools/format-lab/index.html': (page('<i id="own">', ' class="ui-elements"'), 'myon-bioinformatics/myon-bioinformatics'),
+                                    'tools/app/index.html': (page('<p id="status"><a href="#status">s</a><a href="../a/">a</a>', head=csp), 'myon-bioinformatics/App')}).decode()
     heatmap = re.search(r'<section id="heatmap"[^>]*><template>(.*?)</template>', shell, re.S)[1]
     assert '⏸' in heatmap and 'id がほかとぶつかるので、ここでは開かない（status）' in heatmap and 'id="status"' not in heatmap
     assert '<section id="format-lab" class="ui-elements" data-ui-view' in shell and '<i id="own">' in shell
