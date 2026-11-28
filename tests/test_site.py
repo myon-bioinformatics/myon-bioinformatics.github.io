@@ -697,12 +697,17 @@ def test_front_page_ai_highlight_templates_have_the_same_slots_in_every_notation
 
 
 def test_front_page_offers_the_shared_colour_themes_and_embeds_no_unsafe_json():
+    """⚙️ holds both: 🎨 the site's colours (the chrome's, so tools/ shares the choice) and 🧾 this page's display mode; the header has neither."""
     front = _front()
     ui = pytest.importorskip('pysaiyanweboo')
-    page = front.document()
+    page = PAGES.render_front()['index.html'].decode('utf-8')
+    settings = page[page.index('data-menu="settings"'):page.index('data-menu="spots"')]
     for name in ui.theme_palettes():
-        assert f'<option value="{name}">' in page and f'body[data-ui-theme="{name}"]' in page, name
+        assert f'<option value="{name}">' in settings and f'body[data-ui-theme="{name}"]' in page, name
     assert set(front.MODES) == {'modern', 'xml-like', 'json', 'markdown', 'github-like'}
+    assert re.findall(r'<option value="([a-z-]+)">', settings[settings.index('data-chrome-choice="mode"'):]) == list(front.MODES)
+    assert 'id="theme-select"' not in page and 'id="view-mode-select"' not in page
+    page = front.document()
     data = page[page.index('id="projects-data">') + len('id="projects-data">'):]
     assert '<' not in data[:data.index('</script>')]                                     # nothing can close the script element early
 
