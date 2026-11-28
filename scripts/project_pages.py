@@ -1101,7 +1101,7 @@ const play=async marks=>{for(const[mark,old]of marks){const s=document.createEle
   else if(s.type==='module'){const id='tools-ran-'+Math.random().toString(36).slice(2),done=new Promise(r=>{addEventListener(id,r,{once:true});addEventListener('error',r,{once:true});setTimeout(r,10000)});
    s.textContent=old.textContent+'\\n;dispatchEvent(new Event('+JSON.stringify(id)+'))';mark.replaceWith(s);await done}
   else{s.textContent=old.textContent;mark.replaceWith(s)}}};
-// 📽️ The old popup handoff stays on this screen. Reuse the slide editor's normal image import (including undo).
+// 📽️ The old popup handoff stays on this screen. IronmatePhone.act("image", file) is the slide editor's own 📥 画像 (undoable).
 let sending=false;
 const connectHandoff=frame=>frame.contentDocument.querySelector('[data-slide-handoff]')?.addEventListener('click',async e=>{
  e.preventDefault();if(sending)return;sending=true;
@@ -1116,10 +1116,10 @@ const connectHandoff=frame=>frame.contentDocument.querySelector('[data-slide-han
   if(!slide)throw Error('Slide Studio is unavailable');
   if(!slide.dataset.ready)await new Promise(resolve=>slide.addEventListener('load',resolve,{once:true}));
   if(current!=='image-studio'||location.hash!==from)return;
-  const app=slide.contentWindow,input=slide.contentDocument.querySelector('input[data-file="image"]');
-  if(!input||!app.IronmatePhone)throw Error('Slide Studio did not load');
-  const transfer=new app.DataTransfer();transfer.items.add(new app.File([blob],'ironmate-image.png',{type:'image/png'}));
-  link.closest('dialog')?.close();location.hash='slide-studio';show(panel);input.files=transfer.files;input.dispatchEvent(new app.Event('change',{bubbles:true}));
+  const app=slide.contentWindow;
+  if(!app.IronmatePhone?.act)throw Error('Slide Studio did not load');
+  link.closest('dialog')?.close();location.hash='slide-studio';show(panel);
+  await app.IronmatePhone.act('image',new app.File([blob],'ironmate-image.png',{type:'image/png'}));  // its own realm's File
  }catch{status.textContent='画像を渡せませんでした。PNGを書き出し、スライド工房で読み込んでください。'}
  finally{if(!status.textContent)status.remove();sending=false}
 });
