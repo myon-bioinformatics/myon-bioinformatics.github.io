@@ -1182,10 +1182,35 @@ const play=async marks=>{for(const[mark,old]of marks){const s=document.createEle
   else if(s.type==='module'){const id='tools-ran-'+Math.random().toString(36).slice(2),done=new Promise(r=>{addEventListener(id,r,{once:true});addEventListener('error',r,{once:true});setTimeout(r,10000)});
    s.textContent=old.textContent+'\\n;dispatchEvent(new Event('+JSON.stringify(id)+'))';mark.replaceWith(s);await done}
   else{s.textContent=old.textContent;mark.replaceWith(s)}}};
-const show=(panel,target)=>{const inert=panel.querySelector(':scope>template');if(inert){const part=document.importNode(inert.content,true);  // 💤 a panel loads when first opened
+// 📽️ The old popup handoff stays on this screen. Reuse the slide editor's normal image import (including undo).
+let sending=false;
+const connectHandoff=frame=>frame.contentDocument.querySelector('[data-slide-handoff]')?.addEventListener('click',async e=>{
+ e.preventDefault();if(sending)return;sending=true;
+ const from=location.hash,link=e.currentTarget;
+ const status=link.nextElementSibling?.matches('[data-handoff-status]')?link.nextElementSibling:frame.contentDocument.createElement('span');
+ status.setAttribute('data-handoff-status','');status.setAttribute('role','status');status.textContent='';link.after(status);
+ try{
+  const blob=await frame.contentWindow.IronmateStudio.pngBlob(1);
+  if(current!=='image-studio'||location.hash!==from)return;
+  const panel=document.getElementById('slide-studio');mount(panel);
+  const slide=panel.querySelector('iframe');
+  if(!slide)throw Error('Slide Studio is unavailable');
+  if(!slide.dataset.ready)await new Promise(resolve=>slide.addEventListener('load',resolve,{once:true}));
+  if(current!=='image-studio'||location.hash!==from)return;
+  const app=slide.contentWindow,input=slide.contentDocument.querySelector('input[data-file="image"]');
+  if(!input||!app.IronmatePhone)throw Error('Slide Studio did not load');
+  const transfer=new app.DataTransfer();transfer.items.add(new app.File([blob],'ironmate-image.png',{type:'image/png'}));
+  link.closest('dialog')?.close();location.hash='slide-studio';show(panel);input.files=transfer.files;input.dispatchEvent(new app.Event('change',{bubbles:true}));
+ }catch{status.textContent='画像を渡せませんでした。PNGを書き出し、スライド工房で読み込んでください。'}
+ finally{if(!status.textContent)status.remove();sending=false}
+});
+const mount=panel=>{const inert=panel.querySelector(':scope>template');if(inert){const part=document.importNode(inert.content,true);  // 💤 a panel loads when first opened
   const marks=[...part.querySelectorAll('script')].filter(s=>runs.test(s.type)).map(s=>{const mark=document.createComment('▶️');s.replaceWith(mark);return[mark,s]});
   panel.replaceChildren(part);play(marks);
-  for(const frame of panel.querySelectorAll('iframe'))frame.addEventListener('load',()=>{frame.dataset.ready='1'},{once:true})}
+  for(const frame of panel.querySelectorAll('iframe'))frame.addEventListener('load',()=>{
+   if(panel.id==='image-studio')connectHandoff(frame);frame.dataset.ready='1'
+  },{once:true})}};
+const show=(panel,target)=>{mount(panel);
  for(const p of panels)p.hidden=p!==panel;document.title=panel.dataset.title;
  if(target)inside(panel,target);else if(current&&current!==panel.id)scrollTo(0,0);current=panel.id;mark()};
 const route=()=>{const name=decodeURIComponent(location.hash.slice(1)).split('?')[0];
@@ -1291,6 +1316,10 @@ def _framed(source: str, page: str, targets: dict[str, set[str] | None]) -> tupl
     its folder serves what its scripts resolve themselves, and its #links stay in it (``_FRAME_JS``). Both come first in
     ``<head>``, before any CSP of its own (which governs what follows it)."""
     title = _title(source, page)
+    if source == 'tools/image-studio/index.html' and 'tools/slide-studio/index.html' in targets:
+        # Standalone Ironmate uses a popup; only the embedded shelf uses the same-screen handoff.
+        page = page.replace('href="../slide-studio/#from-image-studio" target="_blank" rel="opener"',
+                            'href="/tools/#slide-studio" target="_top" data-slide-handoff')
     page = _rebase_links(_to_top(page, source, targets), source, panel_name(source), root=True)
     first = f'<base href="./{posixpath.relpath(posixpath.dirname(source), posixpath.dirname(SHELL_PAGE))}/"><script>{_FRAME_JS}</script>'
     page = (re.sub(r'<head\b[^>]*>', lambda head: head[0] + first, page, count=1) if re.search(r'<head\b', page)
