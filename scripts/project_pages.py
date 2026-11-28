@@ -176,7 +176,7 @@ def tools_places(prefix: str = '../') -> list[dict]:
     for a link that has none or shares its card's. 🌐 Its words in the other languages are the card's (``tools_words``): the chrome and
     a world carry them (``data-words``), so 🌐 finds them wherever the label is shown."""
     site, places = 'https://myon-bioinformatics.github.io/tools/', {}
-    marks = {'html-import': '📄', 'maps': '🗺️', 'tokyo': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'protocol': '🤝'}
+    marks = {'html-import': '📄', 'maps': '🗺️', 'world': '🌍', 'school': '🏫', 'tokyo': '🗼', 'london': '🎡', 'paris': '🥖', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'protocol': '🤝'}
     for card in _front_module().PORTAL:
         mark, _, title = card['title'].partition(' ')
         if not title or any(c.isalnum() for c in mark):                  # a title without an emoji: all of it is words
@@ -275,10 +275,10 @@ def recorded_samples(output: Path) -> frozenset[str]:
     return frozenset(path.relative_to(folder).as_posix().removesuffix('.gif') for path in folder.rglob('*.gif'))
 
 
-def tools_samples() -> dict[str, tuple[str, str]]:
-    """🧰 ``tools/<id>`` → (the page the card opens first, the card's title): what ``--record-samples`` records for the 🧰 Tools cards."""
+def tools_samples() -> dict[str, tuple[list[str], str]]:
+    """🧰 ``tools/<id>`` → (every page the card opens, the card's title): what ``--record-samples`` records for the 🧰 Tools cards."""
     front = _front_module()
-    return {f'tools/{card["id"]}': (urljoin(front._site_url, card['links'][0][1]), card['title']) for card in front.PORTAL}
+    return {f'tools/{card["id"]}': ([urljoin(front._site_url, href) for _, href in card['links']], card['title']) for card in front.PORTAL}
 
 
 def sample_stand_in(title: str) -> str:
@@ -289,12 +289,15 @@ def sample_stand_in(title: str) -> str:
         {'type': 'heading', 'text': '🎥 ⏳', 'level': 2}, {'type': 'text', 'text': 'このページはまだ撮れていません。次の公開で撮り直します。', 'muted': True}]})
 
 
-def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), size=(240, 432), max_bytes=300_000,
-                   browser=None, captions: dict[str, str] | None = None, stand_ins: dict[str, str] | None = None) -> list[str]:
+def record_samples(output: Path, pages: dict[str, str | list[str]], *, viewport=(392, 704), size=(240, 432), max_bytes=300_000,
+                   browser=None, captions: dict[str, str] | None = None, stand_ins: dict[str, str] | None = None,
+                   taps: dict[str, str] | None = None) -> list[str]:
     """🎥 Open each page in Chromium at phone size, keep the top and one screen further down, and write a two-frame GIF
-    per name as ``output/media/pages/<name>.gif`` with gif.js (a name may hold a folder: ``tools/gif``). The caption is
+    per name as ``output/media/pages/<name>.gif`` with gif.js (a name may hold a folder: ``tools/gif``). A name with several
+    pages (a list: a card's relatives) keeps the top of each instead, a frame per page. The caption is
     ``captions[name]``, else ``🌐 name``. Best effort: one line per name (🎥 / ⏸). A name in ``stand_ins`` (name → HTML) whose
-    page cannot be opened gets that HTML as its picture instead (⏸ … 🖼), so it is never left without one.
+    page cannot be opened gets that HTML as its picture instead (⏸ … 🖼), so it is never left without one. ``taps[name]``: what
+    to tap first on a page that opens with a choice (a selector; the first one shown), so the picture is the page behind it.
     ``browser``: a launched Playwright browser to use (a caller already inside Playwright); otherwise Chromium is started."""
     if browser is None:
         from playwright.sync_api import sync_playwright
@@ -302,7 +305,7 @@ def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), 
             chromium = playwright.chromium.launch()
             try:
                 return record_samples(output, pages, viewport=viewport, size=size, max_bytes=max_bytes, browser=chromium, captions=captions,
-                                      stand_ins=stand_ins)
+                                      stand_ins=stand_ins, taps=taps)
             finally:
                 chromium.close()
     import base64
@@ -324,18 +327,25 @@ def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), 
             (folder / f'{name.lower()}.gif').write_bytes(gif)
             return len(gif) // 1024
 
-        for name, url in pages.items():
-            try:
-                site.goto('about:blank')                   # 🧰 tools/#gif then tools/#maps: the same page under another # answers nothing, so start afresh
-                response = site.goto(url, wait_until='load', timeout=30_000)
-                if response is None or response.status >= 400:
-                    raise RuntimeError(f'HTTP {response.status if response else "no response"}')
-                site.wait_for_timeout(800)
-                frames = [site.screenshot()]
-                site.evaluate('h => window.scrollBy(0, h)', viewport[1])
+        def top(name: str, url: str) -> bytes:
+            site.goto('about:blank')                       # 🧰 tools/#gif then tools/#maps: the same page under another # answers nothing, so start afresh
+            response = site.goto(url, wait_until='load', timeout=30_000)
+            if response is None or response.status >= 400:
+                raise RuntimeError(f'HTTP {response.status if response else "no response"}')
+            site.wait_for_timeout(800)
+            if name in (taps or {}) and (choice := site.locator(taps[name]).locator('visible=true')).count():
+                choice.first.tap()                         # 🙂 a world asks for an avatar first: the picture is the place, not the question
                 site.wait_for_timeout(500)
-                if (lower := site.screenshot()) != frames[0]:
-                    frames.append(lower)
+            return site.screenshot()
+
+        for name, urls in pages.items():
+            try:
+                frames = [top(name, url) for url in ([urls] if isinstance(urls, str) else urls)]
+                if len(frames) == 1:
+                    site.evaluate('h => window.scrollBy(0, h)', viewport[1])
+                    site.wait_for_timeout(500)
+                    if (lower := site.screenshot()) != frames[0]:
+                        frames.append(lower)
                 lines.append(f'🎥 {name}: {len(frames)} frames · {save(name, frames)} KiB')
             except Exception as exc:                       # one Pages failing keeps the rest (and the deploy) going
                 lines.append(f'⏸ {name}: {type(exc).__name__}: {str(exc).splitlines()[0][:120] if str(exc) else ""}')
@@ -1370,8 +1380,9 @@ def main(argv=None):
     if args.record_samples:
         # 🎥 this portfolio too: its card shows the front page as Pages serves it now (the deploy before this one), and so do the 🧰 Tools
         tools = tools_samples()
-        print('\n'.join(record_samples(args.record_samples, {**pages_urls(), **{name: url for name, (url, _) in tools.items()}},
+        print('\n'.join(record_samples(args.record_samples, {**pages_urls(), **{name: urls for name, (urls, _) in tools.items()}},
                                        captions={name: title for name, (_, title) in tools.items()},
+                                       taps={f'tools/{card["id"]}': card['tap'] for card in _front_module().PORTAL if 'tap' in card},
                                        stand_ins={name: sample_stand_in(title) for name, (_, title) in tools.items()})))
     if args.record_map:
         print('\n'.join(record_map(args.record_map)))

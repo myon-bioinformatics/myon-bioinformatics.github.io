@@ -113,6 +113,13 @@ def test_moving_sample_is_recorded_for_a_pages_url(site, browser, tmp_path):
     assert re.fullmatch(r"⏸ tools/new: RuntimeError: HTTP 404 · 🖼 \d+ KiB", lines[4])     # 🖼 a Tools card is never left without a picture
     assert (tmp_path / "media/pages/tools/new.gif").read_bytes()[:6] == b"GIF89a" and not (tmp_path / "media/pages/gone.gif").exists()
     assert pages.recorded_samples(tmp_path) == {"portfolio", "tools/gif", "tools/maps", "tools/new"}
+    # 🪐 a card of several pages: a frame per page, and 🙂 a world's first question is tapped away so the picture is the place
+    places = {"tools/worlds": [site[1] + "/tools/#world", site[1] + "/tools/#tokyo", site[1] + "/tools/#paris"]}
+    asked = pages.record_samples(tmp_path, places, browser=browser)
+    question = (tmp_path / "media/pages/tools/worlds.gif").read_bytes()
+    walked = pages.record_samples(tmp_path, places, browser=browser, taps={"tools/worlds": next(card["tap"] for card in pages._front_module().PORTAL if card["id"] == "worlds")})
+    assert asked[0].startswith("🎥 tools/worlds: 3 frames") and walked[0].startswith("🎥 tools/worlds: 3 frames")
+    assert (tmp_path / "media/pages/tools/worlds.gif").read_bytes() != question
 
 
 def test_a_tools_card_picture_opens_the_tool_and_the_weekly_note_draws_its_bars_with_a_gif(site, browser, page):

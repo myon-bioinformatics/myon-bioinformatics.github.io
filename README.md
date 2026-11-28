@@ -89,7 +89,8 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 | 案内 | リンク |
 | --- | --- |
 | HTML文書取込 | [tools/#html-import](https://myon-bioinformatics.github.io/tools/#html-import) |
-| 📍地図URL・座標ピン留め | [tools/#maps](https://myon-bioinformatics.github.io/tools/#maps) · [パラレル東京](https://myon-bioinformatics.github.io/tools/#tokyo) |
+| 📍 地図URL・座標ピン留め（実在の緯度・経度） | [tools/#maps](https://myon-bioinformatics.github.io/tools/#maps) |
+| 🪐 仮想・拡張エリア（歩いて回る空間） | [🌍 村](https://myon-bioinformatics.github.io/tools/#world) · [🏫 学校](https://myon-bioinformatics.github.io/tools/#school) · [🗼 パラレル東京](https://myon-bioinformatics.github.io/tools/#tokyo) · [🎡 Reverse London](https://myon-bioinformatics.github.io/tools/#london) · [🥖 Fake Paris](https://myon-bioinformatics.github.io/tools/#paris) |
 | 🖼️ スライド・画像工房（Ironmate） | [Image Studio](https://myon-bioinformatics.github.io/tools/#image-studio) · [Browser Tools](https://myon-bioinformatics.github.io/tools/#browser-tools) · [Slide Studio](https://myon-bioinformatics.github.io/tools/#slide-studio) |
 | 🌡️ ヒートマップ（DRAgoWing · Ironmate） | [tools/#heatmap](https://myon-bioinformatics.github.io/tools/#heatmap) |
 | 🔌 MCP 実験室（mcp-toolcall-lab） | [Tool Lab](https://myon-bioinformatics.github.io/tools/#mcp) · [Execution Lab](https://myon-bioinformatics.github.io/tools/#mcp-execution) · [MCP 接続試験](https://myon-bioinformatics.github.io/tools/#protocol) |
@@ -296,9 +297,13 @@ add_site_chrome(page, 'tools/index.html', {'🗼': {'label': 'パラレル都市
 
 ### 🎥 Tools カードの動く見本と 🗓️ 週次ノート
 
-- 🎥 🧰 Tools の各カードにも、🚀 Projects のカードと同じ動く見本（GIF）が付きます。絵を押すと、その道具が開きます（🧭 統合運用のような別リポジトリのページも同じ）。絵があるカードでは、文字のリンクは開き先が複数ある（似た道具が並ぶ）カードにだけ残します。公開のたびに `--record-samples` が、いま公開中の道具のページを撮ります（`media/pages/tools/<id>.gif`）。ページを開けなかったカードには、名前と 🎥 ⏳ のかわりの絵を付け、どのカードも同じ形にそろえます。
+- 🎥 🧰 Tools の各カードにも、🚀 Projects のカードと同じ動く見本（GIF）が付きます。絵を押すと、その道具が開きます（🧭 統合運用のような別リポジトリのページも同じ）。絵があるカードでは、文字のリンクは開き先が複数ある（似た道具が並ぶ）カードにだけ残します。公開のたびに `--record-samples` が、いま公開中の道具のページを撮ります（`media/pages/tools/<id>.gif`）。開き先が複数あるカードは、開き先ごとに 1 コマです（🪐 仮想・拡張エリアは 村 → 学校 → パラレル東京 → Reverse London → Fake Paris）。最初に選択を求めるページは、カードの `tap` に書いた場所を押してから撮ります（ワールドの絵文字選び）。ページを開けなかったカードには、名前と 🎥 ⏳ のかわりの絵を付け、どのカードも同じ形にそろえます。
 - 🗓️ 週次ノートは `docs/weekly-view.md`（ふつうの Markdown）です。前の週（月〜日、日本時間）にマージした PR を、毎日の Update repos API が月曜に書き直します（`scripts/repos_catalog.py --weekly`、GitHub の REST 検索）。
 - 📊 ビルド時に markdown.py で HTML にし、表の数値だけの列は棒にします（`table_bars`、JS なし）。別の `.md` を載せるときは `site.config.json` の `documents` に 1 行足します。
+
+📍 地図（実在の緯度・経度）と 🪐 仮想・拡張エリア（歩いて回る空間）は別のカードです。下は 🪐 のカードの見本そのもの（Chromium 392×704 を 240×456 に）。
+
+![🪐 仮想・拡張エリアの動く見本: 村・学校・パラレル東京・Reverse London・Fake Paris を 1 コマずつ](docs/evidence/tools-sample-worlds.gif)
 
 ![Tools カードの動く見本を押すと 🎞 GIF工房が開き、戻って 🗓️ 週次ノートの表が棒で描かれている（Chromium 560×480）](docs/evidence/tools-sample-weekly-bars.gif)
 
@@ -362,9 +367,9 @@ uv run --locked --only-group browser python tests/world_browser.py -v           
 
 📖 [教室・土地・実在の場所](docs/world-classroom.md) · [動き](docs/world-motion.md) · [共有掲示板](docs/world-shared-board.md)。PySaiyanWeBoo から移しました（同じページを描きます）。
 
-### 📍地図URL・座標ピン留め
+### 📍 地図URL・座標ピン留め
 
-🧰 Tools → **📍地図URL・座標ピン留め** (`tools/#maps`) で、緯度・経度からApple MapsとGoogle MapsのURLを生成できます。地図URLからの座標入力、端末内のピン保存・解除、地点リンクのコピー、端末の共有メニューに対応します。共有先は保存操作なしで同じ座標を開けます。ピンはブラウザごとの保存で、端末間では同期しません。保存やコピーが許可されていない場合は画面に表示します。
+🧰 Tools → **📍 地図URL・座標ピン留め** (`tools/#maps`) で、緯度・経度からApple MapsとGoogle MapsのURLを生成できます。地図URLからの座標入力、端末内のピン保存・解除、地点リンクのコピー、端末の共有メニューに対応します。共有先は保存操作なしで同じ座標を開けます。ピンはブラウザごとの保存で、端末間では同期しません。保存やコピーが許可されていない場合は画面に表示します。
 
 パラレル都市 (`tools/#tokyo`) 内の東京21地点と相互に移動できます。座標・地図URL生成は固定済みPSWB、ミニチュアは `scripts/world.py` から再利用します。東京の座標はミニチュア用の概略値で、施設の正確な入口を保証するものではありません。URLだけを作るため地図APIキーは不要です。
 
