@@ -406,7 +406,7 @@ class SchoolTests(unittest.TestCase):
         path.write_text(W.world_document(W.example_data("cities")), encoding="utf-8")
         page = self.open(path=path)
         self.start(page, "🧳")
-        self.assertEqual(page.eval_on_selector_all(".ui-world-goto option", "els => els.map(e => e.value)"), ["tokyo", "london", "paris", "osaka"])
+        self.assertEqual(page.eval_on_selector_all(".ui-world-goto option", "els => els.map(e => e.value)"), ["tokyo", "london", "paris", "osaka", "nagoya"])
         page.select_option(".ui-world-goto", "london")
         sign = '.ui-floor[data-floor="london"] .ui-spot[data-flip]'
         face = lambda: page.eval_on_selector(sign, "e => [e.textContent, e.dataset.show || '', getComputedStyle(e).fontSize]")    # noqa: E731

@@ -277,13 +277,20 @@ def test_world_shell_routes_and_shared_favorites(site, browser, width):
         expect(space).to_have_attribute('data-world-route', name)
 
     try:
-        for name, label in [('paris', 'Fake Paris'), ('london', 'Reverse London')]:
+        for name, label in [('paris', 'Fake Paris'), ('london', 'Reverse London'), ('nagoya', '名古屋'), ('osaka', '大阪')]:
             page.goto('about:blank')
             page.goto(path + '#' + name)
             expect(space).to_have_attribute('data-world-route', name)
             expect(page.locator('#world-space-name')).to_contain_text(label)
             expect(page.locator('#cities-map .ui-world-goto')).to_have_value(name)
             expect(page.locator(f'#cities-map [data-floor="{name}"].ui-floor')).to_be_visible()
+        page.locator('#cities-map .ui-world-pick-grid [data-emoji]').first.click()
+        page.locator('#cities-map .ui-world-home').click()
+        page.locator('#cities-map .ui-world-ask button[data-t="home"]').click()
+        expect(space).to_have_attribute('data-world-route', 'tokyo')
+        page.go_back()
+        expect(space).to_have_attribute('data-world-route', 'osaka')
+        page.goto('about:blank')
         page.goto(path + '#school')
         page.evaluate('window.sameWorldDocument = true')
         school = page.locator('#school-map')
@@ -323,6 +330,36 @@ def test_world_shell_routes_and_shared_favorites(site, browser, width):
     finally:
         context.close()
 
+
+
+def test_every_world_destination_is_reachable_from_every_other(site, browser):
+    page = browser.new_page()
+    base = site[1] + '/tools/demos/world.html'
+    try:
+        page.goto(base + '#camera')
+        page.evaluate('window.originalWorldDocument = document')
+        nav = page.locator('[data-world-nav]')
+        scenes = dict(nav.locator('a').evaluate_all('(links) => links.map(a => [a.hash.slice(1), a.dataset.scene])'))
+        assert set(scenes) >= {'camera', 'world', 'school', 'tokyo', 'nagoya', 'osaka', 'paris', 'london'}
+        for origin in scenes:
+            for destination, scene in scenes.items():
+                if destination == origin:
+                    continue
+                for route in (origin, destination):
+                    nav.locator('summary').click()
+                    nav.locator(f'a[href="#{route}"]').click()
+                    expect(page.locator('[data-world-shell]')).to_have_attribute('data-world-route', route)
+                expect(page.locator(f'[data-world-space="{scene}"]')).to_be_visible()
+                if scene == 'cities':
+                    expect(page.locator(f'#cities-map .ui-floor[data-floor="{destination}"]')).to_be_visible()
+        assert page.evaluate('window.originalWorldDocument === document')
+        last_destination = page.locator('[data-world-shell]').get_attribute('data-world-route')
+        page.go_back()
+        expect(page.locator('[data-world-shell]')).to_have_attribute('data-world-route', origin)
+        page.go_forward()
+        expect(page.locator('[data-world-shell]')).to_have_attribute('data-world-route', last_destination)
+    finally:
+        page.close()
 
 
 def test_the_world_is_one_document_entered_by_fragment_with_queries_and_spots(site, browser):

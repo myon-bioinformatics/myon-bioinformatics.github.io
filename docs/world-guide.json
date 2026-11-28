@@ -42,6 +42,12 @@
    "scene": "cities"
   },
   {
+   "id": "#nagoya",
+   "type": "Guide",
+   "name": "🏯 名古屋",
+   "scene": "cities"
+  },
+  {
    "id": "#camera",
    "type": "Guide",
    "name": "🎬 カメラ",
@@ -1947,6 +1953,51 @@
    "markdown": "osaka-guide.md"
   },
   {
+   "id": "cities/nagoya",
+   "type": "State",
+   "name": "Nagoya"
+  },
+  {
+   "id": "cities/nagoya/nagoya-meieki",
+   "type": "Task",
+   "name": "名古屋駅",
+   "detail": "名駅から街歩きを始めよう。東へ向かうと柳橋に出る。",
+   "x": 80,
+   "y": 80
+  },
+  {
+   "id": "cities/nagoya/nagoya-yanagibashi",
+   "type": "Task",
+   "name": "柳橋",
+   "detail": "橋のたもとから西に名駅、東に伏見の街並みを望める。",
+   "x": 240,
+   "y": 144
+  },
+  {
+   "id": "cities/nagoya/nagoya-fushimi",
+   "type": "Task",
+   "name": "伏見駅",
+   "detail": "栄へ続く道と、南の大須へ向かう道が分かれる。",
+   "x": 432,
+   "y": 112
+  },
+  {
+   "id": "cities/nagoya/nagoya-sakae",
+   "type": "Task",
+   "name": "栄駅",
+   "detail": "にぎやかな街角。西へ歩くと伏見に戻れる。",
+   "x": 720,
+   "y": 80
+  },
+  {
+   "id": "cities/nagoya/nagoya-osu",
+   "type": "Task",
+   "name": "大須観音駅",
+   "detail": "商店街の入口。北に向かうと伏見に戻れる。",
+   "x": 496,
+   "y": 336
+  },
+  {
    "id": "quest/q-talk-captain",
    "type": "Goal",
    "name": "マルゴ隊長へ着任報告",
@@ -2358,6 +2409,11 @@
    "source": "guide",
    "kind": "explains",
    "target": "#osaka"
+  },
+  {
+   "source": "guide",
+   "kind": "explains",
+   "target": "#nagoya"
   },
   {
    "source": "guide",
@@ -3638,6 +3694,36 @@
    "source": "cities/osaka",
    "kind": "see_also",
    "target": "osaka-guide.json"
+  },
+  {
+   "source": "#nagoya",
+   "kind": "contains",
+   "target": "cities/nagoya"
+  },
+  {
+   "source": "cities/nagoya",
+   "kind": "offers",
+   "target": "cities/nagoya/nagoya-meieki"
+  },
+  {
+   "source": "cities/nagoya",
+   "kind": "offers",
+   "target": "cities/nagoya/nagoya-yanagibashi"
+  },
+  {
+   "source": "cities/nagoya",
+   "kind": "offers",
+   "target": "cities/nagoya/nagoya-fushimi"
+  },
+  {
+   "source": "cities/nagoya",
+   "kind": "offers",
+   "target": "cities/nagoya/nagoya-sakae"
+  },
+  {
+   "source": "cities/nagoya",
+   "kind": "offers",
+   "target": "cities/nagoya/nagoya-osu"
   },
   {
    "source": "#paris",

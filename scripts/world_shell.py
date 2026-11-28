@@ -10,6 +10,7 @@ SPACES = {
     'london': ('cities', '🎡 Reverse London'),
     'paris': ('cities', '🥖 Fake Paris'),
     'osaka': ('cities', '🐙 せやかて大阪'),
+    'nagoya': ('cities', '🏯 名古屋'),
     'camera': ('world', '🎬 カメラ'),
 }
 
@@ -86,7 +87,7 @@ for(const panel of menu.querySelectorAll('details')){
 }
 cities.addEventListener('change',e=>{
  const control=e.target;
- if(!e.isTrusted||!(control.matches('.ui-world-goto')||control.name==='cities-floor')||!cityFloors.includes(control.value))return;
+ if(!cityFloors.includes(shell.dataset.worldRoute)||!(control.matches('.ui-world-goto')||control.name==='cities-floor')||!cityFloors.includes(control.value))return;
  if(shell.dataset.worldRoute!==control.value){history.pushState(null,'','#'+control.value);route();}
 });
 addEventListener('hashchange',route);

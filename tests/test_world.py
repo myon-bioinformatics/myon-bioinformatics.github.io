@@ -788,7 +788,7 @@ def test_a_mark_is_an_emoji_in_place_of_the_dot_scaled_by_the_world():
     """A spot's mark (or its category's, through place_floor marks=) replaces the dot and leads the name; mark_scale sets every mark's width and height."""
     cities = W.world_validate(W.example_data("cities"))
     assert cities["mark_scale"] == [1.5, 1.5]
-    assert {s["category"]: s.get("mark") for f in cities["floors"] for s in f["spots"]} == {"exit": "🎫", "station": "🚉", "terminus": "🚆", "sign": None}
+    assert {s["category"]: s.get("mark") for f in cities["floors"] for s in f["spots"]} == {"exit": "🎫", "station": "🚉", "terminus": "🚆", "sign": None, "landmark": None}
     html = W.world_html(W.example_data("cities"))
     assert 'style="--mark-x:1.5;--mark-y:1.5"' in html
     assert "top:1232px;--mark:'🎫'\"" in html and "--mark:'🛗'" not in html           # 🛗 is the footer's: an exit is a ticket gate
@@ -1198,8 +1198,8 @@ def by_id(floor):
     return {s["id"].split("-", 1)[1]: s for s in floor["spots"]}
 
 
-def test_the_cities_are_four_floors_with_every_spot_walkable(cities):
-    assert list(cities) == ["tokyo", "london", "paris", "osaka"]
+def test_the_city_floors_with_every_spot_walkable(cities):
+    assert list(cities) == ["tokyo", "london", "paris", "osaka", "nagoya"]
     for floor in cities.values():
         reach = walkable(floor)
         assert len(floor["props"]) <= 512 and len(floor["spots"]) <= 64
