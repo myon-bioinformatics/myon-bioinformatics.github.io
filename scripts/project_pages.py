@@ -835,7 +835,7 @@ function localModel(runtime){
    let output="",tokens=0;
    const start=performance.now(),quiet={temperature:0.3,chat_template_kwargs:{enable_thinking:false}};
    const info=llm.getLoadedContextInfo?.()??{};
-   if(tools&&Math.min(info.n_ctx??0,info.n_ctx_train||info.n_ctx||0)>=2048){   // 🔧 tools need the room; a small model answers as before
+   if(tools?.list.length&&Math.min(info.n_ctx??0,info.n_ctx_train||info.n_ctx||0)>=2048){   // 🔧 tools need the room; a small model answers as before
     let message={};
     try{const first=await llm.createChatCompletion({messages,tools:tools.list,tool_choice:"auto",max_tokens:limit,...quiet});
      message=first.choices?.[0]?.message??{};tokens+=first.usage?.completion_tokens??0}catch{}   // ⏸ no tool pass: answer as before
@@ -860,7 +860,7 @@ const [chat] = webUiChat.bindChat(document);
 let bot = null;
 const generateAnswer=localModel(cfg.runtime);
 async function ask(text,reply){
- const messages=JSON.parse(bot.ask_messages(text));                // 🔧 then the model may call 🔎 find · 👀 show · 🧬 onto
+ const messages=JSON.parse(bot.ask_messages(text));                // ⚖️ Jev picks the 🔌 MCP tools the model may call
  const tools={list:JSON.parse(bot.ask_tools()),call:(name,args)=>{reply.text(`🔧 /${name} …`);return JSON.parse(bot.ask_call(name,args))}};
  const {output,tokens,seconds,llm}=await generateAnswer(messages,s=>reply.text(s),256,tools);
  return bot.ask_html.callKwargs(output,tokens,seconds,
@@ -937,14 +937,14 @@ def chat_books() -> list[dict]:
               ('🔎 JSON / JSONL', ('find', 'show')), ('🧬 オントロジー', ('onto', 'guess')), ('🧷 OLNM', ('olnm',)),
               ('🧯 失敗 · 🤖 LLM', ('triage', 'ask')), ('⌨️ もしかして', ())]           # (a runbook holds 1..8 books)
     recorded = {'compress': '🗂 TalkCompress の短い文と 📏 文字数（TalkCompress は公開時に記録）',
-                'mcp': '🔌 mcp-toolcall-lab が広告する道具で判定（✅ 送ってよい／❌ 断る。道具は公開時に記録）',
+                'mcp': '🔌 ページの中の MCP サーバーが答える（✅ tools/call・⚠️ isError・❌ JSON-RPC のエラー。mcp-toolcall-lab のコードは公開時に記録）',
                 'find': '🔎 公開時に取得できた JSON / JSONL の索引から検索', 'show': '👀 そのコミットの raw を読んで表に',
                 'onto': '🧬 OnTautoLogy の概念の台帳（concepts-*.json、索引のコミットの raw）から、属（似たものと共通）と種差（決め手）',
                 'guess': '🎯 台帳の概念を 1 つ思い浮かべて y / n / ? で回答。最後に候補名を確認する',
                 # argparse's error text varies by Python release; the live chat still shows its suggestions.
                 'typo': '⌨️ もしかして: 入力ミスに近いコマンドや引数を提案する',
                 'ask': '🤖 初回だけ約 560 MB のモデルを読み、端末の中で答える（⚡ WebGPU があれば GPU、なければ 🧮 CPU 1 スレッド）。'
-                       '🔧 モデルが呼んだ道具（✅ 実行・❌ 広告にない／型が合わない）を答えの上に並べる'}
+                       '⚖️ Jev が渡した道具と 🔧 モデルが呼んだ道具（✅ 実行・❌ 渡していない／型が合わない）を答えの上に並べる'}
     books = []
     for label, names in groups:
         examples = [(name, example) for name in names for example in chat.COMMANDS[name][3]] or [('typo', t) for t in chat.TYPOS]
@@ -962,8 +962,9 @@ def chat_document(ui) -> str:
     chat = _chat()
     page = ui.page_document({'schema': 'web-ui-page/1', 'title': '💬 横断チャット', 'description':
                              'markdown.py・ascii_artist・cli_args・TalkCompress・mcp-toolcall-lab・OnTautoLogy・OLNM・Err-o-RoadRunner をページの中の Python で。'
-                             '公開リポジトリの JSON / JSONL を索引から検索できる。🤖 /ask は llama.cpp が端末の中で答え、🔎 /find・👀 /show・🧬 /onto を道具として呼ぶ。'
-                             '送った文はどこにも送らない（/show は GitHub の raw を、/ask はモデルを読むだけ）。',
+                             '公開リポジトリの JSON / JSONL を索引から検索できる。🔌 /mcp はページの中の MCP サーバー（Wikipedia・PokéAPI・索引・台帳）、'
+                             '🤖 /ask は llama.cpp が端末の中で答え、⚖️ Jev が選んだその道具を呼ぶ。'
+                             '送った文はどこにも送らない（/show は GitHub の raw を、/ask はモデルを読むだけ。🔌 Wikipedia・PokéAPI の道具だけは、その引数をそのサイトへ）。',
                              'blocks': [{'type': 'tabs', 'id': 'chat', 'tabs': [
                                  {'label': '💬 チャット', 'blocks': [{'type': 'text', 'text': _CHAT_SLOT}]},
                                  {'label': '📇 索引', 'blocks': [{'type': 'runbook', 'id': 'chat-index', 'choice': '📇 道具',
@@ -1001,12 +1002,12 @@ def _tree(repository: str, commit: str) -> tuple[list[tuple[str, int]], bool]:
 
 def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, tree=_tree) -> list[str]:
     """💬 What the chat knows of the other repositories, at their current commits, under ``output/media/chat/``: index.json
-    (observed JSON / JSONL paths and sizes, repository scan errors, the tools advertised by mcp-toolcall-lab,
-    and README summaries from api/repos.json) and TalkCompress's shorthand compressor (talkcompress/).
+    (observed JSON / JSONL paths and sizes, repository scan errors and README summaries from api/repos.json), TalkCompress's
+    shorthand compressor (talkcompress/) and the mcp-toolcall-lab code the page's MCP server runs (lab/: ``chat.LAB``).
     Repositories in commits without a scan error were fully listed."""
     catalog = json.loads((root / 'api/repos.json').read_text(encoding='utf-8'))
     folder = Path(output) / CHAT
-    commits, files, tools, scan_errors, missed, compressor = {}, [], {}, {}, [], '⏸'
+    commits, files, scan_errors, missed, compressor, lab = {}, [], {}, [], '⏸', '⏸'
     for name in [repo['name'] for repo in catalog['repos'] if not repo.get('archived')]:
         try:
             commit = head(f'{OWNER}/{name}')
@@ -1021,12 +1022,14 @@ def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, t
         commits[name] = commit
         files += [[name, path, size] for path, size in blobs if path.lower().endswith(('.json', '.jsonl', '.ndjson'))]
         try:
-            if name == 'mcp-toolcall-lab':
-                for path, _ in blobs:
-                    if path.startswith('fixtures/prompt_experiments/') and path.endswith('.json'):
-                        fixture = json.loads(raw(f'{OWNER}/{name}', commit, path) or b'{}')
-                        for tool in fixture.get('openai', {}).get('request', {}).get('tools', []):
-                            tools.setdefault(tool['function']['name'], tool['function'])
+            if name == 'mcp-toolcall-lab':                 # 🔌 the code the page's MCP server runs (chat.LAB), all or nothing
+                texts = {path: raw(f'{OWNER}/{name}', commit, path) for path in _chat().LAB}
+                if None in texts.values():
+                    raise FileNotFoundError(next(path for path, data in texts.items() if data is None))
+                for path, data in texts.items():
+                    (folder / 'lab' / path).parent.mkdir(parents=True, exist_ok=True)
+                    (folder / 'lab' / path).write_bytes(data)
+                lab = f'✅ {commit[:7]}'
             if name == 'TalkCompress':
                 for path in _chat().TALKCOMPRESS:
                     data = raw(f'{OWNER}/{name}', commit, path)
@@ -1044,10 +1047,9 @@ def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, t
         text = ' '.join(text.split())
         if text and not repo.get('archived'):
             summaries[repo['name']] = text if len(text) <= 160 else text[:159] + '…'
-    index = {'schema': 'chat-index/1', 'owner': OWNER, 'commits': commits, 'files': files, 'tools': list(tools.values()),
-             'repos': summaries, 'scan_errors': scan_errors}
+    index = {'schema': 'chat-index/1', 'owner': OWNER, 'commits': commits, 'files': files, 'repos': summaries, 'scan_errors': scan_errors}
     (folder / 'index.json').write_text(json.dumps(index, ensure_ascii=False, separators=(',', ':')) + '\n', encoding='utf-8')
-    return [f'💬 {len(commits)} repositories · {len(files)} JSON/JSONL · 🔌 {len(tools)} tools · 🗂 TalkCompress {compressor}', *missed]
+    return [f'💬 {len(commits)} repositories · {len(files)} JSON/JSONL · 🔌 mcp-toolcall-lab {lab} · 🗂 TalkCompress {compressor}', *missed]
 
 
 # ── 🧰 道具: Ironmate's studios, mcp-toolcall-lab's tools and execution lab (🔌 MCP 実験室) and DRAgoWing's heatmap, built
@@ -1533,7 +1535,7 @@ def main(argv=None):
     parser.add_argument('--record-map', type=Path, metavar='DIR',
                         help="🧠 read every repository's vendor.lock.json (and Aoi's subtrees) and draw the map under DIR/media/map/")
     parser.add_argument('--record-chat', type=Path, metavar='DIR',
-                        help="💬 index every repository's JSON / JSONL, mcp-toolcall-lab's tools and TalkCompress's compressor under DIR/media/chat/")
+                        help="💬 index every repository's JSON / JSONL, mcp-toolcall-lab's code (the page's MCP server) and TalkCompress's compressor under DIR/media/chat/")
     args = parser.parse_args(argv)
     for target in (args.output, args.stage, args.copy_source):
         if target:
