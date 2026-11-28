@@ -14,8 +14,9 @@ the portfolio's way back, shortcut label and icons. The 🌍 world pages (script
 🗼 the parallel cities, 🎬 the camera: the screen's #worlds panel) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and
 are not among the cards. Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
 
-🧰 Every tool, built here or in another repository, is a #panel of one screen, ``tools/index.html`` (``render_shell``): the
-documents are built for where they once lived (hash-locked like before) and never published as pages of their own. The two
+🧰 Every tool, built here or in another repository, is a #panel of one screen, ``tools/index.html`` (``render_shell``): this
+site's own are keyed ``folder/#name`` (``render_pages``, hash-locked), the others' are built in their folders (``--record-tools``),
+and none is published as a page of its own. The two
 pages (the site and the screen) share one chrome, ``add_site_chrome()``: 🧰 PySaiyanWeBoo's board with the clock, 🏠 ⭐ ⚙️ and
 each page's own ☰ ⋯ (``tools_chrome()``), and 🚪 its Door-to-Door, every 🧰 Tools link as a footer pull-down (``tools_door()``).
 ``load_module()`` loads a file of this repository by path (a sibling script or a vendored module) without touching ``sys.path``.
@@ -88,7 +89,7 @@ def world_page(ui) -> str:
     shell = load_module('world_shell', 'scripts/world_shell.py')
     maps = load_module('map_tool', 'scripts/map_tool.py')
     css, js = ('./' + path.removeprefix('tools/') for path in WORLD_ASSETS)       # from tools/ (the screen); ./ : an import specifier needs it
-    places = tools_places('../')                                          # 🧰 from tools/ (the screen)
+    places = tools_places()                                               # 🧰 from tools/ (the screen)
     runtime = {key: _chat().RUNTIME[key] for key in ('wllama', 'model')}
     dialogue = WLLAMA_JS + f'\nconst worldAnswer = localModel({json.dumps(runtime)});\n'
     dragon_png, dragon_grid = ('./' + path.removeprefix('tools/') for path in DRAGON_ASSETS)
@@ -167,9 +168,9 @@ def _front_module():
     return load_module('front_page', 'scripts/front_page.py')
 
 
-def tools_places(prefix: str = '../../') -> list[dict]:
+def tools_places(prefix: str = '../') -> list[dict]:
     """🧰 Every link of the 🧰 Tools cards (front_page.py ``PORTAL``, so a new card is a new row) as ``{'id', 'label', 'href'}``, for
-    a page ``prefix`` below the site root: the doors of 🚪 Door-to-Door. ``text`` is the card's own description (the board shows it).
+    a page ``prefix`` below the site root (``../``: the screen's): the doors of 🚪 Door-to-Door. ``text`` is the card's own description (the board shows it).
 
     Every label is ``emoji words``, one emoji per page (the door knows a page by its emoji): the card's own, or the one named here
     for a link that has none or shares its card's. 🌐 ``labels`` is the label in the other languages, when the card names its words
@@ -1207,7 +1208,7 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
     The header, the side and the foot are the site's (``add_site_chrome``) once; a panel stays an inert ``<template>`` until it is
     first opened (its styles and scripts load then), and ``#section`` opens the panel that holds it.
     🆔 One owner per id: two of this site's panels that share one stop the build; another repository's gets ⏸ in its place."""
-    places = {place['href']: place['label'] for place in tools_places('../')}
+    places = {place['href']: place['label'] for place in tools_places()}
     names = [panel_name(source) for source in panels]
     owners = {name: name for name in ('home', *names, 'door', 'door-select', 'tools-chrome')}
     routes = {source: _routes(data.decode('utf-8')) - set(owners) for source, (data, _, framed) in panels.items() if framed}

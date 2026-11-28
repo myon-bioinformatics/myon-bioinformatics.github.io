@@ -101,7 +101,7 @@ def test_tool_cards_and_door_follow_the_service_catalog(tmp_path, monkeypatch):
     assert './tools/example-image/' in parser.links  # keep the heatmap-to-editor shortcut
     assert 'https://myon-bioinformatics.github.io/tools/example-execution/' in parser.links
     assert not any('/image-studio/' in href or '/mcp/execution/' in href for href in parser.links)
-    doors = [place['href'] for place in PAGES.tools_places()]
+    doors = [place['href'] for place in PAGES.tools_places('../../')]
     assert doors.count('../../tools/example-image/') == 1
     assert '../../tools/example-execution/' in doors
 
