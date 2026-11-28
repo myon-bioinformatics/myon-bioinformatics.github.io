@@ -16,6 +16,8 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
+from vendor.cli_args import run_cli
+
 
 # ═══ 🟢 Node version message ═══════════════════════════════════════════════════════════════════════════════════════
 
@@ -301,8 +303,8 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
         shutil.copyfile(ROOT / name, root / name)
     shutil.copyfile(ROOT / 'projects.json', root / 'projects.json')                       # the project cards' curation
     output = tmp_path / 'cli-output'
-    result = subprocess.run([sys.executable, str(root / 'scripts/project_pages.py'),
-                             '--refresh-lock', '--output', str(output)], capture_output=True, text=True)
+    result = run_cli(root / 'scripts/project_pages.py',
+                     '--refresh-lock', '--output', str(output))
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout) == json.loads((ROOT / 'web-ui-assets.lock.json').read_text())
     assets.build(tmp_path / 'function-output', root)
@@ -314,8 +316,8 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
         assert (tmp_path / 'function-output' / name).read_bytes() == data
     assert (output / assets.SHELL_PAGE).read_bytes() == (tmp_path / 'function-output' / assets.SHELL_PAGE).read_bytes()
     # The old CLI without refresh uses the same validated generation path.
-    result = subprocess.run([sys.executable, str(root / 'scripts/project_pages.py'),
-                             '--output', str(output)], capture_output=True, text=True)
+    result = run_cli(root / 'scripts/project_pages.py',
+                     '--output', str(output))
     assert result.returncode == 0, result.stderr
 
 
