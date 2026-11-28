@@ -31,7 +31,7 @@ wheels = [
 [[package]]
 name = "ascii-artist-dev"
 version = "0.0.0"
-source = { git = "https://github.com/myon-bioinformatics/ascii_artist?branch=main#2e0b59fbbf7710f7ccb33d4c8490ee69d279813e" }
+source = { git = "https://github.com/myon-bioinformatics/ascii_artist?branch=main#ca29ec3216de193557b83e59c1ce02faf0aa9051" }
 
 [[package]]
 name = "browserbase"
@@ -227,7 +227,7 @@ wheels = [
 [[package]]
 name = "md-market"
 version = "0.0.0"
-source = { git = "https://github.com/myon-bioinformatics/markdown?branch=main#3b8a83ba272a408f567fff03f48318e9f432b69a" }
+source = { git = "https://github.com/myon-bioinformatics/markdown?branch=main#b0592bda336a508f43c8fe2a1382d844815a056a" }
 
 [[package]]
 name = "myon-bioinformatics-github-io-tests"
@@ -358,7 +358,7 @@ test = [
 [[package]]
 name = "one-launch-numerous-modules"
 version = "0.6.0"
-source = { git = "https://github.com/myon-bioinformatics/OneLaunchNumerousModules?branch=main#1ce9f9ecc86605892af272819414891df164dbe9" }
+source = { git = "https://github.com/myon-bioinformatics/OneLaunchNumerousModules?branch=main#41287d5fe416de15fd068b21d84188fd30f8e89b" }
 
 [[package]]
 name = "ontautology"
