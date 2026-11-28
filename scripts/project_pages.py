@@ -9,8 +9,7 @@ and ``--refresh-lock`` rewrites the lock after the pin moves.
 
 The 🧰 Tools cards (scripts/front_page.py ``PORTAL``) list the practical pages, each one working on what the visitor brings:
 the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in the page; ``--record-chat`` indexes the other repositories at deploy
-time) and PySaiyanWeBoo's own tool documents (🧾 the JUnit reader, whose 🧯 hands a run to the chat's /triage;
-🤝 its MCP connection test is the lab's #protocol panel), published with
+time) and PySaiyanWeBoo's own tool documents (🧾 the JUnit reader, whose 🧯 hands a run to the chat's /triage), published with
 the portfolio's way back, shortcut label and icons. The 🌍 world pages (scripts/world.py: the travel world, 🏫 the school,
 🗼 the parallel cities, 🎬 the camera: the screen's #worlds panel) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and
 are not among the cards. Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
@@ -30,7 +29,6 @@ import hashlib
 import html
 import importlib.util
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -935,15 +933,12 @@ def record_chat(output: Path, root: Path = ROOT, *, head=_ls_remote, raw=_raw, t
     return [f'💬 {len(commits)} repositories · {len(files)} JSON/JSONL · 🔌 mcp-toolcall-lab {lab} · 🗂 TalkCompress {compressor}', *missed]
 
 
-# ── 🧰 道具: Ironmate's studios, mcp-toolcall-lab's tools and execution lab (🔌 MCP 実験室) and DRAgoWing's heatmap, built
-# from their default branches at deploy time; each lives at its feature route, not at the repository's name ──
+# ── 🧰 道具: Ironmate's studios, the format lab and DRAgoWing's heatmap, built from their default branches at deploy time;
+# each lives at its feature route, not at the repository's name ──
 TOOLS = 'media/tools/receipt.json'       # what this build recorded; the pages live under their folders (not kept in git)
-# key: (repository, folder under the site, entry pages inside it). The lab's tools come before its execution lab, which
-# lives inside them (a tool replaces its whole folder).
+# key: (repository, folder under the site, entry pages inside it); a tool replaces its whole folder.
 _STUDIO_ROUTES = load_module('studio_routes', '_src/tools/studio_routes.py')
 TOOL_SOURCES = {'ironmate': ('myon-bioinformatics/Ironmate', 'tools', _STUDIO_ROUTES.PUBLIC_STUDIO_ENTRIES),   # entries: each a framed #panel
-                'mcp-toolcall-lab': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp', ('',)),
-                'mcp-toolcall-lab-execution': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp/execution', ('',)),
                 'format-lab': ('myon-bioinformatics/myon-bioinformatics', 'tools/format-lab', ()),   # () : its page joins the 🧰 screen
                 'dragowing': ('myon-bioinformatics/DRAgoWing', 'tools/heatmap', ())}
 CHECKOUTS = '.test-deps'   # 🧪 local checkouts (CI pins them) that --stage builds the tools from, one folder per repository
@@ -951,7 +946,7 @@ CHECKOUTS = '.test-deps'   # 🧪 local checkouts (CI pins them) that --stage bu
 
 def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, str]) -> dict:
     """Build each tool from its checkout with this ``python`` (📦 its pages group carries the pinned PySaiyanWeBoo the tools
-    render through; the lab's build also runs Node) into ``output/<folder>/`` (the 🧰 screen takes its pages in: ``tool_panels``)
+    render through) into ``output/<folder>/`` (the 🧰 screen takes its pages in: ``tool_panels``)
     and write the receipt; a tool that fails is left out. Returns the receipt."""
     made, failed = [], {}
     for key, (repository, folder, entries) in TOOL_SOURCES.items():
@@ -961,8 +956,7 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
         try:
             with tempfile.TemporaryDirectory() as tmp:       # build aside; the ⏸ page stays unless the whole tool built
                 built = Path(tmp) / 'site'
-                run = lambda *args, env=None: subprocess.run([sys.executable, *args], cwd=checkouts[key], check=True,
-                                                             capture_output=True, timeout=900, env=env)
+                run = lambda *args: subprocess.run([sys.executable, *args], cwd=checkouts[key], check=True, capture_output=True, timeout=900)
                 if key == 'ironmate':
                     run('image_studio.py', '--build-site', str(built))
                 elif key == 'format-lab':
@@ -970,18 +964,6 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                 elif key == 'dragowing':                          # 🌡️ one page on stdout; its scenes open in Image Studio
                     built.mkdir()
                     (built / 'index.html').write_bytes(run('scripts/build_heatmap_page.py').stdout)
-                elif key == 'mcp-toolcall-lab':                   # 🔌 Wiki · Pixiv · Pokémon and the diagnostics (Python only)
-                    env = {**os.environ, 'PYTHONPATH': os.pathsep.join(('src', 'vendor'))}
-                    run('-m', 'mcp_toolcall_lab.stub_front', 'pages', '--out', str(built), env=env)
-                    run('-m', 'mcp_toolcall_lab.mcp_toolcall_lab_repository_diagnostics', str(built), env=env)
-                    lab = load_module('mcp_lab', '_src/tools/mcp_lab.py')
-                    lab.stage_lab_tools(built, commits[key], checkouts[key])   # 🖼️ framed
-                else:
-                    run('scripts/build_portable_pages.py', '--source-sha', commits[key], '--out', str(Path(tmp) / 'lab'),
-                        env={**os.environ, 'PYTHONPATH': 'src'})
-                    shutil.move(str(Path(tmp) / 'lab' / 'execution'), str(built))
-                    for copy in built.glob('runtime/**/*.html'):   # 🚫 a source copy of the page (it is index.html); runtime.zip keeps it
-                        copy.unlink()
                 if key == 'ironmate':
                     mapped = Path(tmp) / 'mapped'
                     _STUDIO_ROUTES.stage_ironmate_studios(built, mapped)   # 🖼️ framed in the screen
@@ -993,13 +975,6 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                         shutil.move(str(mapped / entry), str(target))
                     made.append(key)
                     continue
-                for _, inner, _ in TOOL_SOURCES.values():      # a tool inside this one (the execution lab) stays as it was
-                    nested = inner[len(folder) + 1:] if inner.startswith(folder + '/') else ''
-                    if nested and (dest / nested).exists() and not (built / nested).exists():
-                        (built / nested).parent.mkdir(parents=True, exist_ok=True)
-                        shutil.move(str(dest / nested), str(built / nested))
-                if key == 'mcp-toolcall-lab':
-                    lab.stage_lab_branding(built, checkouts[key])
                 if dest.exists():
                     shutil.rmtree(dest)
                 dest.parent.mkdir(parents=True, exist_ok=True)
@@ -1020,7 +995,7 @@ def record_tools(output: Path, remote: str = 'https://github.com/') -> list[str]
     with tempfile.TemporaryDirectory() as tmp:
         for key, (repository, _, _) in TOOL_SOURCES.items():
             try:
-                if repository not in cloned:                      # one clone per repository (the lab has two tools)
+                if repository not in cloned:                      # one clone per repository
                     checkout = Path(tmp) / repository.split('/')[1]
                     subprocess.run(['git', 'clone', '--quiet', '--depth', '1', remote + repository, str(checkout)], check=True,
                                    timeout=300)
@@ -1154,7 +1129,7 @@ _FRAME_CSS = '.ui-tools-frame{display:block;width:100%;height:calc(100dvh - 72px
 
 def panel_name(source: str) -> str:
     """🧰 The #name a tool has on the screen: this site's own name it (``tools/#gif``), another's is its path under tools/
-    (``tools/mcp/execution/index.html`` → ``mcp-execution``)."""
+    (``tools/heatmap/index.html`` → ``heatmap``)."""
     return source.partition('#')[2] or re.sub(r'(?:/index)?\.html$', '', source.removeprefix('tools/')).replace('/', '-')
 
 
@@ -1417,7 +1392,7 @@ def main(argv=None):
     parser.add_argument('--record-flow', type=Path, metavar='DIR',
                         help='🌊 run FFSS and DRAgoWing (their default branches) and put the flow lab media under DIR/media/flow/')
     parser.add_argument('--record-tools', type=Path, metavar='DIR',
-                        help='🧰 build the tools of TOOL_SOURCES (Ironmate, mcp-toolcall-lab, DRAgoWing; their default branches) under DIR/tools/')
+                        help='🧰 build the tools of TOOL_SOURCES (Ironmate, the format lab, DRAgoWing; their default branches) under DIR/tools/')
     parser.add_argument('--record-map', type=Path, metavar='DIR',
                         help="🧠 read every repository's vendor.lock.json (and Aoi's subtrees) and draw the map under DIR/media/map/")
     parser.add_argument('--record-chat', type=Path, metavar='DIR',
