@@ -62,7 +62,7 @@ PORTAL = [
   'from': ('DRAgoWing', 'Ironmate'),
   'links': [('開く →', './tools/#heatmap'), ('🖼️ 画像工房で編集 →', _service_url('Ironmate', 'pages', relative=True))]},
  {'title': '🔌 MCP 実験室', 'id': 'mcp',
-  'text': 'AI が MCP で呼ぶ道具（Wikipedia・Pixiv・ニコニコ・ポケモン）をブラウザで試し、呼び出しの記録を集計。',
+  'text': 'AI が MCP で呼ぶ道具（Wikipedia・Pixiv・ニコニコ・ポケモン）をブラウザで試し、記録を集計。💬 の /mcp でも。',
   'words': {'MCP 実験室': ['MCP lab', 'Labo MCP', 'Laboratorio MCP', 'Laboratório MCP', 'مختبر MCP', 'MCP 实验室', 'Лаборатория MCP', 'Lab MCP', 'MCP-Labor', 'Maabara ya MCP'], 'MCP 接続試験': ['MCP connection test', 'Test de connexion MCP', 'Prueba de conexión MCP', 'Teste de conexão MCP', 'اختبار اتصال MCP', 'MCP 连接测试', 'Проверка подключения MCP', 'Uji koneksi MCP', 'MCP-Verbindungstest', 'Jaribio la muunganisho wa MCP']},
   'from': ('mcp-toolcall-lab',),
   'links': [('開く →', './tools/#mcp'), ('🤝 MCP 接続試験 →', './tools/#protocol')]},
@@ -72,14 +72,14 @@ PORTAL = [
   'from': ('mcp-toolcall-lab',),
   'links': [('開く →', _service_url('mcp-toolcall-lab', 'execution', relative=True))]},
  {'title': '🧾 テスト結果', 'id': 'test-report',
-  'text': 'JUnit の結果を貼るか開いて読み、前回と比べて新規・再発・解消を分ける。結果はどこにも送らない。',
+  'text': 'JUnit の結果を読み、前回と比べて新規・再発・解消を分ける。🧯 で失敗をチャットの /triage へ。結果は送らない。',
   'words': {'テスト結果': ['Test results', 'Résultats de tests', 'Resultados de pruebas', 'Resultados de testes', 'نتائج الاختبار', '测试结果', 'Результаты тестов', 'Hasil pengujian', 'Testergebnisse', 'Matokeo ya majaribio']},
   'from': ('PySaiyanWeBoo',),
   'links': [('開く →', './tools/#test-report')]},
  {'title': '💬 横断チャット', 'id': 'chat',
-  'text': 'Markdown・ASCII アート・会話の圧縮・MCP 呼び出し・JSON の索引を、ページの中の Python でチャットから。',
+  'text': 'Markdown・ASCII アート・会話の圧縮・JSON 索引・🧯 triage を Python で。🤖 /ask の LLM も呼ぶ。',
   'words': {'横断チャット': ['Cross-repo chat', 'Chat inter-dépôts', 'Chat entre repositorios', 'Chat entre repositórios', 'دردشة عبر المستودعات', '跨仓库聊天', 'Чат по всем репозиториям', 'Obrolan lintas repo', 'Repo-übergreifender Chat', 'Gumzo la hazina zote']},
-  'from': ('markdown', 'ascii_artist', 'cli_args', 'TalkCompress', 'mcp-toolcall-lab'),
+  'from': ('markdown', 'ascii_artist', 'cli_args', 'TalkCompress', 'mcp-toolcall-lab', 'Err-o-RoadRunner'),
   'links': [('開く →', './tools/#chat')]},
  {'title': '🧭 統合運用', 'id': 'operations',
   'text': 'リポジトリ横断の運用ダッシュボード：CI の失敗・競合・未解決レビュー、監査と依存、実行手順、記録と差分。',
@@ -124,8 +124,6 @@ def portal_cards(samples=frozenset()) -> str:
         parts.append('<p>' + html.escape(card['text'], quote=False) + '</p>')
         if 'from' in card:
             parts.append('<p class="portal-from">🧩 出どころ: ' + ' · '.join(html.escape(name, quote=False) for name in card['from']) + '</p>')
-        if 'points' in card:
-            parts.append('<ul class="portal-points">' + ''.join(f'<li>{point}</li>' for point in card['points']) + '</ul>')
         if not shown or len(card['links']) > 1:
             parts += [f'<a href="{html.escape(href, quote=True)}">{html.escape(label, quote=False)}</a>' for label, href in card['links']]
         out.append('        <article class="card portal-card">' + ''.join(parts) + '</article>\n')
@@ -708,33 +706,6 @@ h2{margin:0 0 .75rem}
   color: var(--muted);
   font-style: italic;
 }
-.card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 10px;
-  gap: 8px;
-}
-.copy-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 3px 8px;
-  font: inherit;
-  font-size: 0.75rem;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all .15s ease;
-}
-.copy-btn:hover {
-  color: var(--fg);
-  border-color: var(--fg);
-}
-.copy-btn.copied {
-  background: #2da44e;
-  border-color: #2da44e;
-  color: #ffffff;
-}
 
 .grid {
   display: grid;
@@ -751,14 +722,6 @@ h2{margin:0 0 .75rem}
 .card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.06); }
 .card h3 { margin: 0 0 6px; font-size: 1.05rem; }
 .card p { margin: 0 0 10px; color: var(--muted); line-height: 1.4; }
-.badges { display: flex; flex-wrap: wrap; gap: 6px; }
-.badges .tag {
-  font-size: .75rem; background: #f3f4f6; border: 1px solid var(--border);
-  padding: 2px 8px; border-radius: 999px; color: #333;
-}
-@media (prefers-color-scheme: dark) {
-  .badges .tag { background: #141417; color: #ddd; }
-}
 .more { margin-top: 8px; font-size: .95rem; }
 
 /* ── Profile tabs (PySaiyanWeBoo's tabs_html: a radio and a label each, no script) ── */
@@ -819,8 +782,7 @@ body[data-view-mode="modern"] {
   color: var(--terminal-fg);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
-body[data-view-mode="modern"] .site-header,
-body[data-view-mode="modern"] .site-footer {
+body[data-view-mode="modern"] .site-header {
   border-color: var(--terminal-border);
   border-style: dashed;
 }
@@ -834,8 +796,7 @@ body[data-view-mode="modern"] .view-mode-switch select {
 }
 body[data-view-mode="modern"] .intro h2::before,
 body[data-view-mode="modern"] #profile h2::before,
-body[data-view-mode="modern"] #projects h2::before,
-body[data-view-mode="modern"] .outro h2::before {
+body[data-view-mode="modern"] #projects h2::before {
   content: "> ";
   color: var(--terminal-accent);
 }
@@ -869,8 +830,12 @@ body[data-view-mode="modern"] .btn-refresh {
   background: var(--terminal-panel);
   color: var(--terminal-fg);
 }
-body[data-view-mode="modern"] .btn-refresh::before { content: "[ "; color: var(--terminal-border); }
-body[data-view-mode="modern"] .btn-refresh::after { content: " ]"; color: var(--terminal-border); }
+body[data-view-mode="modern"] .btn-refresh::before,
+body[data-view-mode="modern"] .ui-tab::before,
+body[data-view-mode="modern"] .tag-btn::before { content: "[ "; color: var(--terminal-border); }
+body[data-view-mode="modern"] .btn-refresh::after,
+body[data-view-mode="modern"] .ui-tab::after,
+body[data-view-mode="modern"] .tag-btn::after { content: " ]"; color: var(--terminal-border); }
 body[data-view-mode="modern"] .ui-tabs { gap: 0; }
 body[data-view-mode="modern"] .ui-tab-panel { border-top: 1px dashed var(--terminal-border); }
 body[data-view-mode="modern"] .ui-tab {
@@ -878,14 +843,13 @@ body[data-view-mode="modern"] .ui-tab {
   border-bottom: 0;
   color: var(--terminal-muted);
 }
-body[data-view-mode="modern"] .ui-tab::before { content: "[ "; color: var(--terminal-border); }
-body[data-view-mode="modern"] .ui-tab::after { content: " ]"; color: var(--terminal-border); }
 body[data-view-mode="modern"] .ui-tab-input:checked + .ui-tab {
   border-right-color: var(--terminal-border);
   color: var(--terminal-fg);
   background: rgba(126,231,135,.08);
 }
-body[data-view-mode="modern"] .ui-tab-input:checked + .ui-tab::before { content: "[> "; color: var(--terminal-accent); }
+body[data-view-mode="modern"] .ui-tab-input:checked + .ui-tab::before,
+body[data-view-mode="modern"] .tag-btn.active::before { content: "[> "; color: var(--terminal-accent); }
 body[data-view-mode="modern"] .card {
   border-radius: 0;
   border-color: var(--terminal-border);
@@ -897,13 +861,6 @@ body[data-view-mode="modern"] .card p,
 body[data-view-mode="modern"] .tl-body p,
 body[data-view-mode="modern"] .tl-year,
 body[data-view-mode="modern"] .skill-category { color: var(--terminal-muted); }
-body[data-view-mode="modern"] .badges .tag {
-  border-radius: 0;
-  border-color: var(--terminal-border);
-  background: transparent;
-  color: var(--terminal-fg);
-}
-body[data-view-mode="modern"] .badges .tag::before { content: "#"; color: var(--terminal-accent); }
 body[data-view-mode="modern"] .skill-bar-track {
   height: 10px;
   border: 1px solid var(--terminal-border);
@@ -939,63 +896,27 @@ body[data-view-mode="modern"] .tag-btn {
   border-color: var(--terminal-border);
   color: var(--terminal-muted);
 }
-body[data-view-mode="modern"] .tag-btn::before { content: "[ "; color: var(--terminal-border); }
-body[data-view-mode="modern"] .tag-btn::after { content: " ]"; color: var(--terminal-border); }
 body[data-view-mode="modern"] .tag-btn.active {
   background: rgba(126, 231, 135, .12);
   color: var(--terminal-fg);
   border-color: var(--terminal-accent);
 }
-body[data-view-mode="modern"] .tag-btn.active::before { content: "[> "; color: var(--terminal-accent); }
 body[data-view-mode="modern"] .projects-count,
 body[data-view-mode="modern"] .empty-projects-msg {
   color: var(--terminal-muted);
-}
-body[data-view-mode="modern"] .copy-btn {
-  border-radius: 0;
-  border-color: var(--terminal-border);
-  background: transparent;
-  color: var(--terminal-fg);
-}
-body[data-view-mode="modern"] .copy-btn.copied {
-  background: var(--terminal-accent);
-  color: var(--terminal-bg);
-  border-color: var(--terminal-accent);
 }
 
 /* ── XML-like mode ───────────────────────────────────────────────────────── */
 body[data-view-mode="xml-like"] {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
-body[data-view-mode="xml-like"] h2[data-tag]::before {
-  content: "<" attr(data-tag) ">";
-  margin-right: .4rem;
-  color: var(--syntax-xml);
-  font-size: .9em;
-}
-body[data-view-mode="xml-like"] h2[data-tag]::after {
-  content: "</" attr(data-tag) ">";
-  margin-left: .4rem;
-  color: var(--syntax-xml);
-  font-size: .9em;
-}
-body[data-view-mode="xml-like"] .card,
-body[data-view-mode="xml-like"] .timeline-item,
-body[data-view-mode="xml-like"] .skill-group {
+body[data-view-mode="xml-like"] .card {
   border-radius: 0;
 }
 
 /* ── JSON mode ───────────────────────────────────────────────────────────── */
 body[data-view-mode="json"] {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
-body[data-view-mode="json"] h2[data-tag]::before {
-  content: '"' attr(data-tag) '": ';
-  color: var(--syntax-json-punctuation);
-}
-body[data-view-mode="json"] h2[data-tag]::after {
-  content: ",";
-  color: var(--syntax-json-punctuation);
 }
 body[data-view-mode="json"] .container {
   border-left: 3px solid var(--border);
@@ -1029,17 +950,10 @@ body[data-view-mode="github-like"] {
   color: #24292f;
 }
 body[data-view-mode="github-like"] .site-header,
-body[data-view-mode="github-like"] .site-footer,
 body[data-view-mode="github-like"] .card,
 body[data-view-mode="github-like"] .ui-tab-panel,
 body[data-view-mode="github-like"] .view-mode-switch select {
   background: #ffffff;
-}
-body[data-view-mode="github-like"] .site-header,
-body[data-view-mode="github-like"] .site-footer,
-body[data-view-mode="github-like"] .card,
-body[data-view-mode="github-like"] .ui-tab-panel,
-body[data-view-mode="github-like"] .view-mode-switch select {
   border-color: #d0d7de;
 }
 body[data-view-mode="github-like"] .card {
@@ -1049,10 +963,6 @@ body[data-view-mode="github-like"] .card {
 body[data-view-mode="github-like"] .card:hover {
   transform: none;
   box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
-}
-body[data-view-mode="github-like"] .badges .tag {
-  background: #f6f8fa;
-  color: #57606a;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1172,13 +1082,6 @@ body[data-view-mode="modern"] #projects .section-sub { color: var(--terminal-mut
   font-weight: 600;
 }
 .portal-card > a.project-sample { margin: 0 0 8px; }
-.portal-points {
-  margin: 0 0 12px;
-  padding-left: 1.2em;
-  font-size: 0.9em;
-  overflow-wrap: anywhere;
-}
-.portal-points li + li { margin-top: 4px; }
 .portal-from { margin: 0 0 8px; font-size: 0.8em; color: var(--ui-muted); overflow-wrap: anywhere; }
 
 /* Dedicated notation renderers. Layout lives here; content still comes from profile.json/projects.json. */
