@@ -2030,6 +2030,21 @@ def test_portfolio_worlds_share_one_engine_and_standalone_stays_self_contained()
     assert 'world-assets/' not in standalone
 
 
+def test_each_panel_brings_the_rows_it_declares_to_the_screens_header():
+    """⚙️ ⋯ A panel that declares rows (PySaiyanWeBoo chrome_rows_script; Ironmate's studios: 📋 the shelf, 💻 ⇄ 📱) gets them in the
+    screen's one header while it shows, a panel that declares none gets none, and the screen tells the header which panel shows."""
+    import pysaiyanweboo as ui
+    shelf = ui.chrome_rows_script({'screen': [{'label': '📋 シェルフ', 'key': 'shelf'}], 'replaces': '#studio-head'})
+    page = lambda body: f'<!doctype html><html><head><title>T</title></head><body>{body}</body></html>'.encode()
+    shell = PAGES.render_shell(ui, {'tools/app/index.html': (page('<header id="studio-head">🏭</header>' + shelf), 'myon-bioinformatics/App', True),
+                                    'tools/a/index.html': (page('<p>a</p>'), None, False)}).decode()
+    assert '<template data-chrome-view="app" data-replaces="#studio-head">' in shell and 'data-chrome-view="a"' not in shell
+    assert shell.index('<template data-chrome-view="app"') < shell.index('<section id="app"')               # the header's, not the panel's
+    assert "document.dispatchEvent(new CustomEvent('ui-chrome-view',{detail:{name:panel.id,root:frame?frame.contentDocument:panel}}))" in shell
+    front = PAGES.render_front()['index.html'].decode('utf-8')                                              # 🧾 the front page declares its own
+    assert ui.chrome_rows_of(_front().document())['settings'][0]['key'] == 'mode' and front.count('data-chrome-choice="mode"') >= 1
+
+
 def test_the_one_screen_keeps_one_owner_per_id():
     """🆔 Two tools of the one screen never share an id (getElementById would hand one the other's element): the portfolio's own
     panels fail the build, a tool of another repository gets ⏸ in its place; a <body> class (ui-elements) holds for its panel."""
