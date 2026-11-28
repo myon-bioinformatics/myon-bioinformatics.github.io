@@ -8,6 +8,7 @@ SPACES = {
     'tokyo': ('cities', '🗼 パラレル東京'),
     'london': ('cities', '🎡 Reverse London'),
     'paris': ('cities', '🥖 Fake Paris'),
+    'nagoya': ('nagoya', '🏯 聖地ナゴヤ'),
     'camera': ('world', '🎬 カメラ'),
 }
 
@@ -74,9 +75,27 @@ cities.addEventListener('change',e=>{
  if(!e.isTrusted||!(control.matches('.ui-world-goto')||control.name==='cities-floor')||!cityFloors.includes(control.value))return;
  if(shell.dataset.worldRoute!==control.value){history.pushState(null,'','#'+control.value);route();}
 });
+function updateRelicsPill(){
+ const pill=shell.querySelector('#world-relics-count'),list=shell.querySelector('#world-relics-list');
+ if(!pill||!list)return;
+ const pressed=[...shell.querySelectorAll('.ui-world-take[aria-pressed="true"]')];
+ const relics=pressed.filter(b=>b.dataset.itemId?.includes('-dragon-')||b.dataset.itemId?.includes('-chest-'));
+ pill.textContent=`${relics.length}/14`;
+ if(!relics.length){
+  list.innerHTML='<p class="ui-world-note" style="padding:.5rem;margin:0">リバースロンドンや聖地ナゴヤで龍をお世話して、伝説の秘宝を手に入れよう！</p>';
+  return;
+ }
+ const items=relics.map(b=>{
+  const id=b.dataset.itemId,label=b.dataset.itemLabel||id,emoji=b.dataset.itemEmoji||'🏆';
+  const targetId=id.replace(/^[a-z0-9-]+-spot-/,'');
+  return `<a href="#${CSS.escape(targetId)}">${emoji} ${label}</a>`;
+ });
+ list.innerHTML=items.join('');
+}
+window.addEventListener('world-bag-change',updateRelicsPill);
 addEventListener('hashchange',route);
 shell.addEventListener('world-location',route);
-route();listFavorites();
+route();listFavorites();updateRelicsPill();
 """
 
 
@@ -92,9 +111,12 @@ def document(ui, world, maps, places, css_href, js_href):
         sections.append(f'<section id="{route}" data-world-space="{spec}" aria-label="{escape(SPACES[route][1])}">{body}</section>')
     nav = ''.join(f'<a href="#{route}" data-scene="{scene}">{escape(label)}</a>' for route, (scene, label) in SPACES.items())
     tools = ''.join(f'<a href="{escape(p["href"], quote=True)}">{escape(p["label"])}</a>' for p in places)
+    relics_details = ('<details id="world-relics-menu"><summary id="world-relics-btn">🐉 竜と秘宝 <span id="world-relics-count">0/14</span></summary>'
+                      '<div id="world-relics-list"><p class="ui-world-note" style="padding:.5rem;margin:0">リバースロンドンや聖地ナゴヤで龍をお世話して、伝説の秘宝を手に入れよう！</p></div></details>')
     header = ('<header class="ui-world-head"><div id="world-switcher" class="world-switcher"><nav class="ui-world-tools" aria-label="ワールド">'
               f'<details data-world-nav><summary aria-label="空間一覧">☰</summary><div>{nav}</div></details>'
               '<strong id="world-space-name">🌍 ワールド</strong>'
+              + relics_details +
               '<details><summary>⭐ お気に入り</summary><div id="world-favorites">まだありません</div></details>'
               f'<details><summary>🧰 道具</summary><div>{tools}</div></details></nav></div></header>')
     body = ('<main><div data-world-shell>' + header + ''.join(sections) + '</div></main>'

@@ -787,7 +787,10 @@ def test_a_mark_is_an_emoji_in_place_of_the_dot_scaled_by_the_world():
     """A spot's mark (or its category's, through place_floor marks=) replaces the dot and leads the name; mark_scale sets every mark's width and height."""
     cities = W.world_validate(W.example_data("cities"))
     assert cities["mark_scale"] == [1.5, 1.5]
-    assert {s["category"]: s.get("mark") for f in cities["floors"] for s in f["spots"]} == {"exit": "🎫", "station": "🚉", "terminus": "🚆", "sign": None}
+    assert {s["category"]: s.get("mark") for f in cities["floors"] for s in f["spots"]} == {
+        "exit": "🎫", "station": "🚉", "terminus": "🚆", "sign": None,
+        "npc": "💬", "item": "✨", "dragon": "🐲", "battle": "⚔️",
+    }
     html = W.world_html(W.example_data("cities"))
     assert 'style="--mark-x:1.5;--mark-y:1.5"' in html
     assert "top:1232px;--mark:'🎫'\"" in html and "--mark:'🛗'" not in html           # 🛗 is the footer's: an exit is a ticket gate
@@ -1245,7 +1248,7 @@ def test_london_is_its_main_termini_and_the_stations_beside_them(cities):
     kinds = {}
     for key, spot in spots.items():
         kinds.setdefault(spot["category"], []).append(key)
-    assert sorted(kinds) == ["sign", "station", "terminus"]                                          # transport only: no sights, no institutions
+    assert sorted(kinds) == ["battle", "dragon", "item", "npc", "sign", "station", "terminus"]
     assert len(kinds["terminus"]) == 13
     for key in ("kings-cross", "paddington", "waterloo", "victoria", "liverpool-street", "london-bridge", "euston", "charing-cross"):
         assert key in kinds["terminus"]
@@ -1959,4 +1962,170 @@ class OverworldRpgTests(unittest.TestCase):
         overworld_doc = W.world_document(W.example_data("overworld"))
         self.assertIn("ui-rpg-hud", overworld_doc)
         self.assertIn("bindWorldRpg", overworld_doc)
+
+
+class ReverseLondonRpgTests(unittest.TestCase):
+    def test_reverse_london_rpg_structure(self):
+        cities = W.world_validate(W.example_data("cities"))
+        self.assertIn("rpg", cities)
+        rpg = cities["rpg"]
+        self.assertEqual(len(rpg["dragons"]), 5)
+        for sid in ("london-rl-dragon-pyth", "london-rl-dragon-wing", "london-rl-dragon-queryu",
+                    "london-rl-dragon-cachere", "london-rl-dragon-nogard"):
+            self.assertIn(sid, rpg["dragons"])
+            d = rpg["dragons"][sid]
+            self.assertEqual(d["bond_max"], 30)
+            self.assertTrue(d["relic_label"])
+            self.assertIn("cross_effect", d)
+            stats_sum = d["cross_effect"].get("atk", 0) + d["cross_effect"].get("def", 0) + d["cross_effect"].get("hp", 0)
+            self.assertGreater(stats_sum, 0)
+
+        # 5 NPCs, 5 drops, 4 chests, 2 enemies
+        london = next(f for f in cities["floors"] if f["id"] == "london")
+        self.assertEqual(len(london["spots"]), 57)
+        self.assertEqual(len(london["actors"]), 2)
+        by_category = {}
+        for s in london["spots"]:
+            by_category.setdefault(s["category"], []).append(s["id"])
+        self.assertEqual(len(by_category["npc"]), 5)
+        self.assertEqual(len(by_category["item"]), 9)
+        self.assertEqual(len(by_category["dragon"]), 5)
+        self.assertEqual(len(by_category["battle"]), 2)
+
+    def test_rpg_dragon_stage_thresholds(self):
+        self.assertEqual(W.rpg_dragon_stage(0)["stage"], 0)
+        self.assertEqual(W.rpg_dragon_stage(0)["emoji"], "🥚")
+        self.assertEqual(W.rpg_dragon_stage(5)["stage"], 1)
+        self.assertEqual(W.rpg_dragon_stage(5)["emoji"], "🐣")
+        self.assertEqual(W.rpg_dragon_stage(15)["stage"], 2)
+        self.assertEqual(W.rpg_dragon_stage(15)["emoji"], "🐲")
+        self.assertEqual(W.rpg_dragon_stage(30)["stage"], 3)
+        self.assertEqual(W.rpg_dragon_stage(30)["emoji"], "🐉")
+
+    def test_cross_world_synergy_and_nogard_relic(self):
+        overworld = W.world_validate(W.example_data("overworld"))
+        synergy = overworld["rpg"]["synergy"]
+        self.assertIn("cities-spot-london-rl-dragon-nogard", synergy)
+        nogard = synergy["cities-spot-london-rl-dragon-nogard"]
+        self.assertEqual(nogard["atk"], 22)
+        self.assertEqual(nogard["skill"]["label"], "リバース・ドラグーン")
+        self.assertEqual(nogard["skill"]["mult_pct"], 320)
+
+
+class NagoyaRpgTests(unittest.TestCase):
+    def test_nagoya_spec_validation(self):
+        nagoya = W.world_validate(W.example_data("nagoya"))
+        self.assertIn("rpg", nagoya)
+        rpg = nagoya["rpg"]
+        self.assertEqual(len(nagoya["floors"]), 1)
+        self.assertEqual(len(nagoya["floors"][0]["spots"]), 33)
+        self.assertEqual(len(nagoya["floors"][0]["actors"]), 0)
+
+        # Fame and Deeds
+        self.assertEqual(rpg["fame"]["target"], 95)
+        self.assertEqual(len(rpg["deeds"]), 7)
+        deed_ids = {d["id"] for d in rpg["deeds"]}
+        self.assertEqual(deed_ids, {"clean-trash", "cheer-call", "give-ball", "morning-prep", "history-quiz", "dome-sponsor", "mall-shopping"})
+        total_fame = sum(d["fame"] for d in rpg["deeds"])
+        self.assertEqual(total_fame, 125)
+
+        # NPCs and help
+        self.assertEqual(len(rpg["npcs"]), 8)
+        ouendan = rpg["npcs"]["nagoya-npc-ouendan"]
+        self.assertTrue(ouendan["on_contact"])
+        self.assertEqual(ouendan["help"]["deed_id"], "cheer-call")
+        self.assertEqual(ouendan["help"]["fame"], 15)
+
+        boy = rpg["npcs"]["nagoya-npc-boy"]
+        self.assertEqual(boy["help"]["req_item"], "nagoya-drop-ball")
+
+        craftsman = rpg["npcs"]["nagoya-npc-craftsman"]
+        self.assertEqual(craftsman["help"]["req_item"], "nagoya-drop-trash")
+
+        dome = rpg["npcs"]["nagoya-dome"]
+        self.assertEqual(dome["speaker"], "バンテリンドーム ナゴヤ")
+        self.assertEqual(dome["emoji"], "🏟️")
+        self.assertTrue(dome["on_contact"])
+        self.assertEqual(dome["help"]["deed_id"], "dome-sponsor")
+        self.assertEqual(dome["help"]["cost"], 30)
+        self.assertEqual(dome["help"]["fame"], 25)
+        self.assertTrue(dome["help"]["repeatable"])
+
+        dome_spot = next(s for s in nagoya["floors"][0]["spots"] if s["id"] == "nagoya-dome")
+        self.assertEqual(dome_spot.get("mark"), "🏟️")
+
+        aeon = rpg["npcs"]["nagoya-aeon-mall"]
+        self.assertTrue(aeon["on_contact"])
+        self.assertTrue(aeon["shop"])
+        self.assertEqual(aeon["help"]["deed_id"], "mall-shopping")
+        self.assertEqual(aeon["help"]["fame"], 15)
+
+        # Shop: 3 cafe + 5 aeon = 8 items
+        self.assertEqual(len(rpg["shop"]), 8)
+        cafe_items = [s for s in rpg["shop"] if s.get("spot_id") == "nagoya-npc-cafe"]
+        aeon_items = [s for s in rpg["shop"] if s.get("spot_id") == "nagoya-aeon-mall"]
+        self.assertEqual(len(cafe_items), 3)
+        self.assertEqual(len(aeon_items), 5)
+
+        # Enemies: boss at hisaya
+        self.assertIn("nagoya-hisaya", rpg["enemies"])
+        self.assertTrue(rpg["enemies"]["nagoya-hisaya"]["boss"])
+
+        # Loot: 5 drops + 4 chests = 9 items
+        self.assertEqual(len(rpg["loot"]), 9)
+        drops = [k for k, v in rpg["loot"].items() if v["kind"] == "drop"]
+        chests = [k for k, v in rpg["loot"].items() if v["kind"] == "chest"]
+        self.assertEqual(len(drops), 5)
+        self.assertEqual(len(chests), 4)
+
+        # Dragon
+        self.assertIn("nagoya-dragon-dragoon", rpg["dragons"])
+        dragoon = rpg["dragons"]["nagoya-dragon-dragoon"]
+        self.assertEqual(dragoon["bond_max"], 30)
+        self.assertEqual(dragoon["favorite_item"], "手羽先")
+        self.assertEqual(dragoon["cross_effect"]["skill_label"], "ドラグーンスカイバースト")
+
+        # Quests and Badges
+        self.assertEqual(len(rpg["quests"]), 8)
+        self.assertEqual(len(rpg["badges"]), 7)
+        badge_ids = {b["id"] for b in rpg["badges"]}
+        self.assertIn("dome-patron", badge_ids)
+        self.assertIn("aeon-shopper", badge_ids)
+
+    def test_fan_fame_rank_thresholds(self):
+        self.assertEqual(W.rpg_fan_fame_rank(0)["rank"], "見習いファン")
+        self.assertEqual(W.rpg_fan_fame_rank(0)["emoji"], "🥉")
+        self.assertEqual(W.rpg_fan_fame_rank(19)["rank"], "見習いファン")
+        self.assertEqual(W.rpg_fan_fame_rank(20)["rank"], "熱心な応援団員")
+        self.assertEqual(W.rpg_fan_fame_rank(20)["emoji"], "🥈")
+        self.assertEqual(W.rpg_fan_fame_rank(44)["rank"], "熱心な応援団員")
+        self.assertEqual(W.rpg_fan_fame_rank(45)["rank"], "聖地ナゴヤの名物ファン")
+        self.assertEqual(W.rpg_fan_fame_rank(45)["emoji"], "🥇")
+        self.assertEqual(W.rpg_fan_fame_rank(69)["rank"], "聖地ナゴヤの名物ファン")
+        self.assertEqual(W.rpg_fan_fame_rank(70)["rank"], "全国に轟くファンの鑑")
+        self.assertEqual(W.rpg_fan_fame_rank(70)["emoji"], "💎")
+        self.assertEqual(W.rpg_fan_fame_rank(94)["rank"], "全国に轟くファンの鑑")
+        self.assertEqual(W.rpg_fan_fame_rank(95)["rank"], "世界一のファンの鑑")
+        self.assertEqual(W.rpg_fan_fame_rank(95)["emoji"], "👑")
+        self.assertEqual(W.rpg_fan_fame_rank(120)["rank"], "世界一のファンの鑑")
+
+    def test_no_forbidden_religious_words_in_nagoya_spec(self):
+        forbidden = ("大聖堂", "寺院", "教会", "聖堂", "神社", "寺", "モスク", "霊廟")
+        nagoya = W.example_data("nagoya")
+        import json
+        dumped = json.dumps(nagoya, ensure_ascii=False)
+        for word in forbidden:
+            self.assertNotIn(word, dumped)
+
+    def test_cross_world_synergy_has_nagoya_relics(self):
+        overworld = W.world_validate(W.example_data("overworld"))
+        cities = W.world_validate(W.example_data("cities"))
+        for world_data in (overworld, cities):
+            synergy = world_data["rpg"]["synergy"]
+            self.assertIn("nagoya-spot-nagoya-chest-bat", synergy)
+            self.assertIn("nagoya-spot-nagoya-dragon-dragoon", synergy)
+            dragoon_item = synergy["nagoya-spot-nagoya-dragon-dragoon"]
+            self.assertEqual(dragoon_item["skill"]["label"], "ドラグーンスカイバースト")
+
+
 

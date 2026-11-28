@@ -1591,5 +1591,265 @@ class OverworldRpgTests(unittest.TestCase):
                 self.assertEqual(self.errors, [])
 
 
+class ReverseLondonRpgBrowserTests(unittest.TestCase):
+    """Reverse London RPG, dialogue, dragon care and world relics contract in Chromium."""
+
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+        from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+        import functools
+        import threading
+        import shutil
+
+        spec = importlib.util.spec_from_file_location("project_pages", ROOT / "scripts/project_pages.py")
+        pages = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(pages)
+        cls.tmp_dir = Path(tempfile.mkdtemp(prefix="portfolio-london-"))
+        pages.stage(cls.tmp_dir)
+
+        class QuietHandler(SimpleHTTPRequestHandler):
+            def log_message(self, format, *args):
+                pass
+
+        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(QuietHandler, directory=str(cls.tmp_dir)))
+        cls.server_thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.server_thread.start()
+        cls.server_url = f"http://127.0.0.1:{cls.server.server_port}"
+
+        cls.pw = sync_playwright().start()
+        cls.browser = W.launch(cls.pw)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.browser.close()
+        cls.pw.stop()
+        cls.server.shutdown()
+        cls.server.server_close()
+        import shutil
+        shutil.rmtree(cls.tmp_dir, ignore_errors=True)
+
+    def test_reverse_london_dialogue_dragon_care_and_journal(self):
+        context = self.browser.new_context(viewport={"width": 1280, "height": 800})
+        self.addCleanup(context.close)
+        page = context.new_page()
+        errors = []
+        page.on("pageerror", lambda err: errors.append(str(err)))
+        page.goto(self.server_url + "/tools/demos/world.html#london", wait_until="networkidle")
+
+        # 0. Pick avatar for cities
+        page.click('#cities-map [data-emoji="🧳"]')
+        page.wait_for_timeout(300)
+
+        overlay = page.locator('#cities-map .ui-rpg-overlay')
+
+        # 1. Contact Arthur & dialogue
+        page.evaluate('() => document.querySelector("#cities-spot-london-rl-npc-arthur .ui-rpg-sheet-btn").click()')
+        overlay.wait_for(state="visible")
+        dialog = overlay.locator(".ui-rpg-card")
+        self.assertIn("探偵アーサー", dialog.inner_text())
+        page.click('#cities-map .ui-rpg-card [data-primary]')  # Next page
+        self.assertIn("[2/4]", dialog.inner_text())
+        page.click('#cities-map .ui-rpg-card button:has-text("とじる")')
+        overlay.wait_for(state="hidden")
+
+        # 2. Interact with Pythagoras Dragon and perform care actions
+        page.evaluate('() => document.querySelector("#cities-spot-london-rl-dragon-pyth .ui-rpg-sheet-btn").click()')
+        overlay.wait_for(state="visible")
+        dialog = overlay.locator(".ui-rpg-card")
+        self.assertIn("ピタゴラス龍", dialog.inner_text())
+        self.assertIn("PythDRagoras", dialog.inner_text())
+
+        # Care: brushing (+6 bond)
+        page.click('#cities-map .ui-rpg-card button:has-text("ブラッシング")')
+        self.assertIn("絆: 6/30", dialog.inner_text())
+
+        # Care: resonance (+8 bond)
+        page.click('#cities-map .ui-rpg-card button:has-text("共鳴・対話")')
+        self.assertIn("絆: 14/30", dialog.inner_text())
+        page.click('#cities-map .ui-rpg-card button:has-text("またね！")')
+        overlay.wait_for(state="hidden")
+
+        # 3. Open Journal and verify dragons tab
+        page.click('#cities-map [data-rpg-journal-btn]')
+        journal = page.locator("#cities-map .ui-rpg-journal-card")
+        journal.wait_for(state="visible")
+        dragons_tab = journal.get_by_role("button", name="🐉 竜の手帳")
+        self.assertTrue(dragons_tab.is_visible())
+        dragons_tab.click()
+        self.assertIn("ピタゴラス龍", journal.inner_text())
+        self.assertIn("未知の龍", journal.inner_text())
+        page.keyboard.press("Escape")
+        journal.wait_for(state="hidden")
+
+        # 4. Header relics menu
+        relics_btn = page.locator('#world-relics-btn')
+        self.assertTrue(relics_btn.is_visible())
+        relics_btn.click()
+        self.assertTrue(page.locator('#world-relics-list').is_visible())
+
+        self.assertEqual(errors, [])
+
+
+class NagoyaRpgBrowserTests(unittest.TestCase):
+    """Nagoya RPG, dialogues, deeds, fan fame gamification and world shell in Chromium."""
+
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+        from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+        import functools
+        import threading
+        import shutil
+
+        spec = importlib.util.spec_from_file_location("project_pages", ROOT / "scripts/project_pages.py")
+        pages = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(pages)
+        cls.tmp_dir = Path(tempfile.mkdtemp(prefix="portfolio-nagoya-"))
+        pages.stage(cls.tmp_dir)
+
+        class QuietHandler(SimpleHTTPRequestHandler):
+            def log_message(self, format, *args):
+                pass
+
+        cls.server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(QuietHandler, directory=str(cls.tmp_dir)))
+        cls.server_thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.server_thread.start()
+        cls.server_url = f"http://127.0.0.1:{cls.server.server_port}"
+
+        cls.pw = sync_playwright().start()
+        cls.browser = W.launch(cls.pw)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.browser.close()
+        cls.pw.stop()
+        cls.server.shutdown()
+        cls.server.server_close()
+        import shutil
+        shutil.rmtree(cls.tmp_dir, ignore_errors=True)
+
+    def test_nagoya_dialogues_deeds_fame_and_journal(self):
+        context = self.browser.new_context(viewport={"width": 1280, "height": 800})
+        self.addCleanup(context.close)
+        page = context.new_page()
+        errors = []
+        page.on("pageerror", lambda err: errors.append(str(err)))
+        page.goto(self.server_url + "/tools/demos/world.html#nagoya", wait_until="networkidle")
+
+        # 0. Check world switcher recognizes nagoya
+        self.assertEqual(page.locator("#world-space-name").inner_text().strip(), "🏯 聖地ナゴヤ")
+
+        # Pick avatar for nagoya
+        page.click('#nagoya-map [data-emoji="🧢"]')
+        page.wait_for_timeout(300)
+
+        overlay = page.locator('#nagoya-map .ui-rpg-overlay')
+
+        # 1. Check HUD fame meter
+        fame_btn = page.locator('#nagoya-map [data-rpg-fame-btn]')
+        self.assertTrue(fame_btn.is_visible())
+        self.assertIn("知名度 0pt", fame_btn.inner_text())
+
+        # 2. Contact Ryuji & do cheer practice deed
+        page.evaluate('() => document.querySelector("#nagoya-spot-nagoya-npc-ouendan .ui-rpg-sheet-btn").click()')
+        overlay.wait_for(state="visible")
+        dialog = overlay.locator(".ui-rpg-card")
+        self.assertIn("応援団長リュウジ", dialog.inner_text())
+        self.assertIn("ドラ魂", dialog.inner_text())
+
+        # Action: cheer practice deed (+15 fame)
+        help_btn = dialog.locator('[data-rpg-deed-btn]')
+        self.assertTrue(help_btn.is_visible())
+        help_btn.click()
+        self.assertIn("知名度が 15pt 上昇した", dialog.inner_text())
+        page.click('#nagoya-map .ui-rpg-card button:has-text("とじる")')
+        overlay.wait_for(state="hidden")
+
+        # Verify HUD fame updated
+        self.assertIn("15pt", fame_btn.inner_text())
+
+        # 3. Visit Vantelin Dome: Pay 30G for match ticket to cheer from stands (+25 fame)
+        gold_el = page.locator('#nagoya-map [data-rpg-gold]')
+        self.assertIn("125G", gold_el.inner_text())
+        page.evaluate('() => document.querySelector("#nagoya-spot-nagoya-dome .ui-rpg-sheet-btn").click()')
+        overlay.wait_for(state="visible")
+        dome_dialog = overlay.locator(".ui-rpg-card")
+        self.assertIn("バンテリンドーム ナゴヤ", dome_dialog.inner_text())
+        self.assertIn("地鳴りのような大歓声", dome_dialog.inner_text())
+        dome_deed_btn = dome_dialog.locator('[data-rpg-deed-btn]')
+        self.assertTrue(dome_deed_btn.is_visible())
+        self.assertIn("30G", dome_deed_btn.inner_text())
+        self.assertIn("+25知名度", dome_deed_btn.inner_text())
+        self.assertIn("観戦チケットを購入して入場する", dome_deed_btn.inner_text())
+        dome_deed_btn.click()
+        self.assertIn("観戦チケットを購入してスタンドへ入場した", dome_dialog.inner_text())
+        page.click('#nagoya-map .ui-rpg-card button:has-text("とじる")')
+        overlay.wait_for(state="hidden")
+
+        # Fame is now 15 + 25 = 40pt; Gold is 125 + 40 (talk quest) - 30 (cost) + 75 (fame*3) + 60 (fame starter quest) = 270G
+        self.assertIn("40pt", fame_btn.inner_text())
+        self.assertIn("270G", gold_el.inner_text())
+
+        # 4. Visit Aeon Mall: Shop and buy cheer goods, do shopping deed (+15 fame)
+        page.evaluate('() => document.querySelector("#nagoya-spot-nagoya-aeon-mall .ui-rpg-sheet-btn").click()')
+        overlay.wait_for(state="visible")
+        aeon_dialog = overlay.locator(".ui-rpg-card")
+        self.assertIn("モール店員ナミ", aeon_dialog.inner_text())
+        self.assertIn("イオンモール ナゴヤドーム前へようこそ", aeon_dialog.inner_text())
+
+        # Open Aeon shop (talk quest awarded +30G -> 300G)
+        aeon_dialog.locator('button:has-text("🛒 おみせ")').click()
+        shop_card = overlay.locator('.ui-rpg-card[aria-label="モール店員ナミのお店"]')
+        shop_card.wait_for(state="visible")
+        self.assertIn("ドーム観戦必勝弁当", shop_card.inner_text())
+        self.assertIn("ナゴヤエナジースカッシュ", shop_card.inner_text())
+        # Buy drink (15G) -> 285G
+        shop_card.locator('.ui-rpg-row:has-text("ナゴヤエナジースカッシュ") button:has-text("かう")').click()
+        page.wait_for_timeout(200)
+        self.assertIn("285G", gold_el.inner_text())
+
+        # Return to conversation and do mall-shopping deed (+15 fame)
+        shop_card.locator('button:has-text("会話にもどる")').click()
+        aeon_dialog.wait_for(state="visible")
+        mall_deed_btn = aeon_dialog.locator('[data-rpg-deed-btn]')
+        self.assertTrue(mall_deed_btn.is_visible())
+        mall_deed_btn.click()
+        self.assertIn("万全の装備でドーム応援を楽しんでください", aeon_dialog.inner_text())
+        page.click('#nagoya-map .ui-rpg-card button:has-text("とじる")')
+        overlay.wait_for(state="hidden")
+
+        # Fame is now 40 + 15 = 55pt (rank: 聖地ナゴヤの名物ファン)
+        self.assertIn("55pt", fame_btn.inner_text())
+        self.assertIn("410G", gold_el.inner_text())
+
+        # 5. Open Journal and inspect Fan Fame tab & badges
+        fame_btn.click()
+        journal = page.locator('#nagoya-map .ui-rpg-journal-card')
+        journal.wait_for(state="visible")
+        self.assertIn("熱血コール＆レスポンス", journal.inner_text())
+        self.assertIn("街の美化活動（ゴミ拾い）", journal.inner_text())
+        self.assertIn("ドーム公式戦の現地観戦応援", journal.inner_text())
+        self.assertIn("ドーム前商業施設で応援準備", journal.inner_text())
+
+        # Inspect badges tab
+        journal.locator('button:has-text("🏅 実績")').click()
+        self.assertIn("熱血現地サポーター", journal.inner_text())
+        self.assertIn("応援準備マスター", journal.inner_text())
+
+        page.keyboard.press("Escape")
+        journal.wait_for(state="hidden")
+
+        # 6. Header relics menu reflects Nagoya relics
+        relics_btn = page.locator('#world-relics-btn')
+        self.assertTrue(relics_btn.is_visible())
+        self.assertIn("/14", relics_btn.inner_text())
+        relics_btn.click()
+        self.assertTrue(page.locator('#world-relics-list').is_visible())
+
+        self.assertEqual(errors, [])
+
+
 if __name__ == "__main__":
     unittest.main()
+

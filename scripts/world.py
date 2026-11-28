@@ -590,8 +590,8 @@ def tools_validate(tools_in: Any, *, floor_ids: Any = (), spot_ids: Any = ()) ->
 
 RPG_LEVEL_THRESHOLDS = (0, 30, 75, 140, 230, 350, 500, 700, 950, 1250)
 RPG_LOOT_KINDS = ("drop", "chest")
-RPG_ITEM_TYPES = ("heal", "mana", "weapon", "armor", "charm", "scroll", "trophy")
-RPG_QUEST_KINDS = ("talk", "drop", "chest", "battle", "item", "boss", "quiz", "floor")
+RPG_ITEM_TYPES = ("heal", "mana", "care", "weapon", "armor", "charm", "scroll", "relic", "trophy")
+RPG_QUEST_KINDS = ("talk", "drop", "chest", "battle", "item", "boss", "quiz", "floor", "dragon", "bond", "fame", "deed")
 RPG_SKILL_KINDS = ("attack", "heal", "guard")
 
 
@@ -621,6 +621,53 @@ def rpg_level_for_exp(exp: int) -> dict[str, Any]:
             "bonus_atk": (level - 1) * 2, "bonus_def": (level - 1) * 1}
 
 
+def rpg_dragon_stage(bond: int, bond_max: int = 30) -> dict[str, Any]:
+    """Pure integer dragon bond stage matching ``WORLD_RPG_JS``."""
+    bond = _bounded_int(bond, "bond", 0, 9999)
+    bond_max = _bounded_int(bond_max, "bond_max", 1, 9999)
+    if bond <= 0:
+        return {"stage": 0, "label": "未覚醒・気配", "emoji": "🥚", "desc": "まだ眠っているか、気配のみを感じる。"}
+    if bond < max(2, bond_max // 3):
+        return {"stage": 1, "label": "幼竜", "emoji": "🐣", "desc": "小さな姿で人懐っこく甘えている。"}
+    if bond < bond_max:
+        return {"stage": 2, "label": "若竜", "emoji": "🐲", "desc": "力強い翼が育ち、魔力が高まっている。"}
+    return {"stage": 3, "label": "契約・相棒竜", "emoji": "🐉", "desc": "真の力を覚醒させ、秘宝の加護を授けてくれた！"}
+
+
+FAN_FAME_RANKS = (
+    (0, "見習いファン", "🥉", "ドラ魂を胸に宿したばかりの見習い。まずは街の空気に親しもう。"),
+    (20, "熱心な応援団員", "🥈", "応援歌もバッチリ！街やファンの仲間からも頼られる存在。"),
+    (45, "聖地ナゴヤの名物ファン", "🥇", "ドームや大須でも顔が知られ始めた、情熱あふれる名物サポーター。"),
+    (70, "全国に轟くファンの鑑", "💎", "全国の野球ファン・街の人々から敬愛される模範的サポーター！"),
+    (95, "世界一のファンの鑑", "👑", "国境を越え全ドラゴンズファン・生命の頂点に立つ至高のファンの鑑！"),
+)
+
+
+def rpg_fan_fame_rank(fame: int) -> dict[str, Any]:
+    """Pure integer fan fame rank stage matching ``WORLD_RPG_JS``."""
+    fame = _bounded_int(fame, "fame", 0, 9999)
+    current = FAN_FAME_RANKS[0]
+    for r in FAN_FAME_RANKS:
+        if fame >= r[0]:
+            current = r
+    next_thresh = current[0]
+    for r in FAN_FAME_RANKS:
+        if r[0] > fame:
+            next_thresh = r[0]
+            break
+    else:
+        next_thresh = FAN_FAME_RANKS[-1][0]
+    return {
+        "fame": fame,
+        "rank": current[1],
+        "emoji": current[2],
+        "desc": current[3],
+        "threshold": current[0],
+        "next_threshold": next_thresh,
+    }
+
+
+
 def rpg_damage(atk: int, defense: int, roll_word: int, *, mult_pct: int = 100, guarding: bool = False,
                crit_pct: int = 12) -> dict[str, Any]:
     """Pure integer RPG battle damage matching ``WORLD_RPG_JS``."""
@@ -643,8 +690,8 @@ def rpg_damage(atk: int, defense: int, roll_word: int, *, mult_pct: int = 100, g
 
 def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dict[str, Any]:
     """Checked copy of the optional ``rpg`` spec for contact dialogue, drops/chests, battles and gamification."""
-    if not isinstance(rpg_in, dict) or set(rpg_in) - {"seed", "hero", "npcs", "loot", "enemies", "quests", "badges", "quizzes", "shop", "skills", "orbs"}:
-        raise ValueError("rpg has seed, hero, npcs, loot, enemies, quests, badges, quizzes, shop, skills and orbs")
+    if not isinstance(rpg_in, dict) or set(rpg_in) - {"seed", "hero", "npcs", "loot", "enemies", "quests", "badges", "quizzes", "shop", "skills", "orbs", "dragons", "synergy", "fame", "deeds"}:
+        raise ValueError("rpg has seed, hero, npcs, loot, enemies, quests, badges, quizzes, shop, skills, orbs, dragons, synergy, fame and deeds")
     seed = _bounded_int(rpg_in.get("seed", 20261126), "rpg seed", 0, 0xFFFFFFFF)
     hero_in = rpg_in.get("hero", {})
     if not isinstance(hero_in, dict) or set(hero_in) - {"hp", "mp", "atk", "def", "gold"}:
@@ -659,7 +706,7 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
         raise ValueError("rpg npcs maps up to 64 spot or actor ids")
     npcs: dict[str, dict[str, Any]] = {}
     for sid, entry in npcs_in.items():
-        if sid not in spot_ids or not isinstance(entry, dict) or set(entry) - {"speaker", "emoji", "greeting", "lines", "on_contact", "heal", "shop", "quiz"}:
+        if sid not in spot_ids or not isinstance(entry, dict) or set(entry) - {"speaker", "emoji", "greeting", "lines", "on_contact", "heal", "shop", "quiz", "help"}:
             raise ValueError(f"rpg npc {sid!r} must reference an existing spot or actor")
         lines = entry.get("lines", [])
         if not isinstance(lines, list) or len(lines) > 8:
@@ -667,6 +714,25 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
         for flag in ("on_contact", "heal", "shop", "quiz"):
             if flag in entry and not isinstance(entry[flag], bool):
                 raise ValueError(f"rpg npc {flag} must be bool")
+        help_in = entry.get("help")
+        help_conf = None
+        if help_in is not None:
+            if not isinstance(help_in, dict) or set(help_in) - {"deed_id", "title", "fame", "action_label", "done_text", "req_item", "repeatable", "cost"}:
+                raise ValueError("npc help has deed_id, title, fame, action_label, done_text, optional req_item, repeatable and cost")
+            req_item = help_in.get("req_item")
+            if req_item is not None and req_item not in spot_ids:
+                raise ValueError(f"help req_item {req_item!r} must reference an existing spot")
+            cost = _bounded_int(help_in.get("cost", 0), "help cost", 0, 99999) if "cost" in help_in else 0
+            help_conf = {
+                "deed_id": _world_id(help_in["deed_id"], "help deed_id", set()),
+                "title": _world_text(help_in.get("title", ""), "help title", 48),
+                "fame": _bounded_int(help_in.get("fame", 10), "help fame", 1, 999),
+                "action_label": _world_text(help_in.get("action_label", "お手伝いする"), "help action_label", 32),
+                "done_text": _world_text(help_in.get("done_text", "お手伝いを完了した！"), "help done_text", 240),
+                **({"req_item": req_item} if req_item is not None else {}),
+                **({"repeatable": True} if help_in.get("repeatable") else {}),
+                **({"cost": cost} if cost > 0 else {}),
+            }
         npcs[sid] = {"speaker": _world_text(entry.get("speaker"), "speaker", 40),
                      "emoji": _world_emoji(entry.get("emoji")),
                      "greeting": _world_text(entry.get("greeting"), "greeting", 200),
@@ -674,7 +740,8 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
                      **({"on_contact": True} if entry.get("on_contact") else {}),
                      **({"heal": True} if entry.get("heal") else {}),
                      **({"shop": True} if entry.get("shop") else {}),
-                     **({"quiz": True} if entry.get("quiz") else {})}
+                     **({"quiz": True} if entry.get("quiz") else {}),
+                     **({"help": help_conf} if help_conf is not None else {})}
     loot_in = rpg_in.get("loot", {})
     if not isinstance(loot_in, dict) or len(loot_in) > 64:
         raise ValueError("rpg loot maps up to 64 spot ids")
@@ -789,8 +856,8 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
         if not isinstance(sh, dict) or set(sh) - {"id", "spot_id", "emoji", "label", "cost", "item_type", "hp", "mp", "desc"}:
             raise ValueError("shop item has id, emoji, label, cost, item_type, hp, mp and desc")
         itype = sh.get("item_type", "heal")
-        if itype not in ("heal", "mana"):
-            raise ValueError("shop item_type must be heal or mana")
+        if itype not in ("heal", "mana", "care"):
+            raise ValueError("shop item_type must be heal, mana or care")
         sid = sh.get("spot_id")
         if sid is not None and sid not in spot_ids:
             raise ValueError(f"shop spot_id {sid!r} must reference an existing spot")
@@ -830,8 +897,115 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
         orbs = {"attack": [_world_emoji(e) for e in orbs_in["attack"]],
                 "heal": [_world_emoji(e) for e in orbs_in["heal"]],
                 "max": _bounded_int(orbs_in["max"], "orbs max", 1, 12)}
+    dragons_in = rpg_in.get("dragons", {})
+    if not isinstance(dragons_in, dict) or len(dragons_in) > 16:
+        raise ValueError("rpg dragons maps up to 16 spot ids")
+    dragons: dict[str, dict[str, Any]] = {}
+    for sid, entry in dragons_in.items():
+        if sid not in spot_ids or not isinstance(entry, dict) or set(entry) - {
+            "name", "emoji", "title", "repo", "favorite_item", "bond_max", "greeting",
+            "desc", "lore", "care_lines", "relic_label", "relic_emoji", "relic_desc", "cross_effect"
+        }:
+            raise ValueError(f"rpg dragon {sid!r} must reference an existing spot")
+        care_lines = entry.get("care_lines", [])
+        if not isinstance(care_lines, list) or len(care_lines) > 8:
+            raise ValueError("rpg dragon care_lines lists up to 8 strings")
+        cross = entry.get("cross_effect", {})
+        if not isinstance(cross, dict) or set(cross) - {"atk", "def", "hp", "mp", "gold_pct", "skill_label", "skill_emoji", "skill_mult_pct", "skill_mp", "skill_desc"}:
+            raise ValueError("dragon cross_effect has atk, def, hp, mp, gold_pct, skill_* fields")
+        dragons[sid] = {
+            "name": _world_text(entry.get("name"), "dragon name", 40),
+            "emoji": _world_emoji(entry.get("emoji", "🐉")),
+            "title": _world_text(entry.get("title", ""), "dragon title", 80),
+            "repo": _world_text(entry.get("repo", ""), "dragon repo", 40),
+            "bond_max": _bounded_int(entry.get("bond_max", 30), "dragon bond_max", 10, 100),
+            "greeting": _world_text(entry.get("greeting", ""), "dragon greeting", 200, required=False),
+            "desc": _world_text(entry.get("desc", entry.get("greeting", "")), "dragon desc", 240, required=False),
+            "lore": _world_text(entry.get("lore", ""), "dragon lore", 240, required=False),
+            "care_lines": [_world_text(line, "line", 240) for line in care_lines],
+            "relic_label": _world_text(entry.get("relic_label", ""), "relic label", 40, required=False),
+            "relic_emoji": _world_emoji(entry.get("relic_emoji", "📜")),
+            "relic_desc": _world_text(entry.get("relic_desc", ""), "relic desc", 160, required=False),
+            "cross_effect": {
+                **({"atk": _bounded_int(cross["atk"], "cross atk", 0, 99)} if "atk" in cross else {}),
+                **({"def": _bounded_int(cross["def"], "cross def", 0, 99)} if "def" in cross else {}),
+                **({"hp": _bounded_int(cross["hp"], "cross hp", 0, 999)} if "hp" in cross else {}),
+                **({"mp": _bounded_int(cross["mp"], "cross mp", 0, 999)} if "mp" in cross else {}),
+                **({"gold_pct": _bounded_int(cross["gold_pct"], "cross gold_pct", 0, 200)} if "gold_pct" in cross else {}),
+                **({"skill_label": _world_text(cross["skill_label"], "skill label", 40)} if "skill_label" in cross else {}),
+                **({"skill_emoji": _world_emoji(cross["skill_emoji"])} if "skill_emoji" in cross else {}),
+                **({"skill_mult_pct": _bounded_int(cross["skill_mult_pct"], "skill mult_pct", 10, 500)} if "skill_mult_pct" in cross else {}),
+                **({"skill_mp": _bounded_int(cross["skill_mp"], "skill mp", 0, 99)} if "skill_mp" in cross else {}),
+                **({"skill_desc": _world_text(cross["skill_desc"], "skill desc", 160)} if "skill_desc" in cross else {}),
+            },
+            **({"favorite_item": _world_text(entry["favorite_item"], "favorite_item", 40)} if "favorite_item" in entry else {}),
+        }
+    synergy_in = rpg_in.get("synergy", {})
+    if not isinstance(synergy_in, dict) or len(synergy_in) > 32:
+        raise ValueError("rpg synergy maps up to 32 item ids")
+    synergy: dict[str, dict[str, Any]] = {}
+    for item_id, entry in synergy_in.items():
+        if not isinstance(item_id, str) or not isinstance(entry, dict) or set(entry) - {
+            "label", "emoji", "origin", "atk", "def", "hp", "mp", "gold_pct", "skill"
+        }:
+            raise ValueError(f"rpg synergy item {item_id!r} has label, emoji, origin, stats and skill")
+        skill = entry.get("skill")
+        if skill is not None:
+            if not isinstance(skill, dict) or set(skill) - {"label", "emoji", "mp", "mult_pct", "desc", "kind", "power"}:
+                raise ValueError("synergy skill has label, emoji, mp, mult_pct, desc, kind, power")
+        synergy[item_id] = {
+            "label": _world_text(entry.get("label"), "synergy label", 40),
+            "emoji": _world_emoji(entry.get("emoji", "✨")),
+            "origin": _world_text(entry.get("origin", "異界"), "synergy origin", 40),
+            **({"atk": _bounded_int(entry["atk"], "synergy atk", 0, 99)} if "atk" in entry else {}),
+            **({"def": _bounded_int(entry["def"], "synergy def", 0, 99)} if "def" in entry else {}),
+            **({"hp": _bounded_int(entry["hp"], "synergy hp", 0, 999)} if "hp" in entry else {}),
+            **({"mp": _bounded_int(entry["mp"], "synergy mp", 0, 999)} if "mp" in entry else {}),
+            **({"gold_pct": _bounded_int(entry["gold_pct"], "synergy gold_pct", 0, 200)} if "gold_pct" in entry else {}),
+            **({"skill": {
+                "label": _world_text(skill["label"], "skill label", 40),
+                "emoji": _world_emoji(skill.get("emoji", "✨")),
+                "mp": _bounded_int(skill.get("mp", 0), "skill mp", 0, 99),
+                "mult_pct": _bounded_int(skill.get("mult_pct", 100), "skill mult_pct", 10, 500),
+                "desc": _world_text(skill.get("desc", ""), "skill desc", 160),
+                "kind": skill.get("kind", "attack"),
+                **({"power": _bounded_int(skill["power"], "skill power", 0, 999)} if "power" in skill else {}),
+            }} if skill is not None else {}),
+        }
+    fame_in = rpg_in.get("fame")
+    fame_conf = None
+    if fame_in is not None:
+        if not isinstance(fame_in, dict) or set(fame_in) - {"initial", "target", "label"}:
+            raise ValueError("rpg fame has initial, target and label")
+        fame_conf = {
+            "initial": _bounded_int(fame_in.get("initial", 0), "fame initial", 0, 9999),
+            "target": _bounded_int(fame_in.get("target", 95), "fame target", 1, 9999),
+            "label": _world_text(fame_in.get("label", "知名度"), "fame label", 24),
+        }
+    deeds_in = rpg_in.get("deeds", [])
+    if not isinstance(deeds_in, list) or len(deeds_in) > 32:
+        raise ValueError("rpg deeds lists up to 32 entries")
+    deeds, seen_deed = [], set()
+    for d in deeds_in:
+        if not isinstance(d, dict) or set(d) - {"id", "title", "desc", "fame", "npc_id", "reward_label", "cost"}:
+            raise ValueError("deed has id, title, desc, fame, npc_id, reward_label and optional cost")
+        nid = d.get("npc_id")
+        if nid is not None and nid not in spot_ids:
+            raise ValueError(f"deed npc_id {nid!r} must reference an existing spot")
+        cost = _bounded_int(d.get("cost", 0), "deed cost", 0, 99999) if "cost" in d else 0
+        deeds.append({
+            "id": _world_id(d.get("id"), "deed id", seen_deed),
+            "title": _world_text(d.get("title"), "deed title", 48),
+            "desc": _world_text(d.get("desc"), "deed desc", 160),
+            "fame": _bounded_int(d.get("fame", 10), "deed fame", 1, 999),
+            **({"npc_id": nid} if nid is not None else {}),
+            **({"reward_label": _world_text(d["reward_label"], "deed reward_label", 40)} if "reward_label" in d else {}),
+            **({"cost": cost} if cost > 0 else {}),
+        })
     return {"seed": seed, "hero": hero, "npcs": npcs, "loot": loot, "enemies": enemies,
-            "quests": quests, "badges": badges, "quizzes": quizzes, "shop": shop, "skills": skills, "orbs": orbs}
+            "quests": quests, "badges": badges, "quizzes": quizzes, "shop": shop, "skills": skills, "orbs": orbs,
+            **({"dragons": dragons} if dragons else {}), **({"synergy": synergy} if synergy else {}),
+            **({"fame": fame_conf} if fame_conf is not None else {}), **({"deeds": deeds} if deeds else {})}
 
 
 def world_validate(spec: Any) -> dict[str, Any]:
@@ -1123,8 +1297,8 @@ def land_floor(theme: str = "meadow", cols: int = 24, rows: int = 16, *, seed: i
 # A real place in miniature: points with a latitude and longitude laid on the tile grid (``meters`` of ground per tile), roads between linked
 # points, and rivers as bands of water that roads cross as bridges. The projection and the box come from the coordinate tools below (the same
 # Earth radius and ``tolerance_area``), so a place is only data: a list of points, nothing drawn by hand.
-_PLACE_KEYS = {"points", "meters", "tile", "links", "rivers", "area", "start", "scatter", "marks", "always_named"}
-_PLACE_POINT_KEYS = {"id", "label", "lat", "lon", "maps", "category", "body", "flip", "sign", "mark"}
+_PLACE_KEYS = {"points", "meters", "tile", "links", "rivers", "area", "start", "scatter", "marks", "always_named", "actors"}
+_PLACE_POINT_KEYS = {"id", "label", "lat", "lon", "maps", "category", "body", "flip", "sign", "mark", "item"}
 
 
 def _place_point(point: Any, seen: set[str]) -> dict[str, Any]:
@@ -1143,10 +1317,18 @@ def _place_point(point: Any, seen: set[str]) -> dict[str, Any]:
         raise ValueError("category must be a lowercase token")
     if "sign" in point and point["sign"] not in WORLD_SIGNS:
         raise ValueError(f"sign is one of {', '.join(WORLD_SIGNS)}")
+    item = None
+    if "item" in point:
+        item_in = point["item"]
+        if not isinstance(item_in, dict) or set(item_in) - {"emoji", "label", "body"} or "emoji" not in item_in or "label" not in item_in:
+            raise ValueError("a spot item has emoji, label and optional body")
+        item = {"emoji": _world_emoji(item_in["emoji"]), "label": _world_text(item_in["label"], "label", 40),
+                "body": _world_text(item_in.get("body", ""), "body", 400, required=False)}
     return {"id": _world_id(point.get("id"), "point id", seen), "label": _world_text(point.get("label"), "label", 40), "lat": lat, "lon": lon,
             "category": category, "body": _world_text(point.get("body", ""), "body", 400, required=False),
             **({"flip": _world_text(point["flip"], "flip", 16)} if "flip" in point else {}),
-            **({"sign": point["sign"]} if "sign" in point else {}), **({"mark": _world_mark(point["mark"])} if "mark" in point else {})}
+            **({"sign": point["sign"]} if "sign" in point else {}), **({"mark": _world_mark(point["mark"])} if "mark" in point else {}),
+            **({"item": item} if item is not None else {})}
 
 
 def _place_meters(lat: float, lon: float, north: float, west: float, mid: float) -> tuple[float, float]:
@@ -1180,7 +1362,7 @@ def _place_rects(cells: set[tuple[int, int]]) -> list[tuple[int, int, int, int]]
 
 
 def place_floor(points: list[dict[str, Any]], *, meters: int = 64, tile: int = 32, links: Any = (), rivers: Any = (), area: Any = None,
-                start: str | None = None, scatter: Any = None, marks: Any = None, always_named: Any = (), id: str = "place",
+                start: str | None = None, scatter: Any = None, marks: Any = None, always_named: Any = (), actors: Any = (), id: str = "place",
                 label: str = "場所") -> dict[str, Any]:
     """A real place as a floor: each point (``id``, ``label``, ``lat`` and ``lon``, or ``maps`` with a Maps URL; optional ``category`` and ``body``) becomes a
     spot on the tile its position falls on, ``meters`` of ground per tile.
@@ -1330,10 +1512,12 @@ def place_floor(points: list[dict[str, Any]], *, meters: int = 64, tile: int = 3
     named = lambda p: ({"always_named": "left" if p["cell"][0] < middle else "right" if p["cell"][0] > middle else True}   # noqa: E731  (do not cover
                        if p["category"] in always_named else {})                                                          # each other)
     spots = [{"id": f"{id}-{p['id']}", "x": int((p["cell"][0] + .5) * tile), "y": int((p["cell"][1] + .5) * tile), "label": p["label"],
-              "category": p["category"], "body": p["body"], **({"flip": p["flip"]} if "flip" in p else {}), **mark(p), **named(p)} for p in pts]
+              "category": p["category"], "body": p["body"], **({"flip": p["flip"]} if "flip" in p else {}), **mark(p), **named(p),
+              **({"item": p["item"]} if "item" in p else {})} for p in pts]
     spots += [{"id": f"{id}-{p['id']}", "x": p["corner"][0] * tile, "y": p["corner"][1] * tile, "label": p["label"], "category": p["category"],
-               "body": p["body"], "sign": p["sign"], **({"flip": p["flip"]} if "flip" in p else {}), **mark(p)} for p in signs]
-    return {"id": id, "label": label, "width": cols * tile, "height": rows * tile, "tile": tile, "props": props, "actors": [], "spots": spots,
+               "body": p["body"], "sign": p["sign"], **({"flip": p["flip"]} if "flip" in p else {}), **mark(p),
+               **({"item": p["item"]} if "item" in p else {})} for p in signs]
+    return {"id": id, "label": label, "width": cols * tile, "height": rows * tile, "tile": tile, "props": props, "actors": list(actors), "spots": spots,
             "player": {"emoji": "🙂", "x": int((first["cell"][0] + .5) * tile), "y": int((first["cell"][1] + .5) * tile), "speed": 96}}
 
 
@@ -1525,6 +1709,8 @@ def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = Fals
     def rpg_kind(sid: str) -> str:
         if not rpg:
             return ""
+        if sid in rpg.get("dragons", {}):
+            return ' data-rpg-kind="dragon"'
         if sid in rpg["enemies"]:
             return ' data-rpg-kind="enemy"'
         if sid in rpg["loot"]:
@@ -1619,6 +1805,8 @@ def _rpg_hud_html(rpg: dict[str, Any] | None) -> str:
         return ""
     hero = rpg["hero"]
     total_q = len(rpg["quests"])
+    fame_hud = ('<button type="button" class="ui-rpg-pill" data-rpg-fame-btn aria-label="ファンの鑑・知名度手帳">📣 <span data-rpg-fame-text>知名度 0pt (見習い)</span></button>'
+                if rpg.get("fame") else "")
     return (
         '<div class="ui-rpg-hud" hidden aria-label="冒険ステータス">'
         '<span class="ui-rpg-stat ui-rpg-hero" data-rpg-hero>🧙 Lv.1</span>'
@@ -1628,7 +1816,9 @@ def _rpg_hud_html(rpg: dict[str, Any] | None) -> str:
         f'<span class="ui-rpg-stat" data-rpg-gold>🪙 {hero["gold"]}G</span>'
         f'<span class="ui-rpg-stat" data-rpg-gear>⚔️ {hero["atk"]} 🛡️ {hero["def"]}</span>'
         f'<button type="button" class="ui-rpg-pill" data-rpg-journal-btn aria-label="冒険手帳（クエスト・実績・図鑑）">📜 <span data-rpg-qcount>0/{total_q}</span></button>'
-        '<button type="button" class="ui-rpg-pill" data-rpg-explore aria-label="この周辺で魔物をさがす">⚔️ 探索</button>'
+        + (f'<button type="button" class="ui-rpg-pill" data-rpg-dragons-btn aria-label="竜の育成手帳">🐉 <span data-rpg-dcount>0/{len(rpg["dragons"])}</span></button>' if rpg.get("dragons") else "")
+        + fame_hud
+        + '<button type="button" class="ui-rpg-pill" data-rpg-explore aria-label="この周辺で魔物をさがす">⚔️ 探索</button>'
         '</div>'
     )
 
@@ -1900,6 +2090,10 @@ _WORLD_RPG_CSS = (
     "[data-rpg-kind=\"chest\"][data-rpg-opened],[data-rpg-kind=\"drop\"][data-rpg-collected],[data-rpg-kind=\"enemy\"][data-rpg-defeated]{opacity:.58}"
     "[data-rpg-kind=\"enemy\"][data-rpg-boss]{border-color:#d946ef!important;box-shadow:0 0 0 2px color-mix(in srgb,#d946ef 32%,transparent)}"
     "[data-rpg-kind=\"npc\"]{border-color:color-mix(in srgb,var(--ui-accent) 45%,transparent)}"
+    "[data-rpg-kind=\"dragon\"]{border-color:#38bdf8!important;box-shadow:0 0 0 2px color-mix(in srgb,#38bdf8 36%,transparent)}"
+    "[data-rpg-kind=\"dragon\"][data-rpg-bonded]{border-color:#22c55e!important;box-shadow:0 0 0 2px color-mix(in srgb,#22c55e 40%,transparent)}"
+    ".ui-rpg-meter-bond>i{background:#06b6d4}"
+    ".ui-rpg-meter-fame>i{background:#f59e0b}"
     ".ui-rpg-overlay{position:absolute;inset:0;z-index:10;display:grid;place-items:center;padding:12px;background:color-mix(in srgb,var(--ui-bg) 70%,transparent);backdrop-filter:blur(4px)}"
     ".ui-rpg-overlay[hidden]{display:none}"
     ".ui-rpg-card{width:min(100%,480px);max-height:100%;overflow:auto;border:2px solid var(--ui-fg);border-radius:var(--ui-radius);background:var(--ui-bg);color:var(--ui-fg);padding:12px 14px;box-shadow:0 12px 32px rgba(0,0,0,.35);display:flex;flex-direction:column;gap:10px}"
@@ -1936,6 +2130,7 @@ _WORLD_RPG_CSS = (
     ".ui-rpg-toast{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);z-index:9;max-width:min(92%,420px);padding:6px 12px;border-radius:999px;border:1px solid var(--ui-accent);background:var(--ui-bg);color:var(--ui-fg);font-size:.8rem;font-weight:600;box-shadow:0 6px 18px rgba(0,0,0,.25);pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"
     ".ui-rpg-toast[hidden]{display:none}"
     "@media(max-width:640px){.ui-rpg-hud{padding:5px 8px;gap:4px 8px;font-size:.75rem}.ui-rpg-meter{width:42px}.ui-rpg-cmd-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.ui-rpg-card{padding:10px 11px}}"
+    "@media(max-height:440px){.ui-world[data-shell][data-rpg]{--ui-world-h:min(44vh,190px)}}"
     "@media(prefers-reduced-motion:reduce){.ui-rpg-orb,.ui-rpg-meter>i{animation:none!important;transition:none!important}}"
 )
 
@@ -2186,6 +2381,7 @@ sel?.addEventListener('change',()=>{setLang(sel.value);save({lang})});
 // 🎒 items collected from spots (kept in localStorage beside fav, lang, names, alpha).
 const spotRows=()=>[...el.querySelectorAll('.ui-world-spots a')],bagList=el.querySelector('.ui-world-bag'),bag=new Set(),takeBtns=()=>[...el.querySelectorAll('.ui-sheet-item .ui-world-take')],
  showBag=()=>{for(const b of takeBtns()){const on=bag.has(b.dataset.itemId);b.setAttribute('aria-pressed',String(on));b.querySelector('.ui-world-take-mark').textContent=on?'✓':'＋'}
+  window.dispatchEvent(new CustomEvent('world-bag-change'));
   if(!bagList)return;
   bagList.replaceChildren(...takeBtns().filter(b=>bag.has(b.dataset.itemId)).map(b=>{
    const id=b.dataset.itemId,src=spotRows().find(a=>a.getAttribute('href')==='#'+id),li=document.createElement('li');
@@ -2287,6 +2483,28 @@ export function rpgDamage(atk,defense,rollWord,{multPct=100,guarding=false,critP
  if(guarding)raw=Math.max(1,Math.floor(raw/2));
  return{damage:raw,crit,effect:rpgOrbEffect(raw)};
 }
+export function rpgDragonStage(bond,bondMax=30){
+ const b=Math.max(0,Math.floor(Number(bond)||0)),bm=Math.max(1,Math.floor(Number(bondMax)||30));
+ if(b<=0)return{stage:0,label:"未覚醒・気配",emoji:"🥚",desc:"まだ眠っているか、気配のみを感じる。"};
+ if(b<Math.max(2,Math.floor(bm/3)))return{stage:1,label:"幼竜",emoji:"🐣",desc:"小さな姿で人懐っこく甘えている。"};
+ if(b<bm)return{stage:2,label:"若竜",emoji:"🐲",desc:"力強い翼が育ち、魔力が高まっている。"};
+ return{stage:3,label:"契約・相棒竜",emoji:"🐉",desc:"真の力を覚醒させ、秘宝の加護を授けてくれた！"};
+}
+export const FAN_FAME_RANKS=[
+ [0,"見習いファン","🥉","ドラ魂を胸に宿したばかりの見習い。まずは街の空気に親しもう。"],
+ [20,"熱心な応援団員","🥈","応援歌もバッチリ！街やファンの仲間からも頼られる存在。"],
+ [45,"聖地ナゴヤの名物ファン","🥇","ドームや大須でも顔が知られ始めた、情熱あふれる名物サポーター。"],
+ [70,"全国に轟くファンの鑑","💎","全国の野球ファン・街の人々から敬愛される模範的サポーター！"],
+ [95,"世界一のファンの鑑","👑","国境を越え全ドラゴンズファン・生命の頂点に立つ至高のファンの鑑！"]
+];
+export function rpgFanFameRank(fame){
+ const f=Math.max(0,Math.floor(Number(fame)||0));
+ let cur=FAN_FAME_RANKS[0];
+ for(const r of FAN_FAME_RANKS)if(f>=r[0])cur=r;
+ let nextThresh=cur[0];
+ for(const r of FAN_FAME_RANKS)if(r[0]>f){nextThresh=r[0];break}
+ return{fame:f,rank:cur[1],emoji:cur[2],desc:cur[3],threshold:cur[0],next_threshold:nextThresh};
+}
 function rpgEl(tag,props={},...kids){
  const node=document.createElement(tag);
  for(const[k,v]of Object.entries(props)){
@@ -2317,11 +2535,60 @@ export function bindWorldRpg(el){
   talked:new Set(),looted:new Set(),defeated:new Set(),quizSolved:new Set(),quizIdx:0,
   visitedFloors:new Set([el.querySelector("input[name$='-floor']:checked")?.value||"meadow"]),
   consumables:new Map(),equipment:new Set(),completedQuests:new Set(),badges:new Set(),
-  boughtCount:0,healedCount:0
+  boughtCount:0,healedCount:0,
+  dragonBond:new Map(),discoveredDragons:new Set(),
+  fanFame:(rpg.fame?.initial||0),helpedDeeds:new Set()
  };
  const equipIds=()=>[...state.equipment];
  const equipBonus=()=>equipIds().reduce((acc,sid)=>{const it=rpg.loot[sid];if(!it)return acc;acc.hp+=it.hp;acc.mp+=it.mp;acc.atk+=it.atk;acc.def+=it.def;return acc},{hp:0,mp:0,atk:0,def:0});
- const stats=()=>{const lv=rpgLevelForExp(state.exp),eq=equipBonus();return{lv,maxHp:rpg.hero.hp+lv.bonus_hp+eq.hp,maxMp:rpg.hero.mp+lv.bonus_mp+eq.mp,atk:rpg.hero.atk+lv.bonus_atk+eq.atk,def:rpg.hero.def+lv.bonus_def+eq.def}};
+ const activeBagItemIds=()=>{
+  const ids=new Set();
+  for(const b of document.querySelectorAll("[data-ui-world] .ui-world-take[aria-pressed='true']")){
+   if(b.dataset.itemId)ids.add(b.dataset.itemId);
+  }
+  return ids;
+ };
+ const activeSynergies=()=>{
+  if(!rpg.synergy)return[];
+  const bagIds=activeBagItemIds(),res=[];
+  for(const[itemId,entry]of Object.entries(rpg.synergy)){
+   if(bagIds.has(itemId)||bagIds.has(wid+"-spot-"+itemId))res.push({itemId,entry});
+  }
+  return res;
+ };
+ const synergyBonus=()=>{
+  const syn=activeSynergies().reduce((acc,{entry})=>{
+   acc.hp+=(entry.hp||0);acc.mp+=(entry.mp||0);acc.atk+=(entry.atk||0);acc.def+=(entry.def||0);return acc;
+  },{hp:0,mp:0,atk:0,def:0});
+  if(rpg.dragons){
+   for(const[sid,d]of Object.entries(rpg.dragons)){
+    const bond=state.dragonBond.get(sid)||0;
+    if(bond>=d.bond_max&&d.cross_effect){
+     syn.atk+=(d.cross_effect.atk||0);syn.def+=(d.cross_effect.def||0);
+     syn.hp+=(d.cross_effect.hp||0);syn.mp+=(d.cross_effect.mp||0);
+    }
+   }
+  }
+  return syn;
+ };
+ const allSkills=()=>{
+  const list=[...rpg.skills];
+  for(const{entry}of activeSynergies()){
+   if(entry.skill&&!list.some(s=>s.label===entry.skill.label)){
+    list.push({id:"syn-"+entry.skill.label,emoji:entry.skill.emoji||"✨",label:entry.skill.label,mp:entry.skill.mp||0,kind:entry.skill.kind||"attack",mult_pct:entry.skill.mult_pct||100,power:0,desc:entry.skill.desc||""});
+   }
+  }
+  if(rpg.dragons){
+   for(const[sid,d]of Object.entries(rpg.dragons)){
+    const bond=state.dragonBond.get(sid)||0;
+    if(bond>=d.bond_max&&d.cross_effect?.skill_label&&!list.some(s=>s.label===d.cross_effect.skill_label)){
+     list.push({id:"drg-"+sid,emoji:d.cross_effect.skill_emoji||d.emoji||"🐉",label:d.cross_effect.skill_label,mp:d.cross_effect.skill_mp||0,kind:"attack",mult_pct:d.cross_effect.skill_mult_pct||250,power:0,desc:d.cross_effect.skill_desc||""});
+    }
+   }
+  }
+  return list;
+ };
+ const stats=()=>{const lv=rpgLevelForExp(state.exp),eq=equipBonus(),syn=synergyBonus();return{lv,maxHp:rpg.hero.hp+lv.bonus_hp+eq.hp+syn.hp,maxMp:rpg.hero.mp+lv.bonus_mp+eq.mp+syn.mp,atk:rpg.hero.atk+lv.bonus_atk+eq.atk+syn.atk,def:rpg.hero.def+lv.bonus_def+eq.def+syn.def}};
  const clampVitals=()=>{const st=stats();state.hp=Math.min(Math.max(0,state.hp),st.maxHp);state.mp=Math.min(Math.max(0,state.mp),st.maxMp)};
  const nextRoll=()=>{state.seed=rpgRandomWord(state.seed);return state.seed};
  const spotNode=sid=>el.querySelector(`.ui-spot[href="#${CSS.escape(wid+"-spot-"+sid)}"],.ui-actor[href="#${CSS.escape(wid+"-spot-"+sid)}"]`);
@@ -2343,6 +2610,13 @@ export function bindWorldRpg(el){
    node.toggleAttribute("data-rpg-boss",Boolean(foe.boss));
    node.toggleAttribute("data-rpg-defeated",state.defeated.has(sid));
   }
+  if(rpg.dragons){
+   for(const[sid,d]of Object.entries(rpg.dragons)){
+    const node=spotNode(sid);if(!node)continue;
+    const bond=state.dragonBond.get(sid)||0;
+    node.toggleAttribute("data-rpg-bonded",bond>=d.bond_max);
+   }
+  }
  };
  const renderHud=()=>{
   clampVitals();if(!hud)return;
@@ -2357,43 +2631,86 @@ export function bindWorldRpg(el){
   hud.querySelector("[data-rpg-gold]").textContent=`🪙 ${state.gold}G`;
   hud.querySelector("[data-rpg-gear]").textContent=`⚔️ ${st.atk} 🛡️ ${st.def}`;
   hud.querySelector("[data-rpg-qcount]").textContent=`${qDone}/${qTotal}`;
+  if(rpg.dragons){
+   const dCount=hud.querySelector("[data-rpg-dcount]");
+   if(dCount){
+    const bondedCount=[...state.dragonBond.values()].filter(b=>b>=30).length;
+    dCount.textContent=`${bondedCount}/${Object.keys(rpg.dragons).length}`;
+   }
+  }
+  if(rpg.fame){
+   const txt=hud.querySelector("[data-rpg-fame-text]");
+   if(txt){
+    const r=rpgFanFameRank(state.fanFame);
+    txt.textContent=`${r.emoji} 知名度 ${state.fanFame}pt (${r.rank})`;
+   }
+  }
   syncSpotMarks();
  };
- const questProgress=q=>{
-  if(q.kind==="talk")return q.target?(state.talked.has(q.target)?1:0):state.talked.size;
-  if(q.kind==="drop")return q.target?(state.looted.has(q.target)?1:0):Object.entries(rpg.loot).filter(([id,v])=>v.kind==="drop"&&state.looted.has(id)).length;
-  if(q.kind==="chest")return q.target?(state.looted.has(q.target)?1:0):Object.entries(rpg.loot).filter(([id,v])=>v.kind==="chest"&&state.looted.has(id)).length;
-  if(q.kind==="battle"||q.kind==="boss")return q.target?(state.defeated.has(q.target)?1:0):state.defeated.size;
-  if(q.kind==="item")return q.target?(state.looted.has(q.target)?1:0):(state.looted.size+state.boughtCount);
-  if(q.kind==="quiz")return state.quizSolved.size;
-  if(q.kind==="floor")return q.target?(state.visitedFloors.has(q.target)?1:0):state.visitedFloors.size;
-  return 0;
- };
- const evalBadges=()=>{
-  const checks={
-   "first-talk":state.talked.size>=1,
-   "villager-friends":Object.keys(rpg.npcs).filter(id=>id.startsWith("meadow-npc")).every(id=>state.talked.has(id))||state.talked.size>=4,
-   "item-finder":state.looted.size>=1,
-   "treasure-hunter":Object.entries(rpg.loot).filter(([id,v])=>v.kind==="chest"&&state.looted.has(id)).length>=3,
-   "first-win":state.defeated.size>=1,
-   "boss-slayer":Object.entries(rpg.enemies).some(([id,e])=>e.boss&&state.defeated.has(id)),
-   "quiz-ace":state.quizSolved.size>=2,
-   "world-walker":state.visitedFloors.size>=3,
-   "level-up":rpgLevelForExp(state.exp).level>=2,
-   shopper:state.boughtCount>=1
+  const questProgress=q=>{
+   if(q.kind==="talk")return q.target?(state.talked.has(q.target)?1:0):state.talked.size;
+   if(q.kind==="drop")return q.target?(state.looted.has(q.target)?1:0):Object.entries(rpg.loot).filter(([id,v])=>v.kind==="drop"&&state.looted.has(id)).length;
+   if(q.kind==="chest")return q.target?(state.looted.has(q.target)?1:0):Object.entries(rpg.loot).filter(([id,v])=>v.kind==="chest"&&state.looted.has(id)).length;
+   if(q.kind==="battle"||q.kind==="boss")return q.target?(state.defeated.has(q.target)?1:0):state.defeated.size;
+   if(q.kind==="item")return q.target?(state.looted.has(q.target)?1:0):(state.looted.size+state.boughtCount);
+   if(q.kind==="quiz")return state.quizSolved.size;
+   if(q.kind==="floor")return q.target?(state.visitedFloors.has(q.target)?1:0):state.visitedFloors.size;
+   if(q.kind==="dragon")return q.target?(state.discoveredDragons.has(q.target)?1:0):state.discoveredDragons.size;
+   if(q.kind==="bond")return q.target?((state.dragonBond.get(q.target)||0)>=30?1:0):[...state.dragonBond.values()].filter(b=>b>=30).length;
+   if(q.kind==="fame")return state.fanFame;
+   if(q.kind==="deed")return state.helpedDeeds.size;
+   return 0;
   };
-  for(const b of rpg.badges){
-   if(!state.badges.has(b.id)&&checks[b.id]){state.badges.add(b.id);showToast(`🏅 実績解除: ${b.emoji} ${b.label}`)}
-  }
- };
- const gainExp=amount=>{
-  if(!amount)return false;
-  const before=rpgLevelForExp(state.exp).level;
-  state.exp+=amount;
-  const after=rpgLevelForExp(state.exp);
-  if(after.level>before){const st=stats();state.hp=st.maxHp;state.mp=st.maxMp;return after.level}
-  return false;
- };
+  const evalBadges=()=>{
+   const checks={
+    "first-talk":state.talked.size>=1,
+    "villager-friends":Object.keys(rpg.npcs).filter(id=>id.startsWith("meadow-npc")||id.startsWith("london-rl-npc")).every(id=>state.talked.has(id))||state.talked.size>=4,
+    "item-finder":state.looted.size>=1,
+    "treasure-hunter":Object.entries(rpg.loot).filter(([id,v])=>v.kind==="chest"&&state.looted.has(id)).length>=3,
+    "first-win":state.defeated.size>=1,
+    "boss-slayer":Object.entries(rpg.enemies).some(([id,e])=>e.boss&&state.defeated.has(id)),
+    "quiz-ace":state.quizSolved.size>=2,
+    "world-walker":state.visitedFloors.size>=3,
+    "level-up":rpgLevelForExp(state.exp).level>=2,
+    shopper:state.boughtCount>=1,
+    "dragon-friend":state.discoveredDragons.size>=1,
+    "dragon-master":[...state.dragonBond.values()].some(b=>b>=30),
+    "model-fan":state.fanFame>=45,
+    "world-greatest-fan":state.fanFame>=95,
+    "clean-supporter":state.helpedDeeds.has("clean-trash"),
+    "blue-pride":state.looted.has("nagoya-chest-uniform")&&state.looted.has("nagoya-drop-megaphone"),
+    "dome-patron":state.helpedDeeds.has("dome-sponsor"),
+    "aeon-shopper":state.helpedDeeds.has("mall-shopping")||state.boughtCount>=2
+   };
+   for(const b of rpg.badges){
+    if(!state.badges.has(b.id)&&checks[b.id]){state.badges.add(b.id);showToast(`🏅 実績解除: ${b.emoji} ${b.label}`)}
+   }
+  };
+  const checkBadges=evalBadges;
+  const gainExp=amount=>{
+   if(!amount)return false;
+   const before=rpgLevelForExp(state.exp).level;
+   state.exp+=amount;
+   const after=rpgLevelForExp(state.exp);
+   if(after.level>before){const st=stats();state.hp=st.maxHp;state.mp=st.maxMp;return after.level}
+   return false;
+  };
+  const addFanFame=(amount,deedTitle)=>{
+   const prevRank=rpgFanFameRank(state.fanFame);
+   state.fanFame+=amount;
+   const nextRank=rpgFanFameRank(state.fanFame);
+   gainExp(amount*2);state.gold+=amount*3;
+   if(nextRank.threshold>prevRank.threshold){
+    showToast(`🎉【知名度ランクUP】${nextRank.emoji}「${nextRank.rank}」に昇格した！ (知名度 ${state.fanFame}pt)`);
+    if(nextRank.threshold>=95){
+     state.badges.add("world-greatest-fan");
+     showToast("👑【至高の称号】『世界一のファンの鑑』を達成！ 聖地と全竜からトロフィーが授与された！");
+    }
+   }else{
+    showToast(`📣 知名度 +${amount}pt（${deedTitle||"お手伝い"}）`);
+   }
+   checkQuests();evalBadges();renderHud();
+  };
  const checkQuests=()=>{
   for(const q of rpg.quests){
    if(state.completedQuests.has(q.id))continue;
@@ -2485,7 +2802,8 @@ export function bindWorldRpg(el){
   const goldTag=rpgEl("p",{className:"ui-rpg-subnote",textContent:`所持金: 🪙 ${state.gold}G`});
   const rebuildShop=()=>{
    goldTag.textContent=`所持金: 🪙 ${state.gold}G`;
-   list.replaceChildren(...rpg.shop.map(sh=>rpgEl("div",{className:"ui-rpg-row"},
+   const available=rpg.shop.filter(sh=>!sh.spot_id||sh.spot_id===spotId);
+   list.replaceChildren(...available.map(sh=>rpgEl("div",{className:"ui-rpg-row"},
     rpgEl("div",{className:"ui-rpg-row-top"},rpgEl("span",{textContent:`${sh.emoji} ${sh.label}`}),rpgEl("span",{textContent:`🪙 ${sh.cost}G`})),
     rpgEl("p",{className:"ui-rpg-subnote",textContent:sh.desc}),
     rpgEl("div",{className:"ui-rpg-actions"},rpgEl("button",{type:"button",className:"ui-rpg-btn",disabled:state.gold<sh.cost,textContent:state.gold<sh.cost?"ゴールド不足":"かう",onclick:()=>{
@@ -2512,8 +2830,8 @@ export function bindWorldRpg(el){
   const pages=[npc.greeting,...npc.lines];
   let idx=pageIdx>=0?Math.min(pageIdx,pages.length-1):0;
   const textEl=rpgEl("p",{className:"ui-rpg-text"}),orbsWrap=rpgEl("div"),actionsEl=rpgEl("div",{className:"ui-rpg-actions"});
-  const renderPage=()=>{
-   textEl.textContent=`[${idx+1}/${pages.length}] ${pages[idx]}`;
+  const renderPage=(customText=null)=>{
+   textEl.textContent=customText||`[${idx+1}/${pages.length}] ${pages[idx]}`;
    actionsEl.replaceChildren();
    if(idx>0)actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"◀ もどる",onclick:()=>{idx-=1;renderPage()}}));
    if(idx<pages.length-1)actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"つぎへ ▶",onclick:()=>{idx+=1;renderPage()}}));
@@ -2524,6 +2842,27 @@ export function bindWorldRpg(el){
    }}));
    if(npc.shop)actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🛒 おみせ",onclick:()=>openShopView(npc,spotId)}));
    if(npc.quiz)actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🎓 クイズに挑戦",onclick:()=>openQuizView(npc,spotId)}));
+   if(npc.help){
+    const d=npc.help;
+    const isDone=state.helpedDeeds.has(d.deed_id);
+    const cost=Number(d.cost)||0;
+    const hasGold=!cost||state.gold>=cost;
+    const hasReq=(!d.req_item||state.looted.has(d.req_item)||state.consumables.has(d.req_item)||state.consumables.has("spot:"+d.req_item))&&hasGold;
+    if(!isDone||d.repeatable){
+     const costNote=cost?` (🪙 ${cost}G)`:"";
+     const lackNote=!hasGold?" (ゴールド不足)":(!hasReq?" (必要アイテム不足)":"");
+     actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn","data-rpg-deed-btn":"",disabled:!hasReq,textContent:`🤝 ${d.action_label}${costNote} (+${d.fame}知名度)${lackNote}`,onclick:()=>{
+      if(!hasReq)return;
+      if(cost){state.gold-=cost;renderHud()}
+      if(d.req_item&&state.consumables.has("spot:"+d.req_item)){
+       useConsumable("spot:"+d.req_item);
+      }
+      state.helpedDeeds.add(d.deed_id);
+      addFanFame(d.fame,d.title);
+      renderPage(d.done_text);
+     }}));
+    }
+   }
    actionsEl.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",...(idx===pages.length-1?{"data-primary":""}:{}),textContent:"とじる",onclick:closeModal}));
   };
   const card=rpgEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":npc.speaker},
@@ -2562,6 +2901,90 @@ export function bindWorldRpg(el){
    bonuses.length?rpgEl("p",{className:"ui-rpg-subnote",textContent:(entry.consumable?"どうぐ効果: ":"装備ボーナス: ")+bonuses.join(" / ")+(res?.lvUp?` 🎉 Lv.${res.lvUp}に上がった！`:"")}):null,
    rpgEl("div",{className:"ui-rpg-actions"},rpgEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"やったね！",onclick:closeModal})));
   showCard(card);
+ };
+ const openDragonDialog=spotId=>{
+  const d=rpg.dragons?.[spotId];if(!d)return;
+  const meta=spotMeta(spotId);
+  if(!state.discoveredDragons.has(spotId)){
+   state.discoveredDragons.add(spotId);
+   state.exp+=25;state.gold+=30;
+   showToast(`✨ 新たな龍【${d.name}】を発見した！ (+25EXP / +30G)`);
+   checkQuests();checkBadges();renderHud();
+  }
+  const meterFill=rpgEl("i"),meterText=rpgEl("span");
+  const stageBadge=rpgEl("strong"),stageDesc=rpgEl("p",{className:"ui-rpg-subnote"});
+  const repoLine=rpgEl("p",{className:"ui-rpg-subnote",textContent:`📦 関連リポジトリ: ${d.repo}（${d.title}）`});
+  const loreLine=rpgEl("p",{className:"ui-rpg-text"});
+  const careActions=rpgEl("div",{className:"ui-rpg-actions"});
+  const syncDragon=()=>{
+   const curBond=state.dragonBond.get(spotId)||0;
+   const stg=rpgDragonStage(curBond,d.bond_max);
+   const pct=Math.min(100,Math.round(100*curBond/d.bond_max));
+   meterFill.style.width=`${pct}%`;
+   meterText.textContent=`絆: ${curBond}/${d.bond_max} (${stg.emoji} ${stg.label})`;
+   stageBadge.textContent=`${stg.emoji} ${stg.label}`;
+   stageDesc.textContent=stg.desc;
+   loreLine.textContent=curBond>=d.bond_max?`✨ 絆は最高潮に達している！ 秘宝『${d.relic_label}』が共鳴し、大いなる力を放っている。`:d.desc;
+   careActions.replaceChildren();
+   const careItems=[...state.consumables.values()].filter(it=>it.count>0&&(it.item_type==="care"||it.item_type==="heal"||it.item_type==="mana"));
+   if(careItems.length){
+    for(const it of careItems){
+     const isFav=it.key===d.favorite_item||it.label.includes(d.favorite_item);
+     careActions.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:`🫖 ${it.emoji} ${it.label}をあげる${isFav?" (大好物!)":""}`,onclick:()=>{
+      useConsumable(it.key);
+      const gain=isFav?18:12;
+      const nextBond=(state.dragonBond.get(spotId)||0)+gain;
+      state.dragonBond.set(spotId,nextBond);
+      if(isFav){state.hp=stats().maxHp;state.mp=stats().maxMp}
+      else{state.hp=Math.min(stats().maxHp,state.hp+12);state.mp=Math.min(stats().maxMp,state.mp+6)}
+      showToast(`${d.name} に ${it.emoji} ${it.label} をあげた！${isFav?" 大好物で大喜びしている！ (絆+"+gain+" / 全回復！)":" 嬉しそうに食べた！ (絆+"+gain+")"}`);
+      checkBondEvolution(curBond,nextBond);
+      syncDragon();renderHud();checkQuests();checkBadges();
+     }}));
+    }
+   }else{
+    careActions.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",disabled:true,textContent:"🫖 おやつ（バッグにないよ）"}));
+   }
+   careActions.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🪮 ブラッシング",onclick:()=>{
+    const gain=6,nextBond=(state.dragonBond.get(spotId)||0)+gain;
+    state.dragonBond.set(spotId,nextBond);
+    state.hp=Math.min(stats().maxHp,state.hp+4);state.mp=Math.min(stats().maxMp,state.mp+2);
+    showToast(`🪮 ${d.name} を丁寧にブラッシングした！ 心地よさそうだ (絆+6 / HP+4 / MP+2)`);
+    checkBondEvolution(curBond,nextBond);
+    syncDragon();renderHud();checkQuests();checkBadges();
+   }}));
+   careActions.append(rpgEl("button",{type:"button",className:"ui-rpg-btn",disabled:state.mp<2,textContent:`🎵 共鳴・対話 (MP 2)`,onclick:()=>{
+    if(state.mp<2){showToast("💧 MPが足りない… (必要MP: 2)");return}
+    state.mp-=2;
+    const gain=8,nextBond=(state.dragonBond.get(spotId)||0)+gain;
+    state.dragonBond.set(spotId,nextBond);
+    showToast(`🎵 ${d.name} と魂の波長を合わせた！『${d.lore||d.desc}』 (絆+8)`);
+    checkBondEvolution(curBond,nextBond);
+    syncDragon();renderHud();checkQuests();checkBadges();
+   }}));
+   careActions.append(rpgEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"またね！",onclick:closeModal}));
+  };
+  const checkBondEvolution=(before,after)=>{
+   if(before<d.bond_max&&after>=d.bond_max){
+    state.exp+=50;
+    showToast(`🎉【覚醒】${d.name} と真のパートナーになった！ 秘宝『${d.relic_label}』が解放された！ (+50EXP)`);
+    if(meta.take&&meta.take.getAttribute("aria-pressed")!=="true"){
+     meta.take.click();
+    }
+   }
+  };
+  const card=rpgEl("div",{className:"ui-rpg-card",role:"dialog","aria-modal":"true","aria-label":d.name},
+   rpgEl("div",{className:"ui-rpg-card-head"},
+    rpgEl("h3",{className:"ui-rpg-card-title",textContent:`${d.emoji} 守護龍 ${d.name}`}),
+    rpgEl("button",{type:"button",className:"ui-rpg-close","aria-label":"とじる",textContent:"✖️",onclick:closeModal})),
+   repoLine,loreLine,
+   rpgEl("div",{className:"ui-rpg-row"},
+    rpgEl("div",{className:"ui-rpg-row-top"},stageBadge,meterText),
+    rpgEl("span",{className:"ui-rpg-meter ui-rpg-meter-bond"},meterFill),
+    stageDesc),
+   rpgEl("p",{className:"ui-rpg-subnote",textContent:"🐉 お世話アクション:"}),
+   careActions);
+  syncDragon();showCard(card);
  };
  const startBattle=spotId=>{
   const foeTpl=rpg.enemies[spotId];if(!foeTpl)return;
@@ -2607,7 +3030,7 @@ export function bindWorldRpg(el){
    if(!subMode||ended){subPanel.hidden=true;subPanel.replaceChildren();return}
    subPanel.hidden=false;
    if(subMode==="skill"){
-    subPanel.replaceChildren(...rpg.skills.map(sk=>rpgEl("button",{type:"button",className:"ui-rpg-btn",disabled:state.mp<sk.mp,textContent:`${sk.emoji} ${sk.label} (💧${sk.mp}) - ${sk.desc}`,onclick:()=>{
+    subPanel.replaceChildren(...allSkills().map(sk=>rpgEl("button",{type:"button",className:"ui-rpg-btn",disabled:state.mp<sk.mp,textContent:`${sk.emoji} ${sk.label} (💧${sk.mp}) - ${sk.desc}`,onclick:()=>{
      if(ended||state.mp<sk.mp)return;
      state.mp-=sk.mp;subMode="";rebuildSub();
      const st=stats();
@@ -2662,7 +3085,10 @@ export function bindWorldRpg(el){
   syncBattle();showCard(card);
  };
  const openJournal=(activeTab="quests")=>{
-  const tabs=[["quests","📋 クエスト"],["badges","🏅 実績"],["status","🧙 ステータス"],["bestiary","👾 図鑑"]];
+  const tabs=[["quests","📋 クエスト"]];
+  if(rpg.dragons)tabs.push(["dragons","🐉 竜の手帳"]);
+  if(rpg.fame)tabs.push(["fame","📣 ファンの鑑"]);
+  tabs.push(["badges","🏅 実績"],["status","🧙 ステータス"],["bestiary","👾 図鑑"]);
   const body=rpgEl("div"),tabBtns=[];
   const drawBody=()=>{
    if(activeTab==="quests"){
@@ -2672,6 +3098,39 @@ export function bindWorldRpg(el){
       rpgEl("div",{className:"ui-rpg-row-top"},rpgEl("span",{textContent:`${done?"✅":"◻️"} ${q.title}`}),rpgEl("span",{textContent:`${p}/${q.count}`})),
       rpgEl("p",{className:"ui-rpg-subnote",textContent:`${q.desc} ｜ 報酬: +${q.reward_exp}EXP / +${q.reward_gold}G`}));
     })));
+   }else if(activeTab==="dragons"&&rpg.dragons){
+    body.replaceChildren(rpgEl("ul",{className:"ui-rpg-list"},...Object.entries(rpg.dragons).map(([sid,d])=>{
+     const seen=state.discoveredDragons.has(sid),bond=state.dragonBond.get(sid)||0;
+     const stg=rpgDragonStage(bond,d.bond_max);
+     return rpgEl("li",{className:"ui-rpg-row"},
+      rpgEl("div",{className:"ui-rpg-row-top"},
+       rpgEl("strong",{textContent:seen?`${stg.emoji} ${d.name}（${d.title}）`:"🥚 ？？？（未知の龍）"}),
+       rpgEl("span",{textContent:seen?`絆 ${bond}/${d.bond_max}`:"未発見"})),
+      rpgEl("p",{className:"ui-rpg-subnote",textContent:seen?`${stg.label} ｜ 📦 ${d.repo} ｜ 🏆 秘宝: ${bond>=d.bond_max?d.relic_label:"【未覚醒】"}`:"ロンドンのどこかで眠りについている。探索して見つけよう！"}),
+      seen?rpgEl("div",{className:"ui-rpg-actions"},rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🐉 お世話・話す",onclick:()=>{closeModal();openDragonDialog(sid)}})):null);
+    })));
+   }else if(activeTab==="fame"&&rpg.fame){
+    const r=rpgFanFameRank(state.fanFame);
+    const deedsList=rpg.deeds||[];
+    const isMax=state.fanFame>=95;
+    body.replaceChildren(
+     rpgEl("div",{className:"ui-rpg-row"},
+      rpgEl("div",{className:"ui-rpg-row-top"},
+       rpgEl("strong",{textContent:`${r.emoji} 称号: ${r.rank}`}),
+       rpgEl("span",{textContent:`知名度: ${state.fanFame}pt`})),
+      rpgEl("span",{className:"ui-rpg-meter ui-rpg-meter-fame"},rpgEl("i",{style:`width:${Math.min(100,Math.round(100*state.fanFame/95))}%`})),
+      rpgEl("p",{className:"ui-rpg-subnote",textContent:r.desc}),
+      rpgEl("p",{className:"ui-rpg-subnote",textContent:isMax?"👑 最高峰のファンの鑑に到達！ 全国のファンと竜の誇りです。":`次ランクまで: あと ${Math.max(0,r.next_threshold-state.fanFame)}pt`})),
+     rpgEl("div",{className:"ui-rpg-row"},
+      rpgEl("strong",{textContent:"🤝 聖地のお手伝い・評判一覧"}),
+      rpgEl("ul",{className:"ui-rpg-list"},...deedsList.map(d=>{
+       const done=state.helpedDeeds.has(d.id);
+       return rpgEl("li",{className:"ui-rpg-row"},
+        rpgEl("div",{className:"ui-rpg-row-top"},
+         rpgEl("span",{textContent:`${done?"✅":"◻️"} ${d.title}${d.cost?` (🪙 ${d.cost}G)`:""}`}),
+         rpgEl("span",{textContent:`+${d.fame}pt`})),
+        rpgEl("p",{className:"ui-rpg-subnote",textContent:`${d.desc} ｜ ${d.reward_label||""}`}));
+      }))));
    }else if(activeTab==="badges"){
     body.replaceChildren(rpgEl("div",{className:"ui-rpg-badges"},...rpg.badges.map(b=>{
      const on=state.badges.has(b.id);
@@ -2681,13 +3140,15 @@ export function bindWorldRpg(el){
     })));
    }else if(activeTab==="status"){
     const st=stats(),eqList=equipIds().map(id=>{const m=spotMeta(id);return `${m.emoji} ${m.itemLabel}`});
+    const synList=activeSynergies().map(({sid,entry})=>`${entry.emoji} ${entry.label}: ATK+${entry.atk||0} DEF+${entry.def||0} HP+${entry.hp||0} MP+${entry.mp||0}`);
     const bagItems=[...state.consumables.values()];
     body.replaceChildren(
      rpgEl("div",{className:"ui-rpg-row"},
       rpgEl("div",{className:"ui-rpg-row-top"},rpgEl("span",{textContent:`Lv.${st.lv.level} 冒険者`}),rpgEl("span",{textContent:`🪙 ${state.gold}G`})),
       rpgEl("p",{className:"ui-rpg-text",textContent:`❤️ HP ${state.hp}/${st.maxHp}  💧 MP ${state.mp}/${st.maxMp}  ⚔️ ATK ${st.atk}  🛡️ DEF ${st.def}`}),
       rpgEl("p",{className:"ui-rpg-subnote",textContent:`✨ 累計EXP ${state.exp} (次Lvまで ${Math.max(0,st.lv.next_exp-state.exp)})`}),
-      rpgEl("p",{className:"ui-rpg-subnote",textContent:`🛡️ そうび品: ${eqList.length?eqList.join("・"):"なし（村の宝箱を探そう！）"}`})),
+      rpgEl("p",{className:"ui-rpg-subnote",textContent:`🛡️ そうび品: ${eqList.length?eqList.join("・"):"なし（宝箱を探そう！）"}`}),
+      synList.length?rpgEl("p",{className:"ui-rpg-subnote",textContent:`🔗 異界共鳴: ${synList.join(" ｜ ")}`}):null),
      rpgEl("div",{className:"ui-rpg-row"},
       rpgEl("strong",{textContent:"🎒 つかえるどうぐ"}),
       bagItems.length?rpgEl("div",{className:"ui-rpg-actions"},...bagItems.map(it=>rpgEl("button",{type:"button",className:"ui-rpg-btn",disabled:it.item_type==="scroll",textContent:`${it.emoji} ${it.label} ×${it.count}`,onclick:()=>{useConsumable(it.key);drawBody();showToast(`${it.emoji} ${it.label} を使った！`)}}))):rpgEl("p",{className:"ui-rpg-subnote",textContent:"まだ消費アイテムがないよ"})));
@@ -2715,14 +3176,15 @@ export function bindWorldRpg(el){
   drawBody();showCard(card);
  };
  const interactSpot=sid=>{
+  if(rpg.dragons?.[sid])return openDragonDialog(sid);
   if(rpg.npcs[sid])return openNpcDialog(sid);
   if(rpg.loot[sid])return openLootDialog(sid);
   if(rpg.enemies[sid])return startBattle(sid);
  };
- for(const[sid,entry]of[...Object.entries(rpg.npcs),...Object.entries(rpg.loot),...Object.entries(rpg.enemies)]){
+ for(const[sid,entry]of[...Object.entries(rpg.dragons||{}),...Object.entries(rpg.npcs),...Object.entries(rpg.loot),...Object.entries(rpg.enemies)]){
   const art=document.getElementById(wid+"-spot-"+sid);
   if(!art||art.querySelector(".ui-rpg-sheet-btn"))continue;
-  const label=rpg.npcs[sid]?"💬 はなす":rpg.enemies[sid]?"⚔️ たたかう":(entry.kind==="chest"?"🗝️ 宝箱を見る":"✨ ひろう");
+  const label=rpg.dragons?.[sid]?"🐉 竜とふれあう":rpg.npcs[sid]?"💬 はなす":rpg.enemies[sid]?"⚔️ たたかう":(entry.kind==="chest"?"🗝️ 宝箱を見る":"✨ ひろう");
   const btn=rpgEl("button",{type:"button",className:"ui-rpg-btn ui-rpg-sheet-btn","data-rpg-spot":sid,textContent:label,onclick:()=>{
    art.querySelector(".ui-sheet-close")?.click();interactSpot(sid);
   }});
@@ -2737,7 +3199,20 @@ export function bindWorldRpg(el){
   const sid=id.slice(prefix.length);
   if(takeBtn.getAttribute("aria-pressed")==="true"&&rpg.loot[sid]&&!state.looted.has(sid))addLoot(sid);
  });
+ el.addEventListener("click",e=>{
+  if(e.target.closest(".ui-spot-flip")&&rpg.dragons?.["london-rl-dragon-nogard"]){
+   const cur=state.dragonBond.get("london-rl-dragon-nogard")||0;
+   state.dragonBond.set("london-rl-dragon-nogard",cur+10);
+   showToast("🐲 看板の文字が裏返り、古代竜ノガードの共鳴が高まった！ (絆+10)");
+   renderHud();checkQuests();checkBadges();
+  }
+ });
  hud?.querySelector("[data-rpg-journal-btn]")?.addEventListener("click",()=>openJournal("quests"));
+ hud?.querySelector("[data-rpg-dragons-btn]")?.addEventListener("click",()=>openJournal("dragons"));
+ hud?.querySelector("[data-rpg-fame-btn]")?.addEventListener("click",()=>openJournal("fame"));
+ window.addEventListener("world-bag-change",()=>{
+  renderHud();checkQuests();checkBadges();
+ });
  hud?.querySelector("[data-rpg-explore]")?.addEventListener("click",()=>{
   const curFloor=el.querySelector("input[name$='-floor']:checked")?.value||"meadow";
   const floorEnemies=[...el.querySelectorAll(`.ui-floor[data-floor="${CSS.escape(curFloor)}"] .ui-spot[data-rpg-kind="enemy"]`)].map(n=>n.getAttribute("href").slice(1+(wid+"-spot-").length)).filter(id=>rpg.enemies[id]);
@@ -2797,12 +3272,14 @@ export function bindWorldRpg(el){
    if(goTarget&&curFloor===goTarget.floor&&Math.hypot(px-goTarget.x,py-goTarget.y)<=2){
     goTarget=null;if(hit)lastContactId=hit;
    }
-   const blocked=Boolean(goTarget)||!overlay.hidden||el.hasAttribute("data-pick")||el.hasAttribute("data-ask")||el.querySelector(".ui-sheet-item[data-open]");
+   const isWalking=Boolean(pl.dataset.targetX)&&Math.hypot(px-+pl.dataset.targetX,py-+pl.dataset.targetY)>2;
+   const blocked=Boolean(goTarget)||isWalking||!overlay.hidden||el.hasAttribute("data-pick")||el.hasAttribute("data-ask")||el.querySelector(".ui-sheet-item[data-open]");
    if(!blocked){
     if(hit){
-     if(hit!==lastContactId&&(movedSteps>8||rpg.npcs[hit]?.on_contact||rpg.enemies[hit]?.on_contact||rpg.loot[hit])){
+     if(hit!==lastContactId&&(movedSteps>8||rpg.dragons?.[hit]||rpg.npcs[hit]?.on_contact||rpg.enemies[hit]?.on_contact||rpg.loot[hit])){
       lastContactId=hit;
-      if(rpg.npcs[hit]?.on_contact)openNpcDialog(hit);
+      if(rpg.dragons?.[hit])openDragonDialog(hit);
+      else if(rpg.npcs[hit]?.on_contact)openNpcDialog(hit);
       else if(rpg.loot[hit]&&!state.looted.has(hit))openLootDialog(hit);
       else if(rpg.enemies[hit]?.on_contact&&!state.defeated.has(hit))startBattle(hit);
      }
@@ -2819,7 +3296,7 @@ export function bindWorldRpg(el){
  return el;
 }
 export function bindRpgWorlds(root=document){return[...root.querySelectorAll("[data-ui-world][data-rpg]")].map(el=>bindWorldRpg(el))}
-globalThis.webUiWorld={...globalThis.webUiWorld,rpgRandomWord,rpgOrbEffect,rpgLevelForExp,rpgDamage,bindWorldRpg,bindRpgWorlds};
+globalThis.webUiWorld={...globalThis.webUiWorld,rpgRandomWord,rpgOrbEffect,rpgLevelForExp,rpgDragonStage,rpgFanFameRank,rpgDamage,bindWorldRpg,bindRpgWorlds};
 bindRpgWorlds();
 """
 
@@ -2991,12 +3468,14 @@ EXAMPLES: dict[str, Any] = {
 
 # Real places in miniature (the `place` floor): latitude and longitude in, tiles out. The coordinates are approximate (about 100 m, read off public
 # maps), which is all a miniature needs; the point is where things stand relative to each other, so nothing here is a facility's exact position.
-_CITY_MARKS = {"exit": "🎫", "station": "🚉", "terminus": "🚆"}   # the mark drawn instead of the dot, by category: the cities are their transport (🛗 is the footer's)
+_CITY_MARKS = {"exit": "🎫", "station": "🚉", "terminus": "🚆", "npc": "💬", "item": "✨", "dragon": "🐲", "battle": "⚔️"}   # the mark drawn instead of the dot, by category: the cities are their transport (🛗 is the footer's)
 
 
-def _pt(id: str, label: str, lat: float, lon: float, category: str, body: str = "", flip: str = "", sign: str = "") -> dict[str, Any]:
+def _pt(id: str, label: str, lat: float, lon: float, category: str, body: str = "", flip: str = "", sign: str = "",
+        mark: str = "", item: dict[str, Any] | None = None) -> dict[str, Any]:
     return {"id": id, "label": label, "lat": lat, "lon": lon, "category": category, "body": body, **({"flip": flip} if flip else {}),
-            **({"sign": sign} if sign else {})}
+            **({"sign": sign} if sign else {}), **({"mark": mark} if mark else {}),
+            **({"item": item} if item is not None else {})}
 
 
 _TOKYO_POINTS = [
@@ -3063,6 +3542,48 @@ _LONDON_POINTS = [
     _pt("nogard", "nogard", 51.5024, -0.1118, "sign", "うしろから読んでみて。", "🐉", "wood"),
     _pt("mind-the-gap", "mind the gap", 51.4958, -0.1445, "sign", "駅のホームでよく聞く言葉です。", "", "led"),
     _pt("platform", "◀ 北 | 南 ▶", 51.5290, -0.1270, "sign", "キングス・クロスとセント・パンクラスの前です。", "", "led"),
+]
+_LONDON_ADVENTURE_POINTS = [
+    # 5 NPCs
+    _pt("rl-npc-arthur", "霧の探偵アーサー", 51.53153, -0.11806, "npc", "ロンドンの霧を調査している敏腕探偵。"),
+    _pt("rl-npc-cecil", "学者セシル", 51.52613, -0.08555, "npc", "ロンドンの古代伝承とクイズに詳しい若き研究者。"),
+    _pt("rl-npc-belle", "給仕ベラ", 51.52343, -0.14841, "npc", "温かい紅茶とスコーンをふるまう喫茶の看板娘。"),
+    _pt("rl-npc-fountain", "記憶の古泉", 51.51534, -0.12456, "npc", "清らかな水が湧き出る古泉。触れると癒される。"),
+    _pt("rl-npc-merlin", "時計師マーリン", 51.50724, -0.10722, "npc", "リバースロンドンの時空歯車を管理する老人。"),
+    # 5 Drops
+    _pt("rl-drop-feather", "風切りの銀羽", 51.52613, -0.13323, "item", "リバースロンドンの夜風を切り裂く軽やかな銀の羽。",
+        item={"emoji": "🪶", "label": "風切りの銀羽", "body": "リバースロンドンの夜風を切り裂く軽やかな銀の羽。身軽になり素早さが高まる。"}),
+    _pt("rl-drop-tea", "高級アールグレイ茶葉", 51.52208, -0.15057, "item", "ベルモント産の極上茶葉。芳醇な香りで心身を落ち着かせる。",
+        item={"emoji": "🍃", "label": "高級アールグレイ茶葉", "body": "ベルモント産の極上茶葉。芳醇な香りで心身を落ち着かせる。竜の大好物。"}),
+    _pt("rl-drop-gear", "歯車のかけら", 51.52343, -0.08121, "item", "時空時計の精巧な真鍮歯車。ドラゴンの育成や機械の強化に役立つ。",
+        item={"emoji": "⚙️", "label": "歯車のかけら", "body": "時空時計の精巧な真鍮歯車。ドラゴンの育成や機械の強化に役立つ。"}),
+    _pt("rl-drop-scone", "焼きたてスコーン", 51.51938, -0.11373, "item", "英国伝統の香ばしい焼き菓子。竜の大好物。",
+        item={"emoji": "🥐", "label": "焼きたてスコーン", "body": "英国伝統の香ばしい焼き菓子。竜の絆を深める極上のおやつ。"}),
+    _pt("rl-drop-compass", "星盤の羅針盤", 51.5005, -0.12673, "item", "霧の向こうにある隠された駅や未知の空間を指す神秘のコンパス。",
+        item={"emoji": "🧭", "label": "星盤の羅針盤", "body": "霧の向こうにある隠された駅や未知の空間を指す神秘のコンパス。マップツールとも共鳴する。"}),
+    # 4 Chests
+    _pt("rl-chest-potion", "霊薬の宝箱", 51.52883, -0.1289, "item", "頑丈な真鍮の宝箱。中に秘薬が眠っている。",
+        item={"emoji": "🧪", "label": "女王の万能エリクサー", "body": "ロイヤル調合師が精製した秘薬。HPとMPを大きく回復する。"}),
+    _pt("rl-chest-monocle", "名探偵の片眼鏡", 51.52748, -0.09205, "item", "宝箱に眠る片眼鏡。異界共鳴で防御力と知性を高める。",
+        item={"emoji": "🧐", "label": "名探偵の片眼鏡", "body": "真実を見抜く単眼鏡。異界共鳴で防御力と知性を大幅に高める秘宝。"}),
+    _pt("rl-chest-boots", "疾風のブーツ", 51.52478, -0.14407, "item", "宝箱に眠る俊足の革靴。足取りを軽やかにする。",
+        item={"emoji": "👢", "label": "疾風のエルメスブーツ", "body": "履く者に風の加護を与える革靴。身軽さと耐久力を高める。"}),
+    _pt("rl-chest-lance", "騎士の白銀槍", 51.51129, -0.10289, "item", "旧時計塔の番兵が守る伝説の宝箱に眠る白銀の名槍。",
+        item={"emoji": "🔱", "label": "円卓の白銀聖槍", "body": "純白の輝きを放つ名槍。他の場所で装備するとATK+25という凄まじい力を発揮する！"}),
+    # 5 Dragons
+    _pt("rl-dragon-pyth", "ピタゴラス龍", 51.52883, -0.1354, "dragon", "幾何学の理を司る緑の角龍。論理的な思考を好む。",
+        item={"emoji": "📐", "label": "ピタゴラスの三角錐", "body": "PythDRagorasの叡智が凝縮された幾何学結晶。異界で最大MPと魔法攻撃を強化する。"}),
+    _pt("rl-dragon-wing", "ドラゴウィング", 51.52478, -0.15491, "dragon", "流体力学の揚力を翼に受けて舞う蒼穹の飛龍。",
+        item={"emoji": "🪽", "label": "ドラゴウィングの風翔翼", "body": "DRAgoWingの疾風を宿す翼片。異界で奥義『ドラゴウィング嵐』を解き放つ！"}),
+    _pt("rl-dragon-queryu", "クエリ龍", 51.52478, -0.08338, "dragon", "電脳潮流から生まれた知恵の水龍。検索と選別の知恵を司る。",
+        item={"emoji": "💎", "label": "クエリの蒼深珠", "body": "QueRyuの思考速度を宿す宝珠。異界で知力とDEFを高める。"}),
+    _pt("rl-dragon-cachere", "カシェール龍", 51.50994, -0.10506, "dragon", "循環再利用の円環を背負う緋色の輪龍。",
+        item={"emoji": "♾️", "label": "カシェールの無限環", "body": "CaChereCyCleの循環再生を司る輪。異界で耐久力と再生能力を授ける。"}),
+    _pt("rl-dragon-nogard", "古龍ノガード", 51.5032, -0.12023, "dragon", "ロンドンの地下深くに眠る伝説の始祖巨龍。",
+        item={"emoji": "👑", "label": "始祖龍ノガードの逆鱗", "body": "最古の守護龍ノガードの神聖なる逆鱗。異界で最大HP+40、ATK+20、究極奥義『リバース・ドラグーン』を解放する！"}),
+    # 2 Enemies
+    _pt("rl-enemy-fog-wolf", "夜霧の群れ狼", 51.52748, -0.13107, "battle", "夜霧に潜む凶暴な魔狼。幾何の光に弱い。"),
+    _pt("rl-enemy-clock-golem", "時計塔の番兵", 51.51264, -0.10072, "battle", "旧時計台の秘宝を守る機械の番兵。流体に弱い。"),
 ]
 _LONDON_LINKS = [["paddington", "edgware-road"], ["marylebone", "edgware-road"], ["marylebone", "baker-street"], ["euston", "warren-street"], ["kings-cross",
     "euston"], ["kings-cross", "st-pancras"], ["kings-cross", "russell-square"], ["kings-cross", "angel"], ["farringdon", "kings-cross"],
@@ -3396,10 +3917,528 @@ def _overworld_spec() -> dict[str, Any]:
                  "desc": "パイプライン解析の一閃(210%)"},
                 {"id": "pswb-heal", "emoji": "💚", "label": "PSWBヒーリング", "mp": 5, "kind": "heal", "mult_pct": 100, "power": 14,
                  "desc": "回復オーブでHPを大きく回復"},
-                {"id": "guard-counter", "emoji": "🛡️", "label": "堅牢カウンター", "mp": 3, "kind": "guard", "mult_pct": 125, "power": 0,
-                 "desc": "敵の攻撃を半減しつつ反撃(125%)"},
+                 {"id": "guard-counter", "emoji": "🛡️", "label": "堅牢カウンター", "mp": 3, "kind": "guard", "mult_pct": 125, "power": 0,
+                  "desc": "敵の攻撃を半減しつつ反撃(125%)"},
+            ],
+            "synergy": {
+                "cities-spot-london-chest-lance": {"emoji": "🔱", "label": "円卓の白銀聖槍", "atk": 25, "def": 10, "skill": {"emoji": "🔱", "label": "白銀聖槍連突", "mp": 6, "mult_pct": 260, "desc": "聖なる白銀の連撃(260%)"}},
+                "cities-spot-london-chest-monocle": {"emoji": "🧐", "label": "名探偵の片眼鏡", "atk": 8, "def": 12, "hp": 20},
+                "cities-spot-london-chest-boots": {"emoji": "👢", "label": "疾風のエルメスブーツ", "def": 8, "hp": 15},
+                "cities-spot-london-drop-compass": {"emoji": "🧭", "label": "星盤の羅針盤", "atk": 10, "def": 8, "mp": 15},
+                "cities-spot-london-rl-dragon-pyth": {"emoji": "📐", "label": "ピタゴラスの幾何結晶", "atk": 15, "mp": 20, "skill": {"emoji": "📐", "label": "幾何三角撃", "mp": 5, "mult_pct": 220, "desc": "幾何学の理で敵を貫く(220%)"}},
+                "cities-spot-london-rl-dragon-wing": {"emoji": "🪽", "label": "ドラゴウィングの風翔翼", "atk": 20, "hp": 30, "skill": {"emoji": "🪽", "label": "ドラゴウィング嵐", "mp": 6, "mult_pct": 240, "desc": "流体嵐の一撃(240%)"}},
+                "cities-spot-london-rl-dragon-queryu": {"emoji": "💎", "label": "クエリの蒼深珠", "def": 16, "mp": 25, "skill": {"emoji": "💎", "label": "高速クエリ波", "mp": 6, "mult_pct": 210, "desc": "電脳潮流の知恵撃(210%)"}},
+                "cities-spot-london-rl-dragon-cachere": {"emoji": "♾️", "label": "カシェールの無限環", "hp": 35, "def": 14, "skill": {"emoji": "♾️", "label": "キャッシュ再生", "mp": 5, "mult_pct": 100, "kind": "heal", "power": 25, "desc": "キャッシュ再生でHP超回復"}},
+                "cities-spot-london-rl-dragon-nogard": {"emoji": "👑", "label": "始祖龍ノガードの逆鱗", "atk": 22, "def": 16, "hp": 40, "mp": 30, "skill": {"emoji": "🐉", "label": "リバース・ドラグーン", "mp": 8, "mult_pct": 320, "desc": "始祖龍の神話的一撃(320%)"}},
+                "nagoya-spot-nagoya-chest-uniform": {"emoji": "🎽", "label": "青き魂の応援ユニフォーム", "def": 8, "hp": 30, "skill": {"emoji": "💙", "label": "ドラ魂の加護", "mp": 4, "kind": "guard", "mult_pct": 140, "desc": "青き魂の誇りで身を守り被ダメ半減(140%)"}},
+                "nagoya-spot-nagoya-chest-bat": {"emoji": "🏏", "label": "黄金の金シャチバット", "atk": 12, "skill": {"emoji": "⚡", "label": "金シャチフルスイング", "mp": 6, "mult_pct": 190, "desc": "黄金の鯱の如く唸る豪快な一振り(190%)"}},
+                "nagoya-spot-nagoya-chest-mitt": {"emoji": "🧤", "label": "守護のキャッチャーミット", "def": 8, "hp": 25},
+                "nagoya-spot-nagoya-chest-flag": {"emoji": "🚩", "label": "歓喜のビクトリーフラッグ", "atk": 6, "def": 6, "mp": 20, "skill": {"emoji": "🎺", "label": "勝利のファンファーレ", "mp": 8, "kind": "heal", "power": 30, "desc": "歓喜のファンファーレで味方を回復"}},
+                "nagoya-spot-nagoya-dragon-dragoon": {"emoji": "🐲", "label": "蒼天竜のメガストーン", "atk": 18, "def": 14, "hp": 40, "mp": 25, "skill": {"emoji": "🐲", "label": "ドラグーンスカイバースト", "mp": 8, "mult_pct": 220, "desc": "蒼き守護竜の咆哮が敵を一掃する！"}},
+            },
+        },
+    }
+
+
+def _cities_rpg() -> dict[str, Any]:
+    return {
+        "hero": {"hp": 38, "mp": 20, "atk": 10, "def": 5},
+        "npcs": {
+            "london-rl-npc-arthur": {
+                "speaker": "探偵アーサー", "emoji": "🕵️",
+                "greeting": "ようこそ、リバースロンドンへ！霧深きこの街には、古代より5頭の守護龍が眠る伝承があるんだ。",
+                "lines": [
+                    "街の駅や路地をよく観察してみてほしい。落ちている素材やおやつを龍にあげると、絆を深めることができるよ。",
+                    "絆が深まりパートナーになると、龍から伝説の秘宝を授かる。その秘宝は、他の世界（村や空間）へ行っても絶大な力を発揮するそうだ！",
+                    "南のウォータールー近くにある『nogard』という案内板…あれも実は龍の伝承と深い関わりがあるらしいね。"
+                ],
+                "on_contact": True,
+            },
+            "london-rl-npc-cecil": {
+                "speaker": "学者セシル", "emoji": "📜",
+                "greeting": "やあ！私はリバースロンドンの歴史と、ポートフォリオのリポジトリ群を研究しているセシルだ。",
+                "lines": [
+                    "私の研究成果から、リポジトリに関するクイズを出題しよう！",
+                    "正解すればゴールドと経験値が手に入るし、龍たちの好物や弱点に関する知見も深まるはずだよ。",
+                    "挑戦する準備はいつでも大歓迎さ！"
+                ],
+                "quiz": True,
+            },
+            "london-rl-npc-belle": {
+                "speaker": "給仕ベラ", "emoji": "☕",
+                "greeting": "いらっしゃいませ！霧の街のティールームへようこそ。温かい紅茶とスコーンはいかがですか？",
+                "lines": [
+                    "旅の疲れを癒やす特製ブレンドティーをご用意しています。一口飲めば心も体もぽかぽかですよ！",
+                    "龍たちはお茶やお菓子が大好きなんです。特にアールグレイの香りに惹かれて姿を現す龍もいるとか…",
+                    "道具屋でお買い物もできますし、ここでゆっくり休憩していってくださいね！"
+                ],
+                "heal": True, "shop": True,
+            },
+            "london-rl-npc-fountain": {
+                "speaker": "記憶の古泉", "emoji": "⛲",
+                "greeting": "（清らかな水が湧き出る大理石の泉だ。水面に澄んだ青空と古いロンドンの風景が映し出されている…）",
+                "lines": [
+                    "（水にそっと触れると、心洗われるような清涼感が全身を満たしていく…）",
+                    "（古い碑文に文字が刻まれている: 『歩みを止めず、世界を巡る者に風の加護あれ』）"
+                ],
+                "heal": True,
+            },
+            "london-rl-npc-merlin": {
+                "speaker": "時計師マーリン", "emoji": "🕰️",
+                "greeting": "カチ、コチ…おや、旅の若者か。わしは旧時計台の歯車と時空の歪みを調律しておるマーリンじゃ。",
+                "lines": [
+                    "時空の歯車が乱れると、夜霧の狼や機械の番兵が暴れ出してしまうのじゃ。",
+                    "もし戦いになるなら、敵の弱点を突くのじゃ！霧の狼は幾何学の光に弱く、機械のゴーレムは流体の水圧に弱いぞ。",
+                    "宝箱の鍵が開かないときは、近くにいる番兵を倒すと封印が解けるはずじゃ。"
+                ],
+            },
+        },
+        "loot": {
+            "london-rl-drop-feather": {"kind": "drop", "consumable": True, "item_type": "care", "exp": 15, "gold": 10},
+            "london-rl-drop-tea": {"kind": "drop", "consumable": True, "item_type": "care", "exp": 15, "gold": 10},
+            "london-rl-drop-gear": {"kind": "drop", "consumable": True, "item_type": "care", "exp": 15, "gold": 10},
+            "london-rl-drop-scone": {"kind": "drop", "consumable": True, "item_type": "care", "exp": 15, "gold": 10},
+            "london-rl-drop-compass": {"kind": "drop", "consumable": False, "item_type": "charm", "atk": 4, "def": 4, "exp": 25, "gold": 20},
+            "london-rl-chest-potion": {"kind": "chest", "opened_mark": "📭", "consumable": True, "item_type": "heal", "hp": 30, "mp": 15, "exp": 30, "gold": 35},
+            "london-rl-chest-monocle": {"kind": "chest", "opened_mark": "📭", "consumable": False, "item_type": "relic", "atk": 6, "def": 8, "hp": 15, "exp": 40, "gold": 50},
+            "london-rl-chest-boots": {"kind": "chest", "opened_mark": "📭", "consumable": False, "item_type": "armor", "def": 6, "hp": 10, "exp": 30, "gold": 30},
+            "london-rl-chest-lance": {"kind": "chest", "opened_mark": "📭", "consumable": False, "item_type": "relic", "atk": 14, "def": 6, "exp": 50, "gold": 60, "requires_enemy": "london-rl-enemy-clock-golem"},
+        },
+        "enemies": {
+            "london-rl-enemy-fog-wolf": {
+                "name": "夜霧の群れ狼", "emoji": "🐺", "level": 3, "hp": 36, "atk": 11, "def": 3,
+                "exp": 42, "gold": 45, "weakness": "幾何", "on_contact": True,
+                "taunt": "冷たい夜霧の中から、青白い瞳の群れ狼が唸り声をあげた！",
+            },
+            "london-rl-enemy-clock-golem": {
+                "name": "時計塔の番兵", "emoji": "🤖", "level": 5, "hp": 58, "atk": 14, "def": 6,
+                "exp": 85, "gold": 110, "weakness": "流体", "boss": True, "on_contact": True,
+                "taunt": "ギギギ…！ 時計塔の秘宝を守る機械の番兵が稼働した！",
+            },
+        },
+        "dragons": {
+            "london-rl-dragon-pyth": {
+                "name": "ピタゴラス龍", "emoji": "🐲", "title": "幾何と理の角龍", "repo": "PythDRagoras",
+                "desc": "三平方の定理と幾何学のアルゴリズムを司る深緑の角龍。論理的思考と精密な計算を好む。",
+                "lore": "直角三角形の斜辺に宿る幾何学の力…汝のコードに揺るぎなき調和をもたらさん。",
+                "bond_max": 30, "favorite_item": "アールグレイ", "relic_label": "ピタゴラスの三角錐",
+                "cross_effect": {"atk": 12, "mp": 15, "skill_label": "📐 幾何三角撃", "skill_emoji": "📐", "skill_mp": 5, "skill_mult_pct": 220, "skill_desc": "幾何学の理で敵を貫く(220%)"},
+            },
+            "london-rl-dragon-wing": {
+                "name": "ドラゴウィング", "emoji": "🐲", "title": "蒼穹翔ける風翔龍", "repo": "DRAgoWing",
+                "desc": "流体力学と大気の揚力を翼に受けて舞う蒼天の飛龍。疾風を操り、高速の巡航を誇る。",
+                "lore": "流れを制する者は空を制す。停滞を吹き飛ばし、光の如き速度で進むが良い。",
+                "bond_max": 30, "favorite_item": "風切りの銀羽", "relic_label": "ドラゴウィングの風翔翼",
+                "cross_effect": {"atk": 18, "hp": 25, "skill_label": "🪽 ドラゴウィング嵐", "skill_emoji": "🪽", "skill_mp": 6, "skill_mult_pct": 240, "skill_desc": "流体嵐の一撃(240%)"},
+            },
+            "london-rl-dragon-queryu": {
+                "name": "クエリ龍", "emoji": "🐲", "title": "情報潮流の知恵水龍", "repo": "QueRyu",
+                "desc": "無数のデータキューと検索クエリが交錯する電脳潮流から生まれた瑠璃色の水龍。検索と選別の知恵を司る。",
+                "lore": "混沌のデータより真実の解を瞬時に掬い上げる。汝の問いに常に最善の答えを。",
+                "bond_max": 30, "favorite_item": "歯車のかけら", "relic_label": "クエリの蒼深珠",
+                "cross_effect": {"def": 14, "mp": 20, "skill_label": "💎 高速クエリ波", "skill_emoji": "💎", "skill_mp": 6, "skill_mult_pct": 210, "skill_desc": "電脳潮流の知恵撃(210%)"},
+            },
+            "london-rl-dragon-cachere": {
+                "name": "カシェール龍", "emoji": "🐲", "title": "輪廻と循環の緋輪龍", "repo": "CaChereCyCle",
+                "desc": "キャッシュサイクルと循環再利用の円環を背負う深紅の龍。不要なものを再構成し、新たな生命を与える。",
+                "lore": "終わりは始まり、始まりは終わり。無限に巡るサイクルの循環こそ不滅の証。",
+                "bond_max": 30, "favorite_item": "焼きたてスコーン", "relic_label": "カシェールの無限環",
+                "cross_effect": {"hp": 30, "def": 12, "skill_label": "♾️ キャッシュ再生", "skill_emoji": "♾️", "skill_mp": 5, "skill_mult_pct": 100, "skill_desc": "大回復とシールド展開"},
+            },
+            "london-rl-dragon-nogard": {
+                "name": "古龍ノガード", "emoji": "🐉", "title": "ロンドンの始祖守護龍", "repo": "myon-bioinformatics",
+                "desc": "逆さ文字『nogard』の看板に封印されていた最古の巨龍。悠久の時を超えてリバースロンドンを見守る。",
+                "lore": "我の名を逆さより読み解き者よ…我が咆哮は時空を揺るがし、万象の道を拓く！",
+                "bond_max": 30, "favorite_item": "サツマイモ", "relic_label": "始祖龍ノガードの逆鱗",
+                "cross_effect": {"atk": 20, "def": 15, "hp": 40, "mp": 25, "skill_label": "🐉 リバース・ドラグーン", "skill_emoji": "🐉", "skill_mp": 8, "skill_mult_pct": 320, "skill_desc": "始祖龍の神話的一撃(320%)"},
+            },
+        },
+        "quests": [
+            {"id": "talk-arthur", "title": "名探偵のオリエンテーション", "desc": "探偵アーサーに話を聞く", "kind": "talk", "target": "london-rl-npc-arthur", "count": 1, "reward_exp": 20, "reward_gold": 30},
+            {"id": "care-dragon", "title": "龍とのふれあい", "desc": "龍を1頭見つけてお世話する", "kind": "dragon", "count": 1, "reward_exp": 30, "reward_gold": 40},
+            {"id": "master-bond", "title": "心を通わせし者", "desc": "いずれかの龍との絆を最大にする", "kind": "bond", "count": 1, "reward_exp": 60, "reward_gold": 80},
+            {"id": "all-dragons", "title": "五大守護龍の発見", "desc": "5頭すべての龍を見つける", "kind": "dragon", "count": 5, "reward_exp": 100, "reward_gold": 150},
+            {"id": "collect-drops", "title": "ロンドンの落とし物拾い", "desc": "道具を3つ拾う", "kind": "drop", "count": 3, "reward_exp": 25, "reward_gold": 30},
+            {"id": "defeat-clock", "title": "時計塔の番兵討伐", "desc": "番兵を倒す", "kind": "boss", "target": "london-rl-enemy-clock-golem", "count": 1, "reward_exp": 80, "reward_gold": 120},
+            {"id": "cecil-quiz", "title": "ロンドン博学王", "desc": "セシルのクイズに2問正解する", "kind": "quiz", "count": 2, "reward_exp": 40, "reward_gold": 50},
+        ],
+        "badges": [
+            {"id": "first-talk", "emoji": "💬", "label": "はじめの挨拶", "desc": "人に初めて話しかけた"},
+            {"id": "villager-friends", "emoji": "🤝", "label": "街の人気者", "desc": "街の人々4人以上と話した"},
+            {"id": "item-finder", "emoji": "🌿", "label": "アイテム発見", "desc": "落とし物か宝箱を手に入れた"},
+            {"id": "treasure-hunter", "emoji": "💎", "label": "トレジャーハンター", "desc": "宝箱を3つ以上開けた"},
+            {"id": "first-win", "emoji": "⚔️", "label": "初勝利", "desc": "バトルで初めて勝利した"},
+            {"id": "boss-slayer", "emoji": "🏆", "label": "番兵の突破者", "desc": "時計塔の番兵を撃破した"},
+            {"id": "quiz-ace", "emoji": "🎓", "label": "知識の探究者", "desc": "クイズに2問以上正解"},
+            {"id": "dragon-friend", "emoji": "🐣", "label": "龍の友愛", "desc": "守護龍を初めてお世話した"},
+            {"id": "dragon-master", "emoji": "🐉", "label": "龍の盟友", "desc": "すべての守護龍と心を通わせた"},
+            {"id": "shopper", "emoji": "🛒", "label": "賢い買い物客", "desc": "道具屋でアイテムを購入した"},
+        ],
+        "quizzes": [
+            {"repo": "PythDRagoras", "prompt": "PythDRagorasが幾何学計算とアルゴリズム設計で重視している基本原理は？", "choices": ["直角三角形の斜辺と三平方の定理の美しい調和", "未定義動作の積極的活用", "乱数による近似のみに頼る計算"], "correct": 0, "explanation": "PythDRagorasは直角三角形や幾何構造の厳密なアルゴリズムを美しく体系化したライブラリです。"},
+            {"repo": "DRAgoWing", "prompt": "DRAgoWingが扱うシミュレーション技術の主眼は何？", "choices": ["翼周りの大気流動と揚力・抗力の流体シミュレーション", "株式市場のローソク足予測", "SNSのハッシュタグ拡散"], "correct": 0, "explanation": "DRAgoWingは航空力学・流体力学に基づく翼形状や気流の挙動を高速に解析・可視化します。"},
+            {"repo": "QueRyu", "prompt": "QueRyu（クエリ龍）が提供するアーキテクチャの強みは？", "choices": ["キュー構造とストリーム検索の高速・効率的なパイプライン処理", "手動での全件スキャン強制", "同期ブロッキングによる処理待ち"], "correct": 0, "explanation": "QueRyuはキューイングとクエリ探索を巧みに組み合わせ、大量データの円滑なストリーム処理を実現します。"},
+            {"repo": "CaChereCyCle", "prompt": "CaChereCyCle（カシェールサイクル）の設計思想として正しいものは？", "choices": ["計算結果の再利用とメモリサイクルの効率的循環・パージ", "一度計算したデータを即座に破棄", "メモリリークを許容する設計"], "correct": 0, "explanation": "CaChereCyCleは再計算の無駄を省くスマートなキャッシュ管理とライフサイクル循環を提供します。"},
+            {"repo": "OnTautoLogy", "prompt": "OnTautoLogyが探求する数理・論理学的なテーマはどれ？", "choices": ["トートロジー（恒真式）の形式的検証と論理整合性の探求", "絵画の色彩心理学", "料理のレシピ自動生成"], "correct": 0, "explanation": "OnTautoLogyは論理学における恒真性や命題論理の構造をプログラミング的に探究するプロジェクトです。"},
+            {"repo": "FluidFullSpeedSimulation", "prompt": "FluidFullSpeedSimulationとポートフォリオの連携における見どころは？", "choices": ["水流やエネルギーの動的な遅延・流れの可視化", "音声コーデックの変換", "ブロック崩しゲーム"], "correct": 0, "explanation": "流体の動的な振る舞いやタイムラグを直感的なアニメーションとダイアグラムで直感体験できます。"},
+        ],
+        "shop": [
+            {"id": "tea", "spot_id": "london-rl-npc-belle", "emoji": "🫖", "label": "ベルモント・ロイヤルティー", "cost": 18, "item_type": "care", "hp": 24, "mp": 8, "desc": "心安らぐ英国紅茶。龍のおやつにも最適"},
+            {"id": "scone", "spot_id": "london-rl-npc-belle", "emoji": "🥐", "label": "自家製焼きたてスコーン", "cost": 22, "item_type": "care", "hp": 28, "mp": 10, "desc": "外サクサク中ふわふわ。龍の絆を深める"},
+            {"id": "potion", "spot_id": "london-rl-npc-belle", "emoji": "🧪", "label": "ロンドン薬草酒", "cost": 25, "item_type": "heal", "hp": 35, "mp": 5, "desc": "伝統的なハーブ酒。HPを35回復する"},
+        ],
+        "skills": [
+            {"id": "flash-slice", "emoji": "⚡", "label": "電光フラッシュ", "mp": 4, "kind": "attack", "mult_pct": 160, "power": 0, "desc": "素早い一閃で敵を突く(160%)"},
+            {"id": "fog-shield", "emoji": "🌫️", "label": "霧のベール", "mp": 3, "kind": "guard", "mult_pct": 120, "power": 0, "desc": "夜霧で被ダメ半減＆反撃(120%)"},
+            {"id": "royal-cure", "emoji": "💚", "label": "ロイヤルキュア", "mp": 5, "kind": "heal", "mult_pct": 100, "power": 16, "desc": "気品ある癒やしの光でHP回復"},
+        ],
+        "synergy": {
+            "overworld-spot-meadow-chest-sword": {"emoji": "🗡️", "label": "村の宝剣", "atk": 10, "def": 4},
+            "overworld-spot-meadow-chest-shield": {"emoji": "🛡️", "label": "英雄の盾", "def": 10, "hp": 15},
+            "nagoya-spot-nagoya-chest-uniform": {"emoji": "🎽", "label": "青き魂の応援ユニフォーム", "def": 8, "hp": 30, "skill": {"emoji": "💙", "label": "ドラ魂の加護", "mp": 4, "kind": "guard", "mult_pct": 140, "desc": "青き魂の誇りで身を守り被ダメ半減(140%)"}},
+            "nagoya-spot-nagoya-chest-bat": {"emoji": "🏏", "label": "黄金の金シャチバット", "atk": 12, "skill": {"emoji": "⚡", "label": "金シャチフルスイング", "mp": 6, "mult_pct": 190, "desc": "黄金の鯱の如く唸る豪快な一振り(190%)"}},
+            "nagoya-spot-nagoya-chest-mitt": {"emoji": "🧤", "label": "守護のキャッチャーミット", "def": 8, "hp": 25},
+            "nagoya-spot-nagoya-chest-flag": {"emoji": "🚩", "label": "歓喜のビクトリーフラッグ", "atk": 6, "def": 6, "mp": 20, "skill": {"emoji": "🎺", "label": "勝利のファンファーレ", "mp": 8, "kind": "heal", "power": 30, "desc": "歓喜のファンファーレで味方を回復"}},
+            "nagoya-spot-nagoya-dragon-dragoon": {"emoji": "🐲", "label": "蒼天竜のメガストーン", "atk": 18, "def": 14, "hp": 40, "mp": 25, "skill": {"emoji": "🐲", "label": "ドラグーンスカイバースト", "mp": 8, "mult_pct": 220, "desc": "蒼き守護竜の咆哮が敵を一掃する！"}},
+        },
+    }
+
+
+_NAGOYA_PROPS = [
+    {"kind": "water", "x": 384, "y": 0, "w": 32, "h": 768},
+    {"kind": "bridge", "x": 384, "y": 384, "w": 32, "h": 64},
+    {"kind": "bridge", "x": 384, "y": 288, "w": 32, "h": 64},
+    {"kind": "bridge", "x": 384, "y": 544, "w": 32, "h": 64},
+    {"kind": "road", "x": 128, "y": 384, "w": 896, "h": 64},
+    {"kind": "road", "x": 576, "y": 96, "w": 64, "h": 608},
+    {"kind": "road", "x": 768, "y": 224, "w": 224, "h": 128},
+    {"kind": "road", "x": 480, "y": 160, "w": 96, "h": 96},
+    {"kind": "water", "x": 320, "y": 672, "w": 320, "h": 96},
+    {"kind": "bridge", "x": 448, "y": 672, "w": 64, "h": 32},
+]
+
+_NAGOYA_SPOTS = [
+    {"id": "nagoya-station", "x": 160, "y": 384, "label": "JR名古屋駅・金時計", "category": "hub",
+     "body": "聖地ナゴヤの玄関口。東海道新幹線や各線が集い、多くのドラゴンズファンが行き交う。"},
+    {"id": "nagoya-meieki-sky", "x": 192, "y": 320, "label": "名駅スカイプロムナード", "category": "view",
+     "body": "名駅の高層ビル群から聖地ナゴヤの街並みとドーム方面を一望できる展望デッキ。"},
+    {"id": "nagoya-dome", "x": 864, "y": 256, "label": "バンテリンドーム ナゴヤ", "category": "stadium", "mark": "🏟️",
+     "body": "ドラゴンズの本拠地にして熱き応援が渦巻く聖地スタジアム！観戦チケットを購入してスタンドから熱戦を応援できる。"},
+    {"id": "nagoya-aeon-mall", "x": 928, "y": 256, "label": "イオンモール ナゴヤドーム前", "category": "gourmet", "mark": "🏬",
+     "body": "ドーム直結の大型商業施設！メガホンやお弁当、応援グッズが勢ぞろいするファンの補給基地。"},
+    {"id": "nagoya-castle", "x": 512, "y": 192, "label": "名古屋城・本丸御殿", "category": "landmark",
+     "body": "名城の威容を誇る名古屋のシンボル。金シャチが天守に輝く。"},
+    {"id": "nagoya-kinshachi", "x": 544, "y": 160, "label": "天守閣の金シャチ", "category": "landmark",
+     "body": "城の頂で黄金に煌めく守り神。職人たちの技と街の誇りが凝縮されている。"},
+    {"id": "nagoya-tv-tower", "x": 576, "y": 384, "label": "MIRAI TOWER", "category": "landmark",
+     "body": "久屋大通の中心にそびえる日本最古の電波塔。夜には青きライトアップが灯る。"},
+    {"id": "nagoya-oasis21", "x": 640, "y": 384, "label": "オアシス21・水の宇宙船", "category": "landmark",
+     "body": "空中に浮かぶガラスの大屋根。水面越しにテレビ塔とナゴヤの街を一望できる。"},
+    {"id": "nagoya-hisaya", "x": 576, "y": 448, "label": "久屋大通公園", "category": "park",
+     "body": "栄の中心を南北に貫く緑豊かな憩いの空間。ファンイベントや物産展で賑わう。"},
+    {"id": "nagoya-osu-gate", "x": 480, "y": 544, "label": "大須商店街・ふれあい広場", "category": "town",
+     "body": "巨大招き猫が見守る大須の名物広場。下町情緒と賑わいがあふれる。"},
+    {"id": "nagoya-osu-arcade", "x": 544, "y": 544, "label": "大須電気街アーケード", "category": "town",
+     "body": "サブカルチャーと最新ガジェット、食べ歩きグルメが混ざり合う活気満点の通り。"},
+    {"id": "nagoya-shikemichi", "x": 416, "y": 288, "label": "四間道の蔵小路", "category": "town",
+     "body": "江戸の風情を今に残す白壁の土蔵と石垣が美しい歴史の小径。"},
+    {"id": "nagoya-kinshachi-yokocho", "x": 480, "y": 224, "label": "金シャチ横丁・義直ゾーン", "category": "gourmet",
+     "body": "名古屋城の麓に佇む伝統のなごやめし横丁。美味しい香りが立ち込める。"},
+    {"id": "nagoya-higashiyama", "x": 928, "y": 480, "label": "東山動植物園・緑の杜", "category": "park",
+     "body": "広大な自然の中で動物たちが暮らす癒やしの森。シャバーニもここにいる。"},
+    {"id": "nagoya-port", "x": 448, "y": 672, "label": "名古屋港・シャチの入江", "category": "port",
+     "body": "爽やかな潮風が吹き抜ける海辺の広場。大きな船やシャチの姿が見られる。"},
+    {"id": "nagoya-noritake", "x": 288, "y": 256, "label": "ノリタケの森・赤レンガ棟", "category": "landmark",
+     "body": "緑豊かな敷地に明治の赤レンガ建築が並ぶクラフトと歴史の拠点。"},
+    {"id": "nagoya-atsuta-forest", "x": 512, "y": 640, "label": "熱田の杜・千年の森", "category": "nature",
+     "body": "古より生い茂る大楠と静寂に包まれた緑の杜。旅の安全と必勝を祈願する。"},
+
+    {"id": "nagoya-npc-ouendan", "x": 800, "y": 288, "label": "応援団長リュウジ", "category": "npc",
+     "body": "「来たなドラ魂を持つ者よ！俺たちの熱い声援でチームを勝利に導くぞ！」"},
+    {"id": "nagoya-npc-boy", "x": 896, "y": 320, "label": "熱烈野球少年コータ", "category": "npc",
+     "body": "「ドームの周りにサインボールが落ちてなかったかな？見つけたら教えて！」"},
+    {"id": "nagoya-npc-cafe", "x": 224, "y": 416, "label": "喫茶モーニングのママ", "category": "npc",
+     "body": "「いらっしゃい！名古屋の朝は小倉トーストと珈琲で決まりよ。仕込みも手伝ってね。」"},
+    {"id": "nagoya-npc-craftsman", "x": 448, "y": 192, "label": "金シャチ職人タツゾウ", "category": "npc",
+     "body": "「街が綺麗なら金シャチもより輝く。ポイ捨てゴミを拾ってきてくれたら礼をするぞ。」"},
+    {"id": "nagoya-npc-grandpa", "x": 608, "y": 320, "label": "聖地の生き字引 爺さん", "category": "npc",
+     "body": "「フォッフォッ、かつての優勝パレードやドームの熱戦なら何でも聞いておくれ。」"},
+    {"id": "nagoya-dragon-dragoon", "x": 704, "y": 256, "label": "碧天守護竜ドラグーン", "category": "dragon",
+     "body": "ドームの青空を舞う蒼き守護竜。スタジアムの歓声と共鳴して力を高める。"},
+
+    {"id": "nagoya-drop-megaphone", "x": 768, "y": 352, "label": "応援青メガホン", "category": "drop",
+     "item": {"emoji": "📣", "label": "応援青メガホン", "body": "熱烈なファンが大切にしている青きメガホン。声援を響かせよう。"},
+     "body": "熱烈なファンが大切にしている青きメガホン。声援を響かせよう。"},
+    {"id": "nagoya-drop-toast", "x": 256, "y": 480, "label": "名物小倉トースト", "category": "drop",
+     "item": {"emoji": "🍞", "label": "名物小倉トースト", "body": "こんがりトーストにたっぷりの小倉餡とバター。元気百倍になる。"},
+     "body": "こんがりトーストにたっぷりの小倉餡とバター。元気百倍になる。"},
+    {"id": "nagoya-drop-wings", "x": 512, "y": 480, "label": "秘伝の手羽先", "category": "drop",
+     "item": {"emoji": "🍗", "label": "秘伝の手羽先", "body": "甘辛スパイシーな秘伝ダレが効いた名物手羽先。魔力がみなぎる。"},
+     "body": "甘辛スパイシーな秘伝ダレが効いた名物手羽先。魔力がみなぎる。"},
+    {"id": "nagoya-drop-ball", "x": 960, "y": 288, "label": "練習用サインボール", "category": "drop",
+     "item": {"emoji": "⚾", "label": "練習用サインボール", "body": "熱い練習の跡が残る硬式ボール。少年に届けると喜ばれそうだ。"},
+     "body": "熱い練習の跡が残る硬式ボール。少年に届けると喜ばれそうだ。"},
+    {"id": "nagoya-drop-trash", "x": 608, "y": 480, "label": "街のポイ捨てゴミ", "category": "drop",
+     "item": {"emoji": "🧽", "label": "街のポイ捨てゴミ", "body": "道端に落ちていた空き缶やゴミ。拾って分別し職人タツゾウに届けよう。"},
+     "body": "道端に落ちていた空き缶やゴミ。拾って分別し職人タツゾウに届けよう。"},
+
+    {"id": "nagoya-chest-uniform", "x": 832, "y": 224, "label": "青き魂の応援ユニフォーム", "category": "chest", "mark": "🎁",
+     "item": {"emoji": "🎽", "label": "青き魂の応援ユニフォーム", "body": "背番号と青きプライドが縫い込まれた伝説の応援ユニフォーム。"},
+     "body": "背番号と青きプライドが縫い込まれた伝説の応援ユニフォーム。"},
+    {"id": "nagoya-chest-bat", "x": 576, "y": 128, "label": "黄金の金シャチバット", "category": "chest", "mark": "🎁",
+     "item": {"emoji": "🏏", "label": "黄金の金シャチバット", "body": "天守の金シャチの加護を宿した黄金に輝く特製バット。"},
+     "body": "天守の金シャチの加護を宿した黄金に輝く特製バット。"},
+    {"id": "nagoya-chest-mitt", "x": 896, "y": 224, "label": "守護のキャッチャーミット", "category": "chest", "mark": "🎁",
+     "item": {"emoji": "🧤", "label": "守護のキャッチャーミット", "body": "どんな豪速球もしっかり受け止める堅牢な守護のミット。"},
+     "body": "どんな豪速球もしっかり受け止める堅牢な守護のミット。"},
+    {"id": "nagoya-chest-flag", "x": 736, "y": 192, "label": "歓喜のビクトリーフラッグ", "category": "chest", "mark": "🎁",
+     "item": {"emoji": "🚩", "label": "歓喜のビクトリーフラッグ", "body": "スタジアムを青く染め上げる勝利の歓喜の大旗。"},
+     "body": "スタジアムを青く染め上げる勝利の歓喜の大旗。"},
+    {"id": "nagoya-portal", "x": 160, "y": 448, "label": "異世界広域ポータル", "category": "portal", "mark": "🌀",
+     "body": "広大なる表層界や東京、ロンドン、パリ、学校へと繋がる転移門。"},
+]
+
+
+def _nagoya_rpg() -> dict[str, Any]:
+    return {
+        "seed": 20261127,
+        "hero": {"hp": 40, "mp": 18, "atk": 8, "def": 4, "gold": 50},
+        "fame": {"initial": 0, "target": 95, "label": "知名度"},
+        "deeds": [
+            {"id": "clean-trash", "title": "街の美化活動（ゴミ拾い）", "desc": "街にポイ捨てされたゴミを拾って分別し職人タツゾウに届ける", "fame": 15, "npc_id": "nagoya-npc-craftsman", "reward_label": "知名度+15pt / 金シャチの木札"},
+            {"id": "cheer-call", "title": "熱血コール＆レスポンス", "desc": "応援団長リュウジと熱きドラ魂コールを練習して気合を注入する", "fame": 15, "npc_id": "nagoya-npc-ouendan", "reward_label": "知名度+15pt / 団長推薦状"},
+            {"id": "give-ball", "title": "少年へのサインボール譲渡", "desc": "ドーム周辺で見つけた練習用サインボールを熱烈野球少年コータに譲る", "fame": 20, "npc_id": "nagoya-npc-boy", "reward_label": "知名度+20pt / コータの宝物手袋"},
+            {"id": "morning-prep", "title": "喫茶モーニング仕込み手伝い", "desc": "名物小倉トーストと美味しい珈琲の仕込みをママと一緒に行う", "fame": 15, "npc_id": "nagoya-npc-cafe", "reward_label": "知名度+15pt / 特製ブレンド珈琲"},
+            {"id": "history-quiz", "title": "聖地の歴史継承（クイズ講話）", "desc": "生き字引の爺さんからドラゴンズとナゴヤの栄光の歴史を学び継承する", "fame": 20, "npc_id": "nagoya-npc-grandpa", "reward_label": "知名度+20pt / 栄光の記録簿"},
+            {"id": "dome-sponsor", "title": "ドーム公式戦の現地観戦応援", "desc": "バンテリンドームで観戦チケット（30G）を購入し熱気渦巻くスタンドから熱狂応援する", "fame": 25, "cost": 30, "npc_id": "nagoya-dome", "reward_label": "知名度+25pt / 観戦チケット半券"},
+            {"id": "mall-shopping", "title": "ドーム前商業施設で応援準備", "desc": "イオンモール ナゴヤドーム前でお買い物をして応援グッズを揃える", "fame": 15, "npc_id": "nagoya-aeon-mall", "reward_label": "知名度+15pt / お買い物レシート"},
+        ],
+        "npcs": {
+            "nagoya-npc-ouendan": {
+                "speaker": "応援団長リュウジ", "emoji": "📣", "on_contact": True,
+                "greeting": "ようこそ聖地ナゴヤへ！俺は私設応援団長のリュウジだ！ドラ魂を熱く燃やしてるか！？",
+                "lines": [
+                    "ドームでの熱い声援は選手たちに最大の力を与える！",
+                    "メガホンを片手に、スタンドと街全体が青く染まる瞬間が最高なんだ！",
+                    "コール＆レスポンスを合わせて、俺たちと一緒に声を出してみるか！？"
+                ],
+                "help": {
+                    "deed_id": "cheer-call", "title": "熱血コール＆レスポンス", "fame": 15,
+                    "action_label": "熱血コールを練習する",
+                    "done_text": "「いーい声出てるぞ！そのドラ魂があればどこに行っても立派なサポーターだ！」知名度が 15pt 上昇した！",
+                },
+            },
+            "nagoya-npc-boy": {
+                "speaker": "野球少年コータ", "emoji": "🧢", "on_contact": True,
+                "greeting": "こんにちは！ぼく将来ドラゴンズのエースになるのが夢なんだ！",
+                "lines": [
+                    "今日もドームの前で選手の練習を見てたんだ！",
+                    "でも…大事な練習用ボールを落としちゃったみたいで探してるんだ。",
+                    "もし見つけたら、ぼくに教えてくれると嬉しいな！"
+                ],
+                "help": {
+                    "deed_id": "give-ball", "title": "少年へのサインボール譲渡", "fame": 20,
+                    "action_label": "サインボールを渡す", "req_item": "nagoya-drop-ball",
+                    "done_text": "「わぁっ！ぼくの探してたボールだ！ありがとう！一生大切にするよ！」知名度が 20pt 上昇した！",
+                },
+            },
+            "nagoya-npc-cafe": {
+                "speaker": "モーニングのママ", "emoji": "☕", "shop": True,
+                "greeting": "いらっしゃい！ナゴヤの朝は喫茶店のモーニングから始まるのよ。ゆっくりしていってね。",
+                "lines": [
+                    "焼きたての小倉トーストに、ゆで卵と深煎り珈琲。これが活力の源よ！",
+                    "ドームに応援へ行く前にも、みんなここに寄って腹ごしらえしていくの。",
+                    "朝の仕込みを手伝ってくれたら、自慢のモーニングをごちそうするわよ。"
+                ],
+                "help": {
+                    "deed_id": "morning-prep", "title": "喫茶モーニング仕込み手伝い", "fame": 15,
+                    "action_label": "小倉餡の仕込みを手伝う",
+                    "done_text": "「手際がいいわね！おかげで今日も美味しい小倉トーストが焼けたわ。ありがとう！」知名度が 15pt 上昇した！",
+                },
+            },
+            "nagoya-npc-craftsman": {
+                "speaker": "金シャチ職人タツゾウ", "emoji": "🔨",
+                "greeting": "おう！ワシは城の金シャチや飾りを手入れしている職人のタツゾウだ。",
+                "lines": [
+                    "天守閣の金シャチは名古屋の誇り。街が綺麗であってこそ、その黄金も曇りなく輝く。",
+                    "だが最近、ポイ捨てされたゴミを見かけることがあって嘆かわしいんじゃ。",
+                    "街のゴミを拾って分別して届けてくれたら、ワシからも礼をさせてもらうぞ。"
+                ],
+                "help": {
+                    "deed_id": "clean-trash", "title": "街の美化活動（ゴミ拾い）", "fame": 15,
+                    "action_label": "拾ったゴミを分別して渡す", "req_item": "nagoya-drop-trash",
+                    "done_text": "「おお、綺麗に分別して持ってきてくれたか！街を愛する心こそ真のファンの鑑じゃ！」知名度が 15pt 上昇した！",
+                },
+            },
+            "nagoya-npc-grandpa": {
+                "speaker": "生き字引 爺さん", "emoji": "👴", "quiz": True,
+                "greeting": "フォッフォッフォ…ようこそ。ワシはこの地で何十年もドラゴンズとナゴヤを見守ってきた老兵じゃ。",
+                "lines": [
+                    "ナゴヤ球場時代の猛打爆発からドームの堅守まで、数々の名勝負が胸に刻まれとる。",
+                    "歴史を知れば、今の一球一打が何倍も熱く、深く味わえるようになるぞ。",
+                    "ナゴヤと球団の歴史にまつわるクイズに挑戦してみるかの？"
+                ],
+                "help": {
+                    "deed_id": "history-quiz", "title": "聖地の歴史継承（クイズ講話）", "fame": 20,
+                    "action_label": "歴史講話に深く聞き入る",
+                    "done_text": "「熱心に聞いてくれて嬉しいのう。青き伝統はこうして次の世代へ受け継がれるのじゃ。」知名度が 20pt 上昇した！",
+                },
+            },
+            "nagoya-dome": {
+                "speaker": "バンテリンドーム ナゴヤ", "emoji": "🏟️", "on_contact": True,
+                "greeting": "ドラゴンズの本拠地、バンテリンドーム ナゴヤだ！球場内から地鳴りのような大歓声が轟いている！",
+                "lines": [
+                    "満員のスタンドを埋め尽くす青き大観衆と、グラウンドで躍動する選手たちの熱気が渦巻いている！",
+                    "観戦チケット（30G）を購入して入場すれば、スタンドから熱い現地応援に参加できるぞ。",
+                    "青き魂をひとつにして、スタンドから勝利の歓喜を分かち合おう！"
+                ],
+                "help": {
+                    "deed_id": "dome-sponsor", "title": "ドーム公式戦の現地観戦応援", "fame": 25, "cost": 30,
+                    "repeatable": True,
+                    "action_label": "観戦チケットを購入して入場する",
+                    "done_text": "「観戦チケットを購入してスタンドへ入場した！大歓声の中で熱狂応援し、知名度が 25pt 上昇した！」",
+                },
+            },
+            "nagoya-aeon-mall": {
+                "speaker": "モール店員ナミ", "emoji": "🛍️", "shop": True, "on_contact": True,
+                "greeting": "いらっしゃいませ！イオンモール ナゴヤドーム前へようこそ！応援グッズや名物お弁当を豊富に取り揃えています。",
+                "lines": [
+                    "ドーム観戦の前後に多くのお客様にお立ち寄りいただいています！",
+                    "応援青メガホンや選手名タオル、観戦用のお弁当など、準備万端でドームへ向かいましょう！",
+                    "当店でお買い物をして応援気分を高めていってくださいね。"
+                ],
+                "help": {
+                    "deed_id": "mall-shopping", "title": "ドーム前商業施設で応援準備", "fame": 15,
+                    "action_label": "応援グッズを揃えて準備万端にする",
+                    "done_text": "「お買い物ありがとうございます！万全の装備でドーム応援を楽しんでください！」知名度が 15pt 上昇した！",
+                },
+            },
+            "nagoya-oasis21": {
+                "speaker": "オアシス21・水の宇宙船", "emoji": "🛸", "heal": True,
+                "greeting": "地上14メートルの空中水面から、心地よい風と光が降り注いでいる。",
+                "lines": [
+                    "澄んだ水底を透かして広場を見下ろせる、ナゴヤの近未来的な憩いの空間。",
+                    "吹き抜ける風が冒険の疲れを優しく癒やしてくれる。"
+                ],
+            },
+        },
+        "loot": {
+            "nagoya-drop-megaphone": {"kind": "drop", "item_type": "charm", "atk": 2, "def": 1, "exp": 15, "gold": 20},
+            "nagoya-drop-toast": {"kind": "drop", "item_type": "heal", "hp": 40, "exp": 10, "gold": 15},
+            "nagoya-drop-wings": {"kind": "drop", "item_type": "mana", "mp": 25, "exp": 12, "gold": 25},
+            "nagoya-drop-ball": {"kind": "drop", "item_type": "charm", "atk": 3, "exp": 20, "gold": 30},
+            "nagoya-drop-trash": {"kind": "drop", "item_type": "scroll", "exp": 10, "gold": 5},
+            "nagoya-chest-uniform": {"kind": "chest", "item_type": "armor", "def": 8, "hp": 30, "exp": 50, "gold": 100, "opened_mark": "🎽"},
+            "nagoya-chest-bat": {"kind": "chest", "item_type": "weapon", "atk": 10, "exp": 60, "gold": 120, "opened_mark": "🏏"},
+            "nagoya-chest-mitt": {"kind": "chest", "item_type": "armor", "def": 6, "hp": 20, "exp": 40, "gold": 80, "opened_mark": "🧤"},
+            "nagoya-chest-flag": {"kind": "chest", "item_type": "relic", "atk": 5, "def": 5, "mp": 20, "exp": 80, "gold": 200, "opened_mark": "🚩"},
+        },
+        "enemies": {
+            "nagoya-station": {"name": "熱血ビジターサポーター", "emoji": "🤼", "level": 2, "hp": 35, "atk": 9, "def": 3, "exp": 25, "gold": 30, "weakness": "熱血応援コール", "taunt": "アウェイの意地を見せてやる！応援合戦だ！"},
+            "nagoya-tv-tower": {"name": "スタジアムの魔球使い", "emoji": "⚾", "level": 4, "hp": 60, "atk": 14, "def": 6, "exp": 50, "gold": 60, "weakness": "金シャチフルスイング", "taunt": "この七色の変化球を打ち返せるかな！？"},
+            "nagoya-hisaya": {"name": "覇王ドラゴントレーナー", "emoji": "👑", "level": 6, "hp": 110, "atk": 20, "def": 10, "exp": 120, "gold": 180, "boss": True, "weakness": "ドラ魂の加護", "taunt": "鍛え上げたファンの力…我が全力のノックで試させてもらおう！"},
+        },
+        "dragons": {
+            "nagoya-dragon-dragoon": {
+                "name": "ドラグーン", "emoji": "🐉", "title": "碧天守護竜", "repo": "myon-bioinformatics",
+                "bond_max": 30, "favorite_item": "手羽先",
+                "greeting": "ドームの上空を旋回する蒼き守護竜。スタジアムの歓声に呼応して輝く。",
+                "desc": "青き翼を広げ、ナゴヤの空からドラゴンズファンと街を見守る伝説の蒼竜。",
+                "lore": "熱き応援とファンの団結がドラグーンに力を与え、街全体に必勝の加護をもたらす。",
+                "care_lines": [
+                    "翼を大きく広げて、青空高く舞い上がった！",
+                    "手羽先の香ばしい匂いに目を輝かせて喜んでいる！",
+                    "スタジアムのメガホンの音に合わせて心地よさそうに鳴いた。"
+                ],
+                "relic_label": "蒼天竜のメガストーン", "relic_emoji": "💎", "relic_desc": "ドラグーンの魂が宿る蒼き宝珠。あらゆる空間で守護の力を発揮する。",
+                "cross_effect": {
+                    "atk": 10, "def": 10, "hp": 40, "mp": 20,
+                    "skill_label": "ドラグーンスカイバースト", "skill_emoji": "🐲",
+                    "skill_mp": 8, "skill_mult_pct": 200,
+                    "skill_desc": "蒼き守護竜の咆哮が天より降り注ぎ敵を一掃する！"
+                }
+            }
+        },
+        "quests": [
+            {"id": "q-talk-ryuji", "title": "熱血団長への挨拶", "desc": "応援団長リュウジと話してドラ魂の極意を教わろう", "kind": "talk", "target": "nagoya-npc-ouendan", "reward_exp": 25, "reward_gold": 30},
+            {"id": "q-get-uniform", "title": "青き誇りを身に纏え", "desc": "聖地に眠る「青き魂の応援ユニフォーム」を見つけ出す", "kind": "chest", "target": "nagoya-chest-uniform", "reward_exp": 40, "reward_gold": 50},
+            {"id": "q-fame-starter", "title": "名物ファンへの第一歩", "desc": "街のお手伝いを重ねて知名度を20pt以上に高める", "kind": "fame", "count": 20, "reward_exp": 50, "reward_gold": 60},
+            {"id": "q-dome-sponsor", "title": "ドーム現地観戦へ行こう", "desc": "バンテリンドームで観戦チケットを購入してスタンドで試合を観戦しよう", "kind": "talk", "target": "nagoya-dome", "reward_exp": 35, "reward_gold": 40},
+            {"id": "q-mall-shopping", "title": "ドーム前で応援準備", "desc": "イオンモール ナゴヤドーム前でお買い物をして応援気分を高める", "kind": "talk", "target": "nagoya-aeon-mall", "reward_exp": 30, "reward_gold": 30},
+            {"id": "q-dragon-dragoon", "title": "蒼き守護竜との出会い", "desc": "ドームの空を舞うドラグーンと心を通わせる", "kind": "dragon", "target": "nagoya-dragon-dragoon", "reward_exp": 45, "reward_gold": 50},
+            {"id": "q-deed-helper", "title": "街の頼れるサポーター", "desc": "ゴミ拾いやサインボール返却など3つ以上のお手伝いを完了する", "kind": "deed", "count": 3, "reward_exp": 60, "reward_gold": 80},
+            {"id": "q-fame-master", "title": "世界一のファンの鑑へ", "desc": "あらゆるお手伝いを極め、知名度95pt（世界一のファンの鑑）に到達する！", "kind": "fame", "count": 95, "reward_exp": 150, "reward_gold": 300},
+        ],
+        "badges": [
+            {"id": "first-talk", "emoji": "💬", "label": "初声援", "desc": "ナゴヤの人々と初めて会話した"},
+            {"id": "clean-supporter", "emoji": "🧽", "label": "街の美化リーダー", "desc": "ポイ捨てゴミを拾って街を綺麗にした"},
+            {"id": "blue-pride", "emoji": "💙", "label": "青き誇り", "desc": "ユニフォームとメガホンを両方手に入れた"},
+            {"id": "model-fan", "emoji": "🥇", "label": "ファンの鑑", "desc": "知名度45ptを達成し名物ファンとして認知された"},
+            {"id": "world-greatest-fan", "emoji": "👑", "label": "世界一のファンの鑑", "desc": "知名度95ptに達し、世界一のサポーターの称号を得た！"},
+            {"id": "dome-patron", "emoji": "🏟️", "label": "熱血現地サポーター", "desc": "バンテリンドームで観戦チケットを購入して現地で試合を観戦した"},
+            {"id": "aeon-shopper", "emoji": "🛍️", "label": "応援準備マスター", "desc": "イオンモールでお買い物をして応援体制を整えた"},
+        ],
+        "quizzes": [
+            {"prompt": "中日ドラゴンズの本拠地スタジアムは？", "choices": ["バンテリンドーム ナゴヤ", "東京ドーム", "甲子園球場"], "correct": 0, "explanation": "正解！バンテリンドーム ナゴヤがドラゴンズの本拠地球場です。"},
+            {"prompt": "名古屋城の天守閣の頂で燦然と輝く、街の象徴的な装飾は？", "choices": ["銀の鯱", "黄金の金シャチ", "青銅の鯱"], "correct": 1, "explanation": "正解！天守閣の金シャチは城の守り神にして名古屋のシンボルです。"},
+            {"prompt": "当ポートフォリオ『PySaiyanWeBoo』(PSWB)の共通モジュールが提供する代表的機能は？", "choices": ["仮想世界の歩行経路・状態管理", "動画編集エフェクト", "機械学習モデル訓練"], "correct": 0, "explanation": "正解！PSWBの共通ユーティリティやワールド連携機能により、豊かな仮想空間が実現しています。"},
+        ],
+        "shop": [
+            {"id": "toast", "spot_id": "nagoya-npc-cafe", "emoji": "🍞", "label": "名物小倉トースト", "cost": 20, "item_type": "heal", "hp": 40, "desc": "サクサクあんバター。HPを40回復する"},
+            {"id": "coffee", "spot_id": "nagoya-npc-cafe", "emoji": "☕", "label": "深煎りブレンド珈琲", "cost": 18, "item_type": "mana", "mp": 20, "desc": "香り高いナゴヤの珈琲。MPを20回復する"},
+            {"id": "wings", "spot_id": "nagoya-npc-cafe", "emoji": "🍗", "label": "特製手羽先パック", "cost": 30, "item_type": "care", "hp": 30, "mp": 15, "desc": "香ばしい秘伝手羽先。ドラグーンの大好物"},
+            {"id": "aeon-bento", "spot_id": "nagoya-aeon-mall", "emoji": "🍱", "label": "ドーム観戦必勝弁当", "cost": 25, "item_type": "heal", "hp": 55, "desc": "みそかつやエビフライが入ったボリューム満点の応援弁当。HPを55回復する"},
+            {"id": "aeon-towel", "spot_id": "nagoya-aeon-mall", "emoji": "🧣", "label": "応援マフラータオル", "cost": 20, "item_type": "care", "hp": 15, "mp": 15, "desc": "掲げて選手を鼓舞する青きタオル。心身を整えHPとMPを15回復する"},
+            {"id": "aeon-drink", "spot_id": "nagoya-aeon-mall", "emoji": "🥤", "label": "ナゴヤエナジースカッシュ", "cost": 15, "item_type": "mana", "mp": 25, "desc": "爽快感あふれる炭酸エナジードリンク。MPを25回復する"},
+            {"id": "aeon-plush", "spot_id": "nagoya-aeon-mall", "emoji": "🧸", "label": "ドラ竜マスコットぬいぐるみ", "cost": 35, "item_type": "care", "hp": 25, "mp": 25, "desc": "ふわふわ可愛い守護竜のマスコット。癒やしでHPとMPを25回復する"},
+            {"id": "aeon-tenmusu", "spot_id": "nagoya-aeon-mall", "emoji": "🍙", "label": "一口名物天むすパック", "cost": 18, "item_type": "heal", "hp": 35, "desc": "ぷりぷり海老天のひとくちおむすび。手軽にHPを35回復する"},
+        ],
+        "skills": [
+            {"id": "cheer-call", "emoji": "📣", "label": "ドラ魂コール", "mp": 3, "kind": "attack", "mult_pct": 140, "power": 0, "desc": "熱き声援で気合を込めた一撃(140%)"},
+            {"id": "shachi-swing", "emoji": "⚡", "label": "金シャチスイング", "mp": 6, "kind": "attack", "mult_pct": 185, "power": 0, "desc": "豪快なフルスイングで大ダメージ(185%)"},
+            {"id": "victory-song", "emoji": "🎺", "label": "歓喜の応援歌", "mp": 5, "kind": "heal", "mult_pct": 100, "power": 25, "desc": "スタジアムの応援歌で気力を充実させHP回復"},
+        ],
+        "synergy": {
+            "cities-spot-london-chest-lance": {"emoji": "🔱", "label": "円卓の白銀聖槍", "atk": 25, "def": 10, "skill": {"emoji": "🔱", "label": "白銀聖槍連突", "mp": 6, "mult_pct": 260, "desc": "聖なる白銀の連撃(260%)"}},
+            "cities-spot-london-rl-dragon-nogard": {"emoji": "👑", "label": "始祖龍ノガードの逆鱗", "atk": 22, "def": 16, "hp": 40, "mp": 30, "skill": {"emoji": "🐉", "label": "リバース・ドラグーン", "mp": 8, "mult_pct": 320, "desc": "始祖龍の神話的一撃(320%)"}},
+            "overworld-spot-meadow-chest-sword": {"emoji": "🗡️", "label": "村の宝剣", "atk": 10, "def": 4},
+            "overworld-spot-meadow-chest-shield": {"emoji": "🛡️", "label": "英雄の盾", "def": 10, "hp": 15},
+        },
+    }
+
+
+def _nagoya_spec() -> dict[str, Any]:
+    return {
+        "schema": WORLD_SCHEMA,
+        "id": "nagoya",
+        "title": "聖地ナゴヤ (World of Nagoya)",
+        "zoom_max": 4,
+        "names": "dots",
+        "mark_scale": [1.5, 1.5],
+        "avatars": ["🧢", "🙂", "🧳", "🚶", "🎒", "🐱", "🐶", "🦊", "🐼", "🐲", "⚾", "📣"],
+        "tools": {
+            "🏯": {"label": "聖地ナゴヤ", "label_en": "Holy Nagoya", "spots": ["nagoya-dome", "nagoya-castle", "nagoya-station"]},
+            "⚾": {"label": "応援スポット", "label_en": "Cheer Spots", "spots": ["nagoya-dome", "nagoya-aeon-mall", "nagoya-npc-ouendan", "nagoya-npc-boy"]},
+        },
+        "board": {
+            "title": "NAGOYA",
+            "items": [
+                {"text": "青き魂が集う聖地ナゴヤ"},
+                {"text": "街の美化と応援でお手伝い"},
+                {"text": "目指せ！世界一のファンの鑑"},
             ],
         },
+        "floors": [{
+            "id": "nagoya-map",
+            "label": "聖地ナゴヤ",
+            "width": 1216,
+            "height": 768,
+            "tile": 32,
+            "props": _NAGOYA_PROPS,
+            "spots": _NAGOYA_SPOTS,
+            "player": {"emoji": "🧢", "x": 160, "y": 384, "speed": 120},
+        }],
+        "rpg": _nagoya_rpg(),
     }
 
 
@@ -3434,11 +4473,17 @@ EXAMPLES.update({
         "board": {"title": "PARALLEL", "items": [{"text": "実在の街の、もうひとつの姿"}, {"text": "🛗で3つの街を行き来"}, {"text": "歩いて駅から駅へ"}]},
         "floors": [{"id": "tokyo", "label": "Parallel Tokyo", "place": {"points": _TOKYO_POINTS, "meters": 32, "links": _TOKYO_LINKS, "marks": _CITY_MARKS, "always_named": ["exit"]}},
                    {"id": "london", "label": "Reverse London",
-                    "place": {"points": _LONDON_POINTS, "meters": 150, "links": _LONDON_LINKS, "rivers": [_THAMES], "marks": _CITY_MARKS}},
+                    "place": {"points": _LONDON_POINTS + _LONDON_ADVENTURE_POINTS, "meters": 150, "links": _LONDON_LINKS, "rivers": [_THAMES], "marks": _CITY_MARKS,
+                              "actors": [
+                                  {"id": "owl", "emoji": "🦉", "label": "霧フクロウ", "body": "ロンドンの夜霧を静かに見守っている。", "speed": 36},
+                                  {"id": "hound", "emoji": "🐕", "label": "ロンドンハウンド", "body": "元気よく駅のまわりを駆け回っている。", "speed": 48}
+                              ]}},
                    {"id": "paris", "label": "Fake Paris",
                     "place": {"points": _PARIS_POINTS, "meters": 150, "links": _PARIS_LINKS, "rivers": [_SEINE],
                               "scatter": {"kind": "fire", "every": 8, "seed": 5}, "marks": _CITY_MARKS}}],
+        "rpg": _cities_rpg(),
     },
+    "nagoya": _nagoya_spec(),
 })
 
 
@@ -3481,7 +4526,7 @@ PICKED = "() => !document.querySelector('.ui-world').hasAttribute('data-pick')"
 SETTLED = ("() => { const f = [...document.querySelectorAll('.ui-floor')].find(f => getComputedStyle(f).display !== 'none'), p = f.querySelector('.ui-player'), s = p.style;"
            "return Math.abs(parseFloat(s.getPropertyValue('--px')) - +p.dataset.targetX) < .01 && Math.abs(parseFloat(s.getPropertyValue('--py')) - +p.dataset.targetY) < .01 }")   # the shown floor's player has arrived
 PLAYER = (0.48, 0.69)                           # where a character standing at the door is on screen: a zoom target
-WORLDS = {"school": SPEC, "overworld": example_data("overworld"), "cities": example_data("cities")}   # the specs a scene can open; a GIF is <world>-<scene>.gif
+WORLDS = {"school": SPEC, "overworld": example_data("overworld"), "cities": example_data("cities"), "nagoya": example_data("nagoya")}   # the specs a scene can open; a GIF is <world>-<scene>.gif
 
 
 class Scene(NamedTuple):

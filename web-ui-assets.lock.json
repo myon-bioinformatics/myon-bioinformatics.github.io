@@ -12,13 +12,13 @@
     "tools/vendor/web-ui/js/controls.js": "e545885ed2f0e43937d2eb3a44bdb874e8c4f42e895a36a51498a0db20956e9d",
     "tools/vendor/web-ui/js/coordinates.js": "b97576f0f7ccdb3a8c94b390c9a53f87acc3ddc837a5a4221cc5fef1a067b9bc",
     "tools/world-assets/world.css": "9d21c26e50611033568788e10c1dec68af201faacaf3d6637420d83ba98f97ed",
-    "tools/world-assets/world.js": "b241900af86d4fd8e7966e0406fc82e9fa2139c189da6df76f647dc2218a3b1b",
+    "tools/world-assets/world.js": "633c0cf373dc8229cf0bdde06484cc7ab3f3c1edf3aeea618f46da7971d76174",
     "tools/html-import/extract.mjs": "22453239323b35f46e4ece66fea443ed6475f0e26324926ba8dbb1fade203fec",
     "tools/vendor/web-ui/css/bundle.css": "18ca24051c77610d70a3aa2f38d9727e2f3a06ac03f3de7c78a543e0484b3626",
     "tools/vendor/web-ui/css/core.css": "fab01cb1b0d8fcf1f6753b32fd06e815312572fb984bc39c9c126dbaa3047c76"
   },
   "pages": {
-    "tools/demos/world.html": "80371f41bb6473650477e0fd3a9ca6aca54ee4f540bb454a69e7b349cda81556",
+    "tools/demos/world.html": "305d1d837839b2c80bbbfbaa450060cbbc5b677d3acc3ab7595eee4080e3102a",
     "tools/demos/school.html": "1cca94ebbd110f892af7744c541fdb07f8913cf1c789069739767b1dcbfbc294",
     "tools/demos/cities.html": "a7e75a4fb771371b4249ea32a8792e503b6ec76fae5b76abfd58a4b1871fcdaa",
     "tools/demos/world-shots.html": "bde99c06ef7f8e5c8430a3c82bf6584c66463a84bc4e75ca0d6960999389e93a",
