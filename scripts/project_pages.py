@@ -423,6 +423,7 @@ def record_samples(output: Path, pages: dict[str, str], *, viewport=(392, 704), 
 
         for name, url in pages.items():
             try:
+                site.goto('about:blank')                   # 🧰 tools/#gif then tools/#maps: the same page under another # answers nothing, so start afresh
                 response = site.goto(url, wait_until='load', timeout=30_000)
                 if response is None or response.status >= 400:
                     raise RuntimeError(f'HTTP {response.status if response else "no response"}')
