@@ -70,8 +70,8 @@ def test_map_links_pins_share_and_tokyo_with_gif(site, browser):
             other.close()
 
         page.locator('#tokyo-link').click()
-        assert urlsplit(page.url).path == '/tools/demos/world.html'
-        assert page.locator('.map-point-link').count() == 21
+        expect(page.locator('#worlds .map-point-link')).to_have_count(21)    # 🌍 the world is a panel of the same screen
+        assert urlsplit(page.url).path == '/tools/'
         assert set(page.locator('#cities-map .ui-floor').evaluate_all('(floors) => floors.map(f => f.dataset.floor)')) >= {'tokyo', 'london', 'paris'}
         # PSWB asks for the walking avatar on entry; choose it through the normal UI.
         expect(page.locator('#cities-map .ui-world-pick')).to_be_visible()
@@ -234,7 +234,7 @@ def test_nearby_city_handoff_preserves_radius_and_original_area(site, browser):
         expect(page.locator('#point-name')).to_have_value('中心')
         expect(page.locator('#radius')).to_have_value('350')
         page.locator('#nearby-list').get_by_role('link', name='丸の内中央口', exact=False).click()
-        page.locator('#cities-map .ui-world-pick-grid [data-emoji]').first.click()
+        expect(page.locator('#cities-map .ui-world-pick-grid')).to_be_hidden()   # 🧰 one screen: the world kept its walker (no reload)
         page.locator('#cities-spot-tokyo-marunouchi-c .map-point-link').click()
         expect(page.locator('#latitude')).to_have_value('35.681340')
         expect(page.locator('#radius')).to_have_value('350')
@@ -250,7 +250,7 @@ def test_city_bookmark_restores_spot_and_area(site, browser):
     try:
         suffix = '?lat=35.68135&lon=139.7665&name=Centre&radius_m=0#cities-spot-tokyo-kanda'
         assert page.request.get(site[1] + '/tools/maps/tokyo.html').status == 404
-        page.goto(site[1] + '/tools/demos/world.html' + suffix)
+        page.goto(site[1] + '/tools/' + suffix)
         page.locator('#cities-map .ui-world-pick-grid [data-emoji]').first.click()
         expect(page.locator('#cities-spot-tokyo-kanda')).to_be_visible()
         page.locator('#area-return').click()
@@ -270,7 +270,7 @@ def test_world_shell_routes_and_shared_favorites(site, browser, width):
     page = context.new_page()
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
-    path = site[1] + '/tools/demos/world.html'
+    path = site[1] + '/tools/'                                            # 🧰 the world: a panel of the one screen
     space = page.locator('[data-world-shell]')
 
     def choose(name):
@@ -312,7 +312,7 @@ def test_world_shell_routes_and_shared_favorites(site, browser, width):
         page.get_by_text('⭐ お気に入り', exact=True).click()
         expect(page.locator('#world-favorites a')).to_have_count(2)
         page.get_by_text('🧰 道具', exact=True).click()
-        expect(page.locator('#world-switcher a[href="../../tools/#maps"]')).to_be_visible()
+        expect(page.locator('#world-switcher a[href="#maps"]')).to_be_visible()   # 🧰 the map: a panel of the same screen
         choose('camera')
         expect(page.locator('#demo-shots')).to_be_visible()
         choose('world')
@@ -329,13 +329,13 @@ def test_world_shell_routes_and_shared_favorites(site, browser, width):
 
 def test_the_world_is_one_document_entered_by_fragment_with_queries_and_spots(site, browser):
     page = browser.new_page()
-    base = site[1] + '/tools/demos/'
+    base = site[1] + '/tools/'
     try:
-        for old in ('school.html', 'cities.html', 'world-shots.html'):   # 🌍 no forwarding pages: the scenes are world.html#…
+        for old in ('demos/school.html', 'demos/cities.html', 'demos/world-shots.html', 'demos/world.html'):   # 🌍 no pages of its own: the scenes are #…
             assert page.goto(base + old).status == 404
         query = '?lat=35.68135&lon=139.7665&name=Centre&radius_m=0#cities-spot-tokyo-kanda'
-        page.goto(base + 'world.html' + query)
-        expect(page).to_have_url(base + 'world.html' + query)
+        page.goto(base + query)
+        expect(page).to_have_url(base + query)
         expect(page.locator('[data-world-shell]')).to_have_attribute('data-world-route', 'tokyo')
     finally:
         page.close()
@@ -345,7 +345,7 @@ def test_adventure_transfer_on_unified_world(site, browser, record_property):
     import pysaiyanweboo as ui
 
     def enter(page):
-        page.goto(site[1] + '/tools/demos/world.html#world')
+        page.goto(site[1] + '/tools/#world')
         world = page.locator('#overworld-map')
         world.locator('[data-emoji="🧙"]').click()
         return world
@@ -414,7 +414,7 @@ def test_village_items_work_in_cities_and_on_hero(site, browser):
 
     page = browser.new_page(reduced_motion='reduce')
     try:
-        page.goto(site[1] + '/tools/demos/world.html#world')
+        page.goto(site[1] + '/tools/#world')
         village = page.locator('#overworld-map')
         village.locator('[data-emoji="🧙"]').click()
         for item in ('meadow-drop-mana', 'meadow-hirugaoka'):
@@ -511,7 +511,7 @@ def test_london_dragon_care_and_colors(site, browser):
 
     page = browser.new_page(viewport={'width': 390, 'height': 844}, has_touch=True)
     try:
-        page.goto(site[1] + '/tools/demos/world.html#london')
+        page.goto(site[1] + '/tools/#london')
         cities = page.locator('#cities-map')
         cities.locator('.ui-world-pick-grid [data-emoji]').first.tap()
         sign = cities.locator('.ui-spot[href="#cities-spot-london-nogard"]')
@@ -599,7 +599,7 @@ def test_shop_rumor_and_optional_world_dialogue(site, browser):
               }
             """)
         page.route('**/wllama@*/esm/index.js', engine)
-        page.goto(site[1] + '/tools/demos/world.html#world')
+        page.goto(site[1] + '/tools/#world')
         village = page.locator('#overworld-map')
         village.locator('[data-emoji="🧙"]').click()
         village.locator('[data-menu="spots"] summary').click()
@@ -670,7 +670,7 @@ def test_reusable_scrolls_in_field_and_battle(site, browser):
 
     page = browser.new_page(reduced_motion='reduce')
     try:
-        page.goto(site[1] + '/tools/demos/world.html#world')
+        page.goto(site[1] + '/tools/#world')
         page.get_by_text('📖 攻略ガイド', exact=True).click()
         guide = page.get_by_role('article', name='探索の巻物をいつ使う？')
         expect(guide).to_contain_text('6マス以内')

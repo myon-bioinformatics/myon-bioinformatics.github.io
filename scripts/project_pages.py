@@ -11,11 +11,12 @@ The 🧰 Tools cards (scripts/front_page.py ``PORTAL``) list the practical pages
 the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in the page; ``--record-chat`` indexes the other repositories at deploy
 time) and PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``: 🧾 the JUnit reader; 🤝 its MCP connection test is the lab's #protocol panel), published with
 the portfolio's way back, shortcut label and icons. The 🌍 world pages (scripts/world.py: the travel world, 🏫 the school,
-🗼 the parallel cities, 🎬 the camera; tools/demos/) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and are not among
-the cards. Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
+🗼 the parallel cities, 🎬 the camera: the screen's #worlds panel) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and
+are not among the cards. Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
 
-``tools/html-import/index.html`` (the HTML import tool page) is built here too and hash-locked with the other pages.
-Every generated or imported tool page gets the same way back, chrome and shortcut label: ``add_back_nav()`` (the way back and
+🧰 Every tool, built here or in another repository, is a #panel of one screen, ``tools/index.html`` (``render_shell``): the
+documents are built for where they once lived (hash-locked like before) and never published as pages of their own. The screen gets
+the way back, the chrome and the shortcut label once: ``add_back_nav()`` (the way back and
 🧰 PySaiyanWeBoo's chrome: the board with the clock, 🏠 ⭐ ⚙️ and each page's own ☰ ⋯, from the spec ``tools_chrome()`` makes, and
 🚪 PySaiyanWeBoo's Door-to-Door, every 🧰 Tools link as a footer pull-down: ``tools_door()``) and
 ``add_home_label()`` (_src/tools/mcp_lab.py gets them for the lab pages). ``load_module()`` loads a file of this
@@ -47,7 +48,7 @@ ASSETS = ('css/base.css', 'css/components.css', 'css/themes/modern.css',
           'js/coordinates.js')
 STYLESHEET_BUNDLES = {'css/bundle.css': 'bundled_css', 'css/core.css': 'core_css'}
 DISTRIBUTION = 'pysaiyanweboo'
-WORLD_PAGE = 'tools/demos/world.html'
+WORLD_PAGE = 'tools/worlds.html'   # 🌍 a #panel of the 🧰 screen (render_shell), built for tools/; never published
 # 🌍 One document: the school, the cities and the camera are its #school, #tokyo and #camera (no forwarding pages).
 HTML_IMPORT_PAGE = 'tools/html-import/index.html'
 HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
@@ -57,7 +58,7 @@ WORLD_ASSETS = (WORLD_CSS_ASSET, WORLD_JS_ASSET)
 DRAGON_PNG_ASSET = 'tools/world-assets/london-dragon.png'
 DRAGON_GRID_ASSET = 'tools/world-assets/london-dragon.json'
 DRAGON_ASSETS = (DRAGON_PNG_ASSET, DRAGON_GRID_ASSET)
-MAP_PINS_PAGE = 'tools/maps/index.html'
+MAP_PINS_PAGE = 'tools/maps.html'   # 📍 a #panel of the 🧰 screen, built for tools/ (as the world is: they link each other)
 
 # Files served verbatim. The generators write every other public file to the output tree.
 PUBLIC_SOURCE_FILES = (
@@ -96,12 +97,11 @@ def _world() -> ModuleType:
 def world_page(ui) -> str:
     shell = load_module('world_shell', 'scripts/world_shell.py')
     maps = load_module('map_tool', 'scripts/map_tool.py')
-    css, js = (os.path.relpath(path, os.path.dirname(WORLD_PAGE)).replace(os.sep, '/') for path in WORLD_ASSETS)
-    places = [p for p in tools_places('../../') if p['href'].split('#', 1)[0] != '../../' + WORLD_PAGE]
+    css, js = ('./' + posixpath.relpath(path, posixpath.dirname(WORLD_PAGE)) for path in WORLD_ASSETS)   # ./ : an import specifier needs it
+    places = tools_places('../')                                          # 🧰 from tools/ (the screen)
     runtime = {key: _chat().RUNTIME[key] for key in ('wllama', 'model')}
     dialogue = WLLAMA_JS + f'\nconst worldAnswer = localModel({json.dumps(runtime)});\n'
-    dragon_png, dragon_grid = (os.path.relpath(path, os.path.dirname(WORLD_PAGE)).replace(os.sep, '/')
-                               for path in DRAGON_ASSETS)
+    dragon_png, dragon_grid = ('./' + posixpath.relpath(path, posixpath.dirname(WORLD_PAGE)) for path in DRAGON_ASSETS)
     return shell.document(ui, _world(), maps, places, css, js, dialogue,
                           dragon_png=dragon_png, dragon_grid=dragon_grid)
 
@@ -186,7 +186,7 @@ def tools_places(prefix: str = '../../') -> list[dict]:
     (``tools_words``)."""
     import pysaiyanweboo as ui
     site, places, names, codes = 'https://myon-bioinformatics.github.io/tools/', {}, tools_words(), [code for code, _ in ui.CHROME_LANGS][1:]
-    marks = {'html-import': '📄', 'maps': '🗺️', 'demos-world-html-tokyo': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'mcp-protocol': '🤝'}
+    marks = {'html-import': '📄', 'maps': '🗺️', 'tokyo': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'protocol': '🤝'}
     for card in _front_module().PORTAL:
         mark, _, title = card['title'].partition(' ')
         if not title or any(c.isalnum() for c in mark):                  # a title without an emoji: all of it is words
@@ -346,8 +346,8 @@ def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
 
 
 def render_world(ui) -> dict[str, bytes]:
-    page = add_back_nav(world_page(ui), WORLD_PAGE)
-    return {WORLD_PAGE: add_home_label(page, '🌍 ワールド', icons_from='../../').encode('utf-8')}
+    """🌍 The world (village, school, parallel cities, camera): a #panel of the 🧰 screen."""
+    return {WORLD_PAGE: world_page(ui).encode('utf-8')}
 
 
 def render_pswb_tools(ui) -> dict[str, bytes]:
@@ -360,9 +360,8 @@ def html_import_files(ui):
 
 
 def render_html_import(ui) -> dict[str, bytes]:
-    document = html_import_files(ui)["index.html"].decode()
-    document = add_home_label(add_back_nav(document, HTML_IMPORT_PAGE), '📄 HTML取込', icons_from='../../')
-    return {HTML_IMPORT_PAGE: document.encode()}
+    """📄 The HTML import: a framed #panel of the 🧰 screen (its CSP, nothing leaves the page, stays its own)."""
+    return {HTML_IMPORT_PAGE: html_import_files(ui)["index.html"]}
 
 
 def pages_urls(root: Path = ROOT) -> dict[str, str]:
@@ -1015,23 +1014,18 @@ TOOLS = 'media/tools/receipt.json'       # what this build recorded; the pages l
 # key: (repository, folder under the site, entry pages inside it). The lab's tools come before its execution lab, which
 # lives inside them (a tool replaces its whole folder).
 _STUDIO_ROUTES = load_module('studio_routes', '_src/tools/studio_routes.py')
-TOOL_SOURCES = {'ironmate': ('myon-bioinformatics/Ironmate', 'tools', _STUDIO_ROUTES.PUBLIC_STUDIO_ENTRIES),
+TOOL_SOURCES = {'ironmate': ('myon-bioinformatics/Ironmate', 'tools', _STUDIO_ROUTES.PUBLIC_STUDIO_ENTRIES),   # entries: each a framed #panel
                 'mcp-toolcall-lab': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp', ('',)),
                 'mcp-toolcall-lab-execution': ('myon-bioinformatics/mcp-toolcall-lab', 'tools/mcp/execution', ('',)),
-                'format-lab': ('myon-bioinformatics/myon-bioinformatics', 'tools/format-lab', ()),   # () : a #panel of the 🧰 screen
+                'format-lab': ('myon-bioinformatics/myon-bioinformatics', 'tools/format-lab', ()),   # () : its page joins the 🧰 screen
                 'dragowing': ('myon-bioinformatics/DRAgoWing', 'tools/heatmap', ())}
 CHECKOUTS = '.test-deps'   # 🧪 local checkouts (CI pins them) that --stage builds the tools from, one folder per repository
 
 
-def _back_to_tools(page: str, path: str) -> str:
-    """The way back to 🧰 Tools and the chrome (``add_back_nav``) from ``path`` (any depth)."""
-    return add_back_nav(page, path)
-
-
 def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, str]) -> dict:
     """Build each tool from its checkout with this ``python`` (📦 its pages group carries the pinned PySaiyanWeBoo the tools
-    render through; the lab's build also runs Node) into ``output/<folder>/``,
-    give each entry page the way back, and write the receipt; a tool that fails is left out. Returns the receipt."""
+    render through; the lab's build also runs Node) into ``output/<folder>/`` (the 🧰 screen takes its pages in: ``tool_panels``)
+    and write the receipt; a tool that fails is left out. Returns the receipt."""
     made, failed = [], {}
     for key, (repository, folder, entries) in TOOL_SOURCES.items():
         if key not in checkouts:
@@ -1053,8 +1047,8 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                     env = {**os.environ, 'PYTHONPATH': os.pathsep.join(('src', 'vendor'))}
                     run('-m', 'mcp_toolcall_lab.stub_front', 'pages', '--out', str(built), env=env)
                     run('-m', 'mcp_toolcall_lab.mcp_toolcall_lab_repository_diagnostics', str(built), env=env)
-                    load_module('mcp_lab', '_src/tools/mcp_lab.py').stage_lab_tools(
-                        built, commits[key], checkouts[key], _back_to_tools, add_home_label, folder)
+                    load_module('mcp_lab', '_src/tools/mcp_lab.py').stage_lab_tools(   # 🖼️ framed in the screen: no chrome of its own
+                        built, commits[key], checkouts[key], lambda page, _: page, lambda page, _: page, folder)
                 else:
                     run('scripts/build_portable_pages.py', '--source-sha', commits[key], '--out', str(Path(tmp) / 'lab'),
                         env={**os.environ, 'PYTHONPATH': 'src'})
@@ -1063,7 +1057,7 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                         copy.unlink()
                 if key == 'ironmate':
                     mapped = Path(tmp) / 'mapped'
-                    _STUDIO_ROUTES.stage_ironmate_studios(built, mapped, _back_to_tools)
+                    _STUDIO_ROUTES.stage_ironmate_studios(built, mapped, lambda page, _: page)   # 🖼️ framed in the screen
                     for entry in sorted(child.name for child in mapped.iterdir()):
                         target = dest / entry
                         if target.exists():
@@ -1072,12 +1066,6 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
                         shutil.move(str(mapped / entry), str(target))
                     made.append(key)
                     continue
-                for entry in entries:                             # the way back (a page that has one keeps it)
-                    page = built / entry / 'index.html'
-                    document = _back_to_tools(page.read_text(encoding='utf-8'), f'{folder}/{entry}index.html')
-                    if key == 'format-lab':
-                        document = add_home_label(document, '🗃️ 形式検証', icons_from='../../')
-                    page.write_text(document, encoding='utf-8')
                 for _, inner, _ in TOOL_SOURCES.values():      # a tool inside this one (the execution lab) stays as it was
                     nested = inner[len(folder) + 1:] if inner.startswith(folder + '/') else ''
                     if nested and (dest / nested).exists() and not (built / nested).exists():
@@ -1130,21 +1118,6 @@ def stage_tools(output: Path, root: Path = ROOT) -> dict | None:
     return collect_tools(output, checkouts, {key: _checkout_commit(path) for key, path in checkouts.items()})
 
 
-def render_tools(ui, output: Path | None = None) -> dict[str, bytes]:
-    """⏸ A short page at every entry of a tool this build did not record (tests, a failed clone), so a 🧭 link never 404s;
-    a recorded tool is left as built."""
-    path = Path(output) / TOOLS if output else None
-    made = json.loads(path.read_text(encoding='utf-8'))['made'] if path and path.is_file() else []
-    pages = {}
-    for key, (repository, folder, entries) in TOOL_SOURCES.items():
-        if key in made:
-            continue
-        for entry in entries:
-            name = f'{folder}/{entry}index.html'
-            pages[name] = _back_to_tools(_paused(ui, repository), name).encode('utf-8')
-    return pages
-
-
 def _paused(ui, repository: str, why: str = 'このビルドでは作っていない。') -> str:
     """⏸ What stands in for a tool this build did not make."""
     return ui.page_document({'schema': 'web-ui-page/1', 'title': f'🧰 {repository.split("/")[1]}', 'blocks': [
@@ -1152,23 +1125,24 @@ def _paused(ui, repository: str, why: str = 'このビルドでは作ってい�
         {'type': 'links', 'items': [{'label': '🐙 GitHub リポジトリ', 'href': f'https://github.com/{repository}'}]}]})
 
 
-def tool_panels(ui, output: Path | None = None) -> dict[str, tuple[bytes, str]]:
-    """🧰 The TOOL_SOURCES tools that are #panels of the screen (no page of their own): the document ``--record-tools`` built,
-    taken out of the tree, else ⏸; ``{source: (document, repository)}`` for ``render_shell``."""
+def tool_panels(ui, output: Path | None = None) -> dict[str, tuple[bytes, str, bool]]:
+    """🧰 The TOOL_SOURCES tools as #panels of the screen (none has a page of its own): each page ``--record-tools`` built, taken
+    out of the tree (its files stay), else ⏸; ``{source: (document, repository, framed)}`` for ``render_shell``. A tool whose
+    ``entries`` are listed runs each in a frame (an app that owns its document); ``()`` joins its one page to the screen."""
     path = Path(output) / TOOLS if output else None
     made = json.loads(path.read_text(encoding='utf-8'))['made'] if path and path.is_file() else []
     panels = {}
     for key, (repository, folder, entries) in TOOL_SOURCES.items():
-        built = Path(output) / folder / 'index.html' if output else None
-        if entries:
-            continue
-        if key in made and built.is_file():
-            panels[f'{folder}/index.html'] = built.read_bytes(), repository
-            built.unlink()
-            if not any(built.parent.iterdir()):        # 🌡️ a one-page tool leaves no folder behind
-                built.parent.rmdir()
-        else:
-            panels[f'{folder}/index.html'] = _paused(ui, repository).encode('utf-8'), repository
+        for entry in entries or ('',):
+            source = f'{folder}/{entry}index.html'
+            built = Path(output) / source if output else None
+            if key in made and built.is_file():
+                panels[source] = built.read_bytes(), repository, bool(entries)
+                built.unlink()
+                if not any(built.parent.iterdir()):    # 🌡️ a one-page tool leaves no folder behind
+                    built.parent.rmdir()
+            else:
+                panels[source] = _paused(ui, repository).encode('utf-8'), repository, False
     return panels
 
 
@@ -1176,9 +1150,8 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
     """Every hash-locked page: the demos and world pages, HTML import, map tools and the GIF workshop, keyed by published path."""
     map_tool = load_module('map_tool', 'scripts/map_tool.py')
     maps = {MAP_PINS_PAGE: map_tool.map_document(ui, map_tool.tokyo_points(_world().example_data('cities'))).encode()}
-    pages = {**render_world(ui), **render_html_import(ui)}
-    pages = {path: link_shared_sheets(ui, path, page) for path, page in pages.items()}
-    return {**pages, **render_pswb_tools(ui), **maps, **render_gif_tool(ui), **render_chat_tool(ui)}   # 🧰 the rest are #panels (render_shell)
+    return {**render_world(ui), **render_html_import(ui), **render_pswb_tools(ui), **maps, **render_gif_tool(ui),
+            **render_chat_tool(ui)}   # 🧰 every one a #panel of the screen (render_shell)
 
 
 def link_shared_sheets(ui, path: str, page: bytes) -> bytes:
@@ -1194,90 +1167,189 @@ def link_shared_sheets(ui, path: str, page: bytes) -> bytes:
     return page
 
 
-# ── 🧰 One screen: every tool the portfolio builds is a #panel of tools/index.html, under one header, one foot and one ⚙️ ──
+# ── 🧰 One screen: every tool is a #panel of tools/index.html, under one header, one foot and one ⚙️ ──
 SHELL_PAGE = 'tools/index.html'
-PANEL_PAGES = (GIF_PAGE, MAP_PINS_PAGE, *PSWB_TOOLS, FLOW_PAGE, MAP_PAGE, CHAT_PAGE)   # where each panel's document is built from; never published
+PANEL_PAGES = (GIF_PAGE, MAP_PINS_PAGE, *PSWB_TOOLS, FLOW_PAGE, MAP_PAGE, CHAT_PAGE, WORLD_PAGE, HTML_IMPORT_PAGE)   # this site's own panels; never published
 _LINK = re.compile(r'(?P<attr>\b(?:href|src)=)(?P<quote>["\'])(?P<url>[^"\']*)(?P=quote)')
+_SCRIPT = re.compile(r'<script\b[^>]*>.*?</script>', re.S)
 _SHELL_JS = """(()=>{const panels=[...document.querySelectorAll('[data-tools-panel]')],names=panels.map(p=>p.id);let current='';
 const mark=()=>{const door=document.querySelector('[data-door-select]'),mine=door&&[...door.options].find(o=>o.value.endsWith('#'+current));if(mine)door.value=mine.value};   // 🚪 shows where you are
-const show=(panel,target)=>{const inert=panel.querySelector(':scope>template');if(inert)panel.replaceChildren(document.importNode(inert.content,true));  // 💤 a panel loads when first opened
+const inside=(panel,target)=>{const frame=panel.querySelector('iframe');if(!frame)return(document.getElementById(target)||panel).scrollIntoView();
+ const go=()=>{frame.contentWindow.location.hash=target};if(frame.dataset.ready)go();else frame.addEventListener('load',go,{once:true})};   // 🖼️ a framed app's own #section
+const runs={test:type=>['','text/javascript','module'].includes(type)};
+const play=async marks=>{for(const[mark,old]of marks){const s=document.createElement('script');for(const a of old.attributes)s.setAttribute(a.name,a.value);   // ▶️ in the page's order, one after another
+  if(old.src){s.async=false;const done=new Promise(r=>{s.onload=s.onerror=r});mark.replaceWith(s);await done}
+  else if(s.type==='module'){const id='tools-ran-'+Math.random().toString(36).slice(2),done=new Promise(r=>{addEventListener(id,r,{once:true});addEventListener('error',r,{once:true});setTimeout(r,10000)});
+   s.textContent=old.textContent+'\\n;dispatchEvent(new Event('+JSON.stringify(id)+'))';mark.replaceWith(s);await done}
+  else{s.textContent=old.textContent;mark.replaceWith(s)}}};
+const show=(panel,target)=>{const inert=panel.querySelector(':scope>template');if(inert){const part=document.importNode(inert.content,true);  // 💤 a panel loads when first opened
+  const marks=[...part.querySelectorAll('script')].filter(s=>runs.test(s.type)).map(s=>{const mark=document.createComment('▶️');s.replaceWith(mark);return[mark,s]});
+  panel.replaceChildren(part);play(marks);
+  for(const frame of panel.querySelectorAll('iframe'))frame.addEventListener('load',()=>{frame.dataset.ready='1'},{once:true})}
  for(const p of panels)p.hidden=p!==panel;document.title=panel.dataset.title;
- if(target)(document.getElementById(target)||panel).scrollIntoView();else if(current&&current!==panel.id)scrollTo(0,0);current=panel.id;mark()};
+ if(target)inside(panel,target);else if(current&&current!==panel.id)scrollTo(0,0);current=panel.id;mark()};
 const route=()=>{const name=decodeURIComponent(location.hash.slice(1)).split('?')[0];
  if(names.includes(name))return show(document.getElementById(name));
- const owner=name&&panels.find(p=>p.querySelector(':scope>template')?.content.getElementById(name)||p.contains(document.getElementById(name)));   // #records: a section of a panel
+ const owner=name&&panels.find(p=>(p.dataset.routes||'').split(' ').includes(name)||p.querySelector(':scope>template')?.content.getElementById(name)||p.contains(document.getElementById(name)));   // #records: a section of a panel
  if(owner)return show(owner,name);if(!current)show(document.getElementById('home'))};
 addEventListener('hashchange',route);addEventListener('pageshow',()=>setTimeout(mark));
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',route);else route()})();"""
+# 🖼️ Inside a framed app, a #link stays in its document (a srcdoc page would resolve it against the screen's address).
+_FRAME_JS = "addEventListener('click',e=>{const a=e.target.closest?.('a[href^=\"#\"]');if(!a||e.defaultPrevented||a.target)return;e.preventDefault();location.hash=a.getAttribute('href')})"
+_FRAME_CSS = '.ui-tools-frame{display:block;width:100%;height:calc(100dvh - 72px);border:0}'
 
 
-def _rebase_links(markup: str, source: str, name: str) -> str:
-    """Every relative ``href`` / ``src`` of ``markup`` (written for ``source``) as seen from SHELL_PAGE; a link to the page
-    itself becomes ``#name``. Script bodies are left as they are (only a ``<script src>`` moves)."""
+def panel_name(source: str) -> str:
+    """🧰 The #name a tool has on the screen: its path under tools/ (``tools/mcp/execution/index.html`` → ``mcp-execution``)."""
+    return re.sub(r'(?:/index)?\.html$', '', source.removeprefix('tools/')).replace('/', '-')
+
+
+def _rebase_links(markup: str, source: str, name: str, root: bool = False) -> str:
+    """Every relative ``href`` / ``src`` of ``markup`` (written for ``source``) as seen from SHELL_PAGE (``root``: from the site's
+    root, ``/tools/…``); a link to the page itself becomes ``#name``. Script bodies are left as they are (only a ``<script src>``
+    moves)."""
     def move(match):
         parts = urlsplit(match['url'])
         if not parts.path or parts.scheme or parts.netloc or parts.path.startswith('/'):
             return match[0]
         at = posixpath.normpath(posixpath.join(posixpath.dirname(source), parts.path))
-        if at in (posixpath.dirname(source), source):
-            url = '#' + (parts.fragment or name)
+        if at in (posixpath.dirname(source), source) and not root and not parts.query:
+            url = '#' + (parts.fragment or name)                               # the page itself: its panel (or the #section it holds)
         else:
-            url = urlunsplit(('', '', './' + posixpath.relpath(at, posixpath.dirname(SHELL_PAGE)) + ('/' if parts.path.endswith('/') else ''),
-                              parts.query, parts.fragment))
+            rel = posixpath.relpath(at, posixpath.dirname(SHELL_PAGE))
+            path = '/' + at if root else './' if rel == '.' else './' + rel + ('/' if parts.path.endswith('/') else '')
+            url = urlunsplit(('', '', path + ('/' if root and parts.path.endswith('/') else ''), parts.query, parts.fragment))
         return match['attr'] + match['quote'] + url + match['quote']
     pieces = re.split(r'(<script\b[^>]*>.*?</script>)', markup, flags=re.S)
     return ''.join(_LINK.sub(move, piece) if i % 2 == 0 else re.sub(r'<script\b[^>]*>', lambda tag: _LINK.sub(move, tag[0]), piece, count=1)
                    for i, piece in enumerate(pieces))
 
 
-def _panel(ui, source: str, page: str) -> tuple[str, str]:
-    """(title, markup) of a tool's document as a #panel: its <head>'s own styles and scripts (the shared sheet, the name, the icons
-    and the viewport are the screen's), then its <body>, links rebased (``_rebase_links``)."""
+def _title(source: str, page: str) -> str:
+    title = re.search(r'<title>(.*?)</title>', page, re.S)
+    return html.unescape(title[1]).strip() if title else panel_name(source)
+
+
+def _panel(ui, source: str, page: str) -> tuple[str, str, str]:
+    """(title, markup, body class) of a tool's document as a #panel: its <head>'s own styles and scripts (the shared sheet, the
+    name, the icons and the viewport are the screen's), then its <body>, links rebased (``_rebase_links``)."""
+    title = _title(source, page)
     page = re.sub(r'^\s*<!doctype html>\s*|<html\b[^>]*>|</html>\s*$', '', page, flags=re.I)   # a page may leave <head> / <body> implied
     head = re.search(r'<head>(.*?)</head>', page, re.S)
     body = re.search(r'<body\b([^>]*)>(.*)</body>', page, re.S)
-    title = re.search(r'<title>(.*?)</title>', page, re.S)
-    title = html.unescape(title[1]).strip() if title else source.split('/')[1]
     classes = re.search(r'\bclass="([^"]*)"', body[1]) if body else None
     head, body = (head[1] if head else ''), (body[2] if body else page[head.end():] if head else page)
     head, body = (re.sub(r'<meta\b[^>]*>|<title>.*?</title>|<link rel="(?:icon|apple-touch-icon|manifest)"[^>]*>', '', part, flags=re.S)
                   for part in (head, body))
     for builder in STYLESHEET_BUNDLES.values():
         head = head.replace('<style>' + getattr(ui, builder)(), '<style>')
-    return title, _rebase_links(head.replace('<style></style>', '') + body, source, source.split('/')[1]), classes[1] if classes else ''
+    return title, _rebase_links(head.replace('<style></style>', '') + body, source, panel_name(source)), classes[1] if classes else ''
 
 
-def render_shell(ui, docs: dict[str, bytes], tools: dict[str, tuple[bytes, str]] | None = None) -> bytes:
-    """🧰 tools/index.html: the screen every tool of PANEL_PAGES is a panel of (``#gif``, ``#maps``, …; 🏠 ``#home`` lists them).
+def _to_top(page: str, source: str, targets: dict[str, set[str] | None]) -> str:
+    """Every ``<a href>`` of a framed page that leaves it opens in the screen (``target="_top"``): one to a tool of the screen
+    becomes ``/tools/#name`` or the #section it holds (``targets``: a framed one's routes, None for a joined one, which holds any)."""
+    pages = {}
+    for path in targets:
+        folder = posixpath.dirname('/' + path) + '/'
+        pages.update({'/' + path: path, **({folder: path} if path.endswith('/index.html') else {})})
+    site = _site_url().rstrip('/')
+    def move(tag):
+        href = re.search(r'\bhref=(["\'])([^"\']*)\1', tag[0])
+        if not href or re.search(r'\b(?:target|download)\b', tag[0]) or href[2].startswith(('#', 'javascript:', 'blob:', 'data:')):
+            return tag[0]
+        parts = urlsplit(href[2])
+        if parts.scheme or parts.netloc:
+            if not href[2].startswith(site + '/'):
+                return tag[0].replace('<a', '<a target="_top"', 1)                  # 🌐 another site
+            path = parts.path
+        else:
+            path = posixpath.normpath(posixpath.join('/' + posixpath.dirname(source), parts.path)) + ('/' if parts.path.endswith('/') else '')
+        if path in ('/' + posixpath.dirname(SHELL_PAGE) + '/', '/' + SHELL_PAGE) and parts.fragment:   # 🧰 the screen itself, at a #panel
+            tag = tag[0].replace(href[0], f'href={href[1]}/{posixpath.dirname(SHELL_PAGE)}/#{parts.fragment}{href[1]}', 1)
+            return tag.replace('<a', '<a target="_top"', 1)
+        if path in pages:
+            own, name = targets[pages[path]], panel_name(pages[path])
+            url = '/' + posixpath.dirname(SHELL_PAGE) + '/#' + (parts.fragment if parts.fragment and (own is None or parts.fragment in own) else name)
+            tag = tag[0].replace(href[0], f'href={href[1]}{url}{href[1]}', 1)
+            return tag.replace('<a', '<a target="_top"', 1)
+        return tag[0].replace('<a', '<a target="_top"', 1)                          # 🏠 the site's other pages and files
+    pieces = re.split(r'(<script\b[^>]*>.*?</script>)', page, flags=re.S)
+    return ''.join(re.sub(r'<a\b[^>]*>', move, piece) if i % 2 == 0 else piece for i, piece in enumerate(pieces))
+
+
+def _routes(page: str) -> set[str]:
+    """The #sections a page links itself to (an ``href="#x"`` with an ``id="x"``): where the screen can open a framed app."""
+    page = _SCRIPT.sub('', page)
+    return set(re.findall(r'href="#([^"]+)"', page)) & set(re.findall(r'\bid="([^"]+)"', page))
+
+
+def _framed(source: str, page: str, targets: dict[str, set[str] | None]) -> tuple[str, str]:
+    """(title, markup) of an app that owns its document (Ironmate's studios, the lab, the HTML import) as a #panel: the page
+    whole in an ``<iframe srcdoc>``, so its ids, styles, scripts and CSP stay its own. Its links leave for the screen
+    (``_to_top``); its files load from the site's root (``/tools/…``: a srcdoc frame's preload ignores ``<base>``); a ``<base>`` of
+    its folder serves what its scripts resolve themselves, and its #links stay in it (``_FRAME_JS``). Both come first in
+    ``<head>``, before any CSP of its own (which governs what follows it)."""
+    title = _title(source, page)
+    page = _rebase_links(_to_top(page, source, targets), source, panel_name(source), root=True)
+    first = f'<base href="./{posixpath.relpath(posixpath.dirname(source), posixpath.dirname(SHELL_PAGE))}/"><script>{_FRAME_JS}</script>'
+    page = (re.sub(r'<head\b[^>]*>', lambda head: head[0] + first, page, count=1) if re.search(r'<head\b', page)
+            else re.sub(r'(<html\b[^>]*>|^)', lambda html_: html_[0] + first, page, count=1))
+    return title, f'<iframe class="ui-tools-frame" title="{html.escape(title)}" srcdoc="{html.escape(page)}"></iframe>'
+
+
+def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes:
+    """🧰 tools/index.html: the screen every tool is a panel of (``#gif``, ``#maps``, …; 🏠 ``#home`` lists them). ``panels`` maps
+    the path a tool's document was built for to (document, repository, framed): ``repository`` None is this site's own;
+    ``framed`` runs an app that owns its document in a frame (``_framed``), else its parts join the screen (``_panel``).
     The header, the side and the foot are the site's (``add_site_chrome``) once; a panel stays an inert ``<template>`` until it is
-    first opened (its styles and scripts load then), and ``#section`` opens the panel that holds it."""
+    first opened (its styles and scripts load then), and ``#section`` opens the panel that holds it.
+    🆔 One owner per id: two of this site's panels that share one stop the build; another repository's gets ⏸ in its place."""
     places = {place['href']: place['label'] for place in tools_places('../')}
-    names = [source.split('/')[1] for source in (*docs, *(tools or {}))]
-    index, panels, owners = [], [], {name: name for name in ('home', *names, 'door', 'door-select', 'tools-chrome')}   # 🆔 one owner per id
-    for source, data in (*docs.items(), *((source, (data, repository)) for source, (data, repository) in (tools or {}).items())):
-        name = source.split('/')[1]
-        title, markup, classes = _panel(ui, source, (data[0] if isinstance(data, tuple) else data).decode('utf-8'))
-        ids = set(re.findall(r'\bid="([^"]+)"', re.sub(r'<script\b[^>]*>.*?</script>', '', markup, flags=re.S)))
+    names = [panel_name(source) for source in panels]
+    owners = {name: name for name in ('home', *names, 'door', 'door-select', 'tools-chrome')}
+    routes = {source: _routes(data.decode('utf-8')) - set(owners) for source, (data, _, framed) in panels.items() if framed}
+    index, markup_of = [], {}
+    for source, (data, repository, framed) in sorted(panels.items(), key=lambda item: item[1][2]):   # 🧩 the joined ones first: they own their ids
+        name = panel_name(source)
+        if framed:
+            routes[source] -= set(owners)
+            targets = {other: routes.get(other) for other in panels}
+            title, markup = _framed(source, data.decode('utf-8'), targets)
+            markup_of[source] = title, markup, '', routes[source]
+            continue
+        title, markup, classes = _panel(ui, source, data.decode('utf-8'))
+        ids = set(re.findall(r'\bid="([^"]+)"', _SCRIPT.sub('', markup)))
         clash = sorted(i for i in ids if owners.get(i, name) != name)
-        if clash and not isinstance(data, tuple):
+        if clash and repository is None:
             raise ValueError(f'🆔 the {name} panel shares ids with another part of the screen: {clash}')
         if clash:                                                          # 🧰 a tool of another repository: ⏸ rather than a broken screen
-            title, markup, classes = _panel(ui, source, _paused(ui, data[1], f'id がほかの道具とぶつかる（{", ".join(clash)}）。'))
+            title, markup, classes = _panel(ui, source, _paused(ui, repository, f'id がほかの道具とぶつかる（{", ".join(clash)}）。'))
             ids = set()
         owners.update(dict.fromkeys(ids, name))
+        markup_of[source] = title, markup, classes, set()
+    sections = []
+    for source in panels:                                                  # 🧰 in the order given
+        name, (title, markup, classes, own) = panel_name(source), markup_of[source]
         index.append(f'<li><a href="#{name}">{html.escape(places.get(f"../tools/#{name}", title), quote=False)}</a></li>')
         css = f' class="{html.escape(classes)}"' if classes else ''      # the page's <body> class (ui-elements) holds for its panel
-        panels.append(f'<section id="{name}"{css} data-tools-panel data-title="{html.escape(title)}" hidden><template>{markup}</template></section>')
+        sections.append(f'<section id="{name}"{css} data-tools-panel data-title="{html.escape(title)}"'
+                        + (f' data-routes="{" ".join(sorted(own))}"' if own else '') + f' hidden><template>{markup}</template></section>')
     home = (f'<section id="home" data-tools-panel data-title="🧰 Tools"><main class="ui-page"><h1>🧰 Tools</h1>'
             f'<ul class="ui-tools-index">{"".join(index)}</ul></main></section>')
-    page = ui.render_document(title='🧰 Tools', theme='modern', css=ui.bundled_css() + '.ui-tools-index{display:grid;gap:8px;padding:0;list-style:none}',
-                              trusted_html=home + ''.join(panels) + f'<script>{_SHELL_JS}</script>')
+    mark = '<!-- 🧰 panels -->'                                            # the chrome first: a panel's own header (🌍) is not the screen's
+    page = ui.render_document(title='🧰 Tools', theme='modern', trusted_html=home + mark + f'<script>{_SHELL_JS}</script>',
+                              css=ui.bundled_css() + '.ui-tools-index{display:grid;gap:8px;padding:0;list-style:none}' + _FRAME_CSS)
     page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace(
         '<head>', '<head><meta name="description" content="myon-bioinformatics の道具を 1 つの画面で。🚪 で道具を選び、🏠 で一覧へ。">', 1)   # 📟 the board reads it
-    cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './demos/world.html#tokyo'}}   # 🗺️ the map's neighbour
-    page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': '../index.html#tools'}], test_id='portfolio-back')   # 🏠 the home panel's first line
-    page = add_site_chrome(page, SHELL_PAGE, cities)
-    return link_shared_sheets(ui, SHELL_PAGE, add_home_label(page, '🧰 道具', icons_from='../').encode('utf-8'))
+    cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './#tokyo'}}   # 🗺️ the map's neighbour
+    page = add_back_nav(page, SHELL_PAGE, cities).replace(mark, ''.join(sections), 1)   # 🏠 the home panel's first line, the site's chrome
+    return link_shared_sheets(ui, SHELL_PAGE, ui.stamp_page_size(add_home_label(page, '🧰 道具', icons_from='../')).encode('utf-8'))
+
+
+@functools.lru_cache(maxsize=None)
+def _site_url() -> str:
+    return json.loads((ROOT / 'services.json').read_text(encoding='utf-8'))['services']['portfolio']['pages']['url']
 
 
 def generate(root: Path = ROOT, ui=None, commit: str | None = None) -> dict[str, bytes]:
@@ -1315,9 +1387,10 @@ def validate_output(output: Path, root: Path = ROOT) -> None:
 def build(output: Path, root: Path = ROOT) -> None:
     validate_output(output, root)
     import pysaiyanweboo as ui
-    payload = {**generate(root), **render_front(root, recorded_samples(output)), **render_flow(ui, output), **render_map(ui, output),
-               **render_tools(ui, output)}  # Fail closed first.
-    payload[SHELL_PAGE] = render_shell(ui, {path: payload.pop(path) for path in PANEL_PAGES}, tool_panels(ui, output))
+    payload = {**generate(root), **render_front(root, recorded_samples(output)), **render_flow(ui, output), **render_map(ui, output)}  # Fail closed first.
+    own = {path: (doc, None, b'Content-Security-Policy' in doc)           # 🔒 a page with its own CSP runs framed
+           for path, doc in ((path, payload.pop(path)) for path in PANEL_PAGES)}
+    payload[SHELL_PAGE] = render_shell(ui, {**own, **tool_panels(ui, output)})
     for name, data in payload.items():
         path = output / name
         path.parent.mkdir(parents=True, exist_ok=True)

@@ -1,7 +1,7 @@
 {
   "schema": "web-ui-generated/2",
   "generator": "pysaiyanweboo (pyproject.toml pages group)",
-  "commit": "28c40247fca82829a47f9e67d84f7674eebfed40",
+  "commit": "e2d72f4f1f40e237390c9c3315697adce252a6b6",
   "outputs": {
     "tools/vendor/web-ui/css/base.css": "89bf5a2371b7be9057540501bba09f399d60f9207971c47fd9dac7f473ea928d",
     "tools/vendor/web-ui/css/components.css": "fbf50a97238b2f1df40d32cda93e1321b43b35dae5bc7c0eab586b5d8bc7c7ae",
@@ -16,17 +16,17 @@
     "tools/world-assets/world.js": "ba01ca369a3b7f4a433f4cdf8cc80abb3dd521f0865d5ae89e9c44ea0d5e09dc",
     "tools/world-assets/london-dragon.json": "96f1b4efbd5a900459688403900cd385bf600987e8f76023f2a7d538f9ed133b",
     "tools/world-assets/london-dragon.png": "2478a91c5d1c6cb04255b8247ca879f08f6a9ba30051bdb743f14a8a4a6429a9",
-    "tools/html-import/extract.mjs": "22453239323b35f46e4ece66fea443ed6475f0e26324926ba8dbb1fade203fec",
+    "tools/html-import/extract.mjs": "09602fc4b02d21ed9a5981569069e92ecfd160adca421f1363aa4120dee4c072",
     "tools/chat/sources.json": "eb8696853fb288af9a936fcb3e8262fc5478511ecccd1f5d222f6841d3e46ed2",
     "tools/vendor/web-ui/css/bundle.css": "5798a6005dd9f5bed6e04d4fd94ceef85325b30701db465e4f7a2444155888b4",
     "tools/vendor/web-ui/css/core.css": "6161b50462c2cfc8b40547e988636525989a1d29585eb98d5042646ffbb5cabd"
   },
   "pages": {
-    "tools/demos/world.html": "e4807994114dd6f3e2f4b9e2ff39caefffe936907bc4878b873739598542fa47",
-    "tools/html-import/index.html": "ba8c5a4fa697256e95beb2d4cdc58db646fabb914a87b4e3bcab3d340c22fbbe",
-    "tools/test-report/index.html": "1544479239d8b482a8f0db449380982ac58c4a9a93da0865bdf2444cc958cc75",
-    "tools/maps/index.html": "bd1b0a8098637757f8202acfb62def50404a57c52940bc05e26c581e00d4e76f",
-    "tools/gif/index.html": "1651a8a69694f42d2756ac8aaebce6bfdb69189d78bbae03453d42c5e3bd9527",
-    "tools/chat/index.html": "29829389e8a2da63127affbbee22be13da819bc376cab07d146e31769621a16e"
+    "tools/worlds.html": "524fcf1fede68ee1e4571168dec22c401530290cb5076818355ce5ff1236815e",
+    "tools/html-import/index.html": "3cd48e3abf67f8c2c19a6b164711ce75fafe4ba6633d4ca58dc5d575ad7cf141",
+    "tools/test-report/index.html": "259658a6c4080f70aaf8c40fe5e8a532a4e6db36f7a59a650ce45f80f356e2f7",
+    "tools/maps.html": "01077f04e016ede10541e8ae676e14a78acd3ef688ce8d637c9860abc167afff",
+    "tools/gif/index.html": "82eeb1e28db79f0654342939db35d4114d8129d216f193c20c6eb80adef1d55a",
+    "tools/chat/index.html": "e7a3496743d91736a3d202c7e9332417fa3330713171866167c601bb7c3d1cd2"
   }
 }

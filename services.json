@@ -34,15 +34,15 @@
         },
         "pages": {
           "kind": "pages",
-          "url": "https://myon-bioinformatics.github.io/tools/image-studio/"
+          "url": "https://myon-bioinformatics.github.io/tools/#image-studio"
         },
         "browserTools": {
           "kind": "pages",
-          "url": "https://myon-bioinformatics.github.io/tools/browser-tools/"
+          "url": "https://myon-bioinformatics.github.io/tools/#browser-tools"
         },
         "slides": {
           "kind": "pages",
-          "url": "https://myon-bioinformatics.github.io/tools/slide-studio/"
+          "url": "https://myon-bioinformatics.github.io/tools/#slide-studio"
         }
       },
       "mcp-toolcall-lab": {
@@ -52,7 +52,7 @@
         },
         "execution": {
           "kind": "pages",
-          "url": "https://myon-bioinformatics.github.io/tools/mcp/execution/"
+          "url": "https://myon-bioinformatics.github.io/tools/#mcp-execution"
         }
       }
     }
