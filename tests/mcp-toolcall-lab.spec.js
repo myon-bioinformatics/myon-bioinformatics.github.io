@@ -145,9 +145,7 @@ test.describe('MCP Tool Call Lab - Publication, navigation, and extraction', () 
     const logo = execution.locator('img[src$="mcp-toolcall-lab-logo.png"]');
     await expect(logo).toBeVisible();
     await expect.poll(() => logo.evaluate(img => img.naturalWidth)).toBeGreaterThan(0);
-    const module = await execution.locator('script[src$="portable_page.mjs"]').getAttribute('src');
-    const entry = await execution.evaluate(src => new URL(src, document.baseURI).href, module);
-    expect((await page.request.get(entry)).ok()).toBe(true);
+    await expect(execution.locator('#request')).toHaveValue(/"operation": "trace_summary"/);
     expect(failures).toEqual([]);
   });
 
