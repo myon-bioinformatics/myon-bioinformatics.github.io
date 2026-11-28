@@ -508,9 +508,11 @@ def test_the_screen_carries_the_site_chrome_once_and_every_door_is_a_panel():
         assert {urlparse(href).fragment for href, _ in rows if href.startswith('../tools/#')} <= {*re.findall(r'<section id="([^"]+)"[^>]*\bdata-tools-panel', full),
                                                                                                 *' '.join(re.findall(r'\bdata-routes="([^"]*)"', full)).split(), *PageParser.of(full).ids}, name
         assert len({words.split(' ')[0] for _, _, words in doors}) == len(doors), name                    # one emoji, one panel
-    maps = (SITE / PAGES.SHELL_PAGE).read_text(encoding='utf-8')                    # 🗼 an emoji a page adds for its own use (the map's)
-    assert '<a class="ui-world-tool" href="./#tokyo" aria-label="パラレル都市"' in maps
-    assert '>🗼</summary>' not in (SITE / 'index.html').read_text(encoding='utf-8')
+    screen = (SITE / PAGES.SHELL_PAGE).read_text(encoding='utf-8')                  # 🔗 an emoji a page adds for its own use: the front page's
+    assert '>🔗</summary>' in (SITE / 'index.html').read_text(encoding='utf-8') and '>🔗</summary>' not in screen
+    assert 'aria-label="パラレル都市"' not in screen                                 # 🧰 the screen adds none: 🚪 lists every place
+    readme = (ROOT / 'README.md').read_text(encoding='utf-8')                       # 📖 the README's 🧰 table is the cards' (--refresh-lock writes it)
+    assert PAGES.tools_readme(readme) == readme and all(f'| {card["title"]}' in readme for card in PAGES._front_module().PORTAL)
 
 
 def test_html_import_keeps_its_own_csp_in_its_frame():

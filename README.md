@@ -86,22 +86,26 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 
 `#records` のような道具の中の見出しへのリンクは、その道具を開いてそこへ移ります。Pyodide に渡すチャットの Python は開いたときに `tools/chat/sources.json` から読みます。
 
-| 案内 | リンク |
-| --- | --- |
-| 📄 HTML文書取込 | [tools/#html-import](https://myon-bioinformatics.github.io/tools/#html-import) |
-| 🗃️ 形式変換・検証（myon-bioinformatics · PySaiyanWeBoo） | [tools/#format-lab](https://myon-bioinformatics.github.io/tools/#format-lab) |
-| 📍 地図URL・座標ピン留め（実在の緯度・経度） | [tools/#maps](https://myon-bioinformatics.github.io/tools/#maps) |
-| 🪐 仮想・拡張エリア（歩いて回る空間） | [tools/#worlds](https://myon-bioinformatics.github.io/tools/#worlds)（空間ごとのリンクはカードと 🚪 に。一覧はワールドのデータから） |
-| 🖼️ 画像工房（Ironmate） | [tools/#image-studio](https://myon-bioinformatics.github.io/tools/#image-studio) |
-| 🎨 ブラウザ道具（Ironmate） | [tools/#browser-tools](https://myon-bioinformatics.github.io/tools/#browser-tools) |
-| 📽️ スライド工房（Ironmate） | [tools/#slide-studio](https://myon-bioinformatics.github.io/tools/#slide-studio) |
-| 🌡️ ヒートマップ（DRAgoWing · Ironmate） | [tools/#heatmap](https://myon-bioinformatics.github.io/tools/#heatmap) |
-| 🧾 テスト結果（PySaiyanWeBoo） | [tools/#test-report](https://myon-bioinformatics.github.io/tools/#test-report) |
-| 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab · Err-o-RoadRunner） | [tools/#chat](https://myon-bioinformatics.github.io/tools/#chat) |
-| 🧭 統合運用 | [Dashboard](https://myon-bioinformatics.github.io/myon-bioinformatics/) |
-| 🎞 GIF工房（PySaiyanWeBoo） | [tools/#gif](https://myon-bioinformatics.github.io/tools/#gif) |
-| 🌊 流れの実験室（FluidFullSpeedSimulation · DRAgoWing） | [tools/#flow](https://myon-bioinformatics.github.io/tools/#flow) |
-| 🧠 リポジトリ地図 | [tools/#repo-map](https://myon-bioinformatics.github.io/tools/#repo-map) |
+下の表は手で書きません。🧰 のカード（`scripts/front_page.py` の `PORTAL`）から `--refresh-lock` が書き直します。
+
+<!-- 🧰 PORTAL -->
+| 道具 | できること | 開く |
+| --- | --- | --- |
+| 📄 HTML文書取込 | HTML を貼るかファイルを選び、本文・見出し・リンクを端末の中で抽出。 | [tools/#html-import](https://myon-bioinformatics.github.io/tools/#html-import) |
+| 🗃️ 形式変換・検証（myon-bioinformatics · PySaiyanWeBoo） | ファイルや貼った原文を静的検査し、Base64 の復元差分と検証記録を確認。CaChereCyCle の資産は SHA-256 も照合。 | [tools/#format-lab](https://myon-bioinformatics.github.io/tools/#format-lab) |
+| 📍 地図URL・座標ピン留め | 実在の緯度・経度から Apple Maps と Google Maps の URL を作り、地点をピン留め・共有。 | [tools/#maps](https://myon-bioinformatics.github.io/tools/#maps) |
+| 🪐 仮想・拡張エリア | 緯度・経度ではなく、歩いて回る空間。🌍 🏫 🗼 🎡 🥖 🎬 📷 | [tools/#worlds](https://myon-bioinformatics.github.io/tools/#worlds) · [🏫 学校](https://myon-bioinformatics.github.io/tools/#school) · [🗼 パラレル東京](https://myon-bioinformatics.github.io/tools/#tokyo) · [🎡 Reverse London](https://myon-bioinformatics.github.io/tools/#london) · [🥖 Fake Paris](https://myon-bioinformatics.github.io/tools/#paris) · [🎬 カメラ](https://myon-bioinformatics.github.io/tools/#camera) · [📷 実空間×仮想](https://myon-bioinformatics.github.io/tools/#overworld-spot-real-gate) |
+| 🖼️ 画像工房（Ironmate） | レイヤー・作業履歴・クリップボード棚で画像を編集。数値行列のヒートマップと PNG Base64 の受け渡しも。 | [tools/#image-studio](https://myon-bioinformatics.github.io/tools/#image-studio) |
+| 🎨 ブラウザ道具（Ironmate） | ドット絵・比較用の一枚・容量確認を、ブラウザだけで。 | [tools/#browser-tools](https://myon-bioinformatics.github.io/tools/#browser-tools) |
+| 📽️ スライド工房（Ironmate） | ブラウザでスライドを作り、文字・図形・矢印を編集できる PPTX に出力。Markdown→PPTX は CLI の試作実装。 | [tools/#slide-studio](https://myon-bioinformatics.github.io/tools/#slide-studio) |
+| 🌡️ ヒートマップ（DRAgoWing · Ironmate） | 数値行列か Plotly の heatmap を貼って描き、SVG・PNG・シーン JSON に。シーンは画像工房で編集できる。 | [tools/#heatmap](https://myon-bioinformatics.github.io/tools/#heatmap) · [🖼️ 画像工房で編集](https://myon-bioinformatics.github.io/tools/#image-studio) |
+| 🧾 テスト結果（PySaiyanWeBoo） | JUnit の結果を読み、前回と比べて新規・再発・解消を分ける。🧯 で失敗をチャットの /triage へ。結果は送らない。 | [tools/#test-report](https://myon-bioinformatics.github.io/tools/#test-report) |
+| 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab · Err-o-RoadRunner） | Markdown・ASCII アート・圧縮・JSON 索引・🧯 triage・🔌 MCP を Python で。🤖 LLM も呼ぶ。 | [tools/#chat](https://myon-bioinformatics.github.io/tools/#chat) |
+| 🧭 統合運用（myon-bioinformatics） | リポジトリ横断の運用ダッシュボード：CI の失敗・競合・未解決レビュー、監査と依存、実行手順、記録と差分。 | [myon-bioinformatics/](https://myon-bioinformatics.github.io/myon-bioinformatics/) |
+| 🎞 GIF工房（PySaiyanWeBoo） | 手持ちの画像を並べて GIF に。端末の中で完結し、画像はどこにも送らず保存もしない。 | [tools/#gif](https://myon-bioinformatics.github.io/tools/#gif) |
+| 🌊 流れの実験室（FluidFullSpeedSimulation · DRAgoWing） | FFSS の全場面を 🌊 動く像で、DRAgoWing の全図を 📊 静止図で。水回り・そうめん・お金・からだ・火力まで。 | [tools/#flow](https://myon-bioinformatics.github.io/tools/#flow) |
+| 🧠 リポジトリ地図 | どのリポジトリがどのファイルを写して使うか。vendor.lock.json と Aoi の subtree から公開ごとに描き直す。 | [tools/#repo-map](https://myon-bioinformatics.github.io/tools/#repo-map) |
+<!-- 🧰 PORTAL -->
 
 1 つの道具に 1 枚のカードです。カードの題名（絵文字 ＋ 日本語）が、カード・🚪・道具の画面の 🏠 一覧・タブの名前です。説明は 70 字以内で、開いている間は画面の掲示板にも出ます。最初のリンクは「開く →」、ほかのリンクは関連する場所へ行き、自分の絵文字と名前を持ちます。🌐 のほかの言語の名前は `words` に書きます。
 
@@ -284,10 +288,10 @@ uv run --project ../BrowserTestKit --group pages --group browser python ../Brows
 | 🚪 | ドア to ドア：フッターのプルダウンで道具から道具へ（🏠 でカードへ）。行は `scripts/front_page.py` の `PORTAL` から作るので、カードを足せば増える。ヘッダーとは別の部品で、PySaiyanWeBoo の共通機能 Door-to-Door のプルダウンだけの形（`door_html(compact=True)` / door.css / door.js）をそのまま使っている（「戻る」で戻っても今のページの表示に戻る）。何も保存しない |
 
 絵文字は用途に応じて key-value で足せます（`href`＝リンク、`links`＝リンクの一覧、`body`＝ひとこと。`slot` は `head` か `side`）。
-🧰 1 つの画面（`tools/`）は、地図のために 🗼（パラレル都市）を足しています。
+トップページは 🔗（GitHub などのリンク）を足しています。🧰 1 つの画面（`tools/`）は何も足しません（行き先は 🚪 に全部あります）。
 
 ```python
-add_site_chrome(page, 'tools/index.html', {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './demos/world.html#tokyo'}})
+add_site_chrome(page, 'index.html', {'🔗': {'label': 'リンク', 'label_en': 'Links', 'links': [{'label': '🐙 GitHub', 'href': 'https://github.com/myon-bioinformatics'}]}})
 ```
 
 ![Tools の共通ヘッダー：☰（このページと見出し）で ☆ を付け、⭐ に並び、🌐 を English にして次の道具へ移っても両方が引き継がれ、⭐ から見出しへ戻る（Chromium 560×480）](docs/evidence/tools-chrome.gif)
