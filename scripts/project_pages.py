@@ -102,10 +102,7 @@ def world_page(ui) -> str:
     css, js = ('./' + path.removeprefix('tools/') for path in WORLD_ASSETS)       # from tools/ (the screen); ./ : an import specifier needs it
     places = tools_places()                                               # 🧰 from tools/ (the screen)
     runtime = {key: _chat().RUNTIME[key] for key in ('wllama', 'model')}
-    # 🔥 a question being typed is seconds from being sent: the box in focus → llama.cpp itself, its first letter → the model
-    warm = ("for(const[type,what]of[['focusin','runtime'],['input','model']])document.addEventListener(type,e=>{"
-            "if(e.target.matches?.('input[aria-label=\"話しかける\"]'))worldAnswer.warm(what)});\n")
-    dialogue = WLLAMA_JS + f'\nconst worldAnswer = localModel({json.dumps(runtime)});\n' + warm
+    dialogue = WLLAMA_JS + f'\nconst worldAnswer = localModel({json.dumps(runtime)});\n'
     dragon_png, dragon_grid = ('./' + path.removeprefix('tools/') for path in DRAGON_ASSETS)
     return shell.document(ui, _world(), maps, places, css, js, dialogue,
                           dragon_png=dragon_png, dragon_grid=dragon_grid, site_words=tools_words())
@@ -724,26 +721,22 @@ CHAT_CSS = '.ui-step [data-chat-say]{margin-top:8px}'    # 📇 the index's "�
 # here are only the bot (chat.py in Pyodide), 🤖 /ask (wllama) and the index's buttons
 WLLAMA_JS = r"""
 function localModel(runtime){
- let llm=null,busy=false,loading=null,tell=()=>{};
- // ⏳ One download, whoever wants it first: warm() a little ahead of the question, or the question itself (which then shows its progress).
- const wasm=runtime.wllama+"wasm/wllama.wasm",lib=()=>import(runtime.wllama+"index.js"),
-  load=show=>{tell=show;return loading??=(async()=>{
-   try{
-    tell("⏳ 🤖 llama.cpp…");
-    const {Wllama}=await lib(),engine=new Wllama({default:wasm});
-    try{
-     await engine.loadModelFromUrl(runtime.model,{n_ctx:2048,progressCallback:({loaded,total})=>
-      tell(`⏳ 🤖 ${total?Math.round(100*loaded/total):0}% · ${Math.round(loaded/2**20)} / ${Math.round(total/2**20)} MB`)});
-    }catch(error){await engine.exit?.();throw error}
-    try{localStorage.setItem("portfolio-llm",runtime.model)}catch{}   // 🔁 this device has it: next time it warms as the page opens
-    return llm=engine;
-   }catch(error){loading=null;throw error}})()};
+ let llm=null,busy=false;
  // 🔧 tools {list, call}: first the model may call the advertised tools (call(name, arguments) → {result}); their results join the talk
- const generate=async(messages,show,limit=256,tools=null)=>{
+ return async(messages,show,limit=256,tools=null)=>{
   if(busy)throw new Error("生成中です");
   busy=true;
   try{
-   if(!llm)await load(show);
+   if(!llm){
+    show("⏳ 🤖 llama.cpp…");
+    const {Wllama}=await import(runtime.wllama+"index.js");
+    const engine=new Wllama({default:runtime.wllama+"wasm/wllama.wasm"});
+    try{
+     await engine.loadModelFromUrl(runtime.model,{n_ctx:2048,progressCallback:({loaded,total})=>
+      show(`⏳ 🤖 ${total?Math.round(100*loaded/total):0}% · ${Math.round(loaded/2**20)} / ${Math.round(total/2**20)} MB`)});
+    }catch(error){await engine.exit?.();throw error}
+    llm=engine;
+   }
    let output="",tokens=0;
    const start=performance.now(),quiet={temperature:0.3,chat_template_kwargs:{enable_thinking:false}};
    const info=llm.getLoadedContextInfo?.()??{};
@@ -763,14 +756,6 @@ function localModel(runtime){
    return {output,tokens,seconds:(performance.now()-start)/1000,llm};
   }finally{busy=false}
  };
- // 🔥 warm("runtime"): llama.cpp itself (small). warm("model", show): the model too (large, once), its progress to show. Nothing on a
- // line that asks to save data or is slow (the question still loads it, as before). kept(): this device loaded the model before
- const frugal=()=>{const line=navigator.connection;return !!line&&(line.saveData||/(^|-)[23]g$/.test(line.effectiveType||""))};
- generate.warm=(what,show=()=>{})=>{if(llm||frugal())return;
-  if(what==="model")load(show).then(()=>show("✅ 🤖 "+runtime.model.split("/").pop()),()=>show(""));
-  else if(!loading){lib().catch(()=>{});fetch(wasm).catch(()=>{})}};
- generate.kept=async()=>{try{return localStorage.getItem("portfolio-llm")===runtime.model&&(await navigator.storage.estimate()).usage>3e8}catch{return false}};   // and the browser still holds about that much
- return generate;
 }
 """
 
@@ -787,16 +772,6 @@ async function ask(text,reply){
      {threads:llm.isMultithread()?navigator.hardwareConcurrency:1,webgpu:llm.isSupportWebGPU()});
 }
 chat.respond = (text, reply) => /^\/ask(\s|$)/i.test(text.trim()) ? ask(text, reply) : bot.reply_html(text);
-// 🔥 Warm-up, a little before it is wanted: the box in focus → llama.cpp itself; "/a…" typed, or a pointer on an /ask example → the
-// model; a device that loaded it before → as the chat opens. The status line says 🐍 and 🤖 side by side.
-const said = {python: $("[data-chat-status]").textContent, model: ""}, status = (part) => { Object.assign(said, part); chat.status([said.python, said.model].filter(Boolean).join(" · ")); };
-const warmModel = () => generateAnswer.warm("model", (model) => status({model}));
-const box = $("[data-chat-input]");
-box.addEventListener("focus", () => generateAnswer.warm("runtime"), {once: true});
-box.addEventListener("input", () => { if (/^\s*\/a/i.test(box.value)) warmModel(); });
-for (const type of ["pointerover", "focusin", "touchstart"]) document.addEventListener(type, (event) => {
-  if (/^\/ask(\s|$)/i.test(event.target.closest?.("[data-chat-say]")?.dataset.chatSay ?? "")) warmModel(); }, {passive: true});
-generateAnswer.kept().then((kept) => { if (kept) warmModel(); });
 const inbox = () => { if (bot) for (const text of (globalThis.chatInbox ??= []).splice(0)) chat.say(text); };   // 🧾 → 🧯: what another panel hands over
 addEventListener("chat-inbox", inbox);
 if (/[?&]triage\b/.test(location.hash + location.search)) {                       // 🧯 #chat?triage: ready for a paste
@@ -830,12 +805,12 @@ async function boot() {
   bot = py.pyimport("chat");
   bot.configure(index, new URL(cfg.base, location.href).href);
   const files = index ? JSON.parse(index).files?.length : undefined;
-  status({python: `✅ 🐍 ${py.runPython("import sys; sys.version.split()[0]")} · ` + (files === undefined ? "⏸ 索引なし" : `🔎 ${files} files`)});
+  chat.status(`✅ 🐍 ${py.runPython("import sys; sys.version.split()[0]")} · ` + (files === undefined ? "⏸ 索引なし" : `🔎 ${files} files`));
   chat.ready();
   document.documentElement.dataset.chatReady = "true";
   inbox();
 }
-boot().catch((error) => { status({python: "⚠️ Python を読み込めない: " + (error?.message ?? error)}); });
+boot().catch((error) => { chat.status("⚠️ Python を読み込めない: " + (error?.message ?? error)); });
 """
 
 
@@ -1190,9 +1165,7 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
                                 home={'title': '🧰 Tools', 'heading': '🧰 Tools', 'about': description})
     mark = '<!-- 🧰 views -->'                                             # the chrome first: a view's own header (🌍) is not the screen's
     sheet = posixpath.relpath(ASSET_BASE + 'css/bundle.css', posixpath.dirname(SHELL_PAGE))          # 🎨 the shared sheet, one file for both
-    early = ("for(const type of['pointerover','touchstart','focusin'])addEventListener(type,e=>{if(e.target.closest?.('a[href$=\"#chat\"]'))"   # 🔥 a hand on the way to 💬: 🐍 starts
-             "globalThis.uiViews?.mount(document.getElementById('chat'))},{passive:true});")
-    page = ui.render_document(title='🧰 Tools', theme='modern', trusted_html=mark + f'<script>{early}</script>', css=screen['css'])
+    page = ui.render_document(title='🧰 Tools', theme='modern', trusted_html=mark, css=screen['css'])
     page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace('<head>', f'<head><meta name="description" content="{description}">', 1).replace('<style>', f'<link rel="stylesheet" href="{sheet}"><style>', 1)
     page = ui.add_part(page, {'js': screen['js']})                         # a module: it binds once the views below are parsed
     hosted = {ui.view_name(view['source'], SHELL_PAGE): view['document'] for view in views}   # ⚙️ ⋯ what each view declares (Ironmate's 📋 💻)

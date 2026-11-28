@@ -1,7 +1,7 @@
 {
   "schema": "web-ui-generated/2",
   "generator": "pysaiyanweboo (pyproject.toml pages group)",
-  "commit": "56b9bc8f2b8c69040eb1382adebd24fcff8c36d1",
+  "commit": "72122a42734f9e84c7b6bb71573a5686d358b482",
   "outputs": {
     "tools/vendor/web-ui/css/base.css": "89bf5a2371b7be9057540501bba09f399d60f9207971c47fd9dac7f473ea928d",
     "tools/vendor/web-ui/css/components.css": "fbf50a97238b2f1df40d32cda93e1321b43b35dae5bc7c0eab586b5d8bc7c7ae",
@@ -18,15 +18,15 @@
     "tools/worlds/london-dragon.png": "2478a91c5d1c6cb04255b8247ca879f08f6a9ba30051bdb743f14a8a4a6429a9",
     "tools/html-import/extract.mjs": "09602fc4b02d21ed9a5981569069e92ecfd160adca421f1363aa4120dee4c072",
     "tools/chat/sources.json": "c9e5e43d7b01b6383754a40505b018e867b9ded0b2651a3dae2326efd66b104c",
-    "tools/vendor/web-ui/css/bundle.css": "5515680be6f202039ffd06f1f8d85d56315ede91a7a58323c70128fd82de3600",
+    "tools/vendor/web-ui/css/bundle.css": "9b935312956d56546784a80d0e16e04660c57758de853f9e62b1e78f0c049dce",
     "tools/vendor/web-ui/css/core.css": "6161b50462c2cfc8b40547e988636525989a1d29585eb98d5042646ffbb5cabd"
   },
   "pages": {
-    "tools/#worlds": "ec553944fb89a897e5e0e9b6e4c826ef6bf054978843db8f85f8accd4f254412",
-    "tools/html-import/#html-import": "06f84120567ae55a9ea070cecd4eabf32d044d74de90e44fa2744ffca1fe7d9d",
-    "tools/#test-report": "c757992290ac5d3b1c9b92210720a12e51e8ba7ad19d6a32abd1e22dd20d94be",
-    "tools/#maps": "9b65a62c61473b1d58bead33b5ea6d1e79ab881d5ab76e7212b8fd7f979a70c2",
-    "tools/#gif": "07a15a00e6e305dd54083cafcd56ccd159a5219705c5197111e86779c0e53be3",
-    "tools/#chat": "07638e91ecebf84b663f9ae375dfc81eb2f40b0921c6895b2583484e5ed5cef9"
+    "tools/#worlds": "20d39bae6c70b4d53817d39873a0af47b74c552433e84a9ace2abdd660cb6918",
+    "tools/html-import/#html-import": "740b340e55c2d494f8aa2ec53fe0d949946294b977fd0671c48b8cbd279345db",
+    "tools/#test-report": "d88f7d928f7a2f18308ed68b318d1d7b2d591eaf013acd507f2b2a7781072417",
+    "tools/#maps": "26b4706eb5dd204ece88b7573b2612b2915eadd6a08d6ded8f6f782ebdf2e6c7",
+    "tools/#gif": "4b9731fc9a4d2d7cd3f78f8abc0fdd1ffbbab5ce33197436e9908bfd8f15f226",
+    "tools/#chat": "0b5e888d99a462aba7ed2bfe442b1420d866f89595e67dc38641cb7344cdaa59"
   }
 }

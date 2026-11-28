@@ -605,7 +605,7 @@ def test_shop_rumor_and_optional_world_dialogue(site, browser):
             loads.append(route.request.url)
             route.fulfill(content_type='text/javascript', headers={'Access-Control-Allow-Origin': '*'}, body="""
               export class Wllama {
-                async loadModelFromUrl(){window.modelLoads=(window.modelLoads||0)+1}
+                async loadModelFromUrl(){}
                 async createChatCompletion({messages,onData}){
                   window.dialogueMessages=messages;
                   onData({choices:[{delta:{content:'木の看板の陰をのぞいてごらん。'}}]});
@@ -625,16 +625,10 @@ def test_shop_rumor_and_optional_world_dialogue(site, browser):
         assert all(word in rumor for word in ('ドラゴン', '好き', 'リバースロンドン', '木の看板'))
         assert '回' not in rumor and '経験値' not in rumor
         card.get_by_text('もっと話す').click()
-        assert loads == []                                            # opening it loads nothing
-        expect(card).to_contain_text('入力を始めると、初回だけ約560 MBのモデルを読み込みます。')
-        card.get_by_label('話しかける').focus()                       # 🔥 the box in focus: llama.cpp itself, not the model
-        page.wait_for_function('() => performance.getEntriesByType("resource").some(e => /wllama@.*index\\.js/.test(e.name))')
-        assert len(loads) == 1 and page.evaluate('window.modelLoads') is None
-        card.get_by_label('話しかける').fill('おいもは誰が好き？')     # 🔥 a question being typed: the model, before it is sent
-        page.wait_for_function('window.modelLoads === 1')
+        assert loads == []
+        card.get_by_label('話しかける').fill('おいもは誰が好き？')
         card.get_by_role('button', name='送る').click()
         expect(card.get_by_text('木の看板の陰をのぞいてごらん。')).to_be_visible()
-        assert page.evaluate('window.modelLoads') == 1                # one download: the question waits for the same one
         messages = page.evaluate('window.dialogueMessages')
         assert rumor in messages[0]['content'] and '道具屋の店主' in messages[0]['content']
         assert messages[1]['content'] == 'おいもは誰が好き？'
