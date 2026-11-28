@@ -207,6 +207,19 @@ def tools_places(prefix: str = '../') -> list[dict]:
     return list(places.values())
 
 
+def tools_readme(readme: str) -> str:
+    """📖 The README with its 🧰 table written from the cards (``PORTAL``), between its two ``<!-- 🧰 PORTAL -->`` marks: a card's
+    name (and 🧩 what it is built from), what it does, and every page it opens, the first by its address on the site and a
+    relative by its own name. ``--refresh-lock`` rewrites it; a README without the marks is returned as it is."""
+    front = _front_module()
+    def cell(card: dict) -> str:
+        urls = [(label, urljoin(front._site_url, href)) for label, href in card['links']]
+        return ' · '.join(f'[{label.removesuffix(" →") if n else url.removeprefix(front._site_url)}]({url})' for n, (label, url) in enumerate(urls))
+    rows = [f'| {card["title"]}{"（" + " · ".join(card["from"]) + "）" if "from" in card else ""} | {card["text"]} | {cell(card)} |' for card in front.PORTAL]
+    table = '\n'.join(['| 道具 | できること | 開く |', '| --- | --- | --- |', *rows])
+    return re.sub(r'(<!-- 🧰 PORTAL -->\n).*?(<!-- 🧰 PORTAL -->)', lambda m: m[1] + table + '\n' + m[2], readme, count=1, flags=re.S)
+
+
 def tools_words() -> dict[str, list[str]]:
     """🌐 The 🧰 Tools cards' names in the ten other languages of 🌐 (each card's ``words``: its title and its links' words; 開く, the
     word every card's first link says; ⚙️'s own rows, ``WORDS``), as PySaiyanWeBoo's chrome takes them: wherever a page shows one
@@ -226,7 +239,7 @@ def tools_chrome(prefix: str = '../', tools: dict | None = None, description: st
                  lang: str = 'ja', settings: list | None = None) -> dict:
     """🧰 The chrome both pages of the site carry (PySaiyanWeBoo's ``chrome_validate``), for a page ``prefix`` below the site root:
     the board (``title``, the clock, then ``description`` — what this page is, a sentence per item — and the cards' titles), 🏠 back
-    to the cards (``home=False``: the front page itself), ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``), and
+    to the cards (``home=False``: the front page itself), ``tools``, the emoji this page adds (``{'🔗': {'label': …, 'links': […]}}``), and
     ``settings``, the page's own rows of ⚙️ (the front page's 🧾 display mode, beside 🌐 and 🎨, which every page shares).
     ☰ is each page's own (itself and its sections, listed in the page); the tools themselves are 🚪 Door-to-Door's rows (``tools_places``)."""
     cards = _front_module().PORTAL
@@ -1310,8 +1323,7 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
                               css='.ui-tools-index{display:grid;gap:8px;padding:0;list-style:none}' + _FRAME_CSS)
     page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace('<head>', f'<head><meta name="description" content="{description}">', 1).replace('<style>', f'<link rel="stylesheet" href="{sheet}"><style>', 1)
     page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': '../index.html#tools'}], test_id='portfolio-back')   # 🏠 the home panel's first line
-    cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './#tokyo'}}   # 🗺️ the map's neighbour
-    page = add_site_chrome(page, SHELL_PAGE, cities).replace(mark, ''.join(sections), 1)
+    page = add_site_chrome(page, SHELL_PAGE).replace(mark, ''.join(sections), 1)   # no emoji of its own: 🚪 lists every place
     icons = {'icon': '../assets/brand/favicon-32x32.png', 'touch_icon': '../assets/brand/myon-profile-icon.png'}   # 📱 the home-screen shortcut
     return ui.stamp_page_size(ui.home_label(page, '🧰 道具', **icons)).encode('utf-8')
 
@@ -1393,7 +1405,8 @@ def stage(output: Path, root: Path = ROOT) -> None:
 
 
 def refresh_lock(root: Path = ROOT) -> dict:
-    """After moving the pin: rewrite the lock from the installed generator (the generated files are not kept in git)."""
+    """After moving the pin: rewrite the lock from the installed generator (the generated files are not kept in git), and the
+    README's 🧰 table from the cards (``tools_readme``)."""
     import pysaiyanweboo as ui
     commit = installed_commit()
     verify_pin(commit, root)
@@ -1406,6 +1419,8 @@ def refresh_lock(root: Path = ROOT) -> dict:
         'pages': {target: hashlib.sha256(data).hexdigest() for target, data in pages.items()},
     }
     (root / 'web-ui-assets.lock.json').write_text(json.dumps(lock, indent=2) + '\n', encoding='utf-8')
+    if (readme := root / 'README.md').is_file():
+        readme.write_text(tools_readme(readme.read_text(encoding='utf-8')), encoding='utf-8')
     return lock
 
 
@@ -1415,7 +1430,7 @@ def main(argv=None):
     parser.add_argument('--copy-source', type=Path, metavar='DIR', help='copy the static files served verbatim by Pages')
     parser.add_argument('--stage', type=Path, help='write the whole site (source tree plus generated assets) under this directory')
     parser.add_argument('--refresh-lock', action='store_true',
-                        help='rewrite web-ui-assets.lock.json from the installed generator')
+                        help="rewrite web-ui-assets.lock.json from the installed generator, and the README's 🧰 table from the cards")
     parser.add_argument('--record-samples', type=Path, metavar='DIR',
                         help="🎥 record a moving sample of every repository's Pages and of every 🧰 Tools card's page under DIR/media/pages/ (Chromium; best effort)")
     parser.add_argument('--record-flow', type=Path, metavar='DIR',

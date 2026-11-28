@@ -1,7 +1,7 @@
 {
   "schema": "web-ui-generated/2",
   "generator": "pysaiyanweboo (pyproject.toml pages group)",
-  "commit": "1ff85504e2414c441293e454904a8f3ffe8059a1",
+  "commit": "43335dfce36a2d5afa2beb29035db40abb8e7ee7",
   "outputs": {
     "tools/vendor/web-ui/css/base.css": "89bf5a2371b7be9057540501bba09f399d60f9207971c47fd9dac7f473ea928d",
     "tools/vendor/web-ui/css/components.css": "fbf50a97238b2f1df40d32cda93e1321b43b35dae5bc7c0eab586b5d8bc7c7ae",
@@ -17,16 +17,16 @@
     "tools/worlds/london-dragon.json": "96f1b4efbd5a900459688403900cd385bf600987e8f76023f2a7d538f9ed133b",
     "tools/worlds/london-dragon.png": "2478a91c5d1c6cb04255b8247ca879f08f6a9ba30051bdb743f14a8a4a6429a9",
     "tools/html-import/extract.mjs": "09602fc4b02d21ed9a5981569069e92ecfd160adca421f1363aa4120dee4c072",
-    "tools/chat/sources.json": "dcf282cbec3155cfc5255f54117ff82a183ad855b190c0052e8bc66ed461eef1",
-    "tools/vendor/web-ui/css/bundle.css": "9b935312956d56546784a80d0e16e04660c57758de853f9e62b1e78f0c049dce",
+    "tools/chat/sources.json": "c9e5e43d7b01b6383754a40505b018e867b9ded0b2651a3dae2326efd66b104c",
+    "tools/vendor/web-ui/css/bundle.css": "677ff61aaf9b6c8a231a3610f04fc18bb7892e5c348f95813fc00c3f8e1b04ae",
     "tools/vendor/web-ui/css/core.css": "6161b50462c2cfc8b40547e988636525989a1d29585eb98d5042646ffbb5cabd"
   },
   "pages": {
-    "tools/#worlds": "60da13f24f731a165cdc1008ec478d9967b517531dde63b1145360ba28066a4a",
-    "tools/html-import/#html-import": "a09510af234a3fceb916c0f830b88b24b6bf792f8f185440832fd0b1a41d785e",
-    "tools/#test-report": "53adc7aaa13786c740a6ae82bdf3989eea1eb4b3176082618bce2f1382249529",
-    "tools/#maps": "12e7ddf0f5e2f04f539daacce699b0e8326cace725aca9faa550046a4d2c24ed",
-    "tools/#gif": "3f2fcb9f41d7e82d30aa990bd2f4ebed03675323c835eefaae40a3341bd4cce3",
-    "tools/#chat": "ffb536f3c5ad1757b4c1d05d9f8f398e3c11a76f8dd9ce5c041a512fe664bcf5"
+    "tools/#worlds": "de2fefbbad7e13df299c43b09087d9e5b1d52fdfad92b0d556c4c21d2f864091",
+    "tools/html-import/#html-import": "fd20a47b927a60c20ad91fd78bb23260ccbdabdf7f8cd66ec19681773065822a",
+    "tools/#test-report": "ee10290827e76ae476f66d43b86a240d1b689a1542ff453e53c8dff1439e3f9a",
+    "tools/#maps": "9fc47a2cd7a80fea4cc68d377b391b95de4df0d533fd0416646cbe724c8e9263",
+    "tools/#gif": "76d930708979cf289c6ec1b1deaedffbadbf8efce37cfded69bda2956f11cbe7",
+    "tools/#chat": "da0b786f0bdc74797d037ed00dc2bd5d1a09db3f334196d10f3c0e3ac6813f97"
   }
 }
