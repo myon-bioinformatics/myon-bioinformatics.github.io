@@ -591,7 +591,7 @@ def tools_validate(tools_in: Any, *, floor_ids: Any = (), spot_ids: Any = ()) ->
 RPG_LEVEL_THRESHOLDS = (0, 30, 75, 140, 230, 350, 500, 700, 950, 1250)
 RPG_LOOT_KINDS = ("drop", "chest")
 RPG_ITEM_TYPES = ("heal", "mana", "care", "food", "weapon", "armor", "charm", "scroll", "relic", "trophy")
-RPG_QUEST_KINDS = ("talk", "drop", "chest", "battle", "item", "boss", "quiz", "floor", "dragon", "bond", "fame", "deed")
+RPG_QUEST_KINDS = ("talk", "drop", "chest", "battle", "item", "boss", "quiz", "floor", "dragon", "care", "bond", "fame", "deed")
 RPG_SKILL_KINDS = ("attack", "heal", "guard")
 
 
@@ -1013,6 +1013,8 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
             **({"cost": cost} if cost > 0 else {}),
         })
     for q in quests:
+        if q["kind"] in ("dragon", "care", "bond") and "target" in q and q["target"] not in dragons:
+            raise ValueError(f"unknown dragon target {q['target']!r}")
         if q["kind"] == "deed" and "target" in q and q["target"] not in seen_deed:
             raise ValueError(f"unknown deed target {q['target']!r}")
     return {"seed": seed, "hero": hero, "npcs": npcs, "loot": loot, "enemies": enemies,
@@ -3675,6 +3677,7 @@ export function bindWorldRpg(el){
    if(q.kind==="quiz")return state.quizSolved.size;
    if(q.kind==="floor")return q.target?(state.visitedFloors.has(q.target)?1:0):state.visitedFloors.size;
    if(q.kind==="dragon")return q.target?(state.discoveredDragons.has(q.target)?1:0):state.discoveredDragons.size;
+   if(q.kind==="care")return q.target?Number(state.dragonBond.has(q.target)):state.dragonBond.size;
    if(q.kind==="bond")return q.target?Number(bonded(q.target)):dragonIds.filter(bonded).length;
    if(q.kind==="fame")return state.fanFame;
    if(q.kind==="deed")return q.target?Number(state.helpedDeeds.has(q.target)):state.helpedDeeds.size;
@@ -3692,8 +3695,8 @@ export function bindWorldRpg(el){
     "world-walker":state.visitedFloors.size>=3,
     "level-up":rpgLevelForExp(state.exp).level>=2,
     shopper:state.boughtCount>=1,
-    "dragon-friend":state.discoveredDragons.size>=1,
-    "dragon-master":dragonIds.some(bonded),
+    "dragon-friend":state.dragonBond.size>=1,
+    "dragon-master":dragonIds.length>0&&dragonIds.every(bonded),
     "model-fan":state.fanFame>=45,
     "world-greatest-fan":state.fanFame>=95,
     "clean-supporter":state.helpedDeeds.has("clean-trash"),
@@ -4352,7 +4355,7 @@ export function bindWorldRpg(el){
      })),message);
    }else if(activeTab==="quests"){
     body.replaceChildren(rpgEl("ul",{className:"ui-rpg-list"},...rpg.quests.map(q=>{
-     const p=Math.min(q.count,questProgress(q)),done=state.completedQuests.has(q.id);
+     const done=state.completedQuests.has(q.id),p=done?q.count:Math.min(q.count,questProgress(q));
      return rpgEl("li",{className:"ui-rpg-row"},
       rpgEl("div",{className:"ui-rpg-row-top"},rpgEl("span",{textContent:`${done?"✅":"◻️"} ${q.title}`}),rpgEl("span",{textContent:`${p}/${q.count}`})),
       rpgEl("p",{className:"ui-rpg-subnote",textContent:`${q.desc} ｜ 報酬: +${q.reward_exp}EXP / +${q.reward_gold}G`}));
@@ -4365,7 +4368,7 @@ export function bindWorldRpg(el){
       rpgEl("div",{className:"ui-rpg-row-top"},
        rpgEl("strong",{textContent:seen?`${stg.emoji} ${d.name}（${d.title}）`:"🥚 ？？？（未知の龍）"}),
        rpgEl("span",{textContent:seen?`絆 ${bond}/${d.bond_max}`:"未発見"})),
-      rpgEl("p",{className:"ui-rpg-subnote",textContent:seen?`${stg.label} ｜ 📦 ${d.repo} ｜ 🏆 秘宝: ${bond>=d.bond_max?d.relic_label:"【未覚醒】"}`:"ロンドンのどこかで眠りについている。探索して見つけよう！"}),
+      rpgEl("p",{className:"ui-rpg-subnote",textContent:seen?`${stg.label} ｜ 📦 ${d.repo} ｜ 🏆 秘宝: ${bond>=d.bond_max?d.relic_label:"【未覚醒】"}`:"まだ出会っていない。探索して見つけよう！"}),
       seen?rpgEl("div",{className:"ui-rpg-actions"},rpgEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🐉 お世話・話す",onclick:()=>{closeModal();openDragonDialog(sid)}})):null);
     })));
    }else if(activeTab==="fame"&&rpg.fame){
@@ -6766,6 +6769,48 @@ def _overworld_spec() -> dict[str, Any]:
 
 
 def _cities_rpg() -> dict[str, Any]:
+    dragons = {
+        "london-rl-dragon-pyth": {
+            "name": "ピタゴラス龍", "emoji": "🐲", "title": "幾何と理の角龍", "repo": "PythDRagoras",
+            "desc": "三平方の定理と幾何学のアルゴリズムを司る深緑の角龍。論理的思考と精密な計算を好む。",
+            "lore": "直角三角形の斜辺に宿る幾何学の力…汝のコードに揺るぎなき調和をもたらさん。",
+            "bond_max": 30, "favorite_item": "アールグレイ", "relic_label": "ピタゴラスの三角錐",
+            "relic_emoji": "📐", "relic_desc": "PythDRagorasの叡智が凝縮された幾何学結晶。異界で最大MPと魔法攻撃を強化する。",
+            "cross_effect": {"atk": 12, "mp": 15, "skill_label": "📐 幾何三角撃", "skill_emoji": "📐", "skill_mp": 5, "skill_mult_pct": 220, "skill_desc": "幾何学の理で敵を貫く(220%)"},
+        },
+        "london-rl-dragon-wing": {
+            "name": "ドラゴウィング", "emoji": "🐲", "title": "蒼穹翔ける風翔龍", "repo": "DRAgoWing",
+            "desc": "流体力学と大気の揚力を翼に受けて舞う蒼天の飛龍。疾風を操り、高速の巡航を誇る。",
+            "lore": "流れを制する者は空を制す。停滞を吹き飛ばし、光の如き速度で進むが良い。",
+            "bond_max": 30, "favorite_item": "風切りの銀羽", "relic_label": "ドラゴウィングの風翔翼",
+            "relic_emoji": "🪽", "relic_desc": "DRAgoWingの疾風を宿す翼片。異界で奥義『ドラゴウィング嵐』を解き放つ！",
+            "cross_effect": {"atk": 18, "hp": 25, "skill_label": "🪽 ドラゴウィング嵐", "skill_emoji": "🪽", "skill_mp": 6, "skill_mult_pct": 240, "skill_desc": "流体嵐の一撃(240%)"},
+        },
+        "london-rl-dragon-queryu": {
+            "name": "クエリ龍", "emoji": "🐲", "title": "情報潮流の知恵水龍", "repo": "QueRyu",
+            "desc": "無数のデータキューと検索クエリが交錯する電脳潮流から生まれた瑠璃色の水龍。検索と選別の知恵を司る。",
+            "lore": "混沌のデータより真実の解を瞬時に掬い上げる。汝の問いに常に最善の答えを。",
+            "bond_max": 30, "favorite_item": "歯車のかけら", "relic_label": "クエリの蒼深珠",
+            "relic_emoji": "💎", "relic_desc": "QueRyuの思考速度を宿す宝珠。異界で知力とDEFを高める。",
+            "cross_effect": {"def": 14, "mp": 20, "skill_label": "💎 高速クエリ波", "skill_emoji": "💎", "skill_mp": 6, "skill_mult_pct": 210, "skill_desc": "電脳潮流の知恵撃(210%)"},
+        },
+        "london-rl-dragon-cachere": {
+            "name": "カシェール龍", "emoji": "🐲", "title": "輪廻と循環の緋輪龍", "repo": "CaChereCyCle",
+            "desc": "キャッシュサイクルと循環再利用の円環を背負う深紅の龍。不要なものを再構成し、新たな生命を与える。",
+            "lore": "終わりは始まり、始まりは終わり。無限に巡るサイクルの循環こそ不滅の証。",
+            "bond_max": 30, "favorite_item": "焼きたてスコーン", "relic_label": "カシェールの無限環",
+            "relic_emoji": "♾️", "relic_desc": "CaChereCyCleの循環再生を司る輪。異界で耐久力と再生能力を授ける。",
+            "cross_effect": {"hp": 30, "def": 12, "skill_label": "♾️ キャッシュ再生", "skill_emoji": "♾️", "skill_mp": 5, "skill_mult_pct": 100, "skill_desc": "大回復とシールド展開"},
+        },
+        "london-rl-dragon-nogard": {
+            "name": "古龍ノガード", "emoji": "🐉", "title": "ロンドンの始祖守護龍", "repo": "myon-bioinformatics",
+            "desc": "逆さ文字『nogard』の看板に封印されていた最古の巨龍。悠久の時を超えてリバースロンドンを見守る。",
+            "lore": "我の名を逆さより読み解き者よ…我が咆哮は時空を揺るがし、万象の道を拓く！",
+            "bond_max": 30, "favorite_item": "サツマイモ", "relic_label": "始祖龍ノガードの逆鱗",
+            "relic_emoji": "👑", "relic_desc": "最古の守護龍ノガードの神聖なる逆鱗。異界で最大HP+40、ATK+20、究極奥義『リバース・ドラグーン』を解放する！",
+            "cross_effect": {"atk": 20, "def": 15, "hp": 40, "mp": 25, "skill_label": "🐉 リバース・ドラグーン", "skill_emoji": "🐉", "skill_mp": 8, "skill_mult_pct": 320, "skill_desc": "始祖龍の神話的一撃(320%)"},
+        },
+    }
     return {
         "hero": {"hp": 38, "mp": 20, "atk": 10, "def": 5},
         "npcs": {
@@ -6841,53 +6886,12 @@ def _cities_rpg() -> dict[str, Any]:
                 "taunt": "ギギギ…！ 時計塔の秘宝を守る機械の番兵が稼働した！",
             },
         },
-        "dragons": {
-            "london-rl-dragon-pyth": {
-                "name": "ピタゴラス龍", "emoji": "🐲", "title": "幾何と理の角龍", "repo": "PythDRagoras",
-                "desc": "三平方の定理と幾何学のアルゴリズムを司る深緑の角龍。論理的思考と精密な計算を好む。",
-                "lore": "直角三角形の斜辺に宿る幾何学の力…汝のコードに揺るぎなき調和をもたらさん。",
-                "bond_max": 30, "favorite_item": "アールグレイ", "relic_label": "ピタゴラスの三角錐",
-                "relic_emoji": "📐", "relic_desc": "PythDRagorasの叡智が凝縮された幾何学結晶。異界で最大MPと魔法攻撃を強化する。",
-                "cross_effect": {"atk": 12, "mp": 15, "skill_label": "📐 幾何三角撃", "skill_emoji": "📐", "skill_mp": 5, "skill_mult_pct": 220, "skill_desc": "幾何学の理で敵を貫く(220%)"},
-            },
-            "london-rl-dragon-wing": {
-                "name": "ドラゴウィング", "emoji": "🐲", "title": "蒼穹翔ける風翔龍", "repo": "DRAgoWing",
-                "desc": "流体力学と大気の揚力を翼に受けて舞う蒼天の飛龍。疾風を操り、高速の巡航を誇る。",
-                "lore": "流れを制する者は空を制す。停滞を吹き飛ばし、光の如き速度で進むが良い。",
-                "bond_max": 30, "favorite_item": "風切りの銀羽", "relic_label": "ドラゴウィングの風翔翼",
-                "relic_emoji": "🪽", "relic_desc": "DRAgoWingの疾風を宿す翼片。異界で奥義『ドラゴウィング嵐』を解き放つ！",
-                "cross_effect": {"atk": 18, "hp": 25, "skill_label": "🪽 ドラゴウィング嵐", "skill_emoji": "🪽", "skill_mp": 6, "skill_mult_pct": 240, "skill_desc": "流体嵐の一撃(240%)"},
-            },
-            "london-rl-dragon-queryu": {
-                "name": "クエリ龍", "emoji": "🐲", "title": "情報潮流の知恵水龍", "repo": "QueRyu",
-                "desc": "無数のデータキューと検索クエリが交錯する電脳潮流から生まれた瑠璃色の水龍。検索と選別の知恵を司る。",
-                "lore": "混沌のデータより真実の解を瞬時に掬い上げる。汝の問いに常に最善の答えを。",
-                "bond_max": 30, "favorite_item": "歯車のかけら", "relic_label": "クエリの蒼深珠",
-                "relic_emoji": "💎", "relic_desc": "QueRyuの思考速度を宿す宝珠。異界で知力とDEFを高める。",
-                "cross_effect": {"def": 14, "mp": 20, "skill_label": "💎 高速クエリ波", "skill_emoji": "💎", "skill_mp": 6, "skill_mult_pct": 210, "skill_desc": "電脳潮流の知恵撃(210%)"},
-            },
-            "london-rl-dragon-cachere": {
-                "name": "カシェール龍", "emoji": "🐲", "title": "輪廻と循環の緋輪龍", "repo": "CaChereCyCle",
-                "desc": "キャッシュサイクルと循環再利用の円環を背負う深紅の龍。不要なものを再構成し、新たな生命を与える。",
-                "lore": "終わりは始まり、始まりは終わり。無限に巡るサイクルの循環こそ不滅の証。",
-                "bond_max": 30, "favorite_item": "焼きたてスコーン", "relic_label": "カシェールの無限環",
-                "relic_emoji": "♾️", "relic_desc": "CaChereCyCleの循環再生を司る輪。異界で耐久力と再生能力を授ける。",
-                "cross_effect": {"hp": 30, "def": 12, "skill_label": "♾️ キャッシュ再生", "skill_emoji": "♾️", "skill_mp": 5, "skill_mult_pct": 100, "skill_desc": "大回復とシールド展開"},
-            },
-            "london-rl-dragon-nogard": {
-                "name": "古龍ノガード", "emoji": "🐉", "title": "ロンドンの始祖守護龍", "repo": "myon-bioinformatics",
-                "desc": "逆さ文字『nogard』の看板に封印されていた最古の巨龍。悠久の時を超えてリバースロンドンを見守る。",
-                "lore": "我の名を逆さより読み解き者よ…我が咆哮は時空を揺るがし、万象の道を拓く！",
-                "bond_max": 30, "favorite_item": "サツマイモ", "relic_label": "始祖龍ノガードの逆鱗",
-                "relic_emoji": "👑", "relic_desc": "最古の守護龍ノガードの神聖なる逆鱗。異界で最大HP+40、ATK+20、究極奥義『リバース・ドラグーン』を解放する！",
-                "cross_effect": {"atk": 20, "def": 15, "hp": 40, "mp": 25, "skill_label": "🐉 リバース・ドラグーン", "skill_emoji": "🐉", "skill_mp": 8, "skill_mult_pct": 320, "skill_desc": "始祖龍の神話的一撃(320%)"},
-            },
-        },
+        "dragons": dragons,
         "quests": [
             {"id": "talk-arthur", "title": "名探偵のオリエンテーション", "desc": "探偵アーサーに話を聞く", "kind": "talk", "target": "london-rl-npc-arthur", "count": 1, "reward_exp": 20, "reward_gold": 30},
-            {"id": "care-dragon", "title": "龍とのふれあい", "desc": "龍を1頭見つけてお世話する", "kind": "dragon", "count": 1, "reward_exp": 30, "reward_gold": 40},
+            {"id": "care-dragon", "title": "龍とのふれあい", "desc": "龍を1頭見つけてお世話する", "kind": "care", "count": 1, "reward_exp": 30, "reward_gold": 40},
             {"id": "master-bond", "title": "心を通わせし者", "desc": "いずれかの龍との絆を最大にする", "kind": "bond", "count": 1, "reward_exp": 60, "reward_gold": 80},
-            {"id": "all-dragons", "title": "五大守護龍の発見", "desc": "5頭すべての龍を見つける", "kind": "dragon", "count": 5, "reward_exp": 100, "reward_gold": 150},
+            {"id": "all-dragons", "title": "すべての守護龍の発見", "desc": "ロンドンの守護龍をすべて見つける", "kind": "dragon", "count": len(dragons), "reward_exp": 100, "reward_gold": 150},
             {"id": "collect-drops", "title": "ロンドンの落とし物拾い", "desc": "道具を3つ拾う", "kind": "drop", "count": 3, "reward_exp": 25, "reward_gold": 30},
             {"id": "defeat-clock", "title": "時計塔の番兵討伐", "desc": "番兵を倒す", "kind": "boss", "target": "london-rl-enemy-clock-golem", "count": 1, "reward_exp": 80, "reward_gold": 120},
             {"id": "cecil-quiz", "title": "ロンドン博学王", "desc": "セシルのクイズに2問正解する", "kind": "quiz", "count": 2, "reward_exp": 40, "reward_gold": 50},

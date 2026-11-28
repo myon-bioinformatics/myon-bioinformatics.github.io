@@ -2316,7 +2316,7 @@
   {
    "id": "condition/care-dragon",
    "type": "Condition",
-   "name": "dragon",
+   "name": "care",
    "minimum": 1,
    "target": null
   },
@@ -2336,8 +2336,8 @@
   {
    "id": "quest/all-dragons",
    "type": "Goal",
-   "name": "五大守護龍の発見",
-   "detail": "5頭すべての龍を見つける"
+   "name": "すべての守護龍の発見",
+   "detail": "ロンドンの守護龍をすべて見つける"
   },
   {
    "id": "condition/all-dragons",

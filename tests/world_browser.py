@@ -1653,6 +1653,45 @@ class ReverseLondonRpgBrowserTests(unittest.TestCase):
         import shutil
         shutil.rmtree(cls.tmp_dir, ignore_errors=True)
 
+    def test_discovery_care_and_bond_rewards_have_distinct_thresholds(self):
+        import math
+
+        dragons = W.example_data("cities")["rpg"]["dragons"]
+        context = self.browser.new_context()
+        self.addCleanup(context.close)
+        page = context.new_page()
+        page.goto(self.server_url + "/tools/#london")
+        page.click('#cities-map [data-emoji="🧳"]')
+        city = page.locator("#cities-map")
+        dialog = city.get_by_role("dialog")
+
+        def visit(sid):
+            city.locator(f"#cities-spot-{sid} .ui-rpg-sheet-btn").dispatch_event("click")
+
+        def check_journal(cared, mastered):
+            dialog.get_by_role("button", name="またね！").click()
+            city.locator("[data-rpg-journal-btn]").click()
+            quest = dialog.locator("li").filter(has_text="龍とのふれあい")
+            self.assertIn("1/1" if cared else "0/1", quest.inner_text())
+            dialog.get_by_role("button", name="🏅 実績").click()
+            for title, earned in (("龍の友愛", cared), ("龍の盟友", mastered)):
+                badge = dialog.locator(".ui-rpg-badge").filter(has_text=title)
+                self.assertEqual(badge.get_attribute("data-unlocked"), str(earned).lower())
+            page.keyboard.press("Escape")
+
+        first = next(iter(dragons))
+        visit(first)
+        check_journal(False, False)
+        visit(first)
+        dialog.get_by_role("button", name="🪮 ブラッシング").click()
+        check_journal(True, False)
+        for index, (sid, dragon) in enumerate(dragons.items()):
+            visit(sid)
+            remaining = dragon["bond_max"] - (6 if sid == first else 0)
+            for _ in range(math.ceil(remaining / 6)):
+                dialog.get_by_role("button", name="🪮 ブラッシング").click()
+            check_journal(True, index + 1 == len(dragons))
+
     def test_reverse_london_dialogue_dragon_care_and_journal(self):
         context = self.browser.new_context(viewport={"width": 1280, "height": 800})
         self.addCleanup(context.close)
