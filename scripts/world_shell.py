@@ -179,7 +179,7 @@ def dialogue_graph(world):
     return {"terms": {name: [name, *aliases] for name, (_, aliases) in nodes.items()}, "facts": records, "paths": paths}
 
 
-def document(ui, world, maps, places, css_href, js_href, dialogue="", *, dragon_png, dragon_grid):
+def document(ui, world, maps, places, css_href, js_href, dialogue="", *, dragon_png, dragon_grid, site_words=None):
     specs = {name: world.example_data(name) for name in dict.fromkeys(spec for spec, _ in SPACES.values())}
     sections = []
     for spec, data in specs.items():
@@ -190,10 +190,9 @@ def document(ui, world, maps, places, css_href, js_href, dialogue="", *, dragon_
         body = ''.join(f'<span id="{alias}"></span>' for alias in aliases) + body
         sections.append(f'<section id="{route}" data-world-space="{spec}" aria-label="{escape(SPACES[route][1])}">{body}</section>')
     nav = ''.join(f'<a href="#{route}" data-scene="{scene}">{escape(label)}</a>' for route, (scene, label) in SPACES.items())
-    tools = ''.join(f'<a href="{escape(p["href"], quote=True)}"'                       # 🌐 a tool's label in the other languages (its card's words)
-                    + (f' data-texts="{escape(json.dumps({"ja": p["label"], **p["labels"]}, ensure_ascii=False, separators=(",", ":")), quote=True)}"' if p.get("labels") else "")
-                    + f'>{escape(p["label"])}</a>' for p in places)
-    header = ('<header class="ui-world-head"><div id="world-switcher" class="world-switcher"><nav class="ui-world-tools" aria-label="ワールド">'
+    tools = ''.join(f'<a href="{escape(p["href"], quote=True)}">{escape(p["label"])}</a>' for p in places)
+    words = escape(json.dumps(site_words or {}, ensure_ascii=False, separators=(",", ":")), quote=True)   # 🌐 the site's names: they join the catalogue
+    header = (f'<header class="ui-world-head" data-words="{words}"><div id="world-switcher" class="world-switcher"><nav class="ui-world-tools" aria-label="ワールド">'
               f'<details data-world-nav><summary aria-label="空間一覧">☰</summary><div>{nav}</div></details>'
               '<strong id="world-space-name">🌍 ワールド</strong>'
               '<details><summary>⭐ お気に入り</summary><div id="world-favorites">まだありません</div></details>'
