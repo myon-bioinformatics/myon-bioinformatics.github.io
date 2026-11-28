@@ -115,13 +115,25 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: myon-bioinformatics/Ironmate
-          ref: c467d3c7bfaf5dff5fdc02d0abf4527b85029157
+          ref: e9d9d5588ddbb1f67d40474cccb00f6d7cb31b0e
           path: .test-deps/Ironmate
           persist-credentials: false
 
       - name: Stage the Portfolio preview
         if: github.event_name == 'pull_request'
         run: uv run --locked --only-group pages python scripts/project_pages.py --stage _site
+
+      - name: Require both Ironmate panels in the Pages artifact
+        run: |
+          python3 -S - <<'PY_GATE'
+          import json
+          from pathlib import Path
+          receipt = json.loads(Path('_site/media/tools/receipt.json').read_text())
+          needed = {'slide-studio', 'browser-tools'}
+          missing = needed - set(receipt['made'])
+          if missing:
+              raise SystemExit(f'Ironmate tools were not generated: {sorted(missing)} ({receipt["failed"]})')
+          PY_GATE
 
       - name: Build Composition Studio and its licensed Tone.js subset
         run: |
