@@ -119,15 +119,14 @@ test.describe('MCP Tool Call Lab - Publication, navigation, and extraction', () 
   test('execution links and empty Wiki examples remain usable', async ({ page }) => {
     // The source pins the place (tools/#mcp-execution, a panel of the one screen); the published run (HTML_TOOL_BASE_URL) checks the
     // deployed pages agree with each other, since a pull request that moves the lab is published only after it merges.
-    let execution = 'https://myon-bioinformatics.github.io/tools/#mcp-execution';
+    // 🔗 By place, whatever 🌐 the words say: the front's link (site-relative or absolute) and the lab's lead to one place.
+    const place = href => { const url = new URL(href, 'https://myon-bioinformatics.github.io'); return url.pathname + url.hash; };
     await page.goto('/');
-    const front = page.getByRole('link', { name: 'Open Execution Lab →' });
-    if (process.env.HTML_TOOL_BASE_URL) execution = await front.getAttribute('href') || execution;
-    await expect(front).toHaveAttribute('href', execution);
+    const execution = place(await page.locator('a[href$="#mcp-execution"]').first().getAttribute('href'));
+    if (!process.env.HTML_TOOL_BASE_URL) expect(execution).toBe('/tools/#mcp-execution');
     f = await lab(page, 'wiki');
     // 🖼️ Inside its frame the lab's link is site-relative (any origin) and leaves the frame: the same place as the front's.
-    const place = href => { const url = new URL(href, 'https://myon-bioinformatics.github.io'); return url.pathname + url.hash; };
-    expect(place(await f.getByTestId('lab-execution-link').getAttribute('href'))).toBe(place(execution));
+    expect(place(await f.getByTestId('lab-execution-link').getAttribute('href'))).toBe(execution);
     await expect(f.getByTestId('pages-wiki-title')).toHaveValue('');
     await f.getByTestId('pages-wiki-fetch').click();
     await expect(f.getByTestId('pages-wiki-error')).toContainText('Enter a Wikipedia title.');

@@ -43,7 +43,7 @@ def test_stage_serves_published_static_files_verbatim():
     for name in ('api/repos.json', 'profile.json', 'projects.json', 'site.config.json',
                  'docs/html-import.md', 'docs/evidence/browser.gif', 'docs/evidence/browser.json',
                  'docs/evidence/chat.gif', 'docs/evidence/home-screen.gif',
-                 'tools/niconico/search.js', 'tools/vendor/web-ui/LICENSE'):
+                 'tools/vendor/web-ui/LICENSE'):
         assert (SITE / name).read_bytes() == (ROOT / name).read_bytes(), name
 
 
@@ -51,9 +51,6 @@ def test_stage_serves_published_static_files_verbatim():
 
 EXPECTED_PAGES = {
     "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
-    "https://myon-bioinformatics.github.io/tools/#image-studio",   # 🧰 framed #panels of the one screen
-    "https://myon-bioinformatics.github.io/tools/#browser-tools",
-    "https://myon-bioinformatics.github.io/tools/#slide-studio",
     # Other repositories' Pages (each checked to load on 2026-11-13): the operations dashboard, usage guides.
     "https://myon-bioinformatics.github.io/markdown/",
     "https://myon-bioinformatics.github.io/myon-bioinformatics/",
@@ -78,6 +75,7 @@ def test_portal_exposes_expected_pages():
     parser.feed((SITE / "index.html").read_text(encoding="utf-8"))
     assert "tools" in parser.ids
     assert EXPECTED_PAGES <= set(parser.links)
+    assert {"./tools/#image-studio", "./tools/#browser-tools", "./tools/#slide-studio", "./tools/#mcp-execution"} <= set(parser.links)   # 🧰 framed #panels, from the site
 
 
 def test_tool_cards_and_door_follow_the_service_catalog(tmp_path, monkeypatch):
@@ -97,9 +95,8 @@ def test_tool_cards_and_door_follow_the_service_catalog(tmp_path, monkeypatch):
 
     parser = LinkParser()
     parser.feed(front.portal_cards())
-    assert 'https://myon-bioinformatics.github.io/tools/example-image/' in parser.links
-    assert './tools/example-image/' in parser.links  # keep the heatmap-to-editor shortcut
-    assert 'https://myon-bioinformatics.github.io/tools/example-execution/' in parser.links
+    assert parser.links.count('./tools/example-image/') == 2     # 🖼️ its own card and the heatmap's shortcut to it, from the site
+    assert './tools/example-execution/' in parser.links
     assert not any('/image-studio/' in href or '/mcp/execution/' in href for href in parser.links)
     doors = [place['href'] for place in PAGES.tools_places('../../')]
     assert doors.count('../../tools/example-image/') == 1
@@ -153,9 +150,12 @@ def test_a_tools_card_shows_its_moving_sample_and_the_picture_opens_the_tool(tmp
     assert all(f'<a href="{html_escape(href)}">{html_escape(label, quote=False)}</a>' in plain for card in front.PORTAL for label, href in card["links"])
     cards = front.portal_cards(frozenset({"tools/gif", "tools/operations", "tools/maps", "gif", "tools/no-such-tool"}))
     assert cards.count('class="project-sample"') == 3
-    assert "GIF をつくる →" not in cards and "Open Dashboard →" not in cards and ">実験室へ →</a>" in cards        # one page: the picture; no picture: the words
-    assert ('<a href="./tools/#maps">地図URLを作成 →</a><a href="./tools/#tokyo">パラレル東京 →</a>' in cards
+    assert '<a href="./tools/#gif">' not in cards and '<a href="./tools/#flow">開く →</a>' in cards        # one page: the picture; no picture: the words
+    assert ('<a href="./tools/#maps">開く →</a><a href="./tools/#tokyo">🗼 パラレル東京 →</a>' in cards
             and '<a class="project-sample" href="./tools/#maps">' in cards)                                    # relatives stay side by side
+    assert all(len(card["text"]) <= 70 and card["links"][0][0] == "開く →" for card in front.PORTAL)   # 📝 short; the first link opens it
+    titles = [card["title"] for card in front.PORTAL]                          # 🏷️ one name each: an emoji, then its words
+    assert len(set(titles)) == len(titles) and all(re.fullmatch(r"\S+ \S.*", title) and not title[0].isalnum() for title in titles)
     everything = front.portal_cards(frozenset(f"tools/{key}" for key in ids))
     several = [card for card in front.PORTAL if len(card["links"]) > 1]
     assert everything.count('class="project-sample"') == len(ids) and several
@@ -340,12 +340,12 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
     assert "arrow attributes and advanced formatting" in editing["unsupported"]
 
     html = (SITE / "index.html").read_text(encoding="utf-8")
-    card_start = html.index('<h3 id="studios">🖼️ スライド・画像工房</h3>')
+    card_start = html.index('<h3 id="slide-studio">📽️ スライド工房</h3>')
     card = html[card_start:html.index("</article>", card_start)]
     assert "PPTX対応は計画段階" not in card
     assert "Markdown→PPTX" in card
     assert "試作実装" in card
-    assert "ブラウザでスライドを作成" in card
+    assert "ブラウザでスライドを作り" in card
     assert "Open Repository" not in card
     assert "tools/#slide-studio" in card
 
@@ -557,7 +557,7 @@ def test_door_to_door_in_chromium_with_a_gif():
                     page.wait_for_selector('#door[data-door_ready]')
                     foot, select = page.locator('.ui-door-foot').bounding_box(), page.locator('.ui-door-foot [data-door-select]')
                     assert (foot['x'], foot['width'], round(foot['y'] + foot['height'])) == (0, width, height) and foot['height'] <= 64, foot
-                    assert select.bounding_box()['height'] == 40 and page.evaluate(shown) == '🗺️ 地図URLを作成'
+                    assert select.bounding_box()['height'] == 40 and page.evaluate(shown) == '📍 地図URL・座標ピン留め'
                     visible = page.evaluate("[...document.querySelectorAll('.ui-door-foot .ui-door *')].filter(e => e.offsetParent && e.tagName !== 'OPTION' && e.getBoundingClientRect().width > 1).map(e => e.tagName)")
                     assert visible == ['LABEL', 'SPAN', 'SELECT'], visible                 # 🚪 and the pull-down (compact): no panel
                     assert page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth') == 0
@@ -1077,7 +1077,7 @@ def test_lab_tools_are_built_from_the_lab_commit_with_actions_as_the_report():
     assert 'Last Actions summary' not in page and '"verdict"' not in page
     assert (PUBLIC / 'LICENSE').is_file()
     published = {path.name for path in PUBLIC.iterdir() if path.is_file()}
-    assert published == {*module.FILES, *module.OPTIONAL, 'LICENSE', 'pixiv-markup.js', 'pixiv-panel.js', 'shared-navigation.mjs'} - {'index.html'}
+    assert published == {*module.FILES, *module.OPTIONAL, 'LICENSE', 'pixiv-markup.js', 'pixiv-panel.js', 'niconico-search.js', 'shared-navigation.mjs'} - {'index.html'}
     assert not (ROOT / 'tools/mcp').exists()          # nothing of the lab is kept in git; the wrapper is _src/tools/mcp/
 
 
@@ -1180,7 +1180,7 @@ def test_stage_preserves_consumer_niconico_panel_and_routes():
     page = apply_shared_ui(source)
     assert 'data-pages-nav="niconico"' in page
     assert 'id="pages-niconico-results"' in page
-    assert '../niconico/search.js' in page
+    assert 'src="niconico-search.js"' in page                     # 📁 beside the lab (tools/mcp/)
     assert apply_shared_ui(page).count('data-pages-view="niconico"') == 1
     assert b"niconico:'niconico'" in NAVIGATION_BINDING
 
@@ -1199,8 +1199,8 @@ def test_built_lab_keeps_pokemon_panel_and_routes():
 
 
 def test_execution_is_linked_from_the_card_readme_and_services():
-    for path in (SITE / 'index.html', ROOT / 'README.md'):
-        assert module.EXECUTION_URL in path.read_text()
+    assert module.EXECUTION_URL in (ROOT / 'README.md').read_text()
+    assert 'href="./' + module.EXECUTION_URL.removeprefix('https://myon-bioinformatics.github.io/') + '"' in (SITE / 'index.html').read_text()   # 🧪 the card: from the site
     services = json.loads((ROOT / 'services.json').read_text())
     assert services['services']['projects']['mcp-toolcall-lab']['execution']['url'] == module.EXECUTION_URL
 
@@ -1786,8 +1786,8 @@ def test_portfolio_worlds_share_one_engine_and_standalone_stays_self_contained()
         assert hashlib.sha256((SITE / asset).read_bytes()).hexdigest() == lock['outputs'][asset]
     assert (SITE / js).read_text(encoding='utf-8') == world.WORLD_JS
     assert (SITE / css).read_text(encoding='utf-8') == '@layer components{' + world.world_base_css() + '}'
-    css_link = '<link rel="stylesheet" href="./world-assets/world.css">'
-    js_link = '<script type="module" src="./world-assets/world.js"></script>'
+    css_link = '<link rel="stylesheet" href="./worlds/world.css">'                # 📁 under the panel's own name
+    js_link = '<script type="module" src="./worlds/world.js"></script>'
     page = shell_panel('worlds')                                     # 🌍 a #panel of the one screen; the scenes are its #school, #tokyo, #camera
     assert not (SITE / 'tools/demos').exists() and not (SITE / 'tools/worlds.html').exists()
     assert page.count(css_link) == page.count(js_link) == 1
@@ -1802,7 +1802,7 @@ def test_portfolio_worlds_share_one_engine_and_standalone_stays_self_contained()
         assert f'href="#{route}"' in page and f'id="{route}"' in page
     standalone = world.world_document(world.example_data('school'))
     assert world.world_base_css() in standalone and ui.module_script(world.WORLD_JS) in standalone
-    assert 'world-assets/' not in standalone
+    assert 'worlds/' not in standalone
 
 
 def test_the_one_screen_keeps_one_owner_per_id():

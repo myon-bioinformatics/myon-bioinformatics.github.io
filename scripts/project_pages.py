@@ -49,11 +49,11 @@ STYLESHEET_BUNDLES = {'css/bundle.css': 'bundled_css', 'css/core.css': 'core_css
 DISTRIBUTION = 'pysaiyanweboo'
 # 🌍 One document: the school, the cities and the camera are its #school, #tokyo and #camera (no forwarding pages).
 HTML_IMPORT_MODULE = 'tools/html-import/extract.mjs'
-WORLD_CSS_ASSET = 'tools/world-assets/world.css'
-WORLD_JS_ASSET = 'tools/world-assets/world.js'
+WORLD_CSS_ASSET = 'tools/worlds/world.css'
+WORLD_JS_ASSET = 'tools/worlds/world.js'
 WORLD_ASSETS = (WORLD_CSS_ASSET, WORLD_JS_ASSET)
-DRAGON_PNG_ASSET = 'tools/world-assets/london-dragon.png'
-DRAGON_GRID_ASSET = 'tools/world-assets/london-dragon.json'
+DRAGON_PNG_ASSET = 'tools/worlds/london-dragon.png'
+DRAGON_GRID_ASSET = 'tools/worlds/london-dragon.json'
 DRAGON_ASSETS = (DRAGON_PNG_ASSET, DRAGON_GRID_ASSET)
 
 # Files served verbatim. The generators write every other public file to the output tree.
@@ -75,7 +75,6 @@ PUBLIC_SOURCE_FILES = (
     'profile.json',
     'projects.json',
     'site.config.json',
-    'tools/niconico/search.js',
     'tools/vendor/web-ui/LICENSE',
 )
 
@@ -169,32 +168,37 @@ def _front_module():
 
 
 def tools_places(prefix: str = '../') -> list[dict]:
-    """🧰 Every link of the 🧰 Tools cards (front_page.py ``PORTAL``, so a new card is a new row) as ``{'id', 'label', 'href'}``, for
-    a page ``prefix`` below the site root (``../``: the screen's): the doors of 🚪 Door-to-Door. ``text`` is the card's own description (the board shows it).
-
-    Every label is ``emoji words``, one emoji per page (the door knows a page by its emoji): the card's own, or the one named here
-    for a link that has none or shares its card's. 🌐 ``labels`` is the label in the other languages, when the card names its words
-    (``tools_words``)."""
+    """🧰 Every link of the 🧰 Tools cards (front_page.py ``PORTAL``, so a new card is a new row) as ``{'id', 'label', 'href', 'text'}``,
+    for a page ``prefix`` below the site root (``../``: the screen's): the doors of 🚪 Door-to-Door. A card's first link is the tool
+    itself and takes the card's title (its one name, ``emoji words``) and ``text`` (what it does: the board shows it); another link
+    leads to a relative, named by its own ``emoji words``, unless a card already names that place. 🌐 ``labels`` is the label in
+    the other languages, when the card names its words (``tools_words``)."""
     import pysaiyanweboo as ui
     site, places, names, codes = 'https://myon-bioinformatics.github.io/tools/', {}, tools_words(), [code for code, _ in ui.CHROME_LANGS][1:]
-    marks = {'html-import': '📄', 'maps': '🗺️', 'tokyo': '🗼', 'browser-tools': '🎨', 'slide-studio': '📽️', 'mcp-execution': '🧪', 'protocol': '🤝'}
-    for card in _front_module().PORTAL:
-        mark, _, title = card['title'].partition(' ')
-        if not title or any(c.isalnum() for c in mark):                  # a title without an emoji: all of it is words
-            mark, title = '🚪', card['title']
-        for label, href in card['links']:
-            href = prefix + href[2:] if href.startswith('./') else prefix + 'tools/' + href[len(site):] if href.startswith(site) else href
-            name = re.sub(r'[^a-z0-9]+', '-', href.partition('tools/')[2].removesuffix('.html').lower()).strip('-') or card['id']
-            words = title if len(card['links']) == 1 else label.removesuffix(' →').removeprefix('Open ')   # several links: each link's own words
-            places.setdefault(href, {'id': name, 'href': href, 'label': f'{marks.get(name, mark)} {words}', 'text': card['text'],
-                                     **({'labels': {code: f'{marks.get(name, mark)} {w}' for code, w in zip(codes, names[words])}} if words in names else {})})
+    cards = _front_module().PORTAL
+    for first in (True, False):                                           # the tools first: a relative's link never names a tool
+        for card in cards:
+            for label, href in card['links'][:1] if first else card['links'][1:]:
+                href = prefix + href[2:] if href.startswith('./') else prefix + 'tools/' + href[len(site):] if href.startswith(site) else href
+                name = re.sub(r'[^a-z0-9]+', '-', href.partition('tools/')[2].removesuffix('.html').lower()).strip('-') or card['id']
+                mark, _, words = (card['title'] if first else label.removesuffix(' →')).partition(' ')
+                places.setdefault(href, {'id': name, 'href': href, 'label': f'{mark} {words}', **({'text': card['text']} if first else {}),
+                                         **({'labels': {code: f'{mark} {w}' for code, w in zip(codes, names[words])}} if words in names else {})})
     return list(places.values())
 
 
 def tools_words() -> dict[str, list[str]]:
-    """🌐 The 🧰 Tools cards' names in the ten other languages of 🌐 (each card's ``words``: its title and its links' words), as
-    PySaiyanWeBoo's chrome takes them: wherever a page shows one (the board, ☰, 🚪, a card), it reads in the visitor's language."""
-    return {ja: row for card in _front_module().PORTAL for ja, row in card.get('words', {}).items()}
+    """🌐 The 🧰 Tools cards' names in the ten other languages of 🌐 (each card's ``words``: its title and its links' words; 開く, the
+    word every card's first link says), as PySaiyanWeBoo's chrome takes them: wherever a page shows one (the board, ☰, 🚪, a card), it
+    reads in the visitor's language."""
+    opens = {'開く': ['Open', 'Ouvrir', 'Abrir', 'Abrir', 'افتح', '打开', 'Открыть', 'Buka', 'Öffnen', 'Fungua']}
+    return {**opens, **{ja: row for card in _front_module().PORTAL for ja, row in card.get('words', {}).items()}}
+
+
+def _sentences(text: str) -> list[dict]:
+    """📟 A description as the board's items: a sentence each, three at most, 120 characters each."""
+    return [{'text': part if len(part) <= 120 else part[:119] + '…'}
+            for part in (p.strip() for p in re.split(r'(?<=[。！？])|(?<=[.!?])\s+', html.unescape(text))) if part][:3]
 
 
 def tools_chrome(prefix: str = '../', tools: dict | None = None, description: str = '', *, title: str = 'TOOLS', home: bool = True,
@@ -204,8 +208,7 @@ def tools_chrome(prefix: str = '../', tools: dict | None = None, description: st
     to the cards (``home=False``: the front page itself) and ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``).
     ☰ is each page's own (itself and its sections, listed in the page); the tools themselves are 🚪 Door-to-Door's rows (``tools_places``)."""
     cards = _front_module().PORTAL
-    about = [{'text': part if len(part) <= 120 else part[:119] + '…'}
-             for part in (p.strip() for p in re.split(r'(?<=[。！？])|(?<=[.!?])\s+', html.unescape(description))) if part][:3]
+    about = _sentences(description)
     return {'id': 'tools', 'lang': lang, 'words': tools_words(), **({'home': prefix + 'index.html#tools'} if home else {}), 'tools': tools or {},
             'board': {'title': title, 'items': (about + [{'text': card['title']} for card in cards])[:12]}}
 
@@ -1046,7 +1049,8 @@ SHELL_PAGE = 'tools/index.html'
 _LINK = re.compile(r'(?P<attr>\b(?:href|src)=)(?P<quote>["\'])(?P<url>[^"\']*)(?P=quote)')
 _SCRIPT = re.compile(r'<script\b[^>]*>.*?</script>', re.S)
 _SHELL_JS = """(()=>{const panels=[...document.querySelectorAll('[data-tools-panel]')],names=panels.map(p=>p.id);let current='';
-const mark=()=>{const door=document.querySelector('[data-door-select]'),mine=door&&[...door.options].find(o=>o.value.endsWith('#'+current));if(mine)door.value=mine.value};   // 🚪 shows where you are
+const mark=()=>{const door=document.querySelector('[data-door-select]');if(!door?.options.length)return;   // 🚪 shows where you are (🏠: no row of its own)
+ door.value=([...door.options].find(o=>o.value.endsWith('#'+current))||door.options[0]).value};
 const inside=(panel,target)=>{const frame=panel.querySelector('iframe');if(!frame)return(document.getElementById(target)||panel).scrollIntoView();
  const go=()=>{frame.contentWindow.location.hash=target};if(frame.dataset.ready)go();else frame.addEventListener('load',go,{once:true})};   // 🖼️ a framed app's own #section
 const runs={test:type=>['','text/javascript','module'].includes(type)};
@@ -1083,8 +1087,13 @@ const mount=panel=>{const inert=panel.querySelector(':scope>template');if(inert)
   for(const frame of panel.querySelectorAll('iframe'))frame.addEventListener('load',()=>{
    if(panel.id==='image-studio')connectHandoff(frame);frame.dataset.ready='1'
   },{once:true})}};
+const home=document.getElementById('home');let lead=JSON.parse(home.dataset.about||'[]').length;   // 📟 the board: what the open panel is, then the cards
+const tell=panel=>{const run=document.querySelector('.ui-chrome .ui-board-run');if(!run)return;
+ const about=JSON.parse((panel.dataset.about?panel:home).dataset.about||'[]'),cards=[...run.children].slice(lead,run.children.length/2);
+ const first=[...about.map(text=>Object.assign(document.createElement('span'),{className:'ui-board-item',textContent:text})),...cards];
+ run.replaceChildren(...first,...first.map(n=>{const c=n.cloneNode(true);c.setAttribute('aria-hidden','true');return c}));lead=about.length};
 const show=(panel,target)=>{mount(panel);
- for(const p of panels)p.hidden=p!==panel;document.title=panel.dataset.title;
+ for(const p of panels)p.hidden=p!==panel;document.title=panel.dataset.title;tell(panel);
  if(target)inside(panel,target);else if(current&&current!==panel.id)scrollTo(0,0);current=panel.id;mark()};
 const route=()=>{const name=decodeURIComponent(location.hash.slice(1)).split('?')[0];
  if(names.includes(name))return show(document.getElementById(name));
@@ -1208,7 +1217,7 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
     The header, the side and the foot are the site's (``add_site_chrome``) once; a panel stays an inert ``<template>`` until it is
     first opened (its styles and scripts load then), and ``#section`` opens the panel that holds it.
     🆔 One owner per id: two of this site's panels that share one stop the build; another repository's gets ⏸ in its place."""
-    places = {place['href']: place['label'] for place in tools_places()}
+    places = {place['href']: place for place in tools_places()}
     names = [panel_name(source) for source in panels]
     owners = {name: name for name in ('home', *names, 'door', 'door-select', 'tools-chrome')}
     routes = {source: _routes(data.decode('utf-8')) - set(owners) for source, (data, _, framed) in panels.items() if framed}
@@ -1235,18 +1244,21 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
     rank = {href.partition('#')[2]: i for i, href in enumerate(places)}    # 🚪 the home list reads like the door: the cards' order
     for source in sorted(panels, key=lambda source: rank.get(panel_name(source), len(rank))):
         name, (title, markup, classes, own) = panel_name(source), markup_of[source]
-        index.append(f'<li><a href="#{name}">{html.escape(places.get(f"../tools/#{name}", title), quote=False)}</a></li>')
+        place = places.get(f'../tools/#{name}', {})                     # 🏷️ its card: the one name (🚪, 🏠, the tab) and what it does
+        title, about = place.get('label', title), place.get('text')
+        index.append(f'<li><a href="#{name}">{html.escape(title, quote=False)}</a></li>')
         css = f' class="{html.escape(classes)}"' if classes else ''      # the page's <body> class (ui-elements) holds for its panel
         sections.append(f'<section id="{name}"{css} data-tools-panel data-title="{html.escape(title)}"'
+                        + (f' data-about="{html.escape(json.dumps([i["text"] for i in _sentences(about)], ensure_ascii=False))}"' if about else '')
                         + (f' data-routes="{" ".join(sorted(own))}"' if own else '') + f' hidden><template>{markup}</template></section>')
-    home = (f'<section id="home" data-tools-panel data-title="🧰 Tools"><main class="ui-page"><h1>🧰 Tools</h1>'
-            f'<ul class="ui-tools-index">{"".join(index)}</ul></main></section>')
+    description = 'myon-bioinformatics の道具を 1 つの画面で。🚪 で道具を選び、🏠 で一覧へ。'   # 📟 the board's first items while 🏠 is open
+    home = (f'<section id="home" data-tools-panel data-title="🧰 Tools" data-about="{html.escape(json.dumps([i["text"] for i in _sentences(description)], ensure_ascii=False))}">'
+            f'<main class="ui-page"><h1>🧰 Tools</h1><ul class="ui-tools-index">{"".join(index)}</ul></main></section>')
     mark = '<!-- 🧰 panels -->'                                            # the chrome first: a panel's own header (🌍) is not the screen's
     sheet = posixpath.relpath(ASSET_BASE + 'css/bundle.css', posixpath.dirname(SHELL_PAGE))          # 🎨 the shared sheet, one file for both
     page = ui.render_document(title='🧰 Tools', theme='modern', trusted_html=home + mark + f'<script>{_SHELL_JS}</script>',
                               css='.ui-tools-index{display:grid;gap:8px;padding:0;list-style:none}' + _FRAME_CSS)
-    page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace('<head>', '<head><meta name="description" content="'
-        'myon-bioinformatics の道具を 1 つの画面で。🚪 で道具を選び、🏠 で一覧へ。">', 1).replace('<style>', f'<link rel="stylesheet" href="{sheet}"><style>', 1)
+    page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace('<head>', f'<head><meta name="description" content="{description}">', 1).replace('<style>', f'<link rel="stylesheet" href="{sheet}"><style>', 1)
     page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': '../index.html#tools'}], test_id='portfolio-back')   # 🏠 the home panel's first line
     cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './#tokyo'}}   # 🗺️ the map's neighbour
     page = add_site_chrome(page, SHELL_PAGE, cities).replace(mark, ''.join(sections), 1)

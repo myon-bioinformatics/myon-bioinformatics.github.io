@@ -29,8 +29,8 @@ NAVIGATION_BINDING = (
     b"globalThis.webUiNavigation.bindViews(globalThis,{"
     b"viewAttribute:'data-pages-view',navAttribute:'data-pages-nav',queryAliases:{wiki:'wiki',pixiv:'pixiv',niconico:'niconico',pokemon:'pokemon'}});\n"
 )
-# The Niconico tab the portfolio adds before the Pixiv view; its behaviour is tools/niconico/search.js.
-NICONICO_PANEL = '''<section id="niconico" data-pages-view="niconico" data-testid="pages-niconico" hidden><h2>Niconico Search: Snapshot Search API v2</h2><p>Try the official Niconico Snapshot Search API v2. Direct browser requests may be blocked by CORS. If results cannot be loaded, use the official search below.</p><div id="pages-niconico-app" data-testid="pages-niconico-app"><form id="pages-niconico-form" data-testid="pages-niconico-form"><p><label for="pages-niconico-query">Keyword</label> <input id="pages-niconico-query" name="q" value="初音ミク" placeholder="Search query" data-testid="pages-niconico-query" class="ui-input"></p><p><label for="pages-niconico-sort">Sort</label> <select id="pages-niconico-sort" name="sort" data-testid="pages-niconico-sort" class="ui-input"><option value="-viewCounter" selected>Views (High to Low)</option><option value="-startTime">Newest</option><option value="-likeCounter">Likes (High to Low)</option><option value="-mylistCounter">Mylists (High to Low)</option></select> <button type="submit" data-testid="pages-niconico-search" class="ui-button">Search</button></p></form><p><a id="pages-niconico-official" data-testid="pages-niconico-official" href="https://www.nicovideo.jp/search/%E5%88%9D%E9%9F%B3%E3%83%9F%E3%82%AF?sort=v&amp;order=d" target="_blank" rel="noopener noreferrer">Search on Niconico ↗</a></p><p id="pages-niconico-status" data-testid="pages-niconico-status" class="ui-muted"></p><p role="alert" id="pages-niconico-error" data-testid="pages-niconico-error" hidden></p><div id="pages-niconico-results" data-testid="pages-niconico-results"></div></div><script src="../niconico/search.js"></script><p><a href="#" data-pages-nav="home" data-testid="pages-nav-back">Back to report</a></p></section>'''
+# The Niconico tab the portfolio adds before the Pixiv view; its behaviour is _src/tools/mcp/niconico-search.js, staged beside the lab's files.
+NICONICO_PANEL = '''<section id="niconico" data-pages-view="niconico" data-testid="pages-niconico" hidden><h2>Niconico Search: Snapshot Search API v2</h2><p>Try the official Niconico Snapshot Search API v2. Direct browser requests may be blocked by CORS. If results cannot be loaded, use the official search below.</p><div id="pages-niconico-app" data-testid="pages-niconico-app"><form id="pages-niconico-form" data-testid="pages-niconico-form"><p><label for="pages-niconico-query">Keyword</label> <input id="pages-niconico-query" name="q" value="初音ミク" placeholder="Search query" data-testid="pages-niconico-query" class="ui-input"></p><p><label for="pages-niconico-sort">Sort</label> <select id="pages-niconico-sort" name="sort" data-testid="pages-niconico-sort" class="ui-input"><option value="-viewCounter" selected>Views (High to Low)</option><option value="-startTime">Newest</option><option value="-likeCounter">Likes (High to Low)</option><option value="-mylistCounter">Mylists (High to Low)</option></select> <button type="submit" data-testid="pages-niconico-search" class="ui-button">Search</button></p></form><p><a id="pages-niconico-official" data-testid="pages-niconico-official" href="https://www.nicovideo.jp/search/%E5%88%9D%E9%9F%B3%E3%83%9F%E3%82%AF?sort=v&amp;order=d" target="_blank" rel="noopener noreferrer">Search on Niconico ↗</a></p><p id="pages-niconico-status" data-testid="pages-niconico-status" class="ui-muted"></p><p role="alert" id="pages-niconico-error" data-testid="pages-niconico-error" hidden></p><div id="pages-niconico-results" data-testid="pages-niconico-results"></div></div><script src="niconico-search.js"></script><p><a href="#" data-pages-nav="home" data-testid="pages-nav-back">Back to report</a></p></section>'''
 
 
 def apply_shared_ui(page: str) -> str:
@@ -89,6 +89,7 @@ def apply_shared_navigation(payload: dict) -> None:
     # The portfolio's own Pixiv wrapper is kept once, beside this file (mcp/), and published with the lab's pages.
     payload['pixiv-markup.js'] = (WRAPPER / 'pixiv-markup.js').read_bytes()
     payload['pixiv-panel.js'] = (WRAPPER / 'pixiv-panel.js').read_bytes()
+    payload['niconico-search.js'] = (WRAPPER / 'niconico-search.js').read_bytes()   # 🔎 the #niconico tab's behaviour
     payload['shared-navigation.mjs'] = NAVIGATION_BINDING
 
 
@@ -173,7 +174,7 @@ def apply_actions_report(page: str) -> str:
 # ── the stage ──
 FILES = ('index.html', 'pages-hash.js', 'pages-wiki.js', 'pages-pixiv.js', 'source.js', 'mcp.js', 'build_meta.json')   # mcp.js: 🤝 the #protocol panel
 OPTIONAL = ('repository-diagnostics.json', 'repository-diagnostics.jsonl')   # 🩺 what the page's #diagnostics panel reads
-WRAPPER = Path(__file__).with_name('mcp')     # the portfolio's Pixiv wrapper (pixiv-markup.js, pixiv-panel.js)
+WRAPPER = Path(__file__).with_name('mcp')     # the portfolio's additions: the Pixiv wrapper (pixiv-markup.js, pixiv-panel.js), the Niconico search
 EXECUTION_URL = "https://myon-bioinformatics.github.io/tools/#mcp-execution"   # 🖼️ a framed #panel of the one screen
 
 
