@@ -915,7 +915,7 @@ _FORWARD_ONLY = re.compile(r'<meta\s+http-equiv=["\']?refresh', re.IGNORECASE)  
 
 def tool_builds() -> dict[tuple[str, tuple[str, ...]], dict[str, str]]:
     """🧰 What the 🧰 Tools cards build from other repositories (each card's ``build``): (repository, run) → {page: card id}, one
-    build for the cards that share one (Ironmate's three studios), each placed at tools/<id>/."""
+    build for the cards that share one (Ironmate's editor and browser tools), each placed at tools/<id>/."""
     builds = {}
     for card in _front_module().PORTAL:
         if 'build' in card:
@@ -926,7 +926,7 @@ def tool_builds() -> dict[tuple[str, tuple[str, ...]], dict[str, str]]:
 
 def place_built(built: Path, routes: dict[str, str], mapped: Path) -> set[str]:
     """🧰 Place a repository's built site under ``mapped``: each file goes to the folder of the longest ``routes`` prefix it is under
-    (``{'': 'tools/image-studio/', 'slides/': 'tools/slide-studio/'}``), and the links between them, a web manifest's shortcuts and
+    (``{'': 'tools/slide-studio/', 'tools/': 'tools/browser-tools/'}``), and the links between them, a web manifest's shortcuts and
     scope follow the move. Returns the routes the build has no page (index.html) for: their files stay with the route above, so the
     others are placed (⏸ for that card only); a page that only forwards (meta refresh) is left out."""
     if '' not in routes:
@@ -1083,34 +1083,12 @@ def render_pages(ui, root: Path = ROOT) -> dict[str, bytes]:
 
 # ── 🧰 One screen: every tool is a #panel of tools/index.html, under one header, one foot and one ⚙️ ──
 SHELL_PAGE = 'tools/index.html'
-# 📽️ The image studio's 🖼️ → 📽️ shelf, on this screen: the slide studio's own 📥 画像 (IronmatePhone.act("image", file), undoable)
-# takes the image, no popup. The screen is PySaiyanWeBoo's views; it says when a framed studio loads (ui-view-frame).
-_HANDOFF_JS = """(()=>{let sending=false;
-const connect=frame=>frame.contentDocument.querySelector('[data-slide-handoff]')?.addEventListener('click',async e=>{
- e.preventDefault();if(sending)return;sending=true;
- const from=location.hash,link=e.currentTarget,views=globalThis.uiViews;
- const status=link.nextElementSibling?.matches('[data-handoff-status]')?link.nextElementSibling:frame.contentDocument.createElement('span');
- status.setAttribute('data-handoff-status','');status.setAttribute('role','status');status.textContent='';link.after(status);
- try{
-  const blob=await frame.contentWindow.IronmateStudio.pngBlob(1);
-  if(views.current!=='image-studio'||location.hash!==from)return;
-  const panel=document.getElementById('slide-studio');views.mount(panel);
-  const slide=panel.querySelector('iframe');
-  if(!slide)throw Error('Slide Studio is unavailable');
-  if(!slide.dataset.ready)await new Promise(resolve=>slide.addEventListener('load',resolve,{once:true}));
-  if(views.current!=='image-studio'||location.hash!==from)return;
-  const app=slide.contentWindow,phone=app.IronmatePhone;
-  if(typeof phone?.act!=='function')throw Error('Slide Studio did not load');
-  const image=new app.Blob([blob],{type:blob.type});   // the pinned editor checks Blob against its own iframe's constructor
-  const previousSelection=phone.selected;
-  const imported=await phone.act('image',image);
-  if(!(imported??(phone.selected&&phone.selected!==previousSelection)))throw Error('Slide Studio could not add the image');   // older revisions return nothing
-  if(views.current!=='image-studio'||location.hash!==from)return;
-  link.closest('dialog')?.close();location.hash='slide-studio';views.show(panel);
- }catch{status.textContent='画像を渡せませんでした。スライド工房の状態を確認し、もう一度お試しください。'}
- finally{if(!status.textContent)status.remove();sending=false}
-});
-document.addEventListener('ui-view-frame',e=>{if(e.detail.name==='image-studio')connect(e.detail.frame)})})();"""
+# The heading comes from the functional card. This provider wordmark duplicates
+# the adjacent link to the editor; the downloadable logo assets are retained.
+_IRONMATE_WORDMARK = re.compile(
+    r'(<header>\s*)<a class="brand" href="\.\./slide-studio/"><img src="\.\./slide-studio/brand/heatmap\.svg"[^>]*>'
+    r'\s*IRONMATE\s*</a>\s*'
+)
 
 
 def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes:
@@ -1125,9 +1103,15 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
     for source in sorted(panels, key=lambda source: rank.get(ui.view_name(source, SHELL_PAGE), len(rank))):
         data, repository, framed = panels[source]
         page, place = data.decode('utf-8'), places.get(f'../tools/#{ui.view_name(source, SHELL_PAGE)}', {})
-        if source == 'tools/image-studio/index.html' and 'tools/slide-studio/index.html' in panels:   # 📽️ the shelf hands over here
-            page = page.replace('href="../slide-studio/#from-image-studio" target="_blank" rel="opener"',
-                                'href="/tools/#slide-studio" target="_top" data-slide-handoff')
+        if source == 'tools/browser-tools/index.html':
+            page = _IRONMATE_WORDMARK.sub(r'\g<1>', page, count=1)
+            page = re.sub(r'(<a href="\.\./slide-studio/">)Image Studio ↗(?=</a\s*>)',
+                          r'\g<1>📽️ 工房で編集 ↗', page, count=1)
+        if source == 'tools/heatmap/index.html':
+            page = page.replace('href="https://myon-bioinformatics.github.io/tools/#image-studio"',
+                                'href="/tools/#slide-studio"')
+            page = page.replace('🖼️ シーン JSON を Image Studio で開く ↗', '📽️ シーン JSON を工房で開く ↗')
+            page = page.replace('Image Studio の「開く」で読み込み', '工房の「インポート → JSON」で読み込み')
         views.append({'source': source, 'document': page, 'title': place.get('label', ''), 'about': place.get('text', ''),
                       'framed': framed, 'repository': repository})
     description = 'myon-bioinformatics の道具を 1 つの画面で。🚪 で道具を選び、🏠 で一覧へ。'   # 📟 the board's first items while 🏠 is open
@@ -1135,7 +1119,7 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
                                 home={'title': '🧰 Tools', 'heading': '🧰 Tools', 'about': description})
     mark = '<!-- 🧰 views -->'                                             # the chrome first: a view's own header (🌍) is not the screen's
     sheet = posixpath.relpath(ASSET_BASE + 'css/bundle.css', posixpath.dirname(SHELL_PAGE))          # 🎨 the shared sheet, one file for both
-    page = ui.render_document(title='🧰 Tools', theme='modern', trusted_html=mark + f'<script>{_HANDOFF_JS}</script>', css=screen['css'])
+    page = ui.render_document(title='🧰 Tools', theme='modern', trusted_html=mark, css=screen['css'])
     page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace('<head>', f'<head><meta name="description" content="{description}">', 1).replace('<style>', f'<link rel="stylesheet" href="{sheet}"><style>', 1)
     cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './#tokyo'}}   # 🗺️ the map's neighbour
     page = ui.add_part(page, {'js': screen['js']})                         # a module: it binds once the views below are parsed
