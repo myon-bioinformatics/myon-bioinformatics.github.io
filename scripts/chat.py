@@ -7,11 +7,12 @@ ontautology.py (🧬 /onto, 🎯 /guess), olnm.py (🧷 /olnm) and Err-o-RoadRun
 pinned in pyproject.toml's pages group — and mcp-toolcall-lab's Wikipedia tools, PokéAPI reader and Jev router (🔌 /mcp, 🤖 /ask),
 at the commit the index recorded. What it knows about the other repositories is ``media/chat/index.json``,
 written at deploy time by ``project_pages.py --record-chat``: every JSON / JSONL file of every active repository at its
-commit, and the tools mcp-toolcall-lab advertises. TalkCompress's shorthand compressor is fetched on first use.
+commit, and the mcp-toolcall-lab code the MCP server runs. TalkCompress's shorthand compressor is fetched on first use.
 
 ``respond(text)`` → Markdown, ``reply_html(text)`` → HTML (markdown.py escapes raw HTML), ``configure(index, base)``
 for the page. 🔌 ``mcp_rpc`` is an MCP server in the page (JSON-RPC 2.0: initialize, ping, tools/list, tools/call); /mcp and 🤖 /ask
-are its clients. /ask: ``ask_messages`` (the context, and ⚖️ Jev's choice of the tools to offer), ``ask_tools`` (those tools, from
+are its clients. A tool wraps an API (the lab's, or a keyless one the page fetches: ``OPEN_APIS``) and shapes what it reads: Markdown
+for people and the model, and the record itself as ``structuredContent``, whether a model reads it or not. /ask: ``ask_messages`` (the context, and ⚖️ Jev's choice of the tools to offer), ``ask_tools`` (those tools, from
 tools/list) and ``ask_call`` (one call: offered, then the server's check of its arguments — mcp-toolcall-lab's rule). Every
 message and decision joins the 🧾 trace (``/mcp log``, JSONL). Every command is a cli_args subparser, so a typo gets "maybe you meant".
 """
@@ -64,9 +65,10 @@ COMMANDS = {
     'flow': ('🔀', 'A > B > C', '流れ図を ASCII と Mermaid に（A, B > C で合流）', ('/flow 入力, 履歴 > 圧縮 > 出力',)),
     'compress': ('🗂', 'TEXT', '会話を短く（TalkCompress の略語・合意台帳）と、LLM 出力の整理（markdown.py）',
                  ('/compress As soon as possible, please send me the report. Thank you very much!',)),
-    'mcp': ('🔌', '[TOOL {JSON} | log]', 'ページの中の MCP サーバーと話す（tools/list・tools/call。mcp-toolcall-lab の Wikipedia・PokéAPI と '
-                                        'このチャットの find・show・onto）。log は JSON-RPC と ⚖️ Jev の判定の記録（JSONL）',
-            ('/mcp', '/mcp fetch_pokemon {"name": "ditto"}', '/mcp fetch_wikipedia_article {"title": 3}', '/mcp fetch_wikipedia_artcle {}',
+    'mcp': ('🔌', '[TOOL {JSON} | log]', 'ページの中の MCP サーバーと話す（tools/list・tools/call。mcp-toolcall-lab の Wikipedia・PokéAPI、'
+                                        'キー不要の 🎬 YouTube oEmbed・🕸️ Wikidata・🧬 UniProt・🐙 GitHub、このチャットの find・show・onto。'
+                                        '結果は Markdown と structuredContent）。log は JSON-RPC と ⚖️ Jev の判定の記録（JSONL）',
+            ('/mcp', '/mcp fetch_pokemon {"name": "ditto"}', '/mcp fetch_wikidata_entity {"id": "Q6607"}', '/mcp fetch_wikipedia_article {"title": 3}', '/mcp fetch_wikipedia_artcle {}',
              '/mcp log')),
     'find': ('🔎', 'WORDS [--repo R] [--kind K]', 'リポジトリ横断で JSON / JSONL を探す（K: ' + ' '.join(KINDS) + '）',
              ('onto', '/find --kind onto', '/find --kind jsonl --repo Aoi', 'TaxOntOy')),
@@ -102,8 +104,8 @@ LAB = tuple(f'src/mcp_toolcall_lab/{name}' for name in (
 MCP_PROTOCOL = '2025-06-18'
 POKEAPI = 'https://pokeapi.co/api/v2/pokemon/{name}'
 # ⚖️ Jev's tool families → the server's tools /ask offers ('none': no tool; another family or a low confidence: every tool)
-FAMILIES = {'wikipedia': ('fetch_wikipedia_article', 'fetch_wikipedia_section'), 'pokeapi': ('fetch_pokemon',),
-            'ironmate': ('find', 'show'), 'none': ()}
+FAMILIES = {'wikipedia': ('fetch_wikipedia_article', 'fetch_wikipedia_section', 'search_wikidata', 'fetch_wikidata_entity'),
+            'pokeapi': ('fetch_pokemon',), 'ironmate': ('find', 'show', 'fetch_github_repo'), 'none': ()}
 TYPOS = ('/flwo a > b', '/find --kidn onto', '/find --kind ont')    # ⌨️ what cli_args answers with "maybe you meant"
 _STATE = {'index': None, 'base': '', 'fetch': None, 'talkcompress': None, 'concepts': None, 'guess': None, 'triage': None, 'calls': [],
           'lab': None, 'route': None, 'trace': [], 'mcp_id': 0, 'mcp_ready': False}
@@ -311,9 +313,118 @@ def _lab(fetch=None, base: str | None = None):
     return _STATE['lab']
 
 
+def _q(**params) -> str:
+    return urlencode({key: value for key, value in params.items() if value is not None})
+
+
+def _youtube(args: dict, get) -> dict:
+    """🎬 YouTube's oEmbed for one video URL: title, channel and thumbnail (no key; the embed HTML is left out)."""
+    url = args['url'].strip()
+    host = re.match(r'https://(?:www\.|m\.|music\.)?(youtube\.com|youtu\.be)/', url)
+    if not host:
+        raise ValueError('a https://www.youtube.com/… or https://youtu.be/… URL')
+    data = json.loads(get('https://www.youtube.com/oembed?' + _q(url=url, format='json')))
+    return {'schema': 'youtube-oembed/1', 'url': url, **{key: data.get(key) for key in (
+        'title', 'author_name', 'author_url', 'thumbnail_url', 'thumbnail_width', 'thumbnail_height', 'provider_name')}}
+
+
+WIKIDATA = 'https://www.wikidata.org/w/api.php?'
+
+
+def _wikidata_search(args: dict, get) -> dict:
+    """🕸️ Wikidata items whose label matches (wbsearchentities): id, label, description."""
+    lang = args.get('lang', 'ja')
+    data = json.loads(get(WIKIDATA + _q(action='wbsearchentities', search=args['query'], language=lang, uselang=lang,
+                                        type='item', limit=5, format='json', origin='*')))
+    return {'schema': 'wikidata-search/1', 'query': args['query'], 'lang': lang, 'items': [
+        {'id': hit['id'], 'label': hit.get('label', ''), 'description': hit.get('description', ''),
+         'url': f'https://www.wikidata.org/wiki/{hit["id"]}'} for hit in data.get('search', [])]}
+
+
+def _wikidata_entity(args: dict, get) -> dict:
+    """🕸️ One Wikidata item as a node of a knowledge graph: its label, description and aliases, and what it is an instance of
+    (P31) and a subclass of (P279) — the genus of /onto — with their labels (a second request)."""
+    qid, lang = args['id'].strip().upper(), args.get('lang', 'ja')
+    if not re.fullmatch(r'Q[1-9][0-9]{0,11}', qid):
+        raise ValueError('an item id such as Q42')
+    langs = '|'.join(dict.fromkeys((lang, 'en')))
+    entity = json.loads(get(WIKIDATA + _q(action='wbgetentities', ids=qid, props='labels|descriptions|aliases|claims',
+                                          languages=langs, format='json', origin='*')))['entities'][qid]
+    if 'missing' in entity:
+        raise LookupError(f'no Wikidata item {qid}')
+    pick = lambda field: next((entity.get(field, {})[code]['value'] for code in (lang, 'en') if code in entity.get(field, {})), '')
+    links = {prop: [c['mainsnak']['datavalue']['value']['id'] for c in entity.get('claims', {}).get(prop, [])
+                    if c.get('mainsnak', {}).get('snaktype') == 'value'][:8] for prop in ('P31', 'P279')}
+    ids = sorted({q for qs in links.values() for q in qs})
+    names = {}
+    if ids:
+        found = json.loads(get(WIKIDATA + _q(action='wbgetentities', ids='|'.join(ids), props='labels', languages=langs,
+                                             format='json', origin='*')))['entities']
+        names = {q: next((v['labels'][c]['value'] for c in (lang, 'en') if c in v.get('labels', {})), q) for q, v in found.items()}
+    return {'schema': 'wikidata-entity/1', 'id': qid, 'url': f'https://www.wikidata.org/wiki/{qid}', 'label': pick('labels'),
+            'description': pick('descriptions'), 'aliases': [a['value'] for a in entity.get('aliases', {}).get(lang, [])][:8],
+            **{key: [{'id': q, 'label': names.get(q, q)} for q in links[prop]] for key, prop in (('instance_of', 'P31'), ('subclass_of', 'P279'))}}
+
+
+def _uniprot(args: dict, get) -> dict:
+    """🧬 UniProtKB entries for a query (accession, protein, organism, genes, length)."""
+    data = json.loads(get('https://rest.uniprot.org/uniprotkb/search?' + _q(
+        query=args['query'], format='json', size=args.get('size', 5), fields='accession,protein_name,organism_name,gene_names,length')))
+    rows = []
+    for hit in data.get('results', []):
+        protein = hit.get('proteinDescription', {})
+        name = (protein.get('recommendedName') or next(iter(protein.get('submissionNames', [])), {})).get('fullName', {}).get('value', '')
+        rows.append({'accession': hit['primaryAccession'], 'protein': name, 'organism': hit.get('organism', {}).get('scientificName', ''),
+                     'genes': [g['geneName']['value'] for g in hit.get('genes', []) if 'geneName' in g],
+                     'length': hit.get('sequence', {}).get('length'), 'url': f'https://www.uniprot.org/uniprotkb/{hit["primaryAccession"]}'})
+    return {'schema': 'uniprot-search/1', 'query': args['query'], 'entries': rows}
+
+
+def _github(args: dict, get) -> dict:
+    """🐙 One public GitHub repository (no token: 60 requests an hour from one address)."""
+    repo = args['repo'].strip().removeprefix('https://github.com/').strip('/')
+    if not re.fullmatch(r'[A-Za-z0-9-]{1,39}/[A-Za-z0-9._-]{1,100}', repo):
+        raise ValueError('OWNER/NAME')
+    data = json.loads(get(f'https://api.github.com/repos/{repo}'))
+    return {'schema': 'github-repo/1', 'repo': data['full_name'], 'url': data['html_url'], 'description': data.get('description') or '',
+            'language': data.get('language'), 'topics': data.get('topics', []), 'stars': data.get('stargazers_count'),
+            'forks': data.get('forks_count'), 'open_issues': data.get('open_issues_count'), 'archived': data.get('archived'),
+            'license': (data.get('license') or {}).get('spdx_id'), 'pushed_at': data.get('pushed_at')}
+
+
+def _rows_md(head: list[str], rows: list[list]) -> str:
+    return md.table(head, [[_cell(str(v if v is not None else '—')) for v in row] for row in rows]).strip() if rows else '0 件'
+
+
+# 🌐 Keyless APIs the page fetches itself (they answer with CORS): name → (description, properties, required, read, Markdown of
+# the record). ``cues`` offer a tool to /ask when ⚖️ Jev knows no family for it. An API a browser cannot read (Niconico's
+# Snapshot Search sends no Access-Control-Allow-Origin, pixiv) is not listed: the lab's adapters keep those for a server.
+OPEN_APIS = {
+    'fetch_youtube_oembed': ('YouTube の動画 URL から題名・チャンネル・サムネ（oEmbed、キー不要）', {'url': {'type': 'string'}}, ['url'], _youtube,
+                             lambda r: f'### 🎬 [{r["title"]}]({r["url"]})\n\n' + _rows_md(['チャンネル', 'サムネ'], [[f'[{r["author_name"]}]({r["author_url"]})', r['thumbnail_url']]]),
+                             ('youtube', 'youtu.be', 'ユーチューブ')),
+    'search_wikidata': ('Wikidata の項目を名前で探す（ID・ラベル・説明）', {'query': {'type': 'string'}, 'lang': {'type': 'string'}}, ['query'],
+                        _wikidata_search, lambda r: _rows_md(['ID', 'ラベル', '説明'], [[f'[{i["id"]}]({i["url"]})', i['label'], i['description']] for i in r['items']]),
+                        ('wikidata', 'ウィキデータ')),
+    'fetch_wikidata_entity': ('Wikidata の項目 1 つ: ラベル・説明・別名と、何の一種か（P31 instance of / P279 subclass of）', {'id': {'type': 'string'}, 'lang': {'type': 'string'}},
+                              ['id'], _wikidata_entity,
+                              lambda r: f'### 🕸️ [{r["label"] or r["id"]}]({r["url"]}) {r["description"]}\n\n' + _rows_md(['関係', '相手'], [
+                                  [rel, ' · '.join(f'{x["label"]} ({x["id"]})' for x in r[key]) or '—'] for rel, key in (('P31 instance of', 'instance_of'), ('P279 subclass of', 'subclass_of'))]),
+                              ('wikidata', 'ウィキデータ')),
+    'search_uniprot': ('UniProtKB でタンパク質を探す（アクセッション・名前・生物種・遺伝子・長さ）', {'query': {'type': 'string'}, 'size': {'type': 'integer'}}, ['query'], _uniprot,
+                       lambda r: _rows_md(['アクセッション', 'タンパク質', '生物種', '遺伝子', '長さ'], [
+                           [f'[{e["accession"]}]({e["url"]})', e['protein'], e['organism'], ', '.join(e['genes']), e['length']] for e in r['entries']]),
+                       ('uniprot', 'タンパク質', 'protein', 'アミノ酸')),
+    'fetch_github_repo': ('公開 GitHub リポジトリの概要（説明・言語・スター・更新）', {'repo': {'type': 'string', 'description': 'OWNER/NAME'}}, ['repo'], _github,
+                          lambda r: f'### 🐙 [{r["repo"]}]({r["url"]}) {r["description"]}\n\n' + _rows_md(['言語', '⭐', '🍴', 'issue', 'license', 'push'], [
+                              [r['language'], r['stars'], r['forks'], r['open_issues'], r['license'], (r['pushed_at'] or '')[:10]]]),
+                          ('github', 'ギットハブ')),
+}
+
+
 def server_tools(fetch=None) -> dict:
     """🔌 What the page's MCP server lists (name → MCP tool: name, description, inputSchema): the lab's Wikipedia tools (its FastMCP
-    catalog), its PokéAPI reader and this bot's find · show · onto (without the lab, only these)."""
+    catalog) and PokéAPI reader, the keyless APIs (``OPEN_APIS``) and this bot's find · show · onto (without the lab, the last two)."""
     tools = {}
     lab = _lab(fetch)
     if lab:
@@ -321,24 +432,37 @@ def server_tools(fetch=None) -> dict:
         tools['fetch_pokemon'] = {'name': 'fetch_pokemon', 'description': 'PokéAPI の pokemon（タイプ・種族値・特性）。名前は英語の小文字（pikachu）か図鑑番号（25）',
                                   'inputSchema': {'type': 'object', 'properties': {'name': {'type': 'string'}}, 'required': ['name'],
                                                   'additionalProperties': False}}
+    own = {name: (what, props, required) for name, (what, props, required, *_) in (*OPEN_APIS.items(), *CHAT_TOOLS.items())}
     return {**tools, **{name: {'name': name, 'description': what, 'inputSchema': {
-        'type': 'object', 'properties': props, 'required': required, 'additionalProperties': False}} for name, (what, props, required) in CHAT_TOOLS.items()}}
+        'type': 'object', 'properties': props, 'required': required, 'additionalProperties': False}} for name, (what, props, required) in own.items()}}
 
 
-def _run_tool(name: str, args: dict, index: dict | None, fetch) -> str:
-    """🔧 One listed tool, its arguments already checked: the text of its result."""
+def _run_tool(name: str, args: dict, index: dict | None, fetch) -> tuple[str, dict | None]:
+    """🔧 One listed tool, its arguments already checked: its result as Markdown (what people and the model read) and, for an
+    API, the record it read (``structuredContent``: the same facts as data, used or not by a model)."""
     if name == 'find':
-        return find_reply(index, args.get('words', []), args.get('repo'), args.get('kind'))
+        return find_reply(index, args.get('words', []), args.get('repo'), args.get('kind')), None
     if name == 'show':
-        return show_reply(index, args['target'], fetch)
+        return show_reply(index, args['target'], fetch), None
     if name == 'onto':
-        return onto_reply(args['word'], index, fetch)
-    lab, _STATE['get'] = _lab(fetch), fetch or _STATE['fetch'] or _fetch
+        return onto_reply(args['word'], index, fetch), None
+    _STATE['get'] = fetch or _STATE['fetch'] or _fetch
+    if name in OPEN_APIS:
+        _, _, _, read, markdown, _ = OPEN_APIS[name]
+        record = read(args, _STATE['get'])
+        return markdown(record), record
+    lab = _lab(fetch)
     if name == 'fetch_pokemon':                           # 🐾 the lab's reader of the JSON this page fetched
         url = POKEAPI.format(name=quote(args['name'].strip().lower(), safe=''))
         record = lab['pokeapi'].pokemon_source(_STATE['get'](url), url)
-        return record.get('markdown') or json.dumps(record, ensure_ascii=False)
-    return json.dumps(lab['catalog'].dispatch_tool(name, args), ensure_ascii=False)   # 📚 the lab's dispatch (Wikipedia)
+        return record.pop('markdown', '') or json.dumps(record, ensure_ascii=False), record
+    result = lab['catalog'].dispatch_tool(name, args)     # 📚 the lab's dispatch (Wikipedia)
+    if name == 'fetch_wikipedia_article':                 # 📚 the heading tree, then the start of the extract
+        tree = '\n'.join('  ' * (h.get('level', 1) - 1) + f'- {h["heading"]}' for h in result['headings'][:16])
+        return f'### 📚 {result["canonical_title"]} ({result["lang"]})\n\n{tree}\n\n{result["extract"][:800]}', result
+    if any('body' in row for row in result):              # 📑 a section: its heading and body
+        return '\n\n'.join(f'{row["heading_markdown"]}\n\n{row["body"][:800]}' for row in result), {'sections': result}
+    return md.bullet_list([row['heading'] for row in result]).strip() or '0 件', {'sections': result}   # 📑 the headings to pick from
 
 
 TRACE_ROWS = 400   # 🧾 the trace keeps its last rows
@@ -390,10 +514,10 @@ def mcp_rpc(message, index: dict | None = None, fetch=None) -> dict | None:
     if problems:
         return reply(code=-32602, text='Invalid params', data={'problems': problems})
     try:
-        text, failed = _run_tool(name, args, index, fetch), False
+        (text, record), failed = _run_tool(name, args, index, fetch), False
     except Exception as exc:                              # ⚠️ the tool ran and failed (404, CORS, offline): the model reads why
-        text, failed = f'{type(exc).__name__}: {exc}', True
-    return reply({'content': [{'type': 'text', 'text': text}], 'isError': failed})
+        (text, record), failed = (f'{type(exc).__name__}: {exc}', None), True
+    return reply({'content': [{'type': 'text', 'text': text}], **({'structuredContent': record} if record is not None else {}), 'isError': failed})
 
 
 def _rpc(method: str, params: dict | None = None, *, index: dict | None = None, fetch=None, notify: bool = False) -> dict | None:
@@ -442,7 +566,9 @@ def mcp_reply(text: str, index: dict | None, fetch=None) -> str:
     head = ('✅ tools/call' if ok else '⚠️ isError' if 'result' in response else '❌ 断る（JSON-RPC のエラー）')
     body = result if len(result) <= 1500 else result[:1499] + '…'
     return '\n\n'.join([f'### 🔌 {head}', _code(json.dumps(sent, ensure_ascii=False), 'json'),
-                          body if ok and name in ('find', 'show', 'onto', 'fetch_pokemon') else _code(body)])
+                          body if ok else _code(body)]
+                         + ([f'🧱 structuredContent: `{"` `".join(response["result"]["structuredContent"])}`']
+                            if ok and response['result'].get('structuredContent') else []))
 
 
 def mcp_log(rows: int = 8) -> str:
@@ -1007,14 +1133,20 @@ def ask_messages(text: str, index: dict | None = None, fetch=None) -> str:
 
 def ask_route(question: str, fetch=None) -> dict:
     """⚖️ Jev (the lab's keyword router, ``decide_route``) on the question: which of the server's tools /ask offers — one family's
-    when it is confident, none when it is confident no tool is needed, else every tool. The decision joins the 🧾 trace."""
+    when it is confident, none when it is confident no tool is needed, else every tool. A keyless API whose ``cues`` the question
+    names joins them, and alone stands in for none or every tool (until the lab's router knows its family). The decision joins
+    the 🧾 trace."""
     tools, lab = list(server_tools(fetch)), _lab(fetch)
+    text = question.casefold()
+    cued = [name for name, (*_, cues) in OPEN_APIS.items() if any(cue in text for cue in cues)]
     if not lab:
-        row = {'needs_tool': None, 'tool_family': None, 'fallback_reason': 'no_lab', 'offered': tools}
+        row = {'needs_tool': None, 'tool_family': None, 'fallback_reason': 'no_lab', 'offered': cued or tools}
     else:
         decision = dataclasses.asdict(lab['decide'](lab['router'], question))
         family = decision['tool_family'] if not decision['fallback_reason'] else None
-        row = {**decision, 'offered': [t for t in tools if t in FAMILIES[family]] if family in FAMILIES else tools}
+        chosen = [t for t in tools if t in FAMILIES[family]] if family in FAMILIES and family != 'none' else None
+        row = {**decision, 'offered': list(dict.fromkeys([*(chosen or []), *cued])) if chosen or cued else [] if family == 'none' else tools}
+    row['cued'] = cued
     _trace('jev/route_decision', question=question, **row)
     _STATE['route'] = row
     return row
