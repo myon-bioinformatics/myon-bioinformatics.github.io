@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-28T12:49:36Z",
+  "generatedAt": "2026-11-28T14:15:55Z",
   "owner": "myon-bioinformatics",
   "count": 49,
   "repos": [
@@ -7,7 +7,7 @@
       "name": "Aoi",
       "url": "https://github.com/myon-bioinformatics/Aoi",
       "description": "Most analytics projects attempt to provide answers. Aoi attempts to discover better questions. A hypothesis-driven research framework for observation, analysis, validation, and hypothesis generation. It began with long-term patterns in baseball — baseball is the laboratory, not the destination.",
-      "language": "HTML",
+      "language": "Python",
       "topics": [
         "analytics",
         "baseball",
@@ -22,7 +22,7 @@
         "statistics"
       ],
       "stars": 1,
-      "updatedAt": "2026-11-25T10:00:50Z",
+      "updatedAt": "2026-11-28T13:25:30Z",
       "homepage": "https://myon-bioinformatics.github.io/Aoi/",
       "pages": "https://myon-bioinformatics.github.io/Aoi/",
       "readmeHeading": "Aoi",
