@@ -920,3 +920,44 @@ def test_every_guide_floor_opens_from_its_world_route(site, browser):
         assert errors == []
     finally:
         page.close()
+
+
+def test_shared_player_spends_stamina_and_keeps_school_progress_across_routes(site, browser):
+    page = browser.new_page(reduced_motion='reduce')
+    url = site[1] + '/tools/#'
+    stats = page.locator('[data-player-stats]')
+    try:
+        page.goto(url + 'school-spot-classroom-board')
+        page.locator('#school-map .ui-world-pick-grid [data-emoji]').first.click()
+        board = page.locator('[aria-label="黒板の練習問題"]')
+        answer = board.locator('[data-school-answer]').first
+        answer.evaluate("(el) => { for(let p=el.parentElement;p;p=p.parentElement)if(p.tagName==='DETAILS')p.open=true }")
+        answer.locator('summary').click()
+        expect(board.locator('[data-school-progress]')).to_have_text('正解 1/29')
+        before = stats.text_content()
+        answer.locator('summary').click()
+        answer.locator('summary').click()
+        for route in ('camera', 'tokyo', 'nagoya', 'london'):
+            page.goto(url + route)
+            expect(stats).to_have_text(before)
+        page.goto(url + 'overworld-spot-meadow-enemy-slime')
+        page.locator('#overworld-map .ui-world-pick-grid [data-emoji]').first.click()
+        page.locator('#overworld-spot-meadow-enemy-slime .ui-rpg-sheet-btn').click()
+        expect(stats).to_contain_text('スタミナ 47')
+        page.goto(url + 'paris')
+        scene = page.locator('#cities-map')
+        scene.locator('.ui-world-pick-grid [data-emoji]').first.click()
+        scene.locator('[data-fire-id="fire-0"]').dispatch_event('click')
+        scene.get_by_role('button', name='放水ジェット', exact=False).click()
+        expect(stats).to_contain_text('スタミナ 46')
+        page.goto(url + 'school')
+        expect(board.locator('[data-school-progress]')).to_have_text('正解 1/29')
+        expect(stats).to_contain_text('スタミナ 46')
+        page.goto(url + 'osaka')
+        scene.locator('[data-shadow-boss="true"]').dispatch_event('click')
+        scene.get_by_role('button', name='ポーカーフェイス', exact=False).click()
+        expect(scene.locator('[data-detective-gear]')).to_contain_text('ポーカーフェイス 1/')
+        scene.get_by_role('button', name='閃きロジックバースト', exact=False).click()
+        expect(scene.locator('[data-detective-gear]')).to_contain_text('ポーカーフェイス 0/')
+    finally:
+        page.close()

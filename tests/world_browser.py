@@ -1992,8 +1992,8 @@ class FakeParisHeroTests(unittest.TestCase):
         page.wait_for_timeout(300)
         self.assertEqual(page.get_attribute('.ui-rescue-node[data-rescue-id="chest-nozzle"]', "data-rescue-opened"), "true")
         self.assertEqual(page.text_content('.ui-rescue-node[data-rescue-id="chest-nozzle"] .ui-rescue-glyph'), "📭")
-        self.assertIn("🚿 15", page.text_content("[data-rescue-gear]"))
-        self.assertIn("🛡️ 3", page.text_content("[data-rescue-gear]"))
+        self.assertIn("🚿 13", page.text_content("[data-rescue-gear]"))
+        self.assertIn("🛡️ 2", page.text_content("[data-rescue-gear]"))
         # Verify 🎒 Bag in header has both items
         page.click('.ui-world-menu[data-menu="bag"] > summary')
         bag_text = page.text_content(".ui-world-bag")
@@ -2352,7 +2352,7 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         page.wait_for_timeout(300)
         self.assertEqual(page.get_attribute('.ui-detective-node[data-detective-id="chest-shoes"]', "data-detective-opened"), "true")
         self.assertEqual(page.text_content('.ui-detective-node[data-detective-id="chest-shoes"] .ui-detective-glyph'), "📭")
-        self.assertIn("💡 16", page.text_content("[data-detective-gear]"))
+        self.assertIn("かしこさ 16", page.text_content("[data-detective-gear]"))
         # Verify 🎒 Bag in header has both items
         page.click('.ui-world-menu[data-menu="bag"] > summary')
         bag_text = page.text_content(".ui-world-bag")

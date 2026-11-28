@@ -56,6 +56,37 @@ const cities=shell.querySelector('#cities-map');
 const cityFloors=[...nav].filter(a=>a.dataset.scene==='cities').map(a=>a.hash.slice(1));
 const favorites=shell.querySelector('#world-favorites');
 const linked=new Map(nav.map(a=>[a.hash.slice(1),a]));
+const base=JSON.parse(shell.dataset.playerBase);
+const player={exp:0,hp:base.hp,mp:base.mp,stamina:base.stamina,schoolSolved:new Set()};
+const controllers=new Map();
+const output=shell.querySelector('[data-player-stats]');
+const school=shell.querySelector('[data-school-progress]');
+const lessons=[...shell.querySelectorAll('[data-school-answer]')].map(answer=>answer.dataset.schoolAnswer);
+const growth=()=>globalThis.webUiWorld?.rpgLevelForExp(player.exp)??{level:1,bonus_hp:0,bonus_mp:0,bonus_atk:0,bonus_def:0};
+const wisdom=()=>base.wisdom+2*(growth().level-1);
+function showPlayer(){
+ const g=growth();
+ output.textContent=`経験値 ${player.exp}　HP ${player.hp}　MP ${player.mp}　基礎攻撃 ${base.atk+g.bonus_atk}　基礎防御 ${base.def+g.bonus_def}　スタミナ ${player.stamina}　かしこさ ${wisdom()}`;
+ if(school)school.textContent=`正解 ${player.schoolSolved.size}/${lessons.length}`;
+}
+shell.player={
+ growth,wisdom,lessons,
+ bind(state,route,refresh){
+  controllers.set(state,{route,refresh});
+  for(const key of Object.keys(player))Object.defineProperty(state,key,{
+   get:()=>player[key],set(value){if(player[key]!==value){player[key]=value;showPlayer()}}
+  });
+ },
+ active(state){return controllers.get(state)?.route===shell.dataset.worldRoute},
+ spend(){if(player.stamina<1)return false;player.stamina--;showPlayer();return true},
+ rest(){player.stamina=Math.max(player.stamina,base.stamina);showPlayer()}
+};
+shell.addEventListener('toggle',event=>{
+ const answer=event.target;
+ if(!answer.open||!answer.hasAttribute('data-school-answer'))return;
+ const lesson=answer.dataset.schoolAnswer;
+ if(!player.schoolSolved.has(lesson)){player.schoolSolved.add(lesson);player.exp+=1;showPlayer()}
+},true);
 function route(){
  const hash=location.hash.slice(1), spot=document.getElementById(hash);
  const inside=spot?.closest('[data-world-space]')?.dataset.worldSpace;
@@ -72,6 +103,8 @@ function route(){
  }
  for(const a of nav){if(a===entry)a.setAttribute('aria-current','location');else a.removeAttribute('aria-current');}
  shell.querySelector('#world-space-name').textContent=entry.textContent;
+ for(const controller of controllers.values())if(controller.route===name)controller.refresh();
+ showPlayer();
 }
 function listFavorites(){
  const links=new Map();
@@ -234,6 +267,7 @@ def document(ui, world, maps, places, css_href, js_href, dialogue="", *, dragon_
     header = (f'<header class="ui-world-head" data-words="{words}"><div id="world-switcher" class="world-switcher"><nav class="ui-world-tools" aria-label="ワールド">'
               f'<details data-world-nav><summary aria-label="空間一覧">☰</summary><div>{nav}</div></details>'
               '<strong id="world-space-name">🌍 ワールド</strong>'
+              + '<details><summary>🧑 主人公</summary><div data-player-stats></div></details>'
               + relic_menu(world, specs.values()) +
               '<details><summary>⭐ お気に入り</summary><div id="world-favorites">まだありません</div></details>'
               f'<details><summary>🧰 道具</summary><div>{tools}</div></details>'
@@ -243,7 +277,8 @@ def document(ui, world, maps, places, css_href, js_href, dialogue="", *, dragon_
     dialogue += f"\nconst worldKnowledge={knowledge};\n"
     sprite = (f'<template id="dragon-art"><img class="dragon-portrait" alt="" src="{escape(dragon_png, quote=True)}">'
               f'<a download="london-dragon.json" href="{escape(dragon_grid, quote=True)}">原画JSONを保存</a></template>')
-    body = ('<main><div data-world-shell>' + sprite + header + ''.join(sections) + '</div></main>'
+    base = escape(json.dumps(world.PLAYER_BASE), quote=True)
+    body = (f'<main><div data-world-shell data-player-base="{base}">' + sprite + header + ''.join(sections) + '</div></main>'
             + ui.module_script(JS) + f'<script type="module" src="{js_href}"></script>'
             + ui.module_script(f'import "{js_href}";\n' + dialogue + world.world_game_modules(specs.values(), "./vendor/web-ui/js/records.js")) + maps.tokyo_modules(ui))
     css = ''.join(world.world_css(data, base=False) for data in specs.values()) + f'@layer components{{{CSS}}}'
