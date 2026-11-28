@@ -1103,7 +1103,7 @@ const play=async marks=>{for(const[mark,old]of marks){const s=document.createEle
   else if(s.type==='module'){const id='tools-ran-'+Math.random().toString(36).slice(2),done=new Promise(r=>{addEventListener(id,r,{once:true});addEventListener('error',r,{once:true});setTimeout(r,10000)});
    s.textContent=old.textContent+'\\n;dispatchEvent(new Event('+JSON.stringify(id)+'))';mark.replaceWith(s);await done}
   else{s.textContent=old.textContent;mark.replaceWith(s)}}};
-// 📽️ The old popup handoff stays on this screen. Reuse the slide editor's normal image import (including undo).
+// 📽️ The old popup handoff stays on this screen. IronmatePhone.act("image", file) is the slide editor's own 📥 画像 (undoable).
 let sending=false;
 const connectHandoff=frame=>frame.contentDocument.querySelector('[data-slide-handoff]')?.addEventListener('click',async e=>{
  e.preventDefault();if(sending)return;sending=true;
@@ -1118,11 +1118,17 @@ const connectHandoff=frame=>frame.contentDocument.querySelector('[data-slide-han
   if(!slide)throw Error('Slide Studio is unavailable');
   if(!slide.dataset.ready)await new Promise(resolve=>slide.addEventListener('load',resolve,{once:true}));
   if(current!=='image-studio'||location.hash!==from)return;
-  const app=slide.contentWindow,input=slide.contentDocument.querySelector('input[data-file="image"]');
-  if(!input||!app.IronmatePhone)throw Error('Slide Studio did not load');
-  const transfer=new app.DataTransfer();transfer.items.add(new app.File([blob],'ironmate-image.png',{type:'image/png'}));
-  link.closest('dialog')?.close();location.hash='slide-studio';show(panel);input.files=transfer.files;input.dispatchEvent(new app.Event('change',{bubbles:true}));
- }catch{status.textContent='画像を渡せませんでした。PNGを書き出し、スライド工房で読み込んでください。'}
+  const app=slide.contentWindow,phone=app.IronmatePhone;
+  if(typeof phone?.act!=='function')throw Error('Slide Studio did not load');
+  // The pinned editor checks Blob against its own iframe's constructor.
+  const image=new app.Blob([blob],{type:blob.type});
+  const previousSelection=phone.selected;
+  const imported=await phone.act('image',image);
+  // Older Ironmate revisions select the new layer but return no result.
+  if(!(imported??(phone.selected&&phone.selected!==previousSelection)))throw Error('Slide Studio could not add the image');
+  if(current!=='image-studio'||location.hash!==from)return;
+  link.closest('dialog')?.close();location.hash='slide-studio';show(panel);
+ }catch{status.textContent='画像を渡せませんでした。スライド工房の状態を確認し、もう一度お試しください。'}
  finally{if(!status.textContent)status.remove();sending=false}
 });
 const mount=panel=>{const inert=panel.querySelector(':scope>template');if(inert){const part=document.importNode(inert.content,true);  // 💤 a panel loads when first opened
