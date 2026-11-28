@@ -3,7 +3,7 @@
 ``document()`` returns the one page that ``scripts/project_pages.py`` writes at build time. Everything a visitor reads is
 made here from ``profile.json``, ``api/repos.json`` and ``projects.json``: the page shell, the 🧰 Tools cards
 (``PORTAL``), and the profile and projects in each notation (cards, XML-like, JSON, Markdown). The colour themes are
-PySaiyanWeBoo's palettes, picked in the site chrome's ⚙️ 🎨, beside 🧾 the display mode (``SETTINGS``). The page script only switches between what Python built, filters projects and fills the AI
+PySaiyanWeBoo's palettes, picked in the site chrome's ⚙️ 🎨, beside 🧾 the display mode (the row the page declares: ``rows()``). The page script only switches between what Python built, filters projects and fills the AI
 highlight slots with what the public GitHub API returns in the browser.
 """
 import html
@@ -131,11 +131,7 @@ AI_FALLBACK = [
 ]
 # 👁️ display mode -> the notation it draws (modern and github-like differ in colour only).
 MODES = {'modern': 'web', 'xml-like': 'xml', 'json': 'json', 'markdown': 'markdown', 'github-like': 'web'}
-# ⚙️ this page's own row, beside 🌐 and 🎨: 🧾 the notation the profile and projects are shown in (its name follows 🌐: WORDS)
-SETTINGS = [{'label': '🧾 Display mode', 'key': 'mode', 'options': [
-    {'label': label, 'value': mode} for mode, label in zip(MODES, ('Modern', 'XML-like', 'JSON', 'Markdown', 'GitHub-like'))]}]
-WORDS = {'表示形式': ['Display mode', "Mode d'affichage", 'Modo de visualización', 'Modo de exibição', 'وضع العرض', '显示模式',
-                      'Режим отображения', 'Mode tampilan', 'Anzeigemodus', 'Hali ya kuonyesha']}
+
 NOTATION_CLASS = {'web': '', 'xml': 'notation-root xml-renderer', 'json': 'notation-root json-renderer', 'markdown': 'notation-root markdown-renderer'}
 
 
@@ -391,6 +387,16 @@ def documents_html(root: Path, documents) -> str:
     return ''.join(parts)
 
 
+def rows(ui) -> str:
+    """⚙️ What this page asks the site's header for (PySaiyanWeBoo ``chrome_rows_script``; the header places it on its own): 🧾 the
+    notation the profile and projects are shown in, beside 🌐 and 🎨, its name in 🌐's languages."""
+    names = ('Modern', 'XML-like', 'JSON', 'Markdown', 'GitHub-like')
+    return ui.chrome_rows_script({
+        'settings': [{'label': '🧾 Display mode', 'key': 'mode', 'options': [{'label': label, 'value': mode} for mode, label in zip(MODES, names)]}],
+        'words': {'表示形式': ['Display mode', "Mode d'affichage", 'Modo de visualización', 'Modo de exibição', 'وضع العرض', '显示模式',
+                              'Режим отображения', 'Mode tampilan', 'Anzeigemodus', 'Hali ya kuonyesha']}})
+
+
 def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
     root = Path(__file__).resolve().parents[1] if root is None else Path(root)
     if ui is None:
@@ -404,7 +410,7 @@ def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
     page = SHELL
     documents = documents_html(root, read('site.config.json').get('documents', []))
     for mark, value in (('@@PORTAL@@', portal_cards(samples)), ('@@TOPICS@@', topic_buttons(projects)),
-                        ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + ui.tabs_css() + '\n' + STYLE + '\n  '),
+                        ('@@VIEWS@@', views_html(profile, projects) + data + rows(ui)), ('@@STYLE@@', '\n' + palettes + '\n' + ui.tabs_css() + '\n' + STYLE + '\n  '),
                         ('@@DOCUMENTS@@', documents), ('@@SCRIPT@@', script)):
         assert page.count(mark) == 1, mark
         page = page.replace(mark, value)
