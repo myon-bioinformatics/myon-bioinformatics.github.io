@@ -175,7 +175,9 @@ def test_tooling_metadata_source_and_license():
     source = tomllib.loads((ROOT / "pyproject.toml").read_text())["tool"]["uv"]["sources"]["gh-identity-dev"]
     installed = json.loads(dist.read_text("direct_url.json"))
     assert installed["url"] == source["git"]
-    assert installed["vcs_info"]["commit_id"] == source["rev"]
+    lock = tomllib.loads((ROOT / "uv.lock").read_text())               # 🔁 follows main; uv.lock records the commit
+    [package] = [p for p in lock["package"] if p["name"] == "gh-identity-dev"]
+    assert installed["vcs_info"]["commit_id"] == source.get("rev", package["source"]["git"].rpartition("#")[2])
     license_file, = [f for f in dist.files if f.parts[-2:] == ("licenses", "LICENSE")]
     assert hashlib.sha256(license_file.locate().read_bytes()).hexdigest() == (
         "15f66204c4a6a1ce0c94f0ed4319ff9400f872e85fd32c95f21695c2f231af59")
@@ -221,6 +223,7 @@ def test_tampering_fails_before_writing(tmp_path, tamper, monkeypatch):
     root.mkdir()
     shutil.copyfile(ROOT / 'web-ui-assets.lock.json', root / 'web-ui-assets.lock.json')
     shutil.copyfile(ROOT / 'pyproject.toml', root / 'pyproject.toml')
+    shutil.copyfile(ROOT / 'uv.lock', root / 'uv.lock')     # 🔁 PySaiyanWeBoo follows main; uv.lock holds its commit
     lock_path = root / 'web-ui-assets.lock.json'
     lock = json.loads(lock_path.read_text())
     if tamper == 'output':
@@ -285,6 +288,7 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     root = tmp_path / 'source'
     (root / 'scripts').mkdir(parents=True)
     shutil.copyfile(ROOT / 'pyproject.toml', root / 'pyproject.toml')
+    shutil.copyfile(ROOT / 'uv.lock', root / 'uv.lock')     # 🔁 PySaiyanWeBoo follows main; uv.lock holds its commit
     shutil.copyfile(ROOT / 'scripts/project_pages.py', root / 'scripts/project_pages.py')
     (root / '_src/tools').mkdir(parents=True)
     shutil.copyfile(ROOT / '_src/tools/studio_routes.py', root / '_src/tools/studio_routes.py')
@@ -323,7 +327,7 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
 def test_failed_refresh_preserves_previous_snapshot(tmp_path, monkeypatch, failure):
     root = tmp_path / 'source'
     shutil.copytree(ROOT / 'tools/vendor/web-ui', root / 'tools/vendor/web-ui')
-    for name in ['pyproject.toml', 'web-ui-assets.lock.json']:
+    for name in ['pyproject.toml', 'uv.lock', 'web-ui-assets.lock.json']:
         shutil.copyfile(ROOT / name, root / name)
     before = {p.relative_to(root): p.read_bytes() for p in root.rglob('*') if p.is_file()}
     if failure == 'commit':

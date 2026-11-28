@@ -126,12 +126,22 @@ def installed_commit(distribution: str = DISTRIBUTION) -> str:
 
 
 def pinned_commit(root: Path = ROOT) -> str:
-    """Read the immutable dependency pin ([tool.uv.sources] in pyproject.toml); refresh must never adopt another install."""
+    """The one PySaiyanWeBoo commit to build from; refresh must never adopt another install.
+
+    🔁 pyproject.toml follows its main (``branch = "main"``) and uv.lock records the commit it resolved;
+    a full ``rev`` pin is still read as is.
+    """
     import tomllib
     sources = tomllib.loads((root / 'pyproject.toml').read_text(encoding='utf-8')).get('tool', {}).get('uv', {}).get('sources', {})
-    source, rev = sources.get(DISTRIBUTION, {}), sources.get(DISTRIBUTION, {}).get('rev', '')
-    if source.get('git') != 'https://github.com/myon-bioinformatics/PySaiyanWeBoo' or not re.fullmatch(r'[0-9a-f]{40}', rev):
-        raise ValueError('expected one full PySaiyanWeBoo commit pin')
+    source = sources.get(DISTRIBUTION, {})
+    rev = source.get('rev', '')
+    if source.get('git') == 'https://github.com/myon-bioinformatics/PySaiyanWeBoo' and source.get('branch') == 'main':
+        lock = tomllib.loads((root / 'uv.lock').read_text(encoding='utf-8'))
+        rev = next((p['source'].get('git', '') for p in lock.get('package', []) if p['name'] == DISTRIBUTION), '').rpartition('#')[2]
+    elif source.get('git') != 'https://github.com/myon-bioinformatics/PySaiyanWeBoo':
+        rev = ''
+    if not re.fullmatch(r'[0-9a-f]{40}', rev):
+        raise ValueError('expected PySaiyanWeBoo on main (uv.lock commit) or one full PySaiyanWeBoo commit pin')
     return rev
 
 

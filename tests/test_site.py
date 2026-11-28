@@ -1091,7 +1091,7 @@ def test_lab_tools_are_built_from_the_lab_commit_with_actions_as_the_report():
 def test_lab_pin_is_one_commit_across_workflows():
     """🔌 ci.yml (static, browser) and html-import.yml (Docker) check out the same lab commit for --stage."""
     refs = [ref for name in ('ci.yml', 'html-import.yml') for ref in re.findall(
-        r'repository: myon-bioinformatics/mcp-toolcall-lab\n\s+ref: ([0-9a-f]{40})', (ROOT / '.github/workflows' / name).read_text())]
+        r'repository: myon-bioinformatics/mcp-toolcall-lab\n\s+ref: ([0-9a-f]{40}|main)', (ROOT / '.github/workflows' / name).read_text())]
     assert len(refs) == 3 and len(set(refs)) == 1, refs
 
 
