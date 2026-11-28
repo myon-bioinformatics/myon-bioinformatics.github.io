@@ -40,9 +40,9 @@ PORTAL = [
   'text': '緯度・経度から Apple Maps と Google Maps の URL を作り、地点をピン留め・共有。',
   'words': {'地図URL・座標ピン留め': ['Map URLs & coordinate pins', 'URL de carte et épingles de coordonnées', 'URL de mapa y chinchetas de coordenadas', 'URL de mapa e alfinetes de coordenadas', 'روابط الخرائط ودبابيس الإحداثيات', '地图 URL 与坐标图钉', 'URL карт и метки координат', 'URL peta dan penanda koordinat', 'Karten-URLs und Koordinaten-Pins', 'URL za ramani na pini za kuratibu'], 'パラレル東京': ['Parallel Tokyo', 'Tokyo parallèle', 'Tokio paralelo', 'Tóquio paralela', 'طوكيو الموازية', '平行东京', 'Параллельный Токио', 'Tokyo Paralel', 'Paralleles Tokio', 'Tokyo sambamba']},
   'links': [('開く →', './tools/#maps'), ('🗼 パラレル東京 →', './tools/#tokyo')]},
- {'title': '🖼️ 画像工房', 'id': 'image-studio',
-  'text': 'レイヤー・作業履歴・クリップボード棚で画像を編集。数値行列のヒートマップと PNG Base64 の受け渡しも。',
-  'words': {'画像工房': ['Image studio', 'Atelier d’images', 'Taller de imágenes', 'Estúdio de imagens', 'استوديو الصور', '图像工坊', 'Студия изображений', 'Studio gambar', 'Bildwerkstatt', 'Studio ya picha']},
+ {'title': '📽️ 画像・スライド工房', 'id': 'slide-studio',
+  'text': '画像とスライドを1画面で編集。ヒートマップのシーン JSON を取り込み、PNG・SVG・PPTX に出力。',
+  'words': {'画像・スライド工房': ['Image & slide studio', 'Atelier image et diapositive', 'Taller de imágenes y diapositivas', 'Estúdio de imagens e slides', 'استوديو الصور والشرائح', '图像和幻灯片工坊', 'Студия изображений и слайдов', 'Studio gambar dan slide', 'Bild- und Folienstudio', 'Studio ya picha na slaidi']},
   'from': ('Ironmate',),
   'build': {**_IRONMATE, 'page': ''}},
  {'title': '🎨 ブラウザ道具', 'id': 'browser-tools',
@@ -50,17 +50,12 @@ PORTAL = [
   'words': {'ブラウザ道具': ['Browser tools', 'Outils du navigateur', 'Herramientas del navegador', 'Ferramentas do navegador', 'أدوات المتصفح', '浏览器工具', 'Инструменты браузера', 'Alat peramban', 'Browser-Werkzeuge', 'Zana za kivinjari']},
   'from': ('Ironmate',),
   'build': {**_IRONMATE, 'page': 'tools/'}},
- {'title': '📽️ スライド工房', 'id': 'slide-studio',
-  'text': 'ブラウザでスライドを作り、文字・図形・矢印を編集できる PPTX に出力。Markdown→PPTX は CLI の試作実装。',
-  'words': {'スライド工房': ['Slide studio', 'Atelier de diapositives', 'Taller de diapositivas', 'Estúdio de slides', 'استوديو الشرائح', '幻灯片工坊', 'Студия слайдов', 'Studio slide', 'Folienwerkstatt', 'Studio ya slaidi']},
-  'from': ('Ironmate',),
-  'build': {**_IRONMATE, 'page': 'slides/'}},
  {'title': '🌡️ ヒートマップ', 'id': 'heatmap',
-  'text': '数値行列か Plotly の heatmap を貼って描き、SVG・PNG・シーン JSON に。シーンは画像工房で編集できる。',
-  'words': {'ヒートマップ': ['Heatmap', 'Carte de chaleur', 'Mapa de calor', 'Mapa de calor', 'خريطة حرارية', '热图', 'Тепловая карта', 'Peta panas', 'Heatmap', 'Ramani ya joto'], '画像工房で編集': ['Edit in the image studio', 'Modifier dans l’atelier d’images', 'Editar en el taller de imágenes', 'Editar no estúdio de imagens', 'حرّر في استوديو الصور', '在图像工坊中编辑', 'Редактировать в студии изображений', 'Edit di studio gambar', 'In der Bildwerkstatt bearbeiten', 'Hariri katika studio ya picha']},
+  'text': '数値行列か Plotly の heatmap を貼って描き、SVG・PNG・シーン JSON に。シーンは工房で編集できる。',
+  'words': {'ヒートマップ': ['Heatmap', 'Carte de chaleur', 'Mapa de calor', 'Mapa de calor', 'خريطة حرارية', '热图', 'Тепловая карта', 'Peta panas', 'Heatmap', 'Ramani ya joto'], '工房で編集': ['Edit in the image studio', 'Modifier dans l’atelier d’images', 'Editar en el taller de imágenes', 'Editar no estúdio de imagens', 'حرّر في استوديو الصور', '在图像工坊中编辑', 'Редактировать в студии изображений', 'Edit di studio gambar', 'In der Bildwerkstatt bearbeiten', 'Hariri katika studio ya picha']},
   'from': ('DRAgoWing', 'Ironmate'),
   'build': {'repository': 'myon-bioinformatics/DRAgoWing', 'run': ('scripts/build_heatmap_page.py',)},   # 🌡️ its page on stdout
-  'links': [('開く →', './tools/#heatmap'), ('🖼️ 画像工房で編集 →', './tools/#image-studio')]},
+  'links': [('開く →', './tools/#heatmap'), ('📽️ 工房で編集 →', './tools/#slide-studio')]},
  {'title': '🧾 テスト結果', 'id': 'test-report',
   'text': 'JUnit の結果を読み、前回と比べて新規・再発・解消を分ける。🧯 で失敗をチャットの /triage へ。結果は送らない。',
   'words': {'テスト結果': ['Test results', 'Résultats de tests', 'Resultados de pruebas', 'Resultados de testes', 'نتائج الاختبار', '测试结果', 'Результаты тестов', 'Hasil pengujian', 'Testergebnisse', 'Matokeo ya majaribio']},
@@ -1127,7 +1122,7 @@ body[data-ui-theme-chosen]:not([data-ui-theme-chosen="modern"], [data-ui-theme-c
 
 SCRIPT = '''// The page script. What each notation looks like is decided in Python (scripts/front_page.py) and arrives as <template>
 // elements; this script shows one, drops the projects a search hides, and fills the AI highlight slots.
-import { copyText } from './tools/vendor/web-ui/js/ui.js';
+import { copyText, pageTheme } from './tools/vendor/web-ui/js/ui.js';
 
 const DEFAULT_VIEW_MODE = 'modern';
 const VIEW_MODE_KEY = 'site:view-mode';
@@ -1186,18 +1181,12 @@ function dropLastComma(root) {
   if (commas.length) commas[commas.length - 1].remove();
 }
 
-// 🎨 is ⚙️'s (PySaiyanWeBoo's bindTheme: one choice for every page of the site, so tools/ has it too); its "this page's own" is the
-// display mode's look. The page tells bindTheme which look is its own (pageTheme's contract: data-ui-theme-page).
-function applyOwnColours() {
-  const mode = getCurrentMode(), body = document.body;
-  body.dataset.uiThemePage = mode === 'modern' || mode === 'github-like' ? mode : 'plain';
-  if (body.dataset.uiThemeChosen === undefined) body.dataset.uiTheme = body.dataset.uiThemePage;
-}
-
 function applyViewMode(mode) {
   const normalized = normalizeViewMode(mode);
   document.body.dataset.viewMode = normalized;
-  applyOwnColours();
+  // 🎨 is ⚙️'s (PySaiyanWeBoo's bindTheme: one choice for every page of the site, so tools/ has it too); "this page's own" is the
+  // display mode's look, which PySaiyanWeBoo's pageTheme tells it.
+  pageTheme(normalized === 'modern' || normalized === 'github-like' ? normalized : 'plain');
   const choice = document.querySelector('[data-chrome-choice="mode"]');   // ⚙️ 🧾 says the mode in effect
   if (choice && choice.value !== normalized) choice.value = normalized;
   renderPortfolio();
