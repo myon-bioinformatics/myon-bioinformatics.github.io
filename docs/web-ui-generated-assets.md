@@ -16,8 +16,7 @@ A mismatch fails the build before upload; there is no fallback to stale assets.
 The lab's `publication.json` separately identifies the imported report source.
 
 🧰 The same generator also builds this site's own panels of the one screen (`render_pages()` in `scripts/project_pages.py`): 🌍 the world,
-📄 the HTML import, 🧾 PySaiyanWeBoo's JUnit reader, 📍 the map, 🎞 the GIF workshop and 💬 the chat (🤝 PySaiyanWeBoo's in-page MCP
-connection test is the 🔌 lab's `#protocol` view). Each is keyed `folder/#name`: the folder its document is built for (the screen's,
+📄 the HTML import, 🧾 PySaiyanWeBoo's JUnit reader, 📍 the map, 🎞 the GIF workshop and 💬 the chat. Each is keyed `folder/#name`: the folder its document is built for (the screen's,
 `tools/`; the HTML import's own, `tools/html-import/`, beside its module) and its `#name` on `tools/index.html`. None is published as a
 page of its own. Their SHA-256 values are under `pages` in the same lock, so `presentation_identity()` (the shared assets, `outputs`)
 is unchanged. `--refresh-lock` rewrites their hashes with the assets'.

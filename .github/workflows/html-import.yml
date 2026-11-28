@@ -12,7 +12,7 @@ jobs:
   changes:
     permissions:
       contents: read
-    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@9e3da7ae1846e9604ebc24bb5178f7de094a4e77
+    uses: myon-bioinformatics/myon-bioinformatics/.github/workflows/reusable-change-detection.yml@27dedd9651efc816fa88d8922adb5f242725df69
 
   docker-contract:
     if: needs.changes.outputs.product_changed == 'true'
@@ -21,14 +21,6 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # 🔌 The lab whose tools --stage builds (files in tools/mcp/, pages as the screen's #mcp panels; same pin in ci.yml and html-import.yml).
-      - name: Checkout the verified mcp-toolcall-lab source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: myon-bioinformatics/mcp-toolcall-lab
-          ref: a62cf8401b224cb7ecca1906a6de05194595baf3
-          path: .test-deps/mcp-toolcall-lab
-          persist-credentials: false
       - name: Build reusable Python and browser environment
         uses: ./.github/actions/html-import-image
       - name: Run offline fixture and desktop/mobile browser tests

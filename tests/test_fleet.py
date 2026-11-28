@@ -11,8 +11,8 @@ spec.loader.exec_module(fleet)
 
 ROOT = fleet.repo_root(__file__)
 # Local rollout contract; adopted vendor locks are deliberately independent.
-PARENT_WORKFLOW_PIN = "9e3da7ae1846e9604ebc24bb5178f7de094a4e77"
-ACCEPTED = {"vendor/fleet_check.py": "4748595d057e11477e0d62d76c92cb4658ed350c"}   # 📜 script_catalog (parent #385)
+PARENT_WORKFLOW_PIN = "27dedd9651efc816fa88d8922adb5f242725df69"
+ACCEPTED = {"vendor/fleet_check.py": "eee8c096fc753465a5d5a26264e64c12e555638f"}   # 📜 check_no_vendor_package_imports (parent #414)
 
 
 def test_vendor_lock_matches_checked_in_bytes_and_accepted_commits():
@@ -54,6 +54,10 @@ def test_vendor_asset_checks_use_installed_pinned_generator():
 class ScriptsDescribeThemselves(unittest.TestCase):
     def test_every_script_has_a_description_and_declared_arguments(self):
         fleet.check_scripts(fleet.repo_root(__file__))
+
+    def test_no_top_level_vendor_package_imports(self):
+        # 📦 vendored modules load by path under a repo-unique name (cli_args README: Loading a vendored copy)
+        self.assertEqual(fleet.check_no_vendor_package_imports(ROOT), [])
 
     def test_pull_request_ci_stays_quick(self):
         # ⏱ push limited to branches, superseded PR runs cancelled, every job timed (fleet_check.check_ci)

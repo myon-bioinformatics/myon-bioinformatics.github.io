@@ -32,18 +32,16 @@ def _staged_site() -> tuple:
 
 
 SITE, PAGES = _staged_site()
-# 🧰 the tools stage() built from the pinned checkouts under .test-deps/ (CI checks out mcp-toolcall-lab there)
+# 🧰 the tools stage() built from checkouts (.test-deps/) of the repositories the cards build from (each card's build), if any
 _RECEIPT = SITE / PAGES.TOOLS
 MADE = json.loads(_RECEIPT.read_text(encoding='utf-8'))['made'] if _RECEIPT.is_file() else []
-LAB_BUILT = 'mcp-toolcall-lab' in MADE
-needs_lab = pytest.mark.skipif(not LAB_BUILT, reason='🔌 clone mcp-toolcall-lab (the CI pin) into .test-deps/mcp-toolcall-lab')
 
 
 def test_stage_serves_published_static_files_verbatim():
     for name in ('api/repos.json', 'profile.json', 'projects.json', 'site.config.json',
                  'docs/html-import.md', 'docs/evidence/browser.gif', 'docs/evidence/browser.json',
                  'docs/evidence/chat.gif', 'docs/evidence/home-screen.gif',
-                 'tools/niconico/search.js', 'tools/vendor/web-ui/LICENSE'):
+                 'tools/vendor/web-ui/LICENSE'):
         assert (SITE / name).read_bytes() == (ROOT / name).read_bytes(), name
 
 
@@ -51,9 +49,6 @@ def test_stage_serves_published_static_files_verbatim():
 
 EXPECTED_PAGES = {
     "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
-    "https://myon-bioinformatics.github.io/tools/#image-studio",   # 🧰 framed #panels of the one screen
-    "https://myon-bioinformatics.github.io/tools/#browser-tools",
-    "https://myon-bioinformatics.github.io/tools/#slide-studio",
     # Other repositories' Pages (each checked to load on 2026-11-13): the operations dashboard, usage guides.
     "https://myon-bioinformatics.github.io/markdown/",
     "https://myon-bioinformatics.github.io/myon-bioinformatics/",
@@ -78,32 +73,27 @@ def test_portal_exposes_expected_pages():
     parser.feed((SITE / "index.html").read_text(encoding="utf-8"))
     assert "tools" in parser.ids
     assert EXPECTED_PAGES <= set(parser.links)
+    assert {"./tools/#image-studio", "./tools/#browser-tools", "./tools/#slide-studio"} <= set(parser.links)   # 🧰 framed #panels, from the site
 
 
-def test_tool_cards_and_door_follow_the_service_catalog(tmp_path, monkeypatch):
-    from shutil import copyfile
+def test_readme_lists_every_card_as_the_cards_say():
+    """🧰 README's table of the tools is the cards' (``tools_readme``, written by --refresh-lock between its marks): a new card is a new
+    row, with what it does, who makes it and its links."""
+    readme = (ROOT / 'README.md').read_text(encoding='utf-8')
+    start, end = (readme.index(mark) for mark in PAGES.README_TOOLS)
+    assert readme[start + len(PAGES.README_TOOLS[0]):end].strip() == PAGES.tools_readme(), 'run: python scripts/project_pages.py --refresh-lock'
+    assert PAGES.tools_readme().count('\n| ') == len(PAGES._front_module().PORTAL) + 1
 
-    scripts = tmp_path / 'scripts'
-    scripts.mkdir()
-    copyfile(ROOT / 'scripts/front_page.py', scripts / 'front_page.py')
-    path = tmp_path / 'services.json'
-    catalog = json.loads((ROOT / 'services.json').read_text(encoding='utf-8'))
-    projects = catalog['services']['projects']
-    projects['Ironmate']['pages']['url'] = 'https://myon-bioinformatics.github.io/tools/example-image/'
-    projects['mcp-toolcall-lab']['execution']['url'] = 'https://myon-bioinformatics.github.io/tools/example-execution/'
-    path.write_text(json.dumps(catalog), encoding='utf-8')
-    front = PAGES.load_module('test_front_catalog', scripts / 'front_page.py')
-    monkeypatch.setattr(PAGES, '_front_module', lambda: front)
 
-    parser = LinkParser()
-    parser.feed(front.portal_cards())
-    assert 'https://myon-bioinformatics.github.io/tools/example-image/' in parser.links
-    assert './tools/example-image/' in parser.links  # keep the heatmap-to-editor shortcut
-    assert 'https://myon-bioinformatics.github.io/tools/example-execution/' in parser.links
-    assert not any('/image-studio/' in href or '/mcp/execution/' in href for href in parser.links)
+def test_the_service_catalog_names_where_the_cards_place_their_tools():
+    """🧰 A card is where its tool is (tools/#<id>, a #panel of the screen); services.json, which other repositories read, names the
+    same places, and a relative's shortcut (the heatmap's to 🖼️) is no second door."""
+    services = json.loads((ROOT / 'services.json').read_text(encoding='utf-8'))['services']['projects']
+    for project, endpoint, card in (('Ironmate', 'pages', 'image-studio'), ('Ironmate', 'browserTools', 'browser-tools'), ('Ironmate', 'slides', 'slide-studio')):
+        assert services[project][endpoint]['url'] == f'https://myon-bioinformatics.github.io/tools/#{card}', (project, endpoint)
+        assert any(c['id'] == card and c['links'][0][1] == f'./tools/#{card}' for c in PAGES._front_module().PORTAL), card
     doors = [place['href'] for place in PAGES.tools_places('../../')]
-    assert doors.count('../../tools/example-image/') == 1
-    assert '../../tools/example-execution/' in doors
+    assert doors.count('../../tools/#image-studio') == 1
 
 
 def test_every_active_repository_with_pages_is_one_tap_away():
@@ -153,9 +143,12 @@ def test_a_tools_card_shows_its_moving_sample_and_the_picture_opens_the_tool(tmp
     assert all(f'<a href="{html_escape(href)}">{html_escape(label, quote=False)}</a>' in plain for card in front.PORTAL for label, href in card["links"])
     cards = front.portal_cards(frozenset({"tools/gif", "tools/operations", "tools/maps", "gif", "tools/no-such-tool"}))
     assert cards.count('class="project-sample"') == 3
-    assert "GIF をつくる →" not in cards and "Open Dashboard →" not in cards and ">実験室へ →</a>" in cards        # one page: the picture; no picture: the words
-    assert ('<a href="./tools/#maps">地図URLを作成 →</a><a href="./tools/#tokyo">パラレル東京 →</a>' in cards
+    assert '<a href="./tools/#gif">' not in cards and '<a href="./tools/#flow">開く →</a>' in cards        # one page: the picture; no picture: the words
+    assert ('<a href="./tools/#maps">開く →</a><a href="./tools/#tokyo">🗼 パラレル東京 →</a>' in cards
             and '<a class="project-sample" href="./tools/#maps">' in cards)                                    # relatives stay side by side
+    assert all(len(card["text"]) <= 70 and card["links"][0][0] == "開く →" for card in front.PORTAL)   # 📝 short; the first link opens it
+    titles = [card["title"] for card in front.PORTAL]                          # 🏷️ one name each: an emoji, then its words
+    assert len(set(titles)) == len(titles) and all(re.fullmatch(r"\S+ \S.*", title) and not title[0].isalnum() for title in titles)
     everything = front.portal_cards(frozenset(f"tools/{key}" for key in ids))
     several = [card for card in front.PORTAL if len(card["links"]) > 1]
     assert everything.count('class="project-sample"') == len(ids) and several
@@ -340,29 +333,14 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
     assert "arrow attributes and advanced formatting" in editing["unsupported"]
 
     html = (SITE / "index.html").read_text(encoding="utf-8")
-    card_start = html.index('<h3 id="studios">🖼️ スライド・画像工房</h3>')
+    card_start = html.index('<h3 id="slide-studio">📽️ スライド工房</h3>')
     card = html[card_start:html.index("</article>", card_start)]
     assert "PPTX対応は計画段階" not in card
     assert "Markdown→PPTX" in card
     assert "試作実装" in card
-    assert "ブラウザでスライドを作成" in card
+    assert "ブラウザでスライドを作り" in card
     assert "Open Repository" not in card
     assert "tools/#slide-studio" in card
-
-
-def test_lab_pages_are_hosted_by_portfolio():
-    parser = LinkParser()
-    parser.feed((SITE / "index.html").read_text())
-    assert "mcp" in parser.ids
-    assert "./tools/#mcp" in parser.links
-    assert not (SITE / "tools/mcp/index.html").exists() and not (SITE / "tools/mcp/execution/index.html").exists()   # 🖼️ framed #panels
-    assert "<title>" in shell_frame("mcp")
-    execution = shell_panel("mcp-execution")
-    if execution.startswith("<iframe"):
-        assert "<title>" in shell_frame("mcp-execution")
-    else:                                                       # 🧪 its build runs Node: a job without it gets the ⏸
-        assert "⏸" in execution
-    assert not list((SITE / "tools/mcp").glob("**/*.html"))   # 🚫 neither a page nor the runtime's copy of it
 
 
 def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
@@ -383,35 +361,33 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
 
 # 🧰 This site's own panels (render_pages: PySaiyanWeBoo's tool documents, 🌍 the world, …) and the other repositories' tools are panels of the screen.
 def shell_frame(name: str) -> str:
-    """🖼️ The document the one screen's framed ``#name`` panel runs (its ``<iframe srcdoc>``)."""
+    """🖼️ The document the one screen's framed ``#name`` panel runs (its ``<iframe srcdoc>``), None for a joined one."""
     from html import unescape
     page = (SITE / PAGES.SHELL_PAGE).read_text(encoding="utf-8")
-    return unescape(re.search(rf'<section id="{name}"[^>]*\bdata-tools-panel[^>]*><template><iframe[^>]*\bsrcdoc="([^"]*)"', page, re.S)[1])
+    found = re.search(rf'<section id="{name}"[^>]*\bdata-ui-view[^>]*><template><iframe[^>]*\bsrcdoc="([^"]*)"', page, re.S)
+    return unescape(found[1]) if found else None                         # None: a joined panel
 
 
 def shell_panel(name: str) -> str:
     """🧰 The markup of the one screen's ``#name`` panel (inert in its <template> until it is opened)."""
     page = (SITE / PAGES.SHELL_PAGE).read_text(encoding="utf-8")
-    return re.search(rf'<section id="{name}"[^>]*\bdata-tools-panel[^>]*><template>(.*?)</template></section>', page, re.S)[1]
-
-
+    return re.search(rf'<section id="{name}"[^>]*\bdata-ui-view[^>]*><template>(.*?)</template></section>', page, re.S)[1]
 
 
 def test_tools_built_from_other_repositories_never_404():
-    """🧰 Every entry of a tool built from another repository is a #panel of the one screen, never a page of its own: framed when
-    the tool lists its entries (an app that owns its document), joined when it has one page; without a recording (tests, a failed
-    clone) a ⏸ joined panel. A failed rebuild keeps what was there."""
-    for key, (repository, folder, entries) in PAGES.TOOL_SOURCES.items():
-        for entry in entries or ('',):
-            source = f'{folder}/{entry}index.html'
-            name = PAGES.panel_name(source)
-            assert not (SITE / source).exists(), source
-            if key in MADE:                                   # built from a pinned checkout: no ⏸
-                html = shell_frame(name) if entries else shell_panel(name)
-                assert '⏸' not in html and 'data-testid="portfolio-back"' not in html and 'class="ui-door-foot"' not in html, name   # the screen's chrome only
-                continue
-            html = shell_panel(name)
-            assert '⏸' in html and f'https://github.com/{repository}' in html, name
+    """🧰 Every tool a card builds from another repository is a #panel of the one screen, never a page of its own: framed when it
+    carries its own CSP (an app that owns its document), else joined; without a recording (tests, a failed clone) a ⏸ joined panel.
+    A failed rebuild keeps what was there."""
+    for card in (card for card in PAGES._front_module().PORTAL if 'build' in card):   # 🧰 a card that says how another repository builds it
+        name, repository = card['id'], card['build']['repository']
+        assert not (SITE / f'tools/{name}/index.html').exists(), name
+        if name in MADE:                                      # built from a pinned checkout: no ⏸
+            html = shell_frame(name) or shell_panel(name)     # 🖼️ framed when it carries its own CSP
+            assert '⏸' not in html and 'data-testid="portfolio-back"' not in html and 'class="ui-door-foot"' not in html, name   # the screen's chrome only
+            assert (shell_frame(name) is not None) == ('Content-Security-Policy' in html), name
+            continue
+        html = shell_panel(name)
+        assert '⏸' in html and f'https://github.com/{repository}' in html, name
     front = LinkParser()
     front.feed((SITE / "index.html").read_text(encoding="utf-8"))
     assert "./tools/#heatmap" in front.links                                         # 🌡️ the 🧰 Tools card opens it (a #panel)
@@ -419,8 +395,8 @@ def test_tools_built_from_other_repositories_never_404():
         kept = Path(tmp) / 'tools/image-studio/index.html'
         kept.parent.mkdir(parents=True)
         kept.write_text('kept', encoding='utf-8')
-        receipt = PAGES.collect_tools(Path(tmp), {'ironmate': Path(tmp) / 'no-checkout'}, {'ironmate': '0' * 40})
-        assert receipt['made'] == [] and 'ironmate' in receipt['failed'] and kept.read_text(encoding='utf-8') == 'kept'
+        receipt = PAGES.collect_tools(Path(tmp), {'myon-bioinformatics/Ironmate': Path(tmp) / 'no-checkout'}, {'myon-bioinformatics/Ironmate': '0' * 40})
+        assert receipt['made'] == [] and 'image-studio' in receipt['failed'] and kept.read_text(encoding='utf-8') == 'kept'
 
 
 def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path):
@@ -443,10 +419,9 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
         encoding='utf-8',
     )
     out = tmp_path / 'site'
-    receipt = PAGES.collect_tools(out, {'ironmate': checkout}, {'ironmate': '0' * 40})
-    assert receipt['made'] == ['ironmate']
-    assert not (out / 'tools/ironmate').exists()
-    assert not (SITE / '_src/tools/studio_routes.py').exists()  # source is not a public artifact
+    receipt = PAGES.collect_tools(out, {'myon-bioinformatics/Ironmate': checkout}, {'myon-bioinformatics/Ironmate': '0' * 40})
+    assert receipt['made'] == ['image-studio', 'browser-tools', 'slide-studio']           # 🧰 one build, three cards, each at tools/<id>/
+    assert not (out / 'tools/ironmate').exists() and not (out / 'tools/tools').exists() and not (out / 'tools/slides').exists()
     tools = out / 'tools'
     assert 'href="../slide-studio/"' in (tools / 'image-studio/index.html').read_text()
     assert 'href="../slide-studio/#target"' in (tools / 'browser-tools/index.html').read_text()
@@ -459,25 +434,33 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
     manifest = json.loads((tools / 'image-studio/brand/manifest.webmanifest').read_text())
     assert manifest['scope'] == '../../'
     assert manifest['shortcuts'] == [{'url': '../../slide-studio/'}]
+    (checkout / 'image_studio.py').write_text(                             # 🧩 a build that no longer makes one card's page (one editor)
+        "import pathlib,sys\nroot = pathlib.Path(sys.argv[2])\n"
+        "for name in ('index.html', 'tools/index.html', 'slides/studio.js'):\n"
+        " p = root / name; p.parent.mkdir(parents=True, exist_ok=True); p.write_text('<main>one editor</main>')\n", encoding='utf-8')
+    receipt = PAGES.collect_tools(out, {'myon-bioinformatics/Ironmate': checkout}, {'myon-bioinformatics/Ironmate': '0' * 40})
+    assert receipt['made'] == ['image-studio', 'browser-tools'] and receipt['failed'] == {'slide-studio': 'no page'}   # ⏸ that card only
+    assert 'one editor' in (tools / 'image-studio/index.html').read_text() and (tools / 'image-studio/slides/studio.js').is_file()
+    assert (tools / 'slide-studio/index.html').read_text() == slides                 # what was there stays
 
 
 def test_the_screen_carries_the_site_chrome_once_and_every_door_is_a_panel():
-    """🧰 tools_chrome + PySaiyanWeBoo's chrome on the screen: the board with the clock, 🏠, ⭐ ⚙️ and ☰ ⋯ for its own (☰ lists
-    nothing of other pages); and 🚪 tools_door: PySaiyanWeBoo's Door-to-Door with 🏠 and every 🧰 Tools link, each a #panel of it.
+    """🧰 PySaiyanWeBoo's add_site_chrome told what the site is (tools_site) on the screen: the board with the clock, 🏠, ⭐ ⚙️ and ☰ ⋯
+    for its own (☰ lists nothing of other pages); and 🚪 PySaiyanWeBoo's Door-to-Door with 🏠 and every 🧰 Tools link, each a #panel of it.
     Its panels' own headers (🌍) are theirs: the site's parts come once."""
     import html
     import re
     import pysaiyanweboo as ui
     chrome = ui.component_parts('chrome')['js']                    # 🌐 a page keeps, of the body's words, only those it holds
     module = (re.compile(re.escape('<script type="module">' + chrome[:chrome.index('CHROME_TEXT=')]) + '.*?' + re.escape(chrome[-64:] + '</script><div class="ui-door-foot"><div class="ui-door ui-door-compact" id="door" data-ui-door '), re.S),
-              '</span></p></div><script type="module">' + PAGES.tools_door(ui)['js'] + '</script></body>')
-    assert PAGES.tools_door(ui)['js'] == ui.js_source('door.js') and 'addEventListener("pageshow",fill)' in module[1]   # PySaiyanWeBoo's door.js alone
+              '</span></p></div><script type="module">' + ui.js_source('door.js') + '</script>' + ui.module_script(PAGES._SKIP_JS) + '</body>')   # ⌨️ the site's skip link follows it
+    assert 'addEventListener("pageshow",fill)' in module[1]                                   # PySaiyanWeBoo's door.js alone
     cards = [html.escape(card['title']) for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL]
     assert sorted(p.relative_to(SITE).as_posix() for p in SITE.rglob('*.html') if 'media' not in p.parts) == ['index.html', PAGES.SHELL_PAGE]   # 🧰 two pages
     for name in (PAGES.SHELL_PAGE,):
         page = full = (SITE / name).read_text(encoding='utf-8')
-        first = page.index('data-tools-panel', page.index('<section id="home"') + 32)   # 🧰 the screen's own chrome, not what its panels hold
-        page = page[:page.rindex('<section id="', 0, first)] + page[page.index('<script>(()=>{const panels='):]
+        first = page.index('data-ui-view', page.index('<section id="home"') + 32)   # 🧰 the screen's own chrome, not what its panels hold
+        page = page[:page.rindex('<section id="', 0, first)] + page[page.index('<script>(()=>{let sending'):]   # up to the screen's own script
         prefix = '../' * name.count('/')
         body = re.search(r'<body[^>]*>', page)
         assert '<div class="ui-board"' in page and page.count('<div class="ui-door-foot">') == 1, name   # 📟 🚪
@@ -512,7 +495,7 @@ def test_the_screen_carries_the_site_chrome_once_and_every_door_is_a_panel():
         doors = re.findall(r'<option value="([^"]+)"( selected disabled)?>([^<]+)</option>', page[page.index('<div class="ui-door-foot">'):page.index(module[1])])
         assert doors[0] == (f'{prefix}index.html#tools', '', '🏠 Tools') and [href for href, _, _ in doors[1:1 + len(rows)]] == [href for href, _ in rows], name   # 🚪 = 🏠 + the tools
         assert not any(mark for _, mark, _ in doors) and len(doors) == 1 + len(rows), name   # 🧰 each #panel is a door; the screen marks the open one
-        assert {urlparse(href).fragment for href, _ in rows if href.startswith('../tools/#')} <= {*re.findall(r'<section id="([^"]+)"[^>]*\bdata-tools-panel', full),
+        assert {urlparse(href).fragment for href, _ in rows if href.startswith('../tools/#')} <= {*re.findall(r'<section id="([^"]+)"[^>]*\bdata-ui-view', full),
                                                                                                 *' '.join(re.findall(r'\bdata-routes="([^"]*)"', full)).split(), *PageParser.of(full).ids}, name
         assert len({words.split(' ')[0] for _, _, words in doors}) == len(doors), name                    # one emoji, one panel
     maps = (SITE / PAGES.SHELL_PAGE).read_text(encoding='utf-8')                    # 🗼 an emoji a page adds for its own use (the map's)
@@ -557,7 +540,7 @@ def test_door_to_door_in_chromium_with_a_gif():
                     page.wait_for_selector('#door[data-door_ready]')
                     foot, select = page.locator('.ui-door-foot').bounding_box(), page.locator('.ui-door-foot [data-door-select]')
                     assert (foot['x'], foot['width'], round(foot['y'] + foot['height'])) == (0, width, height) and foot['height'] <= 64, foot
-                    assert select.bounding_box()['height'] == 40 and page.evaluate(shown) == '🗺️ 地図URLを作成'
+                    assert select.bounding_box()['height'] == 40 and page.evaluate(shown) == '📍 地図URL・座標ピン留め'
                     visible = page.evaluate("[...document.querySelectorAll('.ui-door-foot .ui-door *')].filter(e => e.offsetParent && e.tagName !== 'OPTION' && e.getBoundingClientRect().width > 1).map(e => e.tagName)")
                     assert visible == ['LABEL', 'SPAN', 'SELECT'], visible                 # 🚪 and the pull-down (compact): no panel
                     assert page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth') == 0
@@ -598,18 +581,26 @@ def test_door_to_door_in_chromium_with_a_gif():
     target['door-to-door-pulldown'].write_bytes(gif)
 
 
-def test_every_tool_page_has_the_same_back_link_first_in_main():
-    import re
-    for page in (SITE / PAGES.SHELL_PAGE,):
-        html = page.read_text(encoding="utf-8")
-        main = re.search(r"<main[^>]*>", html)
-        assert main, page
-        after = html[main.end():]
-        prefix = '../' * page.relative_to(SITE).as_posix().count('/')
-        assert after.startswith('<nav class="ui-back" aria-label="関連リンク" data-ui-back data-testid="portfolio-back">'
-                                f'<p class="ui-links"><a href="{prefix}index.html#tools">← 🧰 Tools</a>'), page
-        assert html.count('data-ui-back') == 1, page
-        assert "Back to portfolio" not in html, page
+def test_tools_shell_has_one_normalized_return_link():
+    from html.parser import HTMLParser
+    from urllib.parse import urljoin
+
+    class Anchors(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.targets = []
+
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if tag == "a" and "href" in attrs:
+                self.targets.append(urljoin("https://example.test/tools/index.html", attrs["href"]))
+
+    page = (SITE / PAGES.SHELL_PAGE).read_text(encoding="utf-8")
+    parser = Anchors()
+    parser.feed(page)
+    assert parser.targets.count("https://example.test/index.html#tools") == 1
+    assert 'data-testid="portfolio-back"' not in page
+    assert '<a class="ui-world-home" href="../index.html#tools"' in page
 
 
 # ═══ 🐍 front page (scripts/front_page.py) ═══════════════════════════════════════════════════════════════════════
@@ -695,12 +686,17 @@ def test_front_page_ai_highlight_templates_have_the_same_slots_in_every_notation
 
 
 def test_front_page_offers_the_shared_colour_themes_and_embeds_no_unsafe_json():
+    """⚙️ holds both: 🎨 the site's colours (the chrome's, so tools/ shares the choice) and 🧾 this page's display mode; the header has neither."""
     front = _front()
     ui = pytest.importorskip('pysaiyanweboo')
-    page = front.document()
+    page = PAGES.render_front()['index.html'].decode('utf-8')
+    settings = page[page.index('data-menu="settings"'):page.index('data-menu="spots"')]
     for name in ui.theme_palettes():
-        assert f'<option value="{name}">' in page and f'body[data-ui-theme="{name}"]' in page, name
+        assert f'<option value="{name}">' in settings and f'body[data-ui-theme="{name}"]' in page, name
     assert set(front.MODES) == {'modern', 'xml-like', 'json', 'markdown', 'github-like'}
+    assert re.findall(r'<option value="([a-z-]+)">', settings[settings.index('data-chrome-choice="mode"'):]) == list(front.MODES)
+    assert 'id="theme-select"' not in page and 'id="view-mode-select"' not in page
+    page = front.document()
     data = page[page.index('id="projects-data">') + len('id="projects-data">'):]
     assert '<' not in data[:data.index('</script>')]                                     # nothing can close the script element early
 
@@ -767,8 +763,8 @@ def canonical_data_errors(profile: dict, projects: list, catalog: dict, registry
             errors.append(f"repository service URL drift for {name}: {repository_url} != {repo['url']}")
         prefix = f'https://myon-bioinformatics.github.io/{name}/'
         # 🧰 a tool built here from this repository lives at its feature route (TOOL_SOURCES), not at the repository's name
-        built_here = tuple(f'https://myon-bioinformatics.github.io/tools/#{PAGES.panel_name(f"{folder}/{entry}index.html")}' for repository, folder, entries
-                           in PAGES.TOOL_SOURCES.values() if repository == f'myon-bioinformatics/{name}' for entry in entries or ('',))
+        built_here = tuple(f'https://myon-bioinformatics.github.io/tools/#{card["id"]}' for card in PAGES._front_module().PORTAL
+                           if card.get('build', {}).get('repository') == f'myon-bioinformatics/{name}')
         for service_name, service in group.items():
             if not isinstance(service, dict):
                 errors.append(f'invalid service entry at services.projects.{name}.{service_name}')
@@ -885,8 +881,6 @@ def test_home_screen_tool_page_shortcuts_open_that_page_and_show_an_icon():
         assert label == page.metas["application-name"] and len(label) <= 12, (name, label)
         for rel in ("icon", "apple-touch-icon"):
             [icon] = rel_links(page, rel)
-            if icon["href"].startswith("/tools/mcp/execution/"):   # the lab artwork, built here at deploy time (--record-tools)
-                continue
             png_size((SITE / name).parent / icon["href"])
     assert "img-src 'self'" in shell_frame('html-import')   # 🖼️ the framed HTML import's CSP lets images load
 
@@ -896,8 +890,8 @@ def test_home_screen_every_local_link_and_asset_resolves():
         page = parse_page(SITE / name)
         for ref in page.refs:
             url = urlparse(ref)
-            if url.scheme or ref.startswith("/"):                   # 🌐 other sites, or the lab's Pages on this host
-                assert url.scheme == "https" or ref.startswith("/tools/mcp/execution/"), (name, ref)
+            if url.scheme:                                            # 🌐 other sites
+                assert url.scheme == "https", (name, ref)
                 continue
             target = ((SITE / name).parent / url.path).resolve() if url.path else SITE / name
             target = target / "index.html" if target.is_dir() else target
@@ -991,9 +985,9 @@ def test_home_screen_in_chromium_with_a_gif():
             assert probe.evaluate(load, icons) == ["32x32", "170x170"]
             page.goto(base + "tools/")
             frames.append((page.screenshot(), "🧰 " + page.title() + " · no manifest · icons 32x32 170x170"))
-            page.get_by_test_id("portfolio-back").get_by_role("link").click()
+            page.locator(".ui-chrome a.ui-world-home").click()
             page.wait_for_url(base + "index.html#tools")
-            frames.append((page.screenshot(), "↩️ ← 🧰 Tools → index.html#tools"))
+            frames.append((page.screenshot(), "↩️ 🏠 → index.html#tools"))
 
             recorder = browser.new_page()
             recorder.set_content(ui.gif_recorder_document())
@@ -1056,238 +1050,14 @@ def test_fixture_oracles_are_explicit():
     assert by_name['whitespace']['expected']['text'] == 'A B C'
 
 
-# ═══ 🧪 lab publication ═══════════════════════════════════════════════════════════════════════════════════
+# ═══ 💬 chat ═══════════════════════════════════════════════════════════════════════════════════════════
 
-spec = importlib.util.spec_from_file_location('mcp_lab', ROOT / '_src/tools/mcp_lab.py')
-module = importlib.util.module_from_spec(spec)
-sys.modules['mcp_lab'] = module  # the tests below import names from it
-spec.loader.exec_module(module)
-PUBLIC = SITE / 'tools/mcp'      # 🔌 built from the pinned lab checkout (.test-deps/mcp-toolcall-lab) when it is there: its files
-lab_page = lambda: shell_frame('mcp')   # 🖼️ and its page, framed in the one screen
+def test_lab_pin_is_one_commit_for_both_ci_jobs():
+    """🔌 ci.yml's static and browser jobs check out the same lab commit: the code the chat's MCP server runs in the tests."""
+    refs = re.findall(r'repository: myon-bioinformatics/mcp-toolcall-lab\n\s+ref: ([0-9a-f]{40})', (ROOT / '.github/workflows/ci.yml').read_text())
+    assert len(refs) == 2 and len(set(refs)) == 1, refs
+    assert 'mcp-toolcall-lab' not in (ROOT / '.github/workflows/html-import.yml').read_text()     # 🐳 the Docker contract builds no lab
 
-
-@needs_lab
-def test_lab_tools_are_built_from_the_lab_commit_with_actions_as_the_report():
-    commit = json.loads(_RECEIPT.read_text(encoding='utf-8'))['commits']['mcp-toolcall-lab']
-    page = lab_page()
-    for control in ('pages-wiki-form', 'pages-pixiv-source-form', 'pages-pixiv-extract-submit'):
-        assert control in page
-    assert f'mcp-toolcall-lab/commit/{commit}' in page and f'mcp-toolcall-lab@{commit[:7]}' in page
-    assert page.count(module.ACTIONS) >= 2 and 'data-testid="lab-actions-report"' in page   # 🧪 the banner and the report
-    assert 'Last Actions summary' not in page and '"verdict"' not in page
-    assert (PUBLIC / 'LICENSE').is_file()
-    published = {path.name for path in PUBLIC.iterdir() if path.is_file()}
-    assert published == {*module.FILES, *module.OPTIONAL, 'LICENSE', 'pixiv-markup.js', 'pixiv-panel.js', 'shared-navigation.mjs'} - {'index.html'}
-    assert not (ROOT / 'tools/mcp').exists()          # nothing of the lab is kept in git; the wrapper is _src/tools/mcp/
-
-
-def test_lab_pin_is_one_commit_across_workflows():
-    """🔌 ci.yml (static, browser) and html-import.yml (Docker) check out the same lab commit for --stage."""
-    refs = [ref for name in ('ci.yml', 'html-import.yml') for ref in re.findall(
-        r'repository: myon-bioinformatics/mcp-toolcall-lab\n\s+ref: ([0-9a-f]{40})', (ROOT / '.github/workflows' / name).read_text())]
-    assert len(refs) == 3 and len(set(refs)) == 1, refs
-
-
-def test_lab_rebuild_keeps_the_execution_lab_inside_it(tmp_path):
-    """🧮 The Tool Lab replaces tools/mcp/ but keeps tools/mcp/execution/ (its own tool, built or ⏸) as it was."""
-    package = tmp_path / 'lab/src/mcp_toolcall_lab'
-    package.mkdir(parents=True)
-    (package / '__init__.py').write_text('')
-    (package / 'stub_front.py').write_text(
-        "import pathlib, sys\nout = pathlib.Path(sys.argv[3]); out.mkdir(parents=True, exist_ok=True)\n"
-        "for name in ('pages-hash.js', 'pages-pixiv.js', 'source.js', 'mcp.js', 'build_meta.json', 'summary.json'): (out / name).write_text('{}')\n"
-        "(out / 'pages-wiki.js').write_text('var DEFAULT_TITLE = \"\";')\n"
-        "(out / 'index.html').write_text('<html><head></head><body><header>Lab</header><main></main></body></html>')\n")
-    (package / 'mcp_toolcall_lab_repository_diagnostics.py').write_text('')
-    (tmp_path / 'lab/LICENSE').write_text('MIT')
-    site = tmp_path / 'site'
-    kept = site / 'tools/mcp/execution/index.html'
-    kept.parent.mkdir(parents=True)
-    kept.write_text('execution')
-    receipt = PAGES.collect_tools(site, {'mcp-toolcall-lab': tmp_path / 'lab'}, {'mcp-toolcall-lab': '0' * 40})
-    assert receipt['made'] == ['mcp-toolcall-lab'], receipt
-    assert kept.read_text() == 'execution' and not (site / 'tools/mcp/summary.json').exists()
-    page = (site / 'tools/mcp/index.html').read_text()                  # 🖼️ for the screen to frame (tool_panels): no chrome of its own
-    assert 'data-testid="portfolio-back"' not in page and 'mcp-toolcall-lab@0000000' in page
-
-
-def test_lab_stage_checks_everything_before_writing(tmp_path):
-    built = tmp_path / 'built'; built.mkdir()
-    (built / 'index.html').write_text('<html><head></head><body><header>Lab</header></body></html>')
-    for name in module.FILES[1:]:
-        (built / name).write_text('var DEFAULT_TITLE = "x";' if name == 'pages-wiki.js' else '{}')
-    (built / 'mcp-toolcalls.jsonl').write_text('private log')
-    (tmp_path / 'LICENSE').write_text('MIT')
-    before = {path.name: path.read_bytes() for path in built.iterdir()}
-    with pytest.raises(ValueError):
-        module.stage_lab_tools(built, 'main', tmp_path)
-    assert {path.name: path.read_bytes() for path in built.iterdir()} == before
-    module.stage_lab_tools(built, '0' * 40, tmp_path)
-    assert not (built / 'mcp-toolcalls.jsonl').exists() and (built / 'LICENSE').read_text() == 'MIT'
-
-
-@needs_lab
-def test_transferred_javascript_extracts_source_and_preserves_view_routes():
-    import subprocess
-    js = r'''
-const assert = require('node:assert/strict');
-const pixiv = require(process.argv[1] + '/pages-pixiv.js');
-const route = require(process.argv[1] + '/pages-hash.js');
-const result = pixiv.extractSource({title:'Demo',sourceText:'Example original source text'});
-assert.equal(result.ok,true);
-assert.equal(result.title,'Demo');
-assert.ok(result.body.includes('Example original source text'));
-assert.equal(pixiv.extractSource({title:'Demo',sourceText:''}).ok,false);
-assert.equal(pixiv.parseSourceUrl('https://evil.example/history/Demo/1/source').ok,false);
-assert.equal(route.viewFromLocation('#wiki',''),'wiki');
-assert.equal(route.viewFromLocation('#pixiv',''),'pixiv');
-assert.equal(route.viewFromLocation('#pokemon',''),'pokemon');
-assert.equal(route.viewFromLocation('',''),'home');
-'''
-    subprocess.run(['node', '-e', js, str(PUBLIC)], cwd=ROOT, check=True)
-
-
-@needs_lab
-def test_shared_presentation_replaces_the_lab_styling():
-    page = lab_page()
-    assert 'data-ui-theme="modern"' in page
-    assert 'href="terminal.css' not in page and not (PUBLIC / 'terminal.css').exists()
-    assert 'src="pages-hash.js' not in page
-    assert 'data-shared-ui="web-ui"' in page
-    assert 'font-family: inherit;' in page
-    assert 'generated into the local <code>terminal.css</code>' not in page and 'modern theme' in page
-
-
-def test_stage_reapplies_shared_runtime(tmp_path):
-    built = tmp_path / 'built'; built.mkdir()
-    (built / 'index.html').write_text('<html><head><link rel="stylesheet" href="terminal.css?v=1"></head><body><header>Demo</header>'
-                                      '<main class="term-page"><pre>Original report</pre></main><script src="pages-hash.js"></script></body></html>')
-    for name in module.FILES[1:]:
-        (built / name).write_text('var DEFAULT_TITLE = "";' if name == 'pages-wiki.js' else '{}')
-    (tmp_path / 'LICENSE').write_text('MIT')
-    module.stage_lab_tools(built, '0' * 40, tmp_path)
-    page = (built / 'index.html').read_text()
-    assert 'data-ui-theme="modern"' in page
-    assert '<pre class="ui-output">Original report</pre>' in page
-    assert (built / 'shared-navigation.mjs').is_file()
-
-
-def test_stage_preserves_consumer_niconico_panel_and_routes():
-    from mcp_lab import apply_shared_ui, NAVIGATION_BINDING
-    source = '''<html><head></head><body><header>Lab</header>
-    <a href="#pixiv" data-pages-nav="pixiv">Pixiv</a>
-    <section data-pages-view="pixiv"></section></body></html>'''
-    page = apply_shared_ui(source)
-    assert 'data-pages-nav="niconico"' in page
-    assert 'id="pages-niconico-results"' in page
-    assert '../niconico/search.js' in page
-    assert apply_shared_ui(page).count('data-pages-view="niconico"') == 1
-    assert b"niconico:'niconico'" in NAVIGATION_BINDING
-
-
-@needs_lab
-def test_built_lab_keeps_pokemon_panel_and_routes():
-    from mcp_lab import NAVIGATION_BINDING
-    page = lab_page()
-    assert 'data-pages-nav="pokemon"' in page
-    assert 'data-pages-view="pokemon"' in page
-    assert 'data-source-fetch' in page
-    assert 'data-source-extract' in page
-    assert 'source.js' in page
-    assert (PUBLIC / 'source.js').is_file()
-    assert b"pokemon:'pokemon'" in NAVIGATION_BINDING
-
-
-def test_execution_is_linked_from_the_card_readme_and_services():
-    for path in (SITE / 'index.html', ROOT / 'README.md'):
-        assert module.EXECUTION_URL in path.read_text()
-    services = json.loads((ROOT / 'services.json').read_text())
-    assert services['services']['projects']['mcp-toolcall-lab']['execution']['url'] == module.EXECUTION_URL
-
-
-@needs_lab
-def test_built_lab_example_defaults_are_blank_and_execution_is_linked():
-    import subprocess
-
-    class Inputs(HTMLParser):
-        def handle_starttag(self, tag, attrs):
-            attrs = dict(attrs)
-            if tag == 'input' and attrs.get('id') == 'pages-wiki-title':
-                assert attrs.get('value') == ''
-
-    Inputs().feed(lab_page())
-    assert 'href="/tools/#mcp-execution"' in lab_page() and module.EXECUTION_URL.endswith('/tools/#mcp-execution')   # 🖼️ framed: it opens in the screen
-    subprocess.run(['node', '-e', "require('node:assert/strict').equal(require(process.argv[1]).DEFAULT_TITLE, '')",
-                    str(PUBLIC / 'pages-wiki.js')], cwd=ROOT, check=True)
-
-
-def test_stage_clears_only_example_controls_and_preserves_original_evidence():
-    original = b'<header>Demo</header><input id="pages-wiki-title" value="Example City"><p>Article about Example City</p>'
-    payload = {'index.html': original, 'pages-wiki.js': b'var DEFAULT_TITLE = "Example City";\nvar content = "Example City";'}
-    module.apply_public_examples(payload)
-    assert b'value=""' in payload['index.html']
-    assert b'Article about Example City' in payload['index.html']
-    assert b'var DEFAULT_TITLE = "";' in payload['pages-wiki.js']
-    assert b'var content = "Example City";' in payload['pages-wiki.js']
-    before = dict(payload)
-    module.apply_public_examples(payload)
-    assert payload == before
-
-
-def test_actions_report_replaces_only_the_empty_summary():
-    page = ('<p>the actual round-trip is the "Last Actions summary" below.</p><h2>Last Actions summary</h2><p>Allowlisted.</p>'
-            '<pre><code class="language-json">{"verdict": null}</code></pre><ul><li>Local: docker</li></ul>')
-    report = module.apply_actions_report(page)
-    assert 'Last Actions summary' not in report and 'verdict' not in report
-    assert module.ACTIONS in report and '<li>Local: docker</li>' in report and 'Test results below' in report
-    assert module.apply_actions_report(report) == report
-    with pytest.raises(ValueError):
-        module.apply_actions_report('<h2>Last Actions summary</h2><table></table>')
-
-
-@needs_lab
-def test_lab_branding_is_idempotent_and_uses_published_absolute_paths():
-    from mcp_lab import apply_lab_branding, FAVICON, LOGO
-    from urllib.parse import urljoin
-    assert not (PUBLIC / 'repository-diagnostics.html').exists()   # 🩺 a panel of the page (#diagnostics), not a page
-    assert 'data-pages-view="protocol"' in lab_page() and (PUBLIC / 'mcp.js').is_file()   # 🤝 so is #protocol
-    assert not (SITE / 'tools/mcp-protocol').exists()
-    for name in ('index.html',):
-        page = lab_page()                                                  # 🖼️ the framed #mcp panel's document
-        assert apply_lab_branding(page) == page
-        assert page.count('data-lab-brand="favicon"') == 1
-        assert page.count('rel="apple-touch-icon"') == 1
-        assert page.count('mcp-toolcall-lab-logo.png') == 1
-        for asset in (FAVICON, LOGO):
-            assert asset in page
-            assert urljoin('https://myon-bioinformatics.github.io/tools/mcp/' + name, asset) == 'https://myon-bioinformatics.github.io' + asset
-    upstream = '<html><head><link rel="icon" href="assets/old.png"></head><body><header><img src="assets/mcp-toolcall-lab-logo.png"></header></body></html>'
-    branded = apply_lab_branding(upstream)
-    assert apply_lab_branding(branded) == branded
-    assert branded.count('rel="icon"') == 1
-    assert 'assets/old.png' not in branded
-    assert LOGO in branded
-
-
-def test_prose_extract_adapter_preserves_whitespace_hooks_and_code_blocks():
-    from mcp_lab import apply_prose_extracts, apply_shared_ui
-    source = ('<html><head></head><body>'
-              '<pre data-testid="pages-pixiv-extract" hidden class="ui-output">A\nB &lt;C&gt;</pre>'
-              '<pre class="ui-output" data-testid="pages-wiki-extract">Wiki\ntext</pre>'
-              '<pre class="ui-output"><code>print(1)</code></pre></body></html>')
-    converted = apply_prose_extracts(source)
-    assert '<div data-testid="pages-pixiv-extract" hidden class="ui-output">A\nB &lt;C&gt;</div>' in converted
-    assert '<div class="ui-output" data-testid="pages-wiki-extract">Wiki\ntext</div>' in converted
-    assert '<pre class="ui-output"><code>print(1)</code></pre>' in converted
-    assert apply_prose_extracts(converted) == converted
-    assert apply_shared_ui(source) == apply_shared_ui(converted)
-    if LAB_BUILT:
-        published = lab_page()
-        assert '<div data-testid="pages-pixiv-extract" hidden class="ui-output"></div>' in published
-        assert '<div data-testid="pages-wiki-extract" hidden class="ui-output"></div>' in published
-
-
-# ═══ 💬 cross-repo chat (scripts/chat.py; the page runs it in Pyodide) ═══════════════════════════════════════
 
 CHAT = PAGES._chat()
 CHAT_INDEX = {'schema': 'chat-index/1', 'owner': 'myon-bioinformatics',
@@ -1296,9 +1066,6 @@ CHAT_INDEX = {'schema': 'chat-index/1', 'owner': 'myon-bioinformatics',
                         ['Aoi', 'cycles/c003/units.jsonl', 40 * 1024 ** 2], ['TaxOntOy', 'package.json', 30],
                         ['TaxOntOy', 'otl-relations.json', 64], ['OnTautoLogy', 'examples/concepts-20261115.json', 900]],
               'scan_errors': {},
-              'tools': [{'name': 'find_municipalities', 'description': 'Find mock municipalities.',
-                         'parameters': {'type': 'object', 'properties': {'query': {'type': 'string'}}, 'required': ['query'],
-                                        'additionalProperties': False}}],
               'repos': {'onto': 'ONTO: an index linking ontology-related repositories', 'Aoi': 'Hypothesis-driven baseball analytics.',
                         'TaxOntOy': 'TaxOntOy: Taxonomy × Ontology', 'OnTautoLogy': 'Stdlib-only Python graphlib knowledge graph.'}}
 CHAT_CONCEPTS = {'schema': 'ontautology-concepts/1',                    # 🧬 a small ledger in OnTautoLogy's shape (both entry forms)
@@ -1321,6 +1088,31 @@ def _chat_fetch(url):
     path = url.split('raw.githubusercontent.com/myon-bioinformatics/', 1)[1]
     name, _, rest = path.partition('/')
     return CHAT_RAW[f'{name}/{rest.split("/", 1)[1]}']
+
+
+LAB_CHECKOUT = ROOT / '.test-deps' / 'mcp-toolcall-lab'     # 🔌 where CI checks the lab out (ci.yml pins the commit)
+needs_lab = pytest.mark.skipif(not (LAB_CHECKOUT / '.git').exists(), reason='🔌 needs the mcp-toolcall-lab checkout CI makes in .test-deps')
+
+
+def _lab_fetch(url):
+    """🔌 The lab's code as record_chat copies it (lab/…); PokéAPI and MediaWiki answered from the lab's own fixtures."""
+    if url.startswith('lab/'):
+        return (LAB_CHECKOUT / url[4:]).read_text(encoding='utf-8')
+    if url.startswith(CHAT.POKEAPI.format(name='')):
+        if url.endswith('/ditto'):
+            return (LAB_CHECKOUT / 'fixtures/pokeapi/ditto.json').read_text(encoding='utf-8')
+        raise OSError(f'HTTP 404: {url}')
+    if '.wikipedia.org/w/api.php?' in url:
+        assert 'origin=%2A' in url                                           # 🌐 CORS for the page
+        return (LAB_CHECKOUT / 'fixtures/wikipedia/exampleville_extract.json').read_text(encoding='utf-8')
+    return _chat_fetch(url)
+
+
+@pytest.fixture
+def mcp_session(monkeypatch):
+    """🔌 A new MCP session (no trace, no route); the server loads the lab through the fetch, as the page does."""
+    for key, value in {'lab': None, 'route': None, 'trace': [], 'mcp_id': 0, 'mcp_ready': False, 'calls': []}.items():
+        monkeypatch.setitem(CHAT._STATE, key, value)
 
 
 def test_chat_answers_every_command_from_the_fleets_modules():
@@ -1470,16 +1262,126 @@ def test_chat_empty_search_distinguishes_index_coverage(errors, note):
     assert '索引を記録していない' in CHAT.respond('/find', index={})
 
 
-def test_chat_checks_mcp_tool_calls_against_what_the_lab_advertises():
-    """🔌 Only an advertised tool with arguments that fit its schema becomes a tools/call; anything else is refused."""
-    say = lambda text: CHAT.respond(text, index=CHAT_INDEX)
-    assert '`find_municipalities`' in say('/mcp')
-    ok = say('/mcp find_municipalities {"query": "Exampleville"}')
-    assert ok.startswith('✅') and '"method": "tools/call"' in ok
-    assert '❌' in say('/mcp find_municipalities {"query": 3, "x": 1}') and 'arguments.x' in say('/mcp find_municipalities {"x": 1}')
-    refused = say('/mcp find_municipalitis {}')
-    assert refused.startswith('❌') and '`find_municipalities`' in refused
-    assert 'JSON ではない' in say('/mcp find_municipalities {query}')
+@needs_lab
+def test_chat_mcp_server_speaks_json_rpc_with_the_labs_tools(mcp_session):
+    """🔌 The page's MCP server answers JSON-RPC 2.0 as the lab's /mcp does: initialize, the initialized notification (no reply),
+    ping, tools/list (the lab's FastMCP Wikipedia catalog, its PokéAPI reader, this chat's find · show · onto) and tools/call — an
+    unknown tool or arguments against the inputSchema are -32602 errors, a tool that fails is a result with isError."""
+    rpc = lambda message: CHAT.mcp_rpc(message, CHAT_INDEX, _lab_fetch)
+    init = rpc({'jsonrpc': '2.0', 'id': 1, 'method': 'initialize',
+                'params': {'protocolVersion': CHAT.MCP_PROTOCOL, 'capabilities': {}, 'clientInfo': {'name': 'test', 'version': '1'}}})
+    assert init['result']['protocolVersion'] == CHAT.MCP_PROTOCOL and init['result']['capabilities'] == {'tools': {'listChanged': False}}
+    assert rpc('{"jsonrpc": "2.0", "method": "notifications/initialized"}') is None
+    assert rpc({'jsonrpc': '2.0', 'id': 2, 'method': 'ping'})['result'] == {}
+    listed = rpc({'jsonrpc': '2.0', 'id': 3, 'method': 'tools/list'})['result']['tools']
+    catalog = json.loads((LAB_CHECKOUT / 'deploy/wikipedia-mcp/catalog.generated.json').read_text(encoding='utf-8'))['tools']
+    assert [t['name'] for t in listed] == [t['name'] for t in catalog] + ['fetch_pokemon', 'find', 'show', 'onto']
+    assert [t['inputSchema'] for t in listed[:len(catalog)]] == [t['inputSchema'] for t in catalog]   # 📚 the lab's, not a copy
+    call = lambda name, args: rpc({'jsonrpc': '2.0', 'id': 4, 'method': 'tools/call', 'params': {'name': name, 'arguments': args}})
+    ditto = call('fetch_pokemon', {'name': 'Ditto'})['result']
+    assert not ditto['isError'] and '# ditto (#132)' in ditto['content'][0]['text'] and '| imposter | yes |' in ditto['content'][0]['text']
+    wiki = json.loads(call('fetch_wikipedia_article', {'title': 'Exampleville'})['result']['content'][0]['text'])
+    assert wiki['canonical_title'] == 'Exampleville' and wiki['extract'].startswith('Exampleville is a mock municipality')
+    section = json.loads(call('fetch_wikipedia_section', {'title': 'Exampleville', 'heading': 'Geography'})['result']['content'][0]['text'])
+    assert 'JR Exampleville' in json.dumps(section, ensure_ascii=False)
+    found = call('find', {'kind': 'onto'})['result']
+    assert not found['isError'] and 'docs/graph.json' in found['content'][0]['text']
+    missing = call('fetch_pokemon', {'name': 'missingno'})['result']
+    assert missing['isError'] and 'HTTP 404' in missing['content'][0]['text']
+    assert call('fetch_wikipedia_artcle', {})['error'] == {'code': -32602, 'message': 'Unknown tool: fetch_wikipedia_artcle',
+                                                           'data': {'did_you_mean': 'fetch_wikipedia_article'}}
+    bad = call('fetch_wikipedia_article', {'title': 3, 'x': 1})['error']
+    assert bad['code'] == -32602 and set(bad['data']['problems']) == {'arguments.title: string ではない（int）', 'arguments.x: 広告にない引数'}
+    assert rpc({'jsonrpc': '2.0', 'id': 5, 'method': 'resources/list'})['error']['code'] == -32601
+    assert rpc('{nope')['error']['code'] == -32700 and rpc({'id': 6})['error']['code'] == -32600
+    trace = CHAT._STATE['trace']
+    assert [row['event'] for row in trace].count('mcp/request') == 14 and [row['event'] for row in trace].count('mcp/response') == 13
+
+
+@needs_lab
+def test_chat_mcp_command_lists_calls_and_logs(mcp_session, monkeypatch):
+    """🔌 /mcp is a client of that server: tools/list with ⚖️ Jev's family of each tool, one tools/call (✅, ⚠️ isError, ❌ an
+    error), and /mcp log — the requests by method, the outcomes, Jev's decisions and the last rows of the JSONL trace."""
+    say = lambda text: CHAT.respond(text, index=CHAT_INDEX, fetch=_lab_fetch)
+    assert '🧾 まだ記録がない' in say('/mcp log')
+    listed = say('/mcp')
+    assert '| `fetch_pokemon` | pokeapi | name |' in listed and '| `find` | ironmate | — |' in listed and '| `onto` | — | word |' in listed
+    ok = say('/mcp fetch_pokemon {"name": "ditto"}')
+    assert ok.startswith('### 🔌 ✅ tools/call') and '"method": "tools/call"' in ok and '| hp | 48 |' in ok
+    assert 'string ではない' in say('/mcp fetch_wikipedia_article {"title": 3}') and '❌' in say('/mcp fetch_wikipedia_article {}')
+    assert 'もしかして fetch_wikipedia_article' in say('/mcp fetch_wikipedia_artcle {}')
+    assert '⚠️ isError' in say('/mcp fetch_pokemon {"name": "missingno"}')
+    assert 'JSON ではない' in say('/mcp fetch_pokemon {name}')
+    log = say('/mcp log')
+    assert 'initialize 1 · notifications/initialized 1 · tools/list 1 · tools/call 5' in log and '✅ 1 · ⚠️ 1 · ❌ 3' in log, log
+    assert '```jsonl\n{"event": "mcp/' in log and log.count('\n{"event"') == 8                # 🧾 the last 8 rows
+    monkeypatch.setitem(CHAT._STATE, 'lab', False)                        # ⏸ no lab: this chat's own tools
+    assert '`fetch_pokemon`' not in say('/mcp') and '⏸ mcp-toolcall-lab を読めない' in say('/mcp') and '`onto`' in say('/mcp')
+
+
+def test_chat_triages_a_pasted_failure_and_hands_it_to_ask(monkeypatch):
+    """🧯 /triage runs Err-o-RoadRunner's triage on a traceback, a JUnit XML or an Actions log, without the facts of the machine
+    it runs on (they would describe the page); a JUnit report points to 🧾 テスト結果, and /ask gets the facts and hints."""
+    monkeypatch.setitem(CHAT._STATE, 'triage', None)
+    reply = CHAT.respond("/triage Traceback (most recent call last):\n  File \"app.py\", line 3, in <module>\n"
+                         "ModuleNotFoundError: No module named 'numpy'", index={})
+    assert '- python exception type: ModuleNotFoundError' in reply and "web search keywords: ModuleNotFoundError No module named 'numpy'" in reply
+    assert 'environment variable' not in reply and 'python version' not in reply and 'exit code' not in reply
+    assert '#test-report' not in reply                                               # 🧾 only for a JUnit report
+    junit = CHAT.respond('/triage <?xml version="1.0"?><testsuite tests="1" failures="1"><testcase classname="tests.test_a" name="t">'
+                         '<failure message="assert 1 == 2">E   assert 1 == 2</failure></testcase></testsuite>', index={})
+    assert '- junit failures: 1' in junit and 'junit.xml' not in junit and '[🧾 テスト結果](#test-report)' in junit
+    system = json.loads(CHAT.ask_messages('/ask この失敗は？', {}))[0]['content']
+    assert 'FOUND: junit failures: 1' in system and 'HINT: junit framework guess: pytest/python' in system and 'NOT FOUND' not in system
+    assert '❓' in CHAT.respond('/triaeg x', index={}) and '`/triage`' in CHAT.respond('/triaeg x', index={})
+    assert '🧯' in CHAT.respond('/triage', index={})
+    monkeypatch.setitem(CHAT._STATE, 'triage', None)
+    assert '直前の 🧯 triage' not in json.loads(CHAT.ask_messages('/ask この失敗は？', {}))[0]['content']
+
+
+@needs_lab
+def test_chat_ask_offers_what_jev_picks_and_calls_through_mcp(mcp_session, monkeypatch):
+    """⚖️ /ask asks the lab's Jev router which tools to offer — one family's when it is confident (wikipedia, pokeapi, ironmate →
+    find · show), none for a confident no-tool, every tool on a low confidence — and offers them from tools/list. A call runs as
+    tools/call only when offered, within ASK_CALLS, with JSON arguments the server's schema check passes; ⚖️ and the 🔧 trail
+    stand above the answer and every decision joins the trace."""
+    offered = lambda question: (CHAT.ask_messages(question, CHAT_INDEX, _lab_fetch),
+                                [t['function']['name'] for t in json.loads(CHAT.ask_tools(CHAT_INDEX, _lab_fetch))])[1]
+    assert offered('/ask ditto の種族値は？') == ['fetch_pokemon']
+    assert offered('/ask Exampleville をウィキペディアで') == ['fetch_wikipedia_article', 'fetch_wikipedia_section']
+    assert offered('/ask TaxOntOy って何？') == [] and '呼んでよい' not in json.loads(CHAT.ask_messages('/ask TaxOntOy って何？', CHAT_INDEX, _lab_fetch))[0]['content']
+    assert offered('/ask 調べて') == ['fetch_wikipedia_article', 'fetch_wikipedia_section', 'fetch_pokemon', 'find', 'show', 'onto']
+    assert offered('/ask オントロジーの台帳はどのリポジトリ？') == ['find', 'show']
+    system = json.loads(CHAT.ask_messages('/ask オントロジーの台帳はどのリポジトリ？', CHAT_INDEX, _lab_fetch))[0]['content']
+    assert '道具（find・show）を呼んでよい' in system
+    call = lambda name, args: json.loads(CHAT.ask_call(name, args, CHAT_INDEX, _lab_fetch))
+    found = call('find', '{"kind": "onto"}')
+    assert found['ok'] and found['call'] == 'find {"kind": "onto"}' and 'docs/graph.json' in found['result']
+    assert call('fetch_pokemon', '{"name": "ditto"}')['result'] == '❌ 渡していない道具'
+    assert '1 つの質問につき 2 回まで' in call('show', '{"target": "onto/docs/graph.json"}')['result']
+    page = CHAT.ask_html('答え', 3, 1.0)
+    assert '⚖️ Jev ironmate → <code>find</code> · <code>show</code>' in page
+    assert page.index('🔧 ✅ <code>find {"kind": "onto"}</code>') < page.index('🔧 ❌ <code>fetch_pokemon {"name": "ditto"}</code>') < page.index('答え')
+    CHAT.ask_messages('/ask ditto の種族値は？', CHAT_INDEX, _lab_fetch)
+    assert 'string ではない' in call('fetch_pokemon', '{"name": 3}')['result'] and 'JSON ではない' in call('fetch_pokemon', '{name}')['result']
+    CHAT.ask_messages('/ask ditto の種族値は？', CHAT_INDEX, _lab_fetch)
+    ditto = call('fetch_pokemon', {'name': 'ditto'})
+    assert ditto['ok'] and len(ditto['result']) <= CHAT.ASK_RESULT and ditto['result'].startswith('# ditto (#132)')
+    routes = [row for row in CHAT._STATE['trace'] if row['event'] == 'jev/route_decision']
+    assert {row['prob_source'] for row in routes} == {'keyword'} and routes[0]['tool_family'] == 'pokeapi'
+    assert [row['question'] for row in routes if row['fallback_reason'] == 'low_confidence'] == ['調べて']
+    assert '⚖️ **pokeapi 3 · wikipedia 1 · none 2 · ⏸ low_confidence 1 · ironmate 2**' in CHAT.respond('/mcp log', index=CHAT_INDEX)
+    monkeypatch.setitem(CHAT._STATE, 'lab', False)                        # ⏸ no lab: this chat's own tools, Jev not asked
+    assert offered('/ask ditto の種族値は？') == ['find', 'show', 'onto'] and CHAT._STATE['route']['fallback_reason'] == 'no_lab'
+    assert '⚖️ Jev ⏸ no_lab' in CHAT.ask_html('答え', 3, 1.0)
+
+
+def test_the_test_report_hands_its_run_to_the_chats_triage():
+    """🧾 → 🧯: the report panel's 🧯 button puts the pasted run in the chat's inbox and opens #chat; the chat takes it when ready."""
+    report = shell_panel('test-report')
+    assert report.count('data-report-triage') == 2 and PAGES.REPORT_TRIAGE_JS in report        # the button and its script
+    assert "'/triage '+text" in PAGES.REPORT_TRIAGE_JS and "location.hash='chat'" in PAGES.REPORT_TRIAGE_JS
+    assert 'addEventListener("chat-inbox", inbox)' in PAGES.CHAT_JS and 'inbox();' in PAGES.CHAT_JS
 
 
 def test_chat_compresses_with_talkcompress_and_markdown(monkeypatch):
@@ -1506,7 +1408,6 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     (root / 'api/repos.json').write_text(json.dumps({'repos': [{'name': n, **({'description': '', 'readmeSummary': '📘 [Guide](https://x.test/)  for  ' + 'x' * 200} if n == 'onto' else {})} for n in names] + [{'name': 'Old', 'archived': True}]}))
     trees = {'onto': [('docs/graph.json', 120), ('README.md', 9)], 'TalkCompress': [('x.jsonl', 3)],
              'mcp-toolcall-lab': [('fixtures/prompt_experiments/a.json', 50), ('fixtures/other.json', 2)], 'Empty': []}
-    fixture = {'openai': {'request': {'tools': [{'type': 'function', 'function': CHAT_INDEX['tools'][0]}]}}}
     requests = []
 
     def head(repository):
@@ -1526,15 +1427,18 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
                                    'truncated': name == 'onto'}).encode())
 
     monkeypatch.setattr('urllib.request.urlopen', open_tree)
-    raw = lambda repository, commit, path: json.dumps(fixture).encode() if path.endswith('a.json') else f'# {path}'.encode()
+    raw = lambda repository, commit, path: f'# {path}'.encode()
     lines = PAGES.record_chat(tmp_path / 'site', root, head=head, raw=raw)
     assert requests == [name for name in names if name != 'BrokenHead']
-    assert lines == ['💬 4 repositories · 4 JSON/JSONL · 🔌 1 tools · 🗂 TalkCompress ✅ eeeeeee', '⚠️ onto: truncated_tree',
+    assert lines == ['💬 4 repositories · 4 JSON/JSONL · 🔌 mcp-toolcall-lab ✅ eeeeeee · 🗂 TalkCompress ✅ eeeeeee', '⚠️ onto: truncated_tree',
                      '⏸ BrokenHead: OSError', '⏸ BrokenTree: HTTPError', '⏸ InvalidTree: ValueError']
     index = json.loads((tmp_path / 'site/media/chat/index.json').read_text())
     assert [row[:2] for row in index['files']] == [['TalkCompress', 'x.jsonl'], ['mcp-toolcall-lab', 'fixtures/prompt_experiments/a.json'],
                                                    ['mcp-toolcall-lab', 'fixtures/other.json'], ['onto', 'docs/graph.json']]
-    assert [tool['name'] for tool in index['tools']] == ['find_municipalities'] and set(index['commits']) == set(names[:4])
+    assert 'tools' not in index and set(index['commits']) == set(names[:4])
+    lab = tmp_path / 'site/media/chat/lab'                                  # 🔌 the code the page's MCP server runs, at that commit
+    assert sorted(str(f.relative_to(lab)) for f in lab.rglob('*') if f.is_file()) == sorted(CHAT.LAB)
+    assert (lab / 'src/mcp_toolcall_lab/jev_router.py').read_text() == '# src/mcp_toolcall_lab/jev_router.py'
     assert index['repos'] == {'onto': ('📘 Guide for ' + 'x' * 200)[:159] + '…'}           # 🤖 README summaries for /ask, links as their text
     assert index['scan_errors'] == {'onto': 'truncated_tree', 'BrokenHead': 'unavailable', 'BrokenTree': 'unavailable',
                                     'InvalidTree': 'unavailable'}
@@ -1552,8 +1456,11 @@ def test_chat_record_indexes_every_repository_and_the_page_runs_the_pinned_modul
     page = shell_panel('chat')                                                       # 💬 a #panel of the one screen
     sources = json.loads((SITE / PAGES.CHAT_SOURCES).read_text(encoding='utf-8'))       # 🐍 fetched when the chat opens
     import importlib.util as util
+    files = lambda n: ({f'{n}/{f.name}': f for f in Path(util.find_spec(n).origin).parent.glob('*.py')}     # 📦 errlib/: a package
+                       if util.find_spec(n).submodule_search_locations else {f'{n}.py': Path(util.find_spec(n).origin)})
     assert sources == {'chat.py': (ROOT / 'scripts/chat.py').read_text(encoding='utf-8'),
-                       **{f'{n}.py': Path(util.find_spec(n).origin).read_text(encoding='utf-8') for n in CHAT.MODULES}}
+                       **{name: f.read_text(encoding='utf-8') for n in CHAT.MODULES for name, f in files(n).items()}}
+    assert {'triage.py', 'errlib/__init__.py', 'errlib/junit_redact.py'} <= set(sources)
     config = json.loads(re.search(r'id="chat-config">(.*?)</script>', page).group(1))
     assert config == {'runtime': CHAT.RUNTIME, 'index': '../media/chat/index.json', 'base': '../media/chat/', 'sources': 'chat/sources.json'}
     assert 'id="chat-sources"' not in page
@@ -1571,11 +1478,29 @@ def html_escape(text):
 
 
 STORIES = 'https://huggingface.co/ggml-org/models/resolve/main/tinyllamas/stories260K.gguf'   # 🤖 1.2 MB, for /ask in tests
+# 🔧 wllama's place in a test of the tool pass: the first completion calls an advertised tool and one that is not, the second answers
+TOOL_ENGINE = """export class Wllama {
+  async loadModelFromUrl() {}
+  getLoadedContextInfo() { return {n_ctx: 2048, n_ctx_train: 32768}; }
+  isMultithread() { return false; }
+  isSupportWebGPU() { return false; }
+  async createChatCompletion(o) {
+    (globalThis.engineCalls ??= []).push(JSON.parse(JSON.stringify({messages: o.messages, tools: (o.tools ?? []).map((t) => t.function.name),
+                                                                     choice: o.tool_choice ?? null, stream: !!o.stream})));
+    if (!o.stream) return {choices: [{message: {role: 'assistant', content: '', tool_calls: [
+      {id: 'c1', type: 'function', function: {name: 'find', arguments: '{"kind": "onto"}'}},
+      {id: 'c2', type: 'function', function: {name: 'delete_repo', arguments: '{}'}}]}}], usage: {completion_tokens: 12}};
+    o.onData({choices: [{delta: {content: '台帳は onto の docs/graph.json'}}]});
+  }
+}"""
 
 
 def test_chat_in_chromium_with_pyodide_and_a_gif():
-    """💬 In Chromium, Pyodide runs chat.py: typed and tapped commands, a typo, MCP, the cross-repo index, /show, the 📇 index's
-    💬 button, raw HTML stays text, and 🤖 /ask runs llama.cpp (wllama) in the page — on a 1.2 MB model in place of the real one.
+    """💬 In Chromium, Pyodide runs chat.py: typed and tapped commands, a typo, MCP, the cross-repo index, /show, 🧯 /triage
+    (Err-o-RoadRunner), 🧾 → 🧯 (the test report hands its run to the chat), the 📇 index's 💬 button, raw HTML stays text, and
+    🤖 /ask runs llama.cpp (wllama) in the page — on a 1.2 MB model in place of the real one; 🔌 /mcp talks to the page's MCP
+    server (the lab's code; PokéAPI from its fixture), and ⚖️ Jev narrows what /ask offers, the calls a model makes going through
+    it (an engine that answers with tool calls stands in for the model there).
     Pyodide and wllama come from jsDelivr; CHAT_MIRROR=DIR serves them from DIR/pyodide/ and DIR/wllama/ (the esm folder), the model
     from DIR/model.gguf and TalkCompress's files from DIR/talkcompress/ (then /compress runs it). Frames go to
     test-results/chat/chat-conversation-<UTC>.gif."""
@@ -1610,6 +1535,11 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             return r.fulfill(response=response, headers={**response.headers, **cors})
         if url.startswith('https://raw.githubusercontent.com/'):
             return r.fulfill(body=_chat_fetch(url), headers=cors)
+        if url.startswith(CHAT.POKEAPI.format(name='')) and LAB_CHECKOUT.exists():   # 🐾 PokéAPI answered from the lab's fixture
+            try:
+                return r.fulfill(body=_lab_fetch(url), content_type='application/json', headers=cors)
+            except OSError:
+                return r.fulfill(status=404, body='', headers=cors)
         return r.abort()
 
     def local_media(r):
@@ -1619,6 +1549,8 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
             return r.fulfill(body=json.dumps(index), content_type='application/json')
         if mirror and name.startswith('talkcompress/') and (mirror / name).is_file():
             return r.fulfill(path=str(mirror / name))
+        if name.startswith('lab/') and (LAB_CHECKOUT / name[4:]).is_file():   # 🔌 the lab's code, as record_chat copies it
+            return r.fulfill(path=str(LAB_CHECKOUT / name[4:]))
         return r.fulfill(status=404, body='')
 
     try:
@@ -1659,8 +1591,9 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
 
             say('/flow 入力 > 圧縮 > 出力', 'flowchart TB')
             say('/flwo a', 'もしかして /flow')
-            say('', 'find_municipalities', tap='.ui-chat-chips [data-chat-say="/mcp"]')
-            say('/mcp find_municipalities {"query": "Exampleville"}', 'tools/call')
+            say('', 'fetch_pokemon', tap='.ui-chat-chips [data-chat-say="/mcp"]')          # 🔌 the page's MCP server
+            say('/mcp fetch_pokemon {"name": "ditto"}', 'imposter')
+            say('/mcp log', 'tools/call 1')
             assert '部分取得 1 件・取得不可 1 件' in say('onto', 'docs/graph.json')
             assert '部分取得 1 件' in say('/find missing --repo onto', '0 件（索引内）')
             assert '取得不可 1 件' in say('/find --repo Broken', '0 件（索引内）')
@@ -1678,17 +1611,49 @@ def test_chat_in_chromium_with_pyodide_and_a_gif():
                 say(final_answer, expected)
             say('/olnm calc 6 mul 7', '42')                                  # 🧷 OLNM (olnm.py) in Pyodide
             say('/olnm show gp', 'git push')
+            say("/triage Traceback (most recent call last):\n  File \"app.py\", line 3, in <module>\nKeyError: 'x'",
+                'python exception type: KeyError')                                    # 🧯 Err-o-RoadRunner's triage in the page
             compress = mirror and (mirror / 'talkcompress').is_dir()
             say('/compress As soon as possible, please send me the report.', 'ASAP' if compress else '⏸ TalkCompress')
             say('/md <img src=x onerror="window.pwned=1"> **ok**', '<img src=x')
             assert page.evaluate('() => window.pwned') is None and bot.last.locator('img').count() == 0
             asked = say('/ask TaxOntOy って何？', 'tok/s', done='tok/s')                 # 🤖 llama.cpp answered in the page
             assert '🤖 ' + CHAT.RUNTIME['model'].rsplit('/', 1)[-1] in asked and ' tokens · ' in asked, asked
+            count = bot.count()                                                  # 🧾 → 🧯: the report's run to /triage
+            page.goto(base + 'tools/#test-report')
+            page.fill('[data-report-input]', '<?xml version="1.0"?><testsuite tests="1" failures="1"><testcase classname="tests.test_a"'
+                      ' name="t"><failure message="assert 1 == 2">E   assert 1 == 2</failure></testcase></testsuite>')
+            frames.append((page.screenshot(), '🧾 テスト結果 → 🧯 /triage'))
+            page.click('[data-report-triage]')
+            page.wait_for_function('n => document.querySelectorAll("[data-chat-who=bot]").length > n'
+                                   ' && !document.querySelector("[data-chat-send]").disabled', arg=count, timeout=300_000)
+            handed = bot.last.inner_text()
+            assert page.evaluate('location.hash') == '#chat' and 'junit failures: 1' in handed and '🧾 テスト結果' in handed, handed
+            frames.append((page.screenshot(), '🧯 /triage ← 🧾'))
             page.click('label[for="ui-tabs-chat-1"]')                      # 📇 index: a step's 💬 button sends it
             page.select_option('select[data-ui-choice]', '1')               # 🎨 ASCII art
             frames.append((page.screenshot(), '📇 索引 · 🎨 ASCII art'))
             say('', '╭', tap='.ui-step [data-chat-say^="/box"]')
             assert page.locator('#ui-tabs-chat-0').is_checked() and errors == [], errors
+            tooled = context.new_page()                                            # 🔧 an engine that answers with tool calls
+            tooled.route(lambda url: url.startswith(CHAT.RUNTIME['wllama'] + 'index.js'), lambda r: r.fulfill(
+                content_type='text/javascript', headers=cors, body=TOOL_ENGINE))
+            tooled.on('pageerror', lambda error: errors.append(str(error)))
+            tooled.goto(base + 'tools/#chat')
+            tooled.wait_for_function('() => document.documentElement.dataset.chatReady === "true"', timeout=180_000)
+            tooled.fill('[data-chat-input]', '/ask オントロジーの台帳はどのリポジトリ？')         # ⚖️ Jev: ironmate → find · show
+            tooled.press('[data-chat-input]', 'Enter')
+            tooled.wait_for_function('() => document.querySelector("[data-chat-who=bot]:last-child")?.textContent.includes("tok/s")',
+                                     timeout=300_000)
+            answer = tooled.locator('[data-chat-who="bot"]').last.inner_text()
+            assert '⚖️ Jev ironmate → find · show' in answer and '🔧 ✅ find {"kind": "onto"}' in answer, answer
+            assert '🔧 ❌ delete_repo {}' in answer and '台帳は onto' in answer, answer
+            first, final = tooled.evaluate('globalThis.engineCalls')
+            assert first['tools'] == ['find', 'show'] and first['choice'] == 'auto' and not first['stream']
+            results = [m['content'] for m in final['messages'] if m['role'] == 'tool']
+            assert 'docs/graph.json' in results[0] and '渡していない道具' in results[1] and final['choice'] == 'none', final
+            frames.append((tooled.screenshot(), '⚖️ Jev → 🔌 MCP find'))
+            assert errors == [], errors
             recorder = browser.new_page()
             recorder.set_content(ui.gif_recorder_document())
             recorder.evaluate('o => { window.rec = new UiGif.Recorder(o); }', {'width': 640, 'height': 800, 'caption': 32})
@@ -1738,12 +1703,14 @@ def test_the_front_page_carries_the_shared_header_side_and_foot():
 
 
 def test_a_tool_page_board_reads_its_card():
-    """🧰 The board of a tool page starts with what its 🧰 Tools card says (a sentence per item, up to three, 120 characters each)."""
-    chrome = PAGES.tools_chrome('../../', description='一つ目。二つ目！ Third one. markdown.py は切らない。五つ目。')
-    assert [item['text'] for item in chrome['board']['items'][:4]] == ['一つ目。', '二つ目！', 'Third one.', PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL[0]['title']]
-    assert len(chrome['board']['items']) <= 12 and chrome['home'] == '../../index.html#tools'
-    assert 'home' not in PAGES.tools_chrome('./', home=False) and PAGES.tools_chrome('./', title='MYON')['board']['title'] == 'MYON'
-    assert PAGES.tools_chrome(description='x' * 200)['board']['items'][0]['text'] == 'x' * 119 + '…'
+    """🧰 The board of a page starts with what the page says of itself (PySaiyanWeBoo board_sentences: a sentence per item, up to three,
+    120 characters each), then the cards (tools_site); 🏠 leads to them, except on the front page itself."""
+    site = PAGES.tools_site('../../')
+    assert site['items'][0]['text'] == PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL[0]['title'] and site['home'] == '../../index.html#tools'
+    assert PAGES.tools_site('./', home=False)['home'] is False and site['door'][0]['href'] == '../../index.html#tools'
+    page = '<!doctype html><html lang="en"><head><meta name="description" content="一つ目。二つ目！ Third one. markdown.py は切らない。五つ目。"><title>T</title></head><body><main></main></body></html>'
+    items = re.findall(r'<span class="ui-board-item">([^<]*)</span>', PAGES.add_site_chrome(page, 'tools/index.html', title='MYON'))
+    assert items[:3] == ['一つ目。', '二つ目！', 'Third one.'] and items[3].endswith(site['items'][0]['text'].partition(' ')[2]) and len(items) <= 12
     page = (SITE / PAGES.SHELL_PAGE).read_text(encoding='utf-8')                     # 🧰 the one screen says what it is
     assert 'myon-bioinformatics の道具を 1 つの画面で。' in page[:page.index('<nav class="ui-world-tools">')]
 
@@ -1769,6 +1736,20 @@ def test_a_document_table_draws_its_number_columns_as_bars():
         assert front.table_bars(kept) == kept
 
 
+def test_the_front_page_sheet_names_only_what_the_page_can_draw():
+    """🧹 Every class and id the front page's own sheet (STYLE) selects is one the page can hold: written by the generator or its
+    script, or present in the built page. A rule for something nobody draws any more is dead weight on every visit."""
+    front = _front()
+    source = (ROOT / 'scripts/front_page.py').read_text(encoding='utf-8')
+    assert source.count(front.STYLE) == 1
+    drawn = source.replace(front.STYLE, '') + (SITE / 'index.html').read_text(encoding='utf-8').replace(front.STYLE, '')
+    selectors = re.findall(r'(?:^|[{};])\s*([^{}@;]+?)\s*\{', re.sub(r'/\*.*?\*/', '', front.STYLE, flags=re.S))
+    names = sorted(set(re.findall(r'[.#]([A-Za-z_][\w-]*)', ' '.join(selectors))))
+    assert len(names) > 50 and 'portal-card' in names and 'skill-bar-fill' in names
+    unused = [name for name in names if not re.search(r'(?<![\w-])' + re.escape(name) + r'(?![\w-])', drawn)]
+    assert unused == [], unused
+
+
 def test_weekly_markdown_fragment_rejects_invalid_paths():
     front = _front()
     with pytest.raises(ValueError):
@@ -1786,8 +1767,8 @@ def test_portfolio_worlds_share_one_engine_and_standalone_stays_self_contained()
         assert hashlib.sha256((SITE / asset).read_bytes()).hexdigest() == lock['outputs'][asset]
     assert (SITE / js).read_text(encoding='utf-8') == world.WORLD_JS
     assert (SITE / css).read_text(encoding='utf-8') == '@layer components{' + world.world_base_css() + '}'
-    css_link = '<link rel="stylesheet" href="./world-assets/world.css">'
-    js_link = '<script type="module" src="./world-assets/world.js"></script>'
+    css_link = '<link rel="stylesheet" href="./worlds/world.css">'                # 📁 under the panel's own name
+    js_link = '<script type="module" src="./worlds/world.js"></script>'
     page = shell_panel('worlds')                                     # 🌍 a #panel of the one screen; the scenes are its #school, #tokyo, #camera
     assert not (SITE / 'tools/demos').exists() and not (SITE / 'tools/worlds.html').exists()
     assert page.count(css_link) == page.count(js_link) == 1
@@ -1802,7 +1783,22 @@ def test_portfolio_worlds_share_one_engine_and_standalone_stays_self_contained()
         assert f'href="#{route}"' in page and f'id="{route}"' in page
     standalone = world.world_document(world.example_data('school'))
     assert world.world_base_css() in standalone and ui.module_script(world.WORLD_JS) in standalone
-    assert 'world-assets/' not in standalone
+    assert 'worlds/' not in standalone
+
+
+def test_each_panel_brings_the_rows_it_declares_to_the_screens_header():
+    """⚙️ ⋯ A panel that declares rows (PySaiyanWeBoo chrome_rows_script; Ironmate's studios: 📋 the shelf, 💻 ⇄ 📱) gets them in the
+    screen's one header while it shows, a panel that declares none gets none, and the screen tells the header which panel shows."""
+    import pysaiyanweboo as ui
+    shelf = ui.chrome_rows_script({'screen': [{'label': '📋 シェルフ', 'key': 'shelf'}], 'replaces': '#studio-head'})
+    page = lambda body: f'<!doctype html><html><head><title>T</title></head><body>{body}</body></html>'.encode()
+    shell = PAGES.render_shell(ui, {'tools/app/index.html': (page('<header id="studio-head">🏭</header>' + shelf), 'myon-bioinformatics/App', True),
+                                    'tools/a/index.html': (page('<p>a</p>'), None, False)}).decode()
+    assert '<template data-chrome-view="app" data-replaces="#studio-head">' in shell and 'data-chrome-view="a"' not in shell
+    assert shell.index('<template data-chrome-view="app"') < shell.index('<section id="app"')               # the header's, not the panel's
+    assert "document.dispatchEvent(new CustomEvent('ui-chrome-view',{detail:{name:view.id,root:frame?frame.contentDocument:view}}))" in shell   # PySaiyanWeBoo views
+    front = PAGES.render_front()['index.html'].decode('utf-8')                                              # 🧾 the front page declares its own
+    assert ui.chrome_rows_of(_front().document())['settings'][0]['key'] == 'mode' and front.count('data-chrome-choice="mode"') >= 1
 
 
 def test_the_one_screen_keeps_one_owner_per_id():
@@ -1817,11 +1813,21 @@ def test_the_one_screen_keeps_one_owner_per_id():
                                     'tools/format-lab/index.html': (page('<i id="own">', ' class="ui-elements"'), 'myon-bioinformatics/myon-bioinformatics', False),
                                     'tools/app/index.html': (page('<p id="status"><a href="#status">s</a><a href="../a/">a</a>'), 'myon-bioinformatics/App', True)}).decode()
     heatmap = re.search(r'<section id="heatmap"[^>]*><template>(.*?)</template>', shell, re.S)[1]
-    assert '⏸' in heatmap and 'id がほかの道具とぶつかる（status）' in heatmap and 'id="status"' not in heatmap
-    assert '<section id="format-lab" class="ui-elements" data-tools-panel' in shell and '<i id="own">' in shell
+    assert '⏸' in heatmap and 'id がほかとぶつかるので、ここでは開かない（status）' in heatmap and 'id="status"' not in heatmap
+    assert '<section id="format-lab" class="ui-elements" data-ui-view' in shell and '<i id="own">' in shell
     assert '<p id="status">' in shell and shell.count('id="status"') == 1
     framed = re.search(r'<section id="app"[^>]*><template><iframe[^>]*\bsrcdoc="([^"]*)"', shell, re.S)   # 🖼️ an app that owns its document: framed,
     assert framed and 'data-routes' not in shell[framed.start() - 200:framed.start()]                    # its own ids (status is the joined panel's)
     from html import unescape
     inner = unescape(framed[1])
     assert '<base href="./app/">' in inner and '<a target="_top" href="/tools/#a">' in inner and '<a href="#status">' in inner
+
+
+def test_the_skip_link_is_added_once_and_only_to_a_page_with_the_header():
+    """⌨️ 本文へ移動 comes with the site's header once: a page that has it keeps it, a page without a header gets nothing."""
+    import pysaiyanweboo as ui
+    plain = ui.render_document(title='plain', theme='modern', trusted_html='<main>本文</main>')
+    assert PAGES.add_skip_link(plain) == plain                                       # no header: nothing to put it in
+    built = PAGES.add_site_chrome(plain, 'tools/index.html', title='MYON')
+    assert built.count('class="ui-skip-content"') == 1 and built.index('class="ui-skip-content"') < built.index('class="ui-board"')
+    assert PAGES.add_skip_link(built) == built                                       # twice: still once

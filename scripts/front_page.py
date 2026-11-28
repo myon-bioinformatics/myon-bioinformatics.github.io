@@ -3,7 +3,7 @@
 ``document()`` returns the one page that ``scripts/project_pages.py`` writes at build time. Everything a visitor reads is
 made here from ``profile.json``, ``api/repos.json`` and ``projects.json``: the page shell, the 🧰 Tools cards
 (``PORTAL``), and the profile and projects in each notation (cards, XML-like, JSON, Markdown). The colour themes are
-PySaiyanWeBoo's palettes. The page script only switches between what Python built, filters projects and fills the AI
+PySaiyanWeBoo's palettes, picked in the site chrome's ⚙️ 🎨, beside 🧾 the display mode (the row the page declares: ``rows()``). The page script only switches between what Python built, filters projects and fills the AI
 highlight slots with what the public GitHub API returns in the browser.
 """
 import html
@@ -12,81 +12,80 @@ import re
 from pathlib import Path
 from urllib.parse import quote
 
-# Service endpoints come from the same catalog for both tool cards and the footer.
+# 🌐 The site's address (services.json): a card's sample opens its tool there.
 _services = json.loads((Path(__file__).resolve().parents[1] / 'services.json').read_text(encoding='utf-8'))['services']
 _site_url = _services['portfolio']['pages']['url']
 
 
-def _service_url(project: str, endpoint: str, *, relative: bool = False) -> str:
-    url = _services['projects'][project][endpoint]['url']
-    return './' + url.removeprefix(_site_url) if relative and url.startswith(_site_url) else url
-
-
-# 🧰 Tools: one card each, named for what it does — practical tools only. ``from`` names the repositories a card is built from (🧩, plain
-# text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. ``points`` are trusted HTML (they carry <code>);
-# everything else is escaped.
-PORTAL = [{'title': 'HTML文書取込', 'text': 'HTML貼り付け・ファイル選択から、端末内で本文・見出し・リンクを抽出。', 'id': 'html-import', 'words': {'HTML文書取込': ['HTML import', 'Import HTML', 'Importar HTML', 'Importar HTML', 'استيراد HTML', 'HTML 导入', 'Импорт HTML', 'Impor HTML', 'HTML-Import', 'Kuingiza HTML']}, 'links': [('Open HTML Import →', './tools/#html-import')]},
- {'title': '🗃️ 形式変換・検証',
-  'id': 'format-lab', 'words': {'形式変換・検証': ['Format conversion & checks', 'Conversion et vérification de formats', 'Conversión y verificación de formatos', 'Conversão e verificação de formatos', 'تحويل الصيغ والتحقق منها', '格式转换与校验', 'Преобразование и проверка форматов', 'Konversi dan pemeriksaan format', 'Formatumwandlung und Prüfung', 'Ubadilishaji na ukaguzi wa miundo'], 'Format Lab を開く': ['Open Format Lab', 'Ouvrir Format Lab', 'Abrir Format Lab', 'Abrir o Format Lab', 'افتح Format Lab', '打开 Format Lab', 'Открыть Format Lab', 'Buka Format Lab', 'Format Lab öffnen', 'Fungua Format Lab']},
-  'text': 'ファイルや貼り付けた原文を静的検査し、Base64の復元差分と検証記録を確認。CaChereCyCleのJSONLは資産のSHA-256も照合。',
+# 🧰 Ironmate builds its three studios at once (``image_studio.py --build-site``): each card is the page under its own folder.
+_IRONMATE = {'repository': 'myon-bioinformatics/Ironmate', 'run': ('image_studio.py', '--build-site', '{out}')}
+# 🧰 Tools: one card per tool (a #panel of tools/index.html, or a page elsewhere), practical tools only. Its ``title`` (emoji, then
+# Japanese) is the tool's one name: the card, 🚪, the screen's 🏠 list and its tab. ``text`` (70 characters at most) says what it does,
+# on the card and on the screen's board while it is open. ``links``: the first opens it (without ``links``, 開く → its #panel,
+# ./tools/#id); any other leads to a relative, named by its own emoji and words. ``build``: a tool another repository makes, as
+# ``{'repository', 'run', 'page'}`` (run with python in its checkout; ``{out}`` is where it writes its site, else its page is stdout;
+# ``page``, the folder of that site the tool is); it is placed at tools/<id>/ and framed on the screen when it has its own CSP.
+# One card is one tool: its folder, its #panel, 🚪, 🏠 and README's table follow from it. ``words`` are the names in 🌐's other languages. ``from`` names the repositories a card is built from (🧩, plain
+# text; 🚀 Projects links them): the card is a tool made of their parts, not those projects. Everything is escaped.
+PORTAL = [
+ {'title': '📄 HTML文書取込', 'id': 'html-import',
+  'text': 'HTML を貼るかファイルを選び、本文・見出し・リンクを端末の中で抽出。',
+  'words': {'HTML文書取込': ['HTML import', 'Import HTML', 'Importar HTML', 'Importar HTML', 'استيراد HTML', 'HTML 导入', 'Импорт HTML', 'Impor HTML', 'HTML-Import', 'Kuingiza HTML']}},
+ {'title': '🗃️ 形式変換・検証', 'id': 'format-lab',
+  'text': 'ファイルや貼った原文を静的検査し、Base64 の復元差分と検証記録を確認。CaChereCyCle の資産は SHA-256 も照合。',
+  'words': {'形式変換・検証': ['Format conversion & checks', 'Conversion et vérification de formats', 'Conversión y verificación de formatos', 'Conversão e verificação de formatos', 'تحويل الصيغ والتحقق منها', '格式转换与校验', 'Преобразование и проверка форматов', 'Konversi dan pemeriksaan format', 'Formatumwandlung und Prüfung', 'Ubadilishaji na ukaguzi wa miundo']},
   'from': ('myon-bioinformatics', 'PySaiyanWeBoo'),
-  'links': [('Format Lab を開く →', './tools/#format-lab')]},
- {'title': '📍地図URL・座標ピン留め',
-  'text': '緯度・経度からApple MapsとGoogle MapsのURLを作成。地点のピン留め・共有と、パラレル東京の対応地点へ。',
-  'id': 'maps', 'words': {'地図URL・座標ピン留め': ['Map URLs & coordinate pins', 'URL de carte et épingles de coordonnées', 'URL de mapa y chinchetas de coordenadas', 'URL de mapa e alfinetes de coordenadas', 'روابط الخرائط ودبابيس الإحداثيات', '地图 URL 与坐标图钉', 'URL карт и метки координат', 'URL peta dan penanda koordinat', 'Karten-URLs und Koordinaten-Pins', 'URL za ramani na pini za kuratibu'], '地図URLを作成': ['Make a map URL', 'Créer une URL de carte', 'Crear una URL de mapa', 'Criar uma URL de mapa', 'أنشئ رابط خريطة', '生成地图 URL', 'Создать URL карты', 'Buat URL peta', 'Karten-URL erstellen', 'Tengeneza URL ya ramani'], 'パラレル東京': ['Parallel Tokyo', 'Tokyo parallèle', 'Tokio paralelo', 'Tóquio paralela', 'طوكيو الموازية', '平行东京', 'Параллельный Токио', 'Tokyo Paralel', 'Paralleles Tokio', 'Tokyo sambamba']},
-  'links': [('地図URLを作成 →', './tools/#maps'), ('パラレル東京 →', './tools/#tokyo')]},
- {'title': '🖼️ スライド・画像工房',
-  'text': 'ブラウザでスライドを作成し、文字・図形・矢印を編集可能なPPTXへ出力。Image Studio はレイヤー、数値行列のヒートマップ、作業履歴、クリップボード棚、PNG Base64 の受け渡しに対応し、Browser Tools '
-          'ではドット絵・比較用の一枚・容量確認ができます。Markdown→PPTX変換と既存PPTXの属性編集はローカルCLIの試作実装です。',
-  'id': 'studios', 'words': {'スライド・画像工房': ['Slide & image studio', 'Atelier diapos et images', 'Taller de diapositivas e imágenes', 'Estúdio de slides e imagens', 'استوديو الشرائح والصور', '幻灯片与图像工坊', 'Студия слайдов и изображений', 'Studio slide dan gambar', 'Folien- und Bildwerkstatt', 'Studio ya slaidi na picha']},
+  'build': {'repository': 'myon-bioinformatics/myon-bioinformatics', 'run': ('tools/format-lab/build.py', '{out}')}},
+ {'title': '📍 地図URL・座標ピン留め', 'id': 'maps',
+  'text': '緯度・経度から Apple Maps と Google Maps の URL を作り、地点をピン留め・共有。',
+  'words': {'地図URL・座標ピン留め': ['Map URLs & coordinate pins', 'URL de carte et épingles de coordonnées', 'URL de mapa y chinchetas de coordenadas', 'URL de mapa e alfinetes de coordenadas', 'روابط الخرائط ودبابيس الإحداثيات', '地图 URL 与坐标图钉', 'URL карт и метки координат', 'URL peta dan penanda koordinat', 'Karten-URLs und Koordinaten-Pins', 'URL za ramani na pini za kuratibu'], 'パラレル東京': ['Parallel Tokyo', 'Tokyo parallèle', 'Tokio paralelo', 'Tóquio paralela', 'طوكيو الموازية', '平行东京', 'Параллельный Токио', 'Tokyo Paralel', 'Paralleles Tokio', 'Tokyo sambamba']},
+  'links': [('開く →', './tools/#maps'), ('🗼 パラレル東京 →', './tools/#tokyo')]},
+ {'title': '🖼️ 画像工房', 'id': 'image-studio',
+  'text': 'レイヤー・作業履歴・クリップボード棚で画像を編集。数値行列のヒートマップと PNG Base64 の受け渡しも。',
+  'words': {'画像工房': ['Image studio', 'Atelier d’images', 'Taller de imágenes', 'Estúdio de imagens', 'استوديو الصور', '图像工坊', 'Студия изображений', 'Studio gambar', 'Bildwerkstatt', 'Studio ya picha']},
   'from': ('Ironmate',),
-  'links': [('Open Image Studio →', _service_url('Ironmate', 'pages')),
-            ('Open Browser Tools →', _service_url('Ironmate', 'browserTools')),
-            ('Open Slide Studio →', _service_url('Ironmate', 'slides'))]},
- {'title': '🌡️ ヒートマップ',
-  'text': '数値行列か Plotly の heatmap を貼って描き、色の段階・値の表示を変えて SVG・PNG・シーン JSON に。'
-          'シーンは Ironmate の Image Studio でレイヤーとして編集できます。',
-  'id': 'heatmap', 'words': {'ヒートマップ': ['Heatmap', 'Carte de chaleur', 'Mapa de calor', 'Mapa de calor', 'خريطة حرارية', '热图', 'Тепловая карта', 'Peta panas', 'Heatmap', 'Ramani ya joto'], 'ヒートマップを描く': ['Draw a heatmap', 'Dessiner une carte de chaleur', 'Dibujar un mapa de calor', 'Desenhar um mapa de calor', 'ارسم خريطة حرارية', '绘制热图', 'Нарисовать тепловую карту', 'Gambar peta panas', 'Heatmap zeichnen', 'Chora ramani ya joto'], 'Image Studio で編集': ['Edit in Image Studio', 'Modifier dans Image Studio', 'Editar en Image Studio', 'Editar no Image Studio', 'حرّر في Image Studio', '在 Image Studio 中编辑', 'Редактировать в Image Studio', 'Edit di Image Studio', 'In Image Studio bearbeiten', 'Hariri katika Image Studio']},
+  'build': {**_IRONMATE, 'page': ''}},
+ {'title': '🎨 ブラウザ道具', 'id': 'browser-tools',
+  'text': 'ドット絵・比較用の一枚・容量確認を、ブラウザだけで。',
+  'words': {'ブラウザ道具': ['Browser tools', 'Outils du navigateur', 'Herramientas del navegador', 'Ferramentas do navegador', 'أدوات المتصفح', '浏览器工具', 'Инструменты браузера', 'Alat peramban', 'Browser-Werkzeuge', 'Zana za kivinjari']},
+  'from': ('Ironmate',),
+  'build': {**_IRONMATE, 'page': 'tools/'}},
+ {'title': '📽️ スライド工房', 'id': 'slide-studio',
+  'text': 'ブラウザでスライドを作り、文字・図形・矢印を編集できる PPTX に出力。Markdown→PPTX は CLI の試作実装。',
+  'words': {'スライド工房': ['Slide studio', 'Atelier de diapositives', 'Taller de diapositivas', 'Estúdio de slides', 'استوديو الشرائح', '幻灯片工坊', 'Студия слайдов', 'Studio slide', 'Folienwerkstatt', 'Studio ya slaidi']},
+  'from': ('Ironmate',),
+  'build': {**_IRONMATE, 'page': 'slides/'}},
+ {'title': '🌡️ ヒートマップ', 'id': 'heatmap',
+  'text': '数値行列か Plotly の heatmap を貼って描き、SVG・PNG・シーン JSON に。シーンは画像工房で編集できる。',
+  'words': {'ヒートマップ': ['Heatmap', 'Carte de chaleur', 'Mapa de calor', 'Mapa de calor', 'خريطة حرارية', '热图', 'Тепловая карта', 'Peta panas', 'Heatmap', 'Ramani ya joto'], '画像工房で編集': ['Edit in the image studio', 'Modifier dans l’atelier d’images', 'Editar en el taller de imágenes', 'Editar no estúdio de imagens', 'حرّر في استوديو الصور', '在图像工坊中编辑', 'Редактировать в студии изображений', 'Edit di studio gambar', 'In der Bildwerkstatt bearbeiten', 'Hariri katika studio ya picha']},
   'from': ('DRAgoWing', 'Ironmate'),
-  'links': [('ヒートマップを描く →', './tools/#heatmap'), ('Image Studio で編集 →', _service_url('Ironmate', 'pages', relative=True))]},
- {'title': '🔌 MCP 実験室',
-  'text': 'AI が MCP で呼ぶ道具（Wikipedia 表示・Pixiv 原文抽出・ニコニコ検索・ポケモン）をブラウザで試し、ツール呼び出しの記録（JSONL）を集計。'
-          '検証の結果は、ラボの Actions の写し。接続試験は、新旧の protocol・PKCE・Bearer・OAuth メタデータを端末の中で確かめる。',
-  'id': 'mcp', 'words': {'MCP 実験室': ['MCP lab', 'Labo MCP', 'Laboratorio MCP', 'Laboratório MCP', 'مختبر MCP', 'MCP 实验室', 'Лаборатория MCP', 'Lab MCP', 'MCP-Labor', 'Maabara ya MCP'], 'MCP 接続試験': ['MCP connection test', 'Test de connexion MCP', 'Prueba de conexión MCP', 'Teste de conexão MCP', 'اختبار اتصال MCP', 'MCP 连接测试', 'Проверка подключения MCP', 'Uji koneksi MCP', 'MCP-Verbindungstest', 'Jaribio la muunganisho wa MCP']},
-  'from': ('mcp-toolcall-lab',),
-  'links': [('Open Tool Lab →', './tools/#mcp'),
-            ('Open Execution Lab →', _service_url('mcp-toolcall-lab', 'execution')),
-            ('MCP 接続試験 →', './tools/#protocol')]},
- {'title': '🧾 テスト結果',
-  'text': 'JUnit の結果を貼るか開いて読み、前回と比べて新規・再発・解消を分ける。端末の中で完結し、結果はどこにも送らない。',
-  'id': 'test-report', 'words': {'テスト結果': ['Test results', 'Résultats de tests', 'Resultados de pruebas', 'Resultados de testes', 'نتائج الاختبار', '测试结果', 'Результаты тестов', 'Hasil pengujian', 'Testergebnisse', 'Matokeo ya majaribio'], '結果を読む': ['Read the results', 'Lire les résultats', 'Leer los resultados', 'Ler os resultados', 'اقرأ النتائج', '读取结果', 'Прочитать результаты', 'Baca hasil', 'Ergebnisse lesen', 'Soma matokeo']},
-  'from': ('PySaiyanWeBoo',),
-  'links': [('結果を読む →', './tools/#test-report')]},
- {'title': '💬 横断チャット',
-  'text': 'リポジトリ横断の道具をチャットで：Markdown の表示・表、ASCII アートと流れ図、会話の圧縮、MCP の道具呼び出しの確認、'
-          '全リポジトリの JSON / JSONL（オントロジーの台帳も）の索引と中身。ページの中の Python（Pyodide）で、それぞれのリポジトリのコードがそのまま動く。',
-  'id': 'chat', 'words': {'横断チャット': ['Cross-repo chat', 'Chat inter-dépôts', 'Chat entre repositorios', 'Chat entre repositórios', 'دردشة عبر المستودعات', '跨仓库聊天', 'Чат по всем репозиториям', 'Obrolan lintas repo', 'Repo-übergreifender Chat', 'Gumzo la hazina zote'], '話しかける': ['Talk to it', 'Lui parler', 'Hablarle', 'Falar com ele', 'تحدّث إليه', '和它聊聊', 'Поговорить', 'Ajak bicara', 'Ansprechen', 'Zungumza nayo']},
-  'from': ('markdown', 'ascii_artist', 'cli_args', 'TalkCompress', 'mcp-toolcall-lab'),
-  'links': [('💬 話しかける →', './tools/#chat')]},
- {'title': '🧭 統合運用',
-  'text': 'リポジトリ横断の運用ダッシュボード：CI の失敗・競合・未解決レビューの優先確認、監査と依存、実行手順、記録と差分。',
-  'id': 'operations', 'words': {'統合運用': ['Operations', 'Opérations', 'Operaciones', 'Operações', 'العمليات', '综合运维', 'Эксплуатация', 'Operasi', 'Betrieb', 'Uendeshaji']},
+  'build': {'repository': 'myon-bioinformatics/DRAgoWing', 'run': ('scripts/build_heatmap_page.py',)},   # 🌡️ its page on stdout
+  'links': [('開く →', './tools/#heatmap'), ('🖼️ 画像工房で編集 →', './tools/#image-studio')]},
+ {'title': '🧾 テスト結果', 'id': 'test-report',
+  'text': 'JUnit の結果を読み、前回と比べて新規・再発・解消を分ける。🧯 で失敗をチャットの /triage へ。結果は送らない。',
+  'words': {'テスト結果': ['Test results', 'Résultats de tests', 'Resultados de pruebas', 'Resultados de testes', 'نتائج الاختبار', '测试结果', 'Результаты тестов', 'Hasil pengujian', 'Testergebnisse', 'Matokeo ya majaribio']},
+  'from': ('PySaiyanWeBoo',)},
+ {'title': '💬 横断チャット', 'id': 'chat',
+  'text': 'Markdown・ASCII アート・圧縮・JSON 索引・🧯 triage・🔌 MCP を Python で。🤖 LLM も呼ぶ。',
+  'words': {'横断チャット': ['Cross-repo chat', 'Chat inter-dépôts', 'Chat entre repositorios', 'Chat entre repositórios', 'دردشة عبر المستودعات', '跨仓库聊天', 'Чат по всем репозиториям', 'Obrolan lintas repo', 'Repo-übergreifender Chat', 'Gumzo la hazina zote']},
+  'from': ('markdown', 'ascii_artist', 'cli_args', 'TalkCompress', 'mcp-toolcall-lab', 'Err-o-RoadRunner')},
+ {'title': '🧭 統合運用', 'id': 'operations',
+  'text': 'リポジトリ横断の運用ダッシュボード：CI の失敗・競合・未解決レビュー、監査と依存、実行手順、記録と差分。',
+  'words': {'統合運用': ['Operations', 'Opérations', 'Operaciones', 'Operações', 'العمليات', '综合运维', 'Эксплуатация', 'Operasi', 'Betrieb', 'Uendeshaji']},
   'from': ('myon-bioinformatics',),
-  'links': [('Open Dashboard →', 'https://myon-bioinformatics.github.io/myon-bioinformatics/')]},
- {'title': '🎞 GIF工房',
-  'text': '手持ちの画像を並べて GIF に。端末の中で完結し、画像はどこにも送らず保存もしない（PySaiyanWeBoo の gif.js）。',
-  'id': 'gif', 'words': {'GIF工房': ['GIF studio', 'Atelier GIF', 'Taller GIF', 'Oficina GIF', 'استوديو GIF', 'GIF 工坊', 'Студия GIF', 'Studio GIF', 'GIF-Werkstatt', 'Studio ya GIF'], 'GIF をつくる': ['Make a GIF', 'Créer un GIF', 'Crear un GIF', 'Criar um GIF', 'أنشئ GIF', '制作 GIF', 'Сделать GIF', 'Buat GIF', 'GIF erstellen', 'Tengeneza GIF']},
-  'from': ('PySaiyanWeBoo',),
-  'links': [('GIF をつくる →', './tools/#gif')]},
- {'title': '🌊 流れの実験室',
-  'text': 'FFSS の全場面を 🌊 動く像（流れと遅れ）で、その記録から描ける DRAgoWing の全図を 📊 静止図（行き先の内訳）で。水回り・流しそうめん・お金・からだ・火力・ヒートポンプまで。',
-  'id': 'flow', 'words': {'流れの実験室': ['Flow lab', 'Labo des flux', 'Laboratorio de flujos', 'Laboratório de fluxos', 'مختبر التدفق', '流动实验室', 'Лаборатория потоков', 'Lab aliran', 'Strömungslabor', 'Maabara ya mtiririko'], '実験室へ': ['To the lab', 'Vers le labo', 'Al laboratorio', 'Ao laboratório', 'إلى المختبر', '前往实验室', 'В лабораторию', 'Ke lab', 'Zum Labor', 'Kwenda maabara']},
-  'from': ('FluidFullSpeedSimulation', 'DRAgoWing'),
-  'links': [('実験室へ →', './tools/#flow')]},
- {'title': '🧠 リポジトリ地図',
-  'text': 'どのリポジトリが、どのリポジトリのファイルを写して使っているか。各リポジトリの vendor.lock.json と Aoi の subtree から、公開のたびに描き直す。',
-  'id': 'repo-map', 'words': {'リポジトリ地図': ['Repository map', 'Carte des dépôts', 'Mapa de repositorios', 'Mapa de repositórios', 'خريطة المستودعات', '仓库地图', 'Карта репозиториев', 'Peta repositori', 'Repository-Karte', 'Ramani ya hazina'], '地図へ': ['To the map', 'Vers la carte', 'Al mapa', 'Ao mapa', 'إلى الخريطة', '前往地图', 'К карте', 'Ke peta', 'Zur Karte', 'Kwenda ramani']},
-  'links': [('地図へ →', './tools/#repo-map')]}]
+  'links': [('開く →', 'https://myon-bioinformatics.github.io/myon-bioinformatics/')]},
+ {'title': '🎞 GIF工房', 'id': 'gif',
+  'text': '手持ちの画像を並べて GIF に。端末の中で完結し、画像はどこにも送らず保存もしない。',
+  'words': {'GIF工房': ['GIF studio', 'Atelier GIF', 'Taller GIF', 'Oficina GIF', 'استوديو GIF', 'GIF 工坊', 'Студия GIF', 'Studio GIF', 'GIF-Werkstatt', 'Studio ya GIF']},
+  'from': ('PySaiyanWeBoo',)},
+ {'title': '🌊 流れの実験室', 'id': 'flow',
+  'text': 'FFSS の全場面を 🌊 動く像で、DRAgoWing の全図を 📊 静止図で。水回り・そうめん・お金・からだ・火力まで。',
+  'words': {'流れの実験室': ['Flow lab', 'Labo des flux', 'Laboratorio de flujos', 'Laboratório de fluxos', 'مختبر التدفق', '流动实验室', 'Лаборатория потоков', 'Lab aliran', 'Strömungslabor', 'Maabara ya mtiririko']},
+  'from': ('FluidFullSpeedSimulation', 'DRAgoWing')},
+ {'title': '🧠 リポジトリ地図', 'id': 'repo-map',
+  'text': 'どのリポジトリがどのファイルを写して使うか。vendor.lock.json と Aoi の subtree から公開ごとに描き直す。',
+  'words': {'リポジトリ地図': ['Repository map', 'Carte des dépôts', 'Mapa de repositorios', 'Mapa de repositórios', 'خريطة المستودعات', '仓库地图', 'Карта репозиториев', 'Peta repositori', 'Repository-Karte', 'Ramani ya hazina']}}]
+PORTAL = [{'links': [('開く →', f"./tools/#{card['id']}")], **card} for card in PORTAL]   # 🔗 開く → its #panel, unless it says
 
 
 # 🔗 The front page's own emoji in the shared header (scripts/project_pages.py ``add_site_chrome``): where else to find the author.
@@ -111,8 +110,6 @@ def portal_cards(samples=frozenset()) -> str:
         parts.append('<p>' + html.escape(card['text'], quote=False) + '</p>')
         if 'from' in card:
             parts.append('<p class="portal-from">🧩 出どころ: ' + ' · '.join(html.escape(name, quote=False) for name in card['from']) + '</p>')
-        if 'points' in card:
-            parts.append('<ul class="portal-points">' + ''.join(f'<li>{point}</li>' for point in card['points']) + '</ul>')
         if not shown or len(card['links']) > 1:
             parts += [f'<a href="{html.escape(href, quote=True)}">{html.escape(label, quote=False)}</a>' for label, href in card['links']]
         out.append('        <article class="card portal-card">' + ''.join(parts) + '</article>\n')
@@ -134,6 +131,7 @@ AI_FALLBACK = [
 ]
 # 👁️ display mode -> the notation it draws (modern and github-like differ in colour only).
 MODES = {'modern': 'web', 'xml-like': 'xml', 'json': 'json', 'markdown': 'markdown', 'github-like': 'web'}
+
 NOTATION_CLASS = {'web': '', 'xml': 'notation-root xml-renderer', 'json': 'notation-root json-renderer', 'markdown': 'notation-root markdown-renderer'}
 
 
@@ -340,13 +338,6 @@ def _inline_json(value) -> str:
     return json.dumps(value, ensure_ascii=False).replace('<', '\\u003c')
 
 
-def theme_options(ui) -> str:
-    """🎨 The colour themes PySaiyanWeBoo provides (light and dark palettes), after the display mode's own colours."""
-    mark = {'green': '🟢', 'red': '🔴', 'blue': '🔵', 'purple': '🟣', 'terminal': '⬛'}
-    return '<option value="">🎨 Mode</option>' + ''.join(
-        f'<option value="{_a(name)}">{mark.get(name, "🎨")} {_e(name)}</option>' for name in ui.theme_palettes())
-
-
 def markdown_fragment(root: Path, relative: str) -> str:
     """📄 A reviewed repository .md file (never visitor-supplied HTML) as HTML at build time, by the pinned markdown.py."""
     import markdown as md_market
@@ -396,6 +387,16 @@ def documents_html(root: Path, documents) -> str:
     return ''.join(parts)
 
 
+def rows(ui) -> str:
+    """⚙️ What this page asks the site's header for (PySaiyanWeBoo ``chrome_rows_script``; the header places it on its own): 🧾 the
+    notation the profile and projects are shown in, beside 🌐 and 🎨, its name in 🌐's languages."""
+    names = ('Modern', 'XML-like', 'JSON', 'Markdown', 'GitHub-like')
+    return ui.chrome_rows_script({
+        'settings': [{'label': '🧾 Display mode', 'key': 'mode', 'options': [{'label': label, 'value': mode} for mode, label in zip(MODES, names)]}],
+        'words': {'表示形式': ['Display mode', "Mode d'affichage", 'Modo de visualización', 'Modo de exibição', 'وضع العرض', '显示模式',
+                              'Режим отображения', 'Mode tampilan', 'Anzeigemodus', 'Hali ya kuonyesha']}})
+
+
 def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
     root = Path(__file__).resolve().parents[1] if root is None else Path(root)
     if ui is None:
@@ -408,8 +409,8 @@ def document(root: Path | None = None, ui=None, samples=frozenset()) -> str:
     script = ui.module_script('\n'.join((ui.js_source('collection.js'), SCRIPT)))
     page = SHELL
     documents = documents_html(root, read('site.config.json').get('documents', []))
-    for mark, value in (('@@PORTAL@@', portal_cards(samples)), ('@@THEMES@@', theme_options(ui)), ('@@TOPICS@@', topic_buttons(projects)),
-                        ('@@VIEWS@@', views_html(profile, projects) + data), ('@@STYLE@@', '\n' + palettes + '\n' + ui.tabs_css() + '\n' + STYLE + '\n  '),
+    for mark, value in (('@@PORTAL@@', portal_cards(samples)), ('@@TOPICS@@', topic_buttons(projects)),
+                        ('@@VIEWS@@', views_html(profile, projects) + data + rows(ui)), ('@@STYLE@@', '\n' + palettes + '\n' + ui.tabs_css() + '\n' + STYLE + '\n  '),
                         ('@@DOCUMENTS@@', documents), ('@@SCRIPT@@', script)):
         assert page.count(mark) == 1, mark
         page = page.replace(mark, value)
@@ -442,22 +443,6 @@ SHELL = '''<!doctype html>
   <header class="site-header">
     <div class="container">
       <h1><img class="brand-icon" src="./assets/brand/myon-profile-icon.png" alt="" width="40" height="40">myon-bioinformatics</h1>
-      <div class="header-actions">
-        <div class="view-mode-switch">
-          <label for="view-mode-select">Mode</label>
-          <select id="view-mode-select" aria-label="Display mode">
-            <option value="modern">Modern</option>
-            <option value="xml-like">XML-like</option>
-            <option value="json">JSON</option>
-            <option value="markdown">Markdown</option>
-            <option value="github-like">GitHub-like</option>
-          </select>
-        </div>
-        <div class="view-mode-switch">
-          <label for="theme-select">Color</label>
-          <select id="theme-select" aria-label="Color theme">@@THEMES@@</select>
-        </div>
-      </div>
     </div>
   </header>
 
@@ -553,20 +538,9 @@ STYLE = ''':root {
 a{color:inherit}
 .container{max-width:960px;margin:0 auto;padding:1.5rem}
 .site-header{border-bottom:1px solid var(--border)}
-.site-header .container{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:1rem}
+.site-header .container{display:grid;grid-template-columns:minmax(0,1fr);align-items:center;gap:1rem}
 .site-header h1{display:flex;align-items:center;gap:.75rem;margin:0;max-width:100%;font-size:1.25rem;overflow-wrap:anywhere}
 .site-header .brand-icon{display:block;flex:none;width:40px;height:40px}
-.header-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.view-mode-switch{display:flex;align-items:center;gap:8px}
-.view-mode-switch label{font-size:.85rem;color:var(--muted)}
-.view-mode-switch select{
-  border:1px solid var(--border);
-  border-radius:8px;
-  background:var(--bg);
-  color:var(--fg);
-  padding:4px 8px;
-  font:inherit;
-}
 h2{margin:0 0 .75rem}
 .document{scroll-margin-top:1rem}
 .document-markdown{border:1px solid var(--border);border-radius:10px;padding:1rem;overflow-wrap:anywhere}
@@ -695,33 +669,6 @@ h2{margin:0 0 .75rem}
   color: var(--muted);
   font-style: italic;
 }
-.card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 10px;
-  gap: 8px;
-}
-.copy-btn {
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 3px 8px;
-  font: inherit;
-  font-size: 0.75rem;
-  color: var(--muted);
-  cursor: pointer;
-  transition: all .15s ease;
-}
-.copy-btn:hover {
-  color: var(--fg);
-  border-color: var(--fg);
-}
-.copy-btn.copied {
-  background: #2da44e;
-  border-color: #2da44e;
-  color: #ffffff;
-}
 
 .grid {
   display: grid;
@@ -738,14 +685,6 @@ h2{margin:0 0 .75rem}
 .card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.06); }
 .card h3 { margin: 0 0 6px; font-size: 1.05rem; }
 .card p { margin: 0 0 10px; color: var(--muted); line-height: 1.4; }
-.badges { display: flex; flex-wrap: wrap; gap: 6px; }
-.badges .tag {
-  font-size: .75rem; background: #f3f4f6; border: 1px solid var(--border);
-  padding: 2px 8px; border-radius: 999px; color: #333;
-}
-@media (prefers-color-scheme: dark) {
-  .badges .tag { background: #141417; color: #ddd; }
-}
 .more { margin-top: 8px; font-size: .95rem; }
 
 /* ── Profile tabs (PySaiyanWeBoo's tabs_html: a radio and a label each, no script) ── */
@@ -806,23 +745,14 @@ body[data-view-mode="modern"] {
   color: var(--terminal-fg);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
-body[data-view-mode="modern"] .site-header,
-body[data-view-mode="modern"] .site-footer {
+body[data-view-mode="modern"] .site-header {
   border-color: var(--terminal-border);
   border-style: dashed;
 }
 body[data-view-mode="modern"] .site-header h1::before { content: "$ "; color: var(--terminal-accent); }
-body[data-view-mode="modern"] .view-mode-switch label { color: var(--terminal-muted); }
-body[data-view-mode="modern"] .view-mode-switch select {
-  border-radius: 0;
-  border-color: var(--terminal-border);
-  background: var(--terminal-panel);
-  color: var(--terminal-fg);
-}
 body[data-view-mode="modern"] .intro h2::before,
 body[data-view-mode="modern"] #profile h2::before,
-body[data-view-mode="modern"] #projects h2::before,
-body[data-view-mode="modern"] .outro h2::before {
+body[data-view-mode="modern"] #projects h2::before {
   content: "> ";
   color: var(--terminal-accent);
 }
@@ -856,8 +786,12 @@ body[data-view-mode="modern"] .btn-refresh {
   background: var(--terminal-panel);
   color: var(--terminal-fg);
 }
-body[data-view-mode="modern"] .btn-refresh::before { content: "[ "; color: var(--terminal-border); }
-body[data-view-mode="modern"] .btn-refresh::after { content: " ]"; color: var(--terminal-border); }
+body[data-view-mode="modern"] .btn-refresh::before,
+body[data-view-mode="modern"] .ui-tab::before,
+body[data-view-mode="modern"] .tag-btn::before { content: "[ "; color: var(--terminal-border); }
+body[data-view-mode="modern"] .btn-refresh::after,
+body[data-view-mode="modern"] .ui-tab::after,
+body[data-view-mode="modern"] .tag-btn::after { content: " ]"; color: var(--terminal-border); }
 body[data-view-mode="modern"] .ui-tabs { gap: 0; }
 body[data-view-mode="modern"] .ui-tab-panel { border-top: 1px dashed var(--terminal-border); }
 body[data-view-mode="modern"] .ui-tab {
@@ -865,14 +799,13 @@ body[data-view-mode="modern"] .ui-tab {
   border-bottom: 0;
   color: var(--terminal-muted);
 }
-body[data-view-mode="modern"] .ui-tab::before { content: "[ "; color: var(--terminal-border); }
-body[data-view-mode="modern"] .ui-tab::after { content: " ]"; color: var(--terminal-border); }
 body[data-view-mode="modern"] .ui-tab-input:checked + .ui-tab {
   border-right-color: var(--terminal-border);
   color: var(--terminal-fg);
   background: rgba(126,231,135,.08);
 }
-body[data-view-mode="modern"] .ui-tab-input:checked + .ui-tab::before { content: "[> "; color: var(--terminal-accent); }
+body[data-view-mode="modern"] .ui-tab-input:checked + .ui-tab::before,
+body[data-view-mode="modern"] .tag-btn.active::before { content: "[> "; color: var(--terminal-accent); }
 body[data-view-mode="modern"] .card {
   border-radius: 0;
   border-color: var(--terminal-border);
@@ -884,13 +817,6 @@ body[data-view-mode="modern"] .card p,
 body[data-view-mode="modern"] .tl-body p,
 body[data-view-mode="modern"] .tl-year,
 body[data-view-mode="modern"] .skill-category { color: var(--terminal-muted); }
-body[data-view-mode="modern"] .badges .tag {
-  border-radius: 0;
-  border-color: var(--terminal-border);
-  background: transparent;
-  color: var(--terminal-fg);
-}
-body[data-view-mode="modern"] .badges .tag::before { content: "#"; color: var(--terminal-accent); }
 body[data-view-mode="modern"] .skill-bar-track {
   height: 10px;
   border: 1px solid var(--terminal-border);
@@ -926,63 +852,27 @@ body[data-view-mode="modern"] .tag-btn {
   border-color: var(--terminal-border);
   color: var(--terminal-muted);
 }
-body[data-view-mode="modern"] .tag-btn::before { content: "[ "; color: var(--terminal-border); }
-body[data-view-mode="modern"] .tag-btn::after { content: " ]"; color: var(--terminal-border); }
 body[data-view-mode="modern"] .tag-btn.active {
   background: rgba(126, 231, 135, .12);
   color: var(--terminal-fg);
   border-color: var(--terminal-accent);
 }
-body[data-view-mode="modern"] .tag-btn.active::before { content: "[> "; color: var(--terminal-accent); }
 body[data-view-mode="modern"] .projects-count,
 body[data-view-mode="modern"] .empty-projects-msg {
   color: var(--terminal-muted);
-}
-body[data-view-mode="modern"] .copy-btn {
-  border-radius: 0;
-  border-color: var(--terminal-border);
-  background: transparent;
-  color: var(--terminal-fg);
-}
-body[data-view-mode="modern"] .copy-btn.copied {
-  background: var(--terminal-accent);
-  color: var(--terminal-bg);
-  border-color: var(--terminal-accent);
 }
 
 /* ── XML-like mode ───────────────────────────────────────────────────────── */
 body[data-view-mode="xml-like"] {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
-body[data-view-mode="xml-like"] h2[data-tag]::before {
-  content: "<" attr(data-tag) ">";
-  margin-right: .4rem;
-  color: var(--syntax-xml);
-  font-size: .9em;
-}
-body[data-view-mode="xml-like"] h2[data-tag]::after {
-  content: "</" attr(data-tag) ">";
-  margin-left: .4rem;
-  color: var(--syntax-xml);
-  font-size: .9em;
-}
-body[data-view-mode="xml-like"] .card,
-body[data-view-mode="xml-like"] .timeline-item,
-body[data-view-mode="xml-like"] .skill-group {
+body[data-view-mode="xml-like"] .card {
   border-radius: 0;
 }
 
 /* ── JSON mode ───────────────────────────────────────────────────────────── */
 body[data-view-mode="json"] {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-}
-body[data-view-mode="json"] h2[data-tag]::before {
-  content: '"' attr(data-tag) '": ';
-  color: var(--syntax-json-punctuation);
-}
-body[data-view-mode="json"] h2[data-tag]::after {
-  content: ",";
-  color: var(--syntax-json-punctuation);
 }
 body[data-view-mode="json"] .container {
   border-left: 3px solid var(--border);
@@ -1016,17 +906,9 @@ body[data-view-mode="github-like"] {
   color: #24292f;
 }
 body[data-view-mode="github-like"] .site-header,
-body[data-view-mode="github-like"] .site-footer,
 body[data-view-mode="github-like"] .card,
-body[data-view-mode="github-like"] .ui-tab-panel,
-body[data-view-mode="github-like"] .view-mode-switch select {
+body[data-view-mode="github-like"] .ui-tab-panel {
   background: #ffffff;
-}
-body[data-view-mode="github-like"] .site-header,
-body[data-view-mode="github-like"] .site-footer,
-body[data-view-mode="github-like"] .card,
-body[data-view-mode="github-like"] .ui-tab-panel,
-body[data-view-mode="github-like"] .view-mode-switch select {
   border-color: #d0d7de;
 }
 body[data-view-mode="github-like"] .card {
@@ -1036,10 +918,6 @@ body[data-view-mode="github-like"] .card {
 body[data-view-mode="github-like"] .card:hover {
   transform: none;
   box-shadow: 0 1px 0 rgba(27, 31, 36, 0.04);
-}
-body[data-view-mode="github-like"] .badges .tag {
-  background: #f6f8fa;
-  color: #57606a;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1056,20 +934,6 @@ body[data-view-mode="github-like"] .badges .tag {
   .container { padding: 1.25rem; }
   body[data-view-mode="json"] .container { padding-left: 1rem; }
   .site-header .container { grid-template-columns:1fr; }
-  .header-actions { align-items:flex-start; }
-  .header-actions {
-    width: 100%;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .view-mode-switch {
-    width: 100%;
-    justify-content: space-between;
-  }
-  .view-mode-switch select {
-    width: min(100%, 220px);
-    min-width: 0;
-  }
   .grid {
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
@@ -1100,12 +964,6 @@ body[data-view-mode="github-like"] .badges .tag {
 @media (max-width: 520px) {
   .container { padding: 1rem; }
   .site-header h1 { font-size: 1.1rem; }
-  .view-mode-switch {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .view-mode-switch select { width: 100%; }
   .grid { grid-template-columns: 1fr; }
 }
 
@@ -1159,13 +1017,6 @@ body[data-view-mode="modern"] #projects .section-sub { color: var(--terminal-mut
   font-weight: 600;
 }
 .portal-card > a.project-sample { margin: 0 0 8px; }
-.portal-points {
-  margin: 0 0 12px;
-  padding-left: 1.2em;
-  font-size: 0.9em;
-  overflow-wrap: anywhere;
-}
-.portal-points li + li { margin-top: 4px; }
 .portal-from { margin: 0 0 8px; font-size: 0.8em; color: var(--ui-muted); overflow-wrap: anywhere; }
 
 /* Dedicated notation renderers. Layout lives here; content still comes from profile.json/projects.json. */
@@ -1263,8 +1114,9 @@ body[data-view-mode="modern"] #projects .section-sub { color: var(--terminal-mut
   }
 }
 
-/* 🎨 A chosen colour theme (PySaiyanWeBoo palette, body[data-ui-theme=NAME]) drives this page's own colours too. */
-body[data-color] {
+/* 🎨 A palette chosen in ⚙️ (PySaiyanWeBoo's, body[data-ui-theme=NAME]) drives this page's own colours too; Modern and GitHub-like are
+   this page's own looks (body[data-ui-theme=modern] above). */
+body[data-ui-theme-chosen]:not([data-ui-theme-chosen="modern"], [data-ui-theme-chosen="github-like"]) {
   --fg: var(--ui-fg); --bg: var(--ui-bg); --muted: var(--ui-muted); --border: var(--ui-border);
   --terminal-bg: var(--ui-bg); --terminal-panel: var(--ui-panel); --terminal-fg: var(--ui-fg);
   --terminal-muted: var(--ui-muted); --terminal-border: var(--ui-accent); --terminal-accent: var(--ui-accent);
@@ -1280,7 +1132,6 @@ import { copyText } from './tools/vendor/web-ui/js/ui.js';
 const DEFAULT_VIEW_MODE = 'modern';
 const VIEW_MODE_KEY = 'site:view-mode';
 const VIEW_MODE_BASE_KEY = 'site:view-mode-base';
-const COLOR_THEME_KEY = 'site:color-theme';
 const PAGE = JSON.parse(document.getElementById('page-data').textContent);
 const PROJECTS = JSON.parse(document.getElementById('projects-data').textContent);
 
@@ -1335,22 +1186,20 @@ function dropLastComma(root) {
   if (commas.length) commas[commas.length - 1].remove();
 }
 
-// 🎨 A colour theme from PySaiyanWeBoo's palettes, or the display mode's own colours when none is chosen.
-function applyColorTheme() {
-  const mode = getCurrentMode();
-  const selector = document.getElementById('theme-select');
-  const chosen = selector && [...selector.options].some((option) => option.value === readStored(COLOR_THEME_KEY)) ? readStored(COLOR_THEME_KEY) : '';
-  if (selector) selector.value = chosen;
-  if (chosen) document.body.dataset.color = chosen; else delete document.body.dataset.color;
-  document.body.dataset.uiTheme = chosen || (mode === 'modern' || mode === 'github-like' ? mode : 'plain');
+// 🎨 is ⚙️'s (PySaiyanWeBoo's bindTheme: one choice for every page of the site, so tools/ has it too); its "this page's own" is the
+// display mode's look. The page tells bindTheme which look is its own (pageTheme's contract: data-ui-theme-page).
+function applyOwnColours() {
+  const mode = getCurrentMode(), body = document.body;
+  body.dataset.uiThemePage = mode === 'modern' || mode === 'github-like' ? mode : 'plain';
+  if (body.dataset.uiThemeChosen === undefined) body.dataset.uiTheme = body.dataset.uiThemePage;
 }
 
 function applyViewMode(mode) {
   const normalized = normalizeViewMode(mode);
   document.body.dataset.viewMode = normalized;
-  applyColorTheme();
-  const selector = document.getElementById('view-mode-select');
-  if (selector && selector.value !== normalized) selector.value = normalized;
+  applyOwnColours();
+  const choice = document.querySelector('[data-chrome-choice="mode"]');   // ⚙️ 🧾 says the mode in effect
+  if (choice && choice.value !== normalized) choice.value = normalized;
   renderPortfolio();
 }
 
@@ -1528,15 +1377,12 @@ function bindControls() {
     if (topic) setTagFilter(topic.dataset.topic);
     else if (copy) void copyUrl(copy);
   });
-  document.getElementById('view-mode-select').addEventListener('change', (event) => {
-    const nextMode = normalizeViewMode(event.target.value);
+  document.addEventListener('ui-chrome-action', (event) => {              // ⚙️ 🧾: the chrome tells the mode picked
+    if (event.detail.key !== 'mode') return;
+    const nextMode = normalizeViewMode(event.detail.value);
     applyViewMode(nextMode);
     store(VIEW_MODE_KEY, nextMode);
     store(VIEW_MODE_BASE_KEY, configuredViewMode);
-  });
-  document.getElementById('theme-select').addEventListener('change', (event) => {
-    store(COLOR_THEME_KEY, event.target.value);
-    applyColorTheme();
   });
   document.getElementById('ai-highlights-refresh').addEventListener('click', () => {
     pickRandomAiHighlights();

@@ -1038,23 +1038,21 @@ class CitiesTests(unittest.TestCase):
         self.assertEqual(self.errors, [])
 
     def test_shimbashi_sheet_keeps_the_player_visible_at_the_map_edge(self):
+        spot = next(s for s in CITIES["floors"][0]["spots"] if s["id"] == "tokyo-shimbashi")
         for size in SIZES:
             page = self.open(size)
             self.start(page)
-            for spot in CITIES["floors"][0]["spots"]:
-                self.menu(page, "spots")
-                page.click(f'.ui-world-spots[data-floor="tokyo"] a[href="#cities-spot-{spot["id"]}"]')
-                page.evaluate(CITY_WALK, "tokyo")
-                self.still(page)
-                if spot["id"] == "tokyo-shimbashi":
-                    notes = []
-                    if page.evaluate(CITY_TOP, f"{CITY_FLOOR.format('tokyo')} .ui-player")["sheet"]:
-                        notes.append("⚠️ シートが🧳を隠す")
-                    self.shot(page, "sheet", "tokyo", spot["id"], spot["label"], notes)
-                    with self.subTest(size=size):
-                        self.assertEqual(notes, [])
-                    break
-                page.click(".ui-sheet-close:visible")
+            self.menu(page, "spots")
+            page.click('.ui-world-spots[data-floor="tokyo"] a[href="#cities-spot-tokyo-shimbashi"]')
+            page.evaluate(CITY_WALK, "tokyo")
+            self.still(page)
+            self.assertTrue(page.is_visible("#cities-spot-tokyo-shimbashi"))
+            notes = []
+            if page.evaluate(CITY_TOP, f"{CITY_FLOOR.format('tokyo')} .ui-player")["sheet"]:
+                notes.append("⚠️ シートが🧳を隠す")
+            self.shot(page, "sheet", "tokyo", spot["id"], spot["label"], notes)
+            with self.subTest(size=size):
+                self.assertEqual(notes, [])
             self.assertEqual(self.errors, [])
 
     def test_every_width_fits_each_city(self):
@@ -1083,7 +1081,7 @@ class CitiesTests(unittest.TestCase):
     def test_every_language_labels_the_city_tools(self):
         page = self.open("phone")
         self.start(page)
-        codes = [code for code, _ in W.WORLD_LANGS]
+        codes = [code for code, _ in W.CHROME_LANGS]
         for code in codes:
             with self.subTest(lang=code):
                 self.menu(page, "settings")
@@ -1115,7 +1113,7 @@ class CitiesTests(unittest.TestCase):
             page = self.open("desktop", path=path)
             if page.locator("[data-emoji]").count():
                 page.locator("[data-emoji]").first.click()
-            for code, _ in W.WORLD_LANGS[1:]:
+            for code, _ in W.CHROME_LANGS[1:]:
                 with self.subTest(world=name, lang=code):
                     page.evaluate("c => { for (const s of document.querySelectorAll('[data-lang]')) { s.value = c; s.dispatchEvent(new Event('change', {bubbles: true})) } }", code)
                     self.assertEqual(page.evaluate(leftover, kana), [])
