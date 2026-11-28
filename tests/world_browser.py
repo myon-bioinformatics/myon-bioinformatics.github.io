@@ -1099,6 +1099,30 @@ class CitiesTests(unittest.TestCase):
                 page.keyboard.press("Escape")
         self.assertEqual(self.errors, [])
 
+    def test_every_language_leaves_no_japanese_label_but_a_name(self):
+        """🌐 Every button, tooltip and placeholder of the village, the school and the cities reads in each of the eleven languages: a
+        label still in Japanese is only the name of something the scene shows by that name (a place, a person, a thing), which the
+        browser's own translate reads, never a button's. The text the shell writes for every scene (⭐ 🧰 📖) follows too."""
+        kana = r"[぀-ヿ]"
+        leftover = """re => { const shown = new Set(); const w = document.createTreeWalker(document.body, 4);
+            for (let t; (t = w.nextNode());) shown.add(t.nodeValue.trim());
+            const bare = s => s.replace(/^[^\\p{L}\\p{N}]+|[^\\p{L}\\p{N}]+$/gu, '');
+            return [...document.querySelectorAll('[aria-label],[title],[placeholder]')].flatMap(n => ['aria-label', 'title', 'placeholder'].map(a => n.getAttribute(a)))
+                .filter(v => v && new RegExp(re).test(v) && !shown.has(v) && ![...shown].some(s => bare(s) === bare(v))) }"""
+        for name in ("overworld", "school", "cities"):
+            path = Path(self.tmp.name) / f"{name}-lang.html"
+            path.write_text(W.world_document(W.example_data(name)), encoding="utf-8")
+            page = self.open("desktop", path=path)
+            if page.locator("[data-emoji]").count():
+                page.locator("[data-emoji]").first.click()
+            for code, _ in W.WORLD_LANGS[1:]:
+                with self.subTest(world=name, lang=code):
+                    page.evaluate("c => { for (const s of document.querySelectorAll('[data-lang]')) { s.value = c; s.dispatchEvent(new Event('change', {bubbles: true})) } }", code)
+                    self.assertEqual(page.evaluate(leftover, kana), [])
+            page.evaluate("() => { for (const s of document.querySelectorAll('[data-lang]')) { s.value = 'ja'; s.dispatchEvent(new Event('change', {bubbles: true})) } }")
+            self.assertEqual(page.evaluate("[...document.querySelectorAll('.ui-player')].map(p => p.getAttribute('aria-label'))")[:1], ["自分"])   # and back
+        self.assertEqual(self.errors, [])
+
     def test_without_javascript_each_city_is_a_static_map(self):
         for size in SIZES:
             page = self.open(size, js=False)
