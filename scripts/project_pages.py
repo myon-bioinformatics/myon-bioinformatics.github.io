@@ -93,7 +93,7 @@ def world_page(ui) -> str:
     dialogue = WLLAMA_JS + f'\nconst worldAnswer = localModel({json.dumps(runtime)});\n'
     dragon_png, dragon_grid = ('./' + path.removeprefix('tools/') for path in DRAGON_ASSETS)
     return shell.document(ui, _world(), maps, places, css, js, dialogue,
-                          dragon_png=dragon_png, dragon_grid=dragon_grid)
+                          dragon_png=dragon_png, dragon_grid=dragon_grid, site_words=tools_words())
 
 
 def installed_commit(distribution: str = DISTRIBUTION) -> str:
@@ -171,19 +171,17 @@ def tools_places(prefix: str = '../') -> list[dict]:
     """🧰 Every link of the 🧰 Tools cards (front_page.py ``PORTAL``, so a new card is a new row) as ``{'id', 'label', 'href', 'text'}``,
     for a page ``prefix`` below the site root (``../``: the screen's): the doors of 🚪 Door-to-Door. A card's first link is the tool
     itself and takes the card's title (its one name, ``emoji words``) and ``text`` (what it does: the board shows it); another link
-    leads to a relative, named by its own ``emoji words``, unless a card already names that place. 🌐 ``labels`` is the label in
-    the other languages, when the card names its words (``tools_words``)."""
-    import pysaiyanweboo as ui
-    site, places, names, codes = 'https://myon-bioinformatics.github.io/tools/', {}, tools_words(), [code for code, _ in ui.CHROME_LANGS][1:]
-    cards = _front_module().PORTAL
+    leads to a relative, named by its own ``emoji words``, unless a card already names that place. 🌐 Its words in the other
+    languages are the card's (``tools_words``): the chrome and a world carry them (``data-words``), so 🌐 finds them wherever the
+    label is shown."""
+    site, places, cards = 'https://myon-bioinformatics.github.io/tools/', {}, _front_module().PORTAL
     for first in (True, False):                                           # the tools first: a relative's link never names a tool
         for card in cards:
             for label, href in card['links'][:1] if first else card['links'][1:]:
                 href = prefix + href[2:] if href.startswith('./') else prefix + 'tools/' + href[len(site):] if href.startswith(site) else href
                 name = re.sub(r'[^a-z0-9]+', '-', href.partition('tools/')[2].removesuffix('.html').lower()).strip('-') or card['id']
                 mark, _, words = (card['title'] if first else label.removesuffix(' →')).partition(' ')
-                places.setdefault(href, {'id': name, 'href': href, 'label': f'{mark} {words}', **({'text': card['text']} if first else {}),
-                                         **({'labels': {code: f'{mark} {w}' for code, w in zip(codes, names[words])}} if words in names else {})})
+                places.setdefault(href, {'id': name, 'href': href, 'label': f'{mark} {words}', **({'text': card['text']} if first else {})})
     return list(places.values())
 
 
@@ -217,9 +215,8 @@ def tools_door(ui, prefix: str = '../') -> dict[str, str]:
     """🚪 PySaiyanWeBoo's Door-to-Door as the page's foot (``door_html(foot=True)``), as component parts: 🏠 the cards, then every
     tool (``tools_places``: the screen's #panels). After the pull-down: 🐦 the X account and 📦 this page's size
     (``pysaiyanweboo.stamp_page_size`` writes it once the page is whole)."""
-    pages = [{'emoji': '🏠', 'label': 'Tools', 'href': prefix + 'index.html#tools'},              # 🌐 labels: a world's 🌐 has no catalogue of them
-             *({'emoji': mark, 'label': words, 'href': place['href'], **({'labels': {c: w.partition(' ')[2][:40] for c, w in place['labels'].items()}} if 'labels' in place else {})}
-               for place in tools_places(prefix) for mark, _, words in [place['label'].partition(' ')])]
+    pages = [{'emoji': '🏠', 'label': 'Tools', 'href': prefix + 'index.html#tools'},              # 🌐 the names are the chrome's words (data-words)
+             *({'emoji': mark, 'label': words, 'href': place['href']} for place in tools_places(prefix) for mark, _, words in [place['label'].partition(' ')])]
     x = [{'emoji': '🐦', 'label': f'X (Twitter) @{X_URL.rpartition("/")[2]}', 'href': X_URL}]
     return ui.component_parts('door', {'schema': ui.DOOR_SCHEMA, 'k': 0, 'pages': pages}, foot=True, links=x, size=True)
 
