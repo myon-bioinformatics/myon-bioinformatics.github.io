@@ -542,6 +542,9 @@ def test_door_to_door_in_chromium_with_a_gif():
     threading.Thread(target=server.serve_forever, daemon=True).start()
     base, errors = f'http://127.0.0.1:{server.server_port}/', []
     shown = "() => document.querySelector('.ui-door-foot [data-door-select]').selectedOptions[0].textContent"
+    rows = "() => [...document.querySelectorAll('.ui-chrome .ui-world-spots a')].map(a => [a.textContent, a.getAttribute('href')])"
+    reached = ("s => { const n = document.querySelector(s), r = n.getBoundingClientRect(), top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);"
+               " return n === top || n.contains(top) }")
     try:
         with sync_api.sync_playwright() as playwright:
             browser = playwright.chromium.launch(channel='chromium')
@@ -557,6 +560,16 @@ def test_door_to_door_in_chromium_with_a_gif():
                     visible = page.evaluate("[...document.querySelectorAll('.ui-door-foot .ui-door *')].filter(e => e.offsetParent && e.tagName !== 'OPTION' && e.getBoundingClientRect().width > 1).map(e => e.tagName)")
                     assert visible == ['LABEL', 'SPAN', 'SELECT'], visible                 # 🚪 and the pull-down (compact): no panel
                     assert page.evaluate('document.documentElement.scrollWidth - document.documentElement.clientWidth') == 0
+                    assert page.evaluate(rows)[:2] == [['📍📍 地図URL・座標ピン留め', '#maps'], ['地点', '#maps-part-1']]   # ☰ the open tool, then its sections
+                    page.goto(base + 'tools/#gif')                                # a tool shorter than the window: the foot stays at the window's foot,
+                    page.wait_for_function(shown + " === '🎞 GIF工房'")
+                    foot = page.locator('.ui-door-foot').bounding_box()
+                    assert round(foot['y'] + foot['height']) == height and page.evaluate(rows) == [['📍🎞 GIF工房', '#gif']], foot
+                    assert page.evaluate(reached, '.ui-chrome [data-menu="spots"] > summary')   # off ☰ (at a desktop's side)
+                    page.goto(base + 'tools/#worlds')                             # 🪐 the world's own sheet does not hide ☰'s rows
+                    page.wait_for_function(shown + " === '🪐 仮想・拡張エリア'")
+                    page.click('.ui-chrome [data-menu="spots"] > summary')
+                    assert page.evaluate(rows)[0] == ['📍🪐 仮想・拡張エリア', '#worlds'] and page.locator('.ui-chrome .ui-world-spots a').first.bounding_box()['height'] > 0
                     page.close()
                 page = browser.new_page(viewport={'width': 560, 'height': 480})
                 page.on('pageerror', lambda error: errors.append(str(error)))
@@ -568,7 +581,10 @@ def test_door_to_door_in_chromium_with_a_gif():
                 page.locator('.ui-door-foot [data-door-select]').select_option(label='🌊 流れの実験室')
                 page.wait_for_url(base + 'tools/#flow')
                 page.wait_for_function(shown + " === '🌊 流れの実験室'")
-                assert page.locator('.ui-chrome .ui-world-spots a').first.text_content().startswith('📍')   # the chrome's ☰ is this page's own
+                assert page.evaluate(rows)[:2] == [['📍🌊 流れの実験室', '#flow'], ['モニアック式の実験台', '#flow-heading']]   # the chrome's ☰ is the open tool's own
+                page.click('.ui-chrome [data-menu="spots"] > summary')
+                cam.hold(900)
+                page.click('.ui-chrome [data-menu="spots"] > summary')
                 assert not page.evaluate("[...document.querySelectorAll('.ui-chrome .ui-world-spots a')].some(a => a.pathname !== location.pathname)")
                 cam.hold(900)
                 page.go_back()                                                    # ← the browser's own way back: the pull-down follows
