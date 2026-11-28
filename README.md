@@ -91,7 +91,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 | 📄 HTML文書取込 | [tools/#html-import](https://myon-bioinformatics.github.io/tools/#html-import) |
 | 🗃️ 形式変換・検証（myon-bioinformatics · PySaiyanWeBoo） | [tools/#format-lab](https://myon-bioinformatics.github.io/tools/#format-lab) |
 | 📍 地図URL・座標ピン留め（実在の緯度・経度） | [tools/#maps](https://myon-bioinformatics.github.io/tools/#maps) |
-| 🪐 仮想・拡張エリア（歩いて回る空間） | [tools/#worlds](https://myon-bioinformatics.github.io/tools/#worlds)（🌍 村） · [🏫 学校](https://myon-bioinformatics.github.io/tools/#school) · [🗼 パラレル東京](https://myon-bioinformatics.github.io/tools/#tokyo) · [🎡 Reverse London](https://myon-bioinformatics.github.io/tools/#london) · [🥖 Fake Paris](https://myon-bioinformatics.github.io/tools/#paris) · [🎬 カメラ](https://myon-bioinformatics.github.io/tools/#camera) |
+| 🪐 仮想・拡張エリア（歩いて回る空間） | [tools/#worlds](https://myon-bioinformatics.github.io/tools/#worlds)（空間ごとのリンクはカードと 🚪 に。一覧はワールドのデータから） |
 | 🖼️ 画像工房（Ironmate） | [tools/#image-studio](https://myon-bioinformatics.github.io/tools/#image-studio) |
 | 🎨 ブラウザ道具（Ironmate） | [tools/#browser-tools](https://myon-bioinformatics.github.io/tools/#browser-tools) |
 | 📽️ スライド工房（Ironmate） | [tools/#slide-studio](https://myon-bioinformatics.github.io/tools/#slide-studio) |
@@ -300,13 +300,13 @@ add_site_chrome(page, 'tools/index.html', {'🗼': {'label': 'パラレル都市
 
 ### 🎥 Tools カードの動く見本と 🗓️ 週次ノート
 
-- 🎥 🧰 Tools の各カードにも、🚀 Projects のカードと同じ動く見本（GIF）が付きます。絵を押すと、その道具が開きます（🧭 統合運用のような別リポジトリのページも同じ）。絵があるカードでは、文字のリンクは開き先が複数ある（似た道具が並ぶ）カードにだけ残します。公開のたびに `--record-samples` が、いま公開中の道具のページを撮ります（`media/pages/tools/<id>.gif`）。開き先が複数あるカードは、開き先ごとに 1 コマです。🪐 仮想・拡張エリアの開き先は `scripts/world_shell.py` の `SPACES` そのもの（「開く」が最初の空間＝村、続けて学校・パラレル都市・カメラ）で、空間を足せば、カードのリンク・🚪 の行・見本のコマも増えます。📷 カメラの映像を背景にする階（AR）は、村の 🛗「実空間×仮想」です。最初に選択を求めるページは、カードの `tap` に書いた場所を押してから撮ります（ワールドの絵文字選び）。ページを開けなかったカードには、名前と 🎥 ⏳ のかわりの絵を付け、どのカードも同じ形にそろえます。
+- 🎥 🧰 Tools の各カードにも、🚀 Projects のカードと同じ動く見本（GIF）が付きます。絵を押すと、その道具が開きます（🧭 統合運用のような別リポジトリのページも同じ）。絵があるカードでは、文字のリンクは開き先が複数ある（似た道具が並ぶ）カードにだけ残します。公開のたびに `--record-samples` が、いま公開中の道具のページを撮ります（`media/pages/tools/<id>.gif`）。開き先が複数あるカードは、開き先ごとに 1 コマです。🪐 仮想・拡張エリアは手書きの一覧を持ちません。開き先は `scripts/world_shell.py` の `SPACES`（「開く」が最初の空間＝村）と、`scripts/world.py` で `real` の付いた階（📷 カメラの映像を背景にする AR。村の「実空間×仮想」）で、説明の絵文字も 🌐 の訳語（`WORLD_TEXT`）もそこから取ります。空間や階を足せば、カードのリンク・🚪 の行・見本のコマも増えます。最初に選択を求めるページは、カードの `tap` に書いた場所を押してから撮ります（ワールドの絵文字選び）。ページを開けなかったカードには、名前と 🎥 ⏳ のかわりの絵を付け、どのカードも同じ形にそろえます。
 - 🗓️ 週次ノートは `docs/weekly-view.md`（ふつうの Markdown）です。前の週（月〜日、日本時間）にマージした PR を、毎日の Update repos API が月曜に書き直します（`scripts/repos_catalog.py --weekly`、GitHub の REST 検索）。
 - 📊 ビルド時に markdown.py で HTML にし、表の数値だけの列は棒にします（`table_bars`、JS なし）。別の `.md` を載せるときは `site.config.json` の `documents` に 1 行足します。
 
 📍 地図（実在の緯度・経度）と 🪐 仮想・拡張エリア（歩いて回る空間）は別のカードです。下は 🪐 のカードの見本そのもの（Chromium 392×704 を 240×456 に）。
 
-![🪐 仮想・拡張エリアの動く見本: 村・学校・パラレル東京・Reverse London・Fake Paris・カメラを 1 コマずつ](docs/evidence/tools-sample-worlds.gif)
+![🪐 仮想・拡張エリアの動く見本: ワールドの空間と 📷 実空間×仮想を 1 コマずつ](docs/evidence/tools-sample-worlds.gif)
 
 ![Tools カードの動く見本を押すと 🎞 GIF工房が開き、戻って 🗓️ 週次ノートの表が棒で描かれている（Chromium 560×480）](docs/evidence/tools-sample-weekly-bars.gif)
 
