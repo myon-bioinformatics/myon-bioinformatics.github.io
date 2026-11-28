@@ -243,7 +243,7 @@
     {
       "id": "q-solve-quiz",
       "type": "Goal",
-      "name": "浪速記録官の推理試練"
+      "name": "暗号解読士の推理試練"
     },
     {
       "id": "spec/q-solve-quiz",
@@ -253,9 +253,9 @@
     {
       "id": "task/q-solve-quiz",
       "type": "Task",
-      "name": "浪速記録官の推理試練",
+      "name": "暗号解読士の推理試練",
       "section": "事件・バッジ",
-      "detail": "オオサカ記録官の技術ポートフォリオクイズに正解する。"
+      "detail": "暗号解読士の技術ポートフォリオクイズに正解する。"
     },
     {
       "id": "condition/quiz/1",
@@ -860,16 +860,16 @@
     {
       "id": "task/npc-archivist",
       "type": "Task",
-      "name": "オオサカ記録官",
+      "name": "暗号解読士",
       "section": "聞き込みと補給",
-      "detail": "(29, 27) 私はポートフォリオの浪速記録官。街の事件簿と技術リポジトリの軌跡を編纂している。君の知識を試すクイズに挑んでみるかね？"
+      "detail": "(29, 27) 暗号解読を担当してるんや。事件簿に出てくる技術用語、いくつ読み解けるか試してみるか？"
     },
     {
-      "id": "task/npc-conductor",
+      "id": "task/npc-chief",
       "type": "Task",
-      "name": "新大阪駅長",
+      "name": "浪速署長",
       "section": "聞き込みと補給",
-      "detail": "(14, 2) 新大阪駅へようこそ。南の玉造・城東方面の奥地に、最大級の怪盗黒幕シャドウ🎩が潜伏しているとの緊急通報が入っています！"
+      "detail": "(14, 2) 浪速署の署長や。城東から怪盗黒幕シャドウの目撃情報が入った。駅前の聞き込みはヘイタに任せてある。あんたは現場の痕跡と照らし合わせてくれるか。"
     },
     {
       "id": "task/stand-shin-osaka",
@@ -2514,7 +2514,7 @@
     {
       "source": "actor",
       "kind": "performs",
-      "target": "task/npc-conductor"
+      "target": "task/npc-chief"
     },
     {
       "source": "actor",

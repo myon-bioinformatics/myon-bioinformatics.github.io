@@ -1840,6 +1840,13 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         page.wait_for_selector(".ui-rpg-card", state="hidden")
         self.assertEqual(self.errors, [])
 
+    def test_osaka_chief_briefs_the_player_at_shin_osaka(self):
+        page = self.open()
+        page.get_by_role("button", name="👮 浪速署長", exact=True).click()
+        dialog = page.get_by_role("dialog", name="浪速署長との対話")
+        self.assertIn("ヘイタ", dialog.inner_text())
+        self.assertEqual(self.errors, [])
+
     def test_compass_walks_past_contacts_and_checks_stamina_at_arrival(self):
         data = CITIES["detective"]
         cost = data["walk_cost"]
@@ -2033,7 +2040,7 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         # Open archivist NPC dialogue & quiz
         page.click('.ui-detective-node[data-detective-id="npc-archivist"]')
         page.wait_for_selector(".ui-rpg-card", state="visible")
-        self.assertIn("オオサカ記録官", page.text_content(".ui-rpg-card"))
+        self.assertIn("暗号解読士", page.text_content(".ui-rpg-card"))
         page.locator('.ui-rpg-card button:has-text("推理クイズに挑戦")').click()
         page.wait_for_selector(".ui-rpg-card:has-text('技術推理クイズ')", state="visible")
         page.locator(".ui-rpg-card .ui-rpg-actions button").first.click()

@@ -5172,7 +5172,7 @@ export function bindWorldDetective(el){
    actionsEl.replaceChildren();
    if(idx>0)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"◀ もどる",onclick:()=>{idx-=1;renderPage()}}));
    if(idx<pages.length-1)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn","data-primary":"",textContent:"つぎへ ▶",onclick:()=>{idx+=1;renderPage()}}));
-   if(node.refill)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"🔬 科学捜査補給（全快）",onclick:()=>{
+   if(node.refill)actionsEl.append(detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:node.emoji+" 科学捜査補給（全快）",onclick:()=>{
     const st=stats();state.hp=st.maxHp;state.stamina=st.maxStamina;state.standUses+=1;
     orbsWrap.replaceChildren(renderOrbs(detectiveOrbEffect(st.maxStamina,true)));
     textEl.textContent="✨ 科学捜査研究所のバイタルケアにより、スタミナと気力が満タンまで急速補給された！";checkQuests();
@@ -6304,15 +6304,15 @@ def _osaka_detective_spec() -> dict[str, Any]:
              "greeting": "まいど！捜査ご苦労さんなこってす！現場解決で貯めた調査メダル🪙で、船場名物のおやつや捜査アイテム仕入れていきまへんか！",
              "lines": ["ウチのアツアツたこ焼き🐙は特製で、捜査体力⚡と精神力がいっぺんにみなぎりまっせ！",
                        "奥の鑑識班から融通してもらった鑑識試験紙🧪も置いてまっせ。手強い暗号にぶつけてみなはれ！"]},
-            {"id": "npc-hakase", "kind": "npc", "tx": 23, "ty": 22, "emoji": "🔬", "label": "科学捜査官ハカセ", "speaker": "科学捜査官ハカセ", "refill": True,
+            {"id": "npc-hakase", "kind": "npc", "tx": 23, "ty": 22, "emoji": "🧤", "label": "科学捜査官ハカセ", "speaker": "科学捜査官ハカセ", "refill": True,
              "greeting": "科学捜査研究所へようこそ！水都大阪の分析技術と鑑識データで、君の体力⚡と推理コンディションを満タンまで即時回復しよう！",
              "lines": ["川沿いの足跡は雨で消えやすい。見つけたら手帳に場所と向きを控えておくんじゃ。",
                        "理路整然とした論理のメスを入れれば、どんな難解な暗号トリックも必ず綻びを見せるはずじゃよ！"]},
-            {"id": "npc-archivist", "kind": "npc", "tx": 29, "ty": 27, "emoji": "📚", "label": "オオサカ記録官", "speaker": "オオサカ記録官", "quiz": True,
-             "greeting": "私はポートフォリオの浪速記録官。街の事件簿と技術リポジトリの軌跡を編纂している。君の知識を試すクイズに挑んでみるかね？",
+            {"id": "npc-archivist", "kind": "npc", "tx": 29, "ty": 27, "emoji": "🧩", "label": "暗号解読士", "speaker": "暗号解読士", "quiz": True,
+             "greeting": "暗号解読を担当してるんや。事件簿に出てくる技術用語、いくつ読み解けるか試してみるか？",
              "lines": ["クイズに正解すれば、探偵経験値と調査メダルを進呈しよう。技術の真理を解き明かすことこそ、名探偵への最短経路なのだ。"]},
-            {"id": "npc-conductor", "kind": "npc", "tx": 14, "ty": 2, "emoji": "🧑‍✈️", "label": "新大阪駅長", "speaker": "新大阪駅長",
-             "greeting": "新大阪駅へようこそ。南の玉造・城東方面の奥地に、最大級の怪盗黒幕シャドウ🎩が潜伏しているとの緊急通報が入っています！",
+            {"id": "npc-chief", "kind": "npc", "tx": 14, "ty": 2, "emoji": "👮", "label": "浪速署長", "speaker": "浪速署長",
+             "greeting": "浪速署の署長や。城東から怪盗黒幕シャドウの目撃情報が入った。駅前の聞き込みはヘイタに任せてある。あんたは現場の痕跡と照らし合わせてくれるか。",
              "lines": ["黒幕シャドウに挑む前に、街角の宝箱から浪速の調査靴⚡や撥水トレンチコート🧥を揃えておくことをお勧めします。",
                        "さらに東の区画には3箇所以上の謎解きで封印が解ける黄金の名探偵ハット⛑️の宝箱が眠っているそうです！"]},
             {"id": "stand-shin-osaka", "kind": "stand", "tx": 16, "ty": 2, "emoji": "🍵", "label": "新大阪茶房",
@@ -6385,7 +6385,7 @@ def _osaka_detective_spec() -> dict[str, Any]:
              "kind": "chest", "count": 1, "reward_exp": 25, "reward_medals": 20},
             {"id": "q-stand-refill", "title": "茶房・給水処で急速補給", "desc": "街の給水処や茶房スタンドで調査体力を満タンにする。",
              "kind": "refill", "count": 1, "reward_exp": 15, "reward_medals": 10},
-            {"id": "q-solve-quiz", "title": "浪速記録官の推理試練", "desc": "オオサカ記録官の技術ポートフォリオクイズに正解する。",
+            {"id": "q-solve-quiz", "title": "暗号解読士の推理試練", "desc": "暗号解読士の技術ポートフォリオクイズに正解する。",
              "kind": "quiz", "count": 1, "reward_exp": 20, "reward_medals": 15},
             {"id": "q-boss-shadow", "title": "怪盗黒幕シャドウ完全解決", "desc": "城東奥地の怪盗黒幕シャドウ(32, 33)のトリックを完全看破する！",
              "kind": "boss_clue", "count": 1, "reward_exp": 80, "reward_medals": 60},
