@@ -1082,7 +1082,7 @@ const play=async marks=>{for(const[mark,old]of marks){const s=document.createEle
   else if(s.type==='module'){const id='tools-ran-'+Math.random().toString(36).slice(2),done=new Promise(r=>{addEventListener(id,r,{once:true});addEventListener('error',r,{once:true});setTimeout(r,10000)});
    s.textContent=old.textContent+'\\n;dispatchEvent(new Event('+JSON.stringify(id)+'))';mark.replaceWith(s);await done}
   else{s.textContent=old.textContent;mark.replaceWith(s)}}};
-// 📽️ The old popup handoff stays on this screen. IronmatePhone.act("image", file) is the slide editor's own 📥 画像 (undoable).
+// 📽️ The old popup handoff stays on this screen. IronmateSlideStudio.act("image", file) is the slide editor's own 📥 画像 (undoable).
 let sending=false;
 const connectHandoff=frame=>frame.contentDocument.querySelector('[data-slide-handoff]')?.addEventListener('click',async e=>{
  e.preventDefault();if(sending)return;sending=true;
@@ -1097,7 +1097,7 @@ const connectHandoff=frame=>frame.contentDocument.querySelector('[data-slide-han
   if(!slide)throw Error('Slide Studio is unavailable');
   if(!slide.dataset.ready)await new Promise(resolve=>slide.addEventListener('load',resolve,{once:true}));
   if(current!=='image-studio'||location.hash!==from)return;
-  const app=slide.contentWindow,phone=app.IronmatePhone;
+  const app=slide.contentWindow,phone=app.IronmateSlideStudio;
   if(typeof phone?.act!=='function')throw Error('Slide Studio did not load');
   // The pinned editor checks Blob against its own iframe's constructor.
   const image=new app.Blob([blob],{type:blob.type});
