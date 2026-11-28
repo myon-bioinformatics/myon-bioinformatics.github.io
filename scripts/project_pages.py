@@ -18,7 +18,7 @@ are not among the cards. Each repository's own Pages carry its 🧩 機能一覧
 site's own are keyed ``folder/#name`` (``render_pages``, hash-locked), the others' are built in their folders (``--record-tools``),
 and none is published as a page of its own. The two
 pages (the site and the screen) share one chrome, ``add_site_chrome()``: 🧰 PySaiyanWeBoo's board with the clock, 🏠 ⭐ ⚙️ and
-each page's own ☰ ⋯ (``tools_chrome()``), and 🚪 its Door-to-Door, every 🧰 Tools link as a footer pull-down (``tools_door()``).
+each page's own ☰ ⋯, and 🚪 its Door-to-Door, every 🧰 Tools link as a footer pull-down (``tools_site()``).
 ``load_module()`` loads a file of this repository by path (a sibling script or a vendored module) without touching ``sys.path``.
 """
 from __future__ import annotations
@@ -205,60 +205,29 @@ def tools_words() -> dict[str, list[str]]:
     return {**opens, **{ja: row for card in _front_module().PORTAL for ja, row in card.get('words', {}).items()}}
 
 
-def _sentences(text: str) -> list[dict]:
-    """📟 A description as the board's items: a sentence each, three at most, 120 characters each."""
-    return [{'text': part if len(part) <= 120 else part[:119] + '…'}
-            for part in (p.strip() for p in re.split(r'(?<=[。！？])|(?<=[.!?])\s+', html.unescape(text))) if part][:3]
-
-
-def tools_chrome(prefix: str = '../', tools: dict | None = None, description: str = '', *, title: str = 'TOOLS', home: bool = True,
-                 lang: str = 'ja') -> dict:
-    """🧰 The chrome both pages of the site carry (PySaiyanWeBoo's ``chrome_validate``), for a page ``prefix`` below the site root:
-    the board (``title``, the clock, then ``description`` — what this page is, a sentence per item — and the cards' titles), 🏠 back
-    to the cards (``home=False``: the front page itself) and ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``).
-    What a page asks of ⚙️ and ⋯ it declares itself (``add_site_chrome`` places it).
-    ☰ is each page's own (itself and its sections, listed in the page); the tools themselves are 🚪 Door-to-Door's rows (``tools_places``)."""
-    cards = _front_module().PORTAL
-    about = _sentences(description)
-    return {'id': 'tools', 'lang': lang, 'words': tools_words(), **({'home': prefix + 'index.html#tools'} if home else {}), 'tools': tools or {},
-            'board': {'title': title, 'items': (about + [{'text': card['title']} for card in cards])[:12]}}
-
-
-def tools_door(ui, prefix: str = '../') -> dict[str, str]:
-    """🚪 PySaiyanWeBoo's Door-to-Door as the page's foot (``door_html(foot=True)``), as component parts: 🏠 the cards, then every
-    tool (``tools_places``: the screen's #panels). After the pull-down: 🐦 the X account and 📦 this page's size
-    (``pysaiyanweboo.stamp_page_size`` writes it once the page is whole)."""
-    pages = [{'emoji': '🏠', 'label': 'Tools', 'href': prefix + 'index.html#tools'},              # 🌐 the names are the chrome's words (data-words)
-             *({'emoji': mark, 'label': words, 'href': place['href']} for place in tools_places(prefix) for mark, _, words in [place['label'].partition(' ')])]
-    x = [{'emoji': '🐦', 'label': f'X (Twitter) @{X_URL.rpartition("/")[2]}', 'href': X_URL}]
-    return ui.component_parts('door', {'schema': ui.DOOR_SCHEMA, 'k': 0, 'pages': pages}, foot=True, links=x, size=True)
+def tools_site(prefix: str = '../', tools: dict | None = None, *, home: bool = True) -> dict:
+    """🧰 What this site says of itself to PySaiyanWeBoo's ``add_site_chrome`` (its ``site``), for a page ``prefix`` below the root:
+    🏠 back to the cards (``home=False``: the front page itself), ``tools``, the emoji the page adds (``{'🗼': {'label': …, 'href': …}}``),
+    the cards' titles after what the page says of itself on the board, the cards' names in 🌐's languages (``tools_words``), 🚪 the
+    cards and every tool (``tools_places``: the screen's #panels) and, after the pull-down, 🐦 the X account. ☰ is each page's own."""
+    return {'home': prefix + 'index.html#tools' if home else False, 'tools': tools or {},
+            'items': [{'text': card['title']} for card in _front_module().PORTAL], 'words': tools_words(),
+            'door': [{'emoji': '🏠', 'label': 'Tools', 'href': prefix + 'index.html#tools'},         # 🌐 the names are the chrome's words (data-words)
+                     *({'emoji': mark, 'label': words, 'href': place['href']} for place in tools_places(prefix) for mark, _, words in [place['label'].partition(' ')])],
+            'foot': [{'emoji': '🐦', 'label': f'X (Twitter) @{X_URL.rpartition("/")[2]}', 'href': X_URL}]}
 
 
 X_URL = 'https://twitter.com/myonitbusiness'
 
 
 def add_site_chrome(page: str, path: str, tools: dict | None = None, *, title: str = 'TOOLS', home: bool = True, views: dict | None = None) -> str:
-    """🧰 The parts both pages of the site share (``index.html``, ``tools/index.html``: ``path``): the header (``tools_chrome``: the
-    board reads the page's ``<meta name="description">``, 🫧 the round face that follows the pointer, 🏠 ⭐ ⚙️), the side (☰ ⋯)
-    and the foot (``tools_door``: 🚪 every tool as a pull-down, 🐦 X, 📦 the page's size). The parts are PySaiyanWeBoo's
-    (``component_parts("chrome" | "door" | "gaze-avatar")``, put on the page by ``add_part``); the chrome starts in the page's
-    own language (🌐 ``page_language``).
-    What a page asks of the header it declares itself (PySaiyanWeBoo ``chrome_rows_script``: the front page's 🧾), and ``views``, a
-    screen's panels (name → document), bring theirs while they show (Ironmate's studios: 📋 the shelf, 💻 ⇄ 📱): ``chrome_hosting``."""
+    """🧰 The parts both pages of the site share (``index.html``, ``tools/index.html``: ``path``): PySaiyanWeBoo's ``add_site_chrome``,
+    the one the repositories' guides carry, told what this site is (``tools_site``): 📟 the board (what the page says of itself, then
+    the cards), 🫧, 🏠 ⭐ ⚙️, ☰ ⋯, and 🚪 every tool, 🐦 X and 📦 at the foot. What a page asks of the header it declares itself
+    (``chrome_rows_script``: the front page's 🧾), and ``views``, a screen's panels (name → document), bring theirs while they show."""
     import pysaiyanweboo as ui
     prefix = '../' * path.count('/') or './'
-    meta = re.search(r'<meta name="description" content="([^"]*)"', page)
-    lang = ui.page_language(page)
-    if lang == 'ja':
-        page = re.sub(r'<html lang="en"', '<html lang="ja"', page, count=1)
-    face = ui.component_parts('gaze-avatar', label='まばたき')
-    face['html'] = face['html'].replace(' aria-label="', ' data-t="blink" aria-label="', 1)   # 🫧 its name follows 🌐 too
-    head = ui.component_parts('chrome', ui.chrome_hosting(tools_chrome(prefix, tools, meta[1] if meta else '', title=title, home=home, lang=lang), page, views))
-    tools_nav = '<nav class="ui-world-tools">'
-    head['html'] = head['html'].replace(tools_nav, face['html'] + tools_nav, 1)                  # 🫧 after the board
-    page = ui.add_part(page, {'css': face['css'] + '.ui-world-head .ui-gaze{flex:none;margin:0 4px}', 'js': face['js']})
-    page = ui.add_part(ui.add_part(page, head, at='top'), tools_door(ui, prefix))
-    return ui.stamp_page_size(page)
+    return ui.add_site_chrome(page, [], title=title, site=tools_site(prefix, tools, home=home), views=views)
 
 
 def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
@@ -955,10 +924,15 @@ def tool_builds() -> dict[tuple[str, tuple[str, ...]], dict[str, str]]:
     return builds
 
 
-def place_built(built: Path, routes: dict[str, str], mapped: Path) -> None:
+def place_built(built: Path, routes: dict[str, str], mapped: Path) -> set[str]:
     """🧰 Place a repository's built site under ``mapped``: each file goes to the folder of the longest ``routes`` prefix it is under
     (``{'': 'tools/slide-studio/', 'tools/': 'tools/browser-tools/'}``), and the links between them, a web manifest's shortcuts and
-    scope follow the move. Every route has its page (index.html); a page that only forwards (meta refresh) is left out."""
+    scope follow the move. Returns the routes the build has no page (index.html) for: their files stay with the route above, so the
+    others are placed (⏸ for that card only); a page that only forwards (meta refresh) is left out."""
+    if '' not in routes:
+        raise ValueError('a build places its root somewhere (routes has "")')
+    missing = {page for page in routes if not (built / page / 'index.html').is_file()}
+    routes = {page: folder for page, folder in routes.items() if not page or page not in missing}
     order = sorted(routes, key=len, reverse=True)
     def moved(path: str) -> str:
         prefix = next(prefix for prefix in order if path.startswith(prefix))
@@ -974,11 +948,6 @@ def place_built(built: Path, routes: dict[str, str], mapped: Path) -> None:
             return url
         path = posixpath.relpath(moved(target), posixpath.dirname(moved(source))) + ('/' if parts.path.endswith('/') else '')
         return urlunsplit(('', '', path, parts.query, parts.fragment))
-    if '' not in routes:
-        raise ValueError('a build places its root somewhere (routes has "")')
-    for page in routes:
-        if not (built / page / 'index.html').is_file():
-            raise FileNotFoundError(page + 'index.html')
     for path in built.rglob('*'):
         if not path.is_file() or path.name == '.nojekyll':
             continue
@@ -998,6 +967,7 @@ def place_built(built: Path, routes: dict[str, str], mapped: Path) -> None:
             target.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         else:
             shutil.copyfile(path, target)
+    return missing
 
 
 def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, str]) -> dict:
@@ -1009,23 +979,24 @@ def collect_tools(output: Path, checkouts: dict[str, Path], commits: dict[str, s
         if repository not in checkouts:
             continue
         try:
-            with tempfile.TemporaryDirectory() as tmp:       # build aside; the ⏸ page stays unless the whole build made it
+            with tempfile.TemporaryDirectory() as tmp:       # build aside; what was there stays for a card the build did not make
                 built, mapped = Path(tmp) / 'site', Path(tmp) / 'mapped'
                 done = subprocess.run([sys.executable, *(str(built) if arg == '{out}' else arg for arg in run)], cwd=checkouts[repository],
                                       check=True, capture_output=True, timeout=900)
                 if '{out}' not in run:                       # 🌡️ one page on stdout
                     built.mkdir()
                     (built / 'index.html').write_bytes(done.stdout)
-                place_built(built, {page: f'tools/{card}/' for page, card in pages.items()}, mapped)
-                for card in pages.values():
+                missing = place_built(built, {page: f'tools/{card}/' for page, card in pages.items()}, mapped)
+                failed.update({card: 'no page' for page, card in pages.items() if page in missing})   # ⏸ that card only
+                for card in (card for page, card in pages.items() if page not in missing):
                     dest = Path(output) / 'tools' / card
                     if dest.exists():
                         shutil.rmtree(dest)
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     shutil.move(str(mapped / 'tools' / card), str(dest))
-            made += pages.values()
+                    made.append(card)
         except (OSError, subprocess.SubprocessError, ValueError, ImportError) as exc:
-            failed.update(dict.fromkeys(pages.values(), type(exc).__name__))
+            failed.update({card: type(exc).__name__ for card in pages.values() if card not in made})
     receipt = {'schema': 'portfolio-tools/2', 'commits': commits, 'made': made, 'failed': failed}
     path = Path(output) / TOOLS
     path.parent.mkdir(parents=True, exist_ok=True)

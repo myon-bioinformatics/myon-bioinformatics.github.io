@@ -182,7 +182,7 @@ def test_pixel_art_in_unified_editor_exports_svg_and_undoes(browser, studio_orig
         before = studio.evaluate("IronmateSlideStudio.deck.slides[IronmateSlideStudio.active].layers.length")
         studio.locator("#place-grid").click()
         studio.wait_for_function(
-            """n => IronmateSlideStudio.deck.slides[IronmateSlideStudio.active].layers.length === n + 1""", before
+            """n => IronmateSlideStudio.deck.slides[IronmateSlideStudio.active].layers.length === n + 1""", arg=before
         )
         art = studio.evaluate("IronmateSlideStudio.deck.slides[IronmateSlideStudio.active].layers.at(-1)")
         assert art["kind"] == "image" and art["sampling"] == "pixelated"
@@ -191,7 +191,7 @@ def test_pixel_art_in_unified_editor_exports_svg_and_undoes(browser, studio_orig
         assert b"<svg" in svg[:1024]
         studio.locator('[data-act="undo"]').click()
         studio.wait_for_function(
-            """n => IronmateSlideStudio.deck.slides[IronmateSlideStudio.active].layers.length === n""", before
+            """n => IronmateSlideStudio.deck.slides[IronmateSlideStudio.active].layers.length === n""", arg=before
         )
         assert page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth")
     finally:
