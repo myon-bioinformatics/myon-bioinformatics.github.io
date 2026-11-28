@@ -22,7 +22,7 @@ package = false
 default-groups = ["test"]
 
 [tool.uv.sources]
-pysaiyanweboo = { git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo", rev = "2df6a1fb7172dfa2d918ef67547d664ba3c09ce1" }
+pysaiyanweboo = { git = "https://github.com/myon-bioinformatics/PySaiyanWeBoo", rev = "e2d72f4f1f40e237390c9c3315697adce252a6b6" }
 md-market = { git = "https://github.com/myon-bioinformatics/markdown", rev = "f454c175972890aa9d66f63952b5054cac4b726d" }
 ascii-artist-dev = { git = "https://github.com/myon-bioinformatics/ascii_artist", rev = "8942ebde6e449c09ff23a8e8fccde3e778e4e809" }
 cli-args-dev = { git = "https://github.com/myon-bioinformatics/cli_args", rev = "6305b47c717068d6470a41b8a983247e1cc5d4f8" }

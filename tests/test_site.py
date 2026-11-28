@@ -51,9 +51,9 @@ def test_stage_serves_published_static_files_verbatim():
 
 EXPECTED_PAGES = {
     "https://myon-bioinformatics.github.io/PySaiyanWeBoo/",
-    "https://myon-bioinformatics.github.io/tools/image-studio/",
-    "https://myon-bioinformatics.github.io/tools/browser-tools/",
-    "https://myon-bioinformatics.github.io/tools/slide-studio/",
+    "https://myon-bioinformatics.github.io/tools/#image-studio",   # 🧰 framed #panels of the one screen
+    "https://myon-bioinformatics.github.io/tools/#browser-tools",
+    "https://myon-bioinformatics.github.io/tools/#slide-studio",
     # Other repositories' Pages (each checked to load on 2026-11-13): the operations dashboard, usage guides.
     "https://myon-bioinformatics.github.io/markdown/",
     "https://myon-bioinformatics.github.io/myon-bioinformatics/",
@@ -154,7 +154,7 @@ def test_a_tools_card_shows_its_moving_sample_and_the_picture_opens_the_tool(tmp
     cards = front.portal_cards(frozenset({"tools/gif", "tools/operations", "tools/maps", "gif", "tools/no-such-tool"}))
     assert cards.count('class="project-sample"') == 3
     assert "GIF をつくる →" not in cards and "Open Dashboard →" not in cards and ">実験室へ →</a>" in cards        # one page: the picture; no picture: the words
-    assert ('<a href="./tools/#maps">地図URLを作成 →</a><a href="./tools/demos/world.html#tokyo">パラレル東京 →</a>' in cards
+    assert ('<a href="./tools/#maps">地図URLを作成 →</a><a href="./tools/#tokyo">パラレル東京 →</a>' in cards
             and '<a class="project-sample" href="./tools/#maps">' in cards)                                    # relatives stay side by side
     everything = front.portal_cards(frozenset(f"tools/{key}" for key in ids))
     several = [card for card in front.PORTAL if len(card["links"]) > 1]
@@ -347,16 +347,17 @@ def test_ironmate_pptx_status_is_prototype_not_product_ready():
     assert "試作実装" in card
     assert "ブラウザでスライドを作成" in card
     assert "Open Repository" not in card
-    assert "tools/slide-studio/" in card
+    assert "tools/#slide-studio" in card
 
 
 def test_lab_pages_are_hosted_by_portfolio():
     parser = LinkParser()
     parser.feed((SITE / "index.html").read_text())
     assert "mcp" in parser.ids
-    assert "./tools/mcp/" in parser.links
-    assert (SITE / "tools/mcp/index.html").is_file() and (SITE / "tools/mcp/execution/index.html").is_file()
-    assert not list((SITE / "tools/mcp/execution").glob("runtime/**/*.html"))   # 🚫 the runtime's copy of the page is not a page
+    assert "./tools/#mcp" in parser.links
+    assert not (SITE / "tools/mcp/index.html").exists() and not (SITE / "tools/mcp/execution/index.html").exists()   # 🖼️ framed #panels
+    assert "<title>" in shell_frame("mcp") and "<title>" in shell_frame("mcp-execution")
+    assert not list((SITE / "tools/mcp").glob("**/*.html"))   # 🚫 neither a page nor the runtime's copy of it
 
 
 def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
@@ -376,36 +377,37 @@ def test_tool_cards_are_named_for_what_they_do_not_for_a_repository():
 
 
 # PySaiyanWeBoo's tool documents (PSWB_TOOLS) and the 🌍 world pages (WORLD_PAGE, tools/demos/) come from scripts/project_pages.py; they are tool pages too.
+def shell_frame(name: str) -> str:
+    """🖼️ The document the one screen's framed ``#name`` panel runs (its ``<iframe srcdoc>``)."""
+    from html import unescape
+    page = (SITE / PAGES.SHELL_PAGE).read_text(encoding="utf-8")
+    return unescape(re.search(rf'<section id="{name}"[^>]*\bdata-tools-panel[^>]*><template><iframe[^>]*\bsrcdoc="([^"]*)"', page, re.S)[1])
+
+
 def shell_panel(name: str) -> str:
     """🧰 The markup of the one screen's ``#name`` panel (inert in its <template> until it is opened)."""
     page = (SITE / PAGES.SHELL_PAGE).read_text(encoding="utf-8")
     return re.search(rf'<section id="{name}"[^>]*\bdata-tools-panel[^>]*><template>(.*?)</template></section>', page, re.S)[1]
 
 
-TOOL_PAGES = ("tools/html-import/index.html",
-              *(("tools/mcp/index.html",) if LAB_BUILT else ()),
-              PAGES.SHELL_PAGE,   # 🧰 the one screen: #gif #maps #test-report #flow #repo-map #chat (and #heatmap #format-lab)
-              PAGES.WORLD_PAGE)
+TOOL_PAGES = (PAGES.SHELL_PAGE,)   # 🧰 the one screen: every tool is a #panel of it
 
 
 def test_tools_built_from_other_repositories_never_404():
-    """🧰 Without a recording (tests, a failed clone) every entry of a tool built from another repository is a ⏸ page with
-    the way back at its own depth; a failed rebuild keeps what was there."""
+    """🧰 Every entry of a tool built from another repository is a #panel of the one screen, never a page of its own: framed when
+    the tool lists its entries (an app that owns its document), joined when it has one page; without a recording (tests, a failed
+    clone) a ⏸ joined panel. A failed rebuild keeps what was there."""
     for key, (repository, folder, entries) in PAGES.TOOL_SOURCES.items():
-        for entry in entries:
-            name = f'{folder}/{entry}index.html'
-            html = (SITE / name).read_text(encoding='utf-8')
-            if key in MADE:                                   # built from a pinned checkout: the way back, no ⏸
-                assert '⏸' not in html, name
-                if key == 'ironmate':
-                    assert 'data-testid="portfolio-back"' not in html, name
-                    assert f'<a class="ui-world-home" href="{"../" * name.count("/")}index.html#tools"' in html, name
-                else:
-                    assert 'data-testid="portfolio-back"' in html, name
+        for entry in entries or ('',):
+            source = f'{folder}/{entry}index.html'
+            name = PAGES.panel_name(source)
+            assert not (SITE / source).exists(), source
+            if key in MADE:                                   # built from a pinned checkout: no ⏸
+                html = shell_frame(name) if entries else shell_panel(name)
+                assert '⏸' not in html and 'data-testid="portfolio-back"' not in html and 'class="ui-door-foot"' not in html, name   # the screen's chrome only
                 continue
+            html = shell_panel(name)
             assert '⏸' in html and f'https://github.com/{repository}' in html, name
-            # the way back: the standalone link, or (a studio page) the header's 🏠, whose markup is PySaiyanWeBoo's to choose
-            assert re.search(rf'<a (?:class="ui-world-home" )?href="{"../" * name.count("/")}index\.html#tools"', html), name
     front = LinkParser()
     front.feed((SITE / "index.html").read_text(encoding="utf-8"))
     assert "./tools/#heatmap" in front.links                                         # 🌡️ the 🧰 Tools card opens it (a #panel)
@@ -446,7 +448,7 @@ def test_ironmate_publication_relocates_cross_links_assets_and_manifest(tmp_path
     assert 'href="../slide-studio/#target"' in (tools / 'browser-tools/index.html').read_text()
     slides = (tools / 'slide-studio/index.html').read_text()
     assert 'href="../browser-tools/"' in slides and 'href="../image-studio/"' in slides and 'src="../image-studio/studio.js"' in slides
-    assert 'href="../../index.html#tools"' in slides
+    assert 'ui-chrome' not in slides and 'ui-door-foot' not in slides       # 🖼️ framed in the one screen, whose chrome it is
     assert (tools / 'image-studio/studio.js').read_text() == 'shared'
     for forward in ('image-studio/brand/index.html', 'slide-studio/phone/index.html', 'slide-studio/pc/index.html'):
         assert not (tools / forward).exists(), forward                    # 🗑 Ironmate's forward-only pages are not published here
@@ -463,14 +465,18 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_adds_what_it_l
     import html
     import re
     import pysaiyanweboo as ui
-    module = ('<script type="module">' + ui.component_parts('chrome')['js'] + '</script><div class="ui-door-foot"><div class="ui-door ui-door-compact" id="door" data-ui-door ',
+    chrome = ui.component_parts('chrome')['js']                    # 🌐 a page keeps, of the body's words, only those it holds
+    module = (re.compile(re.escape('<script type="module">' + chrome[:chrome.index('CHROME_TEXT=')]) + '.*?' + re.escape(chrome[-64:] + '</script><div class="ui-door-foot"><div class="ui-door ui-door-compact" id="door" data-ui-door '), re.S),
               '</span></p></div><script type="module">' + PAGES.tools_door(ui)['js'] + '</script></body>')
     assert PAGES.tools_door(ui)['js'] == ui.js_source('door.js') and 'addEventListener("pageshow",fill)' in module[1]   # PySaiyanWeBoo's door.js alone
     cards = [html.escape(card['title']) for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL]
-    pages = {*TOOL_PAGES, *(f'{folder}/{entry}index.html' for _, folder, entries in PAGES.TOOL_SOURCES.values() for entry in entries)}
-    assert len(pages) > len(TOOL_PAGES)
-    for name in sorted(pages):
-        page = (SITE / name).read_text(encoding='utf-8')
+    assert TOOL_PAGES == (PAGES.SHELL_PAGE,) and sorted(p.relative_to(SITE).as_posix() for p in SITE.rglob('*.html')
+                                                         if 'media' not in p.parts) == ['index.html', PAGES.SHELL_PAGE]   # 🧰 two pages: the site and the screen
+    for name in TOOL_PAGES:
+        page = full = (SITE / name).read_text(encoding='utf-8')
+        if name == PAGES.SHELL_PAGE:                                               # 🧰 the screen's own chrome, not what its panels hold
+            first = page.index('data-tools-panel', page.index('<section id="home"') + 32)
+            page = page[:page.rindex('<section id="', 0, first)] + page[page.index('<script>(()=>{const panels='):]
         prefix = '../' * name.count('/')
         body = re.search(r'<body[^>]*>', page)
         faces = page.count('<button type="button" class="ui-gaze"')
@@ -481,10 +487,10 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_adds_what_it_l
             continue
         assert page[body.end():].startswith('<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="ja">'), name
         assert page.count('<div class="ui-chrome') == 1 and '<span class="ui-board-clock" data-clock>--:--:--</span>' in page, name
-        assert page.count(module[0]) == 1 and page.count(module[1]) == 1 and page.count('<div class="ui-door-foot">') == 1, name
+        assert len(module[0].findall(page)) == 1 and page.count(module[1]) == 1 and page.count('<div class="ui-door-foot">') == 1, name
         foot = re.search(r'<p class="ui-door-extras"><a href="https://twitter\.com/myonitbusiness"[^>]* target="_blank" rel="noopener noreferrer">🐦</a>'
                          r'<span class="ui-door-size"[^>]*>📦 (\d+) KB</span></p></div>', page)
-        assert foot and abs(int(foot[1]) - len(page.encode('utf-8')) / 1024) <= 1, name                     # 🐦 X and 📦 this page's own size
+        assert foot and abs(int(foot[1]) - len(full.encode('utf-8')) / 1024) <= 1, name                     # 🐦 X and 📦 this page's own size
         assert f'<a class="ui-world-home" href="{prefix}index.html#tools"' in page, name
         chrome = page[body.end():page.index('<div class="ui-world-side">', body.end())]          # the board and the header's tools; ☰ follows
         assert '<img' not in chrome and 'lab-execution-link' not in chrome, name   # 🔌 the lab's logo and links go to the lab's own <header>
@@ -513,14 +519,16 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_adds_what_it_l
         assert doors[0] == (f'{prefix}index.html#tools', '', '🏠 Tools') and [href for href, _, _ in doors[1:1 + len(rows)]] == [href for href, _ in rows], name   # 🚪 = 🏠 + the tools
         here = [(href, words) for href, mark, words in doors if mark]              # the door you came in by: this very page
         if name == PAGES.SHELL_PAGE:                                               # 🧰 the one screen: each #panel is a door; the screen marks the open one
-            assert here == [] and len(doors) == 1 + len(rows) and all(f'../tools/#{panel.split("/")[1]}' in dict(rows) for panel in PAGES.PANEL_PAGES), name
+            assert here == [] and len(doors) == 1 + len(rows), name
+            assert {urlparse(href).fragment for href, _ in rows if href.startswith('../tools/#')} <= {*re.findall(r'<section id="([^"]+)"[^>]*\bdata-tools-panel', full),
+                                                                                                    *' '.join(re.findall(r'\bdata-routes="([^"]*)"', full)).split(), *PageParser.of(full).ids}, name
             continue
         assert len(here) == 1 and ((SITE / name).parent / here[0][0]).resolve() in ((SITE / name).resolve(), (SITE / name).parent.resolve()), (name, here)
         assert len(doors) == 1 + len(rows) + (here[0][1].startswith('📌 ')), name   # 📌 a page that is no tool of the cards is its own door
         assert len({words.split(' ')[0] for _, _, words in doors}) == len(doors), name                    # one emoji, one page
     maps = (SITE / PAGES.SHELL_PAGE).read_text(encoding='utf-8')                    # 🗼 an emoji a page adds for its own use (the map's)
-    assert '<a class="ui-world-tool" href="./demos/world.html#tokyo" aria-label="パラレル都市"' in maps
-    assert '>🗼</summary>' not in (SITE / 'tools/html-import/index.html').read_text(encoding='utf-8')
+    assert '<a class="ui-world-tool" href="./#tokyo" aria-label="パラレル都市"' in maps
+    assert '>🗼</summary>' not in (SITE / 'index.html').read_text(encoding='utf-8')
 
 
 def test_every_page_turns_modern_on_its_body_only():
@@ -559,14 +567,15 @@ def test_a_page_asks_the_one_header_to_show_its_rows_and_its_own_menus_are_hidde
 
 def test_html_import_csp_names_the_face_chrome_and_door_modules_and_nothing_else():
     import pysaiyanweboo as ui
-    html = (SITE / PAGES.HTML_IMPORT_PAGE).read_text(encoding='utf-8')
-    chrome, doors = ui.module_csp_hash(ui.component_parts('chrome')['js']), ui.module_csp_hash(PAGES.tools_door(ui)['js'])
-    face = ui.module_csp_hash(ui.component_parts('gaze-avatar')['js'])                    # 🫧 the header's round face is a module too
-    assert f"script-src 'self' {face} {chrome} {doors}; style-src 'self' 'unsafe-inline';" in html
-    assert html.count("'sha256-") == 3 and "'unsafe-inline'; img-src" in html and "connect-src 'none'" in html
+    html = shell_frame('html-import')                                                     # 🖼️ framed: its CSP is its own, the screen's chrome is outside it
+    doors, face = ui.module_csp_hash(PAGES.tools_door(ui)['js']), ui.module_csp_hash(ui.component_parts('gaze-avatar')['js'])   # 🫧 the face is a module too
+    assert re.search(r"script-src 'self'; style-src 'self' 'unsafe-inline';", html), re.findall(r'script-src[^;]*;', html)
+    assert "'sha256-" not in html and "'unsafe-inline'; img-src" in html and "connect-src 'none'" in html
+    assert html.index('<base href="./html-import/">') < html.index('Content-Security-Policy')   # 🖼️ the frame's base and #link fix come before it
     strict = ('<!doctype html><html><head><meta\n http-equiv="Content-Security-Policy"\n content="default-src \'none\'; script-src \'self\'; '
               'style-src \'self\'; img-src \'self\' data:"\n/><title>s</title></head><body data-ui-theme="green"><main><h1>s</h1></main></body></html>')
     built = PAGES.add_back_nav(strict, 'tools/image-studio/index.html')        # Ironmate's studios: neither inline scripts nor inline styles
+    chrome = ui.module_csp_hash(re.search(r'<script type="module">(const CHROME_LANGS=.*?)</script>', built, re.S)[1])   # 🌐 the words this page holds
     sheets = re.findall(r'<style>(.*?)</style>', built, re.S)
     assert sheets[0].startswith(ui.component_parts('gaze-avatar')['css']) and len(sheets) == 3
     assert '<body data-ui-theme="modern">' in built and 'data-ui-theme="green"' not in built           # 🎨 one look: the page turns modern,
@@ -575,7 +584,7 @@ def test_html_import_csp_names_the_face_chrome_and_door_modules_and_nothing_else
     assert (f"script-src 'self' {face} {chrome} {doors}; style-src 'self' {' '.join(ui.module_csp_hash(sheet) for sheet in sheets)}; "
             "img-src 'self' data:\"") in built
     assert built.count("'sha256-") == 6 and ' style="' not in built and PAGES.add_back_nav(built, 'tools/image-studio/index.html') == built   # no style attribute
-    assert html.count('<script') == 4 and '<script type="module" src="./extract.mjs"></script>' in html
+    assert html.count('<script') == 2 and '<script type="module" src="/tools/html-import/extract.mjs"></script>' in html
 
 
 def test_door_to_door_in_chromium_with_a_gif():
@@ -817,8 +826,8 @@ def canonical_data_errors(profile: dict, projects: list, catalog: dict, registry
             errors.append(f"repository service URL drift for {name}: {repository_url} != {repo['url']}")
         prefix = f'https://myon-bioinformatics.github.io/{name}/'
         # 🧰 a tool built here from this repository lives at its feature route (TOOL_SOURCES), not at the repository's name
-        built_here = tuple(f'https://myon-bioinformatics.github.io/{folder}/{entry}' for repository, folder, entries
-                           in PAGES.TOOL_SOURCES.values() if repository == f'myon-bioinformatics/{name}' for entry in entries)
+        built_here = tuple(f'https://myon-bioinformatics.github.io/tools/#{PAGES.panel_name(f"{folder}/{entry}index.html")}' for repository, folder, entries
+                           in PAGES.TOOL_SOURCES.values() if repository == f'myon-bioinformatics/{name}' for entry in entries or ('',))
         for service_name, service in group.items():
             if not isinstance(service, dict):
                 errors.append(f'invalid service entry at services.projects.{name}.{service_name}')
@@ -861,12 +870,18 @@ class PageParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         values = dict(attrs)
         self.ids.update([values["id"]] if "id" in values else [])
+        self.ids.update((values.get("data-routes") or "").split())           # 🖼️ the #sections a framed panel holds
         self.links += [values] if tag == "link" else []
         self.metas.update({values["name"]: values.get("content")} if tag == "meta" and "name" in values else {})
         self.refs += [values[key] for key in ("href", "src") if values.get(key)]
         self._in_title = tag == "title"
     def handle_endtag(self, tag):
         self._in_title = False
+    @classmethod
+    def of(cls, text):
+        parser = cls()
+        parser.feed(text)
+        return parser
     def handle_data(self, data):
         self.title += data if self._in_title else ""
 
@@ -932,7 +947,7 @@ def test_home_screen_tool_page_shortcuts_open_that_page_and_show_an_icon():
             if icon["href"].startswith("/tools/mcp/execution/"):   # the lab artwork, built here at deploy time (--record-tools)
                 continue
             png_size((SITE / name).parent / icon["href"])
-    assert "img-src 'self'" in (SITE / TOOL_PAGES[0]).read_text(encoding="utf-8")   # its CSP lets the icons load
+    assert "img-src 'self'" in shell_frame('html-import')   # 🖼️ the framed HTML import's CSP lets images load
 
 
 def test_home_screen_every_local_link_and_asset_resolves():
@@ -1029,12 +1044,12 @@ def test_home_screen_in_chromium_with_a_gif():
             assert page.title() == manifest["name"]
             frames.append((page.screenshot(), "👆 start_url → " + page.title()))
 
-            probe.goto(base + "tools/html-import/")                  # no external requests: its CSP allows none
+            probe.goto(base + "tools/")                              # 🧰 the one screen
             assert probe.context.new_cdp_session(probe).send("Page.getAppManifest")["url"] == ""   # its shortcut opens this page
             icons = probe.evaluate("""() => [...document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]')].map(l => l.href)""")
-            assert probe.evaluate(load, icons) == ["32x32", "170x170"]  # the CSP (img-src 'self') lets both load
-            page.goto(base + "tools/html-import/")
-            frames.append((page.screenshot(), "📄 " + page.title() + " · no manifest · icons 32x32 170x170"))
+            assert probe.evaluate(load, icons) == ["32x32", "170x170"]
+            page.goto(base + "tools/")
+            frames.append((page.screenshot(), "🧰 " + page.title() + " · no manifest · icons 32x32 170x170"))
             page.get_by_test_id("portfolio-back").get_by_role("link").click()
             page.wait_for_url(base + "index.html#tools")
             frames.append((page.screenshot(), "↩️ ← 🧰 Tools → index.html#tools"))
@@ -1097,10 +1112,9 @@ def test_generated_page_is_current():
     # Built by the site builder and hash-locked (web-ui-assets.lock.json), not kept in git.
     import pysaiyanweboo as ui
     lock = json.loads((ROOT / 'web-ui-assets.lock.json').read_text(encoding='utf-8'))
-    served = (SITE / PAGES.HTML_IMPORT_PAGE).read_bytes()
-    assert served == PAGES.render_html_import(ui)[PAGES.HTML_IMPORT_PAGE]
-    assert hashlib.sha256(served).hexdigest() == lock['pages'][PAGES.HTML_IMPORT_PAGE]
-    assert PAGES.HTML_IMPORT_PAGE in (ROOT / '.gitignore').read_text(encoding='utf-8').splitlines()
+    built = PAGES.render_html_import(ui)[PAGES.HTML_IMPORT_PAGE]                    # 🖼️ the framed #html-import panel's document
+    assert hashlib.sha256(built).hexdigest() == lock['pages'][PAGES.HTML_IMPORT_PAGE] and not (SITE / PAGES.HTML_IMPORT_PAGE).exists()
+    assert 'srcdoc=' in (SITE / PAGES.SHELL_PAGE).read_text(encoding='utf-8') and 'Content-Security-Policy' in shell_frame('html-import')
 
 
 def test_fixture_oracles_are_explicit():
@@ -1125,13 +1139,14 @@ spec = importlib.util.spec_from_file_location('mcp_lab', ROOT / '_src/tools/mcp_
 module = importlib.util.module_from_spec(spec)
 sys.modules['mcp_lab'] = module  # the tests below import names from it
 spec.loader.exec_module(module)
-PUBLIC = SITE / 'tools/mcp'      # 🔌 built from the pinned lab checkout (.test-deps/mcp-toolcall-lab) when it is there
+PUBLIC = SITE / 'tools/mcp'      # 🔌 built from the pinned lab checkout (.test-deps/mcp-toolcall-lab) when it is there: its files
+lab_page = lambda: shell_frame('mcp')   # 🖼️ and its page, framed in the one screen
 
 
 @needs_lab
 def test_lab_tools_are_built_from_the_lab_commit_with_actions_as_the_report():
     commit = json.loads(_RECEIPT.read_text(encoding='utf-8'))['commits']['mcp-toolcall-lab']
-    page = (PUBLIC / 'index.html').read_text()
+    page = lab_page()
     for control in ('pages-wiki-form', 'pages-pixiv-source-form', 'pages-pixiv-extract-submit'):
         assert control in page
     assert f'mcp-toolcall-lab/commit/{commit}' in page and f'mcp-toolcall-lab@{commit[:7]}' in page
@@ -1139,7 +1154,7 @@ def test_lab_tools_are_built_from_the_lab_commit_with_actions_as_the_report():
     assert 'Last Actions summary' not in page and '"verdict"' not in page
     assert (PUBLIC / 'LICENSE').is_file()
     published = {path.name for path in PUBLIC.iterdir() if path.is_file()}
-    assert published == {*module.FILES, *module.OPTIONAL, 'LICENSE', 'pixiv-markup.js', 'pixiv-panel.js', 'shared-navigation.mjs'}
+    assert published == {*module.FILES, *module.OPTIONAL, 'LICENSE', 'pixiv-markup.js', 'pixiv-panel.js', 'shared-navigation.mjs'} - {'index.html'}
     assert not (ROOT / 'tools/mcp').exists()          # nothing of the lab is kept in git; the wrapper is _src/tools/mcp/
 
 
@@ -1169,8 +1184,8 @@ def test_lab_rebuild_keeps_the_execution_lab_inside_it(tmp_path):
     receipt = PAGES.collect_tools(site, {'mcp-toolcall-lab': tmp_path / 'lab'}, {'mcp-toolcall-lab': '0' * 40})
     assert receipt['made'] == ['mcp-toolcall-lab'], receipt
     assert kept.read_text() == 'execution' and not (site / 'tools/mcp/summary.json').exists()
-    page = (site / 'tools/mcp/index.html').read_text()
-    assert page.count('data-testid="portfolio-back"') == 1 and 'mcp-toolcall-lab@0000000' in page and '🧪 MCP Lab' in page
+    page = (site / 'tools/mcp/index.html').read_text()                  # 🖼️ for the screen to frame (tool_panels): no chrome of its own
+    assert 'data-testid="portfolio-back"' not in page and 'mcp-toolcall-lab@0000000' in page
 
 
 def test_lab_stage_checks_everything_before_writing(tmp_path):
@@ -1212,7 +1227,7 @@ assert.equal(route.viewFromLocation('',''),'home');
 
 @needs_lab
 def test_shared_presentation_replaces_the_lab_styling():
-    page = (PUBLIC / 'index.html').read_text()
+    page = lab_page()
     assert 'data-ui-theme="modern"' in page
     assert 'href="terminal.css' not in page and not (PUBLIC / 'terminal.css').exists()
     assert 'src="pages-hash.js' not in page
@@ -1251,7 +1266,7 @@ def test_stage_preserves_consumer_niconico_panel_and_routes():
 @needs_lab
 def test_built_lab_keeps_pokemon_panel_and_routes():
     from mcp_lab import NAVIGATION_BINDING
-    page = (PUBLIC / 'index.html').read_text()
+    page = lab_page()
     assert 'data-pages-nav="pokemon"' in page
     assert 'data-pages-view="pokemon"' in page
     assert 'data-source-fetch' in page
@@ -1278,8 +1293,8 @@ def test_built_lab_example_defaults_are_blank_and_execution_is_linked():
             if tag == 'input' and attrs.get('id') == 'pages-wiki-title':
                 assert attrs.get('value') == ''
 
-    Inputs().feed((PUBLIC / 'index.html').read_text())
-    assert module.EXECUTION_URL in (PUBLIC / 'index.html').read_text()
+    Inputs().feed(lab_page())
+    assert 'href="/tools/#mcp-execution"' in lab_page() and module.EXECUTION_URL.endswith('/tools/#mcp-execution')   # 🖼️ framed: it opens in the screen
     subprocess.run(['node', '-e', "require('node:assert/strict').equal(require(process.argv[1]).DEFAULT_TITLE, '')",
                     str(PUBLIC / 'pages-wiki.js')], cwd=ROOT, check=True)
 
@@ -1313,10 +1328,10 @@ def test_lab_branding_is_idempotent_and_uses_published_absolute_paths():
     from mcp_lab import apply_lab_branding, FAVICON, LOGO
     from urllib.parse import urljoin
     assert not (PUBLIC / 'repository-diagnostics.html').exists()   # 🩺 a panel of the page (#diagnostics), not a page
-    assert 'data-pages-view="protocol"' in (PUBLIC / 'index.html').read_text() and (PUBLIC / 'mcp.js').is_file()   # 🤝 so is #protocol
+    assert 'data-pages-view="protocol"' in lab_page() and (PUBLIC / 'mcp.js').is_file()   # 🤝 so is #protocol
     assert not (SITE / 'tools/mcp-protocol').exists()
     for name in ('index.html',):
-        page = (PUBLIC / name).read_text()
+        page = lab_page()                                                  # 🖼️ the framed #mcp panel's document
         assert apply_lab_branding(page) == page
         assert page.count('data-lab-brand="favicon"') == 1
         assert page.count('rel="apple-touch-icon"') == 1
@@ -1345,7 +1360,7 @@ def test_prose_extract_adapter_preserves_whitespace_hooks_and_code_blocks():
     assert apply_prose_extracts(converted) == converted
     assert apply_shared_ui(source) == apply_shared_ui(converted)
     if LAB_BUILT:
-        published = (PUBLIC / 'index.html').read_text()
+        published = lab_page()
         assert '<div data-testid="pages-pixiv-extract" hidden class="ui-output"></div>' in published
         assert '<div data-testid="pages-wiki-extract" hidden class="ui-output"></div>' in published
 
@@ -1807,9 +1822,8 @@ def test_a_tool_page_board_reads_its_card():
     assert len(chrome['board']['items']) <= 12 and chrome['home'] == '../../index.html#tools'
     assert 'home' not in PAGES.tools_chrome('./', home=False) and PAGES.tools_chrome('./', title='MYON')['board']['title'] == 'MYON'
     assert PAGES.tools_chrome(description='x' * 200)['board']['items'][0]['text'] == 'x' * 119 + '…'
-    card = next(card for card in PAGES.load_module('front_page', 'scripts/front_page.py').PORTAL if card.get('id') == 'html-import')
-    page = (SITE / 'tools/html-import/index.html').read_text(encoding='utf-8')
-    assert card['text'].split('。')[0] + '。' in page[:page.index('<nav class="ui-world-tools">')]
+    page = (SITE / PAGES.SHELL_PAGE).read_text(encoding='utf-8')                     # 🧰 the one screen says what it is
+    assert 'myon-bioinformatics の道具を 1 つの画面で。' in page[:page.index('<nav class="ui-world-tools">')]
 
 
 def test_a_document_table_draws_its_number_columns_as_bars():
@@ -1850,13 +1864,13 @@ def test_portfolio_worlds_share_one_engine_and_standalone_stays_self_contained()
         assert hashlib.sha256((SITE / asset).read_bytes()).hexdigest() == lock['outputs'][asset]
     assert (SITE / js).read_text(encoding='utf-8') == world.WORLD_JS
     assert (SITE / css).read_text(encoding='utf-8') == '@layer components{' + world.world_base_css() + '}'
-    css_link = '<link rel="stylesheet" href="../world-assets/world.css">'
-    js_link = '<script type="module" src="../world-assets/world.js"></script>'
-    page = (SITE / PAGES.WORLD_PAGE).read_text(encoding='utf-8')
-    files = {str(p.relative_to(SITE)) for p in (SITE / 'tools/demos').glob('*.html')}
-    assert files == {PAGES.WORLD_PAGE}                               # 🌍 one document; the scenes are its #school, #tokyo, #camera
+    css_link = '<link rel="stylesheet" href="./world-assets/world.css">'
+    js_link = '<script type="module" src="./world-assets/world.js"></script>'
+    page = shell_panel('worlds')                                     # 🌍 a #panel of the one screen; the scenes are its #school, #tokyo, #camera
+    assert not (SITE / 'tools/demos').exists() and not (SITE / PAGES.WORLD_PAGE).exists()
     assert page.count(css_link) == page.count(js_link) == 1
-    assert page.index('css/bundle.css') < page.index(css_link)
+    screen = (SITE / PAGES.SHELL_PAGE).read_text(encoding='utf-8')
+    assert screen.index('css/bundle.css') < screen.index(css_link)
     assert world.world_base_css() not in page and world.WORLD_JS not in page
     assert page.index(js_link) < page.index('export function bindRpgWorlds') < page.index('js/coordinates.js')
     assert page.index('js/coordinates.js') < page.index("getElementById('tokyo-range')")
@@ -1875,11 +1889,17 @@ def test_the_one_screen_keeps_one_owner_per_id():
     import pysaiyanweboo as ui
     page = lambda body, attrs='': f'<!doctype html><html><head><title>T</title></head><body{attrs}>{body}</body></html>'.encode()
     with pytest.raises(ValueError, match=r"\['status'\]"):
-        PAGES.render_shell(ui, {'tools/a/index.html': page('<p id="status">'), 'tools/b/index.html': page('<p id="status">')})
-    shell = PAGES.render_shell(ui, {'tools/a/index.html': page('<p id="status">')},
-                               {'tools/heatmap/index.html': (page('<p id="status">'), 'myon-bioinformatics/DRAgoWing'),
-                                'tools/format-lab/index.html': (page('<i id="own">', ' class="ui-elements"'), 'myon-bioinformatics/myon-bioinformatics')}).decode()
+        PAGES.render_shell(ui, {'tools/a/index.html': (page('<p id="status">'), None, False), 'tools/b/index.html': (page('<p id="status">'), None, False)})
+    shell = PAGES.render_shell(ui, {'tools/a/index.html': (page('<p id="status">'), None, False),
+                                    'tools/heatmap/index.html': (page('<p id="status">'), 'myon-bioinformatics/DRAgoWing', False),
+                                    'tools/format-lab/index.html': (page('<i id="own">', ' class="ui-elements"'), 'myon-bioinformatics/myon-bioinformatics', False),
+                                    'tools/app/index.html': (page('<p id="status"><a href="#status">s</a><a href="../a/">a</a>'), 'myon-bioinformatics/App', True)}).decode()
     heatmap = re.search(r'<section id="heatmap"[^>]*><template>(.*?)</template>', shell, re.S)[1]
     assert '⏸' in heatmap and 'id がほかの道具とぶつかる（status）' in heatmap and 'id="status"' not in heatmap
     assert '<section id="format-lab" class="ui-elements" data-tools-panel' in shell and '<i id="own">' in shell
     assert '<p id="status">' in shell and shell.count('id="status"') == 1
+    framed = re.search(r'<section id="app"[^>]*><template><iframe[^>]*\bsrcdoc="([^"]*)"', shell, re.S)   # 🖼️ an app that owns its document: framed,
+    assert framed and 'data-routes' not in shell[framed.start() - 200:framed.start()]                    # its own ids (status is the joined panel's)
+    from html import unescape
+    inner = unescape(framed[1])
+    assert '<base href="./app/">' in inner and '<a target="_top" href="/tools/#a">' in inner and '<a href="#status">' in inner

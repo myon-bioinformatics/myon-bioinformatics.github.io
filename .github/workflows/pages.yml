@@ -96,7 +96,7 @@ jobs:
         with:
           node-version: "26"
 
-      # 🧰 Ironmate's studios, mcp-toolcall-lab's tools and execution lab (🔌 tools/mcp/) and DRAgoWing's heatmap from their
+      # 🧰 Ironmate's studios, mcp-toolcall-lab's tools and execution lab (🔌 #mcp, #mcp-execution) and DRAgoWing's heatmap from their
       # default branches (tools/…, not kept in git); the execution lab's build runs Node. A tool that fails gets the ⏸ the build below writes (the 🧰 screen takes the panels in).
       - name: Record the tools built from other repositories (best effort)
         if: github.event_name != 'pull_request'
@@ -173,26 +173,34 @@ jobs:
               document.addEventListener('securitypolicyviolation', event =>
                 window.compositionPolicyViolations.push(event.effectiveDirective + ': ' + event.blockedURI));
             });
-            await page.goto('http://127.0.0.1:8000/tools/browser-tools/#composition');
+            // 🖼️ Browser Tools is a framed #panel of the one screen: the editor lives in its frame.
+            const studioOf = async page => {
+              await page.goto('http://127.0.0.1:8000/tools/#browser-tools');
+              await page.waitForFunction(() => document.querySelector('#browser-tools iframe')?.dataset.ready);
+              const studio = await (await page.locator('#browser-tools iframe').elementHandle()).contentFrame();
+              await studio.evaluate(() => { location.hash = 'composition'; });
+              return studio;
+            };
+            const studio = await studioOf(page);
             // ⏸ Until Ironmate's default branch has the arrangement editor, there is no audio to exercise (publish_composition.py waits too).
-            const editor = await page.locator('#song-parts').count() > 0;
+            const editor = await studio.locator('#song-parts').count() > 0;
             if (!editor) console.log("⏸ 🎵 Ironmate's arrangement editor is not staged yet: audio not exercised");
             if (editor) {
-            await page.locator('#song-parts').fill('A = I\nB = V');
-            await page.locator('#song-order').fill('B A B');
+            await studio.locator('#song-parts').fill('A = I\nB = V');
+            await studio.locator('#song-order').fill('B A B');
             const response = page.waitForResponse(r => r.url().endsWith('/tools/vendor/tone-studio.min.js'));
-            await page.locator('#song-play').click();
+            await studio.locator('#song-play').click();
             assert.ok((await response).ok());
-            assert.equal(await page.locator("#song-progression").inputValue(), "V I V");
-            await page.waitForFunction(() => document.querySelector('#song-status')?.textContent === '9音を再生します。');
-            const parts = page.locator('#song-sections li');
+            assert.equal(await studio.locator("#song-progression").inputValue(), "V I V");
+            await studio.waitForFunction(() => document.querySelector('#song-status')?.textContent === '9音を再生します。');
+            const parts = studio.locator('#song-sections li');
             assert.deepEqual(await parts.allTextContents(), ['B', 'A', 'B']);
-            await page.waitForFunction(() => document.querySelector('#song-sections li:first-child[aria-current="step"]'));
-            await page.waitForFunction(() => document.querySelector('#song-sections li:last-child[aria-current="step"]'));
-            await page.locator('#song-stop').click();
-            assert.equal(await page.locator('#song-sections [aria-current]').count(), 0);
-            assert.equal(await page.locator('#song-status').innerText(), '停止しました。');
-            await page.evaluate(async () => {
+            await studio.waitForFunction(() => document.querySelector('#song-sections li:first-child[aria-current="step"]'));
+            await studio.waitForFunction(() => document.querySelector('#song-sections li:last-child[aria-current="step"]'));
+            await studio.locator('#song-stop').click();
+            assert.equal(await studio.locator('#song-sections [aria-current]').count(), 0);
+            assert.equal(await studio.locator('#song-status').innerText(), '停止しました。');
+            await studio.evaluate(async () => {
               const { Synth } = await import('/tools/vendor/tone-studio.min.js');
               const toDestination = Synth.prototype.toDestination;
               Synth.prototype.toDestination = function () {
@@ -209,12 +217,12 @@ jobs:
                 return voice;
               };
             });
-            await page.locator('#song-parts').fill('A = I');
-            await page.locator('#song-order').fill('A');
-            await page.locator('#song-key').selectOption('D');
-            await page.locator('#song-bpm').fill('30');
-            await page.locator('#song-play').click();
-            await page.waitForFunction(() => {
+            await studio.locator('#song-parts').fill('A = I');
+            await studio.locator('#song-order').fill('A');
+            await studio.locator('#song-key').selectOption('D');
+            await studio.locator('#song-bpm').fill('30');
+            await studio.locator('#song-play').click();
+            await studio.waitForFunction(() => {
               const tap = window.songSignal;
               if (!tap) return false;
               const signal = new Float32Array(tap.fftSize);
@@ -226,22 +234,22 @@ jobs:
               const hz = risingEdges * tap.context.sampleRate / signal.length;
               return Math.abs(hz - 293.665) < 15;
             }, null, { timeout: 6000 });
-            await page.locator('#song-stop').click();
-            assert.deepEqual(await page.evaluate(() => window.compositionPolicyViolations), []);
+            await studio.locator('#song-stop').click();
+            assert.deepEqual(await studio.evaluate(() => window.compositionPolicyViolations), []);
 
             const stalled = await browser.newPage();
             await stalled.route('**/tone-studio.min.js', route => route.fulfill({
               contentType: 'text/javascript',
               body: 'export const start = () => new Promise(() => {});',
             }));
-            await stalled.goto('http://127.0.0.1:8000/tools/browser-tools/#composition');
-            await stalled.locator('#song-play').click();
-            await stalled.waitForFunction(() =>
+            const stalledStudio = await studioOf(stalled);
+            await stalledStudio.locator('#song-play').click();
+            await stalledStudio.waitForFunction(() =>
               document.querySelector('#song-status')?.textContent.includes('タイムアウト'),
               null, { timeout: 7000 });
-            await stalled.locator('#song-play').click();
-            await stalled.locator('#song-stop').click();
-            assert.equal(await stalled.locator('#song-status').innerText(), '停止しました。');
+            await stalledStudio.locator('#song-play').click();
+            await stalledStudio.locator('#song-stop').click();
+            assert.equal(await stalledStudio.locator('#song-status').innerText(), '停止しました。');
             }
 
             const map = await browser.newPage({permissions: ['clipboard-read', 'clipboard-write']});

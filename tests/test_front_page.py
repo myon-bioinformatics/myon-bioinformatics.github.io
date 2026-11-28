@@ -570,7 +570,7 @@ def test_brand_icon_and_favicons_stay_intact_across_modes(page, width):
     page.goto("/")
     for mode in MODES:
         select_mode(page, mode)
-        avatar = page.get_by_role("button", name="Blink", exact=True)
+        avatar = page.get_by_role("button", name=re.compile(r"^(まばたき|Blink)$"))                    # 🌐 the face's word follows the language
         expect(avatar).to_be_visible()
         expect(avatar).to_have_attribute("data-gaze-bound", "")
         expect(page.locator(".ui-chrome .ui-gaze")).to_have_count(1)                     # 🫧 the shared header's, not the page's own

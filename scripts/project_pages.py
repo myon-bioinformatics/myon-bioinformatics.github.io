@@ -11,11 +11,12 @@ The 🧰 Tools cards (scripts/front_page.py ``PORTAL``) list the practical pages
 the 💬 cross-repo chat (scripts/chat.py, run by Pyodide in the page; ``--record-chat`` indexes the other repositories at deploy
 time) and PySaiyanWeBoo's own tool documents (``PSWB_TOOLS``: 🧾 the JUnit reader; 🤝 its MCP connection test is the lab's #protocol panel), published with
 the portfolio's way back, shortcut label and icons. The 🌍 world pages (scripts/world.py: the travel world, 🏫 the school,
-🗼 the parallel cities, 🎬 the camera; tools/demos/) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and are not among
-the cards. Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
+🗼 the parallel cities, 🎬 the camera: the screen's #worlds panel) are built the same way for PySaiyanWeBoo's 🎞 GIF demo and
+are not among the cards. Each repository's own Pages carry its 🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ; nothing here copies them.
 
-``tools/html-import/index.html`` (the HTML import tool page) is built here too and hash-locked with the other pages.
-Every generated or imported tool page gets the same way back, chrome and shortcut label: ``add_back_nav()`` (the way back and
+🧰 Every tool, built here or in another repository, is a #panel of one screen, ``tools/index.html`` (``render_shell``): the
+documents are built for where they once lived (hash-locked like before) and never published as pages of their own. The screen gets
+the way back, the chrome and the shortcut label once: ``add_back_nav()`` (the way back and
 🧰 PySaiyanWeBoo's chrome: the board with the clock, 🏠 ⭐ ⚙️ and each page's own ☰ ⋯, from the spec ``tools_chrome()`` makes, and
 🚪 PySaiyanWeBoo's Door-to-Door, every 🧰 Tools link as a footer pull-down: ``tools_door()``) and
 ``add_home_label()`` (_src/tools/mcp_lab.py gets them for the lab pages). ``load_module()`` loads a file of this
@@ -1196,11 +1197,12 @@ def _rebase_links(markup: str, source: str, name: str, root: bool = False) -> st
         if not parts.path or parts.scheme or parts.netloc or parts.path.startswith('/'):
             return match[0]
         at = posixpath.normpath(posixpath.join(posixpath.dirname(source), parts.path))
-        if at in (posixpath.dirname(source), source) and not root:
-            url = '#' + (parts.fragment or name)
+        if at in (posixpath.dirname(source), source) and not root and not parts.query:
+            url = '#' + (parts.fragment or name)                               # the page itself: its panel (or the #section it holds)
         else:
-            path = '/' + at if root else './' + posixpath.relpath(at, posixpath.dirname(SHELL_PAGE))
-            url = urlunsplit(('', '', path + ('/' if parts.path.endswith('/') else ''), parts.query, parts.fragment))
+            rel = posixpath.relpath(at, posixpath.dirname(SHELL_PAGE))
+            path = '/' + at if root else './' if rel == '.' else './' + rel + ('/' if parts.path.endswith('/') else '')
+            url = urlunsplit(('', '', path + ('/' if root and parts.path.endswith('/') else ''), parts.query, parts.fragment))
         return match['attr'] + match['quote'] + url + match['quote']
     pieces = re.split(r'(<script\b[^>]*>.*?</script>)', markup, flags=re.S)
     return ''.join(_LINK.sub(move, piece) if i % 2 == 0 else re.sub(r'<script\b[^>]*>', lambda tag: _LINK.sub(move, tag[0]), piece, count=1)
@@ -1247,6 +1249,9 @@ def _to_top(page: str, source: str, targets: dict[str, set[str] | None]) -> str:
             path = parts.path
         else:
             path = posixpath.normpath(posixpath.join('/' + posixpath.dirname(source), parts.path)) + ('/' if parts.path.endswith('/') else '')
+        if path in ('/' + posixpath.dirname(SHELL_PAGE) + '/', '/' + SHELL_PAGE) and parts.fragment:   # 🧰 the screen itself, at a #panel
+            tag = tag[0].replace(href[0], f'href={href[1]}/{posixpath.dirname(SHELL_PAGE)}/#{parts.fragment}{href[1]}', 1)
+            return tag.replace('<a', '<a target="_top"', 1)
         if path in pages:
             own, name = targets[pages[path]], panel_name(pages[path])
             url = '/' + posixpath.dirname(SHELL_PAGE) + '/#' + (parts.fragment if parts.fragment and (own is None or parts.fragment in own) else name)
@@ -1316,14 +1321,14 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
                         + (f' data-routes="{" ".join(sorted(own))}"' if own else '') + f' hidden><template>{markup}</template></section>')
     home = (f'<section id="home" data-tools-panel data-title="🧰 Tools"><main class="ui-page"><h1>🧰 Tools</h1>'
             f'<ul class="ui-tools-index">{"".join(index)}</ul></main></section>')
-    page = ui.render_document(title='🧰 Tools', theme='modern', trusted_html=home + ''.join(sections) + f'<script>{_SHELL_JS}</script>',
+    mark = '<!-- 🧰 panels -->'                                            # the chrome first: a panel's own header (🌍) is not the screen's
+    page = ui.render_document(title='🧰 Tools', theme='modern', trusted_html=home + mark + f'<script>{_SHELL_JS}</script>',
                               css=ui.bundled_css() + '.ui-tools-index{display:grid;gap:8px;padding:0;list-style:none}' + _FRAME_CSS)
     page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace(
         '<head>', '<head><meta name="description" content="myon-bioinformatics の道具を 1 つの画面で。🚪 で道具を選び、🏠 で一覧へ。">', 1)   # 📟 the board reads it
     cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './#tokyo'}}   # 🗺️ the map's neighbour
-    page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': '../index.html#tools'}], test_id='portfolio-back')   # 🏠 the home panel's first line
-    page = add_site_chrome(page, SHELL_PAGE, cities)
-    return link_shared_sheets(ui, SHELL_PAGE, add_home_label(page, '🧰 道具', icons_from='../').encode('utf-8'))
+    page = add_back_nav(page, SHELL_PAGE, cities).replace(mark, ''.join(sections), 1)   # 🏠 the home panel's first line, the site's chrome
+    return link_shared_sheets(ui, SHELL_PAGE, ui.stamp_page_size(add_home_label(page, '🧰 道具', icons_from='../')).encode('utf-8'))
 
 
 @functools.lru_cache(maxsize=None)

@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # 🔌 The lab whose tools --stage builds into tools/mcp/ (the same pin in ci.yml and html-import.yml).
+      # 🔌 The lab whose tools --stage builds (files in tools/mcp/, pages as the screen's #mcp panels; same pin in ci.yml and html-import.yml).
       - name: Checkout the verified mcp-toolcall-lab source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

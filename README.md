@@ -77,15 +77,22 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 
 トップの **🧰 Tools** は、実用の道具だけを置く棚です（リポジトリカードとは別に手で管理）。各リポジトリの使い方・検証・GIF は、そのリポジトリの Pages（🧩 機能一覧 / 🔬 検証ガイド / 🎞 GIF デモ）にあり、ここでは写しません。組み立ての要るもの（ビルド）だけをここで作ります。カード名は用途、🧩 出どころはその部品のリポジトリです。公開時に他リポジトリの default branch から組むもの（Ironmate のスタジオ、mcp-toolcall-lab、DRAgoWing のヒートマップなど）は、組み立てに失敗すると ⏸ ページになります。コード本体は各リポジトリに残します。
 
-🧰 道具は **1 つの画面** `tools/` の `#gif`・`#maps`・`#test-report`・`#flow`・`#repo-map`・`#chat`（Pyodide に渡す Python は開いたときに `tools/chat/sources.json` から読む）、ほかのリポジトリで組む `#heatmap`（DRAgoWing）・`#format-lab`（親）です（`scripts/project_pages.py` の `render_shell`、ほかのリポジトリの分は `TOOL_SOURCES` で入口のページを持たない `()` のもの）。🆔 道具どうしで id がぶつかると、このサイトの道具ならビルドが止まり、ほかのリポジトリの道具なら ⏸ に置き換わります。ヘッダー・フッター・⚙️ 設定は画面に 1 つだけで、道具はリロードなしで切り替わり、開いたときに初めて読み込まれます（それまでは `<template>` の中で眠っている）。`#records` のような道具の中の見出しへのリンクは、その道具を開いてそこへ移ります。
+🧰 道具は全部 **1 つの画面** `tools/` のパネルです（公開する HTML はトップの `index.html` と `tools/index.html` の 2 枚だけ。`scripts/project_pages.py` の `render_shell`）。ヘッダー・フッター・⚙️ 設定は画面に 1 つで、道具はリロードなしで切り替わり、開いたときに初めて読み込まれます（それまでは `<template>` の中で眠っている。スクリプトは元のページと同じ順に 1 つずつ動く）。
+
+| パネルの種類 | 道具 | しくみ |
+|---|---|---|
+| 🧩 画面に入る | `#gif` `#maps` `#test-report` `#flow` `#repo-map` `#chat` `#worlds`（`#world` `#school` `#tokyo` `#camera`）`#heatmap` `#format-lab` | 道具の `<head>` 固有部分と `<body>` を取り込む。🆔 id がぶつかると、このサイトの道具ならビルドが止まり、ほかのリポジトリの道具なら ⏸ |
+| 🖼️ 枠で動く | `#html-import` `#image-studio` `#browser-tools` `#slide-studio` `#mcp`（`#wiki` `#protocol` …）`#mcp-execution` | 文書を丸ごと持つアプリ（自分の CSP・id・スクリプト）は `<iframe srcdoc>` で。ファイルはサイトの根から（`/tools/…`）、自分で解決する相対 URL は `<base>` で、`#` リンクは枠の中に留まる。外へ出るリンクは画面で開く（`target="_top"`、道具なら `/tools/#名前`） |
+
+`#records` や `#protocol` のような道具の中の見出しへのリンクは、その道具を開いてそこへ移ります。Pyodide に渡すチャットの Python は開いたときに `tools/chat/sources.json` から読みます。
 
 | 案内 | リンク |
 | --- | --- |
-| HTML文書取込 | [tools/html-import/](https://myon-bioinformatics.github.io/tools/html-import/) |
-| 📍地図URL・座標ピン留め | [tools/#maps](https://myon-bioinformatics.github.io/tools/#maps) · [パラレル東京](https://myon-bioinformatics.github.io/tools/demos/world.html#tokyo) |
-| 🖼️ スライド・画像工房（Ironmate） | [Image Studio](https://myon-bioinformatics.github.io/tools/image-studio/) · [Browser Tools](https://myon-bioinformatics.github.io/tools/browser-tools/) · [Slide Studio](https://myon-bioinformatics.github.io/tools/slide-studio/) |
+| HTML文書取込 | [tools/#html-import](https://myon-bioinformatics.github.io/tools/#html-import) |
+| 📍地図URL・座標ピン留め | [tools/#maps](https://myon-bioinformatics.github.io/tools/#maps) · [パラレル東京](https://myon-bioinformatics.github.io/tools/#tokyo) |
+| 🖼️ スライド・画像工房（Ironmate） | [Image Studio](https://myon-bioinformatics.github.io/tools/#image-studio) · [Browser Tools](https://myon-bioinformatics.github.io/tools/#browser-tools) · [Slide Studio](https://myon-bioinformatics.github.io/tools/#slide-studio) |
 | 🌡️ ヒートマップ（DRAgoWing · Ironmate） | [tools/#heatmap](https://myon-bioinformatics.github.io/tools/#heatmap) |
-| 🔌 MCP 実験室（mcp-toolcall-lab） | [Tool Lab](https://myon-bioinformatics.github.io/tools/mcp/) · [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) · [MCP 接続試験](https://myon-bioinformatics.github.io/tools/mcp/#protocol) |
+| 🔌 MCP 実験室（mcp-toolcall-lab） | [Tool Lab](https://myon-bioinformatics.github.io/tools/#mcp) · [Execution Lab](https://myon-bioinformatics.github.io/tools/#mcp-execution) · [MCP 接続試験](https://myon-bioinformatics.github.io/tools/#protocol) |
 | 🧾 テスト結果（PySaiyanWeBoo） | [tools/#test-report](https://myon-bioinformatics.github.io/tools/#test-report) |
 | 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab） | [tools/#chat](https://myon-bioinformatics.github.io/tools/#chat) |
 | 🧭 統合運用 | [Dashboard](https://myon-bioinformatics.github.io/myon-bioinformatics/) |
@@ -95,7 +102,7 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 
 新しい道具を足すときは、生成元の `scripts/front_page.py`（`PORTAL`）と `tests/test_site.py` をいっしょに直し、行き先と HTTPS の Pages 契約を同じ変更で確認します。
 
-🧰 Ironmate's Image Studio, Browser Tools and Slide Studio (`tools/image-studio/`, `tools/browser-tools/`, `tools/slide-studio/`), mcp-toolcall-lab's tools and execution lab (`tools/mcp/`, `tools/mcp/execution/`) and DRAgoWing's 🌡️ heatmap and the parent's 🗃️ format lab (the one screen's `tools/#heatmap`, `tools/#format-lab`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ page in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Studio route mapping is build source in `_src/tools/studio_routes.py`; the rendered pages live only in the Pages output tree. Ironmate still owns the generated editor and data formats, and the shared back navigation comes from PySaiyanWeBoo.
+🧰 Ironmate's Image Studio, Browser Tools and Slide Studio (`tools/#image-studio`, `#browser-tools`, `#slide-studio`), mcp-toolcall-lab's tools and execution lab (`tools/#mcp`, `#mcp-execution`; each 🖼️ framed: an app that owns its document) and DRAgoWing's 🌡️ heatmap and the parent's 🗃️ format lab (the one screen's `tools/#heatmap`, `tools/#format-lab`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ panel in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Studio route mapping is build source in `_src/tools/studio_routes.py`; the rendered pages live only in the Pages output tree. Ironmate still owns the generated editor and data formats, and the shared back navigation comes from PySaiyanWeBoo.
 
 ## 🚀 公開リポジトリ
 
@@ -327,7 +334,7 @@ uv run --locked --only-group browser python -m pytest tests/test_site.py -k chat
 
 ### 🌍 ワールド
 
-**🌍 ワールド**は [ひとつのページ](https://myon-bioinformatics.github.io/tools/demos/world.html) です。☰ で村（`#world`）、学校（`#school`）、パラレル東京（`#tokyo`）、Reverse London（`#london`）、Fake Paris（`#paris`）、カメラ（`#camera`）へ移動します。ページを読み直さず、直リンクやブラウザの「戻る」でも空間を切り替えられます。⭐ お気に入りと 🧰 道具は共通で、村のRPGや街の範囲指定など、その場の操作は各空間に残しています。
+**🌍 ワールド**は [1 つの画面のパネル](https://myon-bioinformatics.github.io/tools/#worlds) です。☰ で村（`#world`）、学校（`#school`）、パラレル東京（`#tokyo`）、Reverse London（`#london`）、Fake Paris（`#paris`）、カメラ（`#camera`）へ移動します。ページを読み直さず、直リンクやブラウザの「戻る」でも空間を切り替えられます。⭐ お気に入りと 🧰 道具は共通で、村のRPGや街の範囲指定など、その場の操作は各空間に残しています。
 
 村の **冒険手帳 → 💾 セーブ** で文字列を作り、移行先の同じ画面に貼り付けて「読み込む」を選びます。経験値、所持金、HP・MP、乱数の状態、装備、消費アイテムの個数、バッグ、会話・討伐・訪問・クイズ・クエスト・実績の記録を引き継ぎます。現在位置と戦闘途中の状態は保存対象外です。
 
@@ -359,7 +366,7 @@ uv run --locked --only-group browser python tests/world_browser.py -v           
 
 🧰 Tools → **📍地図URL・座標ピン留め** (`tools/#maps`) で、緯度・経度からApple MapsとGoogle MapsのURLを生成できます。地図URLからの座標入力、端末内のピン保存・解除、地点リンクのコピー、端末の共有メニューに対応します。共有先は保存操作なしで同じ座標を開けます。ピンはブラウザごとの保存で、端末間では同期しません。保存やコピーが許可されていない場合は画面に表示します。
 
-パラレル都市 (`tools/demos/world.html#tokyo`) 内の東京21地点と相互に移動できます。座標・地図URL生成は固定済みPSWB、ミニチュアは `scripts/world.py` から再利用します。東京の座標はミニチュア用の概略値で、施設の正確な入口を保証するものではありません。URLだけを作るため地図APIキーは不要です。
+パラレル都市 (`tools/#tokyo`) 内の東京21地点と相互に移動できます。座標・地図URL生成は固定済みPSWB、ミニチュアは `scripts/world.py` から再利用します。東京の座標はミニチュア用の概略値で、施設の正確な入口を保証するものではありません。URLだけを作るため地図APIキーは不要です。
 
 Flutterの範囲指定も引き継いでいます。中心＋半径（25 / 100 / 350 / 1,000 / 3,000 m・自由指定）から南北東西の境界と範囲URLを生成し、半径をピン・共有リンクに保存します。初期値は100 m、0は地点のみです。範囲内の東京の地点は中心からの直線距離で絞り込み、移動先から戻っても半径を保持します。「元の指定範囲へ戻る」は元の中心も復元します。範囲URLは表示範囲の指定で、円や矩形を地図上に描画するものではありません。日付変更線・極付近では表現できないApple Mapsの`spn`を省略します。
 
@@ -411,9 +418,9 @@ default branch (`scripts/project_pages.py --record-tools`), and nothing of the l
 
 | 🔗 Page | 🧰 Built from the lab with | 🔀 Path |
 | --- | --- | --- |
-| 🔎 Tool Lab: `#wiki` · `#pixiv` · `#pokemon` (+ the portfolio's `#niconico`) | `python -m mcp_toolcall_lab.stub_front pages` | `tools/mcp/` |
-| 🩺 Repository diagnostics (a panel of the Tool Lab) | `python -m mcp_toolcall_lab.mcp_toolcall_lab_repository_diagnostics` (its JSON / JSONL) | `tools/mcp/#diagnostics` |
-| 🧮 [Execution Lab](https://myon-bioinformatics.github.io/tools/mcp/execution/) | `scripts/build_portable_pages.py` (Node 26) | `tools/mcp/execution/` |
+| 🔎 Tool Lab: `#wiki` · `#pixiv` · `#pokemon` (+ the portfolio's `#niconico`) | `python -m mcp_toolcall_lab.stub_front pages` | `tools/#mcp` |
+| 🩺 Repository diagnostics (a panel of the Tool Lab) | `python -m mcp_toolcall_lab.mcp_toolcall_lab_repository_diagnostics` (its JSON / JSONL) | `tools/#diagnostics` |
+| 🧮 [Execution Lab](https://myon-bioinformatics.github.io/tools/#mcp-execution) | `scripts/build_portable_pages.py` (Node 26) | `tools/#mcp-execution` |
 
 The portfolio's side is one build-time adapter, `_src/tools/mcp_lab.py` (beside Ironmate's `_src/tools/studio_routes.py`):
 the shared UI, the Niconico tab, the Pixiv wrapper (`_src/tools/mcp/`), the lab artwork, the way back and the

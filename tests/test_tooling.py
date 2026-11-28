@@ -500,11 +500,14 @@ def test_composition_audio_waits_for_ironmates_editor_instead_of_failing_the_dep
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     publish = module.publish
-    tools = tmp_path / 'tools/browser-tools'
+    from html import escape, unescape
+    tools, shell = tmp_path / 'tools/browser-tools', tmp_path / 'tools/index.html'
     tools.mkdir(parents=True)
-    (tools / 'index.html').write_text('<body>no editor yet</body>', encoding='utf-8')
-    assert publish(tmp_path) is False and (tools / 'index.html').read_text(encoding='utf-8') == '<body>no editor yet</body>'   # ⏸
-    (tools / 'index.html').write_text('<body><div id="song-audio"></div></body>', encoding='utf-8')
+    screen = lambda page: f'<section id="browser-tools" data-tools-panel hidden><template><iframe srcdoc="{escape(page)}"></iframe></template></section>'
+    shell.write_text(screen('<body>no editor yet</body>'), encoding='utf-8')
+    assert publish(tmp_path) is False and shell.read_text(encoding='utf-8') == screen('<body>no editor yet</body>')   # ⏸
+    shell.write_text(screen('<body><div id="song-audio"></div></body>'), encoding='utf-8')
     (tools / 'async-task.js').write_text('', encoding='utf-8')
-    assert publish(tmp_path) is True and '<script type="module" src="./audition.mjs"></script></body>' in (tools / 'index.html').read_text(encoding='utf-8')
+    assert publish(tmp_path) is True                                       # 🖼️ into the framed #browser-tools of the one screen
+    assert '<script type="module" src="/tools/browser-tools/audition.mjs"></script></body>' in unescape(shell.read_text(encoding='utf-8'))
     assert (tools / 'audition.mjs').is_file()
