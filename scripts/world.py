@@ -1486,6 +1486,39 @@ WORLD_TEXT = {
     "unavailable": ("つかえません（許可かカメラを確認）", "Not available (check permission or camera)", "Indisponible (vérifiez l'autorisation ou la caméra)", "No disponible (revisa el permiso o la cámara)", "Indisponível (verifique a permissão ou a câmera)", "غير متاح (تحقق من الإذن أو الكاميرا)", "无法使用（请检查权限或相机）", "Недоступно (проверьте разрешение или камеру)", "Tidak tersedia (periksa izin atau kamera)", "Nicht verfügbar (Berechtigung oder Kamera prüfen)", "Haipatikani (angalia ruhusa au kamera)"),
     "bag": ("どうぐ", "Bag", "Sac", "Bolsa", "Bolsa", "الحقيبة", "道具", "Сумка", "Tas", "Tasche", "Mkoba"),
     "take": ("どうぐに出し入れする", "Add or remove item", "Ajouter ou retirer l'objet", "Añadir o quitar objeto", "Adicionar ou remover item", "إضافة أو إزالة أداة", "放入或取出道具", "Добавить или убрать предмет", "Tambah atau hapus barang", "Gegenstand hinzufügen oder entfernen", "Ongeza au ondoa kifaa"),
+    # 🌐 the words of the shell and the scenes' buttons that 🌐 finds by their words (sayIn), and those of the site's parts on a world page
+    "self": ("自分", "Me", "Moi", "Yo", "Eu", "أنا", "我", "Я", "Saya", "Ich", "Mimi"),
+    "links": ("関連リンク", "Related links", "Liens associés", "Enlaces relacionados", "Links relacionados", "روابط ذات صلة", "相关链接", "Связанные ссылки", "Tautan terkait", "Verwandte Links", "Viungo vinavyohusiana"),
+    "world": ("ワールド", "World", "Monde", "Mundo", "Mundo", "العالم", "世界", "Мир", "Dunia", "Welt", "Ulimwengu"),
+    "spaces": ("空間一覧", "Spaces", "Espaces", "Espacios", "Espaços", "المساحات", "空间列表", "Пространства", "Ruang", "Räume", "Nafasi"),
+    "status": ("冒険ステータス", "Adventure status", "Statut d'aventure", "Estado de la aventura", "Status da aventura", "حالة المغامرة", "冒险状态", "Статус приключения", "Status petualangan", "Abenteuerstatus", "Hali ya safari"),
+    "notebook": ("冒険手帳（クエスト・実績・図鑑）", "Adventure notebook (quests, achievements, field guide)", "Carnet d'aventure (quêtes, succès, bestiaire)", "Cuaderno de aventura (misiones, logros, guía)", "Caderno de aventura (missões, conquistas, guia)", "دفتر المغامرة (المهام والإنجازات والدليل)", "冒险手册（任务、成就、图鉴）", "Дневник приключений (квесты, достижения, справочник)", "Buku petualangan (misi, pencapaian, ensiklopedia)", "Abenteuerbuch (Quests, Erfolge, Lexikon)", "Daftari la safari (kazi, mafanikio, viumbe)"),
+    "hunt": ("この周辺で魔物をさがす", "Look for monsters nearby", "Chercher des monstres alentour", "Buscar monstruos cerca", "Procurar monstros por perto", "ابحث عن الوحوش القريبة", "在附近寻找怪物", "Искать монстров рядом", "Cari monster di sekitar", "Monster in der Nähe suchen", "Tafuta majini karibu"),
+    "cat": ("散歩猫", "Strolling cat", "Chat en balade", "Gato paseando", "Gato passeando", "قطة تتنزه", "散步的猫", "Гуляющий кот", "Kucing jalan-jalan", "Spazierkatze", "Paka anayetembea"),
+    "watchdog": ("村の番犬", "Village watchdog", "Chien de garde du village", "Perro guardián del pueblo", "Cão de guarda da vila", "كلب حراسة القرية", "村里的看门狗", "Сторожевой пёс деревни", "Anjing penjaga desa", "Dorfwachhund", "Mbwa mlinzi wa kijiji"),
+    "pigeon": ("伝令バト", "Messenger pigeon", "Pigeon messager", "Paloma mensajera", "Pombo-correio", "حمامة زاجلة", "信鸽", "Почтовый голубь", "Merpati pos", "Brieftaube", "Njiwa mjumbe"),
+    "child": ("こども", "Child", "Enfant", "Niño", "Criança", "طفل", "孩子", "Ребёнок", "Anak", "Kind", "Mtoto"),
+    "dog": ("いぬ", "Dog", "Chien", "Perro", "Cão", "كلب", "狗", "Собака", "Anjing", "Hund", "Mbwa"),
+    "bird": ("とり", "Bird", "Oiseau", "Pájaro", "Pássaro", "طائر", "鸟", "Птица", "Burung", "Vogel", "Ndege"),
+    "pet": ("ドラゴンをなでる", "Pet the dragon", "Caresser le dragon", "Acariciar al dragón", "Acariciar o dragão", "داعب التنين", "抚摸龙", "Погладить дракона", "Elus naga", "Den Drachen streicheln", "Mpapase joka"),
+    "hue": ("ドラゴンの体色", "Dragon's color", "Couleur du dragon", "Color del dragón", "Cor do dragão", "لون التنين", "龙的颜色", "Цвет дракона", "Warna naga", "Farbe des Drachen", "Rangi ya joka"),
+    "fill": ("背景の塗りつぶし", "Background fill", "Remplissage du fond", "Relleno del fondo", "Preenchimento do fundo", "تعبئة الخلفية", "背景填充", "Заливка фона", "Isi latar", "Hintergrundfüllung", "Ujazo wa mandhari"),
+    "talk": ("話しかける", "Talk to it", "Lui parler", "Hablarle", "Falar com ele", "تحدّث إليه", "和它聊聊", "Поговорить", "Ajak bicara", "Ansprechen", "Zungumza nayo"),
+    "ask": ("何を聞いてみる？", "What will you ask?", "Que voulez-vous demander ?", "¿Qué quieres preguntar?", "O que você quer perguntar?", "ماذا تريد أن تسأل؟", "想问什么？", "О чём спросить?", "Mau tanya apa?", "Was möchtest du fragen?", "Ungependa kuuliza nini?"),
+    "scroll": ("竜の巻物", "Dragon scroll", "Parchemin du dragon", "Pergamino del dragón", "Pergaminho do dragão", "لفيفة التنين", "龙之卷轴", "Свиток дракона", "Gulungan naga", "Drachenschriftrolle", "Hati-kunjo ya joka"),
+    "tools": ("道具", "Tools", "Outils", "Herramientas", "Ferramentas", "أدوات", "工具", "Инструменты", "Alat", "Werkzeuge", "Zana"),
+    "guide": ("攻略ガイド", "Strategy guide", "Guide stratégique", "Guía de estrategia", "Guia de estratégia", "دليل الاستراتيجية", "攻略指南", "Руководство", "Panduan strategi", "Lösungshilfe", "Mwongozo wa mbinu"),
+    "empty": ("まだありません", "Nothing yet", "Rien pour l'instant", "Nada todavía", "Nada ainda", "لا شيء بعد", "还没有", "Пока ничего", "Belum ada", "Noch nichts", "Bado hakuna"),
+    "effect": ("効果", "Effect", "Effet", "Efecto", "Efeito", "التأثير", "效果", "Эффект", "Efek", "Wirkung", "Athari"),
+    "village": ("村", "Village", "Village", "Pueblo", "Vila", "القرية", "村庄", "Деревня", "Desa", "Dorf", "Kijiji"),
+    "school": ("学校", "School", "École", "Escuela", "Escola", "المدرسة", "学校", "Школа", "Sekolah", "Schule", "Shule"),
+    "tokyo": ("パラレル東京", "Parallel Tokyo", "Tokyo parallèle", "Tokio paralelo", "Tóquio paralela", "طوكيو الموازية", "平行东京", "Параллельный Токио", "Tokyo Paralel", "Paralleles Tokio", "Tokyo sambamba"),
+    "now": ("いま", "now", "maintenant", "ahora", "agora", "الآن", "现在", "сейчас", "sekarang", "jetzt", "sasa"),
+    "in": ("あと{0}分", "in {0} min", "dans {0} min", "en {0} min", "em {0} min", "بعد {0} د", "{0} 分钟后", "через {0} мин", "{0} mnt lagi", "in {0} Min.", "baada ya dak. {0}"),
+    "blink": ("まばたき", "Blink", "Cligner des yeux", "Parpadear", "Piscar", "رمش", "眨眼", "Моргнуть", "Berkedip", "Blinzeln", "Pepesa"),
+    "door": ("ドア to ドア", "Door-to-Door", "De porte à porte", "De puerta en puerta", "De porta em porta", "من باب إلى باب", "门到门", "От двери к двери", "Dari pintu ke pintu", "Von Tür zu Tür", "Mlango kwa mlango"),
+    "size": ("このページの大きさ（HTML）", "Size of this page (HTML)", "Taille de cette page (HTML)", "Tamaño de esta página (HTML)", "Tamanho desta página (HTML)", "حجم هذه الصفحة (HTML)", "本页大小（HTML）", "Размер этой страницы (HTML)", "Ukuran halaman ini (HTML)", "Größe dieser Seite (HTML)", "Ukubwa wa ukurasa huu (HTML)"),
+    "current": ("（いまのページ）", " (current)", " (actuelle)", " (actual)", " (atual)", " (الحالية)", "（当前）", " (текущая)", " (saat ini)", " (aktuell)", " (ya sasa)"),
 }
 WORLD_BUILTIN_TOOLS = ("🏠", "⭐", "🎒", "⚙", "🌐", "☰", "⋯", "🛗", "🚪", "🖼", "📷", "🧹")   # emoji the page itself uses (🛗 its floors; 🚪 is the site foot's); a tool of your own takes another
 _WORLD_TOOL_KEYS = {"label", "label_en", "labels", "slot"}
@@ -1544,7 +1577,7 @@ def _floor_html(wid: str, f: dict[str, Any], close: str, *, confirm: bool = Fals
         f'<span>{escape(a["emoji"])}</span></a>' for a in f["actors"])
     pl = f["player"]
     player = (f'<span class="ui-player" data-x="{pl["x"]}" data-y="{pl["y"]}" data-speed="{pl["speed"]}" '
-              f'style="--px:{pl["x"]};--py:{pl["y"]}" role="img" aria-label="自分"><span>{escape(pl["emoji"])}</span></span>') if pl else ""
+              f'style="--px:{pl["x"]};--py:{pl["y"]}" role="img" aria-label="自分" data-t="self"><span>{escape(pl["emoji"])}</span></span>') if pl else ""
     tile = f.get("tile")
     props = "".join(f'<div class="ui-prop" data-kind="{q["kind"]}" aria-hidden="true" '
                     f'style="left:{q["x"]}px;top:{q["y"]}px;width:{q["w"]}px;height:{q["h"]}px"></div>' for q in f.get("props", []))
@@ -2122,7 +2155,7 @@ export function clockLabel(minutes){const h=Math.floor(minutes/60)%24,m=minutes%
 export function zoneOffset(rows,t){let lo=0,hi=rows.length/2-1;while(lo<hi){const mid=(lo+hi+1)>>1;if(rows[2*mid]<=t)lo=mid;else hi=mid-1}return rows[2*lo+1]}
 export function utcOffsetLabel(offset){if(offset===0)return"UTC";const a=Math.abs(offset),h=Math.floor(a/60),m=a%60;return"UTC"+(offset>0?"+":"-")+h+(m?":"+String(m).padStart(2,"0"):"")}
 // The info board: its clock (HH:MM:SS, once a second), "in N min", gauges and zone clocks (HH:MM). Returns {tick, clockNow}.
-export function bindBoard(board){const hm=t=>{const[h,m]=t.split(":").map(Number);return h*60+m},clockNow=()=>{const d=new Date(),off=board.dataset.offset===""?(-Math.round(d.getTimezoneOffset())||0):Number(board.dataset.offset);return{...boardClock(d.getTime()/1000,off),off}},chips=[...board.querySelectorAll("[data-zone-id]")].map(z=>({id:z.dataset.zoneId,rows:JSON.parse(z.dataset.rows),out:z.querySelector("[data-zone-clock]")})),tick=()=>{const clock=clockNow(),t=new Date().getTime()/1000,zones=new Map(chips.map(z=>{const c=boardClock(t,zoneOffset(z.rows,t));z.out.textContent=c.clock.slice(0,5);return[z.id,c]})),at=m=>(m.dataset.zone?zones.get(m.dataset.zone):clock).minutes,c=board.querySelector("[data-clock]");c.textContent=clock.clock+(board.dataset.offsetLabel!==undefined?" "+utcOffsetLabel(clock.off):"");for(const m of board.querySelectorAll("[data-at]")){const left=minutesUntil(at(m),hm(m.dataset.at));m.textContent=left===0?"いま":"あと"+left+"分"}for(const g of board.querySelectorAll(".ui-board-gauge")){const cells=Number(g.dataset.cells),[filled,pct]=gaugeState(Math.floor(at(g)),hm(g.dataset.from),hm(g.dataset.to),cells);g.querySelector(".ui-board-cells").textContent=gaugeCells(filled,cells,g.dataset.done,g.dataset.todo);g.querySelector(".ui-board-pct").textContent=pct+"%"}};
+export function bindBoard(board){const hm=t=>{const[h,m]=t.split(":").map(Number);return h*60+m},clockNow=()=>{const d=new Date(),off=board.dataset.offset===""?(-Math.round(d.getTimezoneOffset())||0):Number(board.dataset.offset);return{...boardClock(d.getTime()/1000,off),off}},chips=[...board.querySelectorAll("[data-zone-id]")].map(z=>({id:z.dataset.zoneId,rows:JSON.parse(z.dataset.rows),out:z.querySelector("[data-zone-clock]")})),tick=()=>{const clock=clockNow(),t=new Date().getTime()/1000,zones=new Map(chips.map(z=>{const c=boardClock(t,zoneOffset(z.rows,t));z.out.textContent=c.clock.slice(0,5);return[z.id,c]})),at=m=>(m.dataset.zone?zones.get(m.dataset.zone):clock).minutes,c=board.querySelector("[data-clock]");c.textContent=clock.clock+(board.dataset.offsetLabel!==undefined?" "+utcOffsetLabel(clock.off):"");for(const m of board.querySelectorAll("[data-at]")){const left=minutesUntil(at(m),hm(m.dataset.at));const i=Math.max(0,WORLD_LANGS.indexOf(board.closest?.('[lang]')?.lang));m.textContent=left===0?WORLD_TEXT.now[i]:WORLD_TEXT.in[i].replace("{0}",left)}for(const g of board.querySelectorAll(".ui-board-gauge")){const cells=Number(g.dataset.cells),[filled,pct]=gaugeState(Math.floor(at(g)),hm(g.dataset.from),hm(g.dataset.to),cells);g.querySelector(".ui-board-cells").textContent=gaugeCells(filled,cells,g.dataset.done,g.dataset.todo);g.querySelector(".ui-board-pct").textContent=pct+"%"}};
 const run=board.querySelector(".ui-board-run");if(run)run.style.animationDuration=boardSeconds(Number(board.dataset.chars))+"s";   // also where a strict CSP drops the style attribute
 tick();const timer=setInterval(()=>{if(board.isConnected)tick();else clearInterval(timer)},1000);return{tick,clockNow}}
 // ☰ ⋯ ⭐ ⚙️ and the emoji of your own: the menus show once the script runs, one open at a time; the returned shut() closes them all.
@@ -2130,7 +2163,15 @@ function bindMenus(el){const menus=[...el.querySelectorAll('.ui-world-menu')];fo
 // A small cache in this browser, one key per world: [load, save(part)]. Nothing else is written.
 const stored=slot=>{const load=()=>{try{const v=JSON.parse(localStorage.getItem(slot));return v&&typeof v==='object'?v:{}}catch(e){return{}}};return[load,part=>{try{localStorage.setItem(slot,JSON.stringify({...load(),...part}))}catch(e){}}]};
 // 🌐: aria-labels and tooltips in one of eleven languages (data-t names a catalogue word, data-labels carries a tool's own words).
-const sayIn=(root,lang)=>{const i=WORLD_LANGS.indexOf(lang);for(const n of root.querySelectorAll('[data-t],[data-labels]')){const m=n.dataset.labels&&JSON.parse(n.dataset.labels),w=m?m[lang]||m.en||m.ja:WORLD_TEXT[n.dataset.t][i];n.setAttribute('aria-label',w);n.setAttribute('title',w)}};
+const sayIn=(root,lang,mine=()=>true)=>{const i=WORLD_LANGS.indexOf(lang);for(const n of root.querySelectorAll('[data-texts]'))if(mine(n)){const m=JSON.parse(n.dataset.texts);n.textContent=m[lang]||m.en||m.ja}   // a text in its own languages
+ for(const n of root.querySelectorAll('[data-t],[data-labels]')){if(!mine(n))continue;const m=n.dataset.labels&&JSON.parse(n.dataset.labels),w=m?m[lang]||m.en||m.ja:WORLD_TEXT[n.dataset.t]?.[i];if(w){n.setAttribute('aria-label',w);n.setAttribute('title',w)}}
+ // then every text and label that is a catalogue word in any language, alone or with an emoji or an arrow around it ("⭐ お気に入り"),
+ // turns into this one: the scenes' buttons and the site's parts; the scenes' names, people and things stay as they are written
+ const said=t=>{const s=t.trim(),[,lead,core,trail]=s.match(/^([^\p{L}\p{N}]*)(.*?)([^\p{L}\p{N}]*)$/u),key=WORLD_WORD.get(s)??WORLD_WORD.get(core);if(!key)return null;
+  const w=WORLD_TEXT[key][i]??WORLD_TEXT[key][1];return t.replace(s,()=>WORLD_WORD.has(s)?w:lead+w+trail)},keep=n=>!mine(n)||n.closest('script,style,pre,code,textarea,[contenteditable],[translate=no]');
+ const walk=document.createTreeWalker(root,4);for(let t;(t=walk.nextNode());){if(!t.parentElement||keep(t.parentElement))continue;const w=said(t.nodeValue);if(w!==null&&w!==t.nodeValue)t.nodeValue=w}
+ for(const n of root.querySelectorAll('[aria-label],[title],[placeholder]')){if(n.dataset.t||n.dataset.labels||keep(n))continue;for(const a of['aria-label','title','placeholder']){const v=n.getAttribute(a);if(v===null)continue;const w=said(v);if(w!==null&&w!==v)n.setAttribute(a,w)}}};
+const WORLD_WORD=new Map();for(const[key,row]of Object.entries(WORLD_TEXT))if(!row[0].includes('{0}'))for(const w of row)if(!WORLD_WORD.has(w))WORLD_WORD.set(w,key);
 """
 WORLD_JS = WORLD_MOTION_JS + WORLD_SHARED_JS + SHELL_JS + DIAL_JS + r"""/* web-ui world: one page, a camera. Shots: scroll marks light up (data-lit). Map: drag, wheel and pinch move a camera; spots open a sheet. No page changes. */
 const clamp=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
@@ -2191,7 +2232,9 @@ const save=patch=>{if(unified&&Array.isArray(patch.fav)){
 // 🌐: aria-labels and tooltips in one of eleven languages (data-t names a catalogue word, data-labels carries a tool's own words).
 let lang='ja';const sel=el.querySelector('[data-lang]'),
  say=root=>sayIn(root,lang),
- setLang=to=>{if(!WORLD_LANGS.includes(to))return;lang=to;el.lang=to;if(sel)sel.value=to;say(el)};
+ setLang=to=>{if(!WORLD_LANGS.includes(to))return;lang=to;el.lang=to;if(sel)sel.value=to;say(el);
+  sayIn(document.body,to,n=>!n.closest('[data-ui-world]')?.querySelector('[data-lang]'));   // the page around the scenes (the switcher, the way back, the site's foot) and a scene without a 🌐 of its own
+  for(const f of document.querySelectorAll('.ui-door-foot')){f.lang=to;for(const d of f.querySelectorAll('[data-ui-door]')){d.dataset.lang=to;d.dataset.here=WORLD_TEXT.current[WORLD_LANGS.indexOf(to)];d.dispatchEvent(new CustomEvent('ui-lang'))}}};
 sel?.addEventListener('change',()=>{setLang(sel.value);save({lang})});
 // 🎒 items collected from spots (kept in localStorage beside fav, lang, names, alpha).
 const spotRows=()=>[...el.querySelectorAll('.ui-world-spots a')],bagList=el.querySelector('.ui-world-bag'),bag=new Set(),takeBtns=()=>[...el.querySelectorAll('.ui-sheet-item .ui-world-take')],

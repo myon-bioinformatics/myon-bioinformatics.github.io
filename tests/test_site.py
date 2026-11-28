@@ -479,9 +479,12 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_adds_what_it_l
             assert '<div class="ui-chrome ' not in page and '</div><button type="button" class="ui-gaze"' in page[:page.index('<nav class="ui-world-tools">')], name
             assert page.count(module[1]) == 1 and f'<option value="{prefix}index.html#tools">🏠 Tools</option>' in page, name
             continue
-        assert page[body.end():].startswith('<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="ja">'), name
+        lang = 'ja' if '<html lang="ja"' in page else 'en'                          # 🌐 the chrome starts in the page's own language
+        assert page[body.end():].startswith(f'<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="{lang}" data-words="'), name
+        assert all(card['words'].keys() <= set(json.loads(html.unescape(re.search(r'data-words="([^"]*)"', page)[1]))) for card in PAGES._front_module().PORTAL if 'words' in card), name
         assert page.count('<div class="ui-chrome') == 1 and '<span class="ui-board-clock" data-clock>--:--:--</span>' in page, name
-        assert page.count(module[0]) == 1 and page.count(module[1]) == 1 and page.count('<div class="ui-door-foot">') == 1, name
+        held = lambda text: re.sub(r'CHROME_TEXT=\{.*?\]\};\n', 'CHROME_TEXT=…;\n', text, flags=re.S)  # 🌐 a page carries the body words it holds
+        assert held(page).count(held(module[0])) == 1 and page.count(module[1]) == 1 and page.count('<div class="ui-door-foot">') == 1, name
         foot = re.search(r'<p class="ui-door-extras"><a href="https://twitter\.com/myonitbusiness"[^>]* target="_blank" rel="noopener noreferrer">🐦</a>'
                          r'<span class="ui-door-size"[^>]*>📦 (\d+) KB</span></p></div>', page)
         assert foot and abs(int(foot[1]) - len(page.encode('utf-8')) / 1024) <= 1, name                     # 🐦 X and 📦 this page's own size
@@ -560,13 +563,16 @@ def test_a_page_asks_the_one_header_to_show_its_rows_and_its_own_menus_are_hidde
 def test_html_import_csp_names_the_face_chrome_and_door_modules_and_nothing_else():
     import pysaiyanweboo as ui
     html = (SITE / PAGES.HTML_IMPORT_PAGE).read_text(encoding='utf-8')
-    chrome, doors = ui.module_csp_hash(ui.component_parts('chrome')['js']), ui.module_csp_hash(PAGES.tools_door(ui)['js'])
+    # 🌐 the chrome's module keeps only the body words a page holds (add_part), so its hash is the page's own module's
+    chrome = next(ui.module_csp_hash(body) for body in re.findall(r'<script type="module">(.*?)</script>', html, re.S) if 'export function bindChrome' in body)
+    doors = ui.module_csp_hash(PAGES.tools_door(ui)['js'])
     face = ui.module_csp_hash(ui.component_parts('gaze-avatar')['js'])                    # 🫧 the header's round face is a module too
     assert f"script-src 'self' {face} {chrome} {doors}; style-src 'self' 'unsafe-inline';" in html
     assert html.count("'sha256-") == 3 and "'unsafe-inline'; img-src" in html and "connect-src 'none'" in html
     strict = ('<!doctype html><html><head><meta\n http-equiv="Content-Security-Policy"\n content="default-src \'none\'; script-src \'self\'; '
               'style-src \'self\'; img-src \'self\' data:"\n/><title>s</title></head><body data-ui-theme="green"><main><h1>s</h1></main></body></html>')
     built = PAGES.add_back_nav(strict, 'tools/image-studio/index.html')        # Ironmate's studios: neither inline scripts nor inline styles
+    chrome = next(ui.module_csp_hash(body) for body in re.findall(r'<script type="module">(.*?)</script>', built, re.S) if 'export function bindChrome' in body)
     sheets = re.findall(r'<style>(.*?)</style>', built, re.S)
     assert sheets[0].startswith(ui.component_parts('gaze-avatar')['css']) and len(sheets) == 3
     assert '<body data-ui-theme="modern">' in built and 'data-ui-theme="green"' not in built           # 🎨 one look: the page turns modern,
@@ -1788,7 +1794,7 @@ def test_the_front_page_carries_the_shared_header_side_and_foot():
     import re
     page = (SITE / 'index.html').read_text(encoding='utf-8')
     body = re.search(r'<body[^>]*>', page)
-    assert page[body.end():].startswith('<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="ja">')
+    assert page[body.end():].startswith('<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="en" data-words="')   # 🌐 an English page: its chrome starts in English
     assert page.count('<div class="ui-chrome') == 1 and page.count('<div class="ui-door-foot">') == 1 and 'class="ui-world-home"' not in page
     board = page[body.end():page.index('<nav class="ui-world-tools">')]
     assert '>MYON<' in board and 'Bioinformatics → Security/Backend engineer.' in board and 'Practical CLI and browser tools in Python' in board
