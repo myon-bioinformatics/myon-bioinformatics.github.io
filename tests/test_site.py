@@ -593,18 +593,26 @@ def test_door_to_door_in_chromium_with_a_gif():
     target['door-to-door-pulldown'].write_bytes(gif)
 
 
-def test_every_tool_page_has_the_same_back_link_first_in_main():
-    import re
-    for page in (SITE / PAGES.SHELL_PAGE,):
-        html = page.read_text(encoding="utf-8")
-        main = re.search(r"<main[^>]*>", html)
-        assert main, page
-        after = html[main.end():]
-        prefix = '../' * page.relative_to(SITE).as_posix().count('/')
-        assert after.startswith('<nav class="ui-back" aria-label="関連リンク" data-ui-back data-testid="portfolio-back">'
-                                f'<p class="ui-links"><a href="{prefix}index.html#tools">← 🧰 Tools</a>'), page
-        assert html.count('data-ui-back') == 1, page
-        assert "Back to portfolio" not in html, page
+def test_tools_shell_has_one_normalized_return_link():
+    from html.parser import HTMLParser
+    from urllib.parse import urljoin
+
+    class Anchors(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.targets = []
+
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if tag == "a" and "href" in attrs:
+                self.targets.append(urljoin("https://example.test/tools/index.html", attrs["href"]))
+
+    page = (SITE / PAGES.SHELL_PAGE).read_text(encoding="utf-8")
+    parser = Anchors()
+    parser.feed(page)
+    assert parser.targets.count("https://example.test/index.html#tools") == 1
+    assert 'data-testid="portfolio-back"' not in page
+    assert '<a class="ui-world-home" href="../index.html#tools"' in page
 
 
 # ═══ 🐍 front page (scripts/front_page.py) ═══════════════════════════════════════════════════════════════════════
@@ -989,9 +997,9 @@ def test_home_screen_in_chromium_with_a_gif():
             assert probe.evaluate(load, icons) == ["32x32", "170x170"]
             page.goto(base + "tools/")
             frames.append((page.screenshot(), "🧰 " + page.title() + " · no manifest · icons 32x32 170x170"))
-            page.get_by_test_id("portfolio-back").get_by_role("link").click()
+            page.locator(".ui-chrome a.ui-world-home").click()
             page.wait_for_url(base + "index.html#tools")
-            frames.append((page.screenshot(), "↩️ ← 🧰 Tools → index.html#tools"))
+            frames.append((page.screenshot(), "↩️ 🏠 → index.html#tools"))
 
             recorder = browser.new_page()
             recorder.set_content(ui.gif_recorder_document())
@@ -1786,6 +1794,21 @@ def test_portfolio_worlds_share_one_engine_and_standalone_stays_self_contained()
     standalone = world.world_document(world.example_data('school'))
     assert world.world_base_css() in standalone and ui.module_script(world.WORLD_JS) in standalone
     assert 'worlds/' not in standalone
+
+
+def test_each_panel_brings_the_rows_it_declares_to_the_screens_header():
+    """⚙️ ⋯ A panel that declares rows (PySaiyanWeBoo chrome_rows_script; Ironmate's studios: 📋 the shelf, 💻 ⇄ 📱) gets them in the
+    screen's one header while it shows, a panel that declares none gets none, and the screen tells the header which panel shows."""
+    import pysaiyanweboo as ui
+    shelf = ui.chrome_rows_script({'screen': [{'label': '📋 シェルフ', 'key': 'shelf'}], 'replaces': '#studio-head'})
+    page = lambda body: f'<!doctype html><html><head><title>T</title></head><body>{body}</body></html>'.encode()
+    shell = PAGES.render_shell(ui, {'tools/app/index.html': (page('<header id="studio-head">🏭</header>' + shelf), 'myon-bioinformatics/App', True),
+                                    'tools/a/index.html': (page('<p>a</p>'), None, False)}).decode()
+    assert '<template data-chrome-view="app" data-replaces="#studio-head">' in shell and 'data-chrome-view="a"' not in shell
+    assert shell.index('<template data-chrome-view="app"') < shell.index('<section id="app"')               # the header's, not the panel's
+    assert "document.dispatchEvent(new CustomEvent('ui-chrome-view',{detail:{name:panel.id,root:frame?frame.contentDocument:panel}}))" in shell
+    front = PAGES.render_front()['index.html'].decode('utf-8')                                              # 🧾 the front page declares its own
+    assert ui.chrome_rows_of(_front().document())['settings'][0]['key'] == 'mode' and front.count('data-chrome-choice="mode"') >= 1
 
 
 def test_the_one_screen_keeps_one_owner_per_id():
