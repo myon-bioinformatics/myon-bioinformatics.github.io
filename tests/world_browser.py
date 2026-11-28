@@ -1784,6 +1784,75 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         page.wait_for_selector(".ui-rpg-card", state="hidden")
         self.assertEqual(self.errors, [])
 
+    def test_guide_conditions_in_a_complete_investigation(self):
+        guide = json.loads((ROOT / "docs/osaka-guide.json").read_text(encoding="utf-8"))
+        nodes = {n["id"]: n for n in guide["nodes"]}
+        cases = [n for n in nodes.values() if n.get("section") == "現場一覧"]
+        hat_guard, = [nodes[e["target"]] for e in guide["edges"]
+                      if e["source"] == "task/chest-hat" and e["kind"] == "guarded_by"]
+        data = CITIES["detective"]
+        page = self.open()
+        def visit(uid):
+            page.locator(f'[data-detective-id="{uid}"]').dispatch_event("click")
+
+        def close():
+            page.locator(".ui-rpg-card .ui-rpg-close").click()
+
+        visit("npc-ayaka")
+        close()
+        self.assertIn("0/", page.text_content("[data-detective-qcount]"))
+        visit("npc-heita")
+        close()
+        self.assertIn("1/", page.text_content("[data-detective-qcount]"))
+        for item in data["nodes"]:
+            if item["kind"] == "drop":
+                visit(item["id"])
+        page.click("[data-detective-journal-btn]")
+        page.get_by_role("button", name="🕵️‍♂️ 装備・どうぐ").click()
+        self.assertTrue(page.get_by_role("button", name="現場専用").is_disabled())
+        for item in data["nodes"]:
+            if item["kind"] == "drop" and item["usage"] == "equipment":
+                row = page.locator(".ui-rpg-card .ui-rpg-row").filter(has_text=item["item_label"])
+                self.assertEqual(row.count(), 1)
+                self.assertEqual(row.locator("button").count(), 0)
+        close()
+        for index, case in enumerate(cases):
+            visit("chest-hat")
+            opened = page.locator('[data-detective-id="chest-hat"]').get_attribute("data-detective-opened")
+            self.assertEqual(opened == "true", index >= hat_guard["minimum"])
+            visit("stand-umeda")
+            sid = case["id"].removeprefix("task/")
+            shadow = page.locator(f'[data-shadow-id="{sid}"]')
+            shadow.dispatch_event("click")
+            inspect = page.get_by_role("button", name="🔍 現場検証", exact=False)
+            initial_rank = page.text_content("[data-detective-hero]")
+            stamina = lambda: int(page.text_content("[data-detective-stamina]").split()[1].split("/")[0])
+            initial_stamina = stamina()
+            if index == 0:
+                page.locator(".ui-rpg-card").get_by_role("button", name="🧪 鑑識試験紙", exact=False).click()
+            used = 0
+            while shadow.get_attribute("data-cleared") != "true" and used < initial_stamina:
+                inspect.click()
+                used += next(t["stamina"] for t in data["tactics"] if t["kind"] == "inspect")
+            self.assertEqual(shadow.get_attribute("data-cleared"), "true", sid)
+            if initial_rank == page.text_content("[data-detective-hero]"):
+                self.assertEqual(stamina(), initial_stamina-used, sid)
+        self.assertIn(f"{len(cases)}/{len(cases)}", page.text_content("[data-detective-clues]"))
+        for item in data["nodes"]:
+            if item["kind"] == "chest":
+                visit(item["id"])
+        visit(next(n["id"] for n in data["nodes"] if n.get("quiz")))
+        page.get_by_role("button", name="🎓 推理クイズに挑戦").click()
+        for quiz in data["quizzes"]:
+            page.get_by_role("button", name=f'{quiz["correct"]+1}. {quiz["choices"][quiz["correct"]]}').click()
+            page.get_by_role("button", name="つぎの問題 ▶").click()
+        close()
+        page.click("[data-detective-journal-btn]")
+        self.assertEqual(page.locator(".ui-rpg-card").inner_text().count("✅"), len(data["quests"]))
+        page.get_by_role("button", name="🏅 探偵バッジ").click()
+        self.assertEqual(page.locator(".ui-rpg-card").inner_text().count("獲得済み"), len(data["badges"]))
+        self.assertEqual(self.errors, [])
+
     def test_ground_drop_and_chest_and_bag_sync(self):
         page = self.open(floor="osaka")
         # Collect drop-takoyaki via direct node click
@@ -1791,7 +1860,7 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         page.wait_for_timeout(300)
         self.assertEqual(page.get_attribute('.ui-detective-node[data-detective-id="drop-takoyaki"]', "data-detective-collected"), "true")
         self.assertIn("🪙 35", page.text_content("[data-detective-medals]"))
-        # Open 🎁 スーパートルクキックシューズ chest via direct click on the stage node
+        # Open 🎁 浪速の調査靴 chest via direct click on the stage node
         page.click('.ui-detective-node[data-detective-id="chest-shoes"]')
         page.wait_for_timeout(300)
         self.assertEqual(page.get_attribute('.ui-detective-node[data-detective-id="chest-shoes"]', "data-detective-opened"), "true")
@@ -1801,7 +1870,7 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         page.click('.ui-world-menu[data-menu="bag"] > summary')
         bag_text = page.text_content(".ui-world-bag")
         self.assertIn("アツアツたこ焼き", bag_text)
-        self.assertIn("スーパートルクキックシューズ", bag_text)
+        self.assertIn("浪速の調査靴", bag_text)
         self.assertEqual(self.errors, [])
 
     def test_solving_shadows_auto_unravel_and_tactical_modal(self):
@@ -1844,7 +1913,7 @@ class OsakaDetectiveBrowserTests(unittest.TestCase):
         page.wait_for_selector(".ui-rpg-card:has-text('船場どうぐ屋')", state="visible")
         page.locator('.ui-rpg-card button:has-text("購入")').first.click()
         page.wait_for_timeout(300)
-        self.assertIn("🪙 20", page.text_content("[data-detective-medals]"))
+        self.assertIn("🪙 10", page.text_content("[data-detective-medals]"))
         page.locator('.ui-rpg-card button:has-text("会話にもどる")').click()
         page.wait_for_selector(".ui-rpg-card:has-text('船場情報屋センバ')", state="visible")
         page.locator(".ui-rpg-card .ui-rpg-close").click()

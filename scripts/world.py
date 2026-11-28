@@ -1272,9 +1272,19 @@ def detective_nearest_clue(px: float, py: float, shadows: list[dict[str, Any]], 
             "tiles": round(dist / max(1, tile))}
 
 
+def detective_item_effect(item):
+    """Player-facing effects derived from the same values used in the encounter."""
+    equipment = item["usage"] == "equipment"
+    labels = {"hp": "最大HP" if equipment else "HP回復",
+              "stamina": "最大スタミナ" if equipment else "スタミナ回復",
+              "logic": "論理力" if equipment else "トリック解明",
+              "pokerface": "ポーカーフェイス"}
+    return "、".join(f"{label}+{item[key]}" for key, label in labels.items() if item[key])
+
+
 def detective_validate(detective_in: Any, *, floors: list[dict[str, Any]]) -> dict[str, Any]:
     """Checked copy of optional ``detective`` investigation & gamification spec."""
-    allowed = {"floor", "seed", "boss_cell", "start_cell", "hero", "nodes", "tactics", "shop", "quests", "badges", "quizzes"}
+    allowed = {"walk_cost", "floor", "seed", "boss_cell", "start_cell", "hero", "nodes", "tactics", "shop", "quests", "badges", "quizzes"}
     if not isinstance(detective_in, dict) or set(detective_in) - allowed:
         raise ValueError("detective has floor, seed, boss_cell, hero, nodes, tactics, shop, quests, badges and quizzes")
     floor_id = detective_in.get("floor")
@@ -1310,6 +1320,9 @@ def detective_validate(detective_in: Any, *, floors: list[dict[str, Any]]) -> di
     if not isinstance(nodes_in, list) or not 1 <= len(nodes_in) <= 48:
         raise ValueError("detective nodes lists 1..48 entries")
     blocked = world_blocked(fl["width"], fl["height"], tile, fl.get("props", []))
+    reachable = world_reach(blocked, start_cell)
+    if any((p["x"] // tile, p["y"] // tile) not in reachable for p in shadow_props):
+        raise ValueError("unreachable detective shadow")
     occupied_cells = {(p["x"] // tile, p["y"] // tile) for p in fl.get("props", []) if p["kind"] == "shadow"}
     occupied_cells |= {(s["x"] // tile, s["y"] // tile) for s in fl.get("spots", [])}
     nodes, seen_ids, seen_cells = [], set(), set()
@@ -1323,7 +1336,7 @@ def detective_validate(detective_in: Any, *, floors: list[dict[str, Any]]) -> di
         tx, ty = _bounded_int(nd.get("tx"), "node tx", 0, cols - 1), _bounded_int(nd.get("ty"), "node ty", 0, rows - 1)
         if (tx, ty) in occupied_cells or (tx, ty) in seen_cells:
             raise ValueError(f"detective node {nid!r} collides with another node, spot or shadow at {(tx, ty)}")
-        if blocked[ty][tx] == "1":
+        if (tx, ty) not in reachable:
             raise ValueError(f"detective node {nid!r} at {(tx, ty)} is blocked or unreachable")
         seen_cells.add((tx, ty))
         base_node = {
@@ -1352,7 +1365,13 @@ def detective_validate(detective_in: Any, *, floors: list[dict[str, Any]]) -> di
             itype = nd.get("item_type")
             if itype not in DETECTIVE_ITEM_TYPES:
                 raise ValueError(f"detective item_type is one of {', '.join(DETECTIVE_ITEM_TYPES)}")
+            usage = nd.get("usage", "equipment" if nkind == "chest" else "consumable")
+            if usage not in {"equipment", "consumable"} or (nkind == "chest" and usage != "equipment"):
+                raise ValueError("invalid detective item usage")
+            if nd.get("requires_clues", 0) and nkind != "chest":
+                raise ValueError("only chests have clue locks")
             base_node.update({
+                "usage": usage,
                 "item_emoji": _world_emoji(nd.get("item_emoji", nd.get("emoji"))),
                 "item_label": _world_text(nd.get("item_label", nd.get("label")), "item label", 40),
                 "desc": _world_text(nd.get("desc"), "item desc", 160),
@@ -1366,6 +1385,10 @@ def detective_validate(detective_in: Any, *, floors: list[dict[str, Any]]) -> di
                 **({"opened_emoji": _world_emoji(nd.get("opened_emoji", "📭"))} if nkind == "chest" else {}),
                 **({"requires_clues": _bounded_int(nd.get("requires_clues", 0), "requires_clues", 0, 99)} if "requires_clues" in nd else {}),
             })
+        if "usage" in base_node:
+            base_node["effect"] = detective_item_effect(base_node)
+        if base_node.get("requires_clues", 0) > len(shadow_props):
+            raise ValueError(f"unreachable clue lock: {nid}")
         nodes.append(base_node)
     tactics_in = detective_in.get("tactics", [])
     if not isinstance(tactics_in, list) or not 1 <= len(tactics_in) <= 8:
@@ -1392,9 +1415,12 @@ def detective_validate(detective_in: Any, *, floors: list[dict[str, Any]]) -> di
         raise ValueError("detective shop lists up to 16 entries")
     shop, seen_s = [], set()
     for s in shop_in:
-        if not isinstance(s, dict) or set(s) - {"id", "emoji", "label", "cost", "item_type", "hp", "stamina", "logic", "pokerface", "desc"}:
+        if not isinstance(s, dict) or set(s) - {"id", "emoji", "label", "cost", "item_type", "usage", "effect", "hp", "stamina", "logic", "pokerface", "desc"}:
             raise ValueError("detective shop item has id, emoji, label, cost, item_type, hp, stamina, logic, pokerface and desc")
+        if s.get("usage", "consumable") != "consumable" or s.get("item_type") not in ("heal", "stamina", "logic"):
+            raise ValueError("invalid shop consumable")
         shop.append({
+            "usage": "consumable",
             "id": _world_id(s.get("id"), "shop item id", seen_s),
             "emoji": _world_emoji(s.get("emoji")),
             "label": _world_text(s.get("label"), "shop item label", 40),
@@ -1406,17 +1432,22 @@ def detective_validate(detective_in: Any, *, floors: list[dict[str, Any]]) -> di
             "pokerface": _bounded_int(s.get("pokerface", 0), "shop pokerface", 0, 100),
             "desc": _world_text(s.get("desc"), "shop desc", 120),
         })
+        shop[-1]["effect"] = detective_item_effect(shop[-1])
     quests_in = detective_in.get("quests", [])
     if not isinstance(quests_in, list) or len(quests_in) > 24:
         raise ValueError("detective quests lists up to 24 entries")
     quests, seen_q = [], set()
     for q in quests_in:
-        if not isinstance(q, dict) or set(q) - {"id", "title", "desc", "kind", "count", "reward_exp", "reward_medals"}:
+        if not isinstance(q, dict) or set(q) - {"id", "title", "desc", "kind", "target", "count", "reward_exp", "reward_medals"}:
             raise ValueError("detective quest has id, title, desc, kind, count, reward_exp and reward_medals")
         qkind = q.get("kind")
         if qkind not in DETECTIVE_QUEST_KINDS:
             raise ValueError(f"detective quest kind is one of {', '.join(DETECTIVE_QUEST_KINDS)}")
+        if "target" in q and (qkind != "talk" or not any(
+                n["kind"] == "npc" and n["id"] == q["target"] for n in nodes)):
+            raise ValueError("talk target must identify a detective NPC")
         quests.append({
+            **({"target": q["target"]} if "target" in q else {}),
             "id": _world_id(q.get("id"), "quest id", seen_q),
             "title": _world_text(q.get("title"), "quest title", 48),
             "desc": _world_text(q.get("desc"), "quest desc", 160),
@@ -1430,9 +1461,13 @@ def detective_validate(detective_in: Any, *, floors: list[dict[str, Any]]) -> di
         raise ValueError("detective badges lists up to 24 entries")
     badges, seen_b = [], set()
     for b in badges_in:
-        if not isinstance(b, dict) or set(b) - {"id", "emoji", "label", "desc"}:
+        if not isinstance(b, dict) or set(b) - {"id", "emoji", "label", "desc", "kind", "count"}:
             raise ValueError("detective badge has id, emoji, label and desc")
+        if ("kind" in b) != ("count" in b):
+            raise ValueError("badge condition requires kind and count")
         badges.append({
+            **({"kind": _world_text(b["kind"], "badge kind", 32),
+                "count": _bounded_int(b["count"], "badge count", 1, 99)} if "kind" in b else {}),
             "id": _world_id(b.get("id"), "badge id", seen_b),
             "emoji": _world_emoji(b.get("emoji")),
             "label": _world_text(b.get("label"), "badge label", 40),
@@ -1455,7 +1490,8 @@ def detective_validate(detective_in: Any, *, floors: list[dict[str, Any]]) -> di
             "explanation": _world_text(qz.get("explanation"), "quiz explanation", 240),
             **({"repo": _world_text(qz["repo"], "quiz repo", 60)} if "repo" in qz else {}),
         })
-    return {"floor": floor_id, "seed": seed, "boss_cell": list(boss_cell), "start_cell": list(start_cell),
+    walk_cost = _bounded_int(detective_in.get("walk_cost", 6), "walk_cost", 1, 99)
+    return {"walk_cost": walk_cost, "floor": floor_id, "seed": seed, "boss_cell": list(boss_cell), "start_cell": list(start_cell),
             "hero": hero, "nodes": nodes, "tactics": tactics, "shop": shop,
             "quests": quests, "badges": badges, "quizzes": quizzes}
 
@@ -4915,24 +4951,25 @@ export function bindWorldDetective(el){
  };
 
  const questProgress=q=>{
-  if(q.kind==="talk")return state.talked.size;
+  if(q.kind==="talk")return q.target?Number(state.talked.has(q.target)):state.talked.size;
   if(q.kind==="clue")return state.solvedShadows.size;
   if(q.kind==="boss_clue"){
-   const bossProf=[...shadowMap.values()].find(s=>s.prof.boss)?.prof;
-   return bossProf&&state.solvedShadows.has(bossProf.id)?1:0;
+   const boss=[...shadowMap.values()].find(s=>s.prof.boss);
+   return boss?Number(state.solvedShadows.has(boss.prof.id)):null;
   }
   if(q.kind==="drop")return state.looted.size;
   if(q.kind==="chest")return state.openedChests.size;
   if(q.kind==="refill")return state.standUses;
   if(q.kind==="quiz")return state.quizzesSolved.size;
-  return 0;
+  if(q.kind==="garden")return detectiveGarden(detective.seed,state.gardenActions).cells.length;
+  return null;
  };
 
  const checkQuests=()=>{
   for(const q of detective.quests){
    if(state.completedQuests.has(q.id))continue;
    const p=questProgress(q);
-   if(p>=q.count){
+   if(p!==null&&p>=q.count){
     state.completedQuests.add(q.id);gainExp(q.reward_exp);state.medals+=q.reward_medals;
     showToast(`📜 事件解決:【${q.title}】達成！ (+${q.reward_exp}EXP / +${q.reward_medals}🪙)`);
    }
@@ -4942,15 +4979,10 @@ export function bindWorldDetective(el){
    state.badges.add(id);const b=detective.badges.find(bd=>bd.id===id);
    if(b)showToast(`🏅 探偵バッジ獲得:【${b.emoji} ${b.label}】！`);
   };
-  checkBadge("b-first-clue",state.solvedShadows.size>=1);
-  checkBadge("b-clue-five",state.solvedShadows.size>=5);
-  const bossProf=[...shadowMap.values()].find(s=>s.prof.boss)?.prof;
-  checkBadge("b-boss-down",bossProf&&state.solvedShadows.has(bossProf.id));
-  checkBadge("b-geared-up",state.equipment.size>=4);
-  checkBadge("b-stand-master",state.standUses>=3);
-  checkBadge("b-quiz-scholar",state.quizzesSolved.size>=3);
-  const curG=detectiveGarden(detective.seed,state.gardenActions);
-  checkBadge("b-green-osaka",curG.cells.length>=8);
+  for(const badge of detective.badges){
+   const progress=questProgress(badge);
+   checkBadge(badge.id,progress!==null&&progress>=badge.count);
+  }
   renderHud();
  };
 
@@ -5004,7 +5036,7 @@ export function bindWorldDetective(el){
   const prof=item.prof;
   let foeTrick=prof.trick;
   let st=stats(),guarding=false;
-  let staminaSpent=0;
+
 
   const foeBar=detectiveEl("i",{style:"width:100%"});
   const trickMeter=detectiveEl("div",{className:"ui-rpg-meter"},foeBar);
@@ -5027,7 +5059,7 @@ export function bindWorldDetective(el){
    if(state.stamina<tactic.stamina){
     logEl.textContent="スタミナ⚡が足りへん！給水・茶房スタンドかたこ焼きで回復するんや！";return;
    }
-   state.stamina-=tactic.stamina;staminaSpent+=tactic.stamina;
+   state.stamina-=tactic.stamina;
    guarding=tactic.kind==="pokerface";
    if(tactic.heal_hp)state.hp=Math.min(st.maxHp,state.hp+tactic.heal_hp);
 
@@ -5040,23 +5072,19 @@ export function bindWorldDetective(el){
    syncVitals();
 
    if(foeTrick<=0){
-    setTimeout(()=>{
-     solveShadow(prof,staminaSpent);
-     showToast(`✨【${prof.name}】のトリックを解明！街に${prof.bloom}が咲いた！ (+${prof.exp}EXP / +${prof.medals}🪙)`);
-     closeModal();
-    },550);
+    solveShadow(prof);
+    showToast(`✨【${prof.name}】のトリックを解明！街に${prof.bloom}が咲いた！ (+${prof.exp}EXP / +${prof.medals}🪙)`);
+    closeModal();
     return;
    }
 
-   setTimeout(()=>{
-    const foeRoll=nextRoll();
-    const hit=detectiveContradictionHit(prof.confusion,st.pokerface,foeRoll,{guarding});
-    state.hp=Math.max(1,state.hp-hit.damage);
-    orbsWrap.replaceChildren(renderOrbs(hit.effect));
-    const guardTxt=guarding?" (ポーカーフェイスで半減！)":"";
-    logEl.textContent=`👤 影の幻惑が襲いかかる！ ${hit.damage} のメンタルダメージを受けた！${guardTxt}`;
-    syncVitals();
-   },650);
+   const foeRoll=nextRoll();
+   const hit=detectiveContradictionHit(prof.confusion,st.pokerface,foeRoll,{guarding});
+   state.hp=Math.max(1,state.hp-hit.damage);
+   orbsWrap.replaceChildren(renderOrbs(hit.effect));
+   const guardTxt=guarding?" (ポーカーフェイスで半減！)":"";
+   logEl.textContent+=` 👤 影の幻惑が襲いかかる！ ${hit.damage} のメンタルダメージを受けた！${guardTxt}`;
+   syncVitals();
   };
 
   const actionBtnsWrap=detectiveEl("div",{className:"ui-rpg-actions"});
@@ -5084,11 +5112,9 @@ export function bindWorldDetective(el){
         logEl.textContent=`${used.emoji}【${used.label}】を使用！影のトリックを ${used.logic} 解明した！`;
         syncVitals();
         if(foeTrick<=0){
-         setTimeout(()=>{
-          solveShadow(prof,staminaSpent);
-          showToast(`✨【${prof.name}】のトリックを解明！街に${prof.bloom}が咲いた！ (+${prof.exp}EXP / +${prof.medals}🪙)`);
-          closeModal();
-         },550);
+         solveShadow(prof);
+         showToast(`✨【${prof.name}】のトリックを解明！街に${prof.bloom}が咲いた！ (+${prof.exp}EXP / +${prof.medals}🪙)`);
+         closeModal();
          return;
         }
        }else{
@@ -5157,7 +5183,7 @@ export function bindWorldDetective(el){
     detectiveEl("div",{className:"ui-rpg-row-top"},
      detectiveEl("b",{textContent:`${sh.emoji} ${sh.label}`}),
      detectiveEl("span",{textContent:`🪙 ${sh.cost}`})),
-    detectiveEl("p",{className:"ui-rpg-subnote",textContent:sh.desc}),
+    detectiveEl("p",{className:"ui-rpg-subnote",textContent:sh.desc+" "+sh.effect}),
     detectiveEl("button",{
      type:"button",className:"ui-rpg-btn",
      textContent:`購入 (🪙 ${sh.cost})`,
@@ -5229,8 +5255,12 @@ export function bindWorldDetective(el){
    const nodeEl=curFloorEl()?.querySelector(`.ui-detective-node[data-detective-id="${CSS.escape(nodeId)}"]`);
    if(nodeEl)nodeEl.setAttribute("data-detective-collected","true");
    const itemId=`${wid}-detective-${nodeId}`;syncBagTake(itemId);
-   const key="drop:"+nodeId,cur=state.consumables.get(key)||{key,itemId,emoji:node.item_emoji,label:node.item_label,item_type:node.item_type,hp:node.hp,stamina:node.stamina,logic:node.logic,count:0};
-   cur.count+=1;state.consumables.set(key,cur);
+   if(node.usage==="equipment"){
+    state.equipment.add(nodeId);
+   }else{
+    const key="drop:"+nodeId,cur=state.consumables.get(key)||{key,itemId,emoji:node.item_emoji,label:node.item_label,item_type:node.item_type,hp:node.hp,stamina:node.stamina,logic:node.logic,count:0};
+    cur.count+=1;state.consumables.set(key,cur);
+   }
    gainExp(node.exp);state.medals+=node.medals;
    showToast(`✨ ${node.item_emoji} ${node.item_label}を拾った！ (+${node.exp}EXP / +${node.medals}🪙)`);
    checkQuests();return;
@@ -5286,21 +5316,21 @@ export function bindWorldDetective(el){
     const rows=[
      detectiveEl("p",{className:"ui-rpg-text",textContent:`🕵️‍♂️ 現在の階級: Lv.${st.rank.level}【${st.rank.title}】 (EXP: ${state.exp}/${st.rank.next_exp})`}),
      detectiveEl("p",{className:"ui-rpg-subnote",textContent:`能力値: 最大HP ❤️ ${st.maxHp} / 最大スタミナ ⚡ ${st.maxStamina} / ロジック 💡 ${st.logic} / ポーカーフェイス 🛡️ ${st.pokerface}`}),
-     detectiveEl("h4",{className:"ui-rpg-subtitle",textContent:"装備品 (宝箱から入手)"})
+     detectiveEl("h4",{className:"ui-rpg-subtitle",textContent:"常備する捜査道具"})
     ];
     for(const eqId of state.equipment){
      const n=detective.nodes.find(nd=>nd.id===eqId);
      if(n)rows.push(detectiveEl("div",{className:"ui-rpg-row"},
       detectiveEl("b",{textContent:`${n.item_emoji} ${n.item_label}`}),
-      detectiveEl("p",{className:"ui-rpg-subnote",textContent:n.desc})));
+      detectiveEl("p",{className:"ui-rpg-subnote",textContent:n.desc+" "+n.effect})));
     }
-    if(!state.equipment.size)rows.push(detectiveEl("p",{className:"ui-rpg-subnote",textContent:"装備品はまだありません。街角の宝箱を探してみよう！"}));
+    if(!state.equipment.size)rows.push(detectiveEl("p",{className:"ui-rpg-subnote",textContent:"装備品はまだありません。落とし物や宝箱を探してみよう！"}));
     rows.push(detectiveEl("h4",{className:"ui-rpg-subtitle",textContent:"所持どうぐ・補給品"}));
     for(const[,v]of state.consumables.entries()){
      if(v.count<=0)continue;
      rows.push(detectiveEl("div",{className:"ui-rpg-row"},
       detectiveEl("b",{textContent:`${v.emoji} ${v.label} ×${v.count}`}),
-      detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:"つかう",onclick:()=>{useConsumable(v.key);drawBody()}})));
+      detectiveEl("button",{type:"button",className:"ui-rpg-btn",textContent:v.logic?"現場専用":"つかう",disabled:Boolean(v.logic),onclick:()=>{useConsumable(v.key);drawBody()}})));
     }
     body.append(detectiveEl("div",{className:"ui-rpg-list"},...rows));
    }else if(activeTab==="garden"){
@@ -5399,8 +5429,8 @@ export function bindWorldDetective(el){
      if(hitShadow){
       if(lastContact!==hitShadow.prof.id){
        lastContact=hitShadow.prof.id;
-       if(hitShadow.prof.tier===1&&state.stamina>=6){
-        solveShadow(hitShadow.prof,6);
+       if(hitShadow.prof.tier===1&&state.stamina>=detective.walk_cost){
+        solveShadow(hitShadow.prof,detective.walk_cost);
         showToast(`🔍 ${hitShadow.prof.name}を解明！${hitShadow.prof.bloom}が咲いた！ +${hitShadow.prof.exp}EXP +${hitShadow.prof.medals}🪙`);
        }else{
         openShadowModal(hitShadow.prof.id);
@@ -6237,28 +6267,28 @@ def _osaka_detective_spec() -> dict[str, Any]:
         "hero": {"hp": 40, "stamina": 48, "logic": 8, "pokerface": 2, "medals": 20},
         "nodes": [
             {"id": "npc-heita", "kind": "npc", "tx": 15, "ty": 3, "emoji": "🕵️‍♂️", "label": "熱血探偵ヘイタ", "speaker": "熱血探偵ヘイタ",
-             "greeting": "せやかて工藤！……やのうて新人探偵はん！オオサカの街に怪しい影や暗号トリックがうごめいとるんや！",
+             "greeting": "新人探偵はん、よう来たな！オオサカの街に怪しい影や暗号トリックがうごめいとるんや！",
              "lines": ["現場検証では体力⚡を消費して閃きロジックをぶつけるんや。息切れしたら街の茶房や給水処🍵でひと息入れや！",
                        "街角にはたこ焼き🐙やルーペ🔍、それに名探偵装備の宝箱🎁が落ちとる。見つけたら手帳に収めて身なりを固めるんや！",
-                       "影の謎を解くと街に緑🌱が咲いて浪速手帳📋に記録される。全35箇所の影を解き明かして、西の名探偵の座を掴むんやで！"]},
+                       "影の謎を解くと街に緑🌱が咲いて浪速手帳📋に記録される。すべての影を解き明かして、西の名探偵の座を掴むんやで！"]},
             {"id": "npc-ayaka", "kind": "npc", "tx": 15, "ty": 14, "emoji": "🧢", "label": "助手アヤカ", "speaker": "助手アヤカ",
              "greeting": "ヘイタ先輩の助手をやってますアヤカです！右上のコンパス🧭を見れば、一番近い未解明の影の方向と距離が一発で分かりますよ！",
-             "lines": ["この調査支援通信網は TalkCompress や cli_args の極限圧縮プロトコルを応用してるんです。",
+             "lines": ["聞き込みの記録には、誰がどこで見たことかを添えてくださいね。",
                        "現場へ急行するときは、コンパスボタンを直接クリック・タップすれば自動で一番近い影へ歩いて誘導してくれますよ！"]},
             {"id": "npc-semba", "kind": "npc", "tx": 17, "ty": 28, "emoji": "📰", "label": "船場情報屋センバ", "speaker": "船場情報屋センバ", "shop": True,
              "greeting": "まいど！捜査ご苦労さんなこってす！現場解決で貯めた調査メダル🪙で、船場名物のおやつや捜査アイテム仕入れていきまへんか！",
-             "lines": ["ウチの船場せんべい🍘とアツアツたこ焼き🐙は特製で、捜査体力⚡と精神力がいっぺんにみなぎりまっせ！",
-                       "奥の鑑識班から融通してもらった鑑識ブラックライト🔦も置いてまっせ。手強い暗号にぶつけてみなはれ！"]},
+             "lines": ["ウチのアツアツたこ焼き🐙は特製で、捜査体力⚡と精神力がいっぺんにみなぎりまっせ！",
+                       "奥の鑑識班から融通してもらった鑑識試験紙🧪も置いてまっせ。手強い暗号にぶつけてみなはれ！"]},
             {"id": "npc-hakase", "kind": "npc", "tx": 23, "ty": 22, "emoji": "🔬", "label": "科学捜査官ハカセ", "speaker": "科学捜査官ハカセ", "refill": True,
              "greeting": "科学捜査研究所へようこそ！水都大阪の分析技術と鑑識データで、君の体力⚡と推理コンディションを満タンまで即時回復しよう！",
-             "lines": ["大川と中之島の水流解析には FluidFullSpeedSimulation や DRAgoWing の計算流体力学アルゴリズムを取り入れているんじゃ。",
+             "lines": ["川沿いの足跡は雨で消えやすい。見つけたら手帳に場所と向きを控えておくんじゃ。",
                        "理路整然とした論理のメスを入れれば、どんな難解な暗号トリックも必ず綻びを見せるはずじゃよ！"]},
             {"id": "npc-archivist", "kind": "npc", "tx": 29, "ty": 27, "emoji": "📚", "label": "オオサカ記録官", "speaker": "オオサカ記録官", "quiz": True,
-             "greeting": "私はポートフォリオの浪速記録官。街の事件簿と技術リポジトリの軌跡を編纂している。君の探偵リテラシーを試すクイズに挑んでみるかね？",
+             "greeting": "私はポートフォリオの浪速記録官。街の事件簿と技術リポジトリの軌跡を編纂している。君の知識を試すクイズに挑んでみるかね？",
              "lines": ["クイズに正解すれば、探偵経験値と調査メダルを進呈しよう。技術の真理を解き明かすことこそ、名探偵への最短経路なのだ。"]},
             {"id": "npc-conductor", "kind": "npc", "tx": 14, "ty": 2, "emoji": "🧑‍✈️", "label": "新大阪駅長", "speaker": "新大阪駅長",
-             "greeting": "新大阪駅へようこそ。南の玉造・城東方面の奥地に、最大級の快盗黒幕シャドウ🎩が潜伏しているとの緊急通報が入っています！",
-             "lines": ["黒幕シャドウに挑む前に、街角の宝箱からスーパートルクキックシューズ⚡や撥水トレンチコート🧥を揃えておくことをお勧めします。",
+             "greeting": "新大阪駅へようこそ。南の玉造・城東方面の奥地に、最大級の怪盗黒幕シャドウ🎩が潜伏しているとの緊急通報が入っています！",
+             "lines": ["黒幕シャドウに挑む前に、街角の宝箱から浪速の調査靴⚡や撥水トレンチコート🧥を揃えておくことをお勧めします。",
                        "さらに東の区画には3箇所以上の謎解きで封印が解ける黄金の名探偵ハット⛑️の宝箱が眠っているそうです！"]},
             {"id": "stand-shin-osaka", "kind": "stand", "tx": 16, "ty": 2, "emoji": "🍵", "label": "新大阪茶房",
              "greeting": "新大阪駅前の茶房スタンドや。淹れたての宇治茶を一杯飲んで、調査体力⚡を満タンまで急速補給したで！"},
@@ -6269,35 +6299,35 @@ def _osaka_detective_spec() -> dict[str, Any]:
             {"id": "stand-namba", "kind": "stand", "tx": 17, "ty": 37, "emoji": "🐙", "label": "難波茶房処",
              "greeting": "道頓堀近くの茶房処や。名物のお茶で一服して、長距離捜査の疲れと体力⚡を満タンまで急速補給したで！"},
             {"id": "drop-takoyaki", "kind": "drop", "tx": 15, "ty": 4, "emoji": "🐙", "label": "アツアツたこ焼き",
-             "item_emoji": "🐙", "item_label": "アツアツたこ焼き", "desc": "出汁の効いた浪速名物たこ焼き。HPを20、調査体力を14回復する。",
+             "item_emoji": "🐙", "item_label": "アツアツたこ焼き", "desc": "出汁の効いた浪速名物たこ焼き。",
              "item_type": "heal", "hp": 20, "stamina": 14, "exp": 8, "medals": 5},
             {"id": "drop-loupe", "kind": "drop", "tx": 14, "ty": 16, "emoji": "🔍", "label": "探偵ルーペ",
-             "item_emoji": "🔍", "item_label": "探偵ルーペ", "desc": "微細な痕跡も見逃さない精密ルーペ。閃き論理力+5。",
-             "item_type": "logic", "logic": 5, "exp": 18, "medals": 15},
+             "item_emoji": "🔍", "item_label": "探偵ルーペ", "desc": "微細な痕跡も見逃さない精密ルーペ。",
+             "usage": "equipment", "item_type": "logic", "logic": 5, "exp": 18, "medals": 15},
             {"id": "drop-notebook", "kind": "drop", "tx": 17, "ty": 29, "emoji": "📓", "label": "捜査手帳",
-             "item_emoji": "📓", "item_label": "捜査手帳", "desc": "証言と矛盾を整理する黒革手帳。ポーカーフェイス+4、最大HP+14。",
-             "item_type": "logic", "pokerface": 4, "hp": 14, "exp": 20, "medals": 18},
+             "item_emoji": "📓", "item_label": "捜査手帳", "desc": "証言と矛盾を整理する黒革手帳。",
+             "usage": "equipment", "item_type": "logic", "pokerface": 4, "hp": 14, "exp": 20, "medals": 18},
             {"id": "drop-senbei", "kind": "drop", "tx": 22, "ty": 24, "emoji": "🍘", "label": "船場せんべい",
-             "item_emoji": "🍘", "item_label": "船場せんべい", "desc": "パリッと香ばしい伝統の醤油せんべい。HPを24、体力を16回復する。",
+             "item_emoji": "🍘", "item_label": "船場せんべい", "desc": "パリッと香ばしい伝統の醤油せんべい。",
              "item_type": "heal", "hp": 24, "stamina": 16, "exp": 10, "medals": 6},
-            {"id": "drop-blacklight", "kind": "drop", "tx": 28, "ty": 28, "emoji": "🔦", "label": "鑑識ブラックライト",
-             "item_emoji": "🔦", "item_label": "鑑識ブラックライト", "desc": "潜在痕跡を蛍光発光させる鑑識用ライト。現場検証で大ダメージを与える。",
-             "item_type": "logic", "logic": 28, "exp": 12, "medals": 8},
-            {"id": "chest-shoes", "kind": "chest", "tx": 15, "ty": 1, "emoji": "🎁", "label": "スーパートルクキックシューズ",
-             "opened_emoji": "📭", "item_emoji": "⚡", "item_label": "スーパートルクキックシューズ",
-             "desc": "電磁トルクで犯人を追い詰める特製キックシューズ。閃き論理力+6、体力+20。",
+            {"id": "drop-blacklight", "kind": "drop", "tx": 28, "ty": 28, "emoji": "🧪", "label": "鑑識試験紙",
+             "item_emoji": "🧪", "item_label": "鑑識試験紙", "desc": "使い切りの試験紙。",
+             "item_type": "logic", "logic": 10, "exp": 12, "medals": 8},
+            {"id": "chest-shoes", "kind": "chest", "tx": 15, "ty": 1, "emoji": "🎁", "label": "浪速の調査靴",
+             "opened_emoji": "📭", "item_emoji": "⚡", "item_label": "浪速の調査靴",
+             "desc": "水辺の石畳でも足元がぶれず、痕跡を追いやすい調査靴。",
              "item_type": "shoes", "logic": 6, "stamina": 20, "exp": 25, "medals": 20},
             {"id": "chest-coat", "kind": "chest", "tx": 13, "ty": 18, "emoji": "🎁", "label": "撥水トレンチコート",
              "opened_emoji": "📭", "item_emoji": "🧥", "item_label": "撥水トレンチコート",
-             "desc": "水都の小雨を弾く仕立てのトレンチコート。ポーカーフェイス+5、最大HP+16。",
+             "desc": "水都の小雨を弾く仕立てのトレンチコート。",
              "item_type": "coat", "pokerface": 5, "hp": 16, "exp": 22, "medals": 20},
             {"id": "chest-canteen", "kind": "chest", "tx": 24, "ty": 23, "emoji": "🎁", "label": "船場大容量水筒",
              "opened_emoji": "📭", "item_emoji": "🛢️", "item_label": "船場大容量水筒",
-             "desc": "保温性に優れた船場特製の大容量水筒。最大体力容量+36。",
+             "desc": "保温性に優れた船場特製の大容量水筒。",
              "item_type": "canteen", "stamina": 36, "exp": 22, "medals": 20},
             {"id": "chest-hat", "kind": "chest", "tx": 29, "ty": 31, "emoji": "🎁", "label": "黄金の名探偵ハット",
              "opened_emoji": "📭", "item_emoji": "⛑️", "item_label": "黄金の名探偵ハット",
-             "desc": "東西の名探偵に受け継がれる栄誉のハット。論理力+8、ポーカーフェイス+6、HP+15、体力+25。",
+             "desc": "東西の名探偵に受け継がれる栄誉のハット。",
              "item_type": "hat", "logic": 8, "pokerface": 6, "hp": 15, "stamina": 25, "exp": 45, "medals": 50,
              "requires_clues": 3},
         ],
@@ -6311,38 +6341,38 @@ def _osaka_detective_spec() -> dict[str, Any]:
         ],
         "shop": [
             {"id": "shop-takoyaki", "emoji": "🐙", "label": "アツアツたこ焼き", "cost": 10, "item_type": "heal",
-             "hp": 22, "stamina": 14, "logic": 0, "pokerface": 0, "desc": "出汁の効いたたこ焼き。HP+22, 体力+14。"},
-            {"id": "shop-stamina", "emoji": "🧯", "label": "高濃度ブレイク水筒", "cost": 12, "item_type": "stamina",
-             "hp": 0, "stamina": 32, "logic": 0, "pokerface": 0, "desc": "急速回復ドリンク。調査体力+32。"},
-            {"id": "shop-light", "emoji": "🔦", "label": "鑑識高輝度ブラックライト", "cost": 18, "item_type": "logic",
-             "hp": 0, "stamina": 0, "logic": 30, "pokerface": 0, "desc": "瞬時に矛盾を暴くライト。影に30ダメージ。"},
+             "hp": 20, "stamina": 14, "logic": 0, "pokerface": 0, "desc": "出汁の効いたたこ焼き。"},
+            {"id": "shop-stamina", "emoji": "🍵", "label": "船場の補給茶", "cost": 12, "item_type": "stamina",
+             "hp": 0, "stamina": 32, "logic": 0, "pokerface": 0, "desc": "急速回復ドリンク。"},
+            {"id": "shop-light", "emoji": "🧪", "label": "高感度鑑識試験紙", "cost": 18, "item_type": "logic",
+             "hp": 0, "stamina": 0, "logic": 14, "pokerface": 0, "desc": "微量の痕跡を検出する使い切りの試験紙。"},
         ],
         "quests": [
             {"id": "q-talk-heita", "title": "熱血探偵ヘイタへ着任挨拶", "desc": "熱血探偵ヘイタ(15, 3)に話しかけてオオサカ調査の基本を教わる。",
-             "kind": "talk", "count": 1, "reward_exp": 15, "reward_medals": 10},
+             "kind": "talk", "target": "npc-heita", "count": 1, "reward_exp": 15, "reward_medals": 10},
             {"id": "q-first-clue", "title": "初めての現場解決", "desc": "オオサカの不審な影を1箇所解明して街に緑を咲かせる。",
              "kind": "clue", "count": 1, "reward_exp": 25, "reward_medals": 15},
             {"id": "q-three-clues", "title": "街角の謎解きラッシュ", "desc": "影を3箇所以上解明して黄金ハット宝箱の封印を解く。",
              "kind": "clue", "count": 3, "reward_exp": 40, "reward_medals": 25},
             {"id": "q-find-drop", "title": "捜査どうぐの発見", "desc": "路上に落ちているたこ焼きやルーペを拾って道具箱に収める。",
              "kind": "drop", "count": 1, "reward_exp": 15, "reward_medals": 10},
-            {"id": "q-open-chest", "title": "名探偵装備の獲得", "desc": "街の宝箱を開けてキックシューズやトレンチコートを装備する。",
+            {"id": "q-open-chest", "title": "名探偵装備の獲得", "desc": "街の宝箱を開けて調査靴やトレンチコートを装備する。",
              "kind": "chest", "count": 1, "reward_exp": 25, "reward_medals": 20},
             {"id": "q-stand-refill", "title": "茶房・給水処で急速補給", "desc": "街の給水処や茶房スタンドで調査体力を満タンにする。",
              "kind": "refill", "count": 1, "reward_exp": 15, "reward_medals": 10},
             {"id": "q-solve-quiz", "title": "浪速記録官の推理試練", "desc": "オオサカ記録官の技術ポートフォリオクイズに正解する。",
              "kind": "quiz", "count": 1, "reward_exp": 20, "reward_medals": 15},
-            {"id": "q-boss-shadow", "title": "快盗黒幕シャドウ完全解決", "desc": "城東奥地の快盗黒幕シャドウ(32, 33)のトリックを完全看破する！",
+            {"id": "q-boss-shadow", "title": "怪盗黒幕シャドウ完全解決", "desc": "城東奥地の怪盗黒幕シャドウ(32, 33)のトリックを完全看破する！",
              "kind": "boss_clue", "count": 1, "reward_exp": 80, "reward_medals": 60},
         ],
         "badges": [
-            {"id": "b-first-clue", "emoji": "🌱", "label": "初動解決", "desc": "最初の影を解明し街に花を咲かせた"},
-            {"id": "b-clue-five", "emoji": "🌷", "label": "名推理エキスパート", "desc": "5箇所以上の影を解明した"},
-            {"id": "b-boss-down", "emoji": "🎩", "label": "黒幕撃破", "desc": "最大規模の快盗黒幕シャドウを看破した"},
-            {"id": "b-geared-up", "emoji": "⛑️", "label": "一級探偵フル装備", "desc": "宝箱からシューズ・コート・水筒・ハットを揃えた"},
-            {"id": "b-stand-master", "emoji": "🍵", "label": "茶房マイスター", "desc": "茶房や給水処で3回以上補給した"},
-            {"id": "b-quiz-scholar", "emoji": "📚", "label": "浪速知識人", "desc": "技術リポジトリクイズに3問以上正解した"},
-            {"id": "b-green-osaka", "emoji": "🌳", "label": "緑化の名探偵", "desc": "ガーデン緑化セルが8マス以上に達した"},
+            {"id": "b-first-clue", "kind": "clue", "count": 1, "emoji": "🌱", "label": "初動解決", "desc": "最初の影を解明し街に花を咲かせた"},
+            {"id": "b-clue-five", "kind": "clue", "count": 5, "emoji": "🌷", "label": "名推理エキスパート", "desc": "5箇所以上の影を解明した"},
+            {"id": "b-boss-down", "kind": "boss_clue", "count": 1, "emoji": "🎩", "label": "黒幕撃破", "desc": "最大規模の怪盗黒幕シャドウを看破した"},
+            {"id": "b-geared-up", "kind": "chest", "count": 4, "emoji": "⛑️", "label": "一級探偵フル装備", "desc": "宝箱からシューズ・コート・水筒・ハットを揃えた"},
+            {"id": "b-stand-master", "kind": "refill", "count": 3, "emoji": "🍵", "label": "茶房マイスター", "desc": "茶房や給水処で3回以上補給した"},
+            {"id": "b-quiz-scholar", "kind": "quiz", "count": 3, "emoji": "📚", "label": "浪速知識人", "desc": "技術リポジトリクイズに3問以上正解した"},
+            {"id": "b-green-osaka", "kind": "garden", "count": 8, "emoji": "🌳", "label": "緑化の名探偵", "desc": "ガーデン緑化セルが8マス以上に達した"},
         ],
         "quizzes": [
             {"repo": "PySaiyanWeBoo",
