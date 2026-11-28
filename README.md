@@ -333,6 +333,24 @@ add_site_chrome(page, 'index.html', {'🔗': {'label': 'リンク', 'label_en': 
 
 ![The cross-repo chat in Chromium: Pyodide runs scripts/chat.py — a flow, a typo, MCP checks, the onto index, /show, /compress, raw HTML kept as text, 🤖 /ask through llama.cpp (on a tiny random test model, so its words are noise), and a step sent from the index](docs/evidence/chat.gif)
 
+#### 🔥 重い初回は、使う少し前に温める
+
+🤖 `/ask` のモデル（約 560 MB、初回だけ）と 🐍 Pyodide は、合図があったときにだけ先に読み始めます。合図がなければ何も取りません。
+
+| 合図 | 温めるもの |
+| --- | --- |
+| 🧰 の画面で 💬 へのリンクに触れた | 🐍 Pyodide と `chat.py`（パネルを先に組み立てる） |
+| 入力欄にフォーカスした | llama.cpp 本体（wllama。モデルは取らない） |
+| `/a` まで打った・`/ask` の例やチップに指が乗った | 🤖 モデル |
+| 前に読んだ端末で、ブラウザがまだ持っている | 🤖 モデル（チャットを開いた時点で） |
+| 🌍 ワールドの「もっと話す」で入力を始めた | 🤖 モデル（欄にフォーカスで llama.cpp 本体） |
+
+- 読み込みは 1 回だけです。質問を送ると、進んでいる同じ読み込みを待ちます。
+- 省データ設定や遅い回線（2G・3G）では温めません。今まで通り、送ったときに読み込みます。
+- 進み具合はステータス行に 🐍 と 🤖 を並べて出します。
+
+![チャットの温め: 入力欄で /a まで打つとモデルの読み込みが始まり、打ち終わるころに ✅（Chromium 560×480、wllama は数えるだけの代役）](docs/evidence/chat-warm-up.gif)
+
 ```sh
 uv run --locked --only-group pages python scripts/chat.py "/flow 入力, 履歴 > 圧縮 > 出力"      # 💬 the same reply in the shell
 uv run --locked --only-group pages python scripts/project_pages.py --record-chat .generated-site  # 🔎 the cross-repo index (GITHUB_TOKEN)

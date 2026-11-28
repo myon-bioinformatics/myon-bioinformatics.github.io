@@ -22,11 +22,11 @@
     "tools/vendor/web-ui/css/core.css": "6161b50462c2cfc8b40547e988636525989a1d29585eb98d5042646ffbb5cabd"
   },
   "pages": {
-    "tools/#worlds": "fa9b87e39a778789f50622f9c26736ecdad75f60840694a02529aadd3dc3d22f",
+    "tools/#worlds": "29cb02c1a3f41592dab4d850a3f10d670bd505f1bf857028b6d63090ed05a749",
     "tools/html-import/#html-import": "06f84120567ae55a9ea070cecd4eabf32d044d74de90e44fa2744ffca1fe7d9d",
     "tools/#test-report": "c757992290ac5d3b1c9b92210720a12e51e8ba7ad19d6a32abd1e22dd20d94be",
     "tools/#maps": "9b65a62c61473b1d58bead33b5ea6d1e79ab881d5ab76e7212b8fd7f979a70c2",
     "tools/#gif": "07a15a00e6e305dd54083cafcd56ccd159a5219705c5197111e86779c0e53be3",
-    "tools/#chat": "f17155679971b9f92fc89455b89875466d2f61fce4f08d4a3cdc30f33eaa4bbe"
+    "tools/#chat": "07638e91ecebf84b663f9ae375dfc81eb2f40b0921c6895b2583484e5ed5cef9"
   }
 }
