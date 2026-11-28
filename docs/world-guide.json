@@ -556,6 +556,32 @@
    "y": 96
   },
   {
+   "id": "learn/bug-buster",
+   "type": "Task",
+   "name": "バグバスターを習得",
+   "detail": "バグ系の敵に大ダメージ(160%)"
+  },
+  {
+   "id": "wisdom/learn/bug-buster",
+   "type": "Condition",
+   "name": "かしこさ8以上",
+   "minimum": 8,
+   "attribute": "wisdom"
+  },
+  {
+   "id": "learn/pswb-heal",
+   "type": "Task",
+   "name": "PSWBヒーリングを習得",
+   "detail": "回復オーブでHPを大きく回復"
+  },
+  {
+   "id": "wisdom/learn/pswb-heal",
+   "type": "Condition",
+   "name": "かしこさ10以上",
+   "minimum": 10,
+   "attribute": "wisdom"
+  },
+  {
    "id": "quest/talk-cat",
    "type": "Goal",
    "name": "村の案内を聞こう",
@@ -2316,6 +2342,45 @@
    "markdown": "osaka-guide.md"
   },
   {
+   "id": "survey/team-1",
+   "type": "Task",
+   "name": "第1班を派遣",
+   "detail": "未調査の1地点を報告し、経験値+5。"
+  },
+  {
+   "id": "wisdom/survey/team-1",
+   "type": "Condition",
+   "name": "かしこさ8以上",
+   "minimum": 8,
+   "attribute": "wisdom"
+  },
+  {
+   "id": "survey/team-2",
+   "type": "Task",
+   "name": "第2班を派遣",
+   "detail": "未調査の1地点を報告し、経験値+5。"
+  },
+  {
+   "id": "wisdom/survey/team-2",
+   "type": "Condition",
+   "name": "かしこさ10以上",
+   "minimum": 10,
+   "attribute": "wisdom"
+  },
+  {
+   "id": "survey/team-3",
+   "type": "Task",
+   "name": "第3班を派遣",
+   "detail": "未調査の1地点を報告し、経験値+5。"
+  },
+  {
+   "id": "wisdom/survey/team-3",
+   "type": "Condition",
+   "name": "かしこさ14以上",
+   "minimum": 14,
+   "attribute": "wisdom"
+  },
+  {
    "id": "quest/talk-arthur",
    "type": "Goal",
    "name": "名探偵のオリエンテーション",
@@ -3822,6 +3887,26 @@
   {
    "source": "#world",
    "kind": "offers",
+   "target": "learn/bug-buster"
+  },
+  {
+   "source": "learn/bug-buster",
+   "kind": "guarded_by",
+   "target": "wisdom/learn/bug-buster"
+  },
+  {
+   "source": "#world",
+   "kind": "offers",
+   "target": "learn/pswb-heal"
+  },
+  {
+   "source": "learn/pswb-heal",
+   "kind": "guarded_by",
+   "target": "wisdom/learn/pswb-heal"
+  },
+  {
+   "source": "#world",
+   "kind": "offers",
    "target": "quest/talk-cat"
   },
   {
@@ -4993,6 +5078,36 @@
    "source": "cities/osaka",
    "kind": "see_also",
    "target": "osaka-guide.json"
+  },
+  {
+   "source": "#tokyo",
+   "kind": "offers",
+   "target": "survey/team-1"
+  },
+  {
+   "source": "survey/team-1",
+   "kind": "guarded_by",
+   "target": "wisdom/survey/team-1"
+  },
+  {
+   "source": "#tokyo",
+   "kind": "offers",
+   "target": "survey/team-2"
+  },
+  {
+   "source": "survey/team-2",
+   "kind": "guarded_by",
+   "target": "wisdom/survey/team-2"
+  },
+  {
+   "source": "#tokyo",
+   "kind": "offers",
+   "target": "survey/team-3"
+  },
+  {
+   "source": "survey/team-3",
+   "kind": "guarded_by",
+   "target": "wisdom/survey/team-3"
   },
   {
    "source": "#london",

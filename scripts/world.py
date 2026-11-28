@@ -618,7 +618,7 @@ def rpg_level_for_exp(exp: int) -> dict[str, Any]:
     next_exp = RPG_LEVEL_THRESHOLDS[level] if level < len(RPG_LEVEL_THRESHOLDS) else RPG_LEVEL_THRESHOLDS[-1]
     return {"level": level, "exp": exp, "next_exp": next_exp,
             "bonus_hp": (level - 1) * 6, "bonus_mp": (level - 1) * 3,
-            "bonus_atk": (level - 1) * 2, "bonus_def": (level - 1) * 1}
+            "bonus_atk": (level - 1) * 2, "bonus_def": (level - 1) * 1, "bonus_wisdom": (level - 1) * 2}
 
 
 def rpg_dragon_stage(bond: int, bond_max: int = 30) -> dict[str, Any]:
@@ -698,9 +698,10 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
         raise ValueError("rpg has seed, hero, npcs, loot, enemies, quests, badges, quizzes, shop, skills, orbs, dragons, synergy, fame and deeds")
     seed = _bounded_int(rpg_in.get("seed", 20261126), "rpg seed", 0, 0xFFFFFFFF)
     hero_in = rpg_in.get("hero", {})
-    if not isinstance(hero_in, dict) or set(hero_in) - {"hp", "mp", "atk", "def", "gold"}:
-        raise ValueError("rpg hero has hp, mp, atk, def and gold")
-    hero = {"hp": _bounded_int(hero_in.get("hp", PLAYER_BASE["hp"]), "hero hp", 1, 999),
+    if not isinstance(hero_in, dict) or set(hero_in) - {"hp", "mp", "atk", "def", "wisdom", "gold"}:
+        raise ValueError("rpg hero has hp, mp, atk, def, wisdom and gold")
+    hero = {"wisdom": _bounded_int(hero_in.get("wisdom", PLAYER_BASE["wisdom"]), "hero wisdom", 0, 99),
+            "hp": _bounded_int(hero_in.get("hp", PLAYER_BASE["hp"]), "hero hp", 1, 999),
             "mp": _bounded_int(hero_in.get("mp", PLAYER_BASE["mp"]), "hero mp", 0, 999),
             "atk": _bounded_int(hero_in.get("atk", PLAYER_BASE["atk"]), "hero atk", 1, 99),
             "def": _bounded_int(hero_in.get("def", PLAYER_BASE["def"]), "hero def", 0, 99),
@@ -884,10 +885,11 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
     skills_in = rpg_in.get("skills", [])
     if not isinstance(skills_in, list) or len(skills_in) > 8:
         raise ValueError("rpg skills lists up to 8 entries")
+    max_wisdom = hero["wisdom"] + rpg_level_for_exp(RPG_LEVEL_THRESHOLDS[-1])["bonus_wisdom"]
     skills, seen_sk = [], set()
     for sk in skills_in:
-        if not isinstance(sk, dict) or set(sk) - {"id", "emoji", "label", "mp", "kind", "mult_pct", "power", "desc"}:
-            raise ValueError("skill has id, emoji, label, mp, kind, mult_pct, power and desc")
+        if not isinstance(sk, dict) or set(sk) - {"min_wisdom", "id", "emoji", "label", "mp", "kind", "mult_pct", "power", "desc"}:
+            raise ValueError("skill has id, emoji, label, mp, min_wisdom, kind, mult_pct, power and desc")
         skind = sk.get("kind")
         if skind not in RPG_SKILL_KINDS:
             raise ValueError(f"skill kind is one of {', '.join(RPG_SKILL_KINDS)}")
@@ -895,6 +897,7 @@ def rpg_validate(rpg_in: Any, *, spot_ids: set[str], floor_ids: set[str]) -> dic
                        "emoji": _world_emoji(sk.get("emoji")),
                        "label": _world_text(sk.get("label"), "skill label", 40),
                        "mp": _bounded_int(sk.get("mp", 0), "skill mp", 0, 99),
+                       "min_wisdom": _bounded_int(sk.get("min_wisdom", 0), "skill wisdom", 0, max_wisdom),
                        "kind": skind,
                        "mult_pct": _bounded_int(sk.get("mult_pct", 100), "skill mult_pct", 10, 500),
                        "power": _bounded_int(sk.get("power", 0), "skill power", 0, 999),
@@ -3413,7 +3416,7 @@ export function rpgLevelForExp(exp){
  const xp=Math.max(0,Math.floor(Number(exp)||0));let lv=1;
  for(let i=0;i<RPG_LEVEL_THRESHOLDS.length;i++)if(xp>=RPG_LEVEL_THRESHOLDS[i])lv=i+1;
  const next=lv<RPG_LEVEL_THRESHOLDS.length?RPG_LEVEL_THRESHOLDS[lv]:RPG_LEVEL_THRESHOLDS[RPG_LEVEL_THRESHOLDS.length-1];
- return{level:lv,exp:xp,next_exp:next,bonus_hp:(lv-1)*6,bonus_mp:(lv-1)*3,bonus_atk:(lv-1)*2,bonus_def:(lv-1)*1};
+ return{level:lv,exp:xp,next_exp:next,bonus_hp:(lv-1)*6,bonus_mp:(lv-1)*3,bonus_atk:(lv-1)*2,bonus_def:(lv-1)*1,bonus_wisdom:(lv-1)*2};
 }
 export function rpgDamage(atk,defense,rollWord,{multPct=100,guarding=false,critPct=12}={}){
  const w=Number(rollWord)>>>0,crit=(w%100)<critPct,variance=((w>>>8)%3)-1;
@@ -3512,6 +3515,7 @@ export function bindWorldRpg(el){
   }
   return syn;
  };
+ const learned=skill=>(shared?.wisdom()??(rpg.hero.wisdom+rpgLevelForExp(state.exp).bonus_wisdom))>=(skill.min_wisdom??0);
  const allSkills=()=>{
   const list=[...rpg.skills];
   for(const{entry}of activeSynergies()){
@@ -3548,7 +3552,7 @@ export function bindWorldRpg(el){
  const mapBagButtons=[...el.querySelectorAll(".ui-sheet-item .ui-world-take")];
  const bagButtons=mapBagButtons.filter(b=>b.dataset.itemId.startsWith(wid+"-spot-"));
  const groups={
-  schoolSolved:shared?.lessons??[],talked:Object.keys(rpg.npcs),looted:Object.keys(rpg.loot),defeated:Object.keys(rpg.enemies),
+  surveyed:shared?.stations??[],schoolSolved:shared?.lessons??[],talked:Object.keys(rpg.npcs),looted:Object.keys(rpg.loot),defeated:Object.keys(rpg.enemies),
   quizSolved:rpg.legacyQuizPrompts||rpg.quizzes.map(q=>q.prompt),visitedFloors:[...el.querySelectorAll("input[name$='-floor']")].map(b=>b.value),
   completedQuests:rpg.quests.map(q=>q.id),badges:rpg.badges.map(b=>b.id),
   bag:bagButtons.map(b=>b.dataset.itemId)
@@ -4264,8 +4268,8 @@ export function bindWorldRpg(el){
    if(!subMode||ended){subPanel.hidden=true;subPanel.replaceChildren();return}
    subPanel.hidden=false;
    if(subMode==="skill"){
-    subPanel.replaceChildren(...allSkills().map(sk=>rpgEl("button",{type:"button",className:"ui-rpg-btn",disabled:state.mp<sk.mp,textContent:`${sk.emoji} ${sk.label} (💧${sk.mp}) - ${sk.desc}`,onclick:()=>{
-     if(ended||state.mp<sk.mp)return;
+    subPanel.replaceChildren(...allSkills().map(sk=>rpgEl("button",{type:"button",className:"ui-rpg-btn",disabled:!learned(sk)||state.mp<sk.mp,textContent:learned(sk)?`${sk.emoji} ${sk.label} (💧${sk.mp}) - ${sk.desc}`:`🔒 ${sk.label}（かしこさ${sk.min_wisdom}で習得）`,onclick:()=>{
+     if(ended||!learned(sk)||state.mp<sk.mp)return;
      state.mp-=sk.mp;subMode="";rebuildSub();
      const st=stats();
      if(sk.kind==="heal"){
@@ -4302,7 +4306,7 @@ export function bindWorldRpg(el){
    ["💡 ヒント",()=>{
     const statsNow=stats(),heavy=nextAttackIsHeavy();
     const heal=[...state.consumables.values()].find(it=>it.hp>0);
-    const skill=rpg.skills.find(sk=>sk.mp<=state.mp&&sk.kind==="attack"&&foe.weakness&&sk.desc.includes(foe.weakness));
+    const skill=allSkills().find(sk=>learned(sk)&&sk.mp<=state.mp&&sk.kind==="attack"&&foe.weakness&&sk.desc.includes(foe.weakness));
     let hint="こうげきならMPを使わずに攻められます。";
     if(state.hp*2<=statsNow.maxHp&&heal)hint="HPが半分以下です。どうぐの「"+heal.label+"」で回復できます。";
     else if(heavy)hint="次は強攻撃です。ぼうぎょでダメージを半減できます。";
@@ -6865,11 +6869,11 @@ def _overworld_spec() -> dict[str, Any]:
                  "desc": "甘くてほくほく！HP30・MP6を同時に回復"},
             ],
             "skills": [
-                {"id": "bug-buster", "emoji": "⚡", "label": "バグバスター", "mp": 4, "kind": "attack", "mult_pct": 160, "power": 0,
+                {"id": "bug-buster", "min_wisdom": 8, "emoji": "⚡", "label": "バグバスター", "mp": 4, "kind": "attack", "mult_pct": 160, "power": 0,
                  "desc": "バグ系の敵に大ダメージ(160%)"},
                 {"id": "pipeline-slash", "emoji": "🔬", "label": "パイプライン斬り", "mp": 6, "kind": "attack", "mult_pct": 210, "power": 0,
                  "desc": "パイプライン解析の一閃(210%)"},
-                {"id": "pswb-heal", "emoji": "💚", "label": "PSWBヒーリング", "mp": 5, "kind": "heal", "mult_pct": 100, "power": 14,
+                {"id": "pswb-heal", "min_wisdom": 10, "emoji": "💚", "label": "PSWBヒーリング", "mp": 5, "kind": "heal", "mult_pct": 100, "power": 14,
                  "desc": "回復オーブでHPを大きく回復"},
                  {"id": "guard-counter", "emoji": "🛡️", "label": "堅牢カウンター", "mp": 3, "kind": "guard", "mult_pct": 125, "power": 0,
                   "desc": "敵の攻撃を半減しつつ反撃(125%)"},

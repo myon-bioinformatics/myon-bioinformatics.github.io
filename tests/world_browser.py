@@ -1570,8 +1570,8 @@ class OverworldRpgTests(unittest.TestCase):
         dialog.get_by_role("button", name="やったね！").click()
         dialog.wait_for(state="hidden")
 
-        # ATK rose from 6 to 10 (6 + 4 from sword) and both items are synced into 🎒 Bag
-        self.assertIn("⚔️ 10", page.locator("[data-rpg-gear]").inner_text())
+        # The sword adds four points to the shared starting attack.
+        self.assertIn(f"⚔️ {W.PLAYER_BASE['atk'] + 4}", page.locator("[data-rpg-gear]").inner_text())
         self.assertEqual(page.get_attribute('.ui-spot[href="#overworld-spot-meadow-chest-sword"]', "data-rpg-opened"), "")
         self.assertIn("📭", page.inner_text('.ui-spot[href="#overworld-spot-meadow-chest-sword"]'))
         page.click('.ui-world-menu[data-menu="bag"] > summary')

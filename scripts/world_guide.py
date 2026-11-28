@@ -6,7 +6,7 @@ from pathlib import Path
 import world
 from markdown import heading
 from ontautology import check
-from world_shell import SPACES, dialogue_graph
+from world_shell import SPACES, TOKYO_TEAM_WISDOM, TOKYO_REPORT_EXP, dialogue_graph
 
 
 def build():
@@ -88,6 +88,18 @@ def build():
                 link(area, "see_also", add("osaka-guide.json", "Guide", "大阪の捜査手帳", markdown="osaka-guide.md"))
         npc_routes = {spot_routes[sid] for sid in rpg.get("npcs", {})}
         rpg_route = next(iter(npc_routes)) if len(npc_routes) == 1 else primary
+        for skill in rpg.get("skills", []):
+            if skill["min_wisdom"]:
+                task = add("learn/"+skill["id"], "Task", skill["label"]+"を習得", detail=skill["desc"])
+                link("#"+rpg_route, "offers", task)
+                link(task, "guarded_by", add("wisdom/"+task, "Condition", f'かしこさ{skill["min_wisdom"]}以上',
+                                             minimum=skill["min_wisdom"], attribute="wisdom"))
+        if scene == "cities":
+            for i, minimum in enumerate(TOKYO_TEAM_WISDOM, 1):
+                task = add(f"survey/team-{i}", "Task", f"第{i}班を派遣", detail=f"未調査の1地点を報告し、経験値+{TOKYO_REPORT_EXP}。")
+                link("#tokyo", "offers", task)
+                link(task, "guarded_by", add("wisdom/"+task, "Condition", f"かしこさ{minimum}以上",
+                                             minimum=minimum, attribute="wisdom"))
         rescue = spec.get("rescue", {})
         for rules, route, currency in ((rpg, rpg_route, "G"), (rescue, rescue.get("floor"), "メダル")):
             for q in rules.get("quests", []):

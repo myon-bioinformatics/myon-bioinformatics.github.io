@@ -961,3 +961,68 @@ def test_shared_player_spends_stamina_and_keeps_school_progress_across_routes(si
         expect(scene.locator('[data-detective-gear]')).to_contain_text('ポーカーフェイス 0/')
     finally:
         page.close()
+
+
+def test_tokyo_field_reports_unlock_village_magic_and_a_second_squad(site, browser):
+    page = browser.new_page(reduced_motion='reduce')
+    url = site[1] + '/tools/#'
+    village = page.locator('#overworld-map')
+
+    def spells():
+        page.goto(url + 'overworld-spot-meadow-enemy-slime')
+        picker = village.locator('.ui-world-pick-grid [data-emoji]').first
+        if picker.is_visible():
+            picker.click()
+        village.locator('#overworld-spot-meadow-enemy-slime .ui-rpg-sheet-btn').click()
+        village.get_by_role('button', name='✨ とくぎ').click()
+
+    try:
+        spells()
+        healing = village.get_by_role('button', name='PSWBヒーリング', exact=False)
+        expect(healing).to_be_disabled()
+        expect(healing).to_contain_text('かしこさ10')
+        village.get_by_role('button', name='💨 にげる').click()
+
+        page.goto(url + 'tokyo')
+        survey = page.locator('#tokyo-survey')
+        survey.locator('summary').click()
+        teams = survey.locator('select')
+        submit = survey.get_by_role('button')
+        ids = teams.first.locator('option').evaluate_all('(rows) => rows.map(r=>r.value).filter(Boolean)')
+        expect(teams.nth(1)).to_be_disabled()
+        for index in range(6):
+            teams.first.select_option(ids[index])
+            submit.click()
+            expect(survey.locator('output')).to_have_text(f'調査済み {index + 1}/21')
+            expect(submit).to_be_disabled()
+            if index < 5:
+                expect(teams.nth(1)).to_be_disabled()
+        expect(teams.nth(1)).to_be_enabled()
+        expect(teams.nth(2)).to_be_disabled()
+        teams.first.select_option(ids[6])
+        expect(teams.nth(1).locator(f'option[value="{ids[6]}"]')).to_have_js_property("disabled", True)
+        teams.nth(1).select_option(ids[7])
+        submit.click()
+        expect(survey.locator('li')).to_have_count(8)
+        expect(page.locator('[data-player-stats]')).to_contain_text('経験値 40')
+        spells()
+        expect(healing).to_be_enabled()
+        healing.click()
+        expect(village.locator('.ui-rpg-log')).to_contain_text('PSWBヒーリング！')
+        village.get_by_role('button', name='💨 にげる').click()
+        village.locator('[data-rpg-journal-btn]').click()
+        village.get_by_role('button', name='💾 セーブ').click()
+        village.get_by_text('セーブ文字列を作る', exact=True).click()
+        token = village.get_by_role('textbox', name='冒険データ').input_value()
+        page.reload()
+        village.locator('.ui-world-pick-grid [data-emoji]').first.click()
+        village.locator('[data-rpg-journal-btn]').click()
+        village.get_by_role('button', name='💾 セーブ').click()
+        village.get_by_role('textbox', name='冒険データ').fill(token)
+        village.get_by_role('button', name='読み込む').click()
+        expect(village.get_by_role('status').filter(has_text='冒険データを復元しました')).to_be_visible()
+        page.goto(url + 'tokyo')
+        expect(survey.locator('li')).to_have_count(8)
+        expect(teams.nth(1)).to_be_enabled()
+    finally:
+        page.close()
