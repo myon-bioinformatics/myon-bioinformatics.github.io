@@ -1083,17 +1083,10 @@ def stage_tools(output: Path, root: Path = ROOT) -> dict | None:
     return collect_tools(output, checkouts, {repository: _checkout_commit(path) for repository, path in checkouts.items()})
 
 
-def _paused(ui, repository: str, why: str = 'このビルドでは作っていない。') -> str:
-    """⏸ What stands in for a tool this build did not make."""
-    return ui.page_document({'schema': 'web-ui-page/1', 'title': f'🧰 {repository.split("/")[1]}', 'blocks': [
-        {'type': 'text', 'text': f'⏸ この道具は、公開のたびに {repository} の最新のコミットから作り直す。{why}'},
-        {'type': 'links', 'items': [{'label': '🐙 GitHub リポジトリ', 'href': f'https://github.com/{repository}'}]}]})
-
-
-def tool_panels(ui, output: Path | None = None) -> dict[str, tuple[bytes, str]]:
+def tool_panels(output: Path | None = None) -> dict[str, tuple[bytes | None, str]]:
     """🧰 The tools the cards build from other repositories as #panels of the screen (none has a page of its own): each page
-    ``--record`` placed at tools/<id>/, taken out of the tree (its files stay), else ⏸; ``{source: (document, repository)}`` for
-    ``render_shell``."""
+    ``--record`` placed at tools/<id>/, taken out of the tree (its files stay), else None (the screen shows ⏸);
+    ``{source: (document, repository)}`` for ``render_shell``."""
     path = Path(output) / TOOLS if output else None
     made = json.loads(path.read_text(encoding='utf-8'))['made'] if path and path.is_file() else []
     panels = {}
@@ -1109,7 +1102,7 @@ def tool_panels(ui, output: Path | None = None) -> dict[str, tuple[bytes, str]]:
             if not any(built.parent.iterdir()):        # 🌡️ a one-page tool leaves no folder behind
                 built.parent.rmdir()
         else:
-            panels[source] = _paused(ui, repository).encode('utf-8'), repository
+            panels[source] = None, repository
     return panels
 
 
@@ -1176,10 +1169,11 @@ const connect=frame=>frame.contentDocument.querySelector('[data-slide-handoff]')
 document.addEventListener('ui-view-frame',e=>{if(e.detail.name==='image-studio')connect(e.detail.frame)})})();"""
 
 
-def render_shell(ui, panels: dict[str, tuple[bytes, str | None]]) -> bytes:
+def render_shell(ui, panels: dict[str, tuple[bytes | None, str | None]]) -> bytes:
     """🧰 tools/index.html: the screen every tool is a view of (``#gif``, ``#maps``, …; 🏠 ``#home`` lists them), built with
     PySaiyanWeBoo's ``views`` (``component_parts("views", …)``). ``panels`` maps the path a tool's document was built for to
-    (document, repository): ``repository`` None is this site's own (an id it shares stops the build; another's gets ⏸). An app
+    (document, repository): ``repository`` None is this site's own (an id it shares stops the build; another's, or one with no
+    document, gets ⏸). An app
     with its own Content-Security-Policy runs in a frame, the others' parts join the screen (views decides). Each is named, described and
     ordered as its card (``tools_places``: 🚪's order). The header, the side and the foot are the site's (``add_site_chrome``) once."""
     places = {place['href']: place for place in tools_places()}
@@ -1187,8 +1181,8 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None]]) -> bytes:
     views = []
     for source in sorted(panels, key=lambda source: rank.get(ui.view_name(source, SHELL_PAGE), len(rank))):
         data, repository = panels[source]
-        page, place = data.decode('utf-8'), places.get(f'../tools/#{ui.view_name(source, SHELL_PAGE)}', {})
-        if source == 'tools/image-studio/index.html' and 'tools/slide-studio/index.html' in panels:   # 📽️ the shelf hands over here
+        page, place = data and data.decode('utf-8'), places.get(f'../tools/#{ui.view_name(source, SHELL_PAGE)}', {})
+        if page and source == 'tools/image-studio/index.html' and 'tools/slide-studio/index.html' in panels:   # 📽️ the shelf hands over here
             page = page.replace('href="../slide-studio/#from-image-studio" target="_blank" rel="opener"',
                                 'href="/tools/#slide-studio" target="_top" data-slide-handoff')
         views.append({'source': source, 'document': page, 'title': place.get('label', ''), 'about': place.get('text', ''),
@@ -1202,7 +1196,7 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None]]) -> bytes:
     page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace('<head>', f'<head><meta name="description" content="{description}">', 1).replace('<style>', f'<link rel="stylesheet" href="{sheet}"><style>', 1)
     cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './#tokyo'}}   # 🗺️ the map's neighbour
     page = ui.add_part(page, {'js': screen['js']})                         # a module: it binds once the views below are parsed
-    hosted = {ui.view_name(view['source'], SHELL_PAGE): view['document'] for view in views}   # ⚙️ ⋯ what each view declares (Ironmate's 📋 💻)
+    hosted = {ui.view_name(view['source'], SHELL_PAGE): view['document'] for view in views if view['document']}   # ⚙️ ⋯ what each view declares (Ironmate's 📋 💻)
     page = add_site_chrome(page, SHELL_PAGE, cities, views=hosted).replace(mark, screen['html'], 1)
     icons = {'icon': '../assets/brand/favicon-32x32.png', 'touch_icon': '../assets/brand/myon-profile-icon.png'}   # 📱 the home-screen shortcut
     return ui.stamp_page_size(ui.home_label(page, '🧰 道具', **icons)).encode('utf-8')
@@ -1254,7 +1248,7 @@ def build(output: Path, root: Path = ROOT) -> None:
     import pysaiyanweboo as ui
     payload = {**generate(root), **render_front(root, recorded_samples(output)), **card_parts(ui, output, recorded=True)}  # Fail closed first.
     own = {key: (payload.pop(key), None) for key in [key for key in payload if '#' in key]}   # 🧰 every #name is a panel
-    payload[SHELL_PAGE] = render_shell(ui, {**own, **tool_panels(ui, output)})
+    payload[SHELL_PAGE] = render_shell(ui, {**own, **tool_panels(output)})
     for name, data in payload.items():
         path = output / name
         path.parent.mkdir(parents=True, exist_ok=True)
