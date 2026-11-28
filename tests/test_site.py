@@ -485,7 +485,9 @@ def test_every_tool_page_carries_the_same_chrome_and_a_world_page_adds_what_it_l
             assert '<div class="ui-chrome ' not in page and '</div><button type="button" class="ui-gaze"' in page[:page.index('<nav class="ui-world-tools">')], name
             assert page.count(module[1]) == 1 and f'<option value="{prefix}index.html#tools">🏠 Tools</option>' in page, name
             continue
-        assert page[body.end():].startswith('<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="ja">'), name
+        lang = 'ja' if '<html lang="ja"' in page else 'en'                          # 🌐 the chrome starts in the page's own language
+        assert page[body.end():].startswith(f'<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="{lang}" data-words="'), name
+        assert all(card['words'].keys() <= set(json.loads(html.unescape(re.search(r'data-words="([^"]*)"', page)[1]))) for card in PAGES._front_module().PORTAL if 'words' in card), name
         assert page.count('<div class="ui-chrome') == 1 and '<span class="ui-board-clock" data-clock>--:--:--</span>' in page, name
         assert len(module[0].findall(page)) == 1 and page.count(module[1]) == 1 and page.count('<div class="ui-door-foot">') == 1, name
         foot = re.search(r'<p class="ui-door-extras"><a href="https://twitter\.com/myonitbusiness"[^>]* target="_blank" rel="noopener noreferrer">🐦</a>'
@@ -1803,7 +1805,7 @@ def test_the_front_page_carries_the_shared_header_side_and_foot():
     import re
     page = (SITE / 'index.html').read_text(encoding='utf-8')
     body = re.search(r'<body[^>]*>', page)
-    assert page[body.end():].startswith('<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="ja">')
+    assert page[body.end():].startswith('<div class="ui-chrome ui-world-head" id="tools-chrome" data-ui-chrome lang="en" data-words="')   # 🌐 an English page: its chrome starts in English
     assert page.count('<div class="ui-chrome') == 1 and page.count('<div class="ui-door-foot">') == 1 and 'class="ui-world-home"' not in page
     board = page[body.end():page.index('<nav class="ui-world-tools">')]
     assert '>MYON<' in board and 'Bioinformatics → Security/Backend engineer.' in board and 'Practical CLI and browser tools in Python' in board

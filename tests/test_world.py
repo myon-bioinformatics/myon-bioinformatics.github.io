@@ -584,7 +584,16 @@ def test_the_chrome_speaks_the_eleven_languages_of_flutter_navigation_basic():
         assert len(words) == 11 and all(w.strip() for w in words), key
         assert len(set(words)) >= 6, key                                       # a few are the same word in several languages (Hotel-like), not all
     runtime = ("invalid", "camera", "photo", "clear", "unavailable")           # said by the script (a validity message, the ask() choices), not in the markup
-    assert all(f'data-t="{k}"' in W.world_html(W.EXAMPLES["overworld"]) or k in runtime for k in W.WORLD_TEXT)
+    overworld = W.world_html(W.EXAMPLES["overworld"])
+    # 🌐 the rest sayIn finds by their words: the scenes' buttons and labels, the shell's (world_shell.py), the site's parts on a world
+    # page (🫧 🚪 📦: PySaiyanWeBoo's keys) and what the board writes (now, in N min); each is in one of them, in Japanese
+    by_words = [k for k in W.WORLD_TEXT if f'data-t="{k}"' not in overworld and k not in runtime]
+    import pysaiyanweboo                                                          # the way back's 関連リンク is PySaiyanWeBoo's
+    scenes = "".join(W.world_html(W.example_data(name)) for name in W.EXAMPLES) + "".join(
+        path.read_text(encoding="utf-8") for path in (ROOT / "scripts").glob("*.py")) + Path(pysaiyanweboo.__file__).read_text(encoding="utf-8")
+    assert all(W.WORLD_TEXT[k][0] in scenes or k in ("blink", "door", "size", "current", "now", "in") for k in by_words), \
+        [k for k in by_words if W.WORLD_TEXT[k][0] not in scenes]
+    assert {"now", "in", "current"} <= set(by_words) and "WORLD_TEXT.current[" in W.WORLD_JS and "WORLD_TEXT.in[i]" in W.WORLD_JS
     assert all(f"'{k}'" in W.WORLD_JS for k in runtime[1:])
     assert W.WORLD_JS.startswith(W.WORLD_MOTION_JS + W.WORLD_SHARED_JS + W.WORLD_TEXT_JS)
     catalogue = json.loads(W.WORLD_TEXT_JS.split("WORLD_TEXT=")[1].rstrip(";\n"))
