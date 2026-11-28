@@ -11,12 +11,12 @@ spec.loader.exec_module(fleet)
 
 ROOT = fleet.repo_root(__file__)
 # Local rollout contract; adopted vendor locks are deliberately independent.
-PARENT_WORKFLOW_PIN = "27dedd9651efc816fa88d8922adb5f242725df69"
-ACCEPTED = {"vendor/fleet_check.py": "eee8c096fc753465a5d5a26264e64c12e555638f"}   # 📜 check_no_vendor_package_imports (parent #414)
+PARENT_WORKFLOW_PIN = "main"  # 🔁 own sources follow main (2026-11-28)
+ACCEPTED = {"vendor/fleet_check.py"}  # 🔁 locked destinations; they follow main
 
 
 def test_vendor_lock_matches_checked_in_bytes_and_accepted_commits():
-    rows = fleet.check_lock(ROOT, commits=ACCEPTED)      # the one lock: tools/vendor/ (HTML import, lab) and vendor/ (parent)
+    rows = fleet.check_lock(ROOT)      # the one lock: tools/vendor/ (HTML import, lab) and vendor/ (parent)
     assert {'tools/vendor/lab/html_snapshot.py', 'vendor/pillow_min.py', 'tools/vendor/web-ui/LICENSE'} <= set(rows)
 
 

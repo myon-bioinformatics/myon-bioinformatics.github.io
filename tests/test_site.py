@@ -1054,7 +1054,7 @@ def test_fixture_oracles_are_explicit():
 
 def test_lab_pin_is_one_commit_for_both_ci_jobs():
     """🔌 ci.yml's static and browser jobs check out the same lab commit: the code the chat's MCP server runs in the tests."""
-    refs = re.findall(r'repository: myon-bioinformatics/mcp-toolcall-lab\n\s+ref: ([0-9a-f]{40})', (ROOT / '.github/workflows/ci.yml').read_text())
+    refs = re.findall(r'repository: myon-bioinformatics/mcp-toolcall-lab\n\s+ref: ([0-9a-f]{40}|main)', (ROOT / '.github/workflows/ci.yml').read_text())
     assert len(refs) == 2 and len(set(refs)) == 1, refs
     assert 'mcp-toolcall-lab' not in (ROOT / '.github/workflows/html-import.yml').read_text()     # 🐳 the Docker contract builds no lab
 
