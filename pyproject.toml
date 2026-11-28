@@ -8,9 +8,9 @@ dependencies = []
 
 [dependency-groups]
 # The shared Web UI generator (scripts/project_pages.py), and the single-file modules the 💬 chat page runs in Pyodide
-# (scripts/chat.py: markdown.py, ascii_artist.py, cli_args.py, ontautology.py, olnm.py); each commit is pinned once, in
-# [tool.uv.sources] below.
-pages = ["pysaiyanweboo", "md-market", "ascii-artist-dev", "cli-args-dev", "ontautology", "one-launch-numerous-modules"]
+# (scripts/chat.py: markdown.py, ascii_artist.py, cli_args.py, ontautology.py, olnm.py, Err-o-RoadRunner's triage.py + errlib);
+# each commit is pinned once, in [tool.uv.sources] below.
+pages = ["pysaiyanweboo", "md-market", "ascii-artist-dev", "cli-args-dev", "ontautology", "one-launch-numerous-modules", "err-o-roadrunner"]
 docker-test = ["pytest>=9.1.1", { include-group = "pages" }, "gh-identity-dev"]
 test = [{ include-group = "docker-test" }, "stagehand>=4.2.1"]
 # 🎥 project_pages.py --record-samples and 🌍 world.py record: the generator, Playwright and Pillow (the GIF encoder).
@@ -29,3 +29,4 @@ cli-args-dev = { git = "https://github.com/myon-bioinformatics/cli_args", rev = 
 gh-identity-dev = { git = "https://github.com/myon-bioinformatics/gh_identity", rev = "3111c17213baa0f469500a765d0a59f6de8e1d41" }
 ontautology = { git = "https://github.com/myon-bioinformatics/OnTautoLogy", rev = "c99c36ff572083df75be5476e84f489198288725" }
 one-launch-numerous-modules = { git = "https://github.com/myon-bioinformatics/OneLaunchNumerousModules", rev = "ceade2335042462dc2f22d0af308b27b32039023" }
+err-o-roadrunner = { git = "https://github.com/myon-bioinformatics/Err-o-RoadRunner", rev = "0ebad9f5c1bca2335ff4e45ba9e37b750d1086b1" }
