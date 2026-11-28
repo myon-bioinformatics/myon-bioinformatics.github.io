@@ -199,11 +199,10 @@ def tools_places(prefix: str = '../') -> list[dict]:
 
 def tools_words() -> dict[str, list[str]]:
     """🌐 The 🧰 Tools cards' names in the ten other languages of 🌐 (each card's ``words``: its title and its links' words; 開く, the
-    word every card's first link says; ⚙️'s own rows, ``WORDS``), as PySaiyanWeBoo's chrome takes them: wherever a page shows one
+    word every card's first link says), as PySaiyanWeBoo's chrome takes them: wherever a page shows one
     (the board, ☰, 🚪, a card), it reads in the visitor's language."""
-    front = _front_module()
     opens = {'開く': ['Open', 'Ouvrir', 'Abrir', 'Abrir', 'افتح', '打开', 'Открыть', 'Buka', 'Öffnen', 'Fungua']}
-    return {**opens, **{ja: row for card in front.PORTAL for ja, row in card.get('words', {}).items()}, **front.WORDS}
+    return {**opens, **{ja: row for card in _front_module().PORTAL for ja, row in card.get('words', {}).items()}}
 
 
 def _sentences(text: str) -> list[dict]:
@@ -213,16 +212,15 @@ def _sentences(text: str) -> list[dict]:
 
 
 def tools_chrome(prefix: str = '../', tools: dict | None = None, description: str = '', *, title: str = 'TOOLS', home: bool = True,
-                 lang: str = 'ja', settings: list | None = None) -> dict:
+                 lang: str = 'ja') -> dict:
     """🧰 The chrome both pages of the site carry (PySaiyanWeBoo's ``chrome_validate``), for a page ``prefix`` below the site root:
     the board (``title``, the clock, then ``description`` — what this page is, a sentence per item — and the cards' titles), 🏠 back
-    to the cards (``home=False``: the front page itself), ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``), and
-    ``settings``, the page's own rows of ⚙️ (the front page's 🧾 display mode, beside 🌐 and 🎨, which every page shares).
+    to the cards (``home=False``: the front page itself) and ``tools``, the emoji this page adds (``{'🗼': {'label': …, 'href': …}}``).
+    What a page asks of ⚙️ and ⋯ it declares itself (``add_site_chrome`` places it).
     ☰ is each page's own (itself and its sections, listed in the page); the tools themselves are 🚪 Door-to-Door's rows (``tools_places``)."""
     cards = _front_module().PORTAL
     about = _sentences(description)
     return {'id': 'tools', 'lang': lang, 'words': tools_words(), **({'home': prefix + 'index.html#tools'} if home else {}), 'tools': tools or {},
-            'settings': settings or [],
             'board': {'title': title, 'items': (about + [{'text': card['title']} for card in cards])[:12]}}
 
 
@@ -239,12 +237,14 @@ def tools_door(ui, prefix: str = '../') -> dict[str, str]:
 X_URL = 'https://twitter.com/myonitbusiness'
 
 
-def add_site_chrome(page: str, path: str, tools: dict | None = None, *, title: str = 'TOOLS', home: bool = True, settings: list | None = None) -> str:
+def add_site_chrome(page: str, path: str, tools: dict | None = None, *, title: str = 'TOOLS', home: bool = True, views: dict | None = None) -> str:
     """🧰 The parts both pages of the site share (``index.html``, ``tools/index.html``: ``path``): the header (``tools_chrome``: the
     board reads the page's ``<meta name="description">``, 🫧 the round face that follows the pointer, 🏠 ⭐ ⚙️), the side (☰ ⋯)
     and the foot (``tools_door``: 🚪 every tool as a pull-down, 🐦 X, 📦 the page's size). The parts are PySaiyanWeBoo's
     (``component_parts("chrome" | "door" | "gaze-avatar")``, put on the page by ``add_part``); the chrome starts in the page's
-    own language (🌐 ``page_language``)."""
+    own language (🌐 ``page_language``).
+    What a page asks of the header it declares itself (PySaiyanWeBoo ``chrome_rows_script``: the front page's 🧾), and ``views``, a
+    screen's panels (name → document), bring theirs while they show (Ironmate's studios: 📋 the shelf, 💻 ⇄ 📱): ``chrome_hosting``."""
     import pysaiyanweboo as ui
     prefix = '../' * path.count('/') or './'
     meta = re.search(r'<meta name="description" content="([^"]*)"', page)
@@ -253,7 +253,7 @@ def add_site_chrome(page: str, path: str, tools: dict | None = None, *, title: s
         page = re.sub(r'<html lang="en"', '<html lang="ja"', page, count=1)
     face = ui.component_parts('gaze-avatar', label='まばたき')
     face['html'] = face['html'].replace(' aria-label="', ' data-t="blink" aria-label="', 1)   # 🫧 its name follows 🌐 too
-    head = ui.component_parts('chrome', tools_chrome(prefix, tools, meta[1] if meta else '', title=title, home=home, lang=lang, settings=settings))
+    head = ui.component_parts('chrome', ui.chrome_hosting(tools_chrome(prefix, tools, meta[1] if meta else '', title=title, home=home, lang=lang), page, views))
     tools_nav = '<nav class="ui-world-tools">'
     head['html'] = head['html'].replace(tools_nav, face['html'] + tools_nav, 1)                  # 🫧 after the board
     page = ui.add_part(page, {'css': face['css'] + '.ui-world-head .ui-gaze{flex:none;margin:0 4px}', 'js': face['js']})
@@ -267,7 +267,7 @@ def render_front(root: Path = ROOT, samples=frozenset()) -> dict[str, bytes]:
 
     It is not in the lock: api/repos.json is refreshed by a workflow, and the page must follow it without a lock refresh."""
     front = _front_module()
-    return {'index.html': add_site_chrome(front.document(root, samples=samples), 'index.html', front.LINKS, title='MYON', home=False, settings=front.SETTINGS).encode('utf-8')}
+    return {'index.html': add_site_chrome(front.document(root, samples=samples), 'index.html', front.LINKS, title='MYON', home=False).encode('utf-8')}
 
 
 HTML_IMPORT = posixpath.dirname(HTML_IMPORT_MODULE) + '/#html-import'   # 📄 its document beside its module (it imports ../vendor/…)
@@ -1121,9 +1121,11 @@ const tell=panel=>{const run=document.querySelector('.ui-chrome .ui-board-run');
  const about=JSON.parse((panel.dataset.about?panel:home).dataset.about||'[]'),cards=[...run.children].slice(lead,run.children.length/2);
  const first=[...about.map(text=>Object.assign(document.createElement('span'),{className:'ui-board-item',textContent:text})),...cards];
  run.replaceChildren(...first,...first.map(n=>{const c=n.cloneNode(true);c.setAttribute('aria-hidden','true');return c}));lead=about.length};
+const host=panel=>{const frame=panel.querySelector('iframe'),send=()=>document.dispatchEvent(new CustomEvent('ui-chrome-view',{detail:{name:panel.id,root:frame?frame.contentDocument:panel}}));
+ if(frame&&!frame.dataset.ready)frame.addEventListener('load',()=>{if(current===panel.id)send()},{once:true});else send()};   // ⚙️ ⋯ the panel's own rows, its keys to it
 const show=(panel,target,fragment)=>{mount(panel);
  for(const p of panels)p.hidden=p!==panel;document.title=panel.dataset.title;tell(panel);
- if(target)inside(panel,target,fragment);else if(current&&current!==panel.id)scrollTo(0,0);current=panel.id;mark()};
+ if(target)inside(panel,target,fragment);else if(current&&current!==panel.id)scrollTo(0,0);current=panel.id;mark();host(panel)};
 const route=()=>{const fragment=location.hash;let name='';
  try{name=decodeURIComponent(fragment.slice(1).split('?',1)[0])}catch{}
  if(names.includes(name))return show(document.getElementById(name));
@@ -1289,9 +1291,9 @@ def render_shell(ui, panels: dict[str, tuple[bytes, str | None, bool]]) -> bytes
     page = ui.render_document(title='🧰 Tools', theme='modern', trusted_html=home + mark + f'<script>{_SHELL_JS}</script>',
                               css='.ui-tools-index{display:grid;gap:8px;padding:0;list-style:none}' + _FRAME_CSS)
     page = page.replace('<html lang="en">', '<html lang="ja">', 1).replace('<head>', f'<head><meta name="description" content="{description}">', 1).replace('<style>', f'<link rel="stylesheet" href="{sheet}"><style>', 1)
-    page = ui.add_back_nav(page, [{'label': '← 🧰 Tools', 'href': '../index.html#tools'}], test_id='portfolio-back')   # 🏠 the home panel's first line
     cities = {'🗼': {'label': 'パラレル都市', 'label_en': 'Parallel cities', 'href': './#tokyo'}}   # 🗺️ the map's neighbour
-    page = add_site_chrome(page, SHELL_PAGE, cities).replace(mark, ''.join(sections), 1)
+    views = {panel_name(source): data.decode('utf-8') for source, (data, _, _) in panels.items()}   # ⚙️ ⋯ what each panel declares (Ironmate's 📋 💻)
+    page = add_site_chrome(page, SHELL_PAGE, cities, views=views).replace(mark, ''.join(sections), 1)
     icons = {'icon': '../assets/brand/favicon-32x32.png', 'touch_icon': '../assets/brand/myon-profile-icon.png'}   # 📱 the home-screen shortcut
     return ui.stamp_page_size(ui.home_label(page, '🧰 道具', **icons)).encode('utf-8')
 
