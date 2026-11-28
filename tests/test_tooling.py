@@ -274,8 +274,6 @@ def test_refresh_and_cli_output_are_reproducible(tmp_path):
     shutil.copyfile(ROOT / 'pyproject.toml', root / 'pyproject.toml')
     shutil.copyfile(ROOT / 'uv.lock', root / 'uv.lock')     # 🔁 PySaiyanWeBoo follows main; uv.lock holds its commit
     shutil.copyfile(ROOT / 'scripts/project_pages.py', root / 'scripts/project_pages.py')
-    (root / '_src/tools').mkdir(parents=True)
-    shutil.copyfile(ROOT / '_src/tools/studio_routes.py', root / '_src/tools/studio_routes.py')
     shutil.copyfile(ROOT / 'scripts/front_page.py', root / 'scripts/front_page.py')         # the front page is generated too
     shutil.copyfile(ROOT / 'scripts/map_tool.py', root / 'scripts/map_tool.py')
     shutil.copyfile(ROOT / 'scripts/world.py', root / 'scripts/world.py')                 # 🌍 the world pages and Parallel Tokyo
@@ -491,7 +489,7 @@ def test_composition_audio_waits_for_ironmates_editor_instead_of_failing_the_dep
     from html import escape, unescape
     tools, shell = tmp_path / 'tools/browser-tools', tmp_path / 'tools/index.html'
     tools.mkdir(parents=True)
-    screen = lambda page: f'<section id="browser-tools" data-tools-panel hidden><template><iframe srcdoc="{escape(page)}"></iframe></template></section>'
+    screen = lambda page: f'<section id="browser-tools" data-ui-view hidden><template><iframe srcdoc="{escape(page)}"></iframe></template></section>'
     shell.write_text(screen('<body>no editor yet</body>'), encoding='utf-8')
     assert publish(tmp_path) is False and shell.read_text(encoding='utf-8') == screen('<body>no editor yet</body>')   # ⏸
     shell.write_text(screen('<body><div id="song-audio"></div></body>'), encoding='utf-8')

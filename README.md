@@ -79,39 +79,34 @@ proxy. The link target remains the stable `/evidence/latest/desktop.png` URL.
 
 🧰 道具は全部 **1 つの画面** `tools/` のパネルです（公開する HTML はトップの `index.html` と `tools/index.html` の 2 枚だけ。`scripts/project_pages.py` の `render_shell`）。ヘッダー・フッター・⚙️ 設定は画面に 1 つで、道具はリロードなしで切り替わり、開いたときに初めて読み込まれます（それまでは `<template>` の中で眠っている。スクリプトは元のページと同じ順に 1 つずつ動く）。
 
-| パネルの種類 | 道具 | しくみ |
-|---|---|---|
-| 🧩 画面に入る | `#gif` `#maps` `#test-report` `#flow` `#repo-map` `#chat` `#worlds`（`#world` `#school` `#tokyo` `#camera`）`#heatmap` `#format-lab` | 道具の `<head>` 固有部分と `<body>` を取り込む。🆔 id がぶつかると、このサイトの道具ならビルドが止まり、ほかのリポジトリの道具なら ⏸ |
-| 🖼️ 枠で動く | `#html-import` `#image-studio` `#browser-tools` `#slide-studio` | 文書を丸ごと持つアプリ（自分の CSP・id・スクリプト）は `<iframe srcdoc>` で。ファイルはサイトの根から（`/tools/…`）、自分で解決する相対 URL は `<base>` で、`#` リンクは枠の中に留まる。外へ出るリンクは画面で開く（`target="_top"`、道具なら `/tools/#名前`） |
+🖼️ 自分の CSP を持つ文書（アプリ）は枠（`<iframe srcdoc>`）で、ほかは画面に入って動きます。ファイルはサイトの根から（`/tools/…`）読み、`#` リンクは枠の中に留まり、外へ出るリンクは画面で開きます。🆔 id がぶつかると、このサイトの道具ならビルドが止まり、ほかのリポジトリの道具なら ⏸ になります。
 
 `#records` のような道具の中の見出しへのリンクは、その道具を開いてそこへ移ります。Pyodide に渡すチャットの Python は開いたときに `tools/chat/sources.json` から読みます。
 
-下の表は手で書きません。🧰 のカード（`scripts/front_page.py` の `PORTAL`）から `--refresh-lock` が書き直します。
+<!-- 🧰 tools: --refresh-lock writes this table from the cards (front_page.py PORTAL) -->
+| 🏷️ 道具 | 📝 説明 | 🛠️ 作るところ | 🔗 開く |
+| --- | --- | --- | --- |
+| 📄 HTML文書取込 | HTML を貼るかファイルを選び、本文・見出し・リンクを端末の中で抽出。 | このサイト | [開く](https://myon-bioinformatics.github.io/tools/#html-import) |
+| 🗃️ 形式変換・検証 | ファイルや貼った原文を静的検査し、Base64 の復元差分と検証記録を確認。CaChereCyCle の資産は SHA-256 も照合。 | myon-bioinformatics | [開く](https://myon-bioinformatics.github.io/tools/#format-lab) |
+| 📍 地図URL・座標ピン留め | 実在の緯度・経度から Apple Maps と Google Maps の URL を作り、地点をピン留め・共有。 | このサイト | [開く](https://myon-bioinformatics.github.io/tools/#maps) |
+| 🪐 仮想・拡張エリア | 緯度・経度ではなく、歩いて回る空間。🌍 🏫 🗼 🎡 🥖 🎬 📷 | このサイト | [開く](https://myon-bioinformatics.github.io/tools/#worlds) · [🏫 学校](https://myon-bioinformatics.github.io/tools/#school) · [🗼 パラレル東京](https://myon-bioinformatics.github.io/tools/#tokyo) · [🎡 Reverse London](https://myon-bioinformatics.github.io/tools/#london) · [🥖 Fake Paris](https://myon-bioinformatics.github.io/tools/#paris) · [🎬 カメラ](https://myon-bioinformatics.github.io/tools/#camera) · [📷 実空間×仮想](https://myon-bioinformatics.github.io/tools/#overworld-spot-real-gate) |
+| 🖼️ 画像工房 | レイヤー・作業履歴・クリップボード棚で画像を編集。数値行列のヒートマップと PNG Base64 の受け渡しも。 | Ironmate | [開く](https://myon-bioinformatics.github.io/tools/#image-studio) |
+| 🎨 ブラウザ道具 | ドット絵・比較用の一枚・容量確認を、ブラウザだけで。 | Ironmate | [開く](https://myon-bioinformatics.github.io/tools/#browser-tools) |
+| 📽️ スライド工房 | ブラウザでスライドを作り、文字・図形・矢印を編集できる PPTX に出力。Markdown→PPTX は CLI の試作実装。 | Ironmate | [開く](https://myon-bioinformatics.github.io/tools/#slide-studio) |
+| 🌡️ ヒートマップ | 数値行列か Plotly の heatmap を貼って描き、SVG・PNG・シーン JSON に。シーンは画像工房で編集できる。 | DRAgoWing | [開く](https://myon-bioinformatics.github.io/tools/#heatmap) · [🖼️ 画像工房で編集](https://myon-bioinformatics.github.io/tools/#image-studio) |
+| 🧾 テスト結果 | JUnit の結果を読み、前回と比べて新規・再発・解消を分ける。🧯 で失敗をチャットの /triage へ。結果は送らない。 | このサイト | [開く](https://myon-bioinformatics.github.io/tools/#test-report) |
+| 💬 横断チャット | Markdown・ASCII アート・圧縮・JSON 索引・🧯 triage・🔌 MCP を Python で。🤖 LLM も呼ぶ。 | このサイト | [開く](https://myon-bioinformatics.github.io/tools/#chat) |
+| 🧭 統合運用 | リポジトリ横断の運用ダッシュボード：CI の失敗・競合・未解決レビュー、監査と依存、実行手順、記録と差分。 | myon-bioinformatics | [開く](https://myon-bioinformatics.github.io/myon-bioinformatics/) |
+| 🎞 GIF工房 | 手持ちの画像を並べて GIF に。端末の中で完結し、画像はどこにも送らず保存もしない。 | このサイト | [開く](https://myon-bioinformatics.github.io/tools/#gif) |
+| 🌊 流れの実験室 | FFSS の全場面を 🌊 動く像で、DRAgoWing の全図を 📊 静止図で。水回り・そうめん・お金・からだ・火力まで。 | このサイト | [開く](https://myon-bioinformatics.github.io/tools/#flow) |
+| 🧠 リポジトリ地図 | どのリポジトリがどのファイルを写して使うか。vendor.lock.json と Aoi の subtree から公開ごとに描き直す。 | このサイト | [開く](https://myon-bioinformatics.github.io/tools/#repo-map) |
+<!-- /🧰 tools -->
 
-<!-- 🧰 PORTAL -->
-| 道具 | できること | 開く |
-| --- | --- | --- |
-| 📄 HTML文書取込 | HTML を貼るかファイルを選び、本文・見出し・リンクを端末の中で抽出。 | [tools/#html-import](https://myon-bioinformatics.github.io/tools/#html-import) |
-| 🗃️ 形式変換・検証（myon-bioinformatics · PySaiyanWeBoo） | ファイルや貼った原文を静的検査し、Base64 の復元差分と検証記録を確認。CaChereCyCle の資産は SHA-256 も照合。 | [tools/#format-lab](https://myon-bioinformatics.github.io/tools/#format-lab) |
-| 📍 地図URL・座標ピン留め | 実在の緯度・経度から Apple Maps と Google Maps の URL を作り、地点をピン留め・共有。 | [tools/#maps](https://myon-bioinformatics.github.io/tools/#maps) |
-| 🪐 仮想・拡張エリア | 緯度・経度ではなく、歩いて回る空間。🌍 🏫 🗼 🎡 🥖 🎬 📷 | [tools/#worlds](https://myon-bioinformatics.github.io/tools/#worlds) · [🏫 学校](https://myon-bioinformatics.github.io/tools/#school) · [🗼 パラレル東京](https://myon-bioinformatics.github.io/tools/#tokyo) · [🎡 Reverse London](https://myon-bioinformatics.github.io/tools/#london) · [🥖 Fake Paris](https://myon-bioinformatics.github.io/tools/#paris) · [🎬 カメラ](https://myon-bioinformatics.github.io/tools/#camera) · [📷 実空間×仮想](https://myon-bioinformatics.github.io/tools/#overworld-spot-real-gate) |
-| 🖼️ 画像工房（Ironmate） | レイヤー・作業履歴・クリップボード棚で画像を編集。数値行列のヒートマップと PNG Base64 の受け渡しも。 | [tools/#image-studio](https://myon-bioinformatics.github.io/tools/#image-studio) |
-| 🎨 ブラウザ道具（Ironmate） | ドット絵・比較用の一枚・容量確認を、ブラウザだけで。 | [tools/#browser-tools](https://myon-bioinformatics.github.io/tools/#browser-tools) |
-| 📽️ スライド工房（Ironmate） | ブラウザでスライドを作り、文字・図形・矢印を編集できる PPTX に出力。Markdown→PPTX は CLI の試作実装。 | [tools/#slide-studio](https://myon-bioinformatics.github.io/tools/#slide-studio) |
-| 🌡️ ヒートマップ（DRAgoWing · Ironmate） | 数値行列か Plotly の heatmap を貼って描き、SVG・PNG・シーン JSON に。シーンは画像工房で編集できる。 | [tools/#heatmap](https://myon-bioinformatics.github.io/tools/#heatmap) · [🖼️ 画像工房で編集](https://myon-bioinformatics.github.io/tools/#image-studio) |
-| 🧾 テスト結果（PySaiyanWeBoo） | JUnit の結果を読み、前回と比べて新規・再発・解消を分ける。🧯 で失敗をチャットの /triage へ。結果は送らない。 | [tools/#test-report](https://myon-bioinformatics.github.io/tools/#test-report) |
-| 💬 横断チャット（markdown · ascii_artist · cli_args · TalkCompress · mcp-toolcall-lab · Err-o-RoadRunner） | Markdown・ASCII アート・圧縮・JSON 索引・🧯 triage・🔌 MCP を Python で。🤖 LLM も呼ぶ。 | [tools/#chat](https://myon-bioinformatics.github.io/tools/#chat) |
-| 🧭 統合運用（myon-bioinformatics） | リポジトリ横断の運用ダッシュボード：CI の失敗・競合・未解決レビュー、監査と依存、実行手順、記録と差分。 | [myon-bioinformatics/](https://myon-bioinformatics.github.io/myon-bioinformatics/) |
-| 🎞 GIF工房（PySaiyanWeBoo） | 手持ちの画像を並べて GIF に。端末の中で完結し、画像はどこにも送らず保存もしない。 | [tools/#gif](https://myon-bioinformatics.github.io/tools/#gif) |
-| 🌊 流れの実験室（FluidFullSpeedSimulation · DRAgoWing） | FFSS の全場面を 🌊 動く像で、DRAgoWing の全図を 📊 静止図で。水回り・そうめん・お金・からだ・火力まで。 | [tools/#flow](https://myon-bioinformatics.github.io/tools/#flow) |
-| 🧠 リポジトリ地図 | どのリポジトリがどのファイルを写して使うか。vendor.lock.json と Aoi の subtree から公開ごとに描き直す。 | [tools/#repo-map](https://myon-bioinformatics.github.io/tools/#repo-map) |
-<!-- 🧰 PORTAL -->
+1 つの道具に 1 枚のカード（`scripts/front_page.py` の `PORTAL`）です。カードの題名（絵文字 ＋ 日本語）が、カード・🚪・道具の画面の 🏠 一覧・タブの名前です。説明は 70 字以内で、開いている間は画面の掲示板にも出ます。最初のリンクは「開く →」で、書かなければその道具の `#パネル` です。ほかのリンクは関連する場所へ行き、自分の絵文字と名前を持ちます。🌐 のほかの言語の名前は `words` に書きます。ほかのリポジトリが作る道具は `build`（リポジトリ・作り方・そのサイトのどのフォルダか）を書けば、`tools/<id>/` に置かれ、パネル・🚪・🏠・この表まで自動でそろいます。
 
-1 つの道具に 1 枚のカードです。カードの題名（絵文字 ＋ 日本語）が、カード・🚪・道具の画面の 🏠 一覧・タブの名前です。説明は 70 字以内で、開いている間は画面の掲示板にも出ます。最初のリンクは「開く →」、ほかのリンクは関連する場所へ行き、自分の絵文字と名前を持ちます。🌐 のほかの言語の名前は `words` に書きます。
+新しい道具を足すときは、カードを 1 件足して `python scripts/project_pages.py --refresh-lock` で表と lock を書き直します（このサイトで作る道具は、`render_pages` にその作り方も足します）。
 
-新しい道具を足すときは、生成元の `scripts/front_page.py`（`PORTAL`）と `tests/test_site.py` をいっしょに直し、行き先と HTTPS の Pages 契約を同じ変更で確認します。
-
-🧰 Ironmate's 🖼️ 画像工房, 🎨 ブラウザ道具 and 📽️ スライド工房 (`tools/#image-studio`, `#browser-tools`, `#slide-studio`; each 🖼️ framed: an app that owns its document) and DRAgoWing's 🌡️ heatmap and the parent's 🗃️ format lab (the one screen's `tools/#heatmap`, `tools/#format-lab`) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories). A build that could not record one leaves a ⏸ panel in its place. Ironmate has a local metadata card (`project-ironmate.json`). Its retired MCP stub is not linked. Studio route mapping is build source in `_src/tools/studio_routes.py`; the rendered pages live only in the Pages output tree. Ironmate still owns the generated editor and data formats, and the shared back navigation comes from PySaiyanWeBoo.
+🧰 The tools other repositories make (each card's `build`: Ironmate's 🖼️ 画像工房, 🎨 ブラウザ道具 and 📽️ スライド工房 from one build, DRAgoWing's 🌡️ heatmap, the parent's 🗃️ format lab) are built here at deploy time from each repository's default branch (`scripts/project_pages.py --record-tools`; the code stays in those repositories) and placed at `tools/<card id>/`, the links between the folders of one build following the move (`place_built`). A build that could not record one leaves a ⏸ panel in its place. Ironmate has a local metadata card (`project-ironmate.json`); it still owns the generated editor and data formats.
 
 ## 🚀 公開リポジトリ
 

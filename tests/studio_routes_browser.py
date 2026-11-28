@@ -25,8 +25,9 @@ def studio_origin(tmp_path_factory):
     site = tmp_path_factory.mktemp("portfolio-studios")
     ironmate = root / ".test-deps/ironmate-studio"
     sha = subprocess.check_output(["git", "-C", str(ironmate), "rev-parse", "HEAD"], text=True).strip()
-    receipt = pages.collect_tools(site, {"ironmate": ironmate}, {"ironmate": sha})   # 🧰 the tools first: the screen takes them in
-    assert receipt["made"] == ["ironmate"] and not receipt["failed"], receipt
+    repository = "myon-bioinformatics/Ironmate"
+    receipt = pages.collect_tools(site, {repository: ironmate}, {repository: sha})   # 🧰 the tools first: the screen takes them in
+    assert receipt["made"] == ["image-studio", "browser-tools", "slide-studio"] and not receipt["failed"], receipt
     pages.build(site)
     assert not (site / "tools/ironmate").exists() and not list((site / "tools").glob("*-studio/index.html"))
     server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(SimpleHTTPRequestHandler, directory=site))
