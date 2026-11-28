@@ -2723,7 +2723,7 @@ export function bindWorldRpg(el){
    }catch{reply.textContent="今はうまくおしゃべりできないみたい。"}
    finally{send.disabled=false}
   };
-  return rpgEl("details",{},rpgEl("summary",{textContent:"もっと話す"}),rpgEl("small",{textContent:"初回送信時に約560 MBのモデルを読み込みます。"}),form);
+  return rpgEl("details",{},rpgEl("summary",{textContent:"もっと話す"}),rpgEl("small",{textContent:"入力を始めると、初回だけ約560 MBのモデルを読み込みます。"}),form);
  }
  const closeModal=()=>{overlay.hidden=true;overlay.replaceChildren();el.querySelector(".ui-world-view")?.focus({preventScroll:true})};
  const showCard=(card)=>{overlay.replaceChildren(card);overlay.hidden=false;const focusable=card.querySelector("[data-primary],button");focusable?.focus({preventScroll:true})};

@@ -594,6 +594,103 @@ def test_door_to_door_in_chromium_with_a_gif():
     target['door-to-door-pulldown'].write_bytes(gif)
 
 
+def test_the_chat_warms_llama_a_little_before_it_is_wanted():
+    """🔥 The heavy first load starts a little before the question: a hand on a link to 💬 starts 🐍 (the view mounts), the box in
+    focus fetches llama.cpp itself, "/a…" typed or a pointer on an /ask example starts the model (once: the question waits for the
+    same download), and a device that loaded it before warms as the chat opens. Nothing before one of these, and nothing on a line
+    that asks to save data. Pyodide is asked for and never answers here (the warm-up does not wait for it); wllama is a stand-in that counts.
+    Frames go to test-results/chat-warm-up/chat-warm-up-<UTC>.gif."""
+    sync_api = pytest.importorskip('playwright.sync_api')
+    ui = pytest.importorskip('pysaiyanweboo')
+    import functools, threading
+    from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+    class Quiet(SimpleHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+    world = PAGES._world()
+    server = ThreadingHTTPServer(('127.0.0.1', 0), functools.partial(Quiet, directory=str(SITE)))
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f'http://127.0.0.1:{server.server_port}/'
+    engine = """export class Wllama { async loadModelFromUrl(url, {progressCallback}) { window.modelLoads = (window.modelLoads || 0) + 1;
+      progressCallback({loaded: 280 * 2 ** 20, total: 560 * 2 ** 20}); await new Promise(done => setTimeout(done, 600)); } }"""
+    loaded, status = "window.modelLoads", "document.querySelector('#chat [data-chat-status]').textContent"
+
+    def open_page(browser, path, *, before=''):
+        context = browser.new_context(viewport={'width': 560, 'height': 480})
+        if before:
+            context.add_init_script(before)
+        page, seen = context.new_page(), []
+        page.route(lambda url: url.startswith(CHAT.RUNTIME['pyodide']), lambda r: seen.append('pyodide'))   # ⏳ asked for, never answered
+        page.route(lambda url: url.startswith(CHAT.RUNTIME['wllama']), lambda r: (seen.append(r.request.url.rpartition('/')[2]), r.fulfill(
+            content_type='text/javascript' if r.request.url.endswith('.js') else 'application/wasm', headers={'Access-Control-Allow-Origin': '*'},
+            body=engine if r.request.url.endswith('.js') else '')))
+        page.goto(base + path)
+        return page, seen
+
+    try:
+        with sync_api.sync_playwright() as playwright:
+            browser = playwright.chromium.launch(channel='chromium')
+            try:
+                page, seen = open_page(browser, 'tools/')                             # 🏠 nothing is asked for yet
+                page.wait_for_selector('.ui-chrome[data-js]')
+                assert seen == [] and page.locator('#chat [data-chat-input]').count() == 0
+                with page.expect_request(lambda request: request.url.startswith(CHAT.RUNTIME['pyodide'])):
+                    page.hover('#home a[href$="#chat"]')                              # a hand on the way to 💬: 🐍 starts
+                page.wait_for_selector('#chat [data-chat-input]', state='attached')
+                assert set(seen) == {'pyodide'} and page.evaluate("document.getElementById('chat').hidden")
+                page.close()
+
+                page, seen = open_page(browser, 'tools/#chat')
+                box = page.locator('#chat [data-chat-input]')
+                box.wait_for()
+                page.locator('#chat [data-chat-status]').evaluate("line => line.scrollIntoView({block: 'center'})")   # 🎥 the status line in the picture
+                cam = world.Camera(page)
+                cam.hold(700)
+                assert not [name for name in seen if name != 'pyodide'] and page.evaluate(loaded) is None   # opened: 🐍 only
+                box.focus()                                                           # the box in focus: llama.cpp itself
+                page.wait_for_function("() => performance.getEntriesByType('resource').some(e => e.name.endsWith('wasm/wllama.wasm'))")
+                assert {'index.js', 'wllama.wasm'} <= set(seen) and page.evaluate(loaded) is None
+                box.type('/a')                                                        # "/a…": the model, while the question is written
+                page.wait_for_function(f"() => /^⏳ 🐍.* · ⏳ 🤖 50% · 280 \\/ 560 MB$/.test({status})")   # 🐍 and 🤖 side by side
+                cam.hold(500)
+                box.type('sk なにか')
+                page.wait_for_function(f"() => {status}.includes('✅ 🤖 {CHAT.RUNTIME['model'].rsplit('/', 1)[-1]}')")
+                cam.hold(900)
+                assert page.evaluate(loaded) == 1 and page.evaluate("localStorage.getItem('portfolio-llm')") == CHAT.RUNTIME['model']
+                page.close()
+
+                page, seen = open_page(browser, 'tools/#chat')                        # a pointer on an /ask example: the model too
+                page.locator('#chat [data-chat-say^="/ask"]').first.hover()
+                page.wait_for_function(f'() => {loaded} === 1')
+                page.close()
+
+                kept = f"localStorage.setItem('portfolio-llm', {json.dumps(CHAT.RUNTIME['model'])});"
+                held = "navigator.storage.estimate = async () => ({usage: %d, quota: 1e10});"
+                page, seen = open_page(browser, 'tools/#chat', before=kept + held % 6e8)   # 🔁 loaded before, and still held: as it opens
+                page.wait_for_function(f'() => {loaded} === 1')
+                page.close()
+                for before in (kept + held % 1e6,                                     # the browser dropped it: not without a sign
+                               "Object.defineProperty(navigator, 'connection', {value: {saveData: true, effectiveType: '4g'}});"):   # 🪙 a line that saves data
+                    page, seen = open_page(browser, 'tools/#chat', before=before)
+                    box = page.locator('#chat [data-chat-input]')
+                    box.wait_for()
+                    if 'saveData' in before:
+                        box.type('/ask')
+                    page.wait_for_timeout(500)
+                    assert page.evaluate(loaded) is None and ('saveData' not in before or 'index.js' not in seen), before
+                    page.close()
+                gif = world.encode(cam.shots, width=392)
+            finally:
+                browser.close()
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert gif[:6] == b'GIF89a'
+    ui.gif_targets(ROOT / 'test-results' / 'chat-warm-up', ['chat-warm-up'], run_details=['timestamp'])['chat-warm-up'].write_bytes(gif)
+
+
 def test_tools_shell_has_one_normalized_return_link():
     from html.parser import HTMLParser
     from urllib.parse import urljoin
