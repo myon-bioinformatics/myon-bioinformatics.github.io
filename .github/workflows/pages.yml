@@ -98,7 +98,7 @@ jobs:
         with:
           node-version: "26"
 
-      # 🧰 Ironmate's studios, the format lab and DRAgoWing's heatmap from their default branches (tools/…, not kept in git).
+      # 🧰 The tools the cards build from other repositories (each card's build), from their default branches (tools/<id>/, not in git).
       # A tool that fails gets the ⏸ the build below writes (the 🧰 screen takes the panels in).
       - name: Record the tools built from other repositories (best effort)
         if: github.event_name != 'pull_request'
