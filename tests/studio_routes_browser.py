@@ -210,10 +210,17 @@ def test_studio_has_one_tools_destination(browser, studio_origin, mobile, route)
         page.context.close()
 
 
+@pytest.mark.parametrize("renamed", [False, True], ids=["published-api", "renamed-api"])
 @pytest.mark.parametrize("mobile", [False, True], ids=["desktop", "touch-390"])
-def test_image_shelf_sends_current_png_to_slide_in_the_same_tab(browser, studio_origin, mobile):
+def test_image_shelf_sends_current_png_to_slide_in_the_same_tab(browser, studio_origin, mobile, renamed):
     page = _page(browser, studio_origin, mobile=mobile)
     try:
+        if renamed:
+            # Make the pinned provider expose only the renamed API before the cold handoff.
+            page.add_init_script("""(() => Object.defineProperty(window, 'IronmatePhone', {
+                configurable: true,
+                set(api) { window.IronmateSlideStudio = api; delete window.IronmatePhone; }
+            }))()""")
         studio = _studio(page, studio_origin, "image-studio")
         _imported(page, studio, "画像", {"name": "fixture.png", "mimeType": "image/png", "buffer": _fixture_png()})
         layer = studio.locator("#layers button").filter(has_text="fixture.png")
@@ -229,12 +236,15 @@ def test_image_shelf_sends_current_png_to_slide_in_the_same_tab(browser, studio_
             page.wait_for_url("**/tools/#slide-studio")
             slide = page.locator("#slide-studio iframe").element_handle().content_frame()
             slide.wait_for_function("""() => {
-                const layers = window.IronmatePhone?.deck.slides[0].layers;
+                const api = window.IronmateSlideStudio ?? window.IronmatePhone;
+                const layers = api?.deck.slides[0].layers;
                 return layers?.length === 1 && layers[0].kind === 'image' && layers[0].src.startsWith('data:image/png');
             }""")
+            if renamed:
+                assert slide.evaluate("() => !window.IronmatePhone && !!window.IronmateSlideStudio")
             assert slide.evaluate("""async () => {
                 const img = new Image();
-                img.src = IronmatePhone.deck.slides[0].layers[0].src;
+                img.src = (window.IronmateSlideStudio ?? window.IronmatePhone).deck.slides[0].layers[0].src;
                 await img.decode();
                 const canvas = document.createElement('canvas');
                 canvas.width = img.width;
@@ -245,7 +255,7 @@ def test_image_shelf_sends_current_png_to_slide_in_the_same_tab(browser, studio_
             }""") == [[255, 0, 0, 255], [0, 0, 255, 255]]
             assert len(page.context.pages) == 1
             slide.locator('[data-act="undo"]').click()
-            slide.wait_for_function("() => IronmatePhone.deck.slides[0].layers.length === 0")
+            slide.wait_for_function("() => (window.IronmateSlideStudio ?? window.IronmatePhone).deck.slides[0].layers.length === 0")
             page.go_back()
             page.wait_for_url("**/tools/#image-studio")
             expect(layer).to_be_visible()
